@@ -1,4 +1,13 @@
+# import UserSelection from "./UserSelection.graphql"
+
 query {
+  admin {
+    user {
+      list {
+        ...UserSelection
+      }
+    }
+  }
   roles {
     ... on UnmanagedRole {
       id
@@ -12,9 +21,11 @@ query {
   defaultRole {
     ... on UnmanagedRole {
       id
+      name
     }
     ... on ManagedRole {
       id
+      name
     }
   }
 }

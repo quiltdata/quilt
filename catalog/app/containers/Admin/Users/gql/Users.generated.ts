@@ -2,11 +2,23 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Users_gql_RolesQueryVariables = Types.Exact<{
+import {
+  UserSelectionFragment,
+  UserSelectionFragmentDoc,
+} from './UserSelection.generated'
+
+export type containers_Admin_Users_gql_UsersQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_Users_gql_RolesQuery = { readonly __typename: 'Query' } & {
+export type containers_Admin_Users_gql_UsersQuery = { readonly __typename: 'Query' } & {
+  readonly admin: { readonly __typename: 'AdminQueries' } & {
+    readonly user: { readonly __typename: 'UserAdminQueries' } & {
+      readonly list: ReadonlyArray<
+        { readonly __typename: 'User' } & UserSelectionFragment
+      >
+    }
+  }
   readonly roles: ReadonlyArray<
     | ({ readonly __typename: 'UnmanagedRole' } & Pick<
         Types.UnmanagedRole,
@@ -15,21 +27,55 @@ export type containers_Admin_Users_gql_RolesQuery = { readonly __typename: 'Quer
     | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
   >
   readonly defaultRole: Types.Maybe<
-    | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
-    | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
+    | ({ readonly __typename: 'UnmanagedRole' } & Pick<
+        Types.UnmanagedRole,
+        'id' | 'name'
+      >)
+    | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
   >
 }
 
-export const containers_Admin_Users_gql_RolesDocument = {
+export const containers_Admin_Users_gql_UsersDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_Users_gql_Roles' },
+      name: { kind: 'Name', value: 'containers_Admin_Users_gql_Users' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'admin' },
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'user' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'list' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            {
+                              kind: 'FragmentSpread',
+                              name: { kind: 'Name', value: 'UserSelection' },
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
           {
             kind: 'Field',
             name: { kind: 'Name', value: 'roles' },
@@ -81,7 +127,10 @@ export const containers_Admin_Users_gql_RolesDocument = {
                   },
                   selectionSet: {
                     kind: 'SelectionSet',
-                    selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                    ],
                   },
                 },
                 {
@@ -92,7 +141,10 @@ export const containers_Admin_Users_gql_RolesDocument = {
                   },
                   selectionSet: {
                     kind: 'SelectionSet',
-                    selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                    ],
                   },
                 },
               ],
@@ -101,10 +153,11 @@ export const containers_Admin_Users_gql_RolesDocument = {
         ],
       },
     },
+    ...UserSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Users_gql_RolesQuery,
-  containers_Admin_Users_gql_RolesQueryVariables
+  containers_Admin_Users_gql_UsersQuery,
+  containers_Admin_Users_gql_UsersQueryVariables
 >
 
-export { containers_Admin_Users_gql_RolesDocument as default }
+export { containers_Admin_Users_gql_UsersDocument as default }
