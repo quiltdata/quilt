@@ -634,7 +634,7 @@ function Edit({ role, close }: EditProps) {
 
 interface SettingsMenuProps {
   role: Role
-  openDialog: (render: (props: DialogsOpenProps) => JSX.Element, props?: $TSFixMe) => void
+  openDialog: Dialogs.Dialogs['open']
 }
 
 function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
@@ -684,11 +684,6 @@ function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
   )
 }
 
-// XXX: move to dialogs module
-interface DialogsOpenProps {
-  close: (reason?: string) => void
-}
-
 export default function Roles() {
   const data = GQL.useQueryS(ROLES_QUERY)
   const rows = data.roles
@@ -709,7 +704,7 @@ export default function Roles() {
       title: 'Create',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        dialogs.open(({ close }: DialogsOpenProps) => <Create {...{ close }} />)
+        dialogs.open(({ close }) => <Create {...{ close }} />)
       }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
     },
   ]
@@ -726,7 +721,7 @@ export default function Roles() {
       title: 'Edit',
       icon: <M.Icon>edit</M.Icon>,
       fn: () => {
-        dialogs.open(({ close }: DialogsOpenProps) => (
+        dialogs.open(({ close }) => (
           <Edit
             {...{
               role,

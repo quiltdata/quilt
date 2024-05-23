@@ -1,9 +1,9 @@
-interface Resolver<T> {
+export interface Resolver<T> {
   resolve: (value: T | PromiseLike<T>) => void
   reject: (reason?: any) => void
 }
 
-interface Deferred<T> {
+export interface Deferred<T> {
   resolver: Resolver<T>
   promise: Promise<T>
 }

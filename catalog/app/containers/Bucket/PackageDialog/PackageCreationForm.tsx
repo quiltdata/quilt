@@ -93,12 +93,11 @@ function createReadmeFile(name: string) {
   return FI.computeHash(f) as FI.LocalFile
 }
 
-// XXX: move to dialogs module
-interface DialogsOpenProps {
-  close: (reason?: string) => void
+interface ConfirmReadmeProps {
+  close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
 }
 
-function ConfirmReadme({ close }: DialogsOpenProps) {
+function ConfirmReadme({ close }: ConfirmReadmeProps) {
   return (
     <>
       <M.DialogTitle>Add a README file?</M.DialogTitle>
@@ -311,7 +310,7 @@ function PackageCreationForm({
     const entries = filesStateToEntries(files)
 
     if (!entries.length) {
-      const reason = await dialogs.open((props: DialogsOpenProps) => (
+      const reason = await dialogs.open<'cancel' | 'empty' | 'readme'>((props) => (
         <ConfirmReadme {...props} />
       ))
       if (reason === 'cancel') return mkFormError(CANCEL)
