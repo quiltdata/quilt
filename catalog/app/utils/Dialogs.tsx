@@ -6,7 +6,7 @@ import type { Resolver } from 'utils/defer'
 
 type DialogState = 'open' | 'closing' | 'closed'
 
-type ExtraDialogProps = Omit<M.DialogProps, 'open' | 'onClose' | 'onExited'>
+export type ExtraDialogProps = Omit<M.DialogProps, 'open' | 'onClose' | 'onExited'>
 
 export type Close<R> = [R] extends [never] ? () => void : Resolver<R>['resolve']
 
@@ -24,12 +24,15 @@ export const useDialogs = () => {
 
   const open = React.useCallback(
     <R = never,>(render: Render<R>, props?: ExtraDialogProps) => {
+      if (state !== 'closed') {
+        throw new Error('Another dialog is already open')
+      }
       const { resolver, promise } = defer<R>()
       setDialog({ render, props, resolver })
       setState('open')
       return promise
     },
-    [setDialog, setState],
+    [state, setDialog, setState],
   )
 
   const close = React.useCallback(
@@ -65,3 +68,5 @@ export const useDialogs = () => {
 export const use = useDialogs
 
 export type Dialogs = ReturnType<typeof use>
+
+export type Open = Dialogs['open']
