@@ -73,6 +73,13 @@ export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderP
       const tail = data.tail.join('\n')
       try {
         const options = JSON.parse([head, tail].join('\n'))
+        if (!options.reference?.indexFile && options.reference?.fastaURL) {
+          // This is a copy of the IGV behaviour, that is a copy IGV desktop behaviour.
+          // But with a fix of a bug when after signing URLs `fastaURL` contains async thunk.
+          // `indexFile` will be discarded if reference has `indexURL`
+          // XXX: remove that after https://github.com/igvteam/igv.js/pull/1821 merged
+          options.reference.indexFile = `${options.reference.fastaURL}.fai`
+        }
         const auxOptions = await signUrls(options)
         return PreviewData.Igv({
           options: auxOptions,
