@@ -5,8 +5,12 @@ mutation ($roleName: String!) {
       name
       email
       isAdmin
-      role { name }
-      roles { name }
+      role {
+        name
+      }
+      roles {
+        name
+      }
     }
     ... on OperationError {
       message

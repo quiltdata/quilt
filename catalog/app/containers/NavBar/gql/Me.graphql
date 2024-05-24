@@ -3,7 +3,11 @@ query {
     name
     email
     isAdmin
-    role { name }
-    roles { name }
+    role {
+      name
+    }
+    roles {
+      name
+    }
   }
 }
