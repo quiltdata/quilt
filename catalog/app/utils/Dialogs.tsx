@@ -8,7 +8,7 @@ type DialogState = 'open' | 'closing' | 'closed'
 
 export type ExtraDialogProps = Omit<M.DialogProps, 'open' | 'onClose' | 'onExited'>
 
-export type Close<R> = [R] extends [never] ? () => void : Resolver<R>['resolve']
+export type Close<R = never> = [R] extends [never] ? () => void : Resolver<R>['resolve']
 
 type Render<R> = (props: { close: Close<R> }) => JSX.Element
 
