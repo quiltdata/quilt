@@ -2,7 +2,9 @@
 
 fragment UserResultSelection on UserResult {
   __typename
-  ... on User { ...UserSelection }
+  ... on User {
+    ...UserSelection
+  }
   ... on InvalidInput {
     errors {
       path
