@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
+import * as Sentry from '@sentry/react'
 
 import * as Pagination from 'components/Pagination'
 import * as Notifications from 'containers/Notifications'
@@ -68,13 +69,13 @@ function Invite({ close, roles, defaultRoleName }: InviteProps) {
 
   const onSubmit = React.useCallback(
     async ({ username, email, roleName }) => {
+      // XXX: use formspec to convert/validate form values into gql input?
+      const input = {
+        name: username,
+        email,
+        roleName,
+      }
       try {
-        // XXX: use formspec to convert/validate form values into gql input?
-        const input = {
-          name: username,
-          email,
-          roleName,
-        }
         const data = await create({ input })
         const r = data.admin.user.create
         switch (r.__typename) {
@@ -88,13 +89,6 @@ function Invite({ close, roles, defaultRoleName }: InviteProps) {
                 return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
               case 'MailSendError':
                 return { [FF.FORM_ERROR]: 'smtp' }
-              case 'Conflict':
-                if (r.message.match(/Email already taken/)) {
-                  return { email: 'taken' }
-                }
-                if (r.message.match(/Username already taken/)) {
-                  return { username: 'taken' }
-                }
             }
             throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
           case 'InvalidInput':
@@ -102,13 +96,10 @@ function Invite({ close, roles, defaultRoleName }: InviteProps) {
             r.errors.forEach((e) => {
               switch (e.path) {
                 case 'input.name':
-                  // e.name should be one of:
-                  // - InvalidUserNameError
-                  // - ReservedUserNameError
-                  errors.username = 'invalid'
+                  errors.username = e.name === 'Conflict' ? 'taken' : 'invalid'
                   break
                 case 'input.email':
-                  errors.email = 'invalid'
+                  errors.email = e.name === 'Conflict' ? 'taken' : 'invalid'
                   break
                 default:
                   throw new Error(
@@ -122,10 +113,10 @@ function Invite({ close, roles, defaultRoleName }: InviteProps) {
         }
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Error creating user')
+        console.error('Error creating user', input)
         // eslint-disable-next-line no-console
         console.dir(e)
-        // TODO: send to sentry?
+        Sentry.captureException(e)
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
@@ -257,34 +248,34 @@ function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
       try {
         const data = await setEmail({ name, email })
         const r = data.admin.user.mutate?.setEmail
-        if (!r) {
-          throw new Error()
-        }
-        // TODO: switch result
-        switch (r.__typename) {
-          // if (APIConnector.HTTPError.is(e, 400, /Another user already has that email/)) {
-          //   return {
-          //     email: 'taken',
-          //   }
-          // }
-          // if (APIConnector.HTTPError.is(e, 400, /Invalid email/)) {
-          //   return {
-          //     email: 'invalid',
-          //   }
-          // }
+        switch (r?.__typename) {
+          case 'User':
+            close()
+            push('Changes saved')
+            return
+          case undefined:
+            throw new Error('User not found') // should not happend
+          case 'OperationError':
+            if (r.name === 'EmailAlreadyInUse') return { email: 'taken' }
+            throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
+          case 'InvalidInput':
+            const [e] = r.errors
+            if (e.path === 'input.email' && e.name === 'InvalidEmail') {
+              return { email: 'invalid' }
+            }
+            throw new Error(
+              `Unexpected input error at '${e.path}': [${e.name}] ${e.message}`,
+            )
           default:
+            assertNever(r)
         }
-
-        close()
-        push('Changes saved')
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Error changing email')
+        console.error('Error changing email', { name, email })
         // eslint-disable-next-line no-console
         console.dir(e)
-        return {
-          [FF.FORM_ERROR]: 'unexpected',
-        }
+        Sentry.captureException(e)
+        return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
     [close, name, oldEmail, setEmail, push],
@@ -400,7 +391,7 @@ function Delete({ name, close }: DeleteProps) {
       console.error('Error deleting user')
       // eslint-disable-next-line no-console
       console.dir(e)
-      // TODO: send to sentry?
+      Sentry.captureException(e)
       return { [FF.FORM_ERROR]: 'unexpected' }
     }
   }, [del, name, close, push])
@@ -474,7 +465,7 @@ function ConfirmAdminRights({ name, admin, close }: ConfirmAdminRightsProps) {
             }
           })
           .catch((e) => {
-            push(`Could not change admin status for "${name}"`)
+            push(`Could not change admin status for user "${name}": ${e}`)
             // eslint-disable-next-line no-console
             console.error('Could not change user admin status', { name, admin })
             // eslint-disable-next-line no-console
@@ -704,18 +695,31 @@ function useSetActive() {
   return React.useCallback(
     async (name: string, active: boolean) => {
       try {
-        const resp = await setActive({ name, active })
-        // TODO: switch
-        switch (resp) {
+        const data = await setActive({ name, active })
+        const r = data.admin.user.mutate?.setActive
+        switch (r?.__typename) {
+          case 'User':
+            return
+          case undefined:
+            throw new Error('User not found') // should not happend
+          case 'OperationError':
+            throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
+          case 'InvalidInput':
+            const [e] = r.errors
+            throw new Error(
+              `Unexpected input error at '${e.path}': [${e.name}] ${e.message}`,
+            )
+          default:
+            assertNever(r)
         }
       } catch (e) {
-        push(`Error ${active ? 'enabling' : 'disabling'} "${name}"`)
+        push(`Could not ${active ? 'enable' : 'disable'} user "${name}": ${e}`)
         // eslint-disable-next-line no-console
         console.error('Error (de)activating user', { name, active })
         // eslint-disable-next-line no-console
         console.dir(e)
-        // TODO
-        // throw e
+        Sentry.captureException(e)
+        throw e
       }
     },
     [setActive, push],
@@ -729,17 +733,30 @@ function useSetRole() {
   return React.useCallback(
     async (name: string, roleName: string) => {
       try {
-        const resp = await setRole({ name, roleName })
-        const r = resp.admin.user.mutate?.setRole
-        // TODO: switch result
-        switch (r) {
+        const data = await setRole({ name, roleName })
+        const r = data.admin.user.mutate?.setRole
+        switch (r?.__typename) {
+          case 'User':
+            return
+          case undefined:
+            throw new Error('User not found') // should not happend
+          case 'OperationError':
+            throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
+          case 'InvalidInput':
+            const [e] = r.errors
+            throw new Error(
+              `Unexpected input error at '${e.path}': [${e.name}] ${e.message}`,
+            )
+          default:
+            assertNever(r)
         }
       } catch (e) {
-        push(`Error changing role for "${name}"`)
+        push(`Could not change role for user "${name}": ${e}`)
         // eslint-disable-next-line no-console
         console.error('Error chaging role', { name, roleName })
         // eslint-disable-next-line no-console
         console.dir(e)
+        Sentry.captureException(e)
         throw e
       }
     },
