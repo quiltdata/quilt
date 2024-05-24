@@ -286,7 +286,7 @@ function UserDropdown({ user }: UserDropdownProps) {
     [setAnchor],
   )
 
-  const closeDropdown = React.useCallback(() => {
+  const close = React.useCallback(() => {
     setVisible(false)
     setAnchor(null)
   }, [setAnchor])
@@ -296,13 +296,13 @@ function UserDropdown({ user }: UserDropdownProps) {
   const showBookmarks = React.useCallback(() => {
     if (!bookmarks) return
     bookmarks.show()
-    closeDropdown()
-  }, [bookmarks, closeDropdown])
+    close()
+  }, [bookmarks, close])
 
-  const showRolesSwitcher = React.useCallback(
-    () => openDialog(() => <RolesSwitcher user={user} />, SWITCH_ROLES_DIALOG_PROPS),
-    [openDialog, user],
-  )
+  const showRolesSwitcher = React.useCallback(() => {
+    openDialog(() => <RolesSwitcher user={user} />, SWITCH_ROLES_DIALOG_PROPS)
+    close()
+  }, [openDialog, close, user])
 
   React.useEffect(() => {
     const hasUpdates = bookmarks?.hasUpdates || false
@@ -319,7 +319,7 @@ function UserDropdown({ user }: UserDropdownProps) {
       </M.Button>
 
       <M.MuiThemeProvider theme={style.appTheme}>
-        <M.Menu anchorEl={anchor} open={!!anchor} onClose={closeDropdown}>
+        <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {bookmarks && (
             <Item onClick={showBookmarks}>
               <Badge color="secondary" invisible={!visible}>
@@ -334,16 +334,16 @@ function UserDropdown({ user }: UserDropdownProps) {
             </Item>
           )}
           {user.isAdmin && (
-            <Item to={urls.admin()} onClick={closeDropdown} selected={isAdmin} divider>
+            <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
               <M.Icon fontSize="small">security</M.Icon>&nbsp;Admin settings
             </Item>
           )}
           {cfg.mode === 'OPEN' && (
-            <Item to={urls.profile()} onClick={closeDropdown} selected={isProfile}>
+            <Item to={urls.profile()} onClick={close} selected={isProfile}>
               Profile
             </Item>
           )}
-          <Item to={urls.signOut()} onClick={closeDropdown}>
+          <Item to={urls.signOut()} onClick={close}>
             Sign Out
           </Item>
         </M.Menu>
