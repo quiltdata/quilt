@@ -500,7 +500,23 @@ type AdminQueries {
   user: UserAdminQueries!
 }
 
+type MyRole {
+  name: String!
+}
+
+type Me {
+  name: String!
+  email: String!
+  isAdmin: Boolean!
+  role: MyRole!
+  roles: [MyRole!]!
+}
+
+union SwitchRoleResult = Me | OperationError
+
 type Query {
+  me: Me!
+
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
@@ -845,6 +861,8 @@ type AdminMutations {
 }
 
 type Mutation {
+  switchRole(roleName: String!): SwitchRoleResult!
+
   packageConstruct(
     params: PackagePushParams!
     src: PackageConstructSource!

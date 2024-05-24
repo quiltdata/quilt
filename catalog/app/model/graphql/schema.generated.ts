@@ -1351,6 +1351,79 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'Me',
+        fields: [
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'email',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'isAdmin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'role',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'MyRole',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'roles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'MyRole',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'MutateUserAdminMutations',
         fields: [
           {
@@ -1477,6 +1550,30 @@ export default {
         kind: 'OBJECT',
         name: 'Mutation',
         fields: [
+          {
+            name: 'switchRole',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'SwitchRoleResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'roleName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
           {
             name: 'packageConstruct',
             type: {
@@ -2075,6 +2172,25 @@ export default {
                 },
               },
             ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'MyRole',
+        fields: [
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
           },
         ],
         interfaces: [],
@@ -3501,6 +3617,18 @@ export default {
         name: 'Query',
         fields: [
           {
+            name: 'me',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Me',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'config',
             type: {
               kind: 'NON_NULL',
@@ -4767,6 +4895,20 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'SwitchRoleResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Me',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
