@@ -20,6 +20,13 @@ export type UserSelectionFragment = { readonly __typename: 'User' } & Pick<
         >)
       | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
     >
+    readonly roles: ReadonlyArray<
+      | ({ readonly __typename: 'UnmanagedRole' } & Pick<
+          Types.UnmanagedRole,
+          'id' | 'name'
+        >)
+      | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
+    >
   }
 
 export const UserSelectionFragmentDoc = {
@@ -44,6 +51,44 @@ export const UserSelectionFragmentDoc = {
           {
             kind: 'Field',
             name: { kind: 'Name', value: 'role' },
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'ManagedRole' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'UnmanagedRole' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'roles' },
             selectionSet: {
               kind: 'SelectionSet',
               selections: [

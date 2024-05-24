@@ -19,4 +19,15 @@ fragment UserSelection on User {
       name
     }
   }
+  roles {
+    __typename
+    ... on ManagedRole {
+      id
+      name
+    }
+    ... on UnmanagedRole {
+      id
+      name
+    }
+  }
 }
