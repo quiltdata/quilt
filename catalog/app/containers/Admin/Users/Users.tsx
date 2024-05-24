@@ -23,7 +23,7 @@ import USERS_QUERY from './gql/Users.generated'
 import USER_CREATE_MUTATION from './gql/UserCreate.generated'
 import USER_DELETE_MUTATION from './gql/UserDelete.generated'
 import USER_SET_EMAIL_MUTATION from './gql/UserSetEmail.generated'
-import USER_SET_ROLE_MUTATION from './gql/UserSetRole.generated'
+import USER_SET_ROLES_MUTATION from './gql/UserSetRoles.generated'
 import USER_SET_ACTIVE_MUTATION from './gql/UserSetActive.generated'
 import USER_SET_ADMIN_MUTATION from './gql/UserSetAdmin.generated'
 
@@ -524,6 +524,156 @@ function Username({ className, admin = false, children, ...props }: UsernameProp
   )
 }
 
+interface EditRolesProps {
+  close: Dialogs.Close
+  roles: readonly Role[]
+  user: User
+}
+
+function EditRoles({ close, roles, user }: EditRolesProps) {
+  const { push } = Notifications.use()
+  const setRoles = GQL.useMutation(USER_SET_ROLES_MUTATION)
+
+  const onSubmit = React.useCallback(
+    async (values) => {
+      // console.log('submit', values)
+      // XXX: use formspec to convert/validate form values into gql input?
+      const input = {
+        name: user.name,
+        roleNames: values.roles.map((r: Role) => r.name),
+        activeRoleName: values.roles[0].name,
+      }
+      try {
+        const data = await setRoles(input)
+        const r = data.admin.user.mutate?.setRoles
+        switch (r?.__typename) {
+          case undefined:
+            throw new Error('User not found') // should not happend
+          case 'User':
+            close()
+            push('Changes saved')
+            return
+          case 'OperationError':
+            // TODO
+            throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
+          case 'InvalidInput':
+            // TODO
+            const [e] = r.errors
+            throw new Error(
+              `Unexpected input error at '${e.path}': [${e.name}] ${e.message}`,
+            )
+          default:
+            return assertNever(r)
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Error setting roles for user', input)
+        // eslint-disable-next-line no-console
+        console.dir(e)
+        Sentry.captureException(e)
+        return { [FF.FORM_ERROR]: 'unexpected' }
+      }
+    },
+    [push, close, setRoles, user.name],
+  )
+
+  const handleToggle = (selected: Role[], role: Role) =>
+    selected.find((r) => r.id === role.id)
+      ? selected.filter((r) => r.id !== role.id)
+      : [...selected, role]
+
+  return (
+    <RF.Form onSubmit={onSubmit} initialValues={{ roles: user.roles, role: user.role }}>
+      {({
+        handleSubmit,
+        submitting,
+        submitError,
+        submitFailed,
+        error,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
+      }) => (
+        <>
+          <M.DialogTitle>Configure roles for {user.name}</M.DialogTitle>
+          <M.DialogContent>
+            <form onSubmit={handleSubmit}>
+              <RF.Field<Role[]>
+                name="roles"
+                // validate={validators.required as FF.FieldValidator<any>}
+                // errors={{
+                //   required: 'Enter a username',
+                //   taken: 'Username already taken',
+                //   invalid: (
+                //     <>
+                //       Enter a valid username{' '}
+                //       <M.Tooltip
+                //         arrow
+                //         title="Must start with a letter or underscore, and contain only alphanumeric characters and underscores thereafter"
+                //       >
+                //         <M.Icon className={classes.infoIcon}>info</M.Icon>
+                //       </M.Tooltip>
+                //     </>
+                //   ),
+                // }}
+                // autoComplete="off"
+              >
+                {({ input: { onChange, value } }) => (
+                  <M.List>
+                    {roles.map((role) => (
+                      <M.ListItem
+                        key={role.id}
+                        dense
+                        button
+                        onClick={() => onChange(handleToggle(value, role))}
+                      >
+                        <M.ListItemIcon>
+                          <M.Checkbox
+                            edge="start"
+                            checked={!!value.find((r) => r.id === role.id)}
+                            tabIndex={-1}
+                            disableRipple
+                          />
+                        </M.ListItemIcon>
+                        <M.ListItemText primary={role.name} />
+                      </M.ListItem>
+                    ))}
+                  </M.List>
+                )}
+              </RF.Field>
+              {(!!error || !!submitError) && (
+                <Form.FormError
+                  error={error || submitError}
+                  errors={{
+                    unexpected: 'Something went wrong',
+                  }}
+                />
+              )}
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button onClick={close} color="primary" disabled={submitting}>
+              Cancel
+            </M.Button>
+            <M.Button
+              onClick={handleSubmit}
+              color="primary"
+              disabled={
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
+              }
+            >
+              Save
+            </M.Button>
+          </M.DialogActions>
+        </>
+      )}
+    </RF.Form>
+  )
+}
+
 interface EditableRenderProps<T> {
   change: (v: T) => void
   busy: boolean
@@ -574,7 +724,6 @@ const emptyRole = '<None>'
 interface ColumnDisplayProps {
   roles: readonly Role[]
   setActive: (name: string, active: boolean) => Promise<void>
-  setRole: (name: string, roleName: string) => Promise<void>
   openDialog: Dialogs.Open
   isSelf: boolean
 }
@@ -616,23 +765,15 @@ const columns: Table.Column<User>[] = [
     id: 'role',
     label: 'Role',
     getValue: (u) => u.role?.name,
-    getDisplay: (v: string | undefined, u, { roles, setRole }: ColumnDisplayProps) => (
-      <Editable value={v ?? emptyRole} onChange={(role) => setRole(u.name, role)}>
-        {({ change, busy, value }) => (
-          <M.Select
-            value={value}
-            onChange={(e) => change(e.target.value as string)}
-            disabled={busy}
-            renderValue={R.identity}
-          >
-            {roles.map((r) => (
-              <M.MenuItem value={r.name} key={r.id}>
-                {r.name}
-              </M.MenuItem>
-            ))}
-          </M.Select>
-        )}
-      </Editable>
+    getDisplay: (v: string | undefined, u, { roles, openDialog }: ColumnDisplayProps) => (
+      <div
+        onClick={() =>
+          openDialog(({ close }) => <EditRoles {...{ close, roles, user: u }} />)
+        }
+      >
+        {v ?? emptyRole}
+        {u.roles.length > 1 && <span> +{u.roles.length - 1}</span>}
+      </div>
     ),
   },
   {
@@ -726,44 +867,6 @@ function useSetActive() {
   )
 }
 
-function useSetRole() {
-  const { push } = Notifications.use()
-  const setRole = GQL.useMutation(USER_SET_ROLE_MUTATION)
-
-  return React.useCallback(
-    async (name: string, roleName: string) => {
-      try {
-        const data = await setRole({ name, roleName })
-        const r = data.admin.user.mutate?.setRole
-        switch (r?.__typename) {
-          case 'User':
-            return
-          case undefined:
-            throw new Error('User not found') // should not happend
-          case 'OperationError':
-            throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
-          case 'InvalidInput':
-            const [e] = r.errors
-            throw new Error(
-              `Unexpected input error at '${e.path}': [${e.name}] ${e.message}`,
-            )
-          default:
-            assertNever(r)
-        }
-      } catch (e) {
-        push(`Could not change role for user "${name}": ${e}`)
-        // eslint-disable-next-line no-console
-        console.error('Error chaging role', { name, roleName })
-        // eslint-disable-next-line no-console
-        console.dir(e)
-        Sentry.captureException(e)
-        throw e
-      }
-    },
-    [setRole, push],
-  )
-}
-
 export default function Users() {
   const data = GQL.useQueryS(USERS_QUERY)
   const rows = data.admin.user.list
@@ -773,7 +876,6 @@ export default function Users() {
   const openDialog = Dialogs.use()
 
   const setActive = useSetActive()
-  const setRole = useSetRole()
 
   const filtering = Table.useFiltering({
     rows,
@@ -825,7 +927,6 @@ export default function Users() {
   ]
 
   const getDisplayProps = (u: User): ColumnDisplayProps => ({
-    setRole,
     setActive,
     roles,
     openDialog,
