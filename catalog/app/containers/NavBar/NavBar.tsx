@@ -19,12 +19,14 @@ import * as Dialogs from 'utils/GlobalDialogs'
 import * as GQL from 'utils/GraphQL'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
 
 import bg from './bg.png'
 
 import Controls from './Controls'
 import * as Subscription from './Subscription'
 import ME_QUERY from './gql/Me.generated'
+import SWITCH_ROLE_MUTATION from './gql/SwitchRole.generated'
 
 type MaybeMe = GQL.DataForDoc<typeof ME_QUERY>['me']
 type Me = NonNullable<MaybeMe>
@@ -201,18 +203,33 @@ interface RolesSwitcherProps {
   close: Dialogs.Close<never>
 }
 
-function RolesSwitcher({ close, user }: RolesSwitcherProps) {
+function RolesSwitcher({ /*close, */ user }: RolesSwitcherProps) {
+  const switchRole = GQL.useMutation(SWITCH_ROLE_MUTATION)
   const classes = useRolesSwitcherStyles()
   const textClasses = useListItemTextStyles()
   const [clicked, setClicked] = React.useState(false)
-  const handleClick = React.useCallback(() => {
-    setClicked(true)
-    setTimeout(() => {
-      close()
-      window.location.reload()
-    }, 1000)
-  }, [close])
-  // TODO: don't show role switcher if only one role
+  const handleClick = React.useCallback(
+    async (roleName: string) => {
+      setClicked(true)
+      try {
+        const { switchRole: r } = await switchRole({ roleName })
+        switch (r.__typename) {
+          case 'Me':
+            break
+          case 'OperationError':
+          case 'InvalidInput':
+            throw new Error(JSON.stringify(r))
+          default:
+            assertNever(r)
+        }
+        window.location.reload()
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log('Error switching role', err)
+      }
+    },
+    [switchRole],
+  )
   return (
     <>
       <M.DialogTitle>Switch role</M.DialogTitle>
@@ -227,7 +244,7 @@ function RolesSwitcher({ close, user }: RolesSwitcherProps) {
               button
               disabled={role.name === user.role.name}
               key={role.name}
-              onClick={handleClick}
+              onClick={() => handleClick(role.name)}
               selected={role.name === user.role.name}
             >
               <M.ListItemText classes={textClasses}>{role.name}</M.ListItemText>
