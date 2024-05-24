@@ -16,6 +16,7 @@ export type containers_NavBar_gql_SwitchRoleMutation = {
             { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
           >
         })
+    | { readonly __typename: 'InvalidInput' }
     | ({ readonly __typename: 'OperationError' } & Pick<
         Types.OperationError,
         'message' | 'name'
