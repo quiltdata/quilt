@@ -132,6 +132,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           PackagesSearchResultSet: () => null,
           InvalidInput: () => null,
           InputError: () => null,
+          Me: (me) => me.name as string,
+          MyRole: (r) => r.name as string,
           User: (u) => (u.name as string) ?? null,
           AdminQueries: () => null,
           UserAdminQueries: () => null,
