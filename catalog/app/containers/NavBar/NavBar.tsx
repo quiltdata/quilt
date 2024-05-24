@@ -201,44 +201,40 @@ const useListItemTextStyles = M.makeStyles((t) => ({
 
 interface RolesSwitcherProps {
   user: Me
-  close: Dialogs.Close<never>
 }
 
-function RolesSwitcher({ close, user }: RolesSwitcherProps) {
+function RolesSwitcher({ user }: RolesSwitcherProps) {
+  const switchRole = GQL.useMutation(SWITCH_ROLE_MUTATION)
   const classes = useRolesSwitcherStyles()
   const textClasses = useListItemTextStyles()
   const loading = true
   const [state, setState] = React.useState<Error | typeof loading | null>(null)
-  const switchRole = GQL.useMutation(SWITCH_ROLE_MUTATION)
   const handleClick = React.useCallback(
     async (roleName: string) => {
       setState(loading)
       try {
         const { switchRole: r } = await switchRole({ roleName })
         switch (r.__typename) {
-          case 'Me': {
-            close()
-            return window.location.reload()
-          }
+          case 'Me':
+            window.location.reload()
+            break
           case 'InvalidInput':
-          case 'OperationError': {
-            return setState(new Error('Failed to switch role. Try again'))
-          }
-          default: {
-            return assertNever(r)
-          }
+          case 'OperationError':
+            throw new Error('Failed to switch role. Try again')
+          default:
+            assertNever(r)
         }
-      } catch (e) {
+      } catch (err) {
         // eslint-disable-next-line no-console
-        console.error(e)
-        if (e instanceof Error) {
-          setState(e)
+        console.error('Error switching role', err)
+        if (err instanceof Error) {
+          setState(err)
         } else {
-          setState(new Error('Unexpected'))
+          setState(new Error('Unexpected error switching role'))
         }
       }
     },
-    [close, loading, switchRole],
+    [loading, switchRole],
   )
   return (
     <>
@@ -252,6 +248,7 @@ function RolesSwitcher({ close, user }: RolesSwitcherProps) {
             {user.roles.map((role) => (
               <M.ListItem
                 button
+                disabled={role.name === user.role.name}
                 key={role.name}
                 onClick={() => handleClick(role.name)}
                 selected={role.name === user.role.name}
@@ -303,11 +300,7 @@ function UserDropdown({ user }: UserDropdownProps) {
   }, [bookmarks, closeDropdown])
 
   const showRolesSwitcher = React.useCallback(
-    () =>
-      openDialog(
-        ({ close }) => <RolesSwitcher {...{ user, close }} />,
-        SWITCH_ROLES_DIALOG_PROPS,
-      ),
+    () => openDialog(() => <RolesSwitcher user={user} />, SWITCH_ROLES_DIALOG_PROPS),
     [openDialog, user],
   )
 
