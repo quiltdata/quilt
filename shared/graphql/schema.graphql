@@ -200,7 +200,8 @@ type User {
   isAdmin: Boolean!
   isSsoOnly: Boolean!
   isService: Boolean!
-  role: Role
+  role: Role # XXX: activeRole?
+  roles: [Role!]! # XXX: better name
 }
 
 type AccessCountForDate {
@@ -512,10 +513,10 @@ type Me {
   roles: [MyRole!]!
 }
 
-union SwitchRoleResult = Me | OperationError
+union SwitchRoleResult = Me | InvalidInput | OperationError
 
 type Query {
-  me: Me!
+  me: Me
 
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -846,6 +847,7 @@ type MutateUserAdminMutations {
   delete: OperationResult!
   setEmail(email: String!): UserResult!
   setRole(roleName: String): UserResult!
+  setRoles(roleNames: [String!]!, activeRoleName: String!): UserResult!
   setAdmin(admin: Boolean!): UserResult!
   setActive(active: Boolean!): UserResult!
   resetPassword: OperationResult!
