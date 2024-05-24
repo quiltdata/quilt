@@ -1,0 +1,9 @@
+query {
+  me {
+    name
+    email
+    isAdmin
+    role { name }
+    roles { name }
+  }
+}
