@@ -6,6 +6,7 @@ import { Link, useRouteMatch } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
@@ -19,12 +20,14 @@ import * as Dialogs from 'utils/GlobalDialogs'
 import * as GQL from 'utils/GraphQL'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
 
 import bg from './bg.png'
 
 import Controls from './Controls'
 import * as Subscription from './Subscription'
 import ME_QUERY from './gql/Me.generated'
+import SWITCH_ROLE_MUTATION from './gql/SwitchRole.generated'
 
 type MaybeMe = GQL.DataForDoc<typeof ME_QUERY>['me']
 type Me = NonNullable<MaybeMe>
@@ -204,36 +207,64 @@ interface RolesSwitcherProps {
 function RolesSwitcher({ close, user }: RolesSwitcherProps) {
   const classes = useRolesSwitcherStyles()
   const textClasses = useListItemTextStyles()
-  const [clicked, setClicked] = React.useState(false)
-  const handleClick = React.useCallback(() => {
-    setClicked(true)
-    setTimeout(() => {
-      close()
-      window.location.reload()
-    }, 1000)
-  }, [close])
-  // TODO: don't show role switcher if only one role
+  const loading = true
+  const [state, setState] = React.useState<Error | typeof loading | null>(null)
+  const switchRole = GQL.useMutation(SWITCH_ROLE_MUTATION)
+  const handleClick = React.useCallback(
+    async (roleName: string) => {
+      setState(loading)
+      try {
+        const { switchRole: r } = await switchRole({ roleName })
+        switch (r.__typename) {
+          case 'Me': {
+            close()
+            return window.location.reload()
+          }
+          case 'InvalidInput':
+          case 'OperationError': {
+            return setState(new Error('Failed to switch role. Try again'))
+          }
+          default: {
+            return assertNever(r)
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e)
+        if (e instanceof Error) {
+          setState(e)
+        } else {
+          setState(new Error('Unexpected'))
+        }
+      }
+    },
+    [close, loading, switchRole],
+  )
   return (
     <>
       <M.DialogTitle>Switch role</M.DialogTitle>
-      {clicked ? (
+      {state !== true ? (
+        <>
+          {state instanceof Error && (
+            <Lab.Alert severity="error">{state.message}</Lab.Alert>
+          )}
+          <M.List>
+            {user.roles.map((role) => (
+              <M.ListItem
+                button
+                key={role.name}
+                onClick={() => handleClick(role.name)}
+                selected={role.name === user.role.name}
+              >
+                <M.ListItemText classes={textClasses}>{role.name}</M.ListItemText>
+              </M.ListItem>
+            ))}
+          </M.List>
+        </>
+      ) : (
         <div className={classes.progress}>
           <M.CircularProgress size={48} />
         </div>
-      ) : (
-        <M.List>
-          {user.roles.map((role) => (
-            <M.ListItem
-              button
-              disabled={role.name === user.role.name}
-              key={role.name}
-              onClick={handleClick}
-              selected={role.name === user.role.name}
-            >
-              <M.ListItemText classes={textClasses}>{role.name}</M.ListItemText>
-            </M.ListItem>
-          ))}
-        </M.List>
       )}
     </>
   )
