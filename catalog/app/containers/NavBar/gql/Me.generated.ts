@@ -5,15 +5,14 @@ import * as Types from '../../../model/graphql/types.generated'
 export type containers_NavBar_gql_MeQueryVariables = Types.Exact<{ [key: string]: never }>
 
 export type containers_NavBar_gql_MeQuery = { readonly __typename: 'Query' } & {
-  readonly me: { readonly __typename: 'Me' } & Pick<
-    Types.Me,
-    'name' | 'email' | 'isAdmin'
-  > & {
-      readonly role: { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
-      readonly roles: ReadonlyArray<
-        { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
-      >
-    }
+  readonly me: Types.Maybe<
+    { readonly __typename: 'Me' } & Pick<Types.Me, 'name' | 'email' | 'isAdmin'> & {
+        readonly role: { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
+        readonly roles: ReadonlyArray<
+          { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
+        >
+      }
+  >
 }
 
 export const containers_NavBar_gql_MeDocument = {
