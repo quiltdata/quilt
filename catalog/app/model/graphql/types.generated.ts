@@ -333,6 +333,7 @@ export interface MutateUserAdminMutations {
   readonly delete: OperationResult
   readonly setEmail: UserResult
   readonly setRole: UserResult
+  readonly setRoles: UserResult
   readonly setAdmin: UserResult
   readonly setActive: UserResult
   readonly resetPassword: OperationResult
@@ -344,6 +345,11 @@ export interface MutateUserAdminMutationssetEmailArgs {
 
 export interface MutateUserAdminMutationssetRoleArgs {
   roleName: Maybe<Scalars['String']>
+}
+
+export interface MutateUserAdminMutationssetRolesArgs {
+  roleNames: ReadonlyArray<Scalars['String']>
+  activeRoleName: Scalars['String']
 }
 
 export interface MutateUserAdminMutationssetAdminArgs {
@@ -815,7 +821,7 @@ export type PolicyResult = Policy | InvalidInput | OperationError
 
 export interface Query {
   readonly __typename: 'Query'
-  readonly me: Me
+  readonly me: Maybe<Me>
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
@@ -1074,7 +1080,7 @@ export interface SubscriptionState {
   readonly timestamp: Scalars['Datetime']
 }
 
-export type SwitchRoleResult = Me | OperationError
+export type SwitchRoleResult = Me | InvalidInput | OperationError
 
 export interface TestStats {
   readonly __typename: 'TestStats'
@@ -1133,6 +1139,7 @@ export interface User {
   readonly isSsoOnly: Scalars['Boolean']
   readonly isService: Scalars['Boolean']
   readonly role: Maybe<Role>
+  readonly roles: ReadonlyArray<Role>
 }
 
 export interface UserAdminMutations {

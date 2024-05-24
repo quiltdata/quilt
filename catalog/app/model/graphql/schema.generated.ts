@@ -1484,6 +1484,47 @@ export default {
             ],
           },
           {
+            name: 'setRoles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'UserResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'roleNames',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'LIST',
+                    ofType: {
+                      kind: 'NON_NULL',
+                      ofType: {
+                        kind: 'SCALAR',
+                        name: 'String',
+                        ofType: null,
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                name: 'activeRoleName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'setAdmin',
             type: {
               kind: 'NON_NULL',
@@ -3619,12 +3660,9 @@ export default {
           {
             name: 'me',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'Me',
-                ofType: null,
-              },
+              kind: 'OBJECT',
+              name: 'Me',
+              ofType: null,
             },
             args: [],
           },
@@ -4906,6 +4944,10 @@ export default {
           },
           {
             kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
             name: 'OperationError',
           },
         ],
@@ -5203,6 +5245,24 @@ export default {
               kind: 'UNION',
               name: 'Role',
               ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'roles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'Role',
+                    ofType: null,
+                  },
+                },
+              },
             },
             args: [],
           },
