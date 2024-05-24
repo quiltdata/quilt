@@ -1,0 +1,16 @@
+mutation ($roleName: String!) {
+  switchRole(roleName: $roleName) {
+    __typename
+    ... on Me {
+      name
+      email
+      isAdmin
+      role { name }
+      roles { name }
+    }
+    ... on OperationError {
+      message
+      name
+    }
+  }
+}
