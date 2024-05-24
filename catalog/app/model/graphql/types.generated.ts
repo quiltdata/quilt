@@ -319,6 +319,15 @@ export interface ManagedRoleInput {
   readonly policies: ReadonlyArray<Scalars['ID']>
 }
 
+export interface Me {
+  readonly __typename: 'Me'
+  readonly name: Scalars['String']
+  readonly email: Scalars['String']
+  readonly isAdmin: Scalars['Boolean']
+  readonly role: MyRole
+  readonly roles: ReadonlyArray<MyRole>
+}
+
 export interface MutateUserAdminMutations {
   readonly __typename: 'MutateUserAdminMutations'
   readonly delete: OperationResult
@@ -347,6 +356,7 @@ export interface MutateUserAdminMutationssetActiveArgs {
 
 export interface Mutation {
   readonly __typename: 'Mutation'
+  readonly switchRole: SwitchRoleResult
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
@@ -368,6 +378,10 @@ export interface Mutation {
   readonly browsingSessionCreate: BrowsingSessionCreateResult
   readonly browsingSessionRefresh: BrowsingSessionRefreshResult
   readonly browsingSessionDispose: BrowsingSessionDisposeResult
+}
+
+export interface MutationswitchRoleArgs {
+  roleName: Scalars['String']
 }
 
 export interface MutationpackageConstructArgs {
@@ -459,6 +473,11 @@ export interface MutationbrowsingSessionRefreshArgs {
 
 export interface MutationbrowsingSessionDisposeArgs {
   id: Scalars['ID']
+}
+
+export interface MyRole {
+  readonly __typename: 'MyRole'
+  readonly name: Scalars['String']
 }
 
 export interface NotificationConfigurationError {
@@ -796,6 +815,7 @@ export type PolicyResult = Policy | InvalidInput | OperationError
 
 export interface Query {
   readonly __typename: 'Query'
+  readonly me: Me
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
@@ -1053,6 +1073,8 @@ export interface SubscriptionState {
   readonly active: Scalars['Boolean']
   readonly timestamp: Scalars['Datetime']
 }
+
+export type SwitchRoleResult = Me | OperationError
 
 export interface TestStats {
   readonly __typename: 'TestStats'
