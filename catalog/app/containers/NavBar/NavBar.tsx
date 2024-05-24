@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -25,7 +26,20 @@ import Controls from './Controls'
 import * as Subscription from './Subscription'
 import ME_QUERY from './gql/Me.generated'
 
-type CurrentUser = GQL.DataForDoc<typeof ME_QUERY>['me']
+type MaybeMe = GQL.DataForDoc<typeof ME_QUERY>['me']
+type Me = NonNullable<MaybeMe>
+
+function useMe(pause: boolean) {
+  const res = GQL.useQuery(ME_QUERY, undefined, { pause })
+  return GQL.fold(res, {
+    data: (d) => {
+      invariant(d.me, 'Expected "me" to be non-null')
+      return d.me
+    },
+    fetching: () => 'fetching' as const,
+    error: () => 'error' as const,
+  })
+}
 
 const SWITCH_ROLES_DIALOG_PROPS: Dialogs.ExtraDialogProps = {
   maxWidth: 'sm',
@@ -125,12 +139,7 @@ const Item = React.forwardRef(
   },
 )
 
-const selectUser = createStructuredSelector({
-  name: authSelectors.username,
-  isAdmin: authSelectors.isAdmin,
-})
-
-const userDisplay = (user: $TSFixMe) => (
+const userDisplay = (user: Me) => (
   <>
     {user.isAdmin && (
       <>
@@ -188,7 +197,7 @@ const useListItemTextStyles = M.makeStyles((t) => ({
 }))
 
 interface RolesSwitcherProps {
-  user: CurrentUser
+  user: Me
   close: Dialogs.Close<never>
 }
 
@@ -203,6 +212,7 @@ function RolesSwitcher({ close, user }: RolesSwitcherProps) {
       window.location.reload()
     }, 1000)
   }, [close])
+  // TODO: don't show role switcher if only one role
   return (
     <>
       <M.DialogTitle>Switch role</M.DialogTitle>
@@ -230,7 +240,7 @@ function RolesSwitcher({ close, user }: RolesSwitcherProps) {
 }
 
 interface UserDropdownProps {
-  user: CurrentUser
+  user: Me
 }
 
 function UserDropdown({ user }: UserDropdownProps) {
@@ -294,7 +304,7 @@ function UserDropdown({ user }: UserDropdownProps) {
               &nbsp;Bookmarks
             </Item>
           )}
-          {user.roles.length && (
+          {user.roles.length > 1 && (
             <Item onClick={showRolesSwitcher}>
               <M.Icon fontSize="small">loop</M.Icon>&nbsp;Switch role
             </Item>
@@ -365,58 +375,59 @@ interface AuthHamburgerProps {
 }
 
 function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
-  const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRouteMatch({ path: paths.profile, exact: true })
   const isAdmin = !!useRouteMatch(paths.admin)
   const ham = useHam()
   const links = useLinks()
+
+  const user = useMe(!authenticated || waiting)
+
+  let children: React.ReactNode[] = []
+  if (!authenticated || user === 'error') {
+    children = [
+      <Item to={urls.signIn()} onClick={ham.close} key="sign-in">
+        {error && (
+          <>
+            <M.Icon>error_outline</M.Icon>{' '}
+          </>
+        )}
+        Sign In
+      </Item>,
+    ]
+  } else if (waiting || user === 'fetching') {
+    children = [
+      <Item onClick={ham.close} key="progress">
+        <M.CircularProgress />
+      </Item>,
+    ]
+  } else {
+    children = [
+      <M.MenuItem key="user" component="div">
+        {userDisplay(user)}
+      </M.MenuItem>,
+      user.isAdmin && (
+        <Item key="admin" to={urls.admin()} onClick={ham.close} selected={isAdmin}>
+          <M.Box component="span" pr={2} />
+          <M.Icon fontSize="small">security</M.Icon>
+          &nbsp;Admin settings
+        </Item>
+      ),
+      cfg.mode === 'OPEN' && (
+        <Item key="profile" to={urls.profile()} onClick={ham.close} selected={isProfile}>
+          <M.Box component="span" pr={2} />
+          Profile
+        </Item>
+      ),
+      <Item key="signout" to={urls.signOut()} onClick={ham.close}>
+        <M.Box component="span" pr={2} />
+        Sign Out
+      </Item>,
+    ]
+  }
+
   return ham.render([
-    ...// eslint-disable-next-line no-nested-ternary
-    (authenticated
-      ? [
-          <M.MenuItem key="user" component="div">
-            {userDisplay(user)}
-          </M.MenuItem>,
-          user.isAdmin && (
-            <Item key="admin" to={urls.admin()} onClick={ham.close} selected={isAdmin}>
-              <M.Box component="span" pr={2} />
-              <M.Icon fontSize="small">security</M.Icon>
-              &nbsp;Admin settings
-            </Item>
-          ),
-          cfg.mode === 'OPEN' && (
-            <Item
-              key="profile"
-              to={urls.profile()}
-              onClick={ham.close}
-              selected={isProfile}
-            >
-              <M.Box component="span" pr={2} />
-              Profile
-            </Item>
-          ),
-          <Item key="signout" to={urls.signOut()} onClick={ham.close}>
-            <M.Box component="span" pr={2} />
-            Sign Out
-          </Item>,
-        ]
-      : waiting
-      ? [
-          <Item onClick={ham.close} key="progress">
-            <M.CircularProgress />
-          </Item>,
-        ]
-      : [
-          <Item to={urls.signIn()} onClick={ham.close} key="sign-in">
-            {error && (
-              <>
-                <M.Icon>error_outline</M.Icon>{' '}
-              </>
-            )}
-            Sign In
-          </Item>,
-        ]),
+    ...children,
     <M.Divider key="divider" />,
     ...links.map(({ label, ...rest }) => (
       <Item key={`${label}:${rest.to || rest.href}`} {...rest} onClick={ham.close}>
@@ -693,30 +704,7 @@ export function NavBar() {
   const classes = useNavBarStyles()
   const sub = Subscription.useState()
 
-  const userLegacy = redux.useSelector(selectUser)
-  const user = {
-    __typename: 'Me',
-    email: 'FIXME@FIX.ME',
-    role: {
-      __typename: 'MyRole',
-      name: 'ReadWriteQuilt',
-    },
-    roles: [
-      {
-        __typename: 'MyRole',
-        name: 'ReadQuilt',
-      },
-      {
-        __typename: 'MyRole',
-        name: 'ReadWriteQuilt',
-      },
-      {
-        __typename: 'MyRole',
-        name: 'InternalFrameInternalFrameTitlePaneInternalFrameTitlePaneMaximizeButtonWindowNotFocusedState',
-      },
-    ],
-    ...userLegacy,
-  } as CurrentUser
+  const user = useMe(!authenticated || waiting)
 
   return (
     <Container>
@@ -760,10 +748,11 @@ export function NavBar() {
       {!cfg.disableNavigator &&
         cfg.mode !== 'LOCAL' &&
         !useHamburger &&
-        (authenticated ? (
+        (authenticated && user !== 'error' && user !== 'fetching' ? (
+          // TODO: refactor gql query states
           <UserDropdown user={user} />
         ) : (
-          !isSignIn && <SignIn error={error} waiting={waiting} />
+          !isSignIn && <SignIn error={error} waiting={waiting || user === 'fetching'} />
         ))}
 
       {useHamburger &&
