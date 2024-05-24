@@ -14,6 +14,8 @@ import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import * as Dialogs from 'utils/GlobalDialogs'
+import * as GQL from 'utils/GraphQL'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -21,6 +23,14 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 import * as Subscription from './Subscription'
+import ME_QUERY from './gql/Me.generated'
+
+type CurrentUser = GQL.DataForDoc<typeof ME_QUERY>['me']
+
+const SWITCH_ROLES_DIALOG_PROPS: Dialogs.ExtraDialogProps = {
+  maxWidth: 'sm',
+  fullWidth: true,
+}
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
   bgQuilt: {
@@ -158,8 +168,72 @@ function Badge({ children, color, invisible, ...props }: BadgeProps) {
   )
 }
 
-function UserDropdown() {
-  const user = redux.useSelector(selectUser)
+const useRolesSwitcherStyles = M.makeStyles((t) => ({
+  progress: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: t.spacing(4),
+  },
+}))
+
+const useListItemTextStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(0, 1),
+  },
+  primary: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+}))
+
+interface RolesSwitcherProps {
+  user: CurrentUser
+  close: Dialogs.Close<never>
+}
+
+function RolesSwitcher({ close, user }: RolesSwitcherProps) {
+  const classes = useRolesSwitcherStyles()
+  const textClasses = useListItemTextStyles()
+  const [clicked, setClicked] = React.useState(false)
+  const handleClick = React.useCallback(() => {
+    setClicked(true)
+    setTimeout(() => {
+      close()
+      window.location.reload()
+    }, 1000)
+  }, [close])
+  return (
+    <>
+      <M.DialogTitle>Switch role</M.DialogTitle>
+      {clicked ? (
+        <div className={classes.progress}>
+          <M.CircularProgress size={48} />
+        </div>
+      ) : (
+        <M.List>
+          {user.roles.map((role) => (
+            <M.ListItem
+              button
+              disabled={role.name === user.role.name}
+              key={role.name}
+              onClick={handleClick}
+              selected={role.name === user.role.name}
+            >
+              <M.ListItemText classes={textClasses}>{role.name}</M.ListItemText>
+            </M.ListItem>
+          ))}
+        </M.List>
+      )}
+    </>
+  )
+}
+
+interface UserDropdownProps {
+  user: CurrentUser
+}
+
+function UserDropdown({ user }: UserDropdownProps) {
   const { urls, paths } = NamedRoutes.use()
   const bookmarks = Bookmarks.use()
   const isProfile = !!useRouteMatch({ path: paths.profile, exact: true })
@@ -174,16 +248,27 @@ function UserDropdown() {
     [setAnchor],
   )
 
-  const close = React.useCallback(() => {
+  const closeDropdown = React.useCallback(() => {
     setVisible(false)
     setAnchor(null)
   }, [setAnchor])
 
+  const openDialog = Dialogs.use()
+
   const showBookmarks = React.useCallback(() => {
     if (!bookmarks) return
     bookmarks.show()
-    close()
-  }, [bookmarks, close])
+    closeDropdown()
+  }, [bookmarks, closeDropdown])
+
+  const showRolesSwitcher = React.useCallback(
+    () =>
+      openDialog(
+        ({ close }) => <RolesSwitcher {...{ user, close }} />,
+        SWITCH_ROLES_DIALOG_PROPS,
+      ),
+    [openDialog, user],
+  )
 
   React.useEffect(() => {
     const hasUpdates = bookmarks?.hasUpdates || false
@@ -200,7 +285,7 @@ function UserDropdown() {
       </M.Button>
 
       <M.MuiThemeProvider theme={style.appTheme}>
-        <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+        <M.Menu anchorEl={anchor} open={!!anchor} onClose={closeDropdown}>
           {bookmarks && (
             <Item onClick={showBookmarks}>
               <Badge color="secondary" invisible={!visible}>
@@ -209,17 +294,22 @@ function UserDropdown() {
               &nbsp;Bookmarks
             </Item>
           )}
+          {user.roles.length && (
+            <Item onClick={showRolesSwitcher}>
+              <M.Icon fontSize="small">loop</M.Icon>&nbsp;Switch role
+            </Item>
+          )}
           {user.isAdmin && (
-            <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
+            <Item to={urls.admin()} onClick={closeDropdown} selected={isAdmin} divider>
               <M.Icon fontSize="small">security</M.Icon>&nbsp;Admin settings
             </Item>
           )}
           {cfg.mode === 'OPEN' && (
-            <Item to={urls.profile()} onClick={close} selected={isProfile}>
+            <Item to={urls.profile()} onClick={closeDropdown} selected={isProfile}>
               Profile
             </Item>
           )}
-          <Item to={urls.signOut()} onClick={close}>
+          <Item to={urls.signOut()} onClick={closeDropdown}>
             Sign Out
           </Item>
         </M.Menu>
@@ -602,6 +692,32 @@ export function NavBar() {
   const intercom = Intercom.use()
   const classes = useNavBarStyles()
   const sub = Subscription.useState()
+
+  const userLegacy = redux.useSelector(selectUser)
+  const user = {
+    __typename: 'Me',
+    email: 'FIXME@FIX.ME',
+    role: {
+      __typename: 'MyRole',
+      name: 'ReadWriteQuilt',
+    },
+    roles: [
+      {
+        __typename: 'MyRole',
+        name: 'ReadQuilt',
+      },
+      {
+        __typename: 'MyRole',
+        name: 'ReadWriteQuilt',
+      },
+      {
+        __typename: 'MyRole',
+        name: 'InternalFrameInternalFrameTitlePaneInternalFrameTitlePaneMaximizeButtonWindowNotFocusedState',
+      },
+    ],
+    ...userLegacy,
+  } as CurrentUser
+
   return (
     <Container>
       <Subscription.Display {...sub} />
@@ -645,7 +761,7 @@ export function NavBar() {
         cfg.mode !== 'LOCAL' &&
         !useHamburger &&
         (authenticated ? (
-          <UserDropdown />
+          <UserDropdown user={user} />
         ) : (
           !isSignIn && <SignIn error={error} waiting={waiting} />
         ))}
