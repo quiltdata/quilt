@@ -510,16 +510,26 @@ const useUsernameStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface UsernameProps extends React.HTMLProps<HTMLSpanElement> {
-  admin?: boolean
+interface UsernameProps {
+  name: string
+  admin: boolean
+  self: boolean
 }
 
-function Username({ className, admin = false, children, ...props }: UsernameProps) {
+function Username({ name, admin, self }: UsernameProps) {
   const classes = useUsernameStyles()
   return (
-    <span className={cx(className, classes.root)} {...props}>
+    <span className={classes.root}>
       {admin && <M.Icon className={classes.icon}>security</M.Icon>}
-      <Mono className={cx({ [classes.admin]: admin })}>{children}</Mono>
+      <Mono className={cx({ [classes.admin]: admin })}>
+        {self ? (
+          <M.Tooltip title="You">
+            <span>{name}*</span>
+          </M.Tooltip>
+        ) : (
+          name
+        )}
+      </Mono>
     </span>
   )
 }
@@ -753,7 +763,9 @@ const columns: Table.Column<User>[] = [
     id: 'username',
     label: 'Username',
     getValue: (u) => u.name,
-    getDisplay: (_name: string, u) => <Username admin={u.isAdmin}>{u.name}</Username>,
+    getDisplay: (_name: string, u, { isSelf }: ColumnDisplayProps) => (
+      <Username admin={u.isAdmin} self={isSelf} name={u.name} />
+    ),
     props: { component: 'th', scope: 'row' },
   },
   {
