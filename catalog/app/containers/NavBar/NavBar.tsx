@@ -380,11 +380,7 @@ function useHam() {
   return { open, close, render }
 }
 
-interface AuthHamburgerProps {
-  onHamClose: () => void
-}
-
-function AuthHamburger({ onHamClose }: AuthHamburgerProps) {
+function useAuthLinks(onHamClose: () => void): React.ReactNode[] {
   const { error, waiting, authenticated } = redux.useSelector(selector)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRouteMatch({ path: paths.profile, exact: true })
@@ -392,59 +388,65 @@ function AuthHamburger({ onHamClose }: AuthHamburgerProps) {
 
   const res = GQL.useQuery(ME_QUERY, undefined, { pause: waiting || !authenticated })
 
-  if (error) return <MobileSignInError error={error} onHamClose={onHamClose} />
+  if (error)
+    return [
+      <Item to={urls.signIn()} onClick={onHamClose} key="error">
+        <M.Icon>error_outline</M.Icon> Sign In
+      </Item>,
+    ]
   if (waiting) {
-    return (
-      <Item onClick={onHamClose}>
+    return [
+      <Item onClick={onHamClose} key="progress">
         <M.CircularProgress />
-      </Item>
-    )
+      </Item>,
+    ]
   }
 
   return GQL.fold(res, {
     data: (d) => {
       invariant(d.me, 'Expected "me" to be non-null')
-      return (
-        <>
-          <M.MenuItem key="user" component="div">
-            {userDisplay(d.me)}
-          </M.MenuItem>
-          ,
-          {d.me.isAdmin && (
-            <Item key="admin" to={urls.admin()} onClick={onHamClose} selected={isAdmin}>
-              <M.Box component="span" pr={2} />
-              <M.Icon fontSize="small">security</M.Icon>
-              &nbsp;Admin settings
-            </Item>
-          )}
-          {cfg.mode === 'OPEN' && (
-            <Item
-              key="profile"
-              to={urls.profile()}
-              onClick={onHamClose}
-              selected={isProfile}
-            >
-              <M.Box component="span" pr={2} />
-              Profile
-            </Item>
-          )}
-          <Item key="signout" to={urls.signOut()} onClick={onHamClose}>
+      return [
+        <M.MenuItem key="user" component="div">
+          {userDisplay(d.me)}
+        </M.MenuItem>,
+        d.me.isAdmin && (
+          <Item key="admin" to={urls.admin()} onClick={onHamClose} selected={isAdmin}>
             <M.Box component="span" pr={2} />
-            Sign Out
+            <M.Icon fontSize="small">security</M.Icon>
+            &nbsp;Admin settings
           </Item>
-        </>
-      )
+        ),
+        cfg.mode === 'OPEN' && (
+          <Item
+            key="profile"
+            to={urls.profile()}
+            onClick={onHamClose}
+            selected={isProfile}
+          >
+            <M.Box component="span" pr={2} />
+            Profile
+          </Item>
+        ),
+        <Item key="signout" to={urls.signOut()} onClick={onHamClose}>
+          <M.Box component="span" pr={2} />
+          Sign Out
+        </Item>,
+      ]
     },
-    fetching: () => (
-      <Item onClick={onHamClose}>
+    fetching: () => [
+      <Item onClick={onHamClose} key="progress">
         <M.CircularProgress />
-      </Item>
-    ),
-    error: (err) => <MobileSignInError error={err} onHamClose={onHamClose} />,
+      </Item>,
+    ],
+    error: () => [
+      <Item to={urls.signIn()} onClick={onHamClose} key="error">
+        <M.Icon>error_outline</M.Icon> Sign In
+      </Item>,
+    ],
   })
 }
 
-const useSignInStyles = M.makeStyles((t) => ({
+const useSignInErrorStyles = M.makeStyles((t) => ({
   icon: {
     marginRight: t.spacing(1),
   },
@@ -455,7 +457,7 @@ interface DesktopSignInErrorProps {
 }
 
 function DesktopSignInError({ error }: DesktopSignInErrorProps) {
-  const classes = useSignInStyles()
+  const classes = useSignInErrorStyles()
   const { urls } = NamedRoutes.use()
   return (
     <>
@@ -474,6 +476,8 @@ function DesktopSignInError({ error }: DesktopSignInErrorProps) {
 
 function DesktopSignIn() {
   const { error, waiting, authenticated } = redux.useSelector(selector)
+  const { paths } = NamedRoutes.use()
+  const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
   const res = GQL.useQuery(ME_QUERY, undefined, { pause: waiting || !authenticated })
 
   if (!authenticated && isSignIn) return null
@@ -494,25 +498,6 @@ function DesktopSignIn() {
     fetching: () => <M.CircularProgress color="inherit" />,
     error: (err) => <DesktopSignInError error={err} />,
   })
-}
-
-interface MobileSignInErrorProps {
-  error: Error | GQL.ErrorForData<typeof ME_QUERY>
-  onHamClose: () => void
-}
-
-function MobileSignInError({ onHamClose, error }: MobileSignInErrorProps) {
-  const { urls } = NamedRoutes.use()
-  return (
-    <Item to={urls.signIn()} onClick={onHamClose}>
-      {error && (
-        <>
-          <M.Icon>error_outline</M.Icon>{' '}
-        </>
-      )}
-      Sign In
-    </Item>
-  )
 }
 
 interface MobileSignInProps {
@@ -536,11 +521,18 @@ function MobileSignIn({ links }: MobileSignInProps) {
     return ham.render(mobileLinks)
   }
 
-  return ham.render([
-    <AuthHamburger key="auth" onHamClose={ham.close} />,
-    <M.Divider key="divider" />,
-    ...mobileLinks,
-  ])
+  return <MobileSignInWithAuth ham={ham} links={mobileLinks} />
+}
+
+interface MobileSignInInnerProps {
+  ham: ReturnType<typeof useHam>
+  links: React.ReactNode[]
+}
+
+// It's just a wrapper to put hook call, so we can hide it under condition
+function MobileSignInWithAuth({ ham, links }: MobileSignInInnerProps) {
+  const authLinks = useAuthLinks(ham.close)
+  return ham.render([...authLinks, <M.Divider key="divider" />, ...links])
 }
 
 const useAppBarStyles = M.makeStyles((t) => ({
