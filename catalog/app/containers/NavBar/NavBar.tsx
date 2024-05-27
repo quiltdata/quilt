@@ -403,7 +403,6 @@ function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
   const isProfile = !!useRouteMatch({ path: paths.profile, exact: true })
   const isAdmin = !!useRouteMatch(paths.admin)
   const ham = useHam()
-  const links = useLinks()
 
   const user = useMe(!authenticated || waiting)
 
@@ -453,11 +452,7 @@ function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
   return ham.render([
     ...children,
     <M.Divider key="divider" />,
-    ...links.map(({ label, ...rest }) => (
-      <Item key={`${label}:${rest.to || rest.href}`} {...rest} onClick={ham.close}>
-        {label}
-      </Item>
-    )),
+    <LinksHamburger key="links" />,
   ])
 }
 
