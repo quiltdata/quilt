@@ -32,18 +32,6 @@ import SWITCH_ROLE_MUTATION from './gql/SwitchRole.generated'
 type MaybeMe = GQL.DataForDoc<typeof ME_QUERY>['me']
 type Me = NonNullable<MaybeMe>
 
-function useMe(pause: boolean) {
-  const res = GQL.useQuery(ME_QUERY, undefined, { pause })
-  return GQL.fold(res, {
-    data: (d) => {
-      invariant(d.me, 'Expected "me" to be non-null')
-      return d.me
-    },
-    fetching: () => 'fetching' as const,
-    error: () => 'error' as const,
-  })
-}
-
 const SWITCH_ROLES_DIALOG_PROPS: Dialogs.ExtraDialogProps = {
   maxWidth: 'sm',
   fullWidth: true,
@@ -393,78 +381,67 @@ function useHam() {
 }
 
 interface AuthHamburgerProps {
-  authenticated: boolean
-  waiting: boolean
-  error: boolean
+  onHamClose: () => void
 }
 
-function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
+function AuthHamburger({ onHamClose }: AuthHamburgerProps) {
+  const { error, waiting, authenticated } = redux.useSelector(selector)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRouteMatch({ path: paths.profile, exact: true })
   const isAdmin = !!useRouteMatch(paths.admin)
-  const ham = useHam()
 
-  const user = useMe(!authenticated || waiting)
+  const res = GQL.useQuery(ME_QUERY, undefined, { pause: waiting || !authenticated })
 
-  let children: React.ReactNode[] = []
-  if (!authenticated || user === 'error') {
-    children = [
-      <Item to={urls.signIn()} onClick={ham.close} key="sign-in">
-        {error && (
-          <>
-            <M.Icon>error_outline</M.Icon>{' '}
-          </>
-        )}
-        Sign In
-      </Item>,
-    ]
-  } else if (waiting || user === 'fetching') {
-    children = [
-      <Item onClick={ham.close} key="progress">
+  if (error) return <MobileSignInError error={error} onHamClose={onHamClose} />
+  if (waiting) {
+    return (
+      <Item onClick={onHamClose}>
         <M.CircularProgress />
-      </Item>,
-    ]
-  } else {
-    children = [
-      <M.MenuItem key="user" component="div">
-        {userDisplay(user)}
-      </M.MenuItem>,
-      user.isAdmin && (
-        <Item key="admin" to={urls.admin()} onClick={ham.close} selected={isAdmin}>
-          <M.Box component="span" pr={2} />
-          <M.Icon fontSize="small">security</M.Icon>
-          &nbsp;Admin settings
-        </Item>
-      ),
-      cfg.mode === 'OPEN' && (
-        <Item key="profile" to={urls.profile()} onClick={ham.close} selected={isProfile}>
-          <M.Box component="span" pr={2} />
-          Profile
-        </Item>
-      ),
-      <Item key="signout" to={urls.signOut()} onClick={ham.close}>
-        <M.Box component="span" pr={2} />
-        Sign Out
-      </Item>,
-    ]
+      </Item>
+    )
   }
 
-  return ham.render([
-    ...children,
-    <M.Divider key="divider" />,
-    <LinksHamburger key="links" />,
-  ])
-}
-
-function LinksHamburger() {
-  const ham = useHam()
-  return ham.render(
-    useLinks().map(({ label, ...rest }) => (
-      <Item key={`${label}:${rest.to || rest.href}`} {...rest} onClick={ham.close}>
-        {label}
+  return GQL.fold(res, {
+    data: (d) => {
+      invariant(d.me, 'Expected "me" to be non-null')
+      return (
+        <>
+          <M.MenuItem key="user" component="div">
+            {userDisplay(d.me)}
+          </M.MenuItem>
+          ,
+          {d.me.isAdmin && (
+            <Item key="admin" to={urls.admin()} onClick={onHamClose} selected={isAdmin}>
+              <M.Box component="span" pr={2} />
+              <M.Icon fontSize="small">security</M.Icon>
+              &nbsp;Admin settings
+            </Item>
+          )}
+          {cfg.mode === 'OPEN' && (
+            <Item
+              key="profile"
+              to={urls.profile()}
+              onClick={onHamClose}
+              selected={isProfile}
+            >
+              <M.Box component="span" pr={2} />
+              Profile
+            </Item>
+          )}
+          <Item key="signout" to={urls.signOut()} onClick={onHamClose}>
+            <M.Box component="span" pr={2} />
+            Sign Out
+          </Item>
+        </>
+      )
+    },
+    fetching: () => (
+      <Item onClick={onHamClose}>
+        <M.CircularProgress />
       </Item>
-    )),
-  )
+    ),
+    error: (err) => <MobileSignInError error={err} onHamClose={onHamClose} />,
+  })
 }
 
 const useSignInStyles = M.makeStyles((t) => ({
@@ -473,36 +450,97 @@ const useSignInStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface AuthError {
-  message: string
+interface DesktopSignInErrorProps {
+  error: Error | GQL.ErrorForData<typeof ME_QUERY>
 }
 
-interface SignInProps {
-  error?: AuthError
-  waiting: boolean
-}
-
-function SignIn({ error, waiting }: SignInProps) {
+function DesktopSignInError({ error }: DesktopSignInErrorProps) {
   const classes = useSignInStyles()
   const { urls } = NamedRoutes.use()
-  if (waiting) {
-    return <M.CircularProgress color="inherit" />
-  }
   return (
     <>
-      {error && (
-        <M.Icon
-          title={`${error.message}\n${JSON.stringify(error)}`}
-          className={classes.icon}
-        >
-          error_outline
-        </M.Icon>
-      )}
+      <M.Icon
+        title={`${error.message}\n${JSON.stringify(error)}`}
+        className={classes.icon}
+      >
+        error_outline
+      </M.Icon>
       <M.Button component={Link} to={urls.signIn()} variant="contained" color="primary">
         Sign In
       </M.Button>
     </>
   )
+}
+
+function DesktopSignIn() {
+  const { error, waiting, authenticated } = redux.useSelector(selector)
+  const res = GQL.useQuery(ME_QUERY, undefined, { pause: waiting || !authenticated })
+
+  if (!authenticated && isSignIn) return null
+
+  if (error) {
+    return <DesktopSignInError error={error} />
+  }
+
+  if (waiting) {
+    return <M.CircularProgress color="inherit" />
+  }
+
+  return GQL.fold(res, {
+    data: (d) => {
+      invariant(d.me, 'Expected "me" to be non-null')
+      return <UserDropdown user={d.me} />
+    },
+    fetching: () => <M.CircularProgress color="inherit" />,
+    error: (err) => <DesktopSignInError error={err} />,
+  })
+}
+
+interface MobileSignInErrorProps {
+  error: Error | GQL.ErrorForData<typeof ME_QUERY>
+  onHamClose: () => void
+}
+
+function MobileSignInError({ onHamClose, error }: MobileSignInErrorProps) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <Item to={urls.signIn()} onClick={onHamClose}>
+      {error && (
+        <>
+          <M.Icon>error_outline</M.Icon>{' '}
+        </>
+      )}
+      Sign In
+    </Item>
+  )
+}
+
+interface MobileSignInProps {
+  links: LinkDescriptor[]
+}
+
+function MobileSignIn({ links }: MobileSignInProps) {
+  const ham = useHam()
+
+  const mobileLinks = React.useMemo(
+    () =>
+      links.map(({ label, ...rest }) => (
+        <Item key={`${label}:${rest.to || rest.href}`} {...rest} onClick={ham.close}>
+          {label}
+        </Item>
+      )),
+    [ham.close, links],
+  )
+
+  if (cfg.disableNavigator || cfg.mode === 'LOCAL') {
+    return ham.render(mobileLinks)
+  }
+
+  return ham.render([
+    <AuthHamburger key="auth" onHamClose={ham.close} />,
+    <M.Divider key="divider" />,
+    ...mobileLinks,
+  ])
 }
 
 const useAppBarStyles = M.makeStyles((t) => ({
@@ -715,15 +753,12 @@ export function NavBar() {
   const settings = CatalogSettings.use()
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
-  const { error, waiting, authenticated } = redux.useSelector(selector)
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   const links = useLinks()
   const intercom = Intercom.use()
   const classes = useNavBarStyles()
   const sub = Subscription.useState()
-
-  const user = useMe(!authenticated || waiting)
 
   return (
     <Container>
@@ -764,22 +799,11 @@ export function NavBar() {
         </M.Tooltip>
       )}
 
-      {!cfg.disableNavigator &&
-        cfg.mode !== 'LOCAL' &&
-        !useHamburger &&
-        (authenticated && user !== 'error' && user !== 'fetching' ? (
-          // TODO: refactor gql query states
-          <UserDropdown user={user} />
-        ) : (
-          !isSignIn && <SignIn error={error} waiting={waiting || user === 'fetching'} />
-        ))}
+      {!cfg.disableNavigator && cfg.mode !== 'LOCAL' && !useHamburger && (
+        <DesktopSignIn />
+      )}
 
-      {useHamburger &&
-        (cfg.disableNavigator || cfg.mode === 'LOCAL' ? (
-          <LinksHamburger />
-        ) : (
-          <AuthHamburger {...{ authenticated, error, waiting }} />
-        ))}
+      {useHamburger && <MobileSignIn links={links} />}
 
       {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
     </Container>
