@@ -47,6 +47,8 @@ export interface ConfigJson {
 
   chunkedChecksums?: boolean
 
+  qurator?: boolean
+
   build_version?: string // not sure where this comes from
 }
 
@@ -94,6 +96,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   noOverviewImages: !!cfg.noOverviewImages,
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
+  qurator: !!cfg.qurator,
 })
 
 export function prepareConfig(input: unknown) {

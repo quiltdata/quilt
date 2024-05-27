@@ -206,6 +206,18 @@ const useContainerStyles = M.makeStyles({
       maxWidth: '100%',
     },
 
+    '& * + h1, & * + h2, & * + h3, & * + h4, & * + h5, & * + h6': {
+      marginTop: '8px',
+    },
+
+    '& * + p': {
+      marginTop: '8px',
+    },
+
+    '& li + li': {
+      marginTop: '4px',
+    },
+
     '& table': {
       maxWidth: '100%',
       width: '100%',

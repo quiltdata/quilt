@@ -158,6 +158,12 @@
                   "workflows": { "expanded": 1 }
                 }
               ]
+            },
+            "qurator": {
+              "default": true,
+              "description": "Show/hide Qurator block",
+              "type": "boolean",
+              "examples": [true, false]
             }
           }
         },
