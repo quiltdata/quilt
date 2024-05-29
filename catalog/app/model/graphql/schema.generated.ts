@@ -1474,51 +1474,27 @@ export default {
             },
             args: [
               {
-                name: 'roleName',
-                type: {
-                  kind: 'SCALAR',
-                  name: 'String',
-                  ofType: null,
-                },
-              },
-            ],
-          },
-          {
-            name: 'setRoles',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'UserResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'roleNames',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'LIST',
-                    ofType: {
-                      kind: 'NON_NULL',
-                      ofType: {
-                        kind: 'SCALAR',
-                        name: 'String',
-                        ofType: null,
-                      },
-                    },
-                  },
-                },
-              },
-              {
-                name: 'activeRoleName',
+                name: 'role',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
                     kind: 'SCALAR',
                     name: 'String',
                     ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'extraRoles',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'String',
+                      ofType: null,
+                    },
                   },
                 },
               },
@@ -5249,7 +5225,7 @@ export default {
             args: [],
           },
           {
-            name: 'roles',
+            name: 'extraRoles',
             type: {
               kind: 'NON_NULL',
               ofType: {
