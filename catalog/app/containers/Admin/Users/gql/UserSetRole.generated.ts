@@ -9,20 +9,20 @@ import {
   UserResultSelectionFragmentDoc,
 } from './UserResultSelection.generated'
 
-export type containers_Admin_Users_gql_UserSetRolesMutationVariables = Types.Exact<{
+export type containers_Admin_Users_gql_UserSetRoleMutationVariables = Types.Exact<{
   name: Types.Scalars['String']
-  roleNames: ReadonlyArray<Types.Scalars['String']>
-  activeRoleName: Types.Scalars['String']
+  role: Types.Scalars['String']
+  extraRoles: ReadonlyArray<Types.Scalars['String']>
 }>
 
-export type containers_Admin_Users_gql_UserSetRolesMutation = {
+export type containers_Admin_Users_gql_UserSetRoleMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
     readonly user: { readonly __typename: 'UserAdminMutations' } & {
       readonly mutate: Types.Maybe<
         { readonly __typename: 'MutateUserAdminMutations' } & {
-          readonly setRoles:
+          readonly setRole:
             | ({ readonly __typename: 'User' } & UserResultSelection_User_Fragment)
             | ({
                 readonly __typename: 'InvalidInput'
@@ -36,13 +36,13 @@ export type containers_Admin_Users_gql_UserSetRolesMutation = {
   }
 }
 
-export const containers_Admin_Users_gql_UserSetRolesDocument = {
+export const containers_Admin_Users_gql_UserSetRoleDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Users_gql_UserSetRoles' },
+      name: { kind: 'Name', value: 'containers_Admin_Users_gql_UserSetRole' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -54,7 +54,15 @@ export const containers_Admin_Users_gql_UserSetRolesDocument = {
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'roleNames' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'role' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'extraRoles' } },
           type: {
             kind: 'NonNullType',
             type: {
@@ -64,14 +72,6 @@ export const containers_Admin_Users_gql_UserSetRolesDocument = {
                 type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
               },
             },
-          },
-        },
-        {
-          kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'activeRoleName' } },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
           },
         },
       ],
@@ -108,22 +108,22 @@ export const containers_Admin_Users_gql_UserSetRolesDocument = {
                           selections: [
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'setRoles' },
+                              name: { kind: 'Name', value: 'setRole' },
                               arguments: [
                                 {
                                   kind: 'Argument',
-                                  name: { kind: 'Name', value: 'roleNames' },
+                                  name: { kind: 'Name', value: 'role' },
                                   value: {
                                     kind: 'Variable',
-                                    name: { kind: 'Name', value: 'roleNames' },
+                                    name: { kind: 'Name', value: 'role' },
                                   },
                                 },
                                 {
                                   kind: 'Argument',
-                                  name: { kind: 'Name', value: 'activeRoleName' },
+                                  name: { kind: 'Name', value: 'extraRoles' },
                                   value: {
                                     kind: 'Variable',
-                                    name: { kind: 'Name', value: 'activeRoleName' },
+                                    name: { kind: 'Name', value: 'extraRoles' },
                                   },
                                 },
                               ],
@@ -152,8 +152,8 @@ export const containers_Admin_Users_gql_UserSetRolesDocument = {
     ...UserResultSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Users_gql_UserSetRolesMutation,
-  containers_Admin_Users_gql_UserSetRolesMutationVariables
+  containers_Admin_Users_gql_UserSetRoleMutation,
+  containers_Admin_Users_gql_UserSetRoleMutationVariables
 >
 
-export { containers_Admin_Users_gql_UserSetRolesDocument as default }
+export { containers_Admin_Users_gql_UserSetRoleDocument as default }

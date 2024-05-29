@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as FF from 'final-form'
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -23,7 +24,7 @@ import USERS_QUERY from './gql/Users.generated'
 import USER_CREATE_MUTATION from './gql/UserCreate.generated'
 import USER_DELETE_MUTATION from './gql/UserDelete.generated'
 import USER_SET_EMAIL_MUTATION from './gql/UserSetEmail.generated'
-import USER_SET_ROLES_MUTATION from './gql/UserSetRoles.generated'
+import USER_SET_ROLE_MUTATION from './gql/UserSetRole.generated'
 import USER_SET_ACTIVE_MUTATION from './gql/UserSetActive.generated'
 import USER_SET_ADMIN_MUTATION from './gql/UserSetAdmin.generated'
 
@@ -49,6 +50,154 @@ function Mono({ className, children }: MonoProps) {
   return <span className={cx(className, classes.root)}>{children}</span>
 }
 
+const useRoleSelectStyles = M.makeStyles((t) => ({
+  root: {},
+  chips: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    marginTop: t.spacing(2.5),
+  },
+  chip: {
+    marginRight: t.spacing(0.5),
+    marginTop: t.spacing(0.5),
+  },
+  addIcon: {
+    transform: 'rotate(45deg)',
+  },
+}))
+
+interface RoleSelectValue {
+  extra: readonly Role[]
+  active: Role | null | undefined
+}
+
+const ROLE_SELECT_VALUE_EMPTY: RoleSelectValue = { extra: [], active: undefined }
+
+interface RoleSelectProps extends RF.FieldRenderProps<RoleSelectValue> {
+  roles: readonly Role[]
+  label?: React.ReactNode
+  // value?: RoleSelectValue
+  // input: {
+  //   onChange: (value: RoleSelectValue) => void
+  // }
+}
+
+// TODO:
+// - [ ] validation
+function RoleSelect({
+  roles,
+  input: { value, onChange /*...input*/ },
+  label, // ...props
+}: RoleSelectProps) {
+  const classes = useRoleSelectStyles()
+  const { active, extra } = value ?? ROLE_SELECT_VALUE_EMPTY
+
+  const selected = React.useMemo(
+    () => extra.concat(active ?? []).sort(R.ascend((r) => r.name)),
+    [extra, active],
+  )
+
+  const available = React.useMemo(
+    () =>
+      roles
+        .filter((r) => !selected.find((r2) => r2.id === r.id))
+        .sort(R.ascend((r) => r.name)),
+    [roles, selected],
+  )
+
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+
+  const openAddMenu = React.useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      setAnchorEl(event.currentTarget)
+    },
+    [setAnchorEl],
+  )
+
+  const closeAddMenu = React.useCallback(() => {
+    setAnchorEl(null)
+  }, [])
+
+  const add = (r: Role) =>
+    onChange({
+      extra: extra.concat(active ? r : []).sort(R.ascend((r2) => r2.name)),
+      active: active ?? r,
+    })
+
+  const remove = (r: Role) =>
+    onChange({
+      extra: extra.filter((r2) => r2.id !== r.id),
+      active: r.id === active?.id ? undefined : active,
+    })
+
+  const activate = (r: Role) =>
+    onChange({
+      extra: extra
+        .concat(active ?? [])
+        .filter((r2) => r2.id !== r.id)
+        .sort(R.ascend((r2) => r2.name)),
+      active: r,
+    })
+
+  return (
+    <M.FormControl className={classes.root} margin="normal">
+      {!!label && <M.InputLabel shrink>{label}</M.InputLabel>}
+      <div className={classes.chips}>
+        {selected.map((r) =>
+          active?.id === r.id ? (
+            <M.Chip
+              key={r.id}
+              label={r.name}
+              size="small"
+              color="secondary"
+              className={classes.chip}
+              onDelete={() => remove(r)}
+            />
+          ) : (
+            <M.Chip
+              key={r.id}
+              label={r.name}
+              size="small"
+              variant="outlined"
+              className={classes.chip}
+              onDelete={() => remove(r)}
+              clickable
+              onClick={() => activate(r)}
+            />
+          ),
+        )}
+        {available.length > 0 && (
+          <M.Chip
+            label={selected.length ? 'Add' : 'Assign'}
+            size="small"
+            variant="outlined"
+            color="secondary"
+            className={classes.chip}
+            classes={{ deleteIcon: classes.addIcon }}
+            clickable
+            onDelete={openAddMenu}
+            onClick={openAddMenu}
+          />
+        )}
+      </div>
+      <M.Menu anchorEl={anchorEl} keepMounted open={!!anchorEl} onClose={closeAddMenu}>
+        {available.map((r) => (
+          <M.MenuItem
+            key={r.id}
+            onClick={() => {
+              closeAddMenu()
+              add(r)
+            }}
+          >
+            {r.name}
+          </M.MenuItem>
+        ))}
+      </M.Menu>
+      <M.FormHelperText error>Assign a role please</M.FormHelperText>
+    </M.FormControl>
+  )
+}
+
 const useInviteStyles = M.makeStyles({
   infoIcon: {
     fontSize: '1.25em',
@@ -59,21 +208,29 @@ const useInviteStyles = M.makeStyles({
 interface InviteProps {
   close: () => void
   roles: readonly Role[]
-  defaultRoleName: string | undefined
+  defaultRole: Role | null
 }
 
-function Invite({ close, roles, defaultRoleName }: InviteProps) {
+function Invite({ close, roles, defaultRole }: InviteProps) {
   const classes = useInviteStyles()
   const create = GQL.useMutation(USER_CREATE_MUTATION)
   const { push } = Notifications.use()
 
+  interface FormValues {
+    username: string
+    email: string
+    roles: RoleSelectValue
+  }
+
   const onSubmit = React.useCallback(
-    async ({ username, email, roleName }) => {
+    async (values: FormValues) => {
       // XXX: use formspec to convert/validate form values into gql input?
+      invariant(values.roles.active, 'No active role')
       const input = {
-        name: username,
-        email,
-        roleName,
+        name: values.username,
+        email: values.email,
+        role: values.roles.active.name,
+        extraRoles: values.roles.extra.map((r) => r.name),
       }
       try {
         const data = await create({ input })
@@ -123,11 +280,11 @@ function Invite({ close, roles, defaultRoleName }: InviteProps) {
     [create, push, close],
   )
 
+  const active = defaultRole || roles[0]
+  const extra = roles.filter((r) => r.id !== active.id)
+
   return (
-    <RF.Form
-      onSubmit={onSubmit}
-      initialValues={{ roleName: defaultRoleName || roles[0].name }}
-    >
+    <RF.Form<FormValues> onSubmit={onSubmit} initialValues={{ roles: { active, extra } }}>
       {({
         handleSubmit,
         submitting,
@@ -180,19 +337,8 @@ function Invite({ close, roles, defaultRoleName }: InviteProps) {
                 }}
                 autoComplete="off"
               />
-              <RF.Field
-                component={Form.Field}
-                name="roleName"
-                label="Role"
-                select
-                fullWidth
-                margin="normal"
-              >
-                {roles.map((r) => (
-                  <M.MenuItem value={r.name} key={r.id}>
-                    {r.name}
-                  </M.MenuItem>
-                ))}
+              <RF.Field<RoleSelectValue> name="roles">
+                {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
               </RF.Field>
               {(!!error || !!submitError) && (
                 <Form.FormError
@@ -542,20 +688,24 @@ interface EditRolesProps {
 
 function EditRoles({ close, roles, user }: EditRolesProps) {
   const { push } = Notifications.use()
-  const setRoles = GQL.useMutation(USER_SET_ROLES_MUTATION)
+  const setRole = GQL.useMutation(USER_SET_ROLE_MUTATION)
+
+  interface FormValues {
+    roles: RoleSelectValue
+  }
 
   const onSubmit = React.useCallback(
-    async (values) => {
-      // console.log('submit', values)
+    async (values: FormValues) => {
       // XXX: use formspec to convert/validate form values into gql input?
-      const input = {
+      invariant(values.roles.active, 'No active role')
+      const vars = {
         name: user.name,
-        roleNames: values.roles.map((r: Role) => r.name),
-        activeRoleName: values.roles[0].name,
+        role: values.roles.active.name,
+        extraRoles: values.roles.extra.map((r) => r.name),
       }
       try {
-        const data = await setRoles(input)
-        const r = data.admin.user.mutate?.setRoles
+        const data = await setRole(vars)
+        const r = data.admin.user.mutate?.setRole
         switch (r?.__typename) {
           case undefined:
             throw new Error('User not found') // should not happend
@@ -577,23 +727,21 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
         }
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Error setting roles for user', input)
+        console.error('Error setting roles for user', vars)
         // eslint-disable-next-line no-console
         console.dir(e)
         Sentry.captureException(e)
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [push, close, setRoles, user.name],
+    [push, close, setRole, user.name],
   )
 
-  const handleToggle = (selected: Role[], role: Role) =>
-    selected.find((r) => r.id === role.id)
-      ? selected.filter((r) => r.id !== role.id)
-      : [...selected, role]
-
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={{ roles: user.roles, role: user.role }}>
+    <RF.Form<FormValues>
+      onSubmit={onSubmit}
+      initialValues={{ roles: { active: user.role, extra: user.extraRoles } }}
+    >
       {({
         handleSubmit,
         submitting,
@@ -608,48 +756,8 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
           <M.DialogTitle>Configure roles for {user.name}</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <RF.Field<Role[]>
-                name="roles"
-                // validate={validators.required as FF.FieldValidator<any>}
-                // errors={{
-                //   required: 'Enter a username',
-                //   taken: 'Username already taken',
-                //   invalid: (
-                //     <>
-                //       Enter a valid username{' '}
-                //       <M.Tooltip
-                //         arrow
-                //         title="Must start with a letter or underscore, and contain only alphanumeric characters and underscores thereafter"
-                //       >
-                //         <M.Icon className={classes.infoIcon}>info</M.Icon>
-                //       </M.Tooltip>
-                //     </>
-                //   ),
-                // }}
-                // autoComplete="off"
-              >
-                {({ input: { onChange, value } }) => (
-                  <M.List>
-                    {roles.map((role) => (
-                      <M.ListItem
-                        key={role.id}
-                        dense
-                        button
-                        onClick={() => onChange(handleToggle(value, role))}
-                      >
-                        <M.ListItemIcon>
-                          <M.Checkbox
-                            edge="start"
-                            checked={!!value.find((r) => r.id === role.id)}
-                            tabIndex={-1}
-                            disableRipple
-                          />
-                        </M.ListItemIcon>
-                        <M.ListItemText primary={role.name} />
-                      </M.ListItem>
-                    ))}
-                  </M.List>
-                )}
+              <RF.Field<RoleSelectValue> name="roles">
+                {(props) => <RoleSelect roles={roles} {...props} />}
               </RF.Field>
               {(!!error || !!submitError) && (
                 <Form.FormError
@@ -662,6 +770,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
+          {/*TODO: reset?*/}
           <M.DialogActions>
             <M.Button onClick={close} color="primary" disabled={submitting}>
               Cancel
@@ -784,7 +893,7 @@ const columns: Table.Column<User>[] = [
         }
       >
         {v ?? emptyRole}
-        {u.roles.length > 1 && <span> +{u.roles.length - 1}</span>}
+        {u.extraRoles.length > 0 && <span> +{u.extraRoles.length}</span>}
       </div>
     ),
   },
@@ -882,8 +991,7 @@ function useSetActive() {
 export default function Users() {
   const data = GQL.useQueryS(USERS_QUERY)
   const rows = data.admin.user.list
-  const roles = data.roles
-  const defaultRoleName = data.defaultRole?.name
+  const { roles, defaultRole } = data
 
   const openDialog = Dialogs.use()
 
@@ -907,10 +1015,10 @@ export default function Users() {
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
         openDialog(
-          ({ close }) => <Invite {...{ close, roles, defaultRoleName }} />,
+          ({ close }) => <Invite {...{ close, roles, defaultRole }} />,
           DIALOG_PROPS,
         )
-      }, [roles, defaultRoleName, openDialog]),
+      }, [roles, defaultRole, openDialog]),
     },
   ]
 
