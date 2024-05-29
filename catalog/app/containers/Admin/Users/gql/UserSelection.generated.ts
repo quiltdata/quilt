@@ -20,7 +20,7 @@ export type UserSelectionFragment = { readonly __typename: 'User' } & Pick<
         >)
       | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
     >
-    readonly roles: ReadonlyArray<
+    readonly extraRoles: ReadonlyArray<
       | ({ readonly __typename: 'UnmanagedRole' } & Pick<
           Types.UnmanagedRole,
           'id' | 'name'
@@ -88,7 +88,7 @@ export const UserSelectionFragmentDoc = {
           },
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'roles' },
+            name: { kind: 'Name', value: 'extraRoles' },
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
