@@ -50,6 +50,15 @@ function Mono({ className, children }: MonoProps) {
   return <span className={cx(className, classes.root)}>{children}</span>
 }
 
+interface RoleSelectValue {
+  selected: readonly Role[]
+  active: Role | null | undefined
+}
+
+const ROLE_SELECT_VALUE_EMPTY: RoleSelectValue = { selected: [], active: undefined }
+
+const ROLE_NAME_ASC = R.ascend((r: Role) => r.name)
+
 const useRoleSelectStyles = M.makeStyles((t) => ({
   root: {},
   chips: {
@@ -65,13 +74,6 @@ const useRoleSelectStyles = M.makeStyles((t) => ({
     transform: 'rotate(45deg)',
   },
 }))
-
-interface RoleSelectValue {
-  extra: readonly Role[]
-  active: Role | null | undefined
-}
-
-const ROLE_SELECT_VALUE_EMPTY: RoleSelectValue = { extra: [], active: undefined }
 
 interface RoleSelectProps extends RF.FieldRenderProps<RoleSelectValue> {
   roles: readonly Role[]
@@ -90,18 +92,10 @@ function RoleSelect({
   label, // ...props
 }: RoleSelectProps) {
   const classes = useRoleSelectStyles()
-  const { active, extra } = value ?? ROLE_SELECT_VALUE_EMPTY
-
-  const selected = React.useMemo(
-    () => extra.concat(active ?? []).sort(R.ascend((r) => r.name)),
-    [extra, active],
-  )
+  const { active, selected } = value ?? ROLE_SELECT_VALUE_EMPTY
 
   const available = React.useMemo(
-    () =>
-      roles
-        .filter((r) => !selected.find((r2) => r2.id === r.id))
-        .sort(R.ascend((r) => r.name)),
+    () => roles.filter((r) => !selected.find((r2) => r2.id === r.id)).sort(ROLE_NAME_ASC),
     [roles, selected],
   )
 
@@ -120,24 +114,17 @@ function RoleSelect({
 
   const add = (r: Role) =>
     onChange({
-      extra: extra.concat(active ? r : []).sort(R.ascend((r2) => r2.name)),
+      selected: selected.concat(r).sort(ROLE_NAME_ASC),
       active: active ?? r,
     })
 
   const remove = (r: Role) =>
     onChange({
-      extra: extra.filter((r2) => r2.id !== r.id),
+      selected: selected.filter((r2) => r2.id !== r.id),
       active: r.id === active?.id ? undefined : active,
     })
 
-  const activate = (r: Role) =>
-    onChange({
-      extra: extra
-        .concat(active ?? [])
-        .filter((r2) => r2.id !== r.id)
-        .sort(R.ascend((r2) => r2.name)),
-      active: r,
-    })
+  const activate = (r: Role) => onChange({ selected, active: r })
 
   return (
     <M.FormControl className={classes.root} margin="normal">
@@ -226,11 +213,15 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
     async (values: FormValues) => {
       // XXX: use formspec to convert/validate form values into gql input?
       invariant(values.roles.active, 'No active role')
+      const role = values.roles.active.name
+      const extraRoles = values.roles.selected
+        .map((r) => r.name)
+        .filter((r) => r !== role)
       const input = {
         name: values.username,
         email: values.email,
-        role: values.roles.active.name,
-        extraRoles: values.roles.extra.map((r) => r.name),
+        role,
+        extraRoles,
       }
       try {
         const data = await create({ input })
@@ -281,10 +272,13 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
   )
 
   const active = defaultRole || roles[0]
-  const extra = roles.filter((r) => r.id !== active.id)
+  const selected = React.useMemo(() => [active], [active])
 
   return (
-    <RF.Form<FormValues> onSubmit={onSubmit} initialValues={{ roles: { active, extra } }}>
+    <RF.Form<FormValues>
+      onSubmit={onSubmit}
+      initialValues={{ roles: { active, selected } }}
+    >
       {({
         handleSubmit,
         submitting,
@@ -698,10 +692,14 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
     async (values: FormValues) => {
       // XXX: use formspec to convert/validate form values into gql input?
       invariant(values.roles.active, 'No active role')
+      const role = values.roles.active.name
+      const extraRoles = values.roles.selected
+        .map((r) => r.name)
+        .filter((r) => r !== role)
       const vars = {
         name: user.name,
-        role: values.roles.active.name,
-        extraRoles: values.roles.extra.map((r) => r.name),
+        role,
+        extraRoles,
       }
       try {
         const data = await setRole(vars)
@@ -737,10 +735,15 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
     [push, close, setRole, user.name],
   )
 
+  const selected = React.useMemo(
+    () => user.extraRoles.concat(user.role ?? []).sort(ROLE_NAME_ASC),
+    [user.extraRoles, user.role],
+  )
+
   return (
     <RF.Form<FormValues>
       onSubmit={onSubmit}
-      initialValues={{ roles: { active: user.role, extra: user.extraRoles } }}
+      initialValues={{ roles: { active: user.role, selected } }}
     >
       {({
         handleSubmit,
