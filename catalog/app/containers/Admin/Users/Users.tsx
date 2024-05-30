@@ -288,9 +288,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
       {({
         handleSubmit,
         submitting,
-        submitError,
         submitFailed,
-        error,
         hasSubmitErrors,
         hasValidationErrors,
         modifiedSinceLastSubmit,
@@ -342,16 +340,13 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
                 {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
               </RF.Field>
-              {(!!error || !!submitError) && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    smtp: 'SMTP error: contact your administrator',
-                    subscriptionInvalid: 'Invalid subscription',
-                  }}
-                />
-              )}
+              <Form.FormErrorAuto
+                errors={{
+                  unexpected: 'Something went wrong',
+                  smtp: 'SMTP error: contact your administrator',
+                  subscriptionInvalid: 'Invalid subscription',
+                }}
+              />
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
@@ -408,7 +403,7 @@ function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
             throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
           case 'InvalidInput':
             const [e] = r.errors
-            if (e.path === 'input.email' && e.name === 'InvalidEmail') {
+            if (e.path === 'email' && e.name === 'InvalidEmail') {
               return { email: 'invalid' }
             }
             throw new Error(
@@ -435,7 +430,6 @@ function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
         handleSubmit,
         submitting,
         submitFailed,
-        error,
         hasSubmitErrors,
         hasValidationErrors,
         modifiedSinceLastSubmit,
@@ -458,14 +452,11 @@ function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
                 }}
                 autoComplete="off"
               />
-              {submitFailed && (
-                <Form.FormError
-                  error={error}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                  }}
-                />
-              )}
+              <Form.FormErrorAuto
+                errors={{
+                  unexpected: 'Something went wrong',
+                }}
+              />
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
@@ -546,7 +537,7 @@ function Delete({ name, close }: DeleteProps) {
 
   return (
     <RF.Form onSubmit={onSubmit}>
-      {({ handleSubmit, submitting, submitError }) => (
+      {({ handleSubmit, submitting }) => (
         <>
           <M.DialogTitle>Delete a user</M.DialogTitle>
           <M.DialogContent>
@@ -554,16 +545,13 @@ function Delete({ name, close }: DeleteProps) {
             <br />
             This operation is irreversible.
             <br />
-            {!!submitError && (
-              <Form.FormError
-                error={submitError}
-                errors={{
-                  unexpected: 'Something went wrong',
-                  notFound: 'User not found', // should not happen
-                  deleteSelf: 'You cannot delete yourself', // should not happen
-                }}
-              />
-            )}
+            <Form.FormErrorAuto
+              errors={{
+                unexpected: 'Something went wrong',
+                notFound: 'User not found', // should not happen
+                deleteSelf: 'You cannot delete yourself', // should not happen
+              }}
+            />
           </M.DialogContent>
           <M.DialogActions>
             {submitting && <ActionProgress>Deleting...</ActionProgress>}
@@ -758,9 +746,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
       {({
         handleSubmit,
         submitting,
-        submitError,
         submitFailed,
-        error,
         hasSubmitErrors,
         hasValidationErrors,
         modifiedSinceLastSubmit,
@@ -772,14 +758,11 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
                 {(props) => <RoleSelect roles={roles} {...props} />}
               </RF.Field>
-              {(!!error || !!submitError) && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                  }}
-                />
-              )}
+              <Form.FormErrorAuto
+                errors={{
+                  unexpected: 'Something went wrong',
+                }}
+              />
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
