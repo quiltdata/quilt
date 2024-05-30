@@ -1,0 +1,11 @@
+[tool.ariadne-codegen]
+schema_path = "../../../shared/graphql/schema.graphql"
+queries_path = "queries.graphql"
+async_client = false
+include_all_inputs = false
+include_all_enums = false
+plugins = [
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
+]

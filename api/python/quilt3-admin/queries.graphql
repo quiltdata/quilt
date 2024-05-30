@@ -1,0 +1,86 @@
+fragment UnmanagedRoleSelection on UnmanagedRole {
+  id
+  name
+  arn
+}
+fragment ManagedRoleSelection on ManagedRole {
+  id
+  name
+  arn
+}
+fragment RoleSelection on Role {
+  ...UnmanagedRoleSelection
+  ...ManagedRoleSelection
+}
+fragment InvalidInputSelection on InvalidInput {
+  errors {
+    path
+    message
+    name
+    context
+  }
+}
+fragment OperationErrorSelection on OperationError {
+  message
+  name
+  context
+}
+
+mutation createUser($input: UserInput!) {
+  admin {
+    user {
+      create(input: $input) {
+        ...InvalidInputSelection
+        ...OperationErrorSelection
+      }
+    }
+  }
+}
+
+query getUsers {
+  admin {
+    user {
+      list {
+        name
+        email
+        dateJoined
+        lastLogin
+        isActive
+        isAdmin
+        isSsoOnly
+        isService
+        role {
+          ...RoleSelection
+        }
+        extraRoles {
+          ...RoleSelection
+        }
+      }
+    }
+  }
+}
+
+query getRoles {
+  roles {
+      ...RoleSelection
+  }
+}
+
+query getRole($roleId: ID!) {
+  role(id: $roleId) {
+    ...RoleSelection
+  }
+}
+
+mutation setRoles($name: String!, $role: String!, $extraRoles: [String!]) {
+  admin {
+    user {
+      mutate(name: $name) {
+        setRole(role: $role, extraRoles: $extraRoles) {
+          ...InvalidInputSelection
+          ...OperationErrorSelection
+        }
+      }
+    }
+  }
+}
