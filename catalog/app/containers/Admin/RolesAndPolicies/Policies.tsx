@@ -15,7 +15,7 @@ import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as Types from 'utils/types'
 import validate, * as validators from 'utils/validators'
 
-import * as Form from '../RFForm'
+import * as Form from '../Form'
 import * as Table from '../Table'
 
 import AssociatedRoles from './AssociatedRoles'

@@ -2,11 +2,11 @@ import * as React from 'react'
 import type * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-export interface FieldProps {
+interface FieldOwnProps {
   errors: Record<string, React.ReactNode>
-  input: RF.FieldInputProps<string>
-  meta: RF.FieldMetaState<string>
 }
+
+export type FieldProps = FieldOwnProps & RF.FieldRenderProps<string> & M.TextFieldProps
 
 // TODO: re-use components/Form/TextField
 export function Field({
@@ -16,8 +16,9 @@ export function Field({
   helperText,
   InputLabelProps,
   ...rest
-}: FieldProps & M.TextFieldProps) {
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+}: FieldProps) {
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
   const props = {
     error: !!error,
     helperText: error ? errors[error] || error : helperText,
@@ -80,16 +81,12 @@ const useFormErrorStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface FormErrorProps {
-  errors: Record<string, React.ReactNode>
+interface FormErrorProps extends M.TypographyProps {
   error?: string
+  errors: Record<string, React.ReactNode>
 }
 
-export function FormError({
-  error,
-  errors,
-  ...rest
-}: FormErrorProps & M.TypographyProps) {
+export function FormError({ error, errors, ...rest }: FormErrorProps) {
   const classes = useFormErrorStyles()
   if (!error) return null
   return (

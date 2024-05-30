@@ -14,7 +14,7 @@ import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 
-import * as Form from '../RFForm'
+import * as Form from '../Form'
 import * as Table from '../Table'
 
 import AttachedPolicies from './AttachedPolicies'
