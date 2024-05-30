@@ -57,6 +57,9 @@ interface RoleSelectValue {
 
 const ROLE_SELECT_VALUE_EMPTY: RoleSelectValue = { selected: [], active: undefined }
 
+const validateRoleSelect: FF.FieldValidator<RoleSelectValue> = (v) =>
+  v.active ? undefined : 'required'
+
 const ROLE_NAME_ASC = R.ascend((r: Role) => r.name)
 
 const useRoleSelectStyles = M.makeStyles((t) => ({
@@ -78,20 +81,14 @@ const useRoleSelectStyles = M.makeStyles((t) => ({
 interface RoleSelectProps extends RF.FieldRenderProps<RoleSelectValue> {
   roles: readonly Role[]
   label?: React.ReactNode
-  // value?: RoleSelectValue
-  // input: {
-  //   onChange: (value: RoleSelectValue) => void
-  // }
 }
 
-// TODO:
-// - [ ] validation
-function RoleSelect({
-  roles,
-  input: { value, onChange /*...input*/ },
-  label, // ...props
-}: RoleSelectProps) {
+function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSelectProps) {
   const classes = useRoleSelectStyles()
+
+  const error = meta.submitFailed && meta.error
+  const disabled = meta.submitting || meta.submitSucceeded
+
   const { active, selected } = value ?? ROLE_SELECT_VALUE_EMPTY
 
   const available = React.useMemo(
@@ -127,7 +124,7 @@ function RoleSelect({
   const activate = (r: Role) => onChange({ selected, active: r })
 
   return (
-    <M.FormControl className={classes.root} margin="normal">
+    <M.FormControl className={classes.root} margin="normal" error={!!error}>
       {!!label && <M.InputLabel shrink>{label}</M.InputLabel>}
       <div className={classes.chips}>
         {selected.map((r) =>
@@ -139,6 +136,7 @@ function RoleSelect({
               color="secondary"
               className={classes.chip}
               onDelete={() => remove(r)}
+              disabled={disabled}
             />
           ) : (
             <M.Chip
@@ -150,6 +148,7 @@ function RoleSelect({
               onDelete={() => remove(r)}
               clickable
               onClick={() => activate(r)}
+              disabled={disabled}
             />
           ),
         )}
@@ -164,6 +163,7 @@ function RoleSelect({
             clickable
             onDelete={openAddMenu}
             onClick={openAddMenu}
+            disabled={disabled}
           />
         )}
       </div>
@@ -180,7 +180,11 @@ function RoleSelect({
           </M.MenuItem>
         ))}
       </M.Menu>
-      <M.FormHelperText error>Assign a role please</M.FormHelperText>
+      {!!error && (
+        <M.FormHelperText error>
+          {error === 'required' ? 'Assign a role please' : error}
+        </M.FormHelperText>
+      )}
     </M.FormControl>
   )
 }
@@ -298,6 +302,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
                 name="username"
                 validate={validators.required as FF.FieldValidator<any>}
                 label="Username"
+                placeholder="Enter a username"
                 fullWidth
                 margin="normal"
                 errors={{
@@ -322,6 +327,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
                 name="email"
                 validate={validators.required as FF.FieldValidator<any>}
                 label="Email"
+                placeholder="Enter an email"
                 fullWidth
                 margin="normal"
                 errors={{
@@ -331,7 +337,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
                 }}
                 autoComplete="off"
               />
-              <RF.Field<RoleSelectValue> name="roles">
+              <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
                 {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
               </RF.Field>
               {(!!error || !!submitError) && (
@@ -712,10 +718,10 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
             push('Changes saved')
             return
           case 'OperationError':
-            // TODO
+            // should not happend
             throw new Error(`Unexpected operation error: [${r.name}] ${r.message}`)
           case 'InvalidInput':
-            // TODO
+            // should not happend
             const [e] = r.errors
             throw new Error(
               `Unexpected input error at '${e.path}': [${e.name}] ${e.message}`,
@@ -759,7 +765,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
           <M.DialogTitle>Configure roles for {user.name}</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <RF.Field<RoleSelectValue> name="roles">
+              <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
                 {(props) => <RoleSelect roles={roles} {...props} />}
               </RF.Field>
               {(!!error || !!submitError) && (
