@@ -19,7 +19,7 @@ fragment UserSelection on User {
       name
     }
   }
-  roles {
+  extraRoles {
     __typename
     ... on ManagedRole {
       id

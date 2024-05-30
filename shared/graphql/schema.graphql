@@ -200,8 +200,8 @@ type User {
   isAdmin: Boolean!
   isSsoOnly: Boolean!
   isService: Boolean!
-  role: Role # XXX: activeRole?
-  roles: [Role!]! # XXX: better name
+  role: Role
+  extraRoles: [Role!]!
 }
 
 type AccessCountForDate {
@@ -838,7 +838,8 @@ union BrowsingSessionDisposeResult = Ok | OperationError
 input UserInput {
   name: String!
   email: String!
-  roleName: String
+  role: String!
+  extraRoles: [String!]
 }
 
 union UserResult = User | InvalidInput | OperationError
@@ -846,8 +847,7 @@ union UserResult = User | InvalidInput | OperationError
 type MutateUserAdminMutations {
   delete: OperationResult!
   setEmail(email: String!): UserResult!
-  setRole(roleName: String): UserResult!
-  setRoles(roleNames: [String!]!, activeRoleName: String!): UserResult!
+  setRole(role: String!, extraRoles: [String!]): UserResult!
   setAdmin(admin: Boolean!): UserResult!
   setActive(active: Boolean!): UserResult!
   resetPassword: OperationResult!
