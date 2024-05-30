@@ -756,7 +756,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
-                {(props) => <RoleSelect roles={roles} {...props} />}
+                {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
               </RF.Field>
               <Form.FormErrorAuto
                 errors={{
@@ -766,7 +766,6 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
-          {/*TODO: reset?*/}
           <M.DialogActions>
             <M.Button onClick={close} color="primary" disabled={submitting}>
               Cancel
@@ -885,7 +884,10 @@ const columns: Table.Column<User>[] = [
     getDisplay: (v: string | undefined, u, { roles, openDialog }: ColumnDisplayProps) => (
       <div
         onClick={() =>
-          openDialog(({ close }) => <EditRoles {...{ close, roles, user: u }} />)
+          openDialog(
+            ({ close }) => <EditRoles {...{ close, roles, user: u }} />,
+            DIALOG_PROPS,
+          )
         }
       >
         {v ?? emptyRole}
