@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type * as RF from 'react-final-form'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 interface FieldOwnProps {
@@ -94,4 +94,16 @@ export function FormError({ error, errors, ...rest }: FormErrorProps) {
       {errors[error] || error}
     </M.Typography>
   )
+}
+
+export function FormErrorAuto(props: Omit<FormErrorProps, 'error'>) {
+  const state = RF.useFormState({
+    subscription: {
+      error: true,
+      submitError: true,
+      submitFailed: true,
+    },
+  })
+  const error = state.submitFailed && (state.submitError || state.error)
+  return <FormError error={error} {...props} />
 }
