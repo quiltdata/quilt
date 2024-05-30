@@ -276,12 +276,14 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
   )
 
   const active = defaultRole || roles[0]
-  const selected = React.useMemo(() => [active], [active])
+  const selected = [active]
 
   return (
     <RF.Form<FormValues>
       onSubmit={onSubmit}
       initialValues={{ roles: { active, selected } }}
+      initialValuesEqual={R.equals}
+      keepDirtyOnReinitialize
     >
       {({
         handleSubmit,
@@ -750,6 +752,8 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
     <RF.Form<FormValues>
       onSubmit={onSubmit}
       initialValues={{ roles: { active: user.role, selected } }}
+      initialValuesEqual={R.equals}
+      keepDirtyOnReinitialize
     >
       {({
         handleSubmit,
