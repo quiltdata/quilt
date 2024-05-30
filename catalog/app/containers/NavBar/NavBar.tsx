@@ -6,6 +6,7 @@ import { Link, useRouteMatch } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
@@ -200,57 +201,67 @@ const useListItemTextStyles = M.makeStyles((t) => ({
 
 interface RolesSwitcherProps {
   user: Me
-  close: Dialogs.Close<never>
 }
 
-function RolesSwitcher({ /*close, */ user }: RolesSwitcherProps) {
+function RolesSwitcher({ user }: RolesSwitcherProps) {
   const switchRole = GQL.useMutation(SWITCH_ROLE_MUTATION)
   const classes = useRolesSwitcherStyles()
   const textClasses = useListItemTextStyles()
-  const [clicked, setClicked] = React.useState(false)
+  const loading = true
+  const [state, setState] = React.useState<Error | typeof loading | null>(null)
   const handleClick = React.useCallback(
     async (roleName: string) => {
-      setClicked(true)
+      setState(loading)
       try {
         const { switchRole: r } = await switchRole({ roleName })
         switch (r.__typename) {
           case 'Me':
+            window.location.reload()
             break
-          case 'OperationError':
           case 'InvalidInput':
-            throw new Error(JSON.stringify(r))
+          case 'OperationError':
+            throw new Error('Failed to switch role. Try again')
           default:
             assertNever(r)
         }
-        window.location.reload()
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.log('Error switching role', err)
+        console.error('Error switching role', err)
+        if (err instanceof Error) {
+          setState(err)
+        } else {
+          setState(new Error('Unexpected error switching role'))
+        }
       }
     },
-    [switchRole],
+    [loading, switchRole],
   )
   return (
     <>
       <M.DialogTitle>Switch role</M.DialogTitle>
-      {clicked ? (
+      {state !== true ? (
+        <>
+          {state instanceof Error && (
+            <Lab.Alert severity="error">{state.message}</Lab.Alert>
+          )}
+          <M.List>
+            {user.roles.map((role) => (
+              <M.ListItem
+                button
+                disabled={role.name === user.role.name}
+                key={role.name}
+                onClick={() => handleClick(role.name)}
+                selected={role.name === user.role.name}
+              >
+                <M.ListItemText classes={textClasses}>{role.name}</M.ListItemText>
+              </M.ListItem>
+            ))}
+          </M.List>
+        </>
+      ) : (
         <div className={classes.progress}>
           <M.CircularProgress size={48} />
         </div>
-      ) : (
-        <M.List>
-          {user.roles.map((role) => (
-            <M.ListItem
-              button
-              disabled={role.name === user.role.name}
-              key={role.name}
-              onClick={() => handleClick(role.name)}
-              selected={role.name === user.role.name}
-            >
-              <M.ListItemText classes={textClasses}>{role.name}</M.ListItemText>
-            </M.ListItem>
-          ))}
-        </M.List>
       )}
     </>
   )
@@ -289,11 +300,7 @@ function UserDropdown({ user }: UserDropdownProps) {
   }, [bookmarks, closeDropdown])
 
   const showRolesSwitcher = React.useCallback(
-    () =>
-      openDialog(
-        ({ close }) => <RolesSwitcher {...{ user, close }} />,
-        SWITCH_ROLES_DIALOG_PROPS,
-      ),
+    () => openDialog(() => <RolesSwitcher user={user} />, SWITCH_ROLES_DIALOG_PROPS),
     [openDialog, user],
   )
 
