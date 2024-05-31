@@ -2,8 +2,10 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+type ErrorMessageMap = Record<string, React.ReactNode>
+
 interface FieldOwnProps {
-  errors: Record<string, React.ReactNode>
+  errors: ErrorMessageMap
 }
 
 export type FieldProps = FieldOwnProps & RF.FieldRenderProps<string> & M.TextFieldProps
@@ -39,7 +41,7 @@ const useCheckboxStyles = M.makeStyles({
 })
 
 export interface CheckboxProps {
-  errors?: Record<string, React.ReactNode>
+  errors?: ErrorMessageMap
   input?: RF.FieldInputProps<boolean>
   meta: RF.FieldMetaState<string | Symbol>
   label?: React.ReactNode
@@ -84,7 +86,7 @@ const useFormErrorStyles = M.makeStyles((t) => ({
 
 interface FormErrorProps extends M.TypographyProps {
   error?: string
-  errors: Record<string, React.ReactNode>
+  errors: ErrorMessageMap
 }
 
 export function FormError({ error, errors, ...rest }: FormErrorProps) {
@@ -97,7 +99,11 @@ export function FormError({ error, errors, ...rest }: FormErrorProps) {
   )
 }
 
-export function FormErrorAuto(props: Omit<FormErrorProps, 'error'>) {
+interface FormErrorAutoProps extends M.TypographyProps {
+  children: ErrorMessageMap
+}
+
+export function FormErrorAuto({ children: errors, ...props }: FormErrorAutoProps) {
   const state = RF.useFormState({
     subscription: {
       error: true,
@@ -106,5 +112,5 @@ export function FormErrorAuto(props: Omit<FormErrorProps, 'error'>) {
     },
   })
   const error = state.submitFailed && (state.submitError || state.error)
-  return <FormError error={error} {...props} />
+  return <FormError error={error} errors={errors} {...props} />
 }

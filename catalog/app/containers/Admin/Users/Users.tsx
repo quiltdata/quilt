@@ -340,13 +340,13 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
                 {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
               </RF.Field>
-              <Form.FormErrorAuto
-                errors={{
+              <Form.FormErrorAuto>
+                {{
                   unexpected: 'Something went wrong',
                   smtp: 'SMTP error: contact your administrator',
                   subscriptionInvalid: 'Invalid subscription',
                 }}
-              />
+              </Form.FormErrorAuto>
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
@@ -452,11 +452,9 @@ function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
                 }}
                 autoComplete="off"
               />
-              <Form.FormErrorAuto
-                errors={{
-                  unexpected: 'Something went wrong',
-                }}
-              />
+              <Form.FormErrorAuto>
+                {{ unexpected: 'Something went wrong' }}
+              </Form.FormErrorAuto>
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
@@ -545,13 +543,13 @@ function Delete({ name, close }: DeleteProps) {
             <br />
             This operation is irreversible.
             <br />
-            <Form.FormErrorAuto
-              errors={{
+            <Form.FormErrorAuto>
+              {{
                 unexpected: 'Something went wrong',
                 notFound: 'User not found', // should not happen
                 deleteSelf: 'You cannot delete yourself', // should not happen
               }}
-            />
+            </Form.FormErrorAuto>
           </M.DialogContent>
           <M.DialogActions>
             {submitting && <ActionProgress>Deleting...</ActionProgress>}
@@ -758,11 +756,9 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
                 {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
               </RF.Field>
-              <Form.FormErrorAuto
-                errors={{
-                  unexpected: 'Something went wrong',
-                }}
-              />
+              <Form.FormErrorAuto>
+                {{ unexpected: 'Something went wrong' }}
+              </Form.FormErrorAuto>
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </M.DialogContent>
