@@ -34,22 +34,6 @@ type Role = GQL.DataForDoc<typeof USERS_QUERY>['roles'][number]
 
 const DIALOG_PROPS: Dialogs.ExtraDialogProps = { maxWidth: 'xs', fullWidth: true }
 
-const useMonoStyles = M.makeStyles((t) => ({
-  root: {
-    fontFamily: t.typography.monospace.fontFamily,
-  },
-}))
-
-interface MonoProps {
-  className?: string
-  children: React.ReactNode
-}
-
-function Mono({ className, children }: MonoProps) {
-  const classes = useMonoStyles()
-  return <span className={cx(className, classes.root)}>{children}</span>
-}
-
 interface RoleSelectValue {
   selected: readonly Role[]
   active: Role | null | undefined
@@ -653,8 +637,22 @@ const useUsernameStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
   },
+  name: {
+    maxWidth: '14rem',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
   admin: {
-    fontWeight: 600,
+    fontWeight: t.typography.fontWeightMedium,
+  },
+  self: {
+    '&$name': {
+      maxWidth: '12rem',
+    },
+  },
+  you: {
+    color: t.palette.text.hint,
+    fontWeight: t.typography.fontWeightLight,
   },
   icon: {
     fontSize: '1em',
@@ -673,15 +671,18 @@ function UsernameDisplay({ user, self }: UsernameDisplayProps) {
   return (
     <span className={classes.root}>
       {user.isAdmin && <M.Icon className={classes.icon}>security</M.Icon>}
-      <Mono className={cx({ [classes.admin]: user.isAdmin })}>
-        {self ? (
-          <M.Tooltip title="You">
-            <span>{user.name}*</span>
-          </M.Tooltip>
-        ) : (
-          user.name
-        )}
-      </Mono>
+      <M.Tooltip title={user.name}>
+        <span
+          className={cx(
+            classes.name,
+            user.isAdmin && classes.admin,
+            self && classes.self,
+          )}
+        >
+          {user.name}
+        </span>
+      </M.Tooltip>
+      {self && <span className={classes.you}>&nbsp;(you)</span>}
     </span>
   )
 }
@@ -923,6 +924,7 @@ const useRoleDisplayStyles = M.makeStyles((t) => ({
   },
   extra: {
     color: t.palette.text.hint,
+    fontWeight: t.typography.fontWeightLight,
   },
 }))
 
@@ -1085,7 +1087,7 @@ const useStyles = M.makeStyles((t) => ({
     '& th, & td': {
       whiteSpace: 'nowrap',
     },
-    '& tbody td': {
+    '& tbody th, & tbody td': {
       paddingRight: t.spacing(1),
     },
   },
