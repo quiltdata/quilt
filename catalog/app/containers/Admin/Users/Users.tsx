@@ -357,6 +357,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
+              variant="contained"
               disabled={
                 submitting ||
                 (hasValidationErrors && submitFailed) ||
@@ -372,12 +373,12 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
   )
 }
 
-interface EditProps {
+interface EditEmailProps {
   close: () => void
   user: User
 }
 
-function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
+function EditEmail({ close, user: { email: oldEmail, name } }: EditEmailProps) {
   const { push } = Notifications.use()
   const setEmail = GQL.useMutation(USER_SET_EMAIL_MUTATION)
 
@@ -435,7 +436,7 @@ function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
         modifiedSinceLastSubmit,
       }) => (
         <>
-          <M.DialogTitle>Edit user: &quot;{name}&quot;</M.DialogTitle>
+          <M.DialogTitle>Edit email for user &quot;{name}&quot;</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
@@ -465,6 +466,7 @@ function Edit({ close, user: { email: oldEmail, name } }: EditProps) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
+              variant="contained"
               disabled={
                 submitting ||
                 (hasValidationErrors && submitFailed) ||
@@ -556,7 +558,12 @@ function Delete({ name, close }: DeleteProps) {
             <M.Button onClick={close} color="primary" disabled={submitting}>
               Cancel
             </M.Button>
-            <M.Button onClick={handleSubmit} color="primary" disabled={submitting}>
+            <M.Button
+              onClick={handleSubmit}
+              color="primary"
+              variant="contained"
+              disabled={submitting}
+            >
               Delete
             </M.Button>
           </M.DialogActions>
@@ -615,13 +622,13 @@ function ConfirmAdminRights({ name, admin, close }: ConfirmAdminRightsProps) {
       <M.DialogTitle>{admin ? 'Grant' : 'Revoke'} admin rights</M.DialogTitle>
       <M.DialogContent>
         You are about to {admin ? 'grant admin rights to' : 'revoke admin rights from'}{' '}
-        &quot;{name}&quot;.
+        user &quot;{name}&quot;.
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={() => close(false)} color="primary">
           Cancel
         </M.Button>
-        <M.Button onClick={doChange} color="primary">
+        <M.Button onClick={doChange} color="primary" variant="contained">
           {admin ? 'Grant' : 'Revoke'}
         </M.Button>
       </M.DialogActions>
@@ -644,24 +651,23 @@ const useUsernameStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface UsernameProps {
-  name: string
-  admin: boolean
+interface UsernameDisplayProps {
+  user: User
   self: boolean
 }
 
-function Username({ name, admin, self }: UsernameProps) {
+function UsernameDisplay({ user, self }: UsernameDisplayProps) {
   const classes = useUsernameStyles()
   return (
     <span className={classes.root}>
-      {admin && <M.Icon className={classes.icon}>security</M.Icon>}
-      <Mono className={cx({ [classes.admin]: admin })}>
+      {user.isAdmin && <M.Icon className={classes.icon}>security</M.Icon>}
+      <Mono className={cx({ [classes.admin]: user.isAdmin })}>
         {self ? (
           <M.Tooltip title="You">
-            <span>{name}*</span>
+            <span>{user.name}*</span>
           </M.Tooltip>
         ) : (
-          name
+          user.name
         )}
       </Mono>
     </span>
@@ -750,7 +756,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
         modifiedSinceLastSubmit,
       }) => (
         <>
-          <M.DialogTitle>Configure roles for {user.name}</M.DialogTitle>
+          <M.DialogTitle>Configure roles for user &quot;{user.name}&quot;</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
@@ -769,6 +775,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
+              variant="contained"
               disabled={
                 submitting ||
                 (hasValidationErrors && submitFailed) ||
@@ -819,6 +826,45 @@ function Editable<T>({ value, onChange, children }: EditableProps<T>) {
   return children({ change, busy, value: savedValue })
 }
 
+const useEditableStyles = M.makeStyles((t) => ({
+  root: {
+    marginLeft: t.spacing(0.5),
+  },
+}))
+
+interface EditableSwitchProps {
+  disabled?: boolean
+  checked: boolean
+  onChange: (v: boolean) => void
+  hint: NonNullable<React.ReactNode>
+}
+
+function EditableSwitch({
+  disabled = false,
+  checked,
+  onChange,
+  hint,
+}: EditableSwitchProps) {
+  const classes = useEditableStyles()
+  return disabled ? (
+    <M.Switch className={classes.root} checked={checked} disabled color="default" />
+  ) : (
+    <Editable value={checked} onChange={onChange}>
+      {({ change, busy, value }) => (
+        <M.Tooltip title={hint}>
+          <M.Switch
+            className={classes.root}
+            checked={value}
+            onChange={(e) => change(e.target.checked)}
+            disabled={busy}
+            color="default"
+          />
+        </M.Tooltip>
+      )}
+    </Editable>
+  )
+}
+
 function UsersSkeleton() {
   return (
     <M.Paper>
@@ -828,8 +874,79 @@ function UsersSkeleton() {
   )
 }
 
+const useEmailDisplayStyles = M.makeStyles((t) => ({
+  root: {
+    borderBottom: `1px dashed ${t.palette.text.hint}`,
+    cursor: 'pointer',
+  },
+}))
+
+interface EmailDisplayProps {
+  user: User
+  openDialog: Dialogs.Open
+}
+
+function EmailDisplay({ user, openDialog }: EmailDisplayProps) {
+  const classes = useEmailDisplayStyles()
+
+  const edit = () =>
+    openDialog(({ close }) => <EditEmail {...{ close, user }} />, DIALOG_PROPS)
+
+  return (
+    <M.Tooltip title="Click to edit">
+      <span className={classes.root} onClick={edit}>
+        {user.email}
+      </span>
+    </M.Tooltip>
+  )
+}
+
 // not a valid role name
 const emptyRole = '<None>'
+
+const useRoleDisplayStyles = M.makeStyles((t) => ({
+  root: {
+    borderBottom: `1px dashed ${t.palette.text.hint}`,
+    cursor: 'pointer',
+  },
+  extra: {
+    color: t.palette.text.hint,
+  },
+}))
+
+interface RoleDisplayProps {
+  user: User
+  roles: readonly Role[]
+  openDialog: Dialogs.Open
+}
+
+function RoleDisplay({ user, roles, openDialog }: RoleDisplayProps) {
+  const classes = useRoleDisplayStyles()
+
+  const edit = () =>
+    openDialog(({ close }) => <EditRoles {...{ close, roles, user }} />, DIALOG_PROPS)
+
+  return (
+    <M.Tooltip title="Click to edit">
+      <span className={classes.root} onClick={edit}>
+        {user.role?.name ?? emptyRole}
+        {user.extraRoles.length > 0 && (
+          <span className={classes.extra}> +{user.extraRoles.length}</span>
+        )}
+      </span>
+    </M.Tooltip>
+  )
+}
+
+function DateDisplay({ value }: { value: Date }) {
+  return (
+    <M.Tooltip title={value.toString()}>
+      <span>
+        <Format.Relative value={value} />
+      </span>
+    </M.Tooltip>
+  )
+}
 
 interface ColumnDisplayProps {
   roles: readonly Role[]
@@ -843,28 +960,22 @@ const columns: Table.Column<User>[] = [
     id: 'isActive',
     label: 'Enabled',
     getValue: (u) => u.isActive,
-    getDisplay: (v: boolean, u, { setActive, isSelf }: ColumnDisplayProps) =>
-      isSelf ? (
-        <M.Switch checked={v} disabled color="default" />
-      ) : (
-        <Editable value={v} onChange={(active) => setActive(u.name, active)}>
-          {({ change, busy, value }) => (
-            <M.Switch
-              checked={value}
-              onChange={(e) => change(e.target.checked)}
-              disabled={busy}
-              color="default"
-            />
-          )}
-        </Editable>
-      ),
+    getDisplay: (_v, u, { setActive, isSelf }: ColumnDisplayProps) => (
+      <EditableSwitch
+        hint="Deactivated users can't sign in and use the Catalog"
+        disabled={isSelf}
+        checked={u.isActive}
+        onChange={(active) => setActive(u.name, active)}
+      />
+    ),
+    props: { padding: 'none' },
   },
   {
     id: 'username',
     label: 'Username',
     getValue: (u) => u.name,
-    getDisplay: (_name: string, u, { isSelf }: ColumnDisplayProps) => (
-      <Username admin={u.isAdmin} self={isSelf} name={u.name} />
+    getDisplay: (_v, u, { isSelf }: ColumnDisplayProps) => (
+      <UsernameDisplay user={u} self={isSelf} />
     ),
     props: { component: 'th', scope: 'row' },
   },
@@ -872,75 +983,50 @@ const columns: Table.Column<User>[] = [
     id: 'email',
     label: 'Email',
     getValue: (u) => u.email,
+    getDisplay: (_v, u, { openDialog }: ColumnDisplayProps) => (
+      <EmailDisplay user={u} openDialog={openDialog} />
+    ),
   },
   {
     id: 'role',
     label: 'Role',
     getValue: (u) => u.role?.name,
-    getDisplay: (v: string | undefined, u, { roles, openDialog }: ColumnDisplayProps) => (
-      <div
-        onClick={() =>
-          openDialog(
-            ({ close }) => <EditRoles {...{ close, roles, user: u }} />,
-            DIALOG_PROPS,
-          )
-        }
-      >
-        {v ?? emptyRole}
-        {u.extraRoles.length > 0 && <span> +{u.extraRoles.length}</span>}
-      </div>
+    getDisplay: (_v, u, { roles, openDialog }: ColumnDisplayProps) => (
+      <RoleDisplay user={u} roles={roles} openDialog={openDialog} />
     ),
   },
   {
     id: 'dateJoined',
     label: 'Date joined',
     getValue: (u) => u.dateJoined,
-    getDisplay: (v: Date) => (
-      <span title={v.toString()}>
-        <Format.Relative value={v} />
-      </span>
-    ),
+    getDisplay: (_v, u) => <DateDisplay value={u.dateJoined} />,
   },
   {
     id: 'lastLogin',
     label: 'Last login',
     getValue: (u) => u.lastLogin,
-    getDisplay: (v: Date) => (
-      <span title={v.toString()}>
-        <Format.Relative value={v} />
-      </span>
-    ),
+    getDisplay: (_v, u) => <DateDisplay value={u.lastLogin} />,
   },
   {
     id: 'isAdmin',
     label: 'Admin',
-    hint: 'Admins can see this page, add/remove users, and make/remove admins',
     getValue: (u) => u.isAdmin,
-    getDisplay: (v: boolean, { name }, { openDialog, isSelf }: ColumnDisplayProps) =>
-      isSelf ? (
-        <M.Switch checked={v} disabled color="default" />
-      ) : (
-        <Editable
-          value={v}
-          onChange={(admin) =>
-            openDialog<boolean>(
-              ({ close }) => <ConfirmAdminRights {...{ close, admin, name }} />,
-              DIALOG_PROPS,
-            ).then((res) => {
-              if (!res) throw new Error('cancel')
-            })
-          }
-        >
-          {({ change, busy, value }) => (
-            <M.Switch
-              checked={value}
-              onChange={(e) => change(e.target.checked)}
-              disabled={busy}
-              color="default"
-            />
-          )}
-        </Editable>
-      ),
+    getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => (
+      <EditableSwitch
+        hint="Admins can see this page, add/remove users, and make/remove admins"
+        disabled={isSelf}
+        checked={u.isAdmin}
+        onChange={(admin) =>
+          openDialog<boolean>(
+            ({ close }) => <ConfirmAdminRights {...{ close, admin, name: u.name }} />,
+            DIALOG_PROPS,
+          ).then((res) => {
+            if (!res) throw new Error('cancel')
+          })
+        }
+      />
+    ),
+    props: { padding: 'none' },
   },
 ]
 
@@ -982,7 +1068,20 @@ function useSetActive() {
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  table: {
+    '& th, & td': {
+      whiteSpace: 'nowrap',
+    },
+    '& tbody td': {
+      paddingRight: t.spacing(1),
+    },
+  },
+}))
+
 export default function Users() {
+  const classes = useStyles()
+
   const data = GQL.useQueryS(USERS_QUERY)
   const rows = data.admin.user.list
   const { roles, defaultRole } = data
@@ -997,7 +1096,7 @@ export default function Users() {
   })
   const ordering = Table.useOrdering({
     rows: filtering.filtered,
-    column: columns[0],
+    column: columns[1],
   })
   const pagination = Pagination.use(ordering.ordered, {
     getItemId: (u: User) => u.name,
@@ -1024,20 +1123,12 @@ export default function Users() {
       : {
           title: 'Delete',
           icon: <M.Icon>delete</M.Icon>,
-          fn: () => {
+          fn: () =>
             openDialog(
               ({ close }) => <Delete {...{ close, name: user.name }} />,
               DIALOG_PROPS,
-            )
-          },
+            ),
         },
-    {
-      title: 'Edit',
-      icon: <M.Icon>edit</M.Icon>,
-      fn: () => {
-        openDialog(({ close }) => <Edit {...{ close, user }} />, DIALOG_PROPS)
-      },
-    },
   ]
 
   const getDisplayProps = (u: User): ColumnDisplayProps => ({
@@ -1054,7 +1145,7 @@ export default function Users() {
           <Table.Filter {...filtering} />
         </Table.Toolbar>
         <Table.Wrapper>
-          <M.Table size="small">
+          <M.Table size="small" className={classes.table}>
             <Table.Head columns={columns} ordering={ordering} withInlineActions />
             <M.TableBody>
               {pagination.paginated.map((i: User) => (
