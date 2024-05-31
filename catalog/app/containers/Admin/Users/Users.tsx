@@ -189,6 +189,17 @@ function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSele
   )
 }
 
+const useDialogFormStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(-3),
+  },
+}))
+
+function DialogForm({ className, ...props }: React.FormHTMLAttributes<HTMLFormElement>) {
+  const classes = useDialogFormStyles()
+  return <form className={cx(classes.root, className)} {...props} />
+}
+
 const useInviteStyles = M.makeStyles({
   infoIcon: {
     fontSize: '1.25em',
@@ -296,7 +307,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
         <>
           <M.DialogTitle>Invite a user</M.DialogTitle>
           <M.DialogContent>
-            <form onSubmit={handleSubmit}>
+            <DialogForm onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
                 name="username"
@@ -348,7 +359,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
                 }}
               </Form.FormErrorAuto>
               <input type="submit" style={{ display: 'none' }} />
-            </form>
+            </DialogForm>
           </M.DialogContent>
           <M.DialogActions>
             <M.Button onClick={close} color="primary" disabled={submitting}>
@@ -438,12 +449,13 @@ function EditEmail({ close, user: { email: oldEmail, name } }: EditEmailProps) {
         <>
           <M.DialogTitle>Edit email for user &quot;{name}&quot;</M.DialogTitle>
           <M.DialogContent>
-            <form onSubmit={handleSubmit}>
+            <DialogForm onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
                 name="email"
                 validate={validators.required as FF.FieldValidator<any>}
                 label="Email"
+                placeholder="Enter an email"
                 fullWidth
                 margin="normal"
                 errors={{
@@ -457,7 +469,7 @@ function EditEmail({ close, user: { email: oldEmail, name } }: EditEmailProps) {
                 {{ unexpected: 'Something went wrong' }}
               </Form.FormErrorAuto>
               <input type="submit" style={{ display: 'none' }} />
-            </form>
+            </DialogForm>
           </M.DialogContent>
           <M.DialogActions>
             <M.Button onClick={close} color="primary" disabled={submitting}>
@@ -758,7 +770,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
         <>
           <M.DialogTitle>Configure roles for user &quot;{user.name}&quot;</M.DialogTitle>
           <M.DialogContent>
-            <form onSubmit={handleSubmit}>
+            <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
                 {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
               </RF.Field>
@@ -766,7 +778,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
                 {{ unexpected: 'Something went wrong' }}
               </Form.FormErrorAuto>
               <input type="submit" style={{ display: 'none' }} />
-            </form>
+            </DialogForm>
           </M.DialogContent>
           <M.DialogActions>
             <M.Button onClick={close} color="primary" disabled={submitting}>
