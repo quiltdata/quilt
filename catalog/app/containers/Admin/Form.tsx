@@ -9,6 +9,7 @@ interface FieldOwnProps {
 export type FieldProps = FieldOwnProps & RF.FieldRenderProps<string> & M.TextFieldProps
 
 // TODO: re-use components/Form/TextField
+// XXX: extract all custom logic into a function and use MUI's TextField (and other components) explicitly
 export function Field({
   input,
   meta,
