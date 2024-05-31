@@ -24,19 +24,16 @@ from .fragments import (
     ManagedRoleSelection,
     OperationErrorSelection,
     UnmanagedRoleSelection,
+    UserSelection,
+    UserSelectionExtraRolesManagedRole,
+    UserSelectionExtraRolesUnmanagedRole,
+    UserSelectionRoleManagedRole,
+    UserSelectionRoleUnmanagedRole,
 )
 from .get_role import GetRole, GetRoleRoleManagedRole, GetRoleRoleUnmanagedRole
 from .get_roles import GetRoles, GetRolesRolesManagedRole, GetRolesRolesUnmanagedRole
-from .get_users import (
-    GetUsers,
-    GetUsersAdmin,
-    GetUsersAdminUser,
-    GetUsersAdminUserList,
-    GetUsersAdminUserListExtraRolesManagedRole,
-    GetUsersAdminUserListExtraRolesUnmanagedRole,
-    GetUsersAdminUserListRoleManagedRole,
-    GetUsersAdminUserListRoleUnmanagedRole,
-)
+from .get_user import GetUser, GetUserAdmin, GetUserAdminUser, GetUserAdminUserGet
+from .get_users import GetUsers, GetUsersAdmin, GetUsersAdminUser, GetUsersAdminUserList
 from .input_types import UserInput
 from .set_roles import (
     SetRoles,
@@ -64,14 +61,14 @@ __all__ = [
     "GetRoles",
     "GetRolesRolesManagedRole",
     "GetRolesRolesUnmanagedRole",
+    "GetUser",
+    "GetUserAdmin",
+    "GetUserAdminUser",
+    "GetUserAdminUserGet",
     "GetUsers",
     "GetUsersAdmin",
     "GetUsersAdminUser",
     "GetUsersAdminUserList",
-    "GetUsersAdminUserListExtraRolesManagedRole",
-    "GetUsersAdminUserListExtraRolesUnmanagedRole",
-    "GetUsersAdminUserListRoleManagedRole",
-    "GetUsersAdminUserListRoleUnmanagedRole",
     "GraphQLClientError",
     "GraphQLClientGraphQLError",
     "GraphQLClientGraphQLMultiError",
@@ -91,4 +88,9 @@ __all__ = [
     "UnmanagedRoleSelection",
     "Upload",
     "UserInput",
+    "UserSelection",
+    "UserSelectionExtraRolesManagedRole",
+    "UserSelectionExtraRolesUnmanagedRole",
+    "UserSelectionRoleManagedRole",
+    "UserSelectionRoleUnmanagedRole",
 ]

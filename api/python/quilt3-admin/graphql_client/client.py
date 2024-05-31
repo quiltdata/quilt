@@ -13,6 +13,7 @@ from .create_user import (
 )
 from .get_role import GetRole, GetRoleRoleManagedRole, GetRoleRoleUnmanagedRole
 from .get_roles import GetRoles, GetRolesRolesManagedRole, GetRolesRolesUnmanagedRole
+from .get_user import GetUser, GetUserAdminUserGet
 from .get_users import GetUsers, GetUsersAdminUserList
 from .input_types import UserInput
 from .set_roles import SetRoles, SetRolesAdminUserMutate
@@ -65,29 +66,14 @@ class Client(BaseClient):
         data = self.get_data(response)
         return CreateUser.model_validate(data).admin.user.create
 
-    def get_users(self, **kwargs: Any) -> List[GetUsersAdminUserList]:
+    def get_user(self, name: str, **kwargs: Any) -> Optional[GetUserAdminUserGet]:
         query = gql(
             """
-            query getUsers {
+            query getUser($name: String!) {
               admin {
                 user {
-                  list {
-                    name
-                    email
-                    dateJoined
-                    lastLogin
-                    isActive
-                    isAdmin
-                    isSsoOnly
-                    isService
-                    role {
-                      __typename
-                      ...RoleSelection
-                    }
-                    extraRoles {
-                      __typename
-                      ...RoleSelection
-                    }
+                  get(name: $name) {
+                    ...UserSelection
                   }
                 }
               }
@@ -108,6 +94,78 @@ class Client(BaseClient):
               id
               name
               arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"name": name}
+        response = self.execute(
+            query=query, operation_name="getUser", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return GetUser.model_validate(data).admin.user.get
+
+    def get_users(self, **kwargs: Any) -> List[GetUsersAdminUserList]:
+        query = gql(
+            """
+            query getUsers {
+              admin {
+                user {
+                  list {
+                    ...UserSelection
+                  }
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment RoleSelection on Role {
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
             }
             """
         )

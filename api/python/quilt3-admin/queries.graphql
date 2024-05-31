@@ -12,6 +12,22 @@ fragment RoleSelection on Role {
   ...UnmanagedRoleSelection
   ...ManagedRoleSelection
 }
+fragment UserSelection on User {
+  name
+  email
+  dateJoined
+  lastLogin
+  isActive
+  isAdmin
+  isSsoOnly
+  isService
+  role {
+    ...RoleSelection
+  }
+  extraRoles {
+    ...RoleSelection
+  }
+}
 fragment InvalidInputSelection on InvalidInput {
   errors {
     path
@@ -37,24 +53,21 @@ mutation createUser($input: UserInput!) {
   }
 }
 
+query getUser($name: String!) {
+  admin {
+    user {
+      get(name: $name) {
+        ...UserSelection
+      }
+    }
+  }
+}
+
 query getUsers {
   admin {
     user {
       list {
-        name
-        email
-        dateJoined
-        lastLogin
-        isActive
-        isAdmin
-        isSsoOnly
-        isService
-        role {
-          ...RoleSelection
-        }
-        extraRoles {
-          ...RoleSelection
-        }
+        ...UserSelection
       }
     }
   }
