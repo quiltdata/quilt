@@ -878,15 +878,6 @@ function EditableSwitch({
   )
 }
 
-function UsersSkeleton() {
-  return (
-    <M.Paper>
-      <Table.Toolbar heading="Users" />
-      <Table.Progress />
-    </M.Paper>
-  )
-}
-
 const useEmailDisplayStyles = M.makeStyles((t) => ({
   root: {
     borderBottom: `1px dashed ${t.palette.text.hint}`,
@@ -1153,36 +1144,34 @@ export default function Users() {
   })
 
   return (
-    <React.Suspense fallback={<UsersSkeleton />}>
-      <M.Paper>
-        <Table.Toolbar heading="Users" actions={toolbarActions}>
-          <Table.Filter {...filtering} />
-        </Table.Toolbar>
-        <Table.Wrapper>
-          <M.Table size="small" className={classes.table}>
-            <Table.Head columns={columns} ordering={ordering} withInlineActions />
-            <M.TableBody>
-              {pagination.paginated.map((i: User) => (
-                <M.TableRow hover key={i.name}>
-                  {columns.map((col) => (
-                    <M.TableCell key={col.id} {...col.props}>
-                      {(col.getDisplay || R.identity)(
-                        col.getValue(i),
-                        i,
-                        getDisplayProps(i),
-                      )}
-                    </M.TableCell>
-                  ))}
-                  <M.TableCell align="right" padding="none">
-                    <Table.InlineActions actions={inlineActions(i)} />
+    <>
+      <Table.Toolbar heading="Users" actions={toolbarActions}>
+        <Table.Filter {...filtering} />
+      </Table.Toolbar>
+      <Table.Wrapper>
+        <M.Table size="small" className={classes.table}>
+          <Table.Head columns={columns} ordering={ordering} withInlineActions />
+          <M.TableBody>
+            {pagination.paginated.map((i: User) => (
+              <M.TableRow hover key={i.name}>
+                {columns.map((col) => (
+                  <M.TableCell key={col.id} {...col.props}>
+                    {(col.getDisplay || R.identity)(
+                      col.getValue(i),
+                      i,
+                      getDisplayProps(i),
+                    )}
                   </M.TableCell>
-                </M.TableRow>
-              ))}
-            </M.TableBody>
-          </M.Table>
-        </Table.Wrapper>
-        <Table.Pagination pagination={pagination} />
-      </M.Paper>
-    </React.Suspense>
+                ))}
+                <M.TableCell align="right" padding="none">
+                  <Table.InlineActions actions={inlineActions(i)} />
+                </M.TableCell>
+              </M.TableRow>
+            ))}
+          </M.TableBody>
+        </M.Table>
+      </Table.Wrapper>
+      <Table.Pagination pagination={pagination} />
+    </>
   )
 }

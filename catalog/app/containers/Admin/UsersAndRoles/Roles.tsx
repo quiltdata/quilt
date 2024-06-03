@@ -734,43 +734,34 @@ export default function Roles() {
   ]
 
   return (
-    <React.Suspense
-      fallback={
-        <M.Paper>
-          <Table.Toolbar heading="Roles" />
-          <Table.Progress />
-        </M.Paper>
-      }
-    >
-      <M.Paper>
-        {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
-        <Table.Toolbar heading="Roles" actions={toolbarActions}>
-          <Table.Filter {...filtering} />
-        </Table.Toolbar>
-        <Table.Wrapper>
-          <M.Table>
-            <Table.Head columns={columns} ordering={ordering} withInlineActions />
-            <M.TableBody>
-              {ordering.ordered.map((i: Role) => (
-                <M.TableRow hover key={i.id}>
-                  {columns.map((col) => (
-                    <M.TableCell key={col.id} {...col.props}>
-                      {(col.getDisplay || R.identity)(col.getValue(i), i, {
-                        defaultRoleId,
-                      })}
-                    </M.TableCell>
-                  ))}
-                  <M.TableCell align="right" padding="none">
-                    <Table.InlineActions actions={inlineActions(i)}>
-                      <SettingsMenu role={i} openDialog={dialogs.open} />
-                    </Table.InlineActions>
+    <>
+      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
+      <Table.Toolbar heading="Roles" actions={toolbarActions}>
+        <Table.Filter {...filtering} />
+      </Table.Toolbar>
+      <Table.Wrapper>
+        <M.Table>
+          <Table.Head columns={columns} ordering={ordering} withInlineActions />
+          <M.TableBody>
+            {ordering.ordered.map((i: Role) => (
+              <M.TableRow hover key={i.id}>
+                {columns.map((col) => (
+                  <M.TableCell key={col.id} {...col.props}>
+                    {(col.getDisplay || R.identity)(col.getValue(i), i, {
+                      defaultRoleId,
+                    })}
                   </M.TableCell>
-                </M.TableRow>
-              ))}
-            </M.TableBody>
-          </M.Table>
-        </Table.Wrapper>
-      </M.Paper>
-    </React.Suspense>
+                ))}
+                <M.TableCell align="right" padding="none">
+                  <Table.InlineActions actions={inlineActions(i)}>
+                    <SettingsMenu role={i} openDialog={dialogs.open} />
+                  </Table.InlineActions>
+                </M.TableCell>
+              </M.TableRow>
+            ))}
+          </M.TableBody>
+        </M.Table>
+      </Table.Wrapper>
+    </>
   )
 }

@@ -682,41 +682,32 @@ export default function Policies() {
   ]
 
   return (
-    <React.Suspense
-      fallback={
-        <M.Paper>
-          <Table.Toolbar heading="Policies" />
-          <Table.Progress />
-        </M.Paper>
-      }
-    >
-      <M.Paper>
-        {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
-        <Table.Toolbar heading="Policies" actions={toolbarActions}>
-          <Table.Filter {...filtering} />
-        </Table.Toolbar>
-        <Table.Wrapper>
-          <M.Table>
-            <Table.Head columns={columns} ordering={ordering} withInlineActions />
-            <M.TableBody>
-              {ordering.ordered.map((i: Policy) => (
-                <M.TableRow hover key={i.id}>
-                  {columns.map((col) => (
-                    <M.TableCell key={col.id} {...col.props}>
-                      {(col.getDisplay || R.identity)(col.getValue(i), i)}
-                    </M.TableCell>
-                  ))}
-                  <M.TableCell align="right" padding="none">
-                    <Table.InlineActions actions={inlineActions(i)}>
-                      <SettingsMenu policy={i} openDialog={dialogs.open} />
-                    </Table.InlineActions>
+    <>
+      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
+      <Table.Toolbar heading="Policies" actions={toolbarActions}>
+        <Table.Filter {...filtering} />
+      </Table.Toolbar>
+      <Table.Wrapper>
+        <M.Table>
+          <Table.Head columns={columns} ordering={ordering} withInlineActions />
+          <M.TableBody>
+            {ordering.ordered.map((i: Policy) => (
+              <M.TableRow hover key={i.id}>
+                {columns.map((col) => (
+                  <M.TableCell key={col.id} {...col.props}>
+                    {(col.getDisplay || R.identity)(col.getValue(i), i)}
                   </M.TableCell>
-                </M.TableRow>
-              ))}
-            </M.TableBody>
-          </M.Table>
-        </Table.Wrapper>
-      </M.Paper>
-    </React.Suspense>
+                ))}
+                <M.TableCell align="right" padding="none">
+                  <Table.InlineActions actions={inlineActions(i)}>
+                    <SettingsMenu policy={i} openDialog={dialogs.open} />
+                  </Table.InlineActions>
+                </M.TableCell>
+              </M.TableRow>
+            ))}
+          </M.TableBody>
+        </M.Table>
+      </Table.Wrapper>
+    </>
   )
 }

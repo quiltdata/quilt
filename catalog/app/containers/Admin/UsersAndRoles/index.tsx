@@ -6,19 +6,26 @@ import MetaTitle from 'utils/MetaTitle'
 import Policies from './Policies'
 import Roles from './Roles'
 import Users from './Users'
+import SuspenseWrapper from './SuspenseWrapper'
 
 export default function UsersAndRoles() {
   return (
     <>
       <MetaTitle>{['Users, Roles and Policies', 'Admin']}</MetaTitle>
       <M.Box mt={2}>
-        <Users />
+        <SuspenseWrapper heading="Users">
+          <Users />
+        </SuspenseWrapper>
       </M.Box>
       <M.Box mt={2}>
-        <Roles />
+        <SuspenseWrapper heading="Roles">
+          <Roles />
+        </SuspenseWrapper>
       </M.Box>
       <M.Box mt={2}>
-        <Policies />
+        <SuspenseWrapper heading="Policies">
+          <Policies />
+        </SuspenseWrapper>
       </M.Box>
       <M.Box pt={4} />
     </>
