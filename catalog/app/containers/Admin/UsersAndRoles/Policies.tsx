@@ -601,7 +601,7 @@ function Edit({ policy, close }: EditProps) {
 
 interface SettingsMenuProps {
   policy: Policy
-  openDialog: (render: (props: DialogsOpenProps) => JSX.Element, props?: $TSFixMe) => void
+  openDialog: Dialogs.Open
 }
 
 function SettingsMenu({ policy, openDialog }: SettingsMenuProps) {
@@ -641,11 +641,6 @@ function SettingsMenu({ policy, openDialog }: SettingsMenuProps) {
   )
 }
 
-// XXX: move to dialogs module
-interface DialogsOpenProps {
-  close: (reason?: string) => void
-}
-
 export default function Policies() {
   const { policies: rows } = GQL.useQueryS(POLICIES_QUERY)
 
@@ -664,7 +659,7 @@ export default function Policies() {
       title: 'Create',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        dialogs.open(({ close }: DialogsOpenProps) => <Create {...{ close }} />)
+        dialogs.open(({ close }) => <Create {...{ close }} />)
       }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
     },
   ]
@@ -681,14 +676,7 @@ export default function Policies() {
       title: 'Edit',
       icon: <M.Icon>edit</M.Icon>,
       fn: () => {
-        dialogs.open(({ close }: DialogsOpenProps) => (
-          <Edit
-            {...{
-              policy,
-              close,
-            }}
-          />
-        ))
+        dialogs.open(({ close }) => <Edit {...{ policy, close }} />)
       },
     },
   ]
