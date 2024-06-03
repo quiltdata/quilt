@@ -3,8 +3,8 @@ import * as M from '@material-ui/core'
 
 import MetaTitle from 'utils/MetaTitle'
 
-// XXX: move the components imported below into a single module
-import { Roles, Policies } from './RolesAndPolicies'
+import Policies from './Policies'
+import Roles from './Roles'
 import Users from './Users'
 
 export default function UsersAndRoles() {
