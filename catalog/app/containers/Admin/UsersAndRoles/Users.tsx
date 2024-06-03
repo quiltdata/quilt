@@ -632,6 +632,33 @@ function ConfirmAdminRights({ name, admin, close }: ConfirmAdminRightsProps) {
   )
 }
 
+const useHintStyles = M.makeStyles((t) => ({
+  hint: {
+    color: t.palette.text.hint,
+    fontWeight: t.typography.fontWeightLight,
+  },
+}))
+
+function Hint({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
+  const classes = useHintStyles()
+  return <span className={cx(classes.hint, className)} {...props} />
+}
+
+const useClickableStyles = M.makeStyles((t) => ({
+  clickable: {
+    borderBottom: `1px dashed ${t.palette.text.hint}`,
+    cursor: 'pointer',
+  },
+}))
+
+const Clickable = React.forwardRef<
+  HTMLSpanElement,
+  React.HTMLAttributes<HTMLSpanElement>
+>(function Clickable({ className, ...props }, ref) {
+  const classes = useClickableStyles()
+  return <span className={cx(classes.clickable, className)} {...props} ref={ref} />
+})
+
 const useUsernameStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -649,10 +676,6 @@ const useUsernameStyles = M.makeStyles((t) => ({
     '&$name': {
       maxWidth: '12rem',
     },
-  },
-  you: {
-    color: t.palette.text.hint,
-    fontWeight: t.typography.fontWeightLight,
   },
   icon: {
     fontSize: '1em',
@@ -682,7 +705,7 @@ function UsernameDisplay({ user, self }: UsernameDisplayProps) {
           {user.name}
         </span>
       </M.Tooltip>
-      {self && <span className={classes.you}>&nbsp;(you)</span>}
+      {self && <Hint>&nbsp;(you)</Hint>}
     </span>
   )
 }
@@ -878,46 +901,24 @@ function EditableSwitch({
   )
 }
 
-const useEmailDisplayStyles = M.makeStyles((t) => ({
-  root: {
-    borderBottom: `1px dashed ${t.palette.text.hint}`,
-    cursor: 'pointer',
-  },
-}))
-
 interface EmailDisplayProps {
   user: User
   openDialog: Dialogs.Open
 }
 
 function EmailDisplay({ user, openDialog }: EmailDisplayProps) {
-  const classes = useEmailDisplayStyles()
-
   const edit = () =>
     openDialog(({ close }) => <EditEmail {...{ close, user }} />, DIALOG_PROPS)
 
   return (
     <M.Tooltip title="Click to edit">
-      <span className={classes.root} onClick={edit}>
-        {user.email}
-      </span>
+      <Clickable onClick={edit}>{user.email}</Clickable>
     </M.Tooltip>
   )
 }
 
 // not a valid role name
 const emptyRole = '<None>'
-
-const useRoleDisplayStyles = M.makeStyles((t) => ({
-  root: {
-    borderBottom: `1px dashed ${t.palette.text.hint}`,
-    cursor: 'pointer',
-  },
-  extra: {
-    color: t.palette.text.hint,
-    fontWeight: t.typography.fontWeightLight,
-  },
-}))
 
 interface RoleDisplayProps {
   user: User
@@ -926,19 +927,15 @@ interface RoleDisplayProps {
 }
 
 function RoleDisplay({ user, roles, openDialog }: RoleDisplayProps) {
-  const classes = useRoleDisplayStyles()
-
   const edit = () =>
     openDialog(({ close }) => <EditRoles {...{ close, roles, user }} />, DIALOG_PROPS)
 
   return (
     <M.Tooltip title="Click to edit">
-      <span className={classes.root} onClick={edit}>
+      <Clickable onClick={edit}>
         {user.role?.name ?? emptyRole}
-        {user.extraRoles.length > 0 && (
-          <span className={classes.extra}> +{user.extraRoles.length}</span>
-        )}
-      </span>
+        {user.extraRoles.length > 0 && <Hint> +{user.extraRoles.length}</Hint>}
+      </Clickable>
     </M.Tooltip>
   )
 }
