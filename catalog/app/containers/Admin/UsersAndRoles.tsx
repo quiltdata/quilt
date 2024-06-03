@@ -14,12 +14,13 @@ export default function UsersAndRoles() {
       <M.Box mt={2}>
         <Users />
       </M.Box>
-      <M.Box mt={2} mb={2}>
+      <M.Box mt={2}>
         <Roles />
       </M.Box>
-      <M.Box mt={2} mb={2}>
+      <M.Box mt={2}>
         <Policies />
       </M.Box>
+      <M.Box pt={4} />
     </>
   )
 }
