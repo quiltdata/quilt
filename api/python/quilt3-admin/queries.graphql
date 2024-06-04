@@ -42,17 +42,6 @@ fragment OperationErrorSelection on OperationError {
   context
 }
 
-mutation createUser($input: UserInput!) {
-  admin {
-    user {
-      create(input: $input) {
-        ...InvalidInputSelection
-        ...OperationErrorSelection
-      }
-    }
-  }
-}
-
 query getUser($name: String!) {
   admin {
     user {
@@ -73,9 +62,14 @@ query getUsers {
   }
 }
 
-query getRoles {
-  roles {
-      ...RoleSelection
+mutation createUser($input: UserInput!) {
+  admin {
+    user {
+      create(input: $input) {
+        ...InvalidInputSelection
+        ...OperationErrorSelection
+      }
+    }
   }
 }
 
@@ -85,11 +79,42 @@ query getRole($roleId: ID!) {
   }
 }
 
-mutation setRoles($name: String!, $role: String!, $extraRoles: [String!]) {
+query getRoles {
+  roles {
+      ...RoleSelection
+  }
+}
+
+mutation setRole($name: String!, $role: String!, $extraRoles: [String!], $append: Boolean!) {
   admin {
     user {
       mutate(name: $name) {
-        setRole(role: $role, extraRoles: $extraRoles) {
+        setRole(role: $role, extraRoles: $extraRoles, append: $append) {
+          ...InvalidInputSelection
+          ...OperationErrorSelection
+        }
+      }
+    }
+  }
+}
+
+mutation addRoles($roles: [String!]!, $name: String!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        addRoles(roles: $roles) {
+          ...InvalidInputSelection
+          ...OperationErrorSelection
+        }
+      }
+    }
+  }
+}
+mutation removeRoles($roles: [String!]!, $name: String!, $fallback: String) {
+  admin {
+    user {
+      mutate(name: $name) {
+        removeRoles(roles: $roles, fallback: $fallback) {
           ...InvalidInputSelection
           ...OperationErrorSelection
         }
