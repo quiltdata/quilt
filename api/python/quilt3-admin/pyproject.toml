@@ -1,6 +1,11 @@
 [tool.ariadne-codegen]
 schema_path = "../../../shared/graphql/schema.graphql"
 queries_path = "queries.graphql"
+target_package_path = "../quilt3/adminql/"
+target_package_name = "_graphql_client"
+files_to_include = [
+    "exceptions.py",
+]
 async_client = false
 base_client_file_path = "base_client.py"
 base_client_name = "BaseClient"

@@ -66,9 +66,11 @@ class Client(BaseClient):
               isSsoOnly
               isService
               role {
+                __typename
                 ...RoleSelection
               }
               extraRoles {
+                __typename
                 ...RoleSelection
               }
             }
@@ -121,9 +123,11 @@ class Client(BaseClient):
               isSsoOnly
               isService
               role {
+                __typename
                 ...RoleSelection
               }
               extraRoles {
+                __typename
                 ...RoleSelection
               }
             }

@@ -22,9 +22,11 @@ fragment UserSelection on User {
   isSsoOnly
   isService
   role {
+    __typename
     ...RoleSelection
   }
   extraRoles {
+    __typename
     ...RoleSelection
   }
 }

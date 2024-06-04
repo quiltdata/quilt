@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-import httpx
+import requests
 
 
 class GraphQLClientError(Exception):
@@ -10,7 +10,7 @@ class GraphQLClientError(Exception):
 
 
 class GraphQLClientHttpError(GraphQLClientError):
-    def __init__(self, status_code: int, response: httpx.Response) -> None:
+    def __init__(self, status_code: int, response: requests.Response) -> None:
         self.status_code = status_code
         self.response = response
 
@@ -19,7 +19,7 @@ class GraphQLClientHttpError(GraphQLClientError):
 
 
 class GraphQLClientInvalidResponseError(GraphQLClientError):
-    def __init__(self, response: httpx.Response) -> None:
+    def __init__(self, response: requests.Response) -> None:
         self.response = response
 
     def __str__(self) -> str:
