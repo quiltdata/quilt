@@ -65,6 +65,7 @@ setup(
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
+        'pydantic',  # XXX: set version
     ],
     extras_require={
         'pyarrow': [
