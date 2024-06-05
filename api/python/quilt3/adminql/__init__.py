@@ -31,8 +31,10 @@ def get_users() -> List[GetUsersAdminUserList]:
     return _get_client().get_users()
 
 
-def create_user(input: UserInput) -> None:
-    _handle_errors(_get_client().create_user(input=input))
+def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str]] = None) -> None:
+    _handle_errors(
+        _get_client().create_user(input=UserInput(name=name, email=email, role=role, extra_roles=extra_roles))
+    )
     return None
 
 
@@ -59,9 +61,7 @@ def set_role(
     return None
 
 
-def add_roles(
-    roles: List[str], name: str
-) -> None:
+def add_roles(roles: List[str], name: str) -> None:
     result = _get_client().add_roles(roles=roles, name=name)
     if result is None:
         raise UserNotFoundError
