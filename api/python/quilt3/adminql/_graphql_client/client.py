@@ -46,6 +46,7 @@ class Client(BaseClient):
             }
 
             fragment RoleSelection on Role {
+              __typename
               ...UnmanagedRoleSelection
               ...ManagedRoleSelection
             }
@@ -66,11 +67,9 @@ class Client(BaseClient):
               isSsoOnly
               isService
               role {
-                __typename
                 ...RoleSelection
               }
               extraRoles {
-                __typename
                 ...RoleSelection
               }
             }
@@ -103,6 +102,7 @@ class Client(BaseClient):
             }
 
             fragment RoleSelection on Role {
+              __typename
               ...UnmanagedRoleSelection
               ...ManagedRoleSelection
             }
@@ -123,11 +123,9 @@ class Client(BaseClient):
               isSsoOnly
               isService
               role {
-                __typename
                 ...RoleSelection
               }
               extraRoles {
-                __typename
                 ...RoleSelection
               }
             }
@@ -189,7 +187,6 @@ class Client(BaseClient):
             """
             query getRole($roleId: ID!) {
               role(id: $roleId) {
-                __typename
                 ...RoleSelection
               }
             }
@@ -201,6 +198,7 @@ class Client(BaseClient):
             }
 
             fragment RoleSelection on Role {
+              __typename
               ...UnmanagedRoleSelection
               ...ManagedRoleSelection
             }
@@ -226,7 +224,6 @@ class Client(BaseClient):
             """
             query getRoles {
               roles {
-                __typename
                 ...RoleSelection
               }
             }
@@ -238,6 +235,7 @@ class Client(BaseClient):
             }
 
             fragment RoleSelection on Role {
+              __typename
               ...UnmanagedRoleSelection
               ...ManagedRoleSelection
             }

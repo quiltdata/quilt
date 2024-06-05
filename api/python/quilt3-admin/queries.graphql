@@ -9,6 +9,7 @@ fragment ManagedRoleSelection on ManagedRole {
   arn
 }
 fragment RoleSelection on Role {
+  __typename
   ...UnmanagedRoleSelection
   ...ManagedRoleSelection
 }
@@ -22,11 +23,9 @@ fragment UserSelection on User {
   isSsoOnly
   isService
   role {
-    __typename
     ...RoleSelection
   }
   extraRoles {
-    __typename
     ...RoleSelection
   }
 }
