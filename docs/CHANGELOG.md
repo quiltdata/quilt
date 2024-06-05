@@ -17,6 +17,8 @@ Entries inside each section should be ordered by type:
 # unreleased - YYYY-MM-DD
 ## Python API
 
+* [Removed] Drop Python 3.8 support ([#3993](https://github.com/quiltdata/quilt/pull/3993))
+
 ## CLI
 
 ## Catalog, Lambdas
