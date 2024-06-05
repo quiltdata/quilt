@@ -57,20 +57,8 @@ function useAuthState(): AuthState {
   })
 }
 
-// XXX: don't use a separate type for this?
-const NavItemDescriptor = tagged.create(
-  'app/containers/NavBar/NavMenu:NavItemDescriptor' as const,
-  {
-    To: (to: string, children: React.ReactNode) => ({ to, children }),
-    Href: (href: string, children: React.ReactNode) => ({ href, children }),
-  },
-)
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-type NavItemDescriptor = tagged.InstanceOf<typeof NavItemDescriptor>
-
-const MenuItemDescriptor = tagged.create(
-  'app/containers/NavBar/NavMenu:MenuItemDescriptor' as const,
+const ItemDescriptor = tagged.create(
+  'app/containers/NavBar/NavMenu:ItemDescriptor' as const,
   {
     To: (to: string, children: React.ReactNode) => ({ to, children }),
     Href: (href: string, children: React.ReactNode) => ({ href, children }),
@@ -81,7 +69,7 @@ const MenuItemDescriptor = tagged.create(
 )
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-type MenuItemDescriptor = tagged.InstanceOf<typeof MenuItemDescriptor>
+type ItemDescriptor = tagged.InstanceOf<typeof ItemDescriptor>
 
 interface DropdownMenuProps
   extends Omit<
@@ -91,7 +79,7 @@ interface DropdownMenuProps
   trigger: (
     open: React.EventHandler<React.SyntheticEvent<HTMLElement>>,
   ) => React.ReactNode
-  items: (MenuItemDescriptor | null | false)[]
+  items: (ItemDescriptor | false)[]
 }
 
 function DropdownMenu({ trigger, items, ...rest }: DropdownMenuProps) {
@@ -108,9 +96,9 @@ function DropdownMenu({ trigger, items, ...rest }: DropdownMenuProps) {
     setAnchor(null)
   }, [setAnchor])
 
-  const filtered = items.filter(Boolean) as MenuItemDescriptor[]
+  const filtered = items.filter(Boolean) as ItemDescriptor[]
   const children = filtered.map(
-    MenuItemDescriptor.match({
+    ItemDescriptor.match({
       To: (props, i) => (
         <RR.Route key={i} path={props.to}>
           {({ match }) => (
@@ -259,37 +247,32 @@ function useRoleSwitcher() {
     openDialog(() => <RoleSwitcher user={user} />, SWITCH_ROLES_DIALOG_PROPS)
 }
 
-function useLinks(): NavItemDescriptor[] {
+function useLinks(): ItemDescriptor[] {
   const { urls } = NamedRoutes.use()
   const settings = CatalogSettings.use()
 
-  const links: NavItemDescriptor[] = []
-  const link = (l: NavItemDescriptor | false, cond = true) => cond && l && links.push(l)
-
-  const customNavLink: NavItemDescriptor | false = React.useMemo(() => {
+  const customNavLink: ItemDescriptor | false = React.useMemo(() => {
     if (!settings?.customNavLink) return false
     const href = sanitizeUrl(settings.customNavLink.url)
     if (href === 'about:blank') return false
-    return NavItemDescriptor.Href(href, settings.customNavLink.label)
+    return ItemDescriptor.Href(href, settings.customNavLink.label)
   }, [settings?.customNavLink])
 
-  link(
-    NavItemDescriptor.To(urls.example(), 'Example'),
-    process.env.NODE_ENV === 'development',
-  )
-  link(customNavLink)
-  link(NavItemDescriptor.To(urls.uriResolver(), 'URI'), cfg.mode !== 'MARKETING')
-  link(NavItemDescriptor.Href(URLS.docs, 'Docs'))
-  link(
-    NavItemDescriptor.To(`${urls.home()}#pricing`, 'Pricing'),
-    cfg.mode === 'MARKETING',
-  )
-  link(
-    NavItemDescriptor.Href(URLS.jobs, 'Jobs'),
-    cfg.mode === 'MARKETING' || cfg.mode === 'OPEN',
-  )
-  link(NavItemDescriptor.Href(URLS.blog, 'Blog'), cfg.mode !== 'PRODUCT')
-  link(NavItemDescriptor.To(urls.about(), 'About'), cfg.mode === 'MARKETING')
+  const links: ItemDescriptor[] = []
+
+  if (process.env.NODE_ENV === 'development') {
+    links.push(ItemDescriptor.To(urls.example(), 'Example'))
+  }
+  if (customNavLink) links.push(customNavLink)
+  if (cfg.mode !== 'MARKETING') {
+    links.push(ItemDescriptor.To(urls.uriResolver(), 'URI'))
+  }
+  links.push(ItemDescriptor.Href(URLS.docs, 'Docs'))
+  if (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') {
+    links.push(ItemDescriptor.Href(URLS.jobs, 'Jobs'))
+  }
+  if (cfg.mode !== 'PRODUCT') links.push(ItemDescriptor.Href(URLS.blog, 'Blog'))
+  if (cfg.mode === 'MARKETING') links.push(ItemDescriptor.To(urls.about(), 'About'))
 
   return links
 }
@@ -361,11 +344,11 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
 
   const items = [
     cfg.mode === 'OPEN' &&
-      MenuItemDescriptor.To(urls.profile(), withIcon('person', 'Profile')),
+      ItemDescriptor.To(urls.profile(), withIcon('person', 'Profile')),
     user.roles.length > 1 &&
-      MenuItemDescriptor.Click(() => switchRole(user), withIcon('loop', 'Switch role')),
+      ItemDescriptor.Click(() => switchRole(user), withIcon('loop', 'Switch role')),
     !!bookmarks &&
-      MenuItemDescriptor.Click(
+      ItemDescriptor.Click(
         () => bookmarks.show(),
         <>
           <Badge color="secondary" invisible={!hasBookmarksUpdates}>
@@ -375,8 +358,8 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
         </>,
       ),
     user.isAdmin &&
-      MenuItemDescriptor.To(urls.admin(), withIcon('security', 'Admin settings')),
-    MenuItemDescriptor.To(urls.signOut(), withIcon('meeting_room', 'Sign Out')),
+      ItemDescriptor.To(urls.admin(), withIcon('security', 'Admin settings')),
+    ItemDescriptor.To(urls.signOut(), withIcon('meeting_room', 'Sign Out')),
   ]
 
   return (
@@ -472,31 +455,25 @@ function MobileMenu({ auth }: MobileMenuProps) {
     cfg.disableNavigator || cfg.mode === 'LOCAL'
       ? []
       : [
-          ...AuthState.match<(MenuItemDescriptor | false)[]>(
+          ...AuthState.match<(ItemDescriptor | false)[]>(
             {
-              Loading: () => [MenuItemDescriptor.Text(withIcon('person', 'Loading...'))],
+              Loading: () => [ItemDescriptor.Text(withIcon('person', 'Loading...'))],
               Error: () => [
-                MenuItemDescriptor.To(
-                  urls.signIn(),
-                  withIcon('error_outline', 'Sign In'),
-                ),
+                ItemDescriptor.To(urls.signIn(), withIcon('error_outline', 'Sign In')),
               ],
               Ready: ({ user }) =>
                 user
                   ? [
                       cfg.mode === 'OPEN'
-                        ? MenuItemDescriptor.To(
-                            urls.profile(),
-                            <UserDisplay user={user} />,
-                          )
-                        : MenuItemDescriptor.Text(<UserDisplay user={user} />),
+                        ? ItemDescriptor.To(urls.profile(), <UserDisplay user={user} />)
+                        : ItemDescriptor.Text(<UserDisplay user={user} />),
                       user.roles.length > 1 &&
-                        MenuItemDescriptor.Click(
+                        ItemDescriptor.Click(
                           () => switchRole(user),
                           withIcon('loop', 'Switch role'),
                         ),
                       !!bookmarks &&
-                        MenuItemDescriptor.Click(
+                        ItemDescriptor.Click(
                           () => bookmarks.show(),
                           <>
                             <Badge color="secondary" invisible={!hasBookmarksUpdates}>
@@ -506,17 +483,17 @@ function MobileMenu({ auth }: MobileMenuProps) {
                           </>,
                         ),
                       user.isAdmin &&
-                        MenuItemDescriptor.To(
+                        ItemDescriptor.To(
                           urls.admin(),
                           withIcon('security', 'Admin settings'),
                         ),
-                      MenuItemDescriptor.To(
+                      ItemDescriptor.To(
                         urls.signOut(),
                         withIcon('meeting_room', 'Sign Out'),
                       ),
                     ]
                   : [
-                      MenuItemDescriptor.To(
+                      ItemDescriptor.To(
                         urls.signIn(),
                         withIcon('exit_to_app', 'Sign In'),
                       ),
@@ -524,17 +501,10 @@ function MobileMenu({ auth }: MobileMenuProps) {
             },
             auth,
           ),
-          MenuItemDescriptor.Divider(),
+          ItemDescriptor.Divider(),
         ]
 
-  const navItems = links.map(
-    NavItemDescriptor.match<MenuItemDescriptor>({
-      To: (props) => MenuItemDescriptor.To(props.to, props.children),
-      Href: (props) => MenuItemDescriptor.Href(props.href, props.children),
-    }),
-  )
-
-  const items = [...authItems, ...navItems]
+  const items = [...authItems, ...links]
 
   return (
     <DropdownMenu
@@ -588,7 +558,7 @@ export function Links() {
   return (
     <nav className={classes.nav}>
       {links.map(
-        NavItemDescriptor.match({
+        ItemDescriptor.match({
           To: (props, i) => (
             <RR.NavLink
               key={i}
@@ -607,6 +577,7 @@ export function Links() {
               {...props}
             />
           ),
+          _: () => null,
         }),
       )}
       {!intercom.dummy && intercom.isCustom && (
