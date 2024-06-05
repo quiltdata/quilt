@@ -168,19 +168,22 @@ const useListItemTextStyles = M.makeStyles((t) => ({
   },
 }))
 
+const LOADING = Symbol('loading')
+
 interface RoleSwitcherProps {
   user: Me
+  close: Dialogs.Close
 }
 
-function RoleSwitcher({ user }: RoleSwitcherProps) {
+function RoleSwitcher({ user, close }: RoleSwitcherProps) {
   const switchRole = GQL.useMutation(SWITCH_ROLE_MUTATION)
   const classes = useRoleSwitcherStyles()
   const textClasses = useListItemTextStyles()
-  const loading = true
-  const [state, setState] = React.useState<Error | typeof loading | null>(null)
+  const [state, setState] = React.useState<Error | typeof LOADING | null>(null)
   const handleClick = React.useCallback(
     async (roleName: string) => {
-      setState(loading)
+      if (roleName === user.role.name) return close()
+      setState(LOADING)
       try {
         const { switchRole: r } = await switchRole({ roleName })
         switch (r.__typename) {
@@ -203,12 +206,12 @@ function RoleSwitcher({ user }: RoleSwitcherProps) {
         }
       }
     },
-    [loading, switchRole],
+    [close, switchRole, user.role.name],
   )
   return (
     <>
       <M.DialogTitle>Switch role</M.DialogTitle>
-      {state !== true ? (
+      {state !== LOADING ? (
         <>
           {state instanceof Error && (
             <Lab.Alert severity="error">{state.message}</Lab.Alert>
@@ -217,11 +220,17 @@ function RoleSwitcher({ user }: RoleSwitcherProps) {
             {user.roles.map((role) => (
               <M.ListItem
                 button
-                disabled={role.name === user.role.name}
                 key={role.name}
                 onClick={() => handleClick(role.name)}
                 selected={role.name === user.role.name}
               >
+                <M.ListItemIcon>
+                  <M.Radio
+                    checked={role.name === user.role.name}
+                    tabIndex={-1}
+                    disableRipple
+                  />
+                </M.ListItemIcon>
                 <M.ListItemText classes={textClasses}>{role.name}</M.ListItemText>
               </M.ListItem>
             ))}
@@ -244,7 +253,10 @@ const SWITCH_ROLES_DIALOG_PROPS = {
 function useRoleSwitcher() {
   const openDialog = Dialogs.use()
   return (user: Me) =>
-    openDialog(() => <RoleSwitcher user={user} />, SWITCH_ROLES_DIALOG_PROPS)
+    openDialog(
+      ({ close }) => <RoleSwitcher user={user} close={close} />,
+      SWITCH_ROLES_DIALOG_PROPS,
+    )
 }
 
 function useLinks(): ItemDescriptor[] {
