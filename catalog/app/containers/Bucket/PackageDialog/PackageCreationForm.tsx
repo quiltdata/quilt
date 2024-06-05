@@ -439,7 +439,6 @@ function PackageCreationForm({
     [nameWarning, nameExistence],
   )
 
-  const [filesDisabled, setFilesDisabled] = React.useState(false)
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
@@ -452,11 +451,9 @@ function PackageCreationForm({
       const hashihgError = delayHashing && FI.validateHashingComplete(files)
       if (hashihgError) return hashihgError
 
-      setFilesDisabled(true)
       const entries = filesStateToEntries(files)
       const errors = await validateEntries(entries)
       setEntriesError(errors || null)
-      setFilesDisabled(false)
       if (errors?.length) {
         return 'schema'
       }
@@ -632,7 +629,6 @@ function PackageCreationForm({
                       validationErrors={
                         submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
                       }
-                      disabled={filesDisabled}
                     />
                   )}
 
