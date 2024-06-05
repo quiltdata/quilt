@@ -16,3 +16,6 @@ plugins = [
     "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
     "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
 ]
+
+[tool.ariadne-codegen.scalars.Datetime]
+type = "datetime.datetime"
