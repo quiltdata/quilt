@@ -16,5 +16,12 @@ mutation ($roleName: String!) {
       message
       name
     }
+    ... on InvalidInput {
+      errors {
+        name
+        path
+        message
+      }
+    }
   }
 }

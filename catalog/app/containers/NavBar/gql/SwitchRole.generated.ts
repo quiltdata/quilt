@@ -16,7 +16,14 @@ export type containers_NavBar_gql_SwitchRoleMutation = {
             { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
           >
         })
-    | { readonly __typename: 'InvalidInput' }
+    | ({ readonly __typename: 'InvalidInput' } & {
+        readonly errors: ReadonlyArray<
+          { readonly __typename: 'InputError' } & Pick<
+            Types.InputError,
+            'name' | 'path' | 'message'
+          >
+        >
+      })
     | ({ readonly __typename: 'OperationError' } & Pick<
         Types.OperationError,
         'message' | 'name'
@@ -103,6 +110,30 @@ export const containers_NavBar_gql_SwitchRoleDocument = {
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'InvalidInput' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'errors' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'path' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                          ],
+                        },
+                      },
                     ],
                   },
                 },
