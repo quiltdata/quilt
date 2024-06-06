@@ -10,12 +10,7 @@ export type containers_NavBar_gql_SwitchRoleMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly switchRole:
-    | ({ readonly __typename: 'Me' } & Pick<Types.Me, 'name' | 'email' | 'isAdmin'> & {
-          readonly role: { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
-          readonly roles: ReadonlyArray<
-            { readonly __typename: 'MyRole' } & Pick<Types.MyRole, 'name'>
-          >
-        })
+    | { readonly __typename: 'Me' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
           { readonly __typename: 'InputError' } & Pick<
@@ -64,41 +59,6 @@ export const containers_NavBar_gql_SwitchRoleDocument = {
               kind: 'SelectionSet',
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
-                {
-                  kind: 'InlineFragment',
-                  typeCondition: {
-                    kind: 'NamedType',
-                    name: { kind: 'Name', value: 'Me' },
-                  },
-                  selectionSet: {
-                    kind: 'SelectionSet',
-                    selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'email' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'isAdmin' } },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'role' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                          ],
-                        },
-                      },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'roles' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                },
                 {
                   kind: 'InlineFragment',
                   typeCondition: {

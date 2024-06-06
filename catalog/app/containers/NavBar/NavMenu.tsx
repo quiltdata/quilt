@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -76,10 +77,11 @@ interface DropdownMenuProps
   trigger: (
     open: React.EventHandler<React.SyntheticEvent<HTMLElement>>,
   ) => React.ReactNode
+  onClose?: () => void
   items: (ItemDescriptor | false)[]
 }
 
-function DropdownMenu({ trigger, items, ...rest }: DropdownMenuProps) {
+function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
   const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
 
   const open = React.useCallback(
@@ -91,7 +93,8 @@ function DropdownMenu({ trigger, items, ...rest }: DropdownMenuProps) {
 
   const close = React.useCallback(() => {
     setAnchor(null)
-  }, [setAnchor])
+    if (onClose) onClose()
+  }, [setAnchor, onClose])
 
   const filtered = items.filter(Boolean) as ItemDescriptor[]
   const children = filtered.map(
@@ -137,7 +140,7 @@ function DropdownMenu({ trigger, items, ...rest }: DropdownMenuProps) {
           anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
           open={!!anchor}
           onClose={close}
-          MenuListProps={{ component: 'nav' } as M.MenuListProps}
+          MenuListProps={{ component: 'nav', disablePadding: true } as M.MenuListProps}
           {...rest}
         >
           {children}
@@ -177,28 +180,6 @@ function useLinks(): ItemDescriptor[] {
   return links
 }
 
-const useUserDisplayStyles = M.makeStyles({
-  role: {
-    opacity: 0.5,
-    fontWeight: 'lighter',
-  },
-})
-
-interface UserDisplayProps {
-  user: Me
-}
-
-function UserDisplay({ user }: UserDisplayProps) {
-  const classes = useUserDisplayStyles()
-  return withIcon(
-    user.isAdmin ? 'security' : 'person',
-    <>
-      {user.name}
-      <span className={classes.role}>&nbsp;({user.role.name})</span>
-    </>,
-  )
-}
-
 const useBadgeStyles = M.makeStyles({
   root: {
     alignItems: 'inherit',
@@ -225,59 +206,151 @@ function Badge({ children, color, invisible, ...props }: BadgeProps) {
   )
 }
 
-const withIcon = (icon: string, children: React.ReactNode) => (
-  <>
-    <M.Icon fontSize="small">{icon}</M.Icon>&nbsp;{children}
-  </>
-)
+const useItemStyles = M.makeStyles({
+  icon: {
+    minWidth: '36px',
+  },
+  hasAction: {},
+  text: {
+    paddingRight: '8px',
+
+    '&$hasAction': {
+      paddingRight: '36px',
+    },
+  },
+})
+
+interface ItemContentsProps {
+  icon?: React.ReactNode
+  primary: React.ReactNode
+  secondary?: React.ReactNode
+  action?: React.ReactNode
+}
+
+function ItemContents({ icon, primary, secondary, action }: ItemContentsProps) {
+  const classes = useItemStyles()
+  const iconEl = typeof icon === 'string' ? <M.Icon>{icon}</M.Icon> : icon
+  return (
+    <>
+      {!!iconEl && <M.ListItemIcon className={classes.icon}>{iconEl}</M.ListItemIcon>}
+      <M.ListItemText
+        primary={primary}
+        secondary={secondary}
+        className={cx(classes.text, !!action && classes.hasAction)}
+      />
+      {!!action && <M.ListItemSecondaryAction>{action}</M.ListItemSecondaryAction>}
+    </>
+  )
+}
+
+function useGetAuthItems() {
+  const { urls } = NamedRoutes.use()
+  const switchRole = useRoleSwitcher()
+  const bookmarks = Bookmarks.use()
+
+  return function getAuthLinks(user: Me) {
+    const items: ItemDescriptor[] = []
+
+    const extraRoles = user.roles.length - 1
+    const userItem = (
+      <ItemContents
+        icon={user.isAdmin ? 'security' : 'person'}
+        primary={user.name}
+        secondary={
+          <>
+            {user.role.name}
+            {extraRoles > 0 && (
+              <span style={{ fontWeight: 'lighter', opacity: 0.5 }}>
+                &nbsp;+{extraRoles}
+              </span>
+            )}
+          </>
+        }
+        action={
+          extraRoles > 0 && (
+            <M.Tooltip title="Switch role">
+              <M.IconButton edge="end" onClick={() => switchRole(user)}>
+                <M.Icon>loop</M.Icon>
+              </M.IconButton>
+            </M.Tooltip>
+          )
+        }
+      />
+    )
+    items.push(
+      cfg.mode === 'OPEN' // currently only OPEN has profile page
+        ? ItemDescriptor.To(urls.profile(), userItem)
+        : ItemDescriptor.Text(userItem),
+    )
+
+    items.push(ItemDescriptor.Divider())
+
+    if (bookmarks) {
+      items.push(
+        ItemDescriptor.Click(
+          bookmarks.show,
+          <ItemContents
+            icon={
+              <Badge color="secondary" invisible={!bookmarks?.hasUpdates}>
+                <M.Icon>bookmarks_outlined</M.Icon>
+              </Badge>
+            }
+            primary="Bookmarks"
+          />,
+        ),
+      )
+    }
+
+    if (user.isAdmin) {
+      items.push(
+        ItemDescriptor.To(
+          urls.admin(),
+          <ItemContents icon="security" primary="Admin settings" />,
+        ),
+      )
+    }
+
+    items.push(
+      ItemDescriptor.To(
+        urls.signOut(),
+        <ItemContents icon="meeting_room" primary="Sign Out" />,
+      ),
+    )
+
+    return items
+  }
+}
 
 interface DesktopUserDropdownProps {
   user: Me
 }
 
 function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
-  const { urls } = NamedRoutes.use()
-  const switchRole = useRoleSwitcher()
   const bookmarks = Bookmarks.use()
-  // XXX: reset bookmarks updates state on close?
-  const hasBookmarksUpdates = bookmarks?.hasUpdates ?? false
-
-  const items = [
-    cfg.mode === 'OPEN' &&
-      ItemDescriptor.To(urls.profile(), withIcon('person', 'Profile')),
-    user.roles.length > 1 &&
-      ItemDescriptor.Click(() => switchRole(user), withIcon('loop', 'Switch role')),
-    !!bookmarks &&
-      ItemDescriptor.Click(
-        () => bookmarks.show(),
-        <>
-          <Badge color="secondary" invisible={!hasBookmarksUpdates}>
-            <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
-          </Badge>
-          &nbsp;Bookmarks
-        </>,
-      ),
-    user.isAdmin &&
-      ItemDescriptor.To(urls.admin(), withIcon('security', 'Admin settings')),
-    ItemDescriptor.To(urls.signOut(), withIcon('meeting_room', 'Sign Out')),
-  ]
+  const getAuthItems = useGetAuthItems()
 
   return (
     <DropdownMenu
       trigger={(open) => (
+        // XXX: badge here or around the button?
         <M.Button
           variant="text"
           color="inherit"
           onClick={open}
           style={{ textTransform: 'none' }}
         >
-          <Badge color="primary" invisible={!hasBookmarksUpdates}>
-            <UserDisplay user={user} />
-          </Badge>{' '}
-          <M.Icon>expand_more</M.Icon>
+          <Badge color="primary" invisible={!bookmarks?.hasUpdates}>
+            <M.Icon fontSize="small">{user.isAdmin ? 'security' : 'person'}</M.Icon>
+          </Badge>
+          &nbsp;
+          {user.name}
+          &nbsp;
+          <M.Icon fontSize="small">expand_more</M.Icon>
         </M.Button>
       )}
-      items={items}
+      items={getAuthItems(user)}
+      // XXX: reset bookmarks updates state on close?
+      // onClose={() => bookmarks?.hide()}
     />
   )
 }
@@ -346,10 +419,8 @@ interface MobileMenuProps {
 function MobileMenu({ auth }: MobileMenuProps) {
   const { urls } = NamedRoutes.use()
   const links = useLinks()
-  const switchRole = useRoleSwitcher()
+  const getAuthItems = useGetAuthItems()
   const bookmarks = Bookmarks.use()
-  // XXX: reset bookmarks updates state on close?
-  const hasBookmarksUpdates = bookmarks?.hasUpdates ?? false
 
   const authItems =
     cfg.disableNavigator || cfg.mode === 'LOCAL'
@@ -357,45 +428,27 @@ function MobileMenu({ auth }: MobileMenuProps) {
       : [
           ...AuthState.match<(ItemDescriptor | false)[]>(
             {
-              Loading: () => [ItemDescriptor.Text(withIcon('person', 'Loading...'))],
+              Loading: () => [
+                ItemDescriptor.Text(
+                  <ItemContents
+                    icon={<M.CircularProgress size={20} />}
+                    primary="Loading..."
+                  />,
+                ),
+              ],
               Error: () => [
-                ItemDescriptor.To(urls.signIn(), withIcon('error_outline', 'Sign In')),
+                ItemDescriptor.To(
+                  urls.signIn(),
+                  <ItemContents icon="error_outline" primary="Sign In" />,
+                ),
               ],
               Ready: ({ user }) =>
                 user
-                  ? [
-                      cfg.mode === 'OPEN'
-                        ? ItemDescriptor.To(urls.profile(), <UserDisplay user={user} />)
-                        : ItemDescriptor.Text(<UserDisplay user={user} />),
-                      user.roles.length > 1 &&
-                        ItemDescriptor.Click(
-                          () => switchRole(user),
-                          withIcon('loop', 'Switch role'),
-                        ),
-                      !!bookmarks &&
-                        ItemDescriptor.Click(
-                          () => bookmarks.show(),
-                          <>
-                            <Badge color="secondary" invisible={!hasBookmarksUpdates}>
-                              <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
-                            </Badge>
-                            &nbsp;Bookmarks
-                          </>,
-                        ),
-                      user.isAdmin &&
-                        ItemDescriptor.To(
-                          urls.admin(),
-                          withIcon('security', 'Admin settings'),
-                        ),
-                      ItemDescriptor.To(
-                        urls.signOut(),
-                        withIcon('meeting_room', 'Sign Out'),
-                      ),
-                    ]
+                  ? getAuthItems(user)
                   : [
                       ItemDescriptor.To(
                         urls.signIn(),
-                        withIcon('exit_to_app', 'Sign In'),
+                        <ItemContents icon="exit_to_app" primary="Sign In" />,
                       ),
                     ],
             },
@@ -404,16 +457,19 @@ function MobileMenu({ auth }: MobileMenuProps) {
           ItemDescriptor.Divider(),
         ]
 
-  const items = [...authItems, ...links]
-
   return (
+    // XXX: badge here or around the button?
     <DropdownMenu
       trigger={(open) => (
         <M.IconButton onClick={open} aria-label="Menu" edge="end">
-          <M.Icon>menu</M.Icon>
+          <Badge color="primary" invisible={!bookmarks?.hasUpdates}>
+            <M.Icon>menu</M.Icon>
+          </Badge>
         </M.IconButton>
       )}
-      items={items}
+      items={[...authItems, ...links]}
+      // XXX: reset bookmarks updates state on close?
+      // onClose={() => bookmarks?.hide()}
     />
   )
 }
