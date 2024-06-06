@@ -9,12 +9,13 @@ import {
   UserResultSelectionFragmentDoc,
 } from './UserResultSelection.generated'
 
-export type containers_Admin_Users_gql_UserSetEmailMutationVariables = Types.Exact<{
-  name: Types.Scalars['String']
-  email: Types.Scalars['String']
-}>
+export type containers_Admin_UsersAndRoles_gql_UserSetEmailMutationVariables =
+  Types.Exact<{
+    name: Types.Scalars['String']
+    email: Types.Scalars['String']
+  }>
 
-export type containers_Admin_Users_gql_UserSetEmailMutation = {
+export type containers_Admin_UsersAndRoles_gql_UserSetEmailMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
@@ -35,13 +36,13 @@ export type containers_Admin_Users_gql_UserSetEmailMutation = {
   }
 }
 
-export const containers_Admin_Users_gql_UserSetEmailDocument = {
+export const containers_Admin_UsersAndRoles_gql_UserSetEmailDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Users_gql_UserSetEmail' },
+      name: { kind: 'Name', value: 'containers_Admin_UsersAndRoles_gql_UserSetEmail' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -129,8 +130,8 @@ export const containers_Admin_Users_gql_UserSetEmailDocument = {
     ...UserResultSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Users_gql_UserSetEmailMutation,
-  containers_Admin_Users_gql_UserSetEmailMutationVariables
+  containers_Admin_UsersAndRoles_gql_UserSetEmailMutation,
+  containers_Admin_UsersAndRoles_gql_UserSetEmailMutationVariables
 >
 
-export { containers_Admin_Users_gql_UserSetEmailDocument as default }
+export { containers_Admin_UsersAndRoles_gql_UserSetEmailDocument as default }

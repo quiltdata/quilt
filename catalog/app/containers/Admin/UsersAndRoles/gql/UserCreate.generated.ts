@@ -9,11 +9,11 @@ import {
   UserResultSelectionFragmentDoc,
 } from './UserResultSelection.generated'
 
-export type containers_Admin_Users_gql_UserCreateMutationVariables = Types.Exact<{
+export type containers_Admin_UsersAndRoles_gql_UserCreateMutationVariables = Types.Exact<{
   input: Types.UserInput
 }>
 
-export type containers_Admin_Users_gql_UserCreateMutation = {
+export type containers_Admin_UsersAndRoles_gql_UserCreateMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
@@ -30,13 +30,13 @@ export type containers_Admin_Users_gql_UserCreateMutation = {
   }
 }
 
-export const containers_Admin_Users_gql_UserCreateDocument = {
+export const containers_Admin_UsersAndRoles_gql_UserCreateDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Users_gql_UserCreate' },
+      name: { kind: 'Name', value: 'containers_Admin_UsersAndRoles_gql_UserCreate' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -97,8 +97,8 @@ export const containers_Admin_Users_gql_UserCreateDocument = {
     ...UserResultSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Users_gql_UserCreateMutation,
-  containers_Admin_Users_gql_UserCreateMutationVariables
+  containers_Admin_UsersAndRoles_gql_UserCreateMutation,
+  containers_Admin_UsersAndRoles_gql_UserCreateMutationVariables
 >
 
-export { containers_Admin_Users_gql_UserCreateDocument as default }
+export { containers_Admin_UsersAndRoles_gql_UserCreateDocument as default }

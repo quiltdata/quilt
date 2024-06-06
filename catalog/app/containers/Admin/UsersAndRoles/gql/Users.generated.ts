@@ -7,11 +7,13 @@ import {
   UserSelectionFragmentDoc,
 } from './UserSelection.generated'
 
-export type containers_Admin_Users_gql_UsersQueryVariables = Types.Exact<{
+export type containers_Admin_UsersAndRoles_gql_UsersQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_Users_gql_UsersQuery = { readonly __typename: 'Query' } & {
+export type containers_Admin_UsersAndRoles_gql_UsersQuery = {
+  readonly __typename: 'Query'
+} & {
   readonly admin: { readonly __typename: 'AdminQueries' } & {
     readonly user: { readonly __typename: 'UserAdminQueries' } & {
       readonly list: ReadonlyArray<
@@ -35,13 +37,13 @@ export type containers_Admin_Users_gql_UsersQuery = { readonly __typename: 'Quer
   >
 }
 
-export const containers_Admin_Users_gql_UsersDocument = {
+export const containers_Admin_UsersAndRoles_gql_UsersDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_Users_gql_Users' },
+      name: { kind: 'Name', value: 'containers_Admin_UsersAndRoles_gql_Users' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -156,8 +158,8 @@ export const containers_Admin_Users_gql_UsersDocument = {
     ...UserSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Users_gql_UsersQuery,
-  containers_Admin_Users_gql_UsersQueryVariables
+  containers_Admin_UsersAndRoles_gql_UsersQuery,
+  containers_Admin_UsersAndRoles_gql_UsersQueryVariables
 >
 
-export { containers_Admin_Users_gql_UsersDocument as default }
+export { containers_Admin_UsersAndRoles_gql_UsersDocument as default }

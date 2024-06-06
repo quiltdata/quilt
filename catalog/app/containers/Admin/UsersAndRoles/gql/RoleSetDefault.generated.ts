@@ -2,12 +2,12 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_RolesAndPolicies_gql_RoleSetDefaultMutationVariables =
+export type containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutationVariables =
   Types.Exact<{
     id: Types.Scalars['ID']
   }>
 
-export type containers_Admin_RolesAndPolicies_gql_RoleSetDefaultMutation = {
+export type containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleSetDefault:
@@ -19,16 +19,13 @@ export type containers_Admin_RolesAndPolicies_gql_RoleSetDefaultMutation = {
     | { readonly __typename: 'RoleDoesNotExist' }
 }
 
-export const containers_Admin_RolesAndPolicies_gql_RoleSetDefaultDocument = {
+export const containers_Admin_UsersAndRoles_gql_RoleSetDefaultDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: {
-        kind: 'Name',
-        value: 'containers_Admin_RolesAndPolicies_gql_RoleSetDefault',
-      },
+      name: { kind: 'Name', value: 'containers_Admin_UsersAndRoles_gql_RoleSetDefault' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -115,8 +112,8 @@ export const containers_Admin_RolesAndPolicies_gql_RoleSetDefaultDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesAndPolicies_gql_RoleSetDefaultMutation,
-  containers_Admin_RolesAndPolicies_gql_RoleSetDefaultMutationVariables
+  containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutation,
+  containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutationVariables
 >
 
-export { containers_Admin_RolesAndPolicies_gql_RoleSetDefaultDocument as default }
+export { containers_Admin_UsersAndRoles_gql_RoleSetDefaultDocument as default }

@@ -9,13 +9,13 @@ import {
   PolicyResultSelectionFragmentDoc,
 } from './PolicyResultSelection.generated'
 
-export type containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedMutationVariables =
+export type containers_Admin_UsersAndRoles_gql_PolicyUpdateUnmanagedMutationVariables =
   Types.Exact<{
     id: Types.Scalars['ID']
     input: Types.UnmanagedPolicyInput
   }>
 
-export type containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedMutation = {
+export type containers_Admin_UsersAndRoles_gql_PolicyUpdateUnmanagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly policyUpdate:
@@ -28,7 +28,7 @@ export type containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedMutation 
       } & PolicyResultSelection_OperationError_Fragment)
 }
 
-export const containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedDocument = {
+export const containers_Admin_UsersAndRoles_gql_PolicyUpdateUnmanagedDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -36,7 +36,7 @@ export const containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedDocument
       operation: 'mutation',
       name: {
         kind: 'Name',
-        value: 'containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanaged',
+        value: 'containers_Admin_UsersAndRoles_gql_PolicyUpdateUnmanaged',
       },
       variableDefinitions: [
         {
@@ -94,8 +94,8 @@ export const containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedDocument
     ...PolicyResultSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedMutation,
-  containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedMutationVariables
+  containers_Admin_UsersAndRoles_gql_PolicyUpdateUnmanagedMutation,
+  containers_Admin_UsersAndRoles_gql_PolicyUpdateUnmanagedMutationVariables
 >
 
-export { containers_Admin_RolesAndPolicies_gql_PolicyUpdateUnmanagedDocument as default }
+export { containers_Admin_UsersAndRoles_gql_PolicyUpdateUnmanagedDocument as default }

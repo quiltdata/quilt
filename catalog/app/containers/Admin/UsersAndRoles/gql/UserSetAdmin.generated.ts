@@ -9,12 +9,13 @@ import {
   UserResultSelectionFragmentDoc,
 } from './UserResultSelection.generated'
 
-export type containers_Admin_Users_gql_UserSetAdminMutationVariables = Types.Exact<{
-  name: Types.Scalars['String']
-  admin: Types.Scalars['Boolean']
-}>
+export type containers_Admin_UsersAndRoles_gql_UserSetAdminMutationVariables =
+  Types.Exact<{
+    name: Types.Scalars['String']
+    admin: Types.Scalars['Boolean']
+  }>
 
-export type containers_Admin_Users_gql_UserSetAdminMutation = {
+export type containers_Admin_UsersAndRoles_gql_UserSetAdminMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
@@ -35,13 +36,13 @@ export type containers_Admin_Users_gql_UserSetAdminMutation = {
   }
 }
 
-export const containers_Admin_Users_gql_UserSetAdminDocument = {
+export const containers_Admin_UsersAndRoles_gql_UserSetAdminDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Users_gql_UserSetAdmin' },
+      name: { kind: 'Name', value: 'containers_Admin_UsersAndRoles_gql_UserSetAdmin' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -129,8 +130,8 @@ export const containers_Admin_Users_gql_UserSetAdminDocument = {
     ...UserResultSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Users_gql_UserSetAdminMutation,
-  containers_Admin_Users_gql_UserSetAdminMutationVariables
+  containers_Admin_UsersAndRoles_gql_UserSetAdminMutation,
+  containers_Admin_UsersAndRoles_gql_UserSetAdminMutationVariables
 >
 
-export { containers_Admin_Users_gql_UserSetAdminDocument as default }
+export { containers_Admin_UsersAndRoles_gql_UserSetAdminDocument as default }

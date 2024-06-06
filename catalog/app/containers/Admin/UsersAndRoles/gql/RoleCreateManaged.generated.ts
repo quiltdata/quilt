@@ -8,12 +8,12 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutationVariables =
+export type containers_Admin_UsersAndRoles_gql_RoleCreateManagedMutationVariables =
   Types.Exact<{
     input: Types.ManagedRoleInput
   }>
 
-export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation = {
+export type containers_Admin_UsersAndRoles_gql_RoleCreateManagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleCreate:
@@ -30,7 +30,7 @@ export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation = {
     | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
 }
 
-export const containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument = {
+export const containers_Admin_UsersAndRoles_gql_RoleCreateManagedDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -38,7 +38,7 @@ export const containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument = {
       operation: 'mutation',
       name: {
         kind: 'Name',
-        value: 'containers_Admin_RolesAndPolicies_gql_RoleCreateManaged',
+        value: 'containers_Admin_UsersAndRoles_gql_RoleCreateManaged',
       },
       variableDefinitions: [
         {
@@ -104,8 +104,8 @@ export const containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation,
-  containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutationVariables
+  containers_Admin_UsersAndRoles_gql_RoleCreateManagedMutation,
+  containers_Admin_UsersAndRoles_gql_RoleCreateManagedMutationVariables
 >
 
-export { containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument as default }
+export { containers_Admin_UsersAndRoles_gql_RoleCreateManagedDocument as default }

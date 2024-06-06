@@ -8,11 +8,11 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_RolesAndPolicies_gql_RolesQueryVariables = Types.Exact<{
+export type containers_Admin_UsersAndRoles_gql_RolesQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_RolesAndPolicies_gql_RolesQuery = {
+export type containers_Admin_UsersAndRoles_gql_RolesQuery = {
   readonly __typename: 'Query'
 } & {
   readonly roles: ReadonlyArray<
@@ -25,13 +25,13 @@ export type containers_Admin_RolesAndPolicies_gql_RolesQuery = {
   >
 }
 
-export const containers_Admin_RolesAndPolicies_gql_RolesDocument = {
+export const containers_Admin_UsersAndRoles_gql_RolesDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_RolesAndPolicies_gql_Roles' },
+      name: { kind: 'Name', value: 'containers_Admin_UsersAndRoles_gql_Roles' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -86,8 +86,8 @@ export const containers_Admin_RolesAndPolicies_gql_RolesDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesAndPolicies_gql_RolesQuery,
-  containers_Admin_RolesAndPolicies_gql_RolesQueryVariables
+  containers_Admin_UsersAndRoles_gql_RolesQuery,
+  containers_Admin_UsersAndRoles_gql_RolesQueryVariables
 >
 
-export { containers_Admin_RolesAndPolicies_gql_RolesDocument as default }
+export { containers_Admin_UsersAndRoles_gql_RolesDocument as default }

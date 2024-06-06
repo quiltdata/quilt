@@ -2,11 +2,11 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Users_gql_UserDeleteMutationVariables = Types.Exact<{
+export type containers_Admin_UsersAndRoles_gql_UserDeleteMutationVariables = Types.Exact<{
   name: Types.Scalars['String']
 }>
 
-export type containers_Admin_Users_gql_UserDeleteMutation = {
+export type containers_Admin_UsersAndRoles_gql_UserDeleteMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
@@ -33,13 +33,13 @@ export type containers_Admin_Users_gql_UserDeleteMutation = {
   }
 }
 
-export const containers_Admin_Users_gql_UserDeleteDocument = {
+export const containers_Admin_UsersAndRoles_gql_UserDeleteDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Users_gql_UserDelete' },
+      name: { kind: 'Name', value: 'containers_Admin_UsersAndRoles_gql_UserDelete' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -169,8 +169,8 @@ export const containers_Admin_Users_gql_UserDeleteDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Users_gql_UserDeleteMutation,
-  containers_Admin_Users_gql_UserDeleteMutationVariables
+  containers_Admin_UsersAndRoles_gql_UserDeleteMutation,
+  containers_Admin_UsersAndRoles_gql_UserDeleteMutationVariables
 >
 
-export { containers_Admin_Users_gql_UserDeleteDocument as default }
+export { containers_Admin_UsersAndRoles_gql_UserDeleteDocument as default }
