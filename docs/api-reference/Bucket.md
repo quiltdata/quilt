@@ -1,5 +1,5 @@
 
-# Bucket(self, bucket\_uri)  {#Bucket}
+# Bucket(bucket\_uri)  {#Bucket}
 Bucket interface for Quilt.
 
 **\_\_init\_\_**

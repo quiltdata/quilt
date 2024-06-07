@@ -1,5 +1,5 @@
 
-# Package(self)  {#Package}
+# Package()  {#Package}
 In-memory representation of a package
 
 ## manifest
@@ -400,7 +400,7 @@ __Returns__
 True if the package matches the directory; False otherwise.
 
 
-# PackageEntry(self, physical\_key, size, hash\_obj, meta)  {#PackageEntry}
+# PackageEntry(physical\_key, size, hash\_obj, meta)  {#PackageEntry}
 Represents an entry at a logical key inside a package.
 
 **\_\_init\_\_**
