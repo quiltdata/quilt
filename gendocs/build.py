@@ -2,11 +2,7 @@
 
 import subprocess
 import sys
-
-try:
-    from importlib import metadata
-except ImportError:
-    import importlib_metadata as metadata
+from importlib import metadata
 
 try:
     from pip._internal import main as pipmain
