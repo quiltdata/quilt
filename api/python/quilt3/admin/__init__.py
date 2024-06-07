@@ -3,7 +3,7 @@ APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services
 """
 
 from datetime import datetime
-from typing import Any, Annotated, Literal, Union, Optional, List
+from typing import Annotated, Any, List, Literal, Optional, Union
 
 from pydantic import Field, TypeAdapter
 
