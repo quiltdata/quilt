@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -126,7 +125,9 @@ function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
           {...props}
         />
       ),
-      Text: (props, i) => <M.MenuItem key={i} component="div" {...props} />,
+      Text: (props, i) => (
+        <M.MenuItem key={i} component="div" disabled style={{ opacity: 1 }} {...props} />
+      ),
       Divider: (_, i) => <M.Divider key={i} />,
     }),
   )
@@ -140,7 +141,7 @@ function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
           anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
           open={!!anchor}
           onClose={close}
-          MenuListProps={{ component: 'nav', disablePadding: true } as M.MenuListProps}
+          MenuListProps={{ component: 'nav' } as M.MenuListProps}
           {...rest}
         >
           {children}
@@ -206,39 +207,45 @@ function Badge({ children, color, invisible, ...props }: BadgeProps) {
   )
 }
 
-const useItemStyles = M.makeStyles({
+const useItemStyles = M.makeStyles((t) => ({
   icon: {
     minWidth: '36px',
   },
-  hasAction: {},
   text: {
     paddingRight: '8px',
+  },
+  secondary: {
+    fontSize: t.typography.body2.fontSize,
+    fontWeight: 'lighter',
+    opacity: 0.6,
 
-    '&$hasAction': {
-      paddingRight: '36px',
+    '&::before': {
+      content: '" – "',
     },
   },
-})
+}))
 
 interface ItemContentsProps {
   icon?: React.ReactNode
   primary: React.ReactNode
   secondary?: React.ReactNode
-  action?: React.ReactNode
 }
 
-function ItemContents({ icon, primary, secondary, action }: ItemContentsProps) {
+function ItemContents({ icon, primary, secondary }: ItemContentsProps) {
   const classes = useItemStyles()
   const iconEl = typeof icon === 'string' ? <M.Icon>{icon}</M.Icon> : icon
   return (
     <>
       {!!iconEl && <M.ListItemIcon className={classes.icon}>{iconEl}</M.ListItemIcon>}
       <M.ListItemText
-        primary={primary}
-        secondary={secondary}
-        className={cx(classes.text, !!action && classes.hasAction)}
+        primary={
+          <>
+            {primary}
+            {!!secondary && <span className={classes.secondary}>{secondary}</span>}
+          </>
+        }
+        className={classes.text}
       />
-      {!!action && <M.ListItemSecondaryAction>{action}</M.ListItemSecondaryAction>}
     </>
   )
 }
@@ -251,37 +258,27 @@ function useGetAuthItems() {
   return function getAuthLinks(user: Me) {
     const items: ItemDescriptor[] = []
 
-    const extraRoles = user.roles.length - 1
     const userItem = (
-      <ItemContents
-        icon={user.isAdmin ? 'security' : 'person'}
-        primary={user.name}
-        secondary={
-          <>
-            {user.role.name}
-            {extraRoles > 0 && (
-              <span style={{ fontWeight: 'lighter', opacity: 0.5 }}>
-                &nbsp;+{extraRoles}
-              </span>
-            )}
-          </>
-        }
-        action={
-          extraRoles > 0 && (
-            <M.Tooltip title="Switch role">
-              <M.IconButton edge="end" onClick={() => switchRole(user)}>
-                <M.Icon>loop</M.Icon>
-              </M.IconButton>
-            </M.Tooltip>
-          )
-        }
-      />
+      <ItemContents icon="person" primary={user.name} secondary={user.role.name} />
     )
     items.push(
       cfg.mode === 'OPEN' // currently only OPEN has profile page
         ? ItemDescriptor.To(urls.profile(), userItem)
         : ItemDescriptor.Text(userItem),
     )
+
+    if (user.roles.length > 1) {
+      items.push(
+        ItemDescriptor.Click(
+          () => switchRole(user),
+          <ItemContents
+            icon="people"
+            primary="Switch role"
+            secondary={<>{user.roles.length} available</>}
+          />,
+        ),
+      )
+    }
 
     items.push(ItemDescriptor.Divider())
 
@@ -340,7 +337,7 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
           style={{ textTransform: 'none' }}
         >
           <Badge color="primary" invisible={!bookmarks?.hasUpdates}>
-            <M.Icon fontSize="small">{user.isAdmin ? 'security' : 'person'}</M.Icon>
+            <M.Icon fontSize="small">person</M.Icon>
           </Badge>
           &nbsp;
           {user.name}
