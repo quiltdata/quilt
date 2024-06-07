@@ -53,7 +53,7 @@ class TestAPI(QuiltTestCase):
         self.requests_mock.add(responses.POST, DEFAULT_URL + '/api/users/set_role',
                                json=not_found_result, status=400)
 
-        he.admin.set_role(username='test_user', role_name='test_role')
+        he.admin.set_role('test_user', 'test_role')
 
         with pytest.raises(util.QuiltException):
-            he.admin.set_role(username='not_found', role_name='test_role')
+            he.admin.set_role('not_found', 'test_role')

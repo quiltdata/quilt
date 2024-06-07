@@ -1,3 +1,4 @@
+# pylint: disable=relative-beyond-top-level
 import json
 from typing import IO, Any, Dict, List, Optional, Tuple, TypeVar, cast
 

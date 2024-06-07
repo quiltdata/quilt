@@ -1,3 +1,4 @@
+# pylint: disable=super-init-not-called
 from typing import Any, Dict, List, Optional, Union
 
 import requests
