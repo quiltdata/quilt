@@ -20,6 +20,15 @@ from .create_user import (
     CreateUserAdminUserCreateOperationError,
     CreateUserAdminUserCreateUser,
 )
+from .delete_user import (
+    DeleteUser,
+    DeleteUserAdmin,
+    DeleteUserAdminUser,
+    DeleteUserAdminUserMutate,
+    DeleteUserAdminUserMutateDeleteInvalidInput,
+    DeleteUserAdminUserMutateDeleteOk,
+    DeleteUserAdminUserMutateDeleteOperationError,
+)
 from .fragments import (
     InvalidInputSelection,
     InvalidInputSelectionErrors,
@@ -32,7 +41,6 @@ from .fragments import (
     UserSelectionRoleManagedRole,
     UserSelectionRoleUnmanagedRole,
 )
-from .get_role import GetRole, GetRoleRoleManagedRole, GetRoleRoleUnmanagedRole
 from .get_roles import GetRoles, GetRolesRolesManagedRole, GetRolesRolesUnmanagedRole
 from .get_user import GetUser, GetUserAdmin, GetUserAdminUser, GetUserAdminUserGet
 from .get_users import GetUsers, GetUsersAdmin, GetUsersAdminUser, GetUsersAdminUserList
@@ -73,9 +81,13 @@ __all__ = [
     "CreateUserAdminUserCreateInvalidInput",
     "CreateUserAdminUserCreateOperationError",
     "CreateUserAdminUserCreateUser",
-    "GetRole",
-    "GetRoleRoleManagedRole",
-    "GetRoleRoleUnmanagedRole",
+    "DeleteUser",
+    "DeleteUserAdmin",
+    "DeleteUserAdminUser",
+    "DeleteUserAdminUserMutate",
+    "DeleteUserAdminUserMutateDeleteInvalidInput",
+    "DeleteUserAdminUserMutateDeleteOk",
+    "DeleteUserAdminUserMutateDeleteOperationError",
     "GetRoles",
     "GetRolesRolesManagedRole",
     "GetRolesRolesUnmanagedRole",

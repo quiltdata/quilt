@@ -9,7 +9,7 @@ from pathlib import Path
 
 __version__ = Path(Path(__file__).parent, "VERSION").read_text().strip()
 
-from . import admin, adminql
+from . import admin
 from .api import (
     config,
     copy,

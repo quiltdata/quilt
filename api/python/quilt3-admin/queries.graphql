@@ -74,9 +74,16 @@ mutation createUser($input: UserInput!) {
   }
 }
 
-query getRole($roleId: ID!) {
-  role(id: $roleId) {
-    ...RoleSelection
+mutation deleteUser($name: String!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        delete {
+          ...InvalidInputSelection
+          ...OperationErrorSelection
+        }
+      }
+    }
   }
 }
 
@@ -99,7 +106,7 @@ mutation setRole($name: String!, $role: String!, $extraRoles: [String!], $append
   }
 }
 
-mutation addRoles($roles: [String!]!, $name: String!) {
+mutation addRoles($name: String!, $roles: [String!]!) {
   admin {
     user {
       mutate(name: $name) {
@@ -111,7 +118,8 @@ mutation addRoles($roles: [String!]!, $name: String!) {
     }
   }
 }
-mutation removeRoles($roles: [String!]!, $name: String!, $fallback: String) {
+
+mutation removeRoles($name: String!, $roles: [String!]!, $fallback: String) {
   admin {
     user {
       mutate(name: $name) {

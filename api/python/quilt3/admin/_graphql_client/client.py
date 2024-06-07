@@ -12,7 +12,7 @@ from .create_user import (
     CreateUserAdminUserCreateOperationError,
     CreateUserAdminUserCreateUser,
 )
-from .get_role import GetRole, GetRoleRoleManagedRole, GetRoleRoleUnmanagedRole
+from .delete_user import DeleteUser, DeleteUserAdminUserMutate
 from .get_roles import GetRoles, GetRolesRolesManagedRole, GetRolesRolesUnmanagedRole
 from .get_user import GetUser, GetUserAdminUserGet
 from .get_users import GetUsers, GetUsersAdminUserList
@@ -180,42 +180,47 @@ class Client(BaseClient):
         data = self.get_data(response)
         return CreateUser.model_validate(data).admin.user.create
 
-    def get_role(
-        self, role_id: str, **kwargs: Any
-    ) -> Optional[Union[GetRoleRoleUnmanagedRole, GetRoleRoleManagedRole]]:
+    def delete_user(
+        self, name: str, **kwargs: Any
+    ) -> Optional[DeleteUserAdminUserMutate]:
         query = gql(
             """
-            query getRole($roleId: ID!) {
-              role(id: $roleId) {
-                ...RoleSelection
+            mutation deleteUser($name: String!) {
+              admin {
+                user {
+                  mutate(name: $name) {
+                    delete {
+                      __typename
+                      ...InvalidInputSelection
+                      ...OperationErrorSelection
+                    }
+                  }
+                }
               }
             }
 
-            fragment ManagedRoleSelection on ManagedRole {
-              id
-              name
-              arn
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
             }
 
-            fragment RoleSelection on Role {
-              __typename
-              ...UnmanagedRoleSelection
-              ...ManagedRoleSelection
-            }
-
-            fragment UnmanagedRoleSelection on UnmanagedRole {
-              id
+            fragment OperationErrorSelection on OperationError {
+              message
               name
-              arn
+              context
             }
             """
         )
-        variables: Dict[str, object] = {"roleId": role_id}
+        variables: Dict[str, object] = {"name": name}
         response = self.execute(
-            query=query, operation_name="getRole", variables=variables, **kwargs
+            query=query, operation_name="deleteUser", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return GetRole.model_validate(data).role
+        return DeleteUser.model_validate(data).admin.user.mutate
 
     def get_roles(
         self, **kwargs: Any
@@ -307,11 +312,11 @@ class Client(BaseClient):
         return SetRole.model_validate(data).admin.user.mutate
 
     def add_roles(
-        self, roles: List[str], name: str, **kwargs: Any
+        self, name: str, roles: List[str], **kwargs: Any
     ) -> Optional[AddRolesAdminUserMutate]:
         query = gql(
             """
-            mutation addRoles($roles: [String!]!, $name: String!) {
+            mutation addRoles($name: String!, $roles: [String!]!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -341,7 +346,7 @@ class Client(BaseClient):
             }
             """
         )
-        variables: Dict[str, object] = {"roles": roles, "name": name}
+        variables: Dict[str, object] = {"name": name, "roles": roles}
         response = self.execute(
             query=query, operation_name="addRoles", variables=variables, **kwargs
         )
@@ -350,14 +355,14 @@ class Client(BaseClient):
 
     def remove_roles(
         self,
-        roles: List[str],
         name: str,
+        roles: List[str],
         fallback: Union[Optional[str], UnsetType] = UNSET,
         **kwargs: Any
     ) -> Optional[RemoveRolesAdminUserMutate]:
         query = gql(
             """
-            mutation removeRoles($roles: [String!]!, $name: String!, $fallback: String) {
+            mutation removeRoles($name: String!, $roles: [String!]!, $fallback: String) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -388,8 +393,8 @@ class Client(BaseClient):
             """
         )
         variables: Dict[str, object] = {
-            "roles": roles,
             "name": name,
+            "roles": roles,
             "fallback": fallback,
         }
         response = self.execute(
