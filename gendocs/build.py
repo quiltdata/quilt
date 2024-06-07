@@ -37,7 +37,7 @@ def install_pydocmd():
     except metadata.PackageNotFoundError:
         version = None
 
-    if version and version.endswith(EXPECTED_VERSION_SUFFIX):
+    if version and EXPECTED_VERSION_SUFFIX in version:
         return
 
     valid_input = ['y', 'n', 'yes', 'no']
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     import pydocmd
 
-    if not pydocmd.__version__.endswith(EXPECTED_VERSION_SUFFIX):
+    if EXPECTED_VERSION_SUFFIX not in pydocmd.__version__:
         print("Please re-run this script to continue")
         exit()
 
