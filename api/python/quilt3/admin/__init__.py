@@ -92,7 +92,6 @@ def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str
     _handle_errors(
         _get_client().create_user(input=UserInput(name=name, email=email, role=role, extra_roles=extra_roles))
     )
-    return None
 
 
 def delete_user(name: str) -> None:
@@ -106,7 +105,6 @@ def delete_user(name: str) -> None:
     if result is None:
         raise UserNotFoundError
     _handle_errors(result.delete)
-    return None
 
 
 def get_roles() -> List[Union[GetRolesRolesUnmanagedRole, GetRolesRolesManagedRole]]:
@@ -137,7 +135,6 @@ def set_role(
     if result is None:
         raise UserNotFoundError
     _handle_errors(result.set_role)
-    return None
 
 
 def add_roles(name: str, roles: List[str]) -> None:
@@ -152,7 +149,6 @@ def add_roles(name: str, roles: List[str]) -> None:
     if result is None:
         raise UserNotFoundError
     _handle_errors(result.add_roles)
-    return None
 
 
 def remove_roles(
@@ -172,4 +168,3 @@ def remove_roles(
     if result is None:
         raise UserNotFoundError
     _handle_errors(result.remove_roles)
-    return None
