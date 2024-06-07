@@ -16,6 +16,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
 
 import useRoleSwitcher from './RoleSwitcher'
@@ -151,34 +152,37 @@ function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
   )
 }
 
-function useLinks(): ItemDescriptor[] {
+const mkNavItem = (
+  kind: 'to' | 'href',
+  target: string,
+  label: string,
+  icon: string = 'open_in_new',
+) => ({ kind, target, label, icon })
+
+type NavItem = ReturnType<typeof mkNavItem>
+
+function useNavItems(): NavItem[] {
   const { urls } = NamedRoutes.use()
   const settings = CatalogSettings.use()
 
-  const customNavLink: ItemDescriptor | false = React.useMemo(() => {
+  const customNavLink: NavItem | false = React.useMemo(() => {
     if (!settings?.customNavLink) return false
     const href = sanitizeUrl(settings.customNavLink.url)
     if (href === 'about:blank') return false
-    return ItemDescriptor.Href(href, settings.customNavLink.label)
+    return mkNavItem('href', href, settings.customNavLink.label)
   }, [settings?.customNavLink])
 
-  const links: ItemDescriptor[] = []
-
-  if (process.env.NODE_ENV === 'development') {
-    links.push(ItemDescriptor.To(urls.example(), 'Example'))
-  }
-  if (customNavLink) links.push(customNavLink)
-  if (cfg.mode !== 'MARKETING') {
-    links.push(ItemDescriptor.To(urls.uriResolver(), 'URI'))
-  }
-  links.push(ItemDescriptor.Href(URLS.docs, 'Docs'))
-  if (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') {
-    links.push(ItemDescriptor.Href(URLS.jobs, 'Jobs'))
-  }
-  if (cfg.mode !== 'PRODUCT') links.push(ItemDescriptor.Href(URLS.blog, 'Blog'))
-  if (cfg.mode === 'MARKETING') links.push(ItemDescriptor.To(urls.about(), 'About'))
-
-  return links
+  return [
+    process.env.NODE_ENV === 'development' &&
+      mkNavItem('to', urls.example(), 'Example', 'account_tree'),
+    customNavLink,
+    cfg.mode !== 'MARKETING' && mkNavItem('to', urls.uriResolver(), 'URI', 'public'),
+    mkNavItem('href', URLS.docs, 'Docs', 'menu_book'),
+    (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') &&
+      mkNavItem('href', URLS.jobs, 'Jobs', 'work'),
+    cfg.mode !== 'PRODUCT' && mkNavItem('href', URLS.blog, 'Blog', 'chat'),
+    cfg.mode === 'MARKETING' && mkNavItem('to', urls.about(), 'About', 'help'),
+  ].filter(Boolean) as NavItem[]
 }
 
 const useBadgeStyles = M.makeStyles({
@@ -415,44 +419,54 @@ interface MobileMenuProps {
 
 function MobileMenu({ auth }: MobileMenuProps) {
   const { urls } = NamedRoutes.use()
-  const links = useLinks()
+  const navItems = useNavItems()
   const getAuthItems = useGetAuthItems()
   const bookmarks = Bookmarks.use()
 
-  const authItems =
-    cfg.disableNavigator || cfg.mode === 'LOCAL'
-      ? []
-      : [
-          ...AuthState.match<(ItemDescriptor | false)[]>(
-            {
-              Loading: () => [
-                ItemDescriptor.Text(
-                  <ItemContents
-                    icon={<M.CircularProgress size={20} />}
-                    primary="Loading..."
-                  />,
-                ),
-              ],
-              Error: () => [
+  const authItems = React.useMemo(() => {
+    if (cfg.disableNavigator || cfg.mode === 'LOCAL') return []
+    return AuthState.match<(ItemDescriptor | false)[]>(
+      {
+        Loading: () => [
+          ItemDescriptor.Text(
+            <ItemContents icon={<M.CircularProgress size={20} />} primary="Loading..." />,
+          ),
+        ],
+        Error: () => [
+          ItemDescriptor.To(
+            urls.signIn(),
+            <ItemContents icon="error_outline" primary="Sign In" />,
+          ),
+        ],
+        Ready: ({ user }) =>
+          user
+            ? getAuthItems(user)
+            : [
                 ItemDescriptor.To(
                   urls.signIn(),
-                  <ItemContents icon="error_outline" primary="Sign In" />,
+                  <ItemContents icon="exit_to_app" primary="Sign In" />,
                 ),
               ],
-              Ready: ({ user }) =>
-                user
-                  ? getAuthItems(user)
-                  : [
-                      ItemDescriptor.To(
-                        urls.signIn(),
-                        <ItemContents icon="exit_to_app" primary="Sign In" />,
-                      ),
-                    ],
-            },
-            auth,
-          ),
-          ItemDescriptor.Divider(),
-        ]
+      },
+      auth,
+    ).concat(ItemDescriptor.Divider())
+  }, [auth, getAuthItems, urls])
+
+  const links = React.useMemo(
+    () =>
+      navItems.map((n) => {
+        const children = <ItemContents icon={n.icon} primary={n.label} />
+        switch (n.kind) {
+          case 'to':
+            return ItemDescriptor.To(n.target, children)
+          case 'href':
+            return ItemDescriptor.Href(n.target, children)
+          default:
+            assertNever(n.kind)
+        }
+      }),
+    [navItems],
+  )
 
   return (
     // XXX: badge here or around the button?
@@ -503,36 +517,44 @@ const useNavStyles = M.makeStyles((t) => ({
 export function Links() {
   const classes = useNavStyles()
   const intercom = Intercom.use()
-  const links = useLinks()
+  const navItems = useNavItems()
 
-  const mkTitle = (children: React.ReactNode) =>
-    typeof children === 'string' && children.length > 10 ? children : undefined
+  const mkTitle = (label: string) => (label.length > 10 ? label : undefined)
+
+  const links = navItems.map((n, i) => {
+    switch (n.kind) {
+      case 'to':
+        return (
+          <RR.NavLink
+            key={i}
+            className={classes.link}
+            activeClassName={classes.active}
+            title={mkTitle(n.label)}
+            to={n.target}
+          >
+            {n.label}
+          </RR.NavLink>
+        )
+      case 'href':
+        return (
+          <a
+            key={i}
+            className={classes.link}
+            target="_blank"
+            title={mkTitle(n.label)}
+            href={n.target}
+          >
+            {n.label}
+          </a>
+        )
+      default:
+        assertNever(n.kind)
+    }
+  })
 
   return (
     <nav className={classes.nav}>
-      {links.map(
-        ItemDescriptor.match({
-          To: (props, i) => (
-            <RR.NavLink
-              key={i}
-              className={classes.link}
-              activeClassName={classes.active}
-              title={mkTitle(props.children)}
-              {...props}
-            />
-          ),
-          Href: (props, i) => (
-            <a
-              key={i}
-              className={classes.link}
-              target="_blank"
-              title={mkTitle(props.children)}
-              {...props}
-            />
-          ),
-          _: () => null,
-        }),
-      )}
+      {links}
       {!intercom.dummy && intercom.isCustom && (
         <Intercom.Launcher className={classes.intercom} />
       )}
