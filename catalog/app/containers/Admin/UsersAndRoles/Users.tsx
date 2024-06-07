@@ -117,7 +117,7 @@ function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSele
               key={r.id}
               label={r.name}
               size="small"
-              color="secondary"
+              color="primary"
               className={classes.chip}
               onDelete={() => remove(r)}
               disabled={disabled}
@@ -128,6 +128,7 @@ function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSele
               label={r.name}
               size="small"
               variant="outlined"
+              color="primary"
               className={classes.chip}
               onDelete={() => remove(r)}
               clickable
@@ -141,7 +142,6 @@ function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSele
             label={selected.length ? 'Add' : 'Assign'}
             size="small"
             variant="outlined"
-            color="secondary"
             className={classes.chip}
             classes={{ deleteIcon: classes.addIcon }}
             clickable
@@ -792,7 +792,7 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
         modifiedSinceLastSubmit,
       }) => (
         <>
-          <M.DialogTitle>Configure roles for user &quot;{user.name}&quot;</M.DialogTitle>
+          <M.DialogTitle>Assign roles to &quot;{user.name}&quot;</M.DialogTitle>
           <M.DialogContent>
             <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
