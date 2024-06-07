@@ -169,6 +169,9 @@ function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSele
           {error === 'required' ? 'Assign a role please' : error}
         </M.FormHelperText>
       )}
+      <M.FormHelperText error={false}>
+        User can assume any of the assigned roles
+      </M.FormHelperText>
     </M.FormControl>
   )
 }
