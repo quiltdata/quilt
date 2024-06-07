@@ -1,8 +1,34 @@
 
 # quilt3.admin
+
 APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management.
 
-## get\_user(name: str) -> quilt3.admin.\_graphql\_client.get\_user.GetUserAdminUserGet  {#get\_user}
+
+## ManagedRole(\*, \_\_typename: Literal['ManagedRole'], id: str, name: str, arn: str) -> None  {#ManagedRole}
+Create a new model by parsing and validating input data from keyword arguments.
+
+Raises [`ValidationError`][pydantic_core.ValidationError] if the input data cannot be
+validated to form a valid model.
+
+`self` is explicitly positional-only to allow `self` as a field name.
+
+## UnmanagedRole(\*, \_\_typename: Literal['UnmanagedRole'], id: str, name: str, arn: str) -> None  {#UnmanagedRole}
+Create a new model by parsing and validating input data from keyword arguments.
+
+Raises [`ValidationError`][pydantic_core.ValidationError] if the input data cannot be
+validated to form a valid model.
+
+`self` is explicitly positional-only to allow `self` as a field name.
+
+## User(\*, name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
+Create a new model by parsing and validating input data from keyword arguments.
+
+Raises [`ValidationError`][pydantic_core.ValidationError] if the input data cannot be
+validated to form a valid model.
+
+`self` is explicitly positional-only to allow `self` as a field name.
+
+## get\_user(name: str) -> quilt3.admin.User  {#get\_user}
 
 Get a specific user from the registry.
 
@@ -11,7 +37,7 @@ __Arguments__
 * __name__:  Username of user to get.
 
 
-## get\_users() -> List[quilt3.admin.\_graphql\_client.get\_users.GetUsersAdminUserList]  {#get\_users}
+## get\_users() -> list[quilt3.admin.User]  {#get\_users}
 
 Get a list of all users in the registry.
 
@@ -42,7 +68,7 @@ __Arguments__
 Get a list of all roles in the registry.
 
 
-## set\_role(name: str, role: str, extra\_roles: Union[List[str], NoneType, quilt3.admin.\_graphql\_client.base\_model.UnsetType] = <quilt3.admin.\_graphql\_client.base\_model.UnsetType object at 0x1058a00d0>, \*, append: bool = False) -> None  {#set\_role}
+## set\_role(name: str, role: str, extra\_roles: Union[List[str], NoneType, quilt3.admin.\_graphql\_client.base\_model.UnsetType] = <quilt3.admin.\_graphql\_client.base\_model.UnsetType object at 0x1061d2b20>, \*, append: bool = False) -> None  {#set\_role}
 
 Set the active and extra roles for a user.
 
@@ -64,7 +90,7 @@ __Arguments__
 * __roles__:  Roles to add to the user.
 
 
-## remove\_roles(name: str, roles: List[str], fallback: Union[str, NoneType, quilt3.admin.\_graphql\_client.base\_model.UnsetType] = <quilt3.admin.\_graphql\_client.base\_model.UnsetType object at 0x1058a00d0>) -> None  {#remove\_roles}
+## remove\_roles(name: str, roles: List[str], fallback: Union[str, NoneType, quilt3.admin.\_graphql\_client.base\_model.UnsetType] = <quilt3.admin.\_graphql\_client.base\_model.UnsetType object at 0x1061d2b20>) -> None  {#remove\_roles}
 
 Remove roles from a user.
 

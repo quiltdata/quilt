@@ -2,10 +2,44 @@
 APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management.
 """
 
-from typing import Any, Union, Optional, List
+from datetime import datetime
+from typing import Any, Annotated, Literal, Union, Optional, List
+
+from pydantic import Field, TypeAdapter
 
 from ._graphql_client import *
 from ._graphql_client.base_model import UNSET, UnsetType
+
+
+class ManagedRole(BaseModel):
+    typename__: Literal["ManagedRole"] = Field(alias="__typename")
+    id: str
+    name: str
+    arn: str
+
+
+class UnmanagedRole(BaseModel):
+    typename__: Literal["UnmanagedRole"] = Field(alias="__typename")
+    id: str
+    name: str
+    arn: str
+
+
+Role = Union[ManagedRole, UnmanagedRole]
+AnnotatedRole = Annotated[Role, Field(discriminator="typename__")]
+
+
+class User(BaseModel):
+    name: str
+    email: str
+    date_joined: datetime = Field()
+    last_login: datetime = Field()
+    is_active: bool = Field()
+    is_admin: bool = Field()
+    is_sso_only: bool = Field()
+    is_service: bool = Field()
+    role: Optional[AnnotatedRole] = Field()
+    extra_roles: List[AnnotatedRole] = Field()
 
 
 class UserNotFoundError(Exception):
@@ -23,7 +57,7 @@ def _get_client():
     return Client()
 
 
-def get_user(name: str) -> GetUserAdminUserGet:
+def get_user(name: str) -> User:
     """
     Get a specific user from the registry.
 
@@ -34,14 +68,14 @@ def get_user(name: str) -> GetUserAdminUserGet:
     # XXX: should we really throw an exception here?
     if result is None:
         raise UserNotFoundError
-    return result
+    return User.model_validate(result.model_dump())
 
 
-def get_users() -> List[GetUsersAdminUserList]:
+def get_users() -> List[User]:
     """
     Get a list of all users in the registry.
     """
-    return _get_client().get_users()
+    return [User.model_validate(u.model_dump()) for u in _get_client().get_users()]
 
 
 def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str]] = None) -> None:
@@ -79,7 +113,8 @@ def get_roles() -> List[Union[GetRolesRolesUnmanagedRole, GetRolesRolesManagedRo
     """
     Get a list of all roles in the registry.
     """
-    return _get_client().get_roles()
+    adapter = TypeAdapter(AnnotatedRole)
+    return [adapter.validate_python(r.model_dump()) for r in _get_client().get_roles()]
 
 
 def set_role(
