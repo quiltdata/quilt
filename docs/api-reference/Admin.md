@@ -37,7 +37,7 @@ __Arguments__
 * __name__:  Username of user to get.
 
 
-## get\_users() -> list[quilt3.admin.User]  {#get\_users}
+## get\_users() -> List[quilt3.admin.User]  {#get\_users}
 
 Get a list of all users in the registry.
 
@@ -68,7 +68,7 @@ __Arguments__
 Get a list of all roles in the registry.
 
 
-## set\_role(name: str, role: str, extra\_roles: Union[List[str], NoneType, quilt3.admin.\_graphql\_client.base\_model.UnsetType] = <quilt3.admin.\_graphql\_client.base\_model.UnsetType object at 0x1061d2b20>, \*, append: bool = False) -> None  {#set\_role}
+## set\_role(name: str, role: str, extra\_roles: Optional[List[str]] = None, \*, append: bool = False) -> None  {#set\_role}
 
 Set the active and extra roles for a user.
 
@@ -90,7 +90,7 @@ __Arguments__
 * __roles__:  Roles to add to the user.
 
 
-## remove\_roles(name: str, roles: List[str], fallback: Union[str, NoneType, quilt3.admin.\_graphql\_client.base\_model.UnsetType] = <quilt3.admin.\_graphql\_client.base\_model.UnsetType object at 0x1061d2b20>) -> None  {#remove\_roles}
+## remove\_roles(name: str, roles: List[str], fallback: Optional[str] = None) -> None  {#remove\_roles}
 
 Remove roles from a user.
 

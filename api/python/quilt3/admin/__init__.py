@@ -120,7 +120,7 @@ def get_roles() -> List[Union[GetRolesRolesUnmanagedRole, GetRolesRolesManagedRo
 def set_role(
     name: str,
     role: str,
-    extra_roles: Union[Optional[List[str]], UnsetType] = UNSET,
+    extra_roles: Optional[List[str]] = None,
     *,
     append: bool = False,
 ) -> None:
@@ -158,7 +158,7 @@ def add_roles(name: str, roles: List[str]) -> None:
 def remove_roles(
     name: str,
     roles: List[str],
-    fallback: Union[Optional[str], UnsetType] = UNSET,
+    fallback: Optional[str] = None,
 ) -> None:
     """
     Remove roles from a user.
