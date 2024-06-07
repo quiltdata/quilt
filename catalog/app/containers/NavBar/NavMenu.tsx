@@ -139,7 +139,6 @@ function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu
           anchorEl={anchor}
-          anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
           open={!!anchor}
           onClose={close}
           MenuListProps={{ component: 'nav' } as M.MenuListProps}
@@ -183,32 +182,6 @@ function useNavItems(): NavItem[] {
     cfg.mode !== 'PRODUCT' && mkNavItem('href', URLS.blog, 'Blog', 'chat'),
     cfg.mode === 'MARKETING' && mkNavItem('to', urls.about(), 'About', 'help'),
   ].filter(Boolean) as NavItem[]
-}
-
-const useBadgeStyles = M.makeStyles({
-  root: {
-    alignItems: 'inherit',
-  },
-  badge: {
-    top: '4px',
-  },
-})
-
-interface BadgeProps extends M.BadgeProps {}
-
-function Badge({ children, color, invisible, ...props }: BadgeProps) {
-  const classes = useBadgeStyles()
-  return (
-    <M.Badge
-      classes={classes}
-      color={color}
-      variant="dot"
-      invisible={invisible}
-      {...props}
-    >
-      {children}
-    </M.Badge>
-  )
 }
 
 const useItemStyles = M.makeStyles((t) => ({
@@ -263,7 +236,11 @@ function useGetAuthItems() {
     const items: ItemDescriptor[] = []
 
     const userItem = (
-      <ItemContents icon="person" primary={user.name} secondary={user.role.name} />
+      <ItemContents
+        icon="account_circle"
+        primary={user.name}
+        secondary={user.role.name}
+      />
     )
     items.push(
       cfg.mode === 'OPEN' // currently only OPEN has profile page
@@ -292,9 +269,9 @@ function useGetAuthItems() {
           bookmarks.show,
           <ItemContents
             icon={
-              <Badge color="secondary" invisible={!bookmarks?.hasUpdates}>
+              <M.Badge invisible={!bookmarks?.hasUpdates} color="secondary" variant="dot">
                 <M.Icon>bookmarks_outlined</M.Icon>
-              </Badge>
+              </M.Badge>
             }
             primary="Bookmarks"
           />,
@@ -333,25 +310,27 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
   return (
     <DropdownMenu
       trigger={(open) => (
-        // XXX: badge here or around the button?
         <M.Button
           variant="text"
           color="inherit"
           onClick={open}
           style={{ textTransform: 'none' }}
         >
-          <Badge color="primary" invisible={!bookmarks?.hasUpdates}>
-            <M.Icon fontSize="small">person</M.Icon>
-          </Badge>
-          &nbsp;
+          <M.Badge
+            invisible={!bookmarks?.hasUpdates}
+            color="primary"
+            variant="dot"
+            overlap="circle"
+          >
+            <M.Icon fontSize="small">account_circle</M.Icon>
+          </M.Badge>
+          &nbsp;&nbsp;
           {user.name}
           &nbsp;
           <M.Icon fontSize="small">expand_more</M.Icon>
         </M.Button>
       )}
       items={getAuthItems(user)}
-      // XXX: reset bookmarks updates state on close?
-      // onClose={() => bookmarks?.hide()}
     />
   )
 }
@@ -469,18 +448,20 @@ function MobileMenu({ auth }: MobileMenuProps) {
   )
 
   return (
-    // XXX: badge here or around the button?
     <DropdownMenu
       trigger={(open) => (
         <M.IconButton onClick={open} aria-label="Menu" edge="end">
-          <Badge color="primary" invisible={!bookmarks?.hasUpdates}>
+          <M.Badge
+            invisible={!bookmarks?.hasUpdates}
+            color="primary"
+            variant="dot"
+            overlap="circle"
+          >
             <M.Icon>menu</M.Icon>
-          </Badge>
+          </M.Badge>
         </M.IconButton>
       )}
       items={[...authItems, ...links]}
-      // XXX: reset bookmarks updates state on close?
-      // onClose={() => bookmarks?.hide()}
     />
   )
 }
