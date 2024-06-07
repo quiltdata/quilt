@@ -7,7 +7,6 @@ import requests
 from pydantic import BaseModel
 from pydantic_core import to_jsonable_python
 
-
 from quilt3 import session
 
 from .base_model import UNSET, Upload
