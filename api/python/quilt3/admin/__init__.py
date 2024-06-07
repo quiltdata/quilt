@@ -1,4 +1,6 @@
-"""APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management."""
+"""
+APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management.
+"""
 
 from typing import Any, Union, Optional, List
 
