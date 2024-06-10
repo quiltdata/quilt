@@ -36,39 +36,60 @@ const DIALOG_PROPS: Dialogs.ExtraDialogProps = { maxWidth: 'xs', fullWidth: true
 
 interface RoleSelectValue {
   selected: readonly Role[]
-  active: Role | null | undefined
+  active: Role | null
 }
 
-const ROLE_SELECT_VALUE_EMPTY: RoleSelectValue = { selected: [], active: undefined }
+const ROLE_SELECT_VALUE_EMPTY: RoleSelectValue = { selected: [], active: null }
 
-const validateRoleSelect: FF.FieldValidator<RoleSelectValue> = (v) =>
-  v.active ? undefined : 'required'
+const validateRoleSelect: FF.FieldValidator<RoleSelectValue> = (v) => {
+  if (!v.selected.length) return 'required'
+  if (!v.active) return 'active'
+}
 
 const ROLE_NAME_ASC = R.ascend((r: Role) => r.name)
 
 const useRoleSelectStyles = M.makeStyles((t) => ({
-  root: {},
-  chips: {
+  grid: {
+    alignItems: 'center',
+    display: 'grid',
+    gap: t.spacing(1),
+    grid: 'auto-flow / 1fr auto 1fr',
+    marginTop: t.spacing(2),
+  },
+  list: ({ roles }: { roles: number }) => ({
+    height: `${46 * R.clamp(3, 4.5, roles)}px`,
+    overflowY: 'auto',
+  }),
+  listEmpty: {
+    alignItems: 'center',
     display: 'flex',
-    flexWrap: 'wrap',
-    marginTop: t.spacing(2.5),
+    flexDirection: 'column',
+    paddingTop: t.spacing(3),
   },
-  chip: {
-    marginRight: t.spacing(0.5),
-    marginTop: t.spacing(0.5),
+  availableRole: {
+    paddingBottom: '5px',
+    paddingTop: '5px',
   },
-  addIcon: {
-    transform: 'rotate(45deg)',
+  defaultRole: {
+    fontWeight: t.typography.fontWeightMedium,
+    '&::after': {
+      content: '"*"',
+    },
   },
 }))
 
 interface RoleSelectProps extends RF.FieldRenderProps<RoleSelectValue> {
   roles: readonly Role[]
-  label?: React.ReactNode
+  defaultRole: Role | null
 }
 
-function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSelectProps) {
-  const classes = useRoleSelectStyles()
+function RoleSelect({
+  roles,
+  defaultRole,
+  input: { value, onChange },
+  meta,
+}: RoleSelectProps) {
+  const classes = useRoleSelectStyles({ roles: roles.length })
 
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
@@ -80,98 +101,158 @@ function RoleSelect({ roles, input: { value, onChange }, meta, label }: RoleSele
     [roles, selected],
   )
 
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
-
-  const openAddMenu = React.useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      setAnchorEl(event.currentTarget)
-    },
-    [setAnchorEl],
-  )
-
-  const closeAddMenu = React.useCallback(() => {
-    setAnchorEl(null)
-  }, [])
-
   const add = (r: Role) =>
     onChange({
       selected: selected.concat(r).sort(ROLE_NAME_ASC),
       active: active ?? r,
     })
 
-  const remove = (r: Role) =>
-    onChange({
-      selected: selected.filter((r2) => r2.id !== r.id),
-      active: r.id === active?.id ? undefined : active,
-    })
+  const remove = (r: Role) => {
+    const newSelected = selected.filter((r2) => r2.id !== r.id)
+    let newActive: Role | null
+    if (newSelected.length === 1) {
+      // select the only available role
+      newActive = newSelected[0]
+    } else if (newSelected.find((r2) => r2.id === active?.id)) {
+      // keep the active role if it's still available
+      newActive = active
+    } else {
+      newActive = null
+    }
+    onChange({ selected: newSelected, active: newActive })
+  }
 
   const activate = (r: Role) => onChange({ selected, active: r })
 
+  const clear = () => onChange({ selected: [], active: null })
+
+  function roleNameDisplay(r: Role) {
+    if (r.id !== defaultRole?.id) return r.name
+    return (
+      <M.Tooltip title="Default role">
+        <span className={classes.defaultRole}>{r.name}</span>
+      </M.Tooltip>
+    )
+  }
+
   return (
-    <M.FormControl className={classes.root} margin="normal" error={!!error}>
-      {!!label && <M.InputLabel shrink>{label}</M.InputLabel>}
-      <div className={classes.chips}>
-        {selected.map((r) =>
-          active?.id === r.id ? (
-            <M.Chip
-              key={r.id}
-              label={r.name}
-              size="small"
-              color="primary"
-              className={classes.chip}
-              onDelete={() => remove(r)}
-              disabled={disabled}
-            />
-          ) : (
-            <M.Chip
-              key={r.id}
-              label={r.name}
-              size="small"
-              variant="outlined"
-              color="primary"
-              className={classes.chip}
-              onDelete={() => remove(r)}
-              clickable
-              onClick={() => activate(r)}
-              disabled={disabled}
-            />
-          ),
-        )}
-        {available.length > 0 && (
-          <M.Chip
-            label={selected.length ? 'Add' : 'Assign'}
-            size="small"
-            variant="outlined"
-            className={classes.chip}
-            classes={{ deleteIcon: classes.addIcon }}
-            clickable
-            onDelete={openAddMenu}
-            onClick={openAddMenu}
-            disabled={disabled}
-          />
-        )}
-      </div>
-      <M.Menu anchorEl={anchorEl} keepMounted open={!!anchorEl} onClose={closeAddMenu}>
-        {available.map((r) => (
-          <M.MenuItem
-            key={r.id}
-            onClick={() => {
-              closeAddMenu()
-              add(r)
-            }}
-          >
-            {r.name}
-          </M.MenuItem>
-        ))}
-      </M.Menu>
-      {!!error && (
-        <M.FormHelperText error>
-          {error === 'required' ? 'Assign a role please' : error}
-        </M.FormHelperText>
+    <M.FormControl error={!!error} margin="normal" fullWidth>
+      {error ? (
+        <M.Typography variant="body2" color="error">
+          {error === 'required' ? 'Assign at least one role' : 'Select an active role'}
+        </M.Typography>
+      ) : (
+        <M.Typography variant="body2" color="textSecondary">
+          User can assume any of the assigned roles
+        </M.Typography>
       )}
-      <M.FormHelperText error={false}>
-        User can assume any of the assigned roles
-      </M.FormHelperText>
+
+      <div className={classes.grid}>
+        <M.Card variant="outlined">
+          <M.ListItem component="div" ContainerComponent="div" dense divider>
+            <M.ListItemText
+              primary="Assigned roles"
+              secondary={`${selected.length} / ${roles.length} roles`}
+              primaryTypographyProps={{ color: error ? 'error' : undefined }}
+            />
+            <M.ListItemSecondaryAction>
+              <M.Tooltip title="Unassign all roles">
+                <M.IconButton
+                  onClick={clear}
+                  edge="end"
+                  size="small"
+                  disabled={disabled || selected.length === 0}
+                >
+                  <M.Icon>clear_all</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            </M.ListItemSecondaryAction>
+          </M.ListItem>
+          {selected.length ? (
+            <M.List dense disablePadding className={classes.list}>
+              {selected.map((r) => (
+                <M.ListItem
+                  key={r.id}
+                  selected={active?.id === r.id}
+                  disabled={disabled}
+                  button
+                  onClick={() => activate(r)}
+                >
+                  <M.Tooltip
+                    title={active?.id === r.id ? 'Active role' : 'Set active role'}
+                  >
+                    <M.Radio
+                      checked={active?.id === r.id}
+                      tabIndex={-1}
+                      edge="start"
+                      size="small"
+                      disableRipple
+                    />
+                  </M.Tooltip>
+                  <M.ListItemText primaryTypographyProps={{ noWrap: true }}>
+                    {roleNameDisplay(r)}
+                  </M.ListItemText>
+                  <M.ListItemSecondaryAction>
+                    <M.Tooltip title="Unassign role">
+                      <M.IconButton edge="end" size="small" onClick={() => remove(r)}>
+                        <M.Icon>close</M.Icon>
+                      </M.IconButton>
+                    </M.Tooltip>
+                  </M.ListItemSecondaryAction>
+                </M.ListItem>
+              ))}
+            </M.List>
+          ) : (
+            <div className={cx(classes.list, classes.listEmpty)}>
+              <M.Typography color={error ? 'error' : 'textSecondary'}>
+                No roles assigned
+              </M.Typography>
+              {!!defaultRole && (
+                <>
+                  <M.Box pt={2} />
+                  <M.Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => add(defaultRole)}
+                    disabled={disabled}
+                  >
+                    Assign default role
+                  </M.Button>
+                </>
+              )}
+            </div>
+          )}
+        </M.Card>
+
+        <M.Icon color="action">sync_alt</M.Icon>
+
+        <M.Card variant="outlined">
+          <M.ListItem component="div" ContainerComponent="div" dense divider>
+            <M.ListItemText
+              primary="Available roles"
+              secondary={`${roles.length - selected.length} / ${roles.length} roles`}
+            />
+          </M.ListItem>
+          {available.length ? (
+            <M.List dense disablePadding className={classes.list}>
+              {available.map((r) => (
+                <M.ListItem key={r.id} disabled={disabled} button onClick={() => add(r)}>
+                  <M.ListItemText
+                    className={classes.availableRole}
+                    primaryTypographyProps={{ noWrap: true }}
+                  >
+                    {roleNameDisplay(r)}
+                  </M.ListItemText>
+                </M.ListItem>
+              ))}
+            </M.List>
+          ) : (
+            <div className={cx(classes.list, classes.listEmpty)}>
+              <M.Typography color="textSecondary">All roles assigned</M.Typography>
+            </div>
+          )}
+        </M.Card>
+      </div>
     </M.FormControl>
   )
 }
@@ -273,15 +354,16 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
     [create, push, close],
   )
 
-  const active = defaultRole || roles[0]
-  const selected = [active]
-
   return (
     <RF.Form<FormValues>
       onSubmit={onSubmit}
-      initialValues={{ roles: { active, selected } }}
+      initialValues={{
+        roles: {
+          active: defaultRole,
+          selected: defaultRole ? [defaultRole] : [],
+        },
+      }}
       initialValuesEqual={R.equals}
-      keepDirtyOnReinitialize
     >
       {({
         handleSubmit,
@@ -335,8 +417,12 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
                 }}
                 autoComplete="off"
               />
+              <M.Box mt={2} />
+              <M.Typography variant="h6">Assign roles</M.Typography>
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
-                {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
+                {(props) => (
+                  <RoleSelect roles={roles} defaultRole={defaultRole} {...props} />
+                )}
               </RF.Field>
               <Form.FormErrorAuto>
                 {{
@@ -716,10 +802,11 @@ function UsernameDisplay({ user, self }: UsernameDisplayProps) {
 interface EditRolesProps {
   close: Dialogs.Close
   roles: readonly Role[]
+  defaultRole: Role | null
   user: User
 }
 
-function EditRoles({ close, roles, user }: EditRolesProps) {
+function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
   const { push } = Notifications.use()
   const setRole = GQL.useMutation(USER_SET_ROLE_MUTATION)
 
@@ -784,30 +871,39 @@ function EditRoles({ close, roles, user }: EditRolesProps) {
       onSubmit={onSubmit}
       initialValues={{ roles: { active: user.role, selected } }}
       initialValuesEqual={R.equals}
-      keepDirtyOnReinitialize
     >
       {({
+        form,
         handleSubmit,
-        submitting,
-        submitFailed,
         hasSubmitErrors,
         hasValidationErrors,
         modifiedSinceLastSubmit,
+        pristine,
+        submitFailed,
+        submitting,
       }) => (
         <>
           <M.DialogTitle>Assign roles to &quot;{user.name}&quot;</M.DialogTitle>
           <M.DialogContent>
             <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelectValue> name="roles" validate={validateRoleSelect}>
-                {(props) => <RoleSelect label="Roles" roles={roles} {...props} />}
+                {(props) => (
+                  <RoleSelect roles={roles} defaultRole={defaultRole} {...props} />
+                )}
               </RF.Field>
               <Form.FormErrorAuto>
                 {{ unexpected: 'Something went wrong' }}
               </Form.FormErrorAuto>
-              <input type="submit" style={{ display: 'none' }} />
             </DialogForm>
           </M.DialogContent>
           <M.DialogActions>
+            <M.Button
+              onClick={() => form.reset()}
+              color="primary"
+              disabled={pristine || submitting}
+            >
+              Reset
+            </M.Button>
             <M.Button onClick={close} color="primary" disabled={submitting}>
               Cancel
             </M.Button>
@@ -926,12 +1022,16 @@ const emptyRole = '<None>'
 interface RoleDisplayProps {
   user: User
   roles: readonly Role[]
+  defaultRole: Role | null
   openDialog: Dialogs.Open
 }
 
-function RoleDisplay({ user, roles, openDialog }: RoleDisplayProps) {
+function RoleDisplay({ user, roles, defaultRole, openDialog }: RoleDisplayProps) {
   const edit = () =>
-    openDialog(({ close }) => <EditRoles {...{ close, roles, user }} />, DIALOG_PROPS)
+    openDialog(({ close }) => <EditRoles {...{ close, roles, defaultRole, user }} />, {
+      maxWidth: 'sm',
+      fullWidth: true,
+    })
 
   return (
     <M.Tooltip title="Click to edit">
@@ -955,6 +1055,7 @@ function DateDisplay({ value }: { value: Date }) {
 
 interface ColumnDisplayProps {
   roles: readonly Role[]
+  defaultRole: Role | null
   setActive: (name: string, active: boolean) => Promise<void>
   openDialog: Dialogs.Open
   isSelf: boolean
@@ -996,8 +1097,13 @@ const columns: Table.Column<User>[] = [
     id: 'role',
     label: 'Role',
     getValue: (u) => u.role?.name,
-    getDisplay: (_v, u, { roles, openDialog }: ColumnDisplayProps) => (
-      <RoleDisplay user={u} roles={roles} openDialog={openDialog} />
+    getDisplay: (_v, u, { roles, defaultRole, openDialog }: ColumnDisplayProps) => (
+      <RoleDisplay
+        user={u}
+        roles={roles}
+        defaultRole={defaultRole}
+        openDialog={openDialog}
+      />
     ),
   },
   {
@@ -1112,10 +1218,10 @@ export default function Users() {
       title: 'Invite',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        openDialog(
-          ({ close }) => <Invite {...{ close, roles, defaultRole }} />,
-          DIALOG_PROPS,
-        )
+        openDialog(({ close }) => <Invite {...{ close, roles, defaultRole }} />, {
+          ...DIALOG_PROPS,
+          maxWidth: 'sm',
+        })
       }, [roles, defaultRole, openDialog]),
     },
   ]
@@ -1139,6 +1245,7 @@ export default function Users() {
   const getDisplayProps = (u: User): ColumnDisplayProps => ({
     setActive,
     roles,
+    defaultRole,
     openDialog,
     isSelf: u.name === self,
   })
