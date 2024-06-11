@@ -8,7 +8,6 @@ from typing import Annotated, Any, List, Literal, Optional, Union
 from pydantic import Field, TypeAdapter
 
 from ._graphql_client import *
-from ._graphql_client.base_model import UNSET, UnsetType
 
 
 class ManagedRole(BaseModel):
