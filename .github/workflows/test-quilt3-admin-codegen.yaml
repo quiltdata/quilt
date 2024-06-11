@@ -1,3 +1,5 @@
+name: Test quilt3.admin code generation
+
 on:
   push:
     paths:
