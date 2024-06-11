@@ -59,7 +59,6 @@ def _handle_errors(result: BaseModel) -> Any:
     return result
 
 
-# XXX: cache?
 def _get_client():
     return Client()
 
