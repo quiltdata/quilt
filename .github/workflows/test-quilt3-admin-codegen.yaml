@@ -24,9 +24,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version-file: '.python-version'
+          python-version-file: 'api/python/quilt3-admin/.python-version'
           cache: 'pip'
-          cache-dependency-path: 'requirements.txt'
+          cache-dependency-path: 'api/python/quilt3-admin/requirements.txt'
       - run: pip install -r requirements.txt
       - run: rm -r ../quilt3/admin/_graphql_client
       - run: ariadne-codegen
