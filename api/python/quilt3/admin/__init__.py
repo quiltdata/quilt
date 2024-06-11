@@ -42,13 +42,20 @@ class User(BaseModel):
     extra_roles: List[AnnotatedRole] = Field()
 
 
-class UserNotFoundError(Exception):
-    pass
+class Quilt3AdminError(Exception):
+    def __init__(self, details):
+        super().__init__(details)
+        self.details = details
+
+
+class UserNotFoundError(Quilt3AdminError):
+    def __init__(self):
+        super().__init__(None)
 
 
 def _handle_errors(result: BaseModel) -> Any:
     if isinstance(result, (InvalidInputSelection, OperationErrorSelection)):
-        raise Exception(result)  # TODO: Proper error handling
+        raise Quilt3AdminError(result)
     return result
 
 
