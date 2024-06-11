@@ -253,7 +253,7 @@ function useGetAuthItems() {
         ItemDescriptor.Click(
           () => switchRole(user),
           <ItemContents
-            icon="repeat"
+            icon="people_outline"
             primary="Switch role"
             secondary={<>{user.roles.length} available</>}
           />,
