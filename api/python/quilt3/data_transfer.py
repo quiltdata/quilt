@@ -268,6 +268,10 @@ def get_checksum_chunksize(file_size: int) -> int:
     return chunksize
 
 
+def is_mpu(file_size: int) -> bool:
+    return file_size >= CHECKSUM_MULTIPART_THRESHOLD
+
+
 _EMPTY_STRING_SHA256 = hashlib.sha256(b'').digest()
 
 
@@ -303,7 +307,7 @@ def _copy_local_file(ctx: WorkerContext, size: int, src_path: str, dest_path: st
 def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str):
     s3_client = ctx.s3_client_provider.standard_client
 
-    if size < CHECKSUM_MULTIPART_THRESHOLD:
+    if not is_mpu(size):
         with ReadFileChunk.from_filename(src_path, 0, size, [ctx.progress]) as fd:
             resp = s3_client.put_object(
                 Body=fd,
@@ -460,7 +464,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
 
     s3_client = ctx.s3_client_provider.standard_client
 
-    if size < CHECKSUM_MULTIPART_THRESHOLD:
+    if not is_mpu(size):
         params: Dict[str, Any] = dict(
             CopySource=src_params,
             Bucket=dest_bucket,
@@ -561,16 +565,17 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
         dest_size = resp["ContentLength"]
         if dest_size != size:
             return None
-        # XXX: shouldn't we check part sizes?
-        # XXX: we could check hashes of parts, to finish faster
-        # XXX: support other checksum algorithms?
+        # TODO: we could check hashes of parts, to finish faster
         s3_checksum = resp.get("ChecksumSHA256")
         if s3_checksum is not None:
             if "-" in s3_checksum:
-                checksum, _ = s3_checksum.split("-", 1)
+                checksum, num_parts_str = s3_checksum.split("-", 1)
+                num_parts = int(num_parts_str)
             else:
                 checksum = _simple_s3_to_quilt_checksum(s3_checksum)
-            if checksum == _calculate_local_checksum(src_path, size):
+                num_parts = None
+            expected_num_parts = math.ceil(size / get_checksum_chunksize(size)) if is_mpu(size) else None
+            if num_parts == expected_num_parts and checksum == _calculate_local_checksum(src_path, size):
                 return resp.get("VersionId"), checksum
         elif resp.get("ServerSideEncryption") != "aws:kms" and resp["ETag"] == _calculate_etag(src_path):
             return resp.get("VersionId"), _calculate_local_checksum(src_path, size)
@@ -719,7 +724,7 @@ def _calculate_etag(file_path):
     """
     size = pathlib.Path(file_path).stat().st_size
     with open(file_path, 'rb') as fd:
-        if size < CHECKSUM_MULTIPART_THRESHOLD:
+        if not is_mpu(size):
             contents = fd.read()
             etag = hashlib.md5(contents).hexdigest()
         else:
