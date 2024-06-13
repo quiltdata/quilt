@@ -9,6 +9,7 @@ import json
 import sys
 import time
 
+import botocore
 import requests
 
 from . import Package
@@ -207,16 +208,21 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, browse, dir_logical_key):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
     try:
-        pkg = Package.browse(name, None)
+        browse_registry = registry if (browse == "remote") else None
+        pkg = Package.browse(name, registry=browse_registry)
     except FileNotFoundError:
         pkg = Package()
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] != "NoSuchKey":
+            raise
 
-    pkg.set_dir('.', dir, meta=meta)
+    pkg.set_dir(dir_logical_key, dir)
+    pkg.set_meta(meta)
     pkg.push(
         name, registry=registry, dest=dest, message=message,
         workflow=workflow, force=force, dedupe=dedupe,
@@ -478,6 +484,23 @@ def create_parser():
         "--no-copy",
         action="store_true",
         help="Do not copy data. Package manifest entries will reference the data at the original location.",
+    )
+    optional_args.add_argument(
+        "--browse",
+        help="""
+            By default, `push` first browses the top_hash from the 'local' registry.
+            Specify 'remote' to explicitly tell push to retrieve the current top_hash
+            from the destination registry, so that it always succeeds.
+            """,
+        default="local",
+    )
+    optional_args.add_argument(
+        "--dir-logical-key",
+        help="""
+            By default, the specified `dir` is added to the top level of a package.
+            Use this option to specify a subfolder.
+            """,
+        default=".",
     )
     push_p.set_defaults(func=cmd_push)
 
