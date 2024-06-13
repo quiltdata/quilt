@@ -89,7 +89,7 @@ mutation deleteUser($name: String!) {
 
 query getRoles {
   roles {
-      ...RoleSelection
+    ...RoleSelection
   }
 }
 
