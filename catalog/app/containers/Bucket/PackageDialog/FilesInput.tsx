@@ -1,3 +1,5 @@
+import { extname } from 'path'
+
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -19,8 +21,28 @@ import useMemoEq from 'utils/useMemoEq'
 import * as Types from 'utils/types'
 
 import EditFileMeta from './EditFileMeta'
+import EditFileName from './EditFileName'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
+
+function resolveNameConflictRudely(name: string, attempt: number) {
+  const ext = extname(name)
+  const base = name.split(ext)[0]
+  return `${base} (conflict ${attempt})${ext}`
+}
+
+function resolveName(
+  name: string,
+  obj: Record<string, any>,
+  attempt: number = 1,
+): string {
+  if (!obj[name]) return name
+
+  const newName = resolveNameConflictRudely(name, attempt)
+  if (!obj[newName]) return newName
+
+  return resolveName(name, obj, attempt + 1)
+}
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -73,6 +95,7 @@ export const FilesAction = tagged.create(
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
+    Rename: (v: { oldPath: string; newPath: string }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -84,32 +107,108 @@ export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
 export type LocalFile = FileWithPath & FileWithHash
 
+// TODO: queue/array
+interface ChangedDict {
+  logicalKey?: string
+  // TODO: meta?: Types.JsonRecord
+}
+
+type AddedFile = (LocalFile | Model.S3File) & {
+  changed?: ChangedDict
+  conflict?: string
+}
+
+type ExistingFile = Model.PackageEntry & {
+  changed?: ChangedDict
+  conflict?: string
+}
+
+type AnyFile = ExistingFile | AddedFile
+
+type AddedItems = Record<string, AddedFile>
+
+type ExistingItems = Record<string, ExistingFile>
+
 export interface FilesState {
-  added: Record<string, LocalFile | Model.S3File>
+  added: AddedItems
   deleted: Record<string, true>
-  existing: Record<string, Model.PackageEntry>
+  existing: ExistingItems
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
 }
 
-const addMetaToFile = (
-  file: Model.PackageEntry | LocalFile | Model.S3File,
-  meta?: Model.EntryMeta,
-) => {
+function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string): F {
+  const fileCopy = new window.File([file as File], (file as File).name, {
+    type: (file as File).type,
+  })
+  const properties = ['conflict', 'meta', 'changed', 'hash']
+  properties.forEach((propName) => {
+    const property = Object.getOwnPropertyDescriptor(file, propName)
+    if (property?.value !== undefined && omitProperty !== propName) {
+      Object.defineProperty(fileCopy, propName, property)
+    }
+  })
+  return fileCopy as F
+}
+
+function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   if (file instanceof window.File) {
-    const fileCopy = new window.File([file as File], (file as File).name, {
-      type: (file as File).type,
-    })
-    Object.defineProperty(fileCopy, 'meta', {
-      value: meta,
-    })
-    Object.defineProperty(fileCopy, 'hash', {
-      value: (file as FileWithHash).hash,
-    })
+    const fileCopy = cloneDomFile(file, key)
+    if (value !== undefined) {
+      Object.defineProperty(fileCopy, key, {
+        value,
+      })
+    }
     return fileCopy
   }
-  return R.assoc('meta', meta, file)
+  return R.assoc(key, value, file)
+}
+
+function addFile<T extends AnyFile, M extends Record<string, AnyFile>>(
+  path: string,
+  file: T,
+  mainItems: M,
+  itemsToCheck?: Record<string, AnyFile>,
+) {
+  const resolvedName = resolveName(
+    path,
+    itemsToCheck ? { ...mainItems, ...itemsToCheck } : mainItems,
+  )
+  return {
+    ...mainItems,
+    [resolvedName]: setKeyValue(
+      'conflict',
+      resolvedName === path ? undefined : path,
+      file,
+    ),
+  }
+}
+
+function renameFile(p1: string, p2: string, a: AddedItems, e: ExistingItems): AddedItems
+function renameFile(
+  p1: string,
+  p2: string,
+  e: ExistingItems,
+  a: AddedItems,
+  reverted?: boolean,
+): ExistingItems
+function renameFile(
+  oldPath: string,
+  newPath: string,
+  mainItems: Record<string, AnyFile>,
+  itemsToCheck: Record<string, AnyFile>,
+  reverted = false,
+) {
+  const file = mainItems[oldPath]
+  if (!file) return mainItems
+  const itemsWithOldNameRemoved = R.dissoc(oldPath, mainItems)
+  const changedFile = setKeyValue(
+    'changed',
+    reverted ? undefined : { logicalKey: oldPath },
+    file,
+  )
+  return addFile(newPath, changedFile, itemsWithOldNameRemoved, itemsToCheck)
 }
 
 const handleFilesAction = FilesAction.match<
@@ -123,17 +222,24 @@ const handleFilesAction = FilesAction.match<
         const path = (prefix || '') + PD.getNormalizedPath(file)
         return R.evolve(
           {
-            added: R.assoc(path, file),
+            added: () => addFile<AddedFile, AddedItems>(path, file, acc.added),
             deleted: R.dissoc(path),
           },
           acc,
         )
       }, state),
-  AddFromS3: (filesMap) =>
-    R.evolve({
-      added: R.mergeLeft(filesMap),
-      deleted: R.omit(Object.keys(filesMap)),
-    }),
+  AddFromS3: (filesMap) => (state) =>
+    Object.entries(filesMap).reduce(
+      (acc, [path, file]) =>
+        R.evolve(
+          {
+            added: () => addFile<AddedFile, AddedItems>(path, file, acc.added),
+            deleted: R.dissoc(path),
+          },
+          acc,
+        ),
+      state,
+    ),
   Delete: (path) =>
     R.evolve({
       added: R.dissoc(path),
@@ -156,18 +262,41 @@ const handleFilesAction = FilesAction.match<
     }),
   Meta: ({ path, meta }) => {
     const mkSetMeta =
-      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
+      <T extends AnyFile>() =>
       (filesDict: Record<string, T>) => {
         const file = filesDict[path]
         if (!file) return filesDict
-        return R.assoc(path, addMetaToFile(file, meta), filesDict)
+        return R.assoc(path, setKeyValue('meta', meta, file), filesDict)
       }
     return R.evolve({
-      added: mkSetMeta<LocalFile | Model.S3File>(),
-      existing: mkSetMeta<Model.PackageEntry>(),
+      added: mkSetMeta<AddedFile>(),
+      existing: mkSetMeta<ExistingFile>(),
     })
   },
-  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
+  Rename:
+    ({ oldPath, newPath }) =>
+    (state) =>
+      R.evolve(
+        {
+          added: () => renameFile(oldPath, newPath, state.added, state.existing),
+          existing: () => renameFile(oldPath, newPath, state.existing, state.added),
+          deleted: R.dissoc(newPath),
+        },
+        state,
+      ),
+  Revert: (path) => (state) =>
+    R.evolve(
+      {
+        added: R.dissoc(path),
+        deleted: R.dissoc(path),
+        existing: (existingFiles) => {
+          const oldPath: string | undefined = existingFiles[path]?.changed?.logicalKey
+          if (!oldPath) return existingFiles
+          return renameFile(path, oldPath, existingFiles, state.added, true)
+        },
+      },
+      state,
+    ),
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
     R.evolve({
@@ -222,6 +351,7 @@ const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => 
     .map(FilesEntry.match({ Dir: R.prop('state'), File: R.prop('state') }))
     .reduce((acc, entryState) => {
       if (entryState === 'hashing' || acc === 'hashing') return 'hashing'
+      if (entryState === 'invalid' || acc === 'invalid') return 'invalid'
       if (acc === entryState) return acc
       return 'modified'
     })
@@ -275,7 +405,7 @@ const computeEntries = ({
   errors: PD.EntriesValidationErrors | null
 }) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
-    ([path, { size, hash, meta }]) => {
+    ([path, { changed, size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
@@ -300,7 +430,13 @@ const computeEntries = ({
         }
         return { state, type, path, size: a.size, meta }
       }
-      return { state: 'unchanged' as const, type: 'local' as const, path, size, meta }
+      return {
+        state: changed ? ('modified' as const) : ('unchanged' as const),
+        type: 'local' as const,
+        path,
+        size,
+        meta,
+      }
     },
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
@@ -497,13 +633,15 @@ const useFileStyles = M.makeStyles((t) => ({
 
 interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
+  path: string
   state?: FilesEntryState
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
   meta?: Model.EntryMeta
-  metaDisabled?: boolean
-  onMeta?: (value?: Model.EntryMeta) => void
+  editDisabled?: boolean
+  onMeta: (value?: Model.EntryMeta) => void
+  onRename: (e: React.FormEvent, value: string) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -516,8 +654,10 @@ function File({
   size,
   action,
   meta,
-  metaDisabled,
+  path,
+  editDisabled,
   onMeta,
+  onRename,
   interactive = false,
   faint = false,
   className,
@@ -550,8 +690,9 @@ function File({
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
       <div className={classes.actions}>
+        <EditFileName disabled={editDisabled} onChange={onRename} value={path} />
         <EditFileMeta
-          disabled={metaDisabled}
+          disabled={editDisabled}
           key={metaKey}
           name={name}
           onChange={onMeta}
@@ -692,7 +833,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   ref,
 ) {
   const classes = useDirStyles()
-  const stateDisplay = disableStateDisplay ? 'unchanged' : state
+  const stateDisplay = disableStateDisplay && state !== 'invalid' ? 'unchanged' : state
 
   return (
     <div
@@ -1138,6 +1279,14 @@ function FileUpload({
     [dispatch, path],
   )
 
+  const onRename = React.useCallback(
+    (e: React.FormEvent, p: string) => {
+      e.stopPropagation()
+      dispatch(FilesAction.Rename({ oldPath: path, newPath: p }))
+    },
+    [dispatch, path],
+  )
+
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <File
@@ -1150,8 +1299,10 @@ function FileUpload({
       name={name}
       size={size}
       meta={meta}
-      metaDisabled={state === 'deleted'}
+      path={path}
+      editDisabled={state === 'deleted'}
       onMeta={onMeta}
+      onRename={onRename}
       action={
         <M.IconButton
           color="inherit"

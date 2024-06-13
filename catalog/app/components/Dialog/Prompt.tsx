@@ -4,19 +4,23 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 interface DialogProps {
+  cancelTitle?: string
   initialValue?: string
   onCancel: () => void
-  onSubmit: (value: string) => void
+  onSubmit: (e: React.FormEvent, v: string) => void
   open: boolean
+  submitTitle?: string
   title: string
   validate: (value: string) => Error | undefined
 }
 
 function Dialog({
+  cancelTitle = 'Cancel',
   initialValue,
   open,
   onCancel,
   onSubmit,
+  submitTitle = 'Submit',
   title,
   validate,
 }: DialogProps) {
@@ -25,10 +29,11 @@ function Dialog({
   const error = React.useMemo(() => validate(value), [validate, value])
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
   const handleSubmit = React.useCallback(
-    (event) => {
+    (event: React.FormEvent) => {
+      // event.stopPropagation()
       event.preventDefault()
       setSubmitted(true)
-      if (!error) onSubmit(value)
+      if (!error) onSubmit(event, value)
     },
     [error, onSubmit, value],
   )
@@ -50,7 +55,7 @@ function Dialog({
         </M.DialogContent>
         <M.DialogActions>
           <M.Button onClick={onCancel} color="primary" variant="outlined">
-            Cancel
+            {cancelTitle}
           </M.Button>
           <M.Button
             color="primary"
@@ -58,7 +63,7 @@ function Dialog({
             onClick={handleSubmit}
             variant="contained"
           >
-            Submit
+            {submitTitle}
           </M.Button>
         </M.DialogActions>
       </form>
@@ -67,13 +72,22 @@ function Dialog({
 }
 
 interface PromptProps {
+  cancelTitle?: string
   initialValue?: string
-  onSubmit: (value: string) => void
+  onSubmit: (e: React.FormEvent, v: string) => void
+  submitTitle?: string
   title: string
   validate: (value: string) => Error | undefined
 }
 
-export function usePrompt({ initialValue, title, onSubmit, validate }: PromptProps) {
+export function usePrompt({
+  cancelTitle,
+  initialValue,
+  onSubmit,
+  submitTitle,
+  title,
+  validate,
+}: PromptProps) {
   const [key, setKey] = React.useState(0)
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => {
@@ -82,8 +96,8 @@ export function usePrompt({ initialValue, title, onSubmit, validate }: PromptPro
   }, [])
   const close = React.useCallback(() => setOpened(false), [])
   const handleSubmit = React.useCallback(
-    (value: string) => {
-      onSubmit(value)
+    (...args: Parameters<typeof onSubmit>) => {
+      onSubmit(...args)
       close()
     },
     [close, onSubmit],
@@ -92,17 +106,29 @@ export function usePrompt({ initialValue, title, onSubmit, validate }: PromptPro
     () => (
       <Dialog
         {...{
+          cancelTitle,
           initialValue,
           key,
           onCancel: close,
           onSubmit: handleSubmit,
           open: opened,
+          submitTitle,
           title,
           validate,
         }}
       />
     ),
-    [initialValue, key, close, handleSubmit, opened, title, validate],
+    [
+      cancelTitle,
+      close,
+      handleSubmit,
+      initialValue,
+      key,
+      opened,
+      submitTitle,
+      title,
+      validate,
+    ],
   )
   return React.useMemo(
     () => ({
