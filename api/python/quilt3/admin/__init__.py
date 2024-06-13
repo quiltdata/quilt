@@ -62,17 +62,16 @@ def _get_client():
     return Client()
 
 
-def get_user(name: str) -> User:
+def get_user(name: str) -> Optional[User]:
     """
-    Get a specific user from the registry.
+    Get a specific user from the registry. Return `None` if the user does not exist.
 
     Args:
         name: Username of user to get.
     """
     result = _get_client().get_user(name=name)
-    # XXX: should we really throw an exception here?
     if result is None:
-        raise UserNotFoundError
+        return None
     return User.model_validate(result.model_dump())
 
 

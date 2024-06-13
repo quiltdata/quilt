@@ -28,9 +28,9 @@ validated to form a valid model.
 
 `self` is explicitly positional-only to allow `self` as a field name.
 
-## get\_user(name: str) -> quilt3.admin.User  {#get\_user}
+## get\_user(name: str) -> Optional[quilt3.admin.User]  {#get\_user}
 
-Get a specific user from the registry.
+Get a specific user from the registry. Return `None` if the user does not exist.
 
 __Arguments__
 
