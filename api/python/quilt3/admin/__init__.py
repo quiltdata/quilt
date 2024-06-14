@@ -5,40 +5,45 @@ APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services
 from datetime import datetime
 from typing import Annotated, Any, List, Literal, Optional, Union
 
+import pydantic
 from pydantic import Field, TypeAdapter
 
 from ._graphql_client import *
 
 
-class ManagedRole(BaseModel):
-    typename__: Literal["ManagedRole"] = Field(alias="__typename")
+@pydantic.dataclasses.dataclass
+class ManagedRole:
     id: str
     name: str
     arn: str
+    typename__: Literal["ManagedRole"]
 
 
-class UnmanagedRole(BaseModel):
-    typename__: Literal["UnmanagedRole"] = Field(alias="__typename")
+
+@pydantic.dataclasses.dataclass
+class UnmanagedRole:
     id: str
     name: str
     arn: str
+    typename__: Literal["UnmanagedRole"]
 
 
 Role = Union[ManagedRole, UnmanagedRole]
 AnnotatedRole = Annotated[Role, Field(discriminator="typename__")]
 
 
-class User(BaseModel):
+@pydantic.dataclasses.dataclass
+class User:
     name: str
     email: str
-    date_joined: datetime = Field()
-    last_login: datetime = Field()
-    is_active: bool = Field()
-    is_admin: bool = Field()
-    is_sso_only: bool = Field()
-    is_service: bool = Field()
-    role: Optional[AnnotatedRole] = Field()
-    extra_roles: List[AnnotatedRole] = Field()
+    date_joined: datetime
+    last_login: datetime
+    is_active: bool
+    is_admin: bool
+    is_sso_only: bool
+    is_service: bool
+    role: Optional[AnnotatedRole]
+    extra_roles: List[AnnotatedRole]
 
 
 class Quilt3AdminError(Exception):
@@ -72,14 +77,14 @@ def get_user(name: str) -> Optional[User]:
     result = _get_client().get_user(name=name)
     if result is None:
         return None
-    return User.model_validate(result.model_dump())
+    return User(**result.model_dump())
 
 
 def get_users() -> List[User]:
     """
     Get a list of all users in the registry.
     """
-    return [User.model_validate(u.model_dump()) for u in _get_client().get_users()]
+    return [User(**u.model_dump()) for u in _get_client().get_users()]
 
 
 def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str]] = None) -> None:

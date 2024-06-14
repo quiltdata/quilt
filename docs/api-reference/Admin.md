@@ -4,29 +4,14 @@
 APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management.
 
 
-## ManagedRole(\*, \_\_typename: Literal['ManagedRole'], id: str, name: str, arn: str) -> None  {#ManagedRole}
-Create a new model by parsing and validating input data from keyword arguments.
+## ManagedRole(id: str, name: str, arn: str, typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
 
-Raises [`ValidationError`][pydantic_core.ValidationError] if the input data cannot be
-validated to form a valid model.
 
-`self` is explicitly positional-only to allow `self` as a field name.
+## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
 
-## UnmanagedRole(\*, \_\_typename: Literal['UnmanagedRole'], id: str, name: str, arn: str) -> None  {#UnmanagedRole}
-Create a new model by parsing and validating input data from keyword arguments.
 
-Raises [`ValidationError`][pydantic_core.ValidationError] if the input data cannot be
-validated to form a valid model.
+## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
 
-`self` is explicitly positional-only to allow `self` as a field name.
-
-## User(\*, name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
-Create a new model by parsing and validating input data from keyword arguments.
-
-Raises [`ValidationError`][pydantic_core.ValidationError] if the input data cannot be
-validated to form a valid model.
-
-`self` is explicitly positional-only to allow `self` as a field name.
 
 ## get\_user(name: str) -> Optional[quilt3.admin.User]  {#get\_user}
 
