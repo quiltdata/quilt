@@ -15,7 +15,7 @@ from .util import get_from_config, set_config_value
 TELEMETRY_URL = "https://telemetry.quiltdata.cloud/Prod/metrics"
 TELEMETRY_USER_AGENT = "QuiltCli"
 TELEMETRY_CLIENT_TYPE = "quilt3-python-client"
-TELEMETRY_SCHEMA_VERSION = "pyclient-usage-metrics-v1"
+TELEMETRY_SCHEMA_VERSION = "pyclient-usage-metrics-v2"
 
 DISABLE_USAGE_METRICS_ENVVAR = "QUILT_DISABLE_USAGE_METRICS"
 MAX_CLEANUP_WAIT_SECS = 5
@@ -34,6 +34,10 @@ class ApiTelemetry:
     pending_reqs = []
     pending_reqs_lock = Lock()
     telemetry_disabled = None
+
+    @classmethod
+    def set_client_context(cls, client_context):
+        cls.client_context = client_context
 
     @classmethod
     def create_session(cls):
@@ -112,6 +116,7 @@ class ApiTelemetry:
             "python_session_id": python_session_id,
             "telemetry_schema_version": TELEMETRY_SCHEMA_VERSION,
             "navigator_url": navigator_url,
+            'client_context': cls.client_context,
             'client_type': TELEMETRY_CLIENT_TYPE,
             'client_version': quilt3_version,
             'platform': sys.platform,
@@ -142,6 +147,9 @@ class ApiTelemetry:
             return results
 
         return decorated
+
+
+ApiTelemetry.set_client_context(None)
 
 
 # Finish up any pending requests, but don't wait forever
