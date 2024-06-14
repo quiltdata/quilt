@@ -48,7 +48,7 @@ __Arguments__
 * __name__:  Username of user to delete.
 
 
-## get\_roles() -> List[Union[quilt3.admin.\_graphql\_client.get\_roles.GetRolesRolesUnmanagedRole, quilt3.admin.\_graphql\_client.get\_roles.GetRolesRolesManagedRole]]  {#get\_roles}
+## get\_roles() -> List[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole]]  {#get\_roles}
 
 Get a list of all roles in the registry.
 

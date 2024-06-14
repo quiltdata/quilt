@@ -118,7 +118,7 @@ def delete_user(name: str) -> None:
     _handle_errors(result.delete)
 
 
-def get_roles() -> List[Union[_graphql_client.GetRolesRolesUnmanagedRole, _graphql_client.GetRolesRolesManagedRole]]:
+def get_roles() -> List[Role]:
     """
     Get a list of all roles in the registry.
     """
