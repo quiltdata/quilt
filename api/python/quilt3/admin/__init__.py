@@ -57,14 +57,25 @@ class UserNotFoundError(Quilt3AdminError):
         super().__init__(None)
 
 
-def _handle_errors(result: _graphql_client.BaseModel) -> Any:
+def _handle_errors(result: _graphql_client.BaseModel) -> _graphql_client.BaseModel:
     if isinstance(result, (_graphql_client.InvalidInputSelection, _graphql_client.OperationErrorSelection)):
         raise Quilt3AdminError(result)
     return result
 
 
+def _handle_user_mutation(result: _graphql_client.BaseModel) -> User:
+    return User(**_handle_errors(result).model_dump())
+
+
 def _get_client():
     return _graphql_client.Client()
+
+
+def get_roles() -> List[Role]:
+    """
+    Get a list of all roles in the registry.
+    """
+    return [role_adapter.validate_python(r.model_dump()) for r in _get_client().get_roles()]
 
 
 def get_user(name: str) -> Optional[User]:
@@ -98,11 +109,11 @@ def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str
         extra_roles: Additional roles to assign to the user.
     """
 
-    return User(**_handle_errors(
+    return _handle_user_mutation(
         _get_client().create_user(
             input=_graphql_client.UserInput(name=name, email=email, role=role, extraRoles=extra_roles)
         )
-    ).model_dump())
+    )
 
 
 def delete_user(name: str) -> None:
@@ -118,11 +129,59 @@ def delete_user(name: str) -> None:
     _handle_errors(result.delete)
 
 
-def get_roles() -> List[Role]:
+def set_user_email(name: str, email: str) -> User:
     """
-    Get a list of all roles in the registry.
+    Set the email for a user.
+
+    Args:
+        name: Username of user to update.
+        email: Email to set for the user.
     """
-    return [role_adapter.validate_python(r.model_dump()) for r in _get_client().get_roles()]
+    result = _get_client().set_user_email(name=name, email=email)
+    if result is None:
+        raise UserNotFoundError
+    return _handle_user_mutation(result.set_email)
+
+
+def set_user_admin(name: str, admin: bool) -> User:
+    """
+    Set the admin status for a user.
+
+    Args:
+        name: Username of user to update.
+        admin: Admin status to set for the user.
+    """
+    result = _get_client().set_user_admin(name=name, admin=admin)
+    if result is None:
+        raise UserNotFoundError
+    return _handle_user_mutation(result.set_admin)
+
+
+def set_user_active(name: str, active: bool) -> User:
+    """
+    Set the active status for a user.
+
+    Args:
+        name: Username of user to update.
+        active: Active status to set for the user.
+    """
+    result = _get_client().set_user_active(name=name, active=active)
+    if result is None:
+        raise UserNotFoundError
+    return _handle_user_mutation(result.set_active)
+
+
+def reset_user_password(name: str) -> None:
+    """
+    Reset the password for a user.
+
+    Args:
+        name: Username of user to update.
+    """
+    result = _get_client().reset_user_password(name=name)
+    if result is None:
+        raise UserNotFoundError
+    _handle_errors(result.reset_password)
 
 
 def set_role(
@@ -144,7 +203,7 @@ def set_role(
     result = _get_client().set_role(name=name, role=role, extra_roles=extra_roles, append=append)
     if result is None:
         raise UserNotFoundError
-    return User(**_handle_errors(result.set_role).model_dump())
+    return _handle_user_mutation(result.set_role)
 
 
 def add_roles(name: str, roles: List[str]) -> User:
@@ -158,7 +217,7 @@ def add_roles(name: str, roles: List[str]) -> User:
     result = _get_client().add_roles(name=name, roles=roles)
     if result is None:
         raise UserNotFoundError
-    return User(**_handle_errors(result.add_roles).model_dump())
+    return _handle_user_mutation(result.add_roles)
 
 
 def remove_roles(
@@ -177,4 +236,4 @@ def remove_roles(
     result = _get_client().remove_roles(name=name, roles=roles, fallback=fallback)
     if result is None:
         raise UserNotFoundError
-    return User(**_handle_errors(result.remove_roles).model_dump())
+    return _handle_user_mutation(result.remove_roles)

@@ -29,6 +29,11 @@ fragment UserSelection on User {
     ...RoleSelection
   }
 }
+fragment UserMutationSelection on UserResult {
+  ...UserSelection
+  ...InvalidInputSelection
+  ...OperationErrorSelection
+}
 fragment InvalidInputSelection on InvalidInput {
   errors {
     path
@@ -41,6 +46,12 @@ fragment OperationErrorSelection on OperationError {
   message
   name
   context
+}
+
+query getRoles {
+  roles {
+    ...RoleSelection
+  }
 }
 
 query getUser($name: String!) {
@@ -67,9 +78,7 @@ mutation createUser($input: UserInput!) {
   admin {
     user {
       create(input: $input) {
-        ...UserSelection
-        ...InvalidInputSelection
-        ...OperationErrorSelection
+        ...UserMutationSelection
       }
     }
   }
@@ -88,9 +97,52 @@ mutation deleteUser($name: String!) {
   }
 }
 
-query getRoles {
-  roles {
-    ...RoleSelection
+mutation setUserEmail($email: String!, $name: String!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        setEmail(email: $email) {
+          ...UserMutationSelection
+        }
+      }
+    }
+  }
+}
+
+mutation setUserAdmin($name: String!, $admin: Boolean!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        setAdmin(admin: $admin) {
+          ...UserMutationSelection
+        }
+      }
+    }
+  }
+}
+
+mutation setUserActive($active: Boolean!, $name: String!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        setActive(active: $active) {
+          ...UserMutationSelection
+        }
+      }
+    }
+  }
+}
+
+mutation resetUserPassword($name: String!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        resetPassword {
+          ...InvalidInputSelection
+          ...OperationErrorSelection
+        }
+      }
+    }
   }
 }
 

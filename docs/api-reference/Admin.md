@@ -13,6 +13,11 @@ APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services
 ## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
 
 
+## get\_roles() -> List[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole]]  {#get\_roles}
+
+Get a list of all roles in the registry.
+
+
 ## get\_user(name: str) -> Optional[quilt3.admin.User]  {#get\_user}
 
 Get a specific user from the registry. Return `None` if the user does not exist.
@@ -48,9 +53,43 @@ __Arguments__
 * __name__:  Username of user to delete.
 
 
-## get\_roles() -> List[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole]]  {#get\_roles}
+## set\_user\_email(name: str, email: str) -> quilt3.admin.User  {#set\_user\_email}
 
-Get a list of all roles in the registry.
+Set the email for a user.
+
+__Arguments__
+
+* __name__:  Username of user to update.
+* __email__:  Email to set for the user.
+
+
+## set\_user\_admin(name: str, admin: bool) -> quilt3.admin.User  {#set\_user\_admin}
+
+Set the admin status for a user.
+
+__Arguments__
+
+* __name__:  Username of user to update.
+* __admin__:  Admin status to set for the user.
+
+
+## set\_user\_active(name: str, active: bool) -> quilt3.admin.User  {#set\_user\_active}
+
+Set the active status for a user.
+
+__Arguments__
+
+* __name__:  Username of user to update.
+* __active__:  Active status to set for the user.
+
+
+## reset\_user\_password(name: str) -> None  {#reset\_user\_password}
+
+Reset the password for a user.
+
+__Arguments__
+
+* __name__:  Username of user to update.
 
 
 ## set\_role(name: str, role: str, extra\_roles: Optional[List[str]] = None, \*, append: bool = False) -> quilt3.admin.User  {#set\_role}

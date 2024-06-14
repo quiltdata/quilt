@@ -18,7 +18,11 @@ from .get_user import GetUser, GetUserAdminUserGet
 from .get_users import GetUsers, GetUsersAdminUserList
 from .input_types import UserInput
 from .remove_roles import RemoveRoles, RemoveRolesAdminUserMutate
+from .reset_user_password import ResetUserPassword, ResetUserPasswordAdminUserMutate
 from .set_role import SetRole, SetRoleAdminUserMutate
+from .set_user_active import SetUserActive, SetUserActiveAdminUserMutate
+from .set_user_admin import SetUserAdmin, SetUserAdminAdminUserMutate
+from .set_user_email import SetUserEmail, SetUserEmailAdminUserMutate
 
 
 def gql(q: str) -> str:
@@ -26,6 +30,43 @@ def gql(q: str) -> str:
 
 
 class Client(BaseClient):
+    def get_roles(
+        self, **kwargs: Any
+    ) -> List[Union[GetRolesRolesUnmanagedRole, GetRolesRolesManagedRole]]:
+        query = gql(
+            """
+            query getRoles {
+              roles {
+                ...RoleSelection
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query, operation_name="getRoles", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return GetRoles.model_validate(data).roles
+
     def get_user(self, name: str, **kwargs: Any) -> Optional[GetUserAdminUserGet]:
         query = gql(
             """
@@ -150,9 +191,7 @@ class Client(BaseClient):
                 user {
                   create(input: $input) {
                     __typename
-                    ...UserSelection
-                    ...InvalidInputSelection
-                    ...OperationErrorSelection
+                    ...UserMutationSelection
                   }
                 }
               }
@@ -189,6 +228,12 @@ class Client(BaseClient):
               id
               name
               arn
+            }
+
+            fragment UserMutationSelection on UserResult {
+              ...UserSelection
+              ...InvalidInputSelection
+              ...OperationErrorSelection
             }
 
             fragment UserSelection on User {
@@ -258,14 +303,30 @@ class Client(BaseClient):
         data = self.get_data(response)
         return DeleteUser.model_validate(data).admin.user.mutate
 
-    def get_roles(
-        self, **kwargs: Any
-    ) -> List[Union[GetRolesRolesUnmanagedRole, GetRolesRolesManagedRole]]:
+    def set_user_email(
+        self, email: str, name: str, **kwargs: Any
+    ) -> Optional[SetUserEmailAdminUserMutate]:
         query = gql(
             """
-            query getRoles {
-              roles {
-                ...RoleSelection
+            mutation setUserEmail($email: String!, $name: String!) {
+              admin {
+                user {
+                  mutate(name: $name) {
+                    setEmail(email: $email) {
+                      __typename
+                      ...UserMutationSelection
+                    }
+                  }
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
               }
             }
 
@@ -273,6 +334,12 @@ class Client(BaseClient):
               id
               name
               arn
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
             }
 
             fragment RoleSelection on Role {
@@ -286,14 +353,246 @@ class Client(BaseClient):
               name
               arn
             }
+
+            fragment UserMutationSelection on UserResult {
+              ...UserSelection
+              ...InvalidInputSelection
+              ...OperationErrorSelection
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
             """
         )
-        variables: Dict[str, object] = {}
+        variables: Dict[str, object] = {"email": email, "name": name}
         response = self.execute(
-            query=query, operation_name="getRoles", variables=variables, **kwargs
+            query=query, operation_name="setUserEmail", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return GetRoles.model_validate(data).roles
+        return SetUserEmail.model_validate(data).admin.user.mutate
+
+    def set_user_admin(
+        self, name: str, admin: bool, **kwargs: Any
+    ) -> Optional[SetUserAdminAdminUserMutate]:
+        query = gql(
+            """
+            mutation setUserAdmin($name: String!, $admin: Boolean!) {
+              admin {
+                user {
+                  mutate(name: $name) {
+                    setAdmin(admin: $admin) {
+                      __typename
+                      ...UserMutationSelection
+                    }
+                  }
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserMutationSelection on UserResult {
+              ...UserSelection
+              ...InvalidInputSelection
+              ...OperationErrorSelection
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"name": name, "admin": admin}
+        response = self.execute(
+            query=query, operation_name="setUserAdmin", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SetUserAdmin.model_validate(data).admin.user.mutate
+
+    def set_user_active(
+        self, active: bool, name: str, **kwargs: Any
+    ) -> Optional[SetUserActiveAdminUserMutate]:
+        query = gql(
+            """
+            mutation setUserActive($active: Boolean!, $name: String!) {
+              admin {
+                user {
+                  mutate(name: $name) {
+                    setActive(active: $active) {
+                      __typename
+                      ...UserMutationSelection
+                    }
+                  }
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserMutationSelection on UserResult {
+              ...UserSelection
+              ...InvalidInputSelection
+              ...OperationErrorSelection
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"active": active, "name": name}
+        response = self.execute(
+            query=query, operation_name="setUserActive", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SetUserActive.model_validate(data).admin.user.mutate
+
+    def reset_user_password(
+        self, name: str, **kwargs: Any
+    ) -> Optional[ResetUserPasswordAdminUserMutate]:
+        query = gql(
+            """
+            mutation resetUserPassword($name: String!) {
+              admin {
+                user {
+                  mutate(name: $name) {
+                    resetPassword {
+                      __typename
+                      ...InvalidInputSelection
+                      ...OperationErrorSelection
+                    }
+                  }
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+            """
+        )
+        variables: Dict[str, object] = {"name": name}
+        response = self.execute(
+            query=query,
+            operation_name="resetUserPassword",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return ResetUserPassword.model_validate(data).admin.user.mutate
 
     def set_role(
         self,
