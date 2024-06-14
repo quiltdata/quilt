@@ -36,34 +36,51 @@
           }
         },
         "actions": {
-          "type": "object",
-          "description": "Hide and show action buttons",
-          "properties": {
-            "createPackage": {
-              "default": true,
-              "description": "Hides buttons triggering Create Package dialog, both creating package from scratch and from directory",
-              "type": "boolean",
-              "examples": [true, false]
-            },
-            "deleteRevision": {
-              "default": true,
-              "description": "Hides buttons triggering Delete Package Revision dialog",
-              "type": "boolean",
-              "examples": [true, false]
-            },
-            "revisePackage": {
-              "default": true,
-              "description": "Hides button triggering Revise Package dialog",
-              "type": "boolean",
-              "examples": [true, false]
-            },
-            "copyPackage": {
-              "default": true,
-              "description": "Hides button triggering Push to Bucket dialog",
-              "type": "boolean",
-              "examples": [true, false]
+          "default": {
+            "createPackage": true,
+            "deleteRevision": true,
+            "revisePackage": true,
+            "copyPackage": true
+          },
+          "oneOf": [
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "description": "Hide and show action buttons",
+              "properties": {
+                "copyPackage": {
+                  "description": "Hides button triggering Push to Bucket dialog",
+                  "type": "boolean",
+                  "examples": [true, false]
+                },
+                "createPackage": {
+                  "description": "Hides buttons triggering Create Package dialog, both creating package from scratch and from directory",
+                  "type": "boolean",
+                  "examples": [true, false]
+                },
+                "deleteRevision": {
+                  "description": "Hides buttons triggering Delete Package Revision dialog",
+                  "type": "boolean",
+                  "examples": [true, false]
+                },
+                "openInDesktop": {
+                  "description": "Hides button to open current package in Quilt Desktop",
+                  "type": "boolean",
+                  "examples": [true, false]
+                },
+                "revisePackage": {
+                  "description": "Hides button triggering Revise Package dialog",
+                  "type": "boolean",
+                  "examples": [true, false]
+                },
+                "writeFile": {
+                  "description": "Hides button to create or edit file",
+                  "type": "boolean",
+                  "examples": [true, false]
+                }
+              }
             }
-          }
+          ]
         },
         "blocks": {
           "description": "Hide and show UI blocks in package detail page",
