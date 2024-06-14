@@ -67,6 +67,7 @@ mutation createUser($input: UserInput!) {
   admin {
     user {
       create(input: $input) {
+        ...UserSelection
         ...InvalidInputSelection
         ...OperationErrorSelection
       }
@@ -98,6 +99,7 @@ mutation setRole($name: String!, $role: String!, $extraRoles: [String!], $append
     user {
       mutate(name: $name) {
         setRole(role: $role, extraRoles: $extraRoles, append: $append) {
+          ...UserSelection
           ...InvalidInputSelection
           ...OperationErrorSelection
         }
@@ -111,6 +113,7 @@ mutation addRoles($name: String!, $roles: [String!]!) {
     user {
       mutate(name: $name) {
         addRoles(roles: $roles) {
+          ...UserSelection
           ...InvalidInputSelection
           ...OperationErrorSelection
         }
@@ -124,6 +127,7 @@ mutation removeRoles($name: String!, $roles: [String!]!, $fallback: String) {
     user {
       mutate(name: $name) {
         removeRoles(roles: $roles, fallback: $fallback) {
+          ...UserSelection
           ...InvalidInputSelection
           ...OperationErrorSelection
         }

@@ -6,7 +6,7 @@ from typing import Literal, Optional, Union
 from pydantic import Field
 
 from .base_model import BaseModel
-from .fragments import InvalidInputSelection, OperationErrorSelection
+from .fragments import InvalidInputSelection, OperationErrorSelection, UserSelection
 
 
 class AddRoles(BaseModel):
@@ -29,7 +29,7 @@ class AddRolesAdminUserMutate(BaseModel):
     ] = Field(alias="addRoles", discriminator="typename__")
 
 
-class AddRolesAdminUserMutateAddRolesUser(BaseModel):
+class AddRolesAdminUserMutateAddRolesUser(UserSelection):
     typename__: Literal["User"] = Field(alias="__typename")
 
 

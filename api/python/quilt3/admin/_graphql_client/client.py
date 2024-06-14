@@ -150,6 +150,7 @@ class Client(BaseClient):
                 user {
                   create(input: $input) {
                     __typename
+                    ...UserSelection
                     ...InvalidInputSelection
                     ...OperationErrorSelection
                   }
@@ -166,10 +167,45 @@ class Client(BaseClient):
               }
             }
 
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
             }
             """
         )
@@ -275,6 +311,7 @@ class Client(BaseClient):
                   mutate(name: $name) {
                     setRole(role: $role, extraRoles: $extraRoles, append: $append) {
                       __typename
+                      ...UserSelection
                       ...InvalidInputSelection
                       ...OperationErrorSelection
                     }
@@ -292,10 +329,45 @@ class Client(BaseClient):
               }
             }
 
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
             }
             """
         )
@@ -322,6 +394,7 @@ class Client(BaseClient):
                   mutate(name: $name) {
                     addRoles(roles: $roles) {
                       __typename
+                      ...UserSelection
                       ...InvalidInputSelection
                       ...OperationErrorSelection
                     }
@@ -339,10 +412,45 @@ class Client(BaseClient):
               }
             }
 
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
             }
             """
         )
@@ -368,6 +476,7 @@ class Client(BaseClient):
                   mutate(name: $name) {
                     removeRoles(roles: $roles, fallback: $fallback) {
                       __typename
+                      ...UserSelection
                       ...InvalidInputSelection
                       ...OperationErrorSelection
                     }
@@ -385,10 +494,45 @@ class Client(BaseClient):
               }
             }
 
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
             }
             """
         )

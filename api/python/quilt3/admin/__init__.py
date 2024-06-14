@@ -87,7 +87,7 @@ def get_users() -> List[User]:
     return [User(**u.model_dump()) for u in _get_client().get_users()]
 
 
-def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str]] = None) -> None:
+def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str]] = None) -> User:
     """
     Create a new user in the registry.
 
@@ -98,11 +98,11 @@ def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str
         extra_roles: Additional roles to assign to the user.
     """
 
-    _handle_errors(
+    return User(**_handle_errors(
         _get_client().create_user(
             input=_graphql_client.UserInput(name=name, email=email, role=role, extraRoles=extra_roles)
         )
-    )
+    ).model_dump())
 
 
 def delete_user(name: str) -> None:
@@ -131,7 +131,7 @@ def set_role(
     extra_roles: Optional[List[str]] = None,
     *,
     append: bool = False,
-) -> None:
+) -> User:
     """
     Set the active and extra roles for a user.
 
@@ -144,10 +144,10 @@ def set_role(
     result = _get_client().set_role(name=name, role=role, extra_roles=extra_roles, append=append)
     if result is None:
         raise UserNotFoundError
-    _handle_errors(result.set_role)
+    return User(**_handle_errors(result.set_role).model_dump())
 
 
-def add_roles(name: str, roles: List[str]) -> None:
+def add_roles(name: str, roles: List[str]) -> User:
     """
     Add roles to a user.
 
@@ -158,14 +158,14 @@ def add_roles(name: str, roles: List[str]) -> None:
     result = _get_client().add_roles(name=name, roles=roles)
     if result is None:
         raise UserNotFoundError
-    _handle_errors(result.add_roles)
+    return User(**_handle_errors(result.add_roles).model_dump())
 
 
 def remove_roles(
     name: str,
     roles: List[str],
     fallback: Optional[str] = None,
-) -> None:
+) -> User:
     """
     Remove roles from a user.
 
@@ -177,4 +177,4 @@ def remove_roles(
     result = _get_client().remove_roles(name=name, roles=roles, fallback=fallback)
     if result is None:
         raise UserNotFoundError
-    _handle_errors(result.remove_roles)
+    return User(**_handle_errors(result.remove_roles).model_dump())

@@ -6,7 +6,7 @@ from typing import Literal, Union
 from pydantic import Field
 
 from .base_model import BaseModel
-from .fragments import InvalidInputSelection, OperationErrorSelection
+from .fragments import InvalidInputSelection, OperationErrorSelection, UserSelection
 
 
 class CreateUser(BaseModel):
@@ -25,7 +25,7 @@ class CreateUserAdminUser(BaseModel):
     ] = Field(discriminator="typename__")
 
 
-class CreateUserAdminUserCreateUser(BaseModel):
+class CreateUserAdminUserCreateUser(UserSelection):
     typename__: Literal["User"] = Field(alias="__typename")
 
 

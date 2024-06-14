@@ -27,7 +27,7 @@ __Arguments__
 Get a list of all users in the registry.
 
 
-## create\_user(name: str, email: str, role: str, extra\_roles: Optional[List[str]] = None) -> None  {#create\_user}
+## create\_user(name: str, email: str, role: str, extra\_roles: Optional[List[str]] = None) -> quilt3.admin.User  {#create\_user}
 
 Create a new user in the registry.
 
@@ -53,7 +53,7 @@ __Arguments__
 Get a list of all roles in the registry.
 
 
-## set\_role(name: str, role: str, extra\_roles: Optional[List[str]] = None, \*, append: bool = False) -> None  {#set\_role}
+## set\_role(name: str, role: str, extra\_roles: Optional[List[str]] = None, \*, append: bool = False) -> quilt3.admin.User  {#set\_role}
 
 Set the active and extra roles for a user.
 
@@ -65,7 +65,7 @@ __Arguments__
 * __append__:  If True, append the extra roles to the existing roles. If False, replace the existing roles.
 
 
-## add\_roles(name: str, roles: List[str]) -> None  {#add\_roles}
+## add\_roles(name: str, roles: List[str]) -> quilt3.admin.User  {#add\_roles}
 
 Add roles to a user.
 
@@ -75,7 +75,7 @@ __Arguments__
 * __roles__:  Roles to add to the user.
 
 
-## remove\_roles(name: str, roles: List[str], fallback: Optional[str] = None) -> None  {#remove\_roles}
+## remove\_roles(name: str, roles: List[str], fallback: Optional[str] = None) -> quilt3.admin.User  {#remove\_roles}
 
 Remove roles from a user.
 
