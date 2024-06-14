@@ -6,9 +6,8 @@ from datetime import datetime
 from typing import Annotated, Any, List, Literal, Optional, Union
 
 import pydantic
-from pydantic import Field, TypeAdapter
 
-from ._graphql_client import *
+from . import _graphql_client
 
 
 @pydantic.dataclasses.dataclass
@@ -29,7 +28,8 @@ class UnmanagedRole:
 
 
 Role = Union[ManagedRole, UnmanagedRole]
-AnnotatedRole = Annotated[Role, Field(discriminator="typename__")]
+AnnotatedRole = Annotated[Role, pydantic.Field(discriminator="typename__")]
+role_adapter = pydantic.TypeAdapter(AnnotatedRole)
 
 
 @pydantic.dataclasses.dataclass
@@ -57,14 +57,14 @@ class UserNotFoundError(Quilt3AdminError):
         super().__init__(None)
 
 
-def _handle_errors(result: BaseModel) -> Any:
-    if isinstance(result, (InvalidInputSelection, OperationErrorSelection)):
+def _handle_errors(result: _graphql_client.BaseModel) -> Any:
+    if isinstance(result, (_graphql_client.InvalidInputSelection, _graphql_client.OperationErrorSelection)):
         raise Quilt3AdminError(result)
     return result
 
 
 def _get_client():
-    return Client()
+    return _graphql_client.Client()
 
 
 def get_user(name: str) -> Optional[User]:
@@ -99,7 +99,7 @@ def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str
     """
 
     _handle_errors(
-        _get_client().create_user(input=UserInput(name=name, email=email, role=role, extra_roles=extra_roles))
+        _get_client().create_user(input=_graphql_client.UserInput(name=name, email=email, role=role, extra_roles=extra_roles))
     )
 
 
@@ -116,12 +116,11 @@ def delete_user(name: str) -> None:
     _handle_errors(result.delete)
 
 
-def get_roles() -> List[Union[GetRolesRolesUnmanagedRole, GetRolesRolesManagedRole]]:
+def get_roles() -> List[Union[_graphql_client.GetRolesRolesUnmanagedRole, _graphql_client.GetRolesRolesManagedRole]]:
     """
     Get a list of all roles in the registry.
     """
-    adapter = TypeAdapter(AnnotatedRole)
-    return [adapter.validate_python(r.model_dump()) for r in _get_client().get_roles()]
+    return [role_adapter.validate_python(r.model_dump()) for r in _get_client().get_roles()]
 
 
 def set_role(
