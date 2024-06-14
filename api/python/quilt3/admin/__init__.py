@@ -99,7 +99,7 @@ def create_user(name: str, email: str, role: str, extra_roles: Optional[List[str
     """
 
     _handle_errors(
-        _get_client().create_user(input=_graphql_client.UserInput(name=name, email=email, role=role, extra_roles=extra_roles))
+        _get_client().create_user(input=_graphql_client.UserInput(name=name, email=email, role=role, extraRoles=extra_roles))
     )
 
 
