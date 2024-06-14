@@ -1,11 +1,4 @@
-on:
-  push:
-    branches:
-      - master
-    tags:
-      - "*"
-  pull_request:
-  merge_group:
+on: [push]
 jobs:
   linter:
     runs-on: ubuntu-latest
@@ -20,10 +13,10 @@ jobs:
           python -m pip install 'pylint==2.10.2' 'pycodestyle>=2.6.1'
       - name: Run pylint
         run: |
-          pylint $(find -name '*.py' -not -path './venv/*')
+          pylint $(find -name '*.py')
       - name: Run pycodestyle
         run: |
-          pycodestyle $(find -name '*.py' -not -path './venv/*')
+          pycodestyle $(find -name '*.py')
 
   isort:
     runs-on: ubuntu-latest
