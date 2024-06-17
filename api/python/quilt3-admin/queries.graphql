@@ -48,13 +48,13 @@ fragment OperationErrorSelection on OperationError {
   context
 }
 
-query getRoles {
+query rolesList {
   roles {
     ...RoleSelection
   }
 }
 
-query getUser($name: String!) {
+query usersGet($name: String!) {
   admin {
     user {
       get(name: $name) {
@@ -64,7 +64,7 @@ query getUser($name: String!) {
   }
 }
 
-query getUsers {
+query usersList {
   admin {
     user {
       list {
@@ -74,7 +74,7 @@ query getUsers {
   }
 }
 
-mutation createUser($input: UserInput!) {
+mutation usersCreate($input: UserInput!) {
   admin {
     user {
       create(input: $input) {
@@ -84,7 +84,7 @@ mutation createUser($input: UserInput!) {
   }
 }
 
-mutation deleteUser($name: String!) {
+mutation usersDelete($name: String!) {
   admin {
     user {
       mutate(name: $name) {
@@ -97,7 +97,7 @@ mutation deleteUser($name: String!) {
   }
 }
 
-mutation setUserEmail($email: String!, $name: String!) {
+mutation usersSetEmail($email: String!, $name: String!) {
   admin {
     user {
       mutate(name: $name) {
@@ -109,7 +109,7 @@ mutation setUserEmail($email: String!, $name: String!) {
   }
 }
 
-mutation setUserAdmin($name: String!, $admin: Boolean!) {
+mutation usersSetAdmin($name: String!, $admin: Boolean!) {
   admin {
     user {
       mutate(name: $name) {
@@ -121,7 +121,7 @@ mutation setUserAdmin($name: String!, $admin: Boolean!) {
   }
 }
 
-mutation setUserActive($active: Boolean!, $name: String!) {
+mutation usersSetActive($active: Boolean!, $name: String!) {
   admin {
     user {
       mutate(name: $name) {
@@ -133,7 +133,7 @@ mutation setUserActive($active: Boolean!, $name: String!) {
   }
 }
 
-mutation resetUserPassword($name: String!) {
+mutation usersResetPassword($name: String!) {
   admin {
     user {
       mutate(name: $name) {
@@ -146,7 +146,7 @@ mutation resetUserPassword($name: String!) {
   }
 }
 
-mutation setRole($name: String!, $role: String!, $extraRoles: [String!], $append: Boolean!) {
+mutation usersSetRole($name: String!, $role: String!, $extraRoles: [String!], $append: Boolean!) {
   admin {
     user {
       mutate(name: $name) {
@@ -160,7 +160,7 @@ mutation setRole($name: String!, $role: String!, $extraRoles: [String!], $append
   }
 }
 
-mutation addRoles($name: String!, $roles: [String!]!) {
+mutation usersAddRoles($name: String!, $roles: [String!]!) {
   admin {
     user {
       mutate(name: $name) {
@@ -174,7 +174,7 @@ mutation addRoles($name: String!, $roles: [String!]!) {
   }
 }
 
-mutation removeRoles($name: String!, $roles: [String!]!, $fallback: String) {
+mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String) {
   admin {
     user {
       mutate(name: $name) {

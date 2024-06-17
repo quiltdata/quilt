@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 
 from quilt3 import admin
+from quilt3.admin import _graphql_client
 
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
@@ -98,8 +99,8 @@ def mock_client(data, operation_name, variables=None):
 
 
 def test_get_roles():
-    with mock_client({"roles": [UNMANAGED_ROLE, MANAGED_ROLE]}, "getRoles"):
-        assert admin.get_roles() == [
+    with mock_client({"roles": [UNMANAGED_ROLE, MANAGED_ROLE]}, "rolesList"):
+        assert admin.roles.list() == [
             admin.UnmanagedRole(**_as_dataclass_kwargs(UNMANAGED_ROLE)),
             admin.ManagedRole(**_as_dataclass_kwargs(MANAGED_ROLE)),
         ]
@@ -113,13 +114,13 @@ def test_get_roles():
     ],
 )
 def test_get_user(data, result):
-    with mock_client(_make_nested_dict("admin.user.get", data), "getUser", variables={"name": "test"}):
-        assert admin.get_user("test") == result
+    with mock_client(_make_nested_dict("admin.user.get", data), "usersGet", variables={"name": "test"}):
+        assert admin.users.get("test") == result
 
 
 def test_get_users():
-    with mock_client(_make_nested_dict("admin.user.list", [USER]), "getUsers"):
-        assert admin.get_users() == [admin.User(**_as_dataclass_kwargs(USER))]
+    with mock_client(_make_nested_dict("admin.user.list", [USER]), "usersList"):
+        assert admin.users.list() == [admin.User(**_as_dataclass_kwargs(USER))]
 
 
 @pytest.mark.parametrize(
@@ -132,18 +133,18 @@ def test_get_users():
 def test_create_user(data, result):
     with mock_client(
         _make_nested_dict("admin.user.create", data),
-        "createUser",
+        "usersCreate",
         variables={
-            "input": admin._graphql_client.UserInput(
+            "input": _graphql_client.UserInput(
                 name="test", email="test@example.com", role="UnmanagedRole", extraRoles=[]
             )
         },
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.create_user("test", "test@example.com", "UnmanagedRole", [])
+                admin.users.create("test", "test@example.com", "UnmanagedRole", [])
         else:
-            assert admin.create_user("test", "test@example.com", "UnmanagedRole", []) == result
+            assert admin.users.create("test", "test@example.com", "UnmanagedRole", []) == result
 
 
 @pytest.mark.parametrize(
@@ -153,11 +154,11 @@ def test_create_user(data, result):
 def test_delete_user(data, result):
     with mock_client(
         _make_nested_dict("admin.user.mutate.delete", data),
-        "deleteUser",
+        "usersDelete",
         variables={"name": "test"},
     ):
         with pytest.raises(result):
-            admin.delete_user("test")
+            admin.users.delete("test")
 
 
 @pytest.mark.parametrize(
@@ -174,14 +175,14 @@ def test_set_user_email(data, result):
             if data is None
             else _make_nested_dict("admin.user.mutate.setEmail", data)
         ),
-        "setUserEmail",
+        "usersSetEmail",
         variables={"name": "test", "email": "test@example.com"},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.set_user_email("test", "test@example.com")
+                admin.users.set_email("test", "test@example.com")
         else:
-            assert admin.set_user_email("test", "test@example.com") == result
+            assert admin.users.set_email("test", "test@example.com") == result
 
 
 @pytest.mark.parametrize(
@@ -198,14 +199,14 @@ def test_set_user_admin(data, result):
             if data is None
             else _make_nested_dict("admin.user.mutate.setAdmin", data)
         ),
-        "setUserAdmin",
+        "usersSetAdmin",
         variables={"name": "test", "admin": True},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.set_user_admin("test", True)
+                admin.users.set_admin("test", True)
         else:
-            assert admin.set_user_admin("test", True) == result
+            assert admin.users.set_admin("test", True) == result
 
 
 @pytest.mark.parametrize(
@@ -222,14 +223,14 @@ def test_set_user_active(data, result):
             if data is None
             else _make_nested_dict("admin.user.mutate.setActive", data)
         ),
-        "setUserActive",
+        "usersSetActive",
         variables={"name": "test", "active": True},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.set_user_active("test", True)
+                admin.users.set_active("test", True)
         else:
-            assert admin.set_user_active("test", True) == result
+            assert admin.users.set_active("test", True) == result
 
 
 @pytest.mark.parametrize(
@@ -243,14 +244,14 @@ def test_reset_user_password(data, result):
             if data is None
             else _make_nested_dict("admin.user.mutate.resetPassword", data)
         ),
-        "resetUserPassword",
+        "usersResetPassword",
         variables={"name": "test"},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.reset_user_password("test")
+                admin.users.reset_password("test")
         else:
-            assert admin.reset_user_password("test") == result
+            assert admin.users.reset_password("test") == result
 
 
 @pytest.mark.parametrize(
@@ -267,14 +268,14 @@ def test_set_role(data, result):
             if data is None
             else _make_nested_dict("admin.user.mutate.setRole", data)
         ),
-        "setRole",
+        "usersSetRole",
         variables={"name": "test", "role": "UnamangedRole", "extraRoles": [], "append": True},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.set_role("test", "UnamangedRole", [], append=True)
+                admin.users.set_role("test", "UnamangedRole", [], append=True)
         else:
-            assert admin.set_role("test", "UnamangedRole", [], append=True) == result
+            assert admin.users.set_role("test", "UnamangedRole", [], append=True) == result
 
 
 @pytest.mark.parametrize(
@@ -291,14 +292,14 @@ def test_add_roles(data, result):
             if data is None
             else _make_nested_dict("admin.user.mutate.addRoles", data)
         ),
-        "addRoles",
+        "usersAddRoles",
         variables={"name": "test", "roles": ["ManagedRole"]},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.add_roles("test", ["ManagedRole"])
+                admin.users.add_roles("test", ["ManagedRole"])
         else:
-            assert admin.add_roles("test", ["ManagedRole"]) == result
+            assert admin.users.add_roles("test", ["ManagedRole"]) == result
 
 
 @pytest.mark.parametrize(
@@ -315,11 +316,11 @@ def test_remove_roles(data, result):
             if data is None
             else _make_nested_dict("admin.user.mutate.removeRoles", data)
         ),
-        "removeRoles",
+        "usersRemoveRoles",
         variables={"name": "test", "roles": ["ManagedRole"], "fallback": "UnamanagedRole"},
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole")
+                admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole")
         else:
-            assert admin.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole") == result
+            assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole") == result

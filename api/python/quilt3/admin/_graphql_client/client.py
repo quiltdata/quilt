@@ -3,26 +3,30 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-from .add_roles import AddRoles, AddRolesAdminUserMutate
 from .base_client import BaseClient
 from .base_model import UNSET, UnsetType
-from .create_user import (
-    CreateUser,
-    CreateUserAdminUserCreateInvalidInput,
-    CreateUserAdminUserCreateOperationError,
-    CreateUserAdminUserCreateUser,
-)
-from .delete_user import DeleteUser, DeleteUserAdminUserMutate
-from .get_roles import GetRoles, GetRolesRolesManagedRole, GetRolesRolesUnmanagedRole
-from .get_user import GetUser, GetUserAdminUserGet
-from .get_users import GetUsers, GetUsersAdminUserList
 from .input_types import UserInput
-from .remove_roles import RemoveRoles, RemoveRolesAdminUserMutate
-from .reset_user_password import ResetUserPassword, ResetUserPasswordAdminUserMutate
-from .set_role import SetRole, SetRoleAdminUserMutate
-from .set_user_active import SetUserActive, SetUserActiveAdminUserMutate
-from .set_user_admin import SetUserAdmin, SetUserAdminAdminUserMutate
-from .set_user_email import SetUserEmail, SetUserEmailAdminUserMutate
+from .roles_list import (
+    RolesList,
+    RolesListRolesManagedRole,
+    RolesListRolesUnmanagedRole,
+)
+from .users_add_roles import UsersAddRoles, UsersAddRolesAdminUserMutate
+from .users_create import (
+    UsersCreate,
+    UsersCreateAdminUserCreateInvalidInput,
+    UsersCreateAdminUserCreateOperationError,
+    UsersCreateAdminUserCreateUser,
+)
+from .users_delete import UsersDelete, UsersDeleteAdminUserMutate
+from .users_get import UsersGet, UsersGetAdminUserGet
+from .users_list import UsersList, UsersListAdminUserList
+from .users_remove_roles import UsersRemoveRoles, UsersRemoveRolesAdminUserMutate
+from .users_reset_password import UsersResetPassword, UsersResetPasswordAdminUserMutate
+from .users_set_active import UsersSetActive, UsersSetActiveAdminUserMutate
+from .users_set_admin import UsersSetAdmin, UsersSetAdminAdminUserMutate
+from .users_set_email import UsersSetEmail, UsersSetEmailAdminUserMutate
+from .users_set_role import UsersSetRole, UsersSetRoleAdminUserMutate
 
 
 def gql(q: str) -> str:
@@ -30,12 +34,12 @@ def gql(q: str) -> str:
 
 
 class Client(BaseClient):
-    def get_roles(
+    def roles_list(
         self, **kwargs: Any
-    ) -> List[Union[GetRolesRolesUnmanagedRole, GetRolesRolesManagedRole]]:
+    ) -> List[Union[RolesListRolesUnmanagedRole, RolesListRolesManagedRole]]:
         query = gql(
             """
-            query getRoles {
+            query rolesList {
               roles {
                 ...RoleSelection
               }
@@ -62,15 +66,15 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {}
         response = self.execute(
-            query=query, operation_name="getRoles", variables=variables, **kwargs
+            query=query, operation_name="rolesList", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return GetRoles.model_validate(data).roles
+        return RolesList.model_validate(data).roles
 
-    def get_user(self, name: str, **kwargs: Any) -> Optional[GetUserAdminUserGet]:
+    def users_get(self, name: str, **kwargs: Any) -> Optional[UsersGetAdminUserGet]:
         query = gql(
             """
-            query getUser($name: String!) {
+            query usersGet($name: String!) {
               admin {
                 user {
                   get(name: $name) {
@@ -118,15 +122,15 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"name": name}
         response = self.execute(
-            query=query, operation_name="getUser", variables=variables, **kwargs
+            query=query, operation_name="usersGet", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return GetUser.model_validate(data).admin.user.get
+        return UsersGet.model_validate(data).admin.user.get
 
-    def get_users(self, **kwargs: Any) -> List[GetUsersAdminUserList]:
+    def users_list(self, **kwargs: Any) -> List[UsersListAdminUserList]:
         query = gql(
             """
-            query getUsers {
+            query usersList {
               admin {
                 user {
                   list {
@@ -174,19 +178,19 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {}
         response = self.execute(
-            query=query, operation_name="getUsers", variables=variables, **kwargs
+            query=query, operation_name="usersList", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return GetUsers.model_validate(data).admin.user.list
+        return UsersList.model_validate(data).admin.user.list
 
-    def create_user(self, input: UserInput, **kwargs: Any) -> Union[
-        CreateUserAdminUserCreateUser,
-        CreateUserAdminUserCreateInvalidInput,
-        CreateUserAdminUserCreateOperationError,
+    def users_create(self, input: UserInput, **kwargs: Any) -> Union[
+        UsersCreateAdminUserCreateUser,
+        UsersCreateAdminUserCreateInvalidInput,
+        UsersCreateAdminUserCreateOperationError,
     ]:
         query = gql(
             """
-            mutation createUser($input: UserInput!) {
+            mutation usersCreate($input: UserInput!) {
               admin {
                 user {
                   create(input: $input) {
@@ -256,17 +260,17 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"input": input}
         response = self.execute(
-            query=query, operation_name="createUser", variables=variables, **kwargs
+            query=query, operation_name="usersCreate", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return CreateUser.model_validate(data).admin.user.create
+        return UsersCreate.model_validate(data).admin.user.create
 
-    def delete_user(
+    def users_delete(
         self, name: str, **kwargs: Any
-    ) -> Optional[DeleteUserAdminUserMutate]:
+    ) -> Optional[UsersDeleteAdminUserMutate]:
         query = gql(
             """
-            mutation deleteUser($name: String!) {
+            mutation usersDelete($name: String!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -298,17 +302,17 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"name": name}
         response = self.execute(
-            query=query, operation_name="deleteUser", variables=variables, **kwargs
+            query=query, operation_name="usersDelete", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return DeleteUser.model_validate(data).admin.user.mutate
+        return UsersDelete.model_validate(data).admin.user.mutate
 
-    def set_user_email(
+    def users_set_email(
         self, email: str, name: str, **kwargs: Any
-    ) -> Optional[SetUserEmailAdminUserMutate]:
+    ) -> Optional[UsersSetEmailAdminUserMutate]:
         query = gql(
             """
-            mutation setUserEmail($email: String!, $name: String!) {
+            mutation usersSetEmail($email: String!, $name: String!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -380,17 +384,17 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"email": email, "name": name}
         response = self.execute(
-            query=query, operation_name="setUserEmail", variables=variables, **kwargs
+            query=query, operation_name="usersSetEmail", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return SetUserEmail.model_validate(data).admin.user.mutate
+        return UsersSetEmail.model_validate(data).admin.user.mutate
 
-    def set_user_admin(
+    def users_set_admin(
         self, name: str, admin: bool, **kwargs: Any
-    ) -> Optional[SetUserAdminAdminUserMutate]:
+    ) -> Optional[UsersSetAdminAdminUserMutate]:
         query = gql(
             """
-            mutation setUserAdmin($name: String!, $admin: Boolean!) {
+            mutation usersSetAdmin($name: String!, $admin: Boolean!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -462,17 +466,17 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"name": name, "admin": admin}
         response = self.execute(
-            query=query, operation_name="setUserAdmin", variables=variables, **kwargs
+            query=query, operation_name="usersSetAdmin", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return SetUserAdmin.model_validate(data).admin.user.mutate
+        return UsersSetAdmin.model_validate(data).admin.user.mutate
 
-    def set_user_active(
+    def users_set_active(
         self, active: bool, name: str, **kwargs: Any
-    ) -> Optional[SetUserActiveAdminUserMutate]:
+    ) -> Optional[UsersSetActiveAdminUserMutate]:
         query = gql(
             """
-            mutation setUserActive($active: Boolean!, $name: String!) {
+            mutation usersSetActive($active: Boolean!, $name: String!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -544,17 +548,17 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"active": active, "name": name}
         response = self.execute(
-            query=query, operation_name="setUserActive", variables=variables, **kwargs
+            query=query, operation_name="usersSetActive", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return SetUserActive.model_validate(data).admin.user.mutate
+        return UsersSetActive.model_validate(data).admin.user.mutate
 
-    def reset_user_password(
+    def users_reset_password(
         self, name: str, **kwargs: Any
-    ) -> Optional[ResetUserPasswordAdminUserMutate]:
+    ) -> Optional[UsersResetPasswordAdminUserMutate]:
         query = gql(
             """
-            mutation resetUserPassword($name: String!) {
+            mutation usersResetPassword($name: String!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -587,24 +591,24 @@ class Client(BaseClient):
         variables: Dict[str, object] = {"name": name}
         response = self.execute(
             query=query,
-            operation_name="resetUserPassword",
+            operation_name="usersResetPassword",
             variables=variables,
             **kwargs
         )
         data = self.get_data(response)
-        return ResetUserPassword.model_validate(data).admin.user.mutate
+        return UsersResetPassword.model_validate(data).admin.user.mutate
 
-    def set_role(
+    def users_set_role(
         self,
         name: str,
         role: str,
         append: bool,
         extra_roles: Union[Optional[List[str]], UnsetType] = UNSET,
         **kwargs: Any
-    ) -> Optional[SetRoleAdminUserMutate]:
+    ) -> Optional[UsersSetRoleAdminUserMutate]:
         query = gql(
             """
-            mutation setRole($name: String!, $role: String!, $extraRoles: [String!], $append: Boolean!) {
+            mutation usersSetRole($name: String!, $role: String!, $extraRoles: [String!], $append: Boolean!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -677,17 +681,17 @@ class Client(BaseClient):
             "append": append,
         }
         response = self.execute(
-            query=query, operation_name="setRole", variables=variables, **kwargs
+            query=query, operation_name="usersSetRole", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return SetRole.model_validate(data).admin.user.mutate
+        return UsersSetRole.model_validate(data).admin.user.mutate
 
-    def add_roles(
+    def users_add_roles(
         self, name: str, roles: List[str], **kwargs: Any
-    ) -> Optional[AddRolesAdminUserMutate]:
+    ) -> Optional[UsersAddRolesAdminUserMutate]:
         query = gql(
             """
-            mutation addRoles($name: String!, $roles: [String!]!) {
+            mutation usersAddRoles($name: String!, $roles: [String!]!) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -755,21 +759,21 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"name": name, "roles": roles}
         response = self.execute(
-            query=query, operation_name="addRoles", variables=variables, **kwargs
+            query=query, operation_name="usersAddRoles", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return AddRoles.model_validate(data).admin.user.mutate
+        return UsersAddRoles.model_validate(data).admin.user.mutate
 
-    def remove_roles(
+    def users_remove_roles(
         self,
         name: str,
         roles: List[str],
         fallback: Union[Optional[str], UnsetType] = UNSET,
         **kwargs: Any
-    ) -> Optional[RemoveRolesAdminUserMutate]:
+    ) -> Optional[UsersRemoveRolesAdminUserMutate]:
         query = gql(
             """
-            mutation removeRoles($name: String!, $roles: [String!]!, $fallback: String) {
+            mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String) {
               admin {
                 user {
                   mutate(name: $name) {
@@ -841,7 +845,10 @@ class Client(BaseClient):
             "fallback": fallback,
         }
         response = self.execute(
-            query=query, operation_name="removeRoles", variables=variables, **kwargs
+            query=query,
+            operation_name="usersRemoveRoles",
+            variables=variables,
+            **kwargs
         )
         data = self.get_data(response)
-        return RemoveRoles.model_validate(data).admin.user.mutate
+        return UsersRemoveRoles.model_validate(data).admin.user.mutate

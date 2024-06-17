@@ -9,21 +9,21 @@ from .base_model import BaseModel
 from .fragments import ManagedRoleSelection, UnmanagedRoleSelection
 
 
-class GetRoles(BaseModel):
+class RolesList(BaseModel):
     roles: List[
         Annotated[
-            Union["GetRolesRolesUnmanagedRole", "GetRolesRolesManagedRole"],
+            Union["RolesListRolesUnmanagedRole", "RolesListRolesManagedRole"],
             Field(discriminator="typename__"),
         ]
     ]
 
 
-class GetRolesRolesUnmanagedRole(UnmanagedRoleSelection):
+class RolesListRolesUnmanagedRole(UnmanagedRoleSelection):
     typename__: Literal["UnmanagedRole"] = Field(alias="__typename")
 
 
-class GetRolesRolesManagedRole(ManagedRoleSelection):
+class RolesListRolesManagedRole(ManagedRoleSelection):
     typename__: Literal["ManagedRole"] = Field(alias="__typename")
 
 
-GetRoles.model_rebuild()
+RolesList.model_rebuild()

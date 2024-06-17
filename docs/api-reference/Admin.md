@@ -1,7 +1,5 @@
 
-# quilt3.admin
-
-APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management.
+# quilt3.admin.types
 
 
 ## ManagedRole(id: str, name: str, arn: str, typename\_\_: Literal['ManagedRole']) -> None  {#ManagedRole}
@@ -10,15 +8,21 @@ APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services
 ## UnmanagedRole(id: str, name: str, arn: str, typename\_\_: Literal['UnmanagedRole']) -> None  {#UnmanagedRole}
 
 
-## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
+## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
 
 
-## get\_roles() -> List[Union[quilt3.admin.ManagedRole, quilt3.admin.UnmanagedRole]]  {#get\_roles}
+# quilt3.admin.roles
+
+
+## list() -> List[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole]]  {#list}
 
 Get a list of all roles in the registry.
 
 
-## get\_user(name: str) -> Optional[quilt3.admin.User]  {#get\_user}
+# quilt3.admin.users
+
+
+## get(name: str) -> Optional[quilt3.admin.types.User]  {#get}
 
 Get a specific user from the registry. Return `None` if the user does not exist.
 
@@ -27,12 +31,12 @@ __Arguments__
 * __name__:  Username of user to get.
 
 
-## get\_users() -> List[quilt3.admin.User]  {#get\_users}
+## list() -> List[quilt3.admin.types.User]  {#list}
 
 Get a list of all users in the registry.
 
 
-## create\_user(name: str, email: str, role: str, extra\_roles: Optional[List[str]] = None) -> quilt3.admin.User  {#create\_user}
+## create(name: str, email: str, role: str, extra\_roles: Optional[List[str]] = None) -> quilt3.admin.types.User  {#create}
 
 Create a new user in the registry.
 
@@ -44,7 +48,7 @@ __Arguments__
 * __extra_roles__:  Additional roles to assign to the user.
 
 
-## delete\_user(name: str) -> None  {#delete\_user}
+## delete(name: str) -> None  {#delete}
 
 Delete user from the registry.
 
@@ -53,7 +57,7 @@ __Arguments__
 * __name__:  Username of user to delete.
 
 
-## set\_user\_email(name: str, email: str) -> quilt3.admin.User  {#set\_user\_email}
+## set\_email(name: str, email: str) -> quilt3.admin.types.User  {#set\_email}
 
 Set the email for a user.
 
@@ -63,7 +67,7 @@ __Arguments__
 * __email__:  Email to set for the user.
 
 
-## set\_user\_admin(name: str, admin: bool) -> quilt3.admin.User  {#set\_user\_admin}
+## set\_admin(name: str, admin: bool) -> quilt3.admin.types.User  {#set\_admin}
 
 Set the admin status for a user.
 
@@ -73,7 +77,7 @@ __Arguments__
 * __admin__:  Admin status to set for the user.
 
 
-## set\_user\_active(name: str, active: bool) -> quilt3.admin.User  {#set\_user\_active}
+## set\_active(name: str, active: bool) -> quilt3.admin.types.User  {#set\_active}
 
 Set the active status for a user.
 
@@ -83,7 +87,7 @@ __Arguments__
 * __active__:  Active status to set for the user.
 
 
-## reset\_user\_password(name: str) -> None  {#reset\_user\_password}
+## reset\_password(name: str) -> None  {#reset\_password}
 
 Reset the password for a user.
 
@@ -92,7 +96,7 @@ __Arguments__
 * __name__:  Username of user to update.
 
 
-## set\_role(name: str, role: str, extra\_roles: Optional[List[str]] = None, \*, append: bool = False) -> quilt3.admin.User  {#set\_role}
+## set\_role(name: str, role: str, extra\_roles: Optional[List[str]] = None, \*, append: bool = False) -> quilt3.admin.types.User  {#set\_role}
 
 Set the active and extra roles for a user.
 
@@ -104,7 +108,7 @@ __Arguments__
 * __append__:  If True, append the extra roles to the existing roles. If False, replace the existing roles.
 
 
-## add\_roles(name: str, roles: List[str]) -> quilt3.admin.User  {#add\_roles}
+## add\_roles(name: str, roles: List[str]) -> quilt3.admin.types.User  {#add\_roles}
 
 Add roles to a user.
 
@@ -114,7 +118,7 @@ __Arguments__
 * __roles__:  Roles to add to the user.
 
 
-## remove\_roles(name: str, roles: List[str], fallback: Optional[str] = None) -> quilt3.admin.User  {#remove\_roles}
+## remove\_roles(name: str, roles: List[str], fallback: Optional[str] = None) -> quilt3.admin.types.User  {#remove\_roles}
 
 Remove roles from a user.
 
