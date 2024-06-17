@@ -61,7 +61,7 @@ setup(
         'jsonlines==1.2.0',
         'PyYAML>=5.1',
         'requests>=2.12.4',
-        'tenacity>=5.1.1',
+        'tenacity>=5.1.1,!=8.4.0',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
