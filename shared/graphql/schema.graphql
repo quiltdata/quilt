@@ -847,7 +847,9 @@ union UserResult = User | InvalidInput | OperationError
 type MutateUserAdminMutations {
   delete: OperationResult!
   setEmail(email: String!): UserResult!
-  setRole(role: String!, extraRoles: [String!]): UserResult!
+  setRole(role: String!, extraRoles: [String!], append: Boolean! = false): UserResult!
+  addRoles(roles: [String!]!): UserResult!
+  removeRoles(roles: [String!]!, fallback: String): UserResult!
   setAdmin(admin: Boolean!): UserResult!
   setActive(active: Boolean!): UserResult!
   resetPassword: OperationResult!

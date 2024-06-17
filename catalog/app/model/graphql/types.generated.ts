@@ -333,6 +333,8 @@ export interface MutateUserAdminMutations {
   readonly delete: OperationResult
   readonly setEmail: UserResult
   readonly setRole: UserResult
+  readonly addRoles: UserResult
+  readonly removeRoles: UserResult
   readonly setAdmin: UserResult
   readonly setActive: UserResult
   readonly resetPassword: OperationResult
@@ -345,6 +347,16 @@ export interface MutateUserAdminMutationssetEmailArgs {
 export interface MutateUserAdminMutationssetRoleArgs {
   role: Scalars['String']
   extraRoles: Maybe<ReadonlyArray<Scalars['String']>>
+  append?: Scalars['Boolean']
+}
+
+export interface MutateUserAdminMutationsaddRolesArgs {
+  roles: ReadonlyArray<Scalars['String']>
+}
+
+export interface MutateUserAdminMutationsremoveRolesArgs {
+  roles: ReadonlyArray<Scalars['String']>
+  fallback: Maybe<Scalars['String']>
 }
 
 export interface MutateUserAdminMutationssetAdminArgs {

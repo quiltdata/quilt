@@ -1498,6 +1498,85 @@ export default {
                   },
                 },
               },
+              {
+                name: 'append',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'addRoles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'UserResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'roles',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'LIST',
+                    ofType: {
+                      kind: 'NON_NULL',
+                      ofType: {
+                        kind: 'SCALAR',
+                        name: 'String',
+                        ofType: null,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'removeRoles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'UserResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'roles',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'LIST',
+                    ofType: {
+                      kind: 'NON_NULL',
+                      ofType: {
+                        kind: 'SCALAR',
+                        name: 'String',
+                        ofType: null,
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                name: 'fallback',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
             ],
           },
           {
