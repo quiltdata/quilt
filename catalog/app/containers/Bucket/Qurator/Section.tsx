@@ -3,7 +3,7 @@ import * as React from 'react'
 import { ChatSkeleton } from 'components/Chat'
 import * as Model from 'model'
 
-import PageSection from '../Section'
+import PageSection, { NodeRenderer } from '../Section'
 
 const QuratorSummary = React.lazy(() => import('./Summary'))
 
@@ -12,15 +12,6 @@ interface QuratorSectionProps {
 }
 
 export default function QuratorSection({ handle }: QuratorSectionProps) {
-  const children = React.useCallback(
-    ({ expanded }) =>
-      expanded && (
-        <React.Suspense fallback={<ChatSkeleton />}>
-          <QuratorSummary handle={handle} />
-        </React.Suspense>
-      ),
-    [handle],
-  )
   return (
     <PageSection
       gutterBottom
@@ -28,7 +19,13 @@ export default function QuratorSection({ handle }: QuratorSectionProps) {
       heading="Summarize and chat with AI"
       icon="assistant"
     >
-      {children}
+      {({ expanded }: Parameters<NodeRenderer>[0]) =>
+        expanded && (
+          <React.Suspense fallback={<ChatSkeleton />}>
+            <QuratorSummary handle={handle} />
+          </React.Suspense>
+        )
+      }
     </PageSection>
   )
 }
