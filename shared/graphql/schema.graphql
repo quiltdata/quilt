@@ -37,6 +37,8 @@ type Ok {
   _: Boolean
 }
 
+union OperationResult = Ok | InvalidInput | OperationError
+
 type Unavailable {
   _: Boolean
 }
@@ -187,6 +189,19 @@ type RoleBucketPermission implements BucketPermission {
   role: Role!
   bucket: BucketConfig!
   level: BucketPermissionLevel!
+}
+
+type User {
+  name: String!
+  email: String!
+  dateJoined: Datetime!
+  lastLogin: Datetime!
+  isActive: Boolean!
+  isAdmin: Boolean!
+  isSsoOnly: Boolean!
+  isService: Boolean!
+  role: Role
+  extraRoles: [Role!]!
 }
 
 type AccessCountForDate {
@@ -477,7 +492,32 @@ type SubscriptionState {
   timestamp: Datetime!
 }
 
+type UserAdminQueries {
+  list: [User!]!
+  get(name: String!): User
+}
+
+type AdminQueries {
+  user: UserAdminQueries!
+}
+
+type MyRole {
+  name: String!
+}
+
+type Me {
+  name: String!
+  email: String!
+  isAdmin: Boolean!
+  role: MyRole!
+  roles: [MyRole!]!
+}
+
+union SwitchRoleResult = Me | InvalidInput | OperationError
+
 type Query {
+  me: Me
+
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
@@ -498,6 +538,9 @@ type Query {
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
   subscription: SubscriptionState!
+
+  admin: AdminQueries! @admin
+
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
@@ -792,7 +835,38 @@ union BrowsingSessionRefreshResult =
 
 union BrowsingSessionDisposeResult = Ok | OperationError
 
+input UserInput {
+  name: String!
+  email: String!
+  role: String!
+  extraRoles: [String!]
+}
+
+union UserResult = User | InvalidInput | OperationError
+
+type MutateUserAdminMutations {
+  delete: OperationResult!
+  setEmail(email: String!): UserResult!
+  setRole(role: String!, extraRoles: [String!], append: Boolean! = false): UserResult!
+  addRoles(roles: [String!]!): UserResult!
+  removeRoles(roles: [String!]!, fallback: String): UserResult!
+  setAdmin(admin: Boolean!): UserResult!
+  setActive(active: Boolean!): UserResult!
+  resetPassword: OperationResult!
+}
+
+type UserAdminMutations {
+  create(input: UserInput!): UserResult!
+  mutate(name: String!): MutateUserAdminMutations
+}
+
+type AdminMutations {
+  user: UserAdminMutations!
+}
+
 type Mutation {
+  switchRole(roleName: String!): SwitchRoleResult!
+
   packageConstruct(
     params: PackagePushParams!
     src: PackageConstructSource!
@@ -806,6 +880,8 @@ type Mutation {
     name: String!
     hash: String!
   ): PackageRevisionDeleteResult!
+
+  admin: AdminMutations! @admin
 
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
