@@ -44,7 +44,7 @@ six==1.16.0
     # via python-dateutil
 typing-extensions==4.3.0
     # via aioitertools
-urllib3==1.26.18
+urllib3==1.26.19
     # via botocore
 wrapt==1.14.1
     # via aiobotocore

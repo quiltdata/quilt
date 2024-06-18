@@ -1914,10 +1914,11 @@ class PackageTest(QuiltTestCase):
         selector_fn = mock.MagicMock(return_value=False)
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.calculate_checksum', return_value=[('SHA256', "a" * 64)]):
+        with patch('quilt3.packages.calculate_checksum', return_value=["a" * 64]) as calculate_checksum_mock:
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
+        calculate_checksum_mock.assert_called_once_with([PhysicalKey(src_bucket, src_key, src_version)], [0])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
@@ -1960,10 +1961,11 @@ class PackageTest(QuiltTestCase):
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.calculate_checksum', return_value=["a" * 64]):
+        with patch('quilt3.packages.calculate_checksum', return_value=[]) as calculate_checksum_mock:
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
+        calculate_checksum_mock.assert_called_once_with([], [])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
