@@ -27,12 +27,12 @@ Please summarize the content of this file intelligently and concisely. Focus on 
 
 const NO_CONTENT_PROMPT = (
   json: string,
-) => `Please, tell me, that you can't answer questions about the content of the file. It is empty or not yet indexed. But you can tell about meta, indexed by ElasticSearch. This meta is:
+) => `Please respond that you can't answer questions about the content of the file, since it's empty or not yet indexed. However, you can tell about metadata indexed by ElasticSearch. This metadata is:
 
 ${json}`
 
-const NO_DATA_PROMPT = `Please, tell me, that you can't answer questions about the file. It is empty or not yet indexed.
-But you can answer questions about Quilt.`
+const NO_DATA_PROMPT = `Please respond that you can't answer questions about the file, since it's empty or not yet indexed.
+However, you can answer questions about Quilt.`
 
 function getPrompt(hit: Hit) {
   if (!hit.value) return NO_DATA_PROMPT

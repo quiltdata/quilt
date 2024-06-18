@@ -48,7 +48,7 @@ async function bedrockJsonToMessage(json: any): Promise<Message> {
     .map((item) => {
       if (typeof item === 'string') {
         // There is no documenation example with string item,
-        // but I neither couldn't find a clear doc that it can't be a string
+        // but neither could I find a clear indication that it can't be a string
         return createMessage(item, 'assistant')
       }
       if (item.type === 'text' && typeof item.text === 'string') {

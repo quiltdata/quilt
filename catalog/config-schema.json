@@ -103,7 +103,7 @@
     },
     "qurator": {
       "type": "boolean",
-      "description": "Whether to enable the Qurator (Bedrock powered chat)"
+      "description": "Enable Qurator AI Assistant (powered by AWS Bedrock)"
     }
   },
   "required": [
