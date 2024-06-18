@@ -37,7 +37,7 @@ const DIALOG_PROPS: Dialogs.ExtraDialogProps = { maxWidth: 'xs', fullWidth: true
 
 const useDialogFormStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(-3),
+    marginTop: t.spacing(-2),
   },
 }))
 

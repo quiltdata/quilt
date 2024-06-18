@@ -24,6 +24,8 @@ export const validate: FF.FieldValidator<Value> = (v) => {
 
 export const ROLE_NAME_ASC = R.ascend((r: Role) => r.name)
 
+const ITEM_HEIGHT = 46
+
 const useRoleSelectStyles = M.makeStyles((t) => ({
   grid: {
     alignItems: 'center',
@@ -33,7 +35,8 @@ const useRoleSelectStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
   },
   list: ({ roles }: { roles: number }) => ({
-    height: `${46 * R.clamp(3, 4.5, roles)}px`,
+    // show no less than 3 and no more than 4 and a half items
+    height: `${ITEM_HEIGHT * R.clamp(3, 4.5, roles)}px`,
     overflowY: 'auto',
   }),
   listEmpty: {

@@ -14,7 +14,7 @@ import SWITCH_ROLE_MUTATION from './gql/SwitchRole.generated'
 
 type Me = NonNullable<GQL.DataForDoc<typeof ME_QUERY>['me']>
 
-const useRoleSwitcherStyles = M.makeStyles({
+const useRoleSwitcherStyles = M.makeStyles((t) => ({
   content: {
     position: 'relative',
   },
@@ -41,7 +41,11 @@ const useRoleSwitcherStyles = M.makeStyles({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
-})
+  hint: {
+    color: t.palette.text.hint,
+    fontWeight: t.typography.fontWeightLight,
+  },
+}))
 
 interface RoleSwitcherProps {
   user: Me
@@ -130,13 +134,7 @@ function RoleSwitcher({ user, close }: RoleSwitcherProps) {
                       <M.ListItemText classes={{ primary: classes.name }}>
                         {role.name}
                         {role.name === user.role.name && (
-                          <M.Box
-                            component="span"
-                            color="text.hint"
-                            fontWeight="fontWeightLight"
-                          >
-                            &nbsp;(current)
-                          </M.Box>
+                          <span className={classes.hint}>&nbsp;(current)</span>
                         )}
                       </M.ListItemText>
                     </M.ListItem>
