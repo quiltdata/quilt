@@ -1,4 +1,6 @@
+import * as FF from 'final-form'
 import * as React from 'react'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import * as Sentry from '@sentry/react'
@@ -49,18 +51,24 @@ interface RoleSwitcherProps {
 function RoleSwitcher({ user, close }: RoleSwitcherProps) {
   const switchRole = GQL.useMutation(SWITCH_ROLE_MUTATION)
   const classes = useRoleSwitcherStyles()
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const selectRole = React.useCallback(
-    async (roleName: string) => {
-      if (roleName === user.role.name) return close()
-      setLoading(true)
+
+  interface FormValues {
+    role: string
+  }
+
+  const onSubmit = React.useCallback(
+    async ({ role }: FormValues) => {
+      if (role === user.role.name) {
+        close()
+        return new Promise(() => {}) // don't unlock the form controls
+      }
+
       try {
-        const { switchRole: r } = await switchRole({ roleName })
+        const { switchRole: r } = await switchRole({ roleName: role })
         switch (r.__typename) {
           case 'Me':
             window.location.reload()
-            break
+            return await new Promise(() => {}) // don't unlock the form controls
           case 'InvalidInput':
             const [e] = r.errors
             throw new Error(`InputError (${e.name}) at '${e.path}': ${e.message}`)
@@ -73,61 +81,92 @@ function RoleSwitcher({ user, close }: RoleSwitcherProps) {
         // eslint-disable-next-line no-console
         console.error('Error switching role', err)
         Sentry.captureException(err)
-        if (err instanceof Error) {
-          setError(err.message)
-        } else {
-          setError(`${err}`)
-        }
-        setLoading(false)
+        const message = err instanceof Error ? err.message : `${err}`
+        return { [FF.FORM_ERROR]: message }
       }
     },
     [close, switchRole, user.role.name],
   )
   return (
-    <>
-      <M.DialogTitle>Switch role</M.DialogTitle>
-      <div className={classes.content}>
-        <M.Collapse in={!!error} mountOnEnter unmountOnExit>
-          <Lab.Alert
-            severity="error"
-            classes={{ root: classes.error, icon: classes.errorIcon }}
-          >
-            <Lab.AlertTitle>Could not switch role</Lab.AlertTitle>
-            Try again or contact support.
-            <br />
-            Error details:
-            <br />
-            {error}
-          </Lab.Alert>
-        </M.Collapse>
-        <M.List disablePadding>
-          {user.roles.map((role) => (
-            <M.ListItem
-              button
-              key={role.name}
-              onClick={() => selectRole(role.name)}
-              selected={role.name === user.role.name}
-            >
-              <M.ListItemIcon>
-                <M.Radio
-                  checked={role.name === user.role.name}
-                  tabIndex={-1}
-                  disableRipple
-                />
-              </M.ListItemIcon>
-              <M.ListItemText classes={{ primary: classes.name }}>
-                {role.name}
-              </M.ListItemText>
-            </M.ListItem>
-          ))}
-        </M.List>
-        {loading && (
-          <div className={classes.progress}>
-            <M.CircularProgress size={48} />
+    <RF.Form<FormValues> initialValues={{ role: user.role.name }} onSubmit={onSubmit}>
+      {({ handleSubmit, submitting, submitError }) => (
+        <>
+          <M.DialogTitle>Switch role</M.DialogTitle>
+          <M.Collapse in={!!submitError} mountOnEnter unmountOnExit>
+            <div>
+              <M.Divider />
+              <Lab.Alert
+                severity="error"
+                classes={{ root: classes.error, icon: classes.errorIcon }}
+              >
+                <Lab.AlertTitle>Could not switch role</Lab.AlertTitle>
+                Try again or contact support.
+                <br />
+                Error details:
+                <br />
+                {submitError}
+              </Lab.Alert>
+            </div>
+          </M.Collapse>
+          <M.Divider />
+          <div className={classes.content}>
+            <RF.Field<string> name="role">
+              {(props) => (
+                <M.List disablePadding>
+                  {user.roles.map((role) => (
+                    <M.ListItem
+                      button
+                      key={role.name}
+                      onClick={() => props.input.onChange(role.name)}
+                      selected={role.name === props.input.value}
+                    >
+                      <M.ListItemIcon>
+                        <M.Radio
+                          checked={role.name === props.input.value}
+                          tabIndex={-1}
+                          disableRipple
+                        />
+                      </M.ListItemIcon>
+                      <M.ListItemText classes={{ primary: classes.name }}>
+                        {role.name}
+                        {role.name === user.role.name && (
+                          <M.Box
+                            component="span"
+                            color="text.hint"
+                            fontWeight="fontWeightLight"
+                          >
+                            &nbsp;(current)
+                          </M.Box>
+                        )}
+                      </M.ListItemText>
+                    </M.ListItem>
+                  ))}
+                </M.List>
+              )}
+            </RF.Field>
+            {submitting && (
+              <div className={classes.progress}>
+                <M.CircularProgress size={48} />
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </>
+          <M.Divider />
+          <M.DialogActions>
+            <M.Button onClick={close} disabled={submitting}>
+              Cancel
+            </M.Button>
+            <M.Button
+              onClick={handleSubmit}
+              disabled={submitting}
+              color="primary"
+              variant="contained"
+            >
+              Switch
+            </M.Button>
+          </M.DialogActions>
+        </>
+      )}
+    </RF.Form>
   )
 }
 
