@@ -1,11 +1,13 @@
 import * as React from 'react'
-import { Link, useRouteMatch } from 'react-router-dom'
+import * as redux from 'react-redux'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -212,21 +214,19 @@ const useNavBarStyles = M.makeStyles({
 })
 
 export function NavBar() {
-  const settings = CatalogSettings.use()
-  const { paths } = NamedRoutes.use()
-  const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
   const classes = useNavBarStyles()
   const t = M.useTheme()
   const collapse = M.useMediaQuery(t.breakpoints.down('sm'))
+
+  const settings = CatalogSettings.use()
   const sub = Subscription.useState()
+  const authenticated = redux.useSelector(authSelectors.authenticated)
+
+  const hideControls = cfg.disableNavigator || (cfg.alwaysRequiresAuth && !authenticated)
 
   return (
     <Container>
-      {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
-        <div className={classes.spacer} />
-      ) : (
-        <Controls />
-      )}
+      {hideControls ? <div className={classes.spacer} /> : <Controls />}
 
       <Subscription.Display {...sub} />
 
