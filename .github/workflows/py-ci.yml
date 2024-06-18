@@ -190,10 +190,10 @@ jobs:
             python -m pip install wheel 'numpy<2'
           fi
 
+          # XXX: something fishy is going on with this "if [ ] X then Y" syntax
           if [ ${{ matrix.path }} == "shared" ]
-          then
             python -m pip install -e lambdas/shared[tests]
-          else
+          then
             python -m pip install -e lambdas/shared
             python -m pip install -e lambdas/${{ matrix.path }}
           fi
