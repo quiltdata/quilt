@@ -185,14 +185,20 @@ jobs:
           # from thumbnail lambda fails whithout installed wheel.
           # See https://github.com/pypa/pip/issues/8559.
           python -m pip install wheel
-          # HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
-          python -m pip install 'numpy<2'
+
           if [ ${{ matrix.path }} == "shared" ]
             python -m pip install -e lambdas/shared[tests]
           then
             python -m pip install -e lambdas/shared
             python -m pip install -e lambdas/${{ matrix.path }}
           fi
+
+          if [ ${{ matrix.path }} == "thumbnail" ]
+          then
+            # HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
+            python -m pip install 'numpy<2'
+          fi
+
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
 
           # Try to simulate the lambda .zip file:
