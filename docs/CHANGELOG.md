@@ -14,7 +14,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# unreleased - YYYY-MM-DD
+# 6.0.0a4 - 2024-06-18
 ## Python API
 
 * [Added] New `quilt3.admin` API with more features (requires 1.53+ stack) ([#3990](https://github.com/quiltdata/quilt/pull/3990))
@@ -22,8 +22,6 @@ Entries inside each section should be ordered by type:
 * [Removed] Drop Python 3.8 support ([#3993](https://github.com/quiltdata/quilt/pull/3993))
 * [Fixed] If upload optimization during `push()` succeeds the checksum is calculated from local file instead of remote file ([#3968](https://github.com/quiltdata/quilt/pull/3968))
 * [Changed] Upload optimization check now tries to use S3 SHA-256 checksum and falls back to ETag ([#3968](https://github.com/quiltdata/quilt/pull/3968))
-
-## CLI
 
 ## Catalog, Lambdas
 * [Changed] Use promises for URLs in IGV to have fresh signing each time they used ([#3979](https://github.com/quiltdata/quilt/pull/3979))
