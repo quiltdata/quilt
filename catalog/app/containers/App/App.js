@@ -176,7 +176,7 @@ export default function App() {
             <AuthSignOut />
           </Route>
         )}
-        {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+        {!cfg.disableNavigator && cfg.mode === 'OPEN' && (
           <Route path={paths.signUp} exact>
             <AuthSignUp />
           </Route>
