@@ -280,7 +280,10 @@ class DataTransferTest(QuiltTestCase):
         urls = data_transfer.copy_file_list([
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == (PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'), None)
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=",
+        )
 
     def test_upload_large_file_etag_mismatch(self):
         path = DATA_DIR / 'large_file.npy'
@@ -320,6 +323,218 @@ class DataTransferTest(QuiltTestCase):
         assert urls[0] == (
             PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2'),
             'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
+        )
+
+    def test_upload_file_checksum_match(self):
+        path = DATA_DIR / 'large_file.npy'
+        assert path.stat().st_size < data_transfer.CHECKSUM_MULTIPART_THRESHOLD
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'J+KTXLmOXrP7AmRZQQZWSj6DznTh7TbeeP6YbL1j+5w=',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=",
+        )
+
+    def test_upload_file_checksum_match_unexpected_parts(self):
+        path = DATA_DIR / 'large_file.npy'
+        assert path.stat().st_size < data_transfer.CHECKSUM_MULTIPART_THRESHOLD
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=-1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2',
+                # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2'),
+            "Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=",
+        )
+
+    def test_upload_file_checksum_multipart_match(self):
+        path = pathlib.Path("test-file")
+        path.write_bytes(bytes(data_transfer.CHECKSUM_MULTIPART_THRESHOLD))
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=-1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=",
+        )
+
+    def test_upload_file_checksum_multipart_match_unexpected_parts(self):
+        path = pathlib.Path("test-file")
+        path.write_bytes(bytes(data_transfer.CHECKSUM_MULTIPART_THRESHOLD))
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='create_multipart_upload',
+            service_response={
+                'UploadId': '123'
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='upload_part',
+            service_response={
+                'ETag': '"123"',
+                'ChecksumSHA256': 'La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'UploadId': '123',
+                'Body': ANY,
+                'PartNumber': 1,
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='complete_multipart_upload',
+            service_response={
+                'ChecksumSHA256': "MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=-1",
+                'VersionId': 'v1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'UploadId': '123',
+                'MultipartUpload': {
+                    'Parts': [
+                        {
+                            'ETag': '"123"',
+                            'ChecksumSHA256': 'La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=',
+                            'PartNumber': 1,
+                        },
+                    ]
+                }
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=",
+        )
+
+    def test_upload_file_size_mismatch(self):
+        path = DATA_DIR / 'large_file.npy'
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size + 1,
+                'ETag': data_transfer._calculate_etag(path),
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=-1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2',
+                # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2'),
+            "Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=",
         )
 
     def test_multipart_upload(self):

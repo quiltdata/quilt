@@ -1540,9 +1540,9 @@ class Package:
                 new_entry.hash = dict(type=SHA256_CHUNKED_HASH_NAME, value=checksum)
             pkg._set(logical_key, new_entry)
 
-        # Needed if the files already exist in S3, but were uploaded without ChecksumAlgorithm='SHA256'.
+        # Some entries may miss hash values (e.g because of selector_fn), so we need
+        # to fix them before calculating the top hash.
         pkg._fix_sha256()
-
         top_hash = pkg._calculate_top_hash(pkg._meta, pkg.walk())
 
         if dedupe and top_hash == latest_hash:

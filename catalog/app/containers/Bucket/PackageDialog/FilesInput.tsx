@@ -1333,7 +1333,6 @@ interface FilesInputProps {
     onChange: (value: FilesState) => void
   }
   className?: string
-  disabled?: boolean
   errors?: Record<string, React.ReactNode>
   meta: RF.FieldMetaState<FilesState> & { initial: FilesState }
   onFilesAction?: (
@@ -1361,7 +1360,6 @@ interface FilesInputProps {
 export function FilesInput({
   input: { value, onChange },
   className,
-  disabled = false,
   errors = {},
   meta,
   onFilesAction,
@@ -1391,13 +1389,13 @@ export function FilesInput({
     }
   }
 
-  const submitting = meta.submitting || meta.submitSucceeded
+  const disabled = meta.submitting || meta.submitSucceeded || meta.validating
   const error =
     meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const refProps = {
     value,
-    disabled: disabled || submitting,
+    disabled,
     initial: meta.initial,
     onChange,
     onFilesAction,
@@ -1509,7 +1507,7 @@ export function FilesInput({
       <Header>
         <HeaderTitle
           state={
-            submitting || disabled // eslint-disable-line no-nested-ternary
+            disabled // eslint-disable-line no-nested-ternary
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
               ? 'error'
@@ -1617,12 +1615,12 @@ export function FilesInput({
 
           <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
         </Contents>
-        {(submitting || disabled) && <Lock progress={totalProgress} />}
+        {disabled && <Lock progress={totalProgress} />}
       </ContentsContainer>
       <div className={classes.actions}>
         <M.Button
           onClick={open}
-          disabled={submitting || disabled}
+          disabled={disabled}
           className={classes.action}
           variant="outlined"
           size="small"
@@ -1632,7 +1630,7 @@ export function FilesInput({
         {isS3FilePickerEnabled ? (
           <M.Button
             onClick={handleS3Btn}
-            disabled={submitting || disabled}
+            disabled={disabled}
             className={classes.action}
             variant="outlined"
             size="small"
