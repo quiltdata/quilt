@@ -17,9 +17,8 @@ RUN apt-get update && \
         python3-pip
 
 COPY thumbnail/requirements.txt /requirements/thumbnail.txt
-RUN pip install -U pip setuptools
 # HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
-RUN pip install 'numpy<2'
+RUN pip install -U pip setuptools 'numpy<2'
 RUN pip install --target /deps -r /requirements/thumbnail.txt
 RUN curl --output /deps/unoconv \
     https://raw.githubusercontent.com/unoconv/unoconv/be5301a757552f4ecac5d73187ce4d8e18341306/unoconv
