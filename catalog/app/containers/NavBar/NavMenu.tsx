@@ -69,6 +69,13 @@ const ItemDescriptor = tagged.create(
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 type ItemDescriptor = tagged.InstanceOf<typeof ItemDescriptor>
 
+const useDropdownMenuStyles = M.makeStyles((t) => ({
+  divider: {
+    marginBottom: t.spacing(1),
+    marginTop: t.spacing(1),
+  },
+}))
+
 interface DropdownMenuProps
   extends Omit<
     M.MenuProps,
@@ -82,6 +89,8 @@ interface DropdownMenuProps
 }
 
 function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
+  const classes = useDropdownMenuStyles()
+
   const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
 
   const open = React.useCallback(
@@ -129,7 +138,7 @@ function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
       Text: (props, i) => (
         <M.MenuItem key={i} component="div" disabled style={{ opacity: 1 }} {...props} />
       ),
-      Divider: (_, i) => <M.Divider key={i} />,
+      Divider: (_, i) => <M.Divider key={i} className={classes.divider} />,
     }),
   )
 
