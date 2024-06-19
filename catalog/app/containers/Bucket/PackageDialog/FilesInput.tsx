@@ -45,7 +45,17 @@ const COLORS = {
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
 
-const isStateAvailableForDnd = (state: FilesEntryState) => {
+const isDragReady = (state: FilesEntryState) => {
+  switch (state) {
+    case 'added':
+    case 'unchanged':
+      return true
+    default:
+      return false
+  }
+}
+
+const isDropReady = (state: FilesEntryState) => {
   switch (state) {
     case 'added':
     case 'modified':
@@ -56,10 +66,10 @@ const isStateAvailableForDnd = (state: FilesEntryState) => {
   }
 }
 
-const isFileAvailableForDnd = (entry: FilesEntry) =>
+const isFileDropReady = (entry: FilesEntry) =>
   FilesEntry.match({
-    Dir: (d) => isStateAvailableForDnd(d.state),
-    File: (f) => isStateAvailableForDnd(f.state),
+    Dir: (d) => isDropReady(d.state),
+    File: (f) => isDropReady(f.state),
   })(entry)
 
 export function computeHash(f: File) {
@@ -307,13 +317,14 @@ function EntryIcon({ setDragRef, state, overlay, children }: EntryIconProps) {
   }[state]
   return (
     <div
-      className={cx(classes.root, { [classes.invalid]: state === 'invalid' })}
+      className={cx(classes.root, {
+        [classes.draggable]: !!setDragRef,
+        [classes.invalid]: state === 'invalid',
+      })}
       draggable={!!setDragRef}
       ref={setDragRef}
     >
-      <M.Icon className={cx(classes.icon, { [classes.draggable]: !!setDragRef })}>
-        {children}
-      </M.Icon>
+      <M.Icon className={cx(classes.icon)}>{children}</M.Icon>
       {!!overlay && <div className={classes.overlay}>{overlay}</div>}
       {!!stateContents && (
         <div className={classes.stateContainer}>
@@ -446,7 +457,7 @@ function File({
       <div className={cx(classes.inner, faint && classes.faint)}>
         <EntryIcon
           overlay={type === 's3' ? 'S3' : undefined}
-          setDragRef={isStateAvailableForDnd(state) ? setDragRef : undefined}
+          setDragRef={isDragReady(state) ? setDragRef : undefined}
           state={stateDisplay}
         >
           insert_drive_file
@@ -628,7 +639,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
       >
         <div className={cx(classes.headInner, faint && classes.faint)}>
           <EntryIcon
-            setDragRef={isStateAvailableForDnd(state) ? setDragRef : undefined}
+            setDragRef={isDragReady(state) ? setDragRef : undefined}
             state={stateDisplay}
           >
             {expanded ? 'folder_open' : 'folder'}
@@ -1320,7 +1331,7 @@ function DndProvider({ children }: DndProviderProps) {
 
   const [draggingOver, setDraggingOver] = React.useState<FilesEntry | null>(null)
   const onDragover = React.useCallback((el: HTMLDivElement, f: FilesEntry) => {
-    if (!el || !isFileAvailableForDnd(f)) return
+    if (!el || !isFileDropReady(f)) return
     let timerId: ReturnType<typeof setTimeout> | null = null
     const enter = (e: Event) => {
       e.preventDefault()
@@ -1348,7 +1359,7 @@ function DndProvider({ children }: DndProviderProps) {
     (el: HTMLDivElement, callback: (f: [FilesEntry, Prefix]) => void) => {
       const cb = () => {
         if (dragging) {
-          if (isFileAvailableForDnd(dragging[0])) {
+          if (isFileDropReady(dragging[0])) {
             callback(dragging)
           }
           setDragging(null)
