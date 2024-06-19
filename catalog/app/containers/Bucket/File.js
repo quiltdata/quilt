@@ -32,6 +32,7 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import FileCodeSamples from './CodeSamples/File'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
+import QuratorSection from './Qurator/Section'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
@@ -500,6 +501,9 @@ export default function File() {
                       {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
+                      )}
+                      {cfg.qurator && blocks.qurator && (
+                        <QuratorSection handle={handle} />
                       )}
                       {blocks.meta && (
                         <>

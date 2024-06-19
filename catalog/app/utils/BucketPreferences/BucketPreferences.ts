@@ -44,6 +44,7 @@ interface BlocksPreferencesInput {
   code?: boolean
   meta?: boolean | MetaBlockPreferencesInput
   gallery?: boolean | GalleryPreferences
+  qurator?: boolean
 }
 
 interface BlocksPreferences {
@@ -52,6 +53,7 @@ interface BlocksPreferences {
   code: boolean
   meta: false | MetaBlockPreferences
   gallery: false | GalleryPreferences
+  qurator: boolean
 }
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
@@ -149,6 +151,7 @@ const defaultPreferences: BucketPreferences = {
       code: true,
       meta: defaultBlockMeta,
       gallery: defaultGallery,
+      qurator: true,
     },
     nav: {
       files: true,
