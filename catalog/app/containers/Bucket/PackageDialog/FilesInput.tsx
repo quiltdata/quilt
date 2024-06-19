@@ -1,26 +1,39 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useDropzone, FileWithPath } from 'react-dropzone'
+import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as Dialog from 'components/Dialog'
 import * as urls from 'constants/urls'
 import type * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import computeFileChecksum from 'utils/checksums'
-import dissocBy from 'utils/dissocBy'
 import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
-import * as Types from 'utils/types'
 
 import EditFileMeta from './EditFileMeta'
+import {
+  FilesEntryState,
+  FilesEntry,
+  FilesEntryDir,
+  FilesEntryType,
+  FilesAction,
+  FileWithHash,
+  FilesState,
+  handleFilesAction,
+  EMPTY_DIR_MARKER,
+} from './FilesState'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
+
+export { EMPTY_DIR_MARKER, FilesAction } from './FilesState'
+export type { LocalFile, FilesState } from './FilesState'
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -30,17 +43,34 @@ const COLORS = {
   invalid: M.colors.red[400],
 }
 
-interface FileWithHash extends File {
-  hash: {
-    ready: boolean
-    value?: Model.Checksum
-    error?: Error
-    promise: Promise<Model.Checksum | undefined>
+const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
+
+const isDragReady = (state: FilesEntryState) => {
+  switch (state) {
+    case 'added':
+    case 'unchanged':
+      return true
+    default:
+      return false
   }
-  meta?: Types.JsonRecord
 }
 
-const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
+const isDropReady = (state: FilesEntryState) => {
+  switch (state) {
+    case 'added':
+    case 'modified':
+    case 'unchanged':
+      return true
+    default:
+      return false
+  }
+}
+
+const isFileDropReady = (entry: FilesEntry) =>
+  FilesEntry.match({
+    Dir: (d) => isDropReady(d.state),
+    File: (f) => isDropReady(f.state),
+  })(entry)
 
 export function computeHash(f: File) {
   if (hasHash(f)) return f
@@ -65,155 +95,9 @@ export function computeHash(f: File) {
   return fh
 }
 
-export const FilesAction = tagged.create(
-  'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
-  {
-    Add: (v: { files: FileWithHash[]; prefix?: string }) => v,
-    AddFromS3: (filesMap: Record<string, Model.S3File>) => filesMap,
-    Delete: (path: string) => path,
-    DeleteDir: (prefix: string) => prefix,
-    Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
-    Revert: (path: string) => path,
-    RevertDir: (prefix: string) => prefix,
-    Reset: () => {},
-  },
-)
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type FilesAction = tagged.InstanceOf<typeof FilesAction>
-
-export type LocalFile = FileWithPath & FileWithHash
-
-export interface FilesState {
-  added: Record<string, LocalFile | Model.S3File>
-  deleted: Record<string, true>
-  existing: Record<string, Model.PackageEntry>
-  // XXX: workaround used to re-trigger validation and dependent computations
-  // required due to direct mutations of File objects
-  counter?: number
-}
-
-const addMetaToFile = (
-  file: Model.PackageEntry | LocalFile | Model.S3File,
-  meta?: Model.EntryMeta,
-) => {
-  if (file instanceof window.File) {
-    const fileCopy = new window.File([file as File], (file as File).name, {
-      type: (file as File).type,
-    })
-    Object.defineProperty(fileCopy, 'meta', {
-      value: meta,
-    })
-    Object.defineProperty(fileCopy, 'hash', {
-      value: (file as FileWithHash).hash,
-    })
-    return fileCopy
-  }
-  return R.assoc('meta', meta, file)
-}
-
-const handleFilesAction = FilesAction.match<
-  (state: FilesState) => FilesState,
-  [{ initial: FilesState }]
->({
-  Add:
-    ({ files, prefix }) =>
-    (state) =>
-      files.reduce((acc, file) => {
-        const path = (prefix || '') + PD.getNormalizedPath(file)
-        return R.evolve(
-          {
-            added: R.assoc(path, file),
-            deleted: R.dissoc(path),
-          },
-          acc,
-        )
-      }, state),
-  AddFromS3: (filesMap) =>
-    R.evolve({
-      added: R.mergeLeft(filesMap),
-      deleted: R.omit(Object.keys(filesMap)),
-    }),
-  Delete: (path) =>
-    R.evolve({
-      added: R.dissoc(path),
-      deleted: R.assoc(path, true as const),
-    }),
-  // add all descendants from existing to deleted
-  DeleteDir:
-    (prefix) =>
-    ({ existing, added, deleted, ...rest }) => ({
-      existing,
-      added: dissocBy(R.startsWith(prefix))(added),
-      deleted: R.mergeLeft(
-        Object.keys(existing).reduce(
-          (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
-          {},
-        ),
-        deleted,
-      ),
-      ...rest,
-    }),
-  Meta: ({ path, meta }) => {
-    const mkSetMeta =
-      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
-      (filesDict: Record<string, T>) => {
-        const file = filesDict[path]
-        if (!file) return filesDict
-        return R.assoc(path, addMetaToFile(file, meta), filesDict)
-      }
-    return R.evolve({
-      added: mkSetMeta<LocalFile | Model.S3File>(),
-      existing: mkSetMeta<Model.PackageEntry>(),
-    })
-  },
-  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
-  // remove all descendants from added and deleted
-  RevertDir: (prefix) =>
-    R.evolve({
-      added: dissocBy(R.startsWith(prefix)),
-      deleted: dissocBy(R.startsWith(prefix)),
-    }),
-  Reset:
-    (_, { initial }) =>
-    () =>
-      initial,
-})
-
 interface DispatchFilesAction {
   (action: FilesAction): void
 }
-
-type FilesEntryState =
-  | 'deleted'
-  | 'modified'
-  | 'unchanged'
-  | 'hashing'
-  | 'added'
-  | 'invalid'
-
-type FilesEntryType = 's3' | 'local'
-
-const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
-
-const FilesEntry = tagged.create(FilesEntryTag, {
-  Dir: (v: {
-    name: string
-    state: FilesEntryState
-    childEntries: tagged.Instance<typeof FilesEntryTag>[]
-  }) => v,
-  File: (v: {
-    name: string
-    state: FilesEntryState
-    type: FilesEntryType
-    size: number
-    meta?: Model.EntryMeta
-  }) => v,
-})
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-type FilesEntry = tagged.InstanceOf<typeof FilesEntry>
-type FilesEntryDir = ReturnType<typeof FilesEntry.Dir>
 
 const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => {
   const { name, childEntries } = FilesEntry.Dir.unbox(dir)
@@ -246,7 +130,18 @@ const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEnt
       restEntries = R.without([existingDir], entries)
       baseDir = existingDir as FilesEntryDir
     }
-    inserted = insertIntoDir(rest, file, baseDir)
+    // If file is "hidden",
+    // and it is the actual file, not a parent path;
+    // then we skip inserting it into UI
+    const hiddenFileBase =
+      FilesEntry.match(
+        {
+          File: (f) => f.type === 'hidden',
+          Dir: () => false,
+        },
+        file,
+      ) && !rest.length
+    inserted = hiddenFileBase ? baseDir : insertIntoDir(rest, file, baseDir)
   }
   const sort = R.sortWith([
     R.ascend(FilesEntry.match({ Dir: () => 0, File: () => 1 })),
@@ -314,7 +209,13 @@ const computeEntries = ({
         meta: f.meta,
       })
     }
-    const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
+    const type =
+      // eslint-disable-next-line no-nested-ternary
+      f === EMPTY_DIR_MARKER
+        ? ('hidden' as const)
+        : S3FilePicker.isS3File(f)
+        ? ('s3' as const)
+        : ('local' as const)
     return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
@@ -344,6 +245,9 @@ export const EMPTY_SELECTION = 'emptySelection'
 const useEntryIconStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
+  },
+  draggable: {
+    cursor: 'move',
   },
   icon: {
     boxSizing: 'content-box',
@@ -398,9 +302,10 @@ const useEntryIconStyles = M.makeStyles((t) => ({
 type EntryIconProps = React.PropsWithChildren<{
   state: FilesEntryState
   overlay?: React.ReactNode
+  setDragRef?: (el: HTMLDivElement) => void
 }>
 
-function EntryIcon({ state, overlay, children }: EntryIconProps) {
+function EntryIcon({ setDragRef, state, overlay, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
   const stateContents = {
     added: '+',
@@ -411,8 +316,15 @@ function EntryIcon({ state, overlay, children }: EntryIconProps) {
     unchanged: undefined,
   }[state]
   return (
-    <div className={cx(classes.root, { [classes.invalid]: state === 'invalid' })}>
-      <M.Icon className={classes.icon}>{children}</M.Icon>
+    <div
+      className={cx(classes.root, {
+        [classes.draggable]: !!setDragRef,
+        [classes.invalid]: state === 'invalid',
+      })}
+      draggable={!!setDragRef}
+      ref={setDragRef}
+    >
+      <M.Icon className={cx(classes.icon)}>{children}</M.Icon>
       {!!overlay && <div className={classes.overlay}>{overlay}</div>}
       {!!stateContents && (
         <div className={classes.stateContainer}>
@@ -496,6 +408,7 @@ const useFileStyles = M.makeStyles((t) => ({
 }))
 
 interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
+  setDragRef?: (el: HTMLDivElement) => void
   name: string
   state?: FilesEntryState
   type?: FilesEntryType
@@ -510,6 +423,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 function File({
+  setDragRef,
   name,
   state = 'unchanged',
   type = 'local',
@@ -541,7 +455,11 @@ function File({
       {...props}
     >
       <div className={cx(classes.inner, faint && classes.faint)}>
-        <EntryIcon state={stateDisplay} overlay={type === 's3' ? 'S3' : undefined}>
+        <EntryIcon
+          overlay={type === 's3' ? 'S3' : undefined}
+          setDragRef={isDragReady(state) ? setDragRef : undefined}
+          state={stateDisplay}
+        >
           insert_drive_file
         </EntryIcon>
         <div className={classes.name} title={name}>
@@ -585,6 +503,10 @@ const useDirStyles = M.makeStyles((t) => ({
     outline: 'none',
     '$active > &, &:hover': {
       opacity: 1,
+    },
+    '$active > &': {
+      outline: `2px dashed ${t.palette.primary.light}`,
+      outlineOffset: '-2px',
     },
     '$added > &': {
       color: COLORS.added,
@@ -662,6 +584,8 @@ const useDirStyles = M.makeStyles((t) => ({
 }))
 
 interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
+  setDragRef?: (el: HTMLDivElement) => void
+  setDropRef?: (el: HTMLDivElement) => void
   name: string
   state?: FilesEntryState
   disableStateDisplay?: boolean
@@ -676,6 +600,8 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   {
+    setDragRef,
+    setDropRef,
     name,
     state = 'unchanged',
     disableStateDisplay = false,
@@ -693,6 +619,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
 ) {
   const classes = useDirStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
+  // on drag (and drop) head only
 
   return (
     <div
@@ -703,9 +630,18 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
       {...props}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-      <div onClick={onHeadClick} className={classes.head} role="button" tabIndex={0}>
+      <div
+        onClick={onHeadClick}
+        className={classes.head}
+        role="button"
+        tabIndex={0}
+        ref={setDropRef}
+      >
         <div className={cx(classes.headInner, faint && classes.faint)}>
-          <EntryIcon state={stateDisplay}>
+          <EntryIcon
+            setDragRef={isDragReady(state) ? setDragRef : undefined}
+            state={stateDisplay}
+          >
             {expanded ? 'folder_open' : 'folder'}
           </EntryIcon>
           <div className={classes.name}>{name}</div>
@@ -812,7 +748,11 @@ export function Root({
   ...props
 }: React.PropsWithChildren<{ className?: string }>) {
   const classes = useRootStyles()
-  return <div className={cx(classes.root, className)} {...props} />
+  return (
+    <DndProvider>
+      <div className={cx(classes.root, className)} {...props} />
+    </DndProvider>
+  )
 }
 
 const useHeaderStyles = M.makeStyles({
@@ -1138,9 +1078,22 @@ function FileUpload({
     [dispatch, path],
   )
 
+  const file = React.useMemo(
+    () => FilesEntry.File({ name, state, type, size, meta }),
+    [name, state, type, size, meta],
+  )
+  const { onDrag } = useDnd()
+  const [dragRef, setDragRef] = React.useState<HTMLDivElement | null>(null)
+  // Note We don't have a sort order. We can move INTO dir only
+  React.useEffect(() => {
+    if (!dragRef) return
+    return onDrag(dragRef, [file, prefix])
+  }, [onDrag, file, prefix, dragRef])
+
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <File
+      setDragRef={setDragRef}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -1182,7 +1135,7 @@ function DirUpload({
   delayHashing,
   disableStateDisplay,
 }: DirUploadProps) {
-  const [expanded, setExpanded] = React.useState(false)
+  const [expanded, setExpanded] = React.useState(!childEntries.length)
 
   const toggleExpanded = React.useCallback(
     (e) => {
@@ -1206,6 +1159,30 @@ function DirUpload({
     },
     [dispatch, path],
   )
+
+  const dir = React.useMemo(
+    () => FilesEntry.Dir({ name, state, childEntries }),
+    [name, state, childEntries],
+  )
+  const { draggingOver, onDrag, onDragover, onDrop: onDragMove } = useDnd()
+
+  const [dragRef, setDragRef] = React.useState<HTMLDivElement | null>(null)
+  React.useEffect(() => {
+    if (!dragRef) return
+    return onDrag(dragRef, [dir, prefix])
+  }, [dir, onDrag, prefix, dragRef])
+
+  const [dropRef, setDropRef] = React.useState<HTMLDivElement | null>(null)
+  React.useEffect(() => {
+    if (!dropRef) return
+    return onDragover(dropRef, dir)
+  }, [onDragover, dir, dropRef])
+  React.useEffect(() => {
+    if (!dropRef) return
+    return onDragMove(dropRef, (source) => {
+      dispatch(FilesAction.Move({ source, dest: [dir, prefix] }))
+    })
+  }, [dir, dispatch, onDragMove, prefix, dropRef])
 
   const { getRootProps, isDragActive } = useDropzone({
     onDrop,
@@ -1265,7 +1242,7 @@ function DirUpload({
   return (
     <Dir
       {...getRootProps({ onClick })}
-      active={isDragActive}
+      active={isDragActive || draggingOver === dir}
       onHeadClick={toggleExpanded}
       expanded={expanded}
       name={name}
@@ -1277,6 +1254,8 @@ function DirUpload({
         </M.IconButton>
       }
       empty={!childEntries.length}
+      setDragRef={setDragRef}
+      setDropRef={setDropRef}
     >
       {!!childEntries.length &&
         childEntries.map(
@@ -1306,6 +1285,99 @@ function DirUpload({
   )
 }
 
+type Unsubscribe = () => void
+
+type Prefix = string | undefined
+interface Dnd {
+  dragging: [FilesEntry, Prefix] | null // what file/dir we are dragging
+  draggingOver: FilesEntry | null // above what file/dir we are dragging
+  onDrag: (el: HTMLDivElement, f: [FilesEntry, Prefix]) => Unsubscribe | void
+  onDragover: (el: HTMLDivElement, f: FilesEntry) => Unsubscribe | void
+  onDrop: (
+    el: HTMLDivElement,
+    callback: (f: [FilesEntry, Prefix]) => void,
+  ) => Unsubscribe | void
+}
+
+const noop: Unsubscribe = () => {}
+
+const DndContext = React.createContext<Dnd>({
+  dragging: null,
+  draggingOver: null,
+  onDrag: () => noop,
+  onDragover: () => noop,
+  onDrop: () => noop,
+})
+
+interface DndProviderProps {
+  children: React.ReactNode
+}
+
+const useDnd = () => React.useContext(DndContext)
+
+function DndProvider({ children }: DndProviderProps) {
+  const [dragging, setDragging] = React.useState<[FilesEntry, Prefix] | null>(null)
+  const onDrag = React.useCallback((el: HTMLDivElement, f: [FilesEntry, Prefix]) => {
+    if (!el) return
+    const start = () => setDragging(f)
+    const end = () => setDragging(null)
+    el.addEventListener('dragstart', start)
+    el.addEventListener('dragend', end)
+    return () => {
+      el.removeEventListener('dragstart', start)
+      el.removeEventListener('dragend', end)
+    }
+  }, [])
+
+  const [draggingOver, setDraggingOver] = React.useState<FilesEntry | null>(null)
+  const onDragover = React.useCallback((el: HTMLDivElement, f: FilesEntry) => {
+    if (!el || !isFileDropReady(f)) return
+    let timerId: ReturnType<typeof setTimeout> | null = null
+    const enter = (e: Event) => {
+      e.preventDefault()
+      setDraggingOver(f)
+      // Workaround to hide draging over effect when dragleave wasn't triggered
+      if (timerId) clearTimeout(timerId)
+      timerId = setTimeout(() => setDraggingOver(null), 5000)
+    }
+    const leave = (e: Event) => {
+      if (e.target !== el) return
+      e.preventDefault()
+      setDraggingOver(null)
+    }
+
+    el.addEventListener('dragenter', enter)
+    el.addEventListener('dragleave', leave)
+    return () => {
+      if (timerId) clearTimeout(timerId)
+      el.removeEventListener('dragenter', enter)
+      el.removeEventListener('dragleave', leave)
+    }
+  }, [])
+
+  const onDrop = React.useCallback(
+    (el: HTMLDivElement, callback: (f: [FilesEntry, Prefix]) => void) => {
+      const cb = () => {
+        if (dragging) {
+          if (isFileDropReady(dragging[0])) {
+            callback(dragging)
+          }
+          setDragging(null)
+        }
+      }
+      el.addEventListener('drop', cb)
+      return () => el.removeEventListener('drop', cb)
+    },
+    [dragging],
+  )
+
+  return (
+    <DndContext.Provider value={{ dragging, draggingOver, onDrag, onDragover, onDrop }}>
+      {children}
+    </DndContext.Provider>
+  )
+}
+
 const DOCS_URL_SOURCE_BUCKETS = `${urls.docsMaster}/catalog/preferences#properties`
 
 const useFilesInputStyles = M.makeStyles((t) => ({
@@ -1321,6 +1393,17 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     '& + &': {
       marginLeft: t.spacing(1),
     },
+  },
+  iconAction: {
+    marginRight: t.spacing(1),
+    minWidth: t.spacing(6),
+  },
+  buttons: {
+    display: 'flex',
+    marginLeft: 'auto',
+  },
+  btnDivider: {
+    margin: t.spacing(0, 1),
   },
   warning: {
     marginLeft: t.spacing(1),
@@ -1430,6 +1513,16 @@ export function FilesInput({
     [dispatch],
   )
 
+  const promptOpts = React.useMemo(
+    () => ({
+      onSubmit: (name: string) => dispatch(FilesAction.AddFolder(name)),
+      title: 'Enter new directory path',
+      validate: (p: string) => (!p ? new Error("Path can't be empty") : undefined),
+    }),
+    [dispatch],
+  )
+  const prompt = Dialog.usePrompt(promptOpts)
+
   const resetFiles = React.useCallback(() => {
     dispatch(FilesAction.Reset())
   }, [dispatch])
@@ -1504,6 +1597,13 @@ export function FilesInput({
           onClose={closeS3FilePicker}
         />
       )}
+      {prompt.render(
+        <M.Typography variant="body2">
+          You can add new directories and drag-and-drop files and folders into them.
+          Please note that directories that remain empty will be excluded during the
+          package creation process.
+        </M.Typography>,
+      )}
       <Header>
         <HeaderTitle
           state={
@@ -1564,17 +1664,29 @@ export function FilesInput({
             />
           )}
         </HeaderTitle>
-        <M.Box flexGrow={1} />
-        {meta.dirty && (
-          <M.Button
-            onClick={resetFiles}
+        <div className={classes.buttons}>
+          {meta.dirty && (
+            <>
+              <M.Button
+                onClick={resetFiles}
+                disabled={ref.current.disabled}
+                size="small"
+                endIcon={<M.Icon fontSize="small">undo</M.Icon>}
+              >
+                {ui.reset || 'Clear files'}
+              </M.Button>
+              <M.Divider className={classes.btnDivider} orientation="vertical" flexItem />
+            </>
+          )}
+          <M.IconButton
             disabled={ref.current.disabled}
+            onClick={prompt.open}
             size="small"
-            endIcon={<M.Icon fontSize="small">undo</M.Icon>}
+            title="Add empty folder"
           >
-            {ui.reset || 'Clear files'}
-          </M.Button>
-        )}
+            <M.Icon fontSize="small">create_new_folder</M.Icon>
+          </M.IconButton>
+        </div>
       </Header>
 
       <ContentsContainer outlined={isDragging && !ref.current.disabled}>
