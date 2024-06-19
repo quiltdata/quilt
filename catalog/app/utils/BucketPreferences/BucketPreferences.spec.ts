@@ -31,6 +31,7 @@ const expectedDefaults = {
         packages: true,
         summarize: true,
       },
+      qurator: true,
     },
     nav: {
       files: true,
