@@ -88,7 +88,6 @@ const transformConfig = (cfg: ConfigJson) => ({
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
   ssoAuth: AUTH_MAP[cfg.ssoAuth],
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
-  enableMarketingPages: cfg.mode === 'PRODUCT',
   s3Proxy: startWithOrigin(cfg.s3Proxy),
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
   noDownload: !!cfg.noDownload,

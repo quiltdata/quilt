@@ -70,11 +70,6 @@ const OpenProfile = requireAuth()(
 )
 const Install = RT.mkLazy(() => import('website/pages/Install'), Placeholder)
 
-const MPersonas = RT.mkLazy(() => import('website/pages/Personas'), Placeholder)
-const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
-
-const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
-
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
@@ -88,18 +83,9 @@ export default function App() {
           <Home />
         </Route>
 
-        {process.env.NODE_ENV === 'development' && (
-          <Route path={paths.example}>
-            <Example />
-          </Route>
-        )}
-
-        {cfg.mode === 'PRODUCT' && (
-          // XXX: should we just always have this page? it doesn't seem to hurt
-          <Route path={paths.install} exact>
-            <Install />
-          </Route>
-        )}
+        <Route path={paths.install} exact>
+          <Install />
+        </Route>
 
         {!!cfg.legacyPackagesRedirect && (
           <Route path={paths.legacyPackages}>
@@ -110,17 +96,6 @@ export default function App() {
         <Route path={paths.search} exact>
           <Search />
         </Route>
-
-        {cfg.enableMarketingPages && (
-          <Route path={paths.personas} exact>
-            <MPersonas />
-          </Route>
-        )}
-        {cfg.enableMarketingPages && (
-          <Route path={paths.product} exact>
-            <MProduct />
-          </Route>
-        )}
 
         <Route path={paths.activate} exact>
           <Activate />

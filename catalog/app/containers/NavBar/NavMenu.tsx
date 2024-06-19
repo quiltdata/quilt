@@ -181,13 +181,11 @@ function useNavItems(): NavItem[] {
   }, [settings?.customNavLink])
 
   return [
-    process.env.NODE_ENV === 'development' &&
-      mkNavItem('to', urls.example(), 'Example', 'account_tree'),
     customNavLink,
     mkNavItem('to', urls.uriResolver(), 'URI', 'public'),
     mkNavItem('href', URLS.docs, 'Docs', 'menu_book'),
     cfg.mode === 'OPEN' && mkNavItem('href', URLS.jobs, 'Jobs', 'work'),
-    cfg.mode !== 'PRODUCT' && mkNavItem('href', URLS.blog, 'Blog', 'chat'),
+    cfg.mode === 'OPEN' && mkNavItem('href', URLS.blog, 'Blog', 'chat'),
   ].filter(Boolean) as NavItem[]
 }
 
