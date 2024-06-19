@@ -22,7 +22,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 * [Added] Support multiple roles per user ([#3982](https://github.com/quiltdata/quilt/pull/3982))
 * [Added] Add `ui.actions = False` and `ui.actions.writeFile` for configuring visibility of buttons ([#4001](https://github.com/quiltdata/quilt/pull/4001))
-* [Added] Support creating folders and rearranging entries with drag'n'drop in package creation dialog ([#3999](https://github.com/quiltdata/quilt/pull/3999))
+* [Added] Support creating folders and rearranging entries with drag and drop in package creation dialog ([#3999](https://github.com/quiltdata/quilt/pull/3999))
 
 # 6.0.0a4 - 2024-06-18
 ## Python API
