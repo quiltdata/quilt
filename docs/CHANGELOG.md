@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+- [Added] Support multiple roles per user ([#3982](https://github.com/quiltdata/quilt/pull/3982))
+
 # 6.0.0a4 - 2024-06-18
 ## Python API
 
