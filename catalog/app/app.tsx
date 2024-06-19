@@ -22,7 +22,6 @@ Sentry.init(cfg, history)
 import 'sanitize.css'
 
 // Import the rest of our modules
-import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
@@ -117,7 +116,6 @@ const render = () => {
           vertical_padding: 59,
         },
       ],
-      ExperimentsProvider,
       [Tracking.Provider, { userSelector: Auth.selectors.username }],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
