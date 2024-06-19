@@ -22,6 +22,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 * [Added] Support multiple roles per user ([#3982](https://github.com/quiltdata/quilt/pull/3982))
 * [Added] Add `ui.actions = False` and `ui.actions.writeFile` for configuring visibility of buttons ([#4001](https://github.com/quiltdata/quilt/pull/4001))
+* [Added] Add "Qurator" helper for summarizing files content using Bedrock API ([#3989](https://github.com/quiltdata/quilt/pull/3989))
 
 # 6.0.0a4 - 2024-06-18
 ## Python API
@@ -33,7 +34,6 @@ Entries inside each section should be ordered by type:
 * [Changed] Upload optimization check now tries to use S3 SHA-256 checksum and falls back to ETag ([#3968](https://github.com/quiltdata/quilt/pull/3968))
 
 ## Catalog, Lambdas
-* [Added] Add "Qurator" helper for summarizing files content using Bedrock API ([#3989](https://github.com/quiltdata/quilt/pull/3989))
 * [Changed] Use promises for URLs in IGV to have fresh signing each time they used ([#3979](https://github.com/quiltdata/quilt/pull/3979))
 
 # 6.0.0a3 - 2024-04-25
