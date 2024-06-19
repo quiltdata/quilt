@@ -37,9 +37,6 @@ const useLogoLinkStyles = M.makeStyles((t) => ({
 
 function LogoLink() {
   const settings = CatalogSettings.use()
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const wide = cfg.mode === 'MARKETING' && xs
   const classes = useLogoLinkStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
   })
@@ -48,11 +45,7 @@ function LogoLink() {
     <div className={classes.bgQuilt}>
       <div className={classes.bgCustom}>
         <Link to={urls.home()}>
-          <Logo
-            width={wide ? '76.5px' : '27px'}
-            height={wide ? '29px' : '27px'}
-            src={settings?.logo?.url}
-          />
+          <Logo width="27px" height="27px" src={settings?.logo?.url} />
         </Link>
       </div>
     </div>
@@ -222,7 +215,7 @@ export function NavBar() {
   const sub = Subscription.useState()
   const authenticated = redux.useSelector(authSelectors.authenticated)
 
-  const hideControls = cfg.disableNavigator || (cfg.alwaysRequiresAuth && !authenticated)
+  const hideControls = cfg.alwaysRequiresAuth && !authenticated
 
   return (
     <Container>
