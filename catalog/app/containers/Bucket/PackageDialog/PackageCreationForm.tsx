@@ -74,6 +74,8 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),
     Object.entries,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    R.filter(([path, file]) => file !== FI.EMPTY_DIR_MARKER),
     R.map(([path, file]) => ({
       logical_key: path,
       meta: file.meta?.user_meta || {},
@@ -144,6 +146,7 @@ function FormError({ submitting, error }: FormErrorProps) {
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
+    overflowY: 'auto',
   },
   filesWithError: {
     height: `calc(90% - ${t.spacing()}px)`,
@@ -295,6 +298,7 @@ function PackageCreationForm({
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
+      if (file === FI.EMPTY_DIR_MARKER) return
       if (isS3File(file)) {
         addedS3Entries.push({ path, file })
       } else {

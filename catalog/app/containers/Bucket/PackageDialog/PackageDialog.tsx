@@ -44,11 +44,6 @@ export const ERROR_MESSAGES = {
   MANIFEST: 'Error creating manifest',
 }
 
-export const getNormalizedPath = (f: { path?: string; name: string }) => {
-  const p = f.path || f.name
-  return p.startsWith('/') ? p.substring(1) : p
-}
-
 function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
   fn: (...args: I) => Promise<O>,
   wait: number,
