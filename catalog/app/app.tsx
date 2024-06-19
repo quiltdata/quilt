@@ -39,6 +39,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as GraphQL from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
+import WithGlobalDialogs from 'utils/GlobalDialogs'
 import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { PFSCookieManager } from 'utils/PFSCookieManager'
@@ -123,6 +124,7 @@ const render = () => {
       AWS.Athena.Provider,
       AWS.S3.Provider,
       Notifications.WithNotifications,
+      WithGlobalDialogs,
       Errors.ErrorBoundary,
       BucketCacheProvider,
       PFSCookieManager,
