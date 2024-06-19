@@ -28,11 +28,6 @@ export const install: Route = {
 
 // Marketing
 
-export const about: Route = {
-  path: '/about',
-  url: () => '/about',
-}
-
 export const personas: Route = {
   path: '/personas',
   url: () => '/personas',

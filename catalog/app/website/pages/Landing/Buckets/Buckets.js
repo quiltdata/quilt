@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory, Link } from 'react-router-dom'
+import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -8,6 +8,7 @@ import Pagination from 'components/Pagination2'
 import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
@@ -66,7 +67,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Buckets({ query: filter } = { query: '' }) {
+export default function Buckets() {
   const classes = useStyles()
   // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
@@ -75,6 +76,8 @@ export default function Buckets({ query: filter } = { query: '' }) {
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
+  const location = useLocation()
+  const { q: filter = '' } = parseSearch(location.search)
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
     [filter],

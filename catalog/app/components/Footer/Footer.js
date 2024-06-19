@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -75,7 +74,6 @@ const NavIcon = ({ icon, ...props }) => (
 )
 
 const useStyles = M.makeStyles((t) => ({
-  padded: {},
   root: {
     background: `left / 64px url(${bg})`,
     boxShadow: [
@@ -90,14 +88,6 @@ const useStyles = M.makeStyles((t) => ({
       alignItems: 'center',
       display: 'flex',
       paddingTop: 0,
-    },
-    // padding for marketing CTA
-    '&$padded': {
-      [t.breakpoints.down('sm')]: {
-        backgroundSize: 'contain',
-        height: 230 + 64,
-        paddingBottom: 64,
-      },
     },
   },
   container: {
@@ -135,9 +125,7 @@ export default function Footer() {
   const reservedSpaceForIntercom = !intercom.dummy && !intercom.isCustom
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
-      <footer
-        className={cx(classes.root, { [classes.padded]: cfg.mode === 'MARKETING' })}
-      >
+      <footer className={classes.root}>
         <M.Container maxWidth="lg" className={classes.container}>
           <M.Box
             style={{ gridArea: 'logo' }}
@@ -165,28 +153,16 @@ export default function Footer() {
             <NavLink href={URLS.docs} target="_blank">
               Docs
             </NavLink>
-            {cfg.mode === 'MARKETING' && (
-              <>
-                <NavSpacer />
-                <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
-              </>
-            )}
             <NavSpacer />
             <NavLink href={URLS.blog} target="_blank">
               Blog
             </NavLink>
-            {(cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && (
+            {cfg.mode === 'OPEN' && (
               <>
                 <NavSpacer />
                 <NavLink href={URLS.jobs} target="_blank">
                   Jobs
                 </NavLink>
-              </>
-            )}
-            {cfg.mode === 'MARKETING' && (
-              <>
-                <NavSpacer />
-                <NavLink to={urls.about()}>About</NavLink>
               </>
             )}
           </M.Box>

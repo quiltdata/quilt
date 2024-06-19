@@ -184,12 +184,10 @@ function useNavItems(): NavItem[] {
     process.env.NODE_ENV === 'development' &&
       mkNavItem('to', urls.example(), 'Example', 'account_tree'),
     customNavLink,
-    cfg.mode !== 'MARKETING' && mkNavItem('to', urls.uriResolver(), 'URI', 'public'),
+    mkNavItem('to', urls.uriResolver(), 'URI', 'public'),
     mkNavItem('href', URLS.docs, 'Docs', 'menu_book'),
-    (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') &&
-      mkNavItem('href', URLS.jobs, 'Jobs', 'work'),
+    cfg.mode === 'OPEN' && mkNavItem('href', URLS.jobs, 'Jobs', 'work'),
     cfg.mode !== 'PRODUCT' && mkNavItem('href', URLS.blog, 'Blog', 'chat'),
-    cfg.mode === 'MARKETING' && mkNavItem('to', urls.about(), 'About', 'help'),
   ].filter(Boolean) as NavItem[]
 }
 
@@ -389,7 +387,7 @@ interface DesktopMenuProps {
 function DesktopMenu({ auth }: DesktopMenuProps) {
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
-  if (isSignIn || cfg.disableNavigator || cfg.mode === 'LOCAL') return null
+  if (isSignIn || cfg.mode === 'LOCAL') return null
   return AuthState.match(
     {
       Ready: ({ user }) =>
@@ -412,7 +410,7 @@ function MobileMenu({ auth }: MobileMenuProps) {
   const bookmarks = Bookmarks.use()
 
   const authItems = React.useMemo(() => {
-    if (cfg.disableNavigator || cfg.mode === 'LOCAL') return []
+    if (cfg.mode === 'LOCAL') return []
     return AuthState.match<(ItemDescriptor | false)[]>(
       {
         Loading: () => [

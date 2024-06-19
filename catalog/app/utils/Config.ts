@@ -6,7 +6,7 @@ import { printObject } from 'utils/string'
 
 import configSchema from '../../config-schema.json'
 
-type Mode = 'MARKETING' | 'OPEN' | 'PRODUCT' | 'LOCAL'
+type Mode = 'OPEN' | 'PRODUCT' | 'LOCAL'
 type AuthMethodConfig = 'ENABLED' | 'DISABLED' | 'SIGN_IN_ONLY'
 
 // manually synced w/ config-schema.json
@@ -88,8 +88,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
   ssoAuth: AUTH_MAP[cfg.ssoAuth],
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
-  enableMarketingPages: cfg.mode === 'PRODUCT' || cfg.mode === 'MARKETING',
-  disableNavigator: cfg.mode === 'MARKETING',
+  enableMarketingPages: cfg.mode === 'PRODUCT',
   s3Proxy: startWithOrigin(cfg.s3Proxy),
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
   noDownload: !!cfg.noDownload,
