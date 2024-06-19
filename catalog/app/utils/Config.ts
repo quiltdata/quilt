@@ -29,8 +29,6 @@ export interface ConfigJson {
   mixpanelToken: string
   sentryDSN?: string
 
-  calendlyLink?: string
-
   legacyPackagesRedirect?: string
 
   linkedData?: {
