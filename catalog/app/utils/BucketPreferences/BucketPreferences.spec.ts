@@ -8,8 +8,11 @@ const expectedDefaults = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
+      openInDesktop: false,
       revisePackage: true,
+      writeFile: true,
     },
+    athena: {},
     blocks: {
       analytics: true,
       browser: true,
@@ -21,6 +24,12 @@ const expectedDefaults = {
         workflows: {
           expanded: false,
         },
+      },
+      gallery: {
+        files: true,
+        overview: true,
+        packages: true,
+        summarize: true,
       },
     },
     nav: {
@@ -54,7 +63,7 @@ describe('utils/BucketPreferences', () => {
                 actions:
                     copyPackage: False
       `
-      expect(parse(config).ui.actions).toMatchObject({
+      expect(parse(config).ui.actions).toEqual({
         ...expectedDefaults.ui.actions,
         copyPackage: false,
       })
@@ -66,7 +75,7 @@ describe('utils/BucketPreferences', () => {
                 blocks:
                     analytics: False
       `
-      expect(parse(config).ui.blocks).toMatchObject({
+      expect(parse(config).ui.blocks).toEqual({
         ...expectedDefaults.ui.blocks,
         analytics: false,
       })
@@ -78,19 +87,23 @@ describe('utils/BucketPreferences', () => {
                 nav:
                     queries: False
       `
-      expect(parse(config).ui.nav).toMatchObject({
+      expect(parse(config).ui.nav).toEqual({
         ...expectedDefaults.ui.nav,
         queries: false,
       })
     })
 
-    it('Additional config structures returns defaults', () => {
+    it('Additional config structures returns defaults and those additonal fields', () => {
       const config = dedent`
             ui:
                 blocks:
                     queries: QUERY
       `
       expect(parse(config)).toMatchObject(expectedDefaults)
+      expect(parse(config).ui.blocks).toEqual({
+        ...expectedDefaults.ui.blocks,
+        queries: 'QUERY',
+      })
     })
 
     it('Invalid config values throws error', () => {
@@ -100,6 +113,14 @@ describe('utils/BucketPreferences', () => {
                     queries: QUERY
       `
       expect(() => parse(config)).toThrowError()
+    })
+
+    it('Actions = false disables all actions', () => {
+      const config = dedent`
+            ui:
+                actions: False
+      `
+      expect(parse(config).ui.actions).toMatchSnapshot()
     })
   })
 
@@ -116,7 +137,7 @@ describe('utils/BucketPreferences', () => {
           },
         },
       }
-      expect(extendDefaults(config).ui.actions).toMatchObject({
+      expect(extendDefaults(config).ui.actions).toEqual({
         ...expectedDefaults.ui.actions,
         deleteRevision: true,
       })
@@ -130,7 +151,7 @@ describe('utils/BucketPreferences', () => {
           },
         },
       }
-      expect(extendDefaults(config).ui.blocks).toMatchObject({
+      expect(extendDefaults(config).ui.blocks).toEqual({
         ...expectedDefaults.ui.blocks,
         browser: false,
       })
@@ -144,7 +165,7 @@ describe('utils/BucketPreferences', () => {
           },
         },
       }
-      expect(extendDefaults(config).ui.nav).toMatchObject({
+      expect(extendDefaults(config).ui.nav).toEqual({
         ...expectedDefaults.ui.nav,
         files: false,
       })

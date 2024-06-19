@@ -20,7 +20,8 @@ Entries inside each section should be ordered by type:
 ## CLI
 
 ## Catalog, Lambdas
-- [Added] Support multiple roles per user ([#3982](https://github.com/quiltdata/quilt/pull/3982))
+* [Added] Support multiple roles per user ([#3982](https://github.com/quiltdata/quilt/pull/3982))
+* [Added] Add `ui.actions = False` and `ui.actions.writeFile` for configuring visibility of buttons ([#4001](https://github.com/quiltdata/quilt/pull/4001))
 
 # 6.0.0a4 - 2024-06-18
 ## Python API

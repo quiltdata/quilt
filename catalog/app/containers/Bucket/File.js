@@ -452,13 +452,18 @@ export default function File() {
               onChange={onViewModeChange}
             />
           )}
-          {FileEditor.isSupportedFileType(handle.key) && (
-            <FileEditor.Controls
-              {...editorState}
-              className={classes.button}
-              onSave={handleEditorSave}
-            />
-          )}
+          {BucketPreferences.Result.match({
+            Ok: ({ ui: { actions } }) =>
+              actions.writeFile &&
+              FileEditor.isSupportedFileType(handle.key) && (
+                <FileEditor.Controls
+                  {...editorState}
+                  className={classes.button}
+                  onSave={handleEditorSave}
+                />
+              ),
+            _: () => null,
+          })}
           {bookmarks && (
             <Buttons.Iconized
               className={classes.button}
@@ -535,7 +540,13 @@ export default function File() {
             ) : (
               <>
                 <Message headline="No Such Object">
-                  <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                  {BucketPreferences.Result.match({
+                    Ok: ({ ui: { actions } }) =>
+                      actions.writeFile && (
+                        <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                      ),
+                    _: () => null,
+                  })}
                 </Message>
               </>
             ),
