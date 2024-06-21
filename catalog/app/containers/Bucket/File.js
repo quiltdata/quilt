@@ -453,18 +453,21 @@ export default function File() {
               onChange={onViewModeChange}
             />
           )}
-          {BucketPreferences.Result.match({
-            Ok: ({ ui: { actions } }) =>
-              actions.writeFile &&
-              FileEditor.isSupportedFileType(handle.key) && (
-                <FileEditor.Controls
-                  {...editorState}
-                  className={classes.button}
-                  onSave={handleEditorSave}
-                />
-              ),
-            _: () => null,
-          })}
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) =>
+                actions.writeFile &&
+                FileEditor.isSupportedFileType(handle.key) && (
+                  <FileEditor.Controls
+                    {...editorState}
+                    className={classes.button}
+                    onSave={handleEditorSave}
+                  />
+                ),
+              _: () => null,
+            },
+            prefs,
+          )}
           {bookmarks && (
             <Buttons.Iconized
               className={classes.button}
@@ -544,13 +547,16 @@ export default function File() {
             ) : (
               <>
                 <Message headline="No Such Object">
-                  {BucketPreferences.Result.match({
-                    Ok: ({ ui: { actions } }) =>
-                      actions.writeFile && (
-                        <FileEditor.AddFileButton onClick={editorState.onEdit} />
-                      ),
-                    _: () => null,
-                  })}
+                  {BucketPreferences.Result.match(
+                    {
+                      Ok: ({ ui: { actions } }) =>
+                        actions.writeFile && (
+                          <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                        ),
+                      _: () => null,
+                    },
+                    prefs,
+                  )}
                 </Message>
               </>
             ),
