@@ -23,6 +23,7 @@ import 'sanitize.css'
 
 // Import the rest of our modules
 import * as Intercom from 'components/Intercom'
+import * as Omni from 'components/Omni'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
 import GTMLoader from 'utils/gtm'
@@ -102,6 +103,7 @@ const render = () => {
       GraphQL.Provider,
       AddToPackage.Provider,
       Bookmarks.Provider,
+      Omni.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { storage }],
