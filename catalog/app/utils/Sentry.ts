@@ -1,35 +1,26 @@
 import type { History } from 'history'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import * as Integrations from '@sentry/integrations'
 import * as Sentry from '@sentry/react'
-import * as Tracing from '@sentry/tracing'
 
 import * as AuthSelectors from 'containers/Auth/selectors'
 import type { Config } from 'utils/Config'
 
 const RELEASE = `catalog@${process.env.REVISION_HASH}`
 
-type BrowserTracingOptions = NonNullable<
-  ConstructorParameters<typeof Tracing.BrowserTracing>[0]
->
-
 export function init(cfg: Config, history?: History) {
   if (!cfg.sentryDSN) return false
-
-  const tracingOpts: BrowserTracingOptions = {}
-  if (history) {
-    tracingOpts.routingInstrumentation = Sentry.reactRouterV5Instrumentation(history)
-  }
 
   Sentry.init({
     dsn: cfg.sentryDSN,
     release: RELEASE,
     environment: process.env.NODE_ENV === 'development' ? 'dev' : 'prod',
     integrations: [
-      new Tracing.BrowserTracing(tracingOpts),
-      new Integrations.ExtraErrorData({ depth: 5 }),
-      new Sentry.Integrations.LinkedErrors({ key: 'originalError' }),
+      history
+        ? Sentry.reactRouterV5BrowserTracingIntegration({ history })
+        : Sentry.browserTracingIntegration(),
+      Sentry.extraErrorDataIntegration({ depth: 5 }),
+      Sentry.linkedErrorsIntegration({ key: 'originalError' }),
     ],
     normalizeDepth: 10,
     // XXX: dial down in production? get from config?
