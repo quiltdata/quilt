@@ -844,7 +844,7 @@ class PackageTest(QuiltTestCase):
         pkg2 = pkg['asdf']
         assert set(pkg2.keys()) == {'jkl', 'qwer'}
 
-        assert pkg['asdf']['qwer'].get() == LOCAL_MANIFEST.as_uri()
+        assert pkg['asdf']['qwer'].get() == LOCAL_MANIFEST.as_uri().replace('////', '//')
 
         assert pkg['asdf']['qwer'] == pkg['asdf/qwer'] == pkg[('asdf', 'qwer')]
         assert pkg[[]] == pkg
