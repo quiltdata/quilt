@@ -22,8 +22,8 @@ Sentry.init(cfg, history)
 import 'sanitize.css'
 
 // Import the rest of our modules
+import * as Assistant from 'components/Assistant'
 import * as Intercom from 'components/Intercom'
-import * as Omni from 'components/Omni'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
 import GTMLoader from 'utils/gtm'
@@ -103,7 +103,6 @@ const render = () => {
       GraphQL.Provider,
       AddToPackage.Provider,
       Bookmarks.Provider,
-      Omni.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { storage }],
@@ -123,6 +122,7 @@ const render = () => {
       AWS.Config.Provider,
       AWS.Athena.Provider,
       AWS.S3.Provider,
+      Assistant.Provider,
       Notifications.WithNotifications,
       WithGlobalDialogs,
       Errors.ErrorBoundary,

@@ -8,22 +8,6 @@ import Chat from 'components/Chat'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
 
-interface OmniCtx {
-  isOpen: boolean
-  open: () => void
-  close: () => void
-}
-
-const Ctx = React.createContext<OmniCtx | null>(null)
-
-export function Provider({ children }: React.PropsWithChildren<{}>) {
-  const [isOpen, setOpen] = React.useState(false)
-  const open = React.useCallback(() => setOpen(true), [])
-  const close = React.useCallback(() => setOpen(false), [])
-  const value = React.useMemo(() => ({ isOpen, open, close }), [isOpen, open, close])
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
-}
-
 const SYSTEM_PROMPT = `
 You are Qurator -- Quilt Data's AI Assistant.
 You are a conservative and creative scientist.
@@ -76,7 +60,7 @@ const TOOLS: Record<string, ToolDescriptor<any, any>> = {
   },
 }
 
-function useOmni() {
+function useAssistant() {
   const bedrock = AWS.Bedrock.useClient()
 
   const [history, setHistory] = React.useState([] as BedrockTypes.Messages)
@@ -237,16 +221,28 @@ function useOmni() {
   return { history, sendMessage, loading, messages: normalizedMessages }
 }
 
-function Omni() {
-  const omni = useOmni()
+type AssistantAPI = ReturnType<typeof useAssistant>
 
-  return (
-    <Chat
-      history={{ messages: omni.messages }}
-      initializing={false}
-      onSubmit={omni.sendMessage}
-    />
-  )
+interface AssistantCtx {
+  isOpen: boolean
+  open: () => void
+  close: () => void
+  assistant: AssistantAPI
+}
+
+const Ctx = React.createContext<AssistantCtx | null>(null)
+
+export function Provider({ children }: React.PropsWithChildren<{}>) {
+  const [isOpen, setOpen] = React.useState(false)
+  const open = React.useCallback(() => setOpen(true), [])
+  const close = React.useCallback(() => setOpen(false), [])
+  const assistant = useAssistant()
+  const value = { isOpen, open, close, assistant }
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
+function Assistant({ messages, sendMessage }: AssistantAPI) {
+  return <Chat history={{ messages }} initializing={false} onSubmit={sendMessage} />
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -259,15 +255,15 @@ const useStyles = M.makeStyles((t) => ({
 export function Sidebar() {
   const classes = useStyles()
 
-  const omni = React.useContext(Ctx)
-  if (!omni) return null
+  const ctx = React.useContext(Ctx)
+  if (!ctx) return null
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <M.Drawer anchor="right" open={omni.isOpen} onClose={omni.close}>
+      <M.Drawer anchor="right" open={ctx.isOpen} onClose={ctx.close}>
         <div className={classes.root}>
           <M.Typography variant="h4">Qurator</M.Typography>
-          <Omni />
+          <Assistant {...ctx.assistant} />
         </div>
       </M.Drawer>
     </M.MuiThemeProvider>
@@ -285,11 +281,11 @@ const useTriggerStyles = M.makeStyles({
 
 export function Trigger() {
   const classes = useTriggerStyles()
-  const omni = React.useContext(Ctx)
-  if (!omni) return null
+  const ctx = React.useContext(Ctx)
+  if (!ctx) return null
   return (
-    <M.Zoom in={!omni.isOpen}>
-      <M.Fab onClick={omni.open} className={classes.trigger} color="primary">
+    <M.Zoom in={!ctx.isOpen}>
+      <M.Fab onClick={ctx.open} className={classes.trigger} color="primary">
         <M.Icon>assistant</M.Icon>
       </M.Fab>
     </M.Zoom>
