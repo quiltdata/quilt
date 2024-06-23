@@ -61,7 +61,7 @@
     "ace-builds": "^1.23.4",
     "ajv": "^8.16.0",
     "ajv-formats": "^2.1.1",
-    "aws-sdk": "^2.1467.0",
+    "aws-sdk": "^2.1646.0",
     "brace": "^0.11.1",
     "buffer": "^6.0.3",
     "classnames": "^2.5.1",
