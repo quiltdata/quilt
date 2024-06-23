@@ -8,15 +8,7 @@ import Chat from 'components/Chat'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
 
-const SYSTEM_PROMPT = `
-You are Qurator -- Quilt Data's AI Assistant.
-You are a conservative and creative scientist.
-When asked a question about Quilt, refer to the documentation at https://docs.quiltdata.com.
-For cross-account bucket policies, see https://docs.quiltdata.com/advanced/crossaccount.
-Use GitHub flavored Markdown syntax for formatting when appropriate.
-
-Use tools proactively, but don't mention it explicitly, so that it feels transparent.
-`
+import * as Context from './Context'
 
 const MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0'
 // const MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
@@ -28,79 +20,26 @@ const stringifyContentBlock = (content: BedrockTypes.ContentBlock): string => {
   return JSON.stringify(content)
 }
 
-interface ToolDescriptor<I, O> {
-  description?: string
-  schema: {}
-  fn: (params: I) => O
-}
-
-const TOOLS: Record<string, ToolDescriptor<any, any>> = {
-  getContents: {
-    description: 'Get the contents of a file',
-    schema: {
-      type: 'object',
-      properties: {
-        filename: {
-          type: 'string',
-        },
-      },
-      required: ['filename'],
-    },
-    fn: async ({ filename }: { filename: string }) => {
-      // eslint-disable-next-line no-console
-      console.log('TOOL: getContents', filename)
-      return {
-        filename,
-        contents: `
-          This is a package containing DNA sequences that have been
-          aligned to the human genome.
-          `,
-      }
-    },
-  },
-}
-
 function useAssistant() {
   const bedrock = AWS.Bedrock.useClient()
 
   const [history, setHistory] = React.useState([] as BedrockTypes.Messages)
   const [loading, setLoading] = React.useState(false)
 
-  const getSystemPrompt = React.useCallback(
-    (): BedrockTypes.SystemContentBlocks => [
-      { text: SYSTEM_PROMPT },
-      // TODO: extra context goes here
-      {
-        text: 'You are currently viewing the Quilt Catalog page for a file named README.md',
-      },
-    ],
-    [],
-  )
-
-  const getToolConfig = React.useCallback(
-    (): BedrockTypes.ToolConfiguration => ({
-      tools: Object.entries(TOOLS).map(([name, { description, schema }]) => ({
-        toolSpec: {
-          name,
-          description,
-          inputSchema: { json: schema },
-        },
-      })),
-      // toolChoice:
-    }),
-    [],
-  )
+  const { getSystemPrompt, getToolConfig, callTool } = Context.useContext()
 
   const converse = React.useCallback(
     async (messages: BedrockTypes.Messages) => {
+      const system = getSystemPrompt()
+      const toolConfig = getToolConfig()
       // eslint-disable-next-line no-console
-      console.log('converse', messages)
+      console.log('converse', { system, messages, toolConfig })
       const resp = await bedrock
         .converse({
           modelId: MODEL_ID,
-          system: getSystemPrompt(),
+          system,
           messages,
-          toolConfig: getToolConfig(),
+          toolConfig,
           // inferenceConfig?: InferenceConfiguration;
           // guardrailConfig?: GuardrailConfiguration;
           // additionalModelRequestFields?: Document;
@@ -112,11 +51,6 @@ function useAssistant() {
       return resp
     },
     [bedrock, getSystemPrompt, getToolConfig],
-  )
-
-  const callTool = React.useCallback(
-    async (name: string, input: any) => TOOLS[name].fn(input),
-    [],
   )
 
   const converseRec = React.useCallback(
@@ -232,13 +166,21 @@ interface AssistantCtx {
 
 const Ctx = React.createContext<AssistantCtx | null>(null)
 
-export function Provider({ children }: React.PropsWithChildren<{}>) {
+function AssistantProvider({ children }: React.PropsWithChildren<{}>) {
   const [isOpen, setOpen] = React.useState(false)
   const open = React.useCallback(() => setOpen(true), [])
   const close = React.useCallback(() => setOpen(false), [])
   const assistant = useAssistant()
   const value = { isOpen, open, close, assistant }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
+export function Provider({ children }: React.PropsWithChildren<{}>) {
+  return (
+    <Context.ContextAggregatorProvider>
+      <AssistantProvider>{children}</AssistantProvider>
+    </Context.ContextAggregatorProvider>
+  )
 }
 
 function Assistant({ messages, sendMessage }: AssistantAPI) {
