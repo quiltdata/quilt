@@ -2,7 +2,6 @@ import * as React from 'react'
 import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as Assistant from 'components/Assistant'
 import Footer from 'components/Footer'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as NavBar from 'containers/NavBar'
@@ -56,8 +55,6 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
         <M.Box flexGrow={1} />
         {!!isHomepage && isHomepage.isExact && <Footer />}
         {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
-        <Assistant.Sidebar />
-        <Assistant.Trigger />
       </NavBar.Provider>
     </Root>
   )

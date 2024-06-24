@@ -279,6 +279,16 @@ export function Trigger() {
   )
 }
 
+export function WithUI({ children }: React.PropsWithChildren<{}>) {
+  return (
+    <>
+      {children}
+      <Trigger />
+      <Sidebar />
+    </>
+  )
+}
+
 export function useAssistantCtx() {
   return React.useContext(Ctx)
 }

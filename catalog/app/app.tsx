@@ -123,6 +123,7 @@ const render = () => {
       AWS.Athena.Provider,
       AWS.S3.Provider,
       Assistant.Provider,
+      Assistant.WithUI,
       Notifications.WithNotifications,
       WithGlobalDialogs,
       Errors.ErrorBoundary,
