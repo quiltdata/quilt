@@ -32,6 +32,7 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import FileCodeSamples from './CodeSamples/File'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
+import QuratorContext from './Qurator/Context'
 import QuratorSection from './Qurator/Section'
 import Section from './Section'
 import renderPreview from './renderPreview'
@@ -508,6 +509,7 @@ export default function File() {
                       {cfg.qurator && blocks.qurator && (
                         <QuratorSection handle={handle} />
                       )}
+                      {cfg.qurator && <QuratorContext handle={handle} />}
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />
