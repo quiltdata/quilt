@@ -13,7 +13,7 @@ from urllib.parse import (
     urlparse,
     urlunparse,
 )
-from urllib.request import pathname2url, url2pathname
+from urllib.request import url2pathname
 
 import requests
 # Third-Party
@@ -222,7 +222,7 @@ class PhysicalKey:
 
     def __str__(self):
         if self.bucket is None:
-            return urlunparse(('file', '', pathname2url(self.path.replace('/', os.path.sep)), None, None, None))
+            return pathlib.PurePath(self.path).as_uri()
         else:
             if self.version_id is None:
                 params = {}

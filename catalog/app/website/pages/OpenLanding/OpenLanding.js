@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { useLocation } from 'react-router-dom'
 
 // TODO: decouple NavBar layout/state from gql and auth calls
 //       and place it into components/SearchBar
@@ -7,7 +6,6 @@ import * as NavBar from 'containers/NavBar'
 
 import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
-import parseSearch from 'utils/parseSearch'
 
 import Layout from 'website/components/Layout'
 import Contribute from 'website/components/Contribute'
@@ -19,8 +17,6 @@ import Showcase from './Showcase'
 import QuiltIsDifferent from './QuiltIsDifferent'
 
 export default function OpenLanding() {
-  const location = useLocation()
-  const { q: query = '' } = parseSearch(location.search)
   return (
     <Layout>
       <MetaTitle />
@@ -31,7 +27,7 @@ export default function OpenLanding() {
         <Search />
       </NavBar.Provider>
       <Showcase />
-      <Buckets query={query} />
+      <Buckets />
       <Videos />
       <QuiltIsDifferent />
       <Contribute />

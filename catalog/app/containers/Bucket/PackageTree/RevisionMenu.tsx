@@ -26,7 +26,7 @@ export default function RevisionMenu({
         {
           Ok: ({ ui: { actions } }) => {
             const menu = []
-            if (actions.revisePackage) {
+            if (actions.writeFile && actions.revisePackage) {
               menu.push({
                 onClick: onCreateFile,
                 title: 'Create file',

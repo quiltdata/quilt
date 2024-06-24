@@ -9,7 +9,12 @@ import * as tagged from 'utils/taggedV2'
 import * as YAML from 'utils/yaml'
 
 export type ActionPreferences = Record<
-  'copyPackage' | 'createPackage' | 'deleteRevision' | 'openInDesktop' | 'revisePackage',
+  | 'copyPackage'
+  | 'createPackage'
+  | 'deleteRevision'
+  | 'openInDesktop'
+  | 'revisePackage'
+  | 'writeFile',
   boolean
 >
 
@@ -39,6 +44,7 @@ interface BlocksPreferencesInput {
   code?: boolean
   meta?: boolean | MetaBlockPreferencesInput
   gallery?: boolean | GalleryPreferences
+  qurator?: boolean
 }
 
 interface BlocksPreferences {
@@ -47,6 +53,7 @@ interface BlocksPreferences {
   code: boolean
   meta: false | MetaBlockPreferences
   gallery: false | GalleryPreferences
+  qurator: boolean
 }
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
@@ -79,7 +86,7 @@ export interface AthenaPreferences {
 }
 
 interface UiPreferencesInput {
-  actions?: Partial<ActionPreferences>
+  actions?: Partial<ActionPreferences> | false
   athena?: AthenaPreferences
   blocks?: Partial<BlocksPreferencesInput>
   defaultSourceBucket?: DefaultSourceBucketInput
@@ -135,6 +142,7 @@ const defaultPreferences: BucketPreferences = {
       deleteRevision: false,
       openInDesktop: false,
       revisePackage: true,
+      writeFile: true,
     },
     athena: {},
     blocks: {
@@ -143,6 +151,7 @@ const defaultPreferences: BucketPreferences = {
       code: true,
       meta: defaultBlockMeta,
       gallery: defaultGallery,
+      qurator: true,
     },
     nav: {
       files: true,
@@ -173,6 +182,17 @@ const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 function validate(data: unknown): asserts data is BucketPreferencesInput {
   const errors = bucketPreferencesValidator(data)
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
+}
+
+function parseActions(actions?: Partial<ActionPreferences> | false): ActionPreferences {
+  if (actions === false) {
+    return R.map(R.F, defaultPreferences.ui.actions)
+  }
+
+  return {
+    ...defaultPreferences.ui.actions,
+    ...actions,
+  }
 }
 
 function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
@@ -266,6 +286,7 @@ export function extendDefaults(data: BucketPreferencesInput): BucketPreferences 
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
+      actions: parseActions(data?.ui?.actions),
       athena: parseAthena(data?.ui?.athena),
       blocks: parseBlocks(data?.ui?.blocks),
       packageDescription: parsePackages(

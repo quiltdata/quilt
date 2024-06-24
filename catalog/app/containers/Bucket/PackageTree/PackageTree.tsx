@@ -37,6 +37,7 @@ import * as FileView from '../FileView'
 import * as Listing from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
+import QuratorSection from '../Qurator/Section'
 import Section from '../Section'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
@@ -676,6 +677,9 @@ function FileDisplay({
                           <FileView.ObjectMetaSection meta={file.metadata} />
                           <FileView.ObjectTags handle={handle} />
                         </>
+                      )}
+                      {cfg.qurator && blocks.qurator && (
+                        <QuratorSection handle={handle} />
                       )}
                     </>
                   ),

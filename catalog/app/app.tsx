@@ -22,7 +22,6 @@ Sentry.init(cfg, history)
 import 'sanitize.css'
 
 // Import the rest of our modules
-import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
@@ -39,6 +38,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as GraphQL from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
+import WithGlobalDialogs from 'utils/GlobalDialogs'
 import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { PFSCookieManager } from 'utils/PFSCookieManager'
@@ -116,13 +116,13 @@ const render = () => {
           vertical_padding: 59,
         },
       ],
-      ExperimentsProvider,
       [Tracking.Provider, { userSelector: Auth.selectors.username }],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,
       AWS.S3.Provider,
       Notifications.WithNotifications,
+      WithGlobalDialogs,
       Errors.ErrorBoundary,
       BucketCacheProvider,
       PFSCookieManager,
