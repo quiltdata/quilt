@@ -159,7 +159,7 @@ type AssistantAPI = ReturnType<typeof useAssistant>
 
 interface AssistantCtx {
   isOpen: boolean
-  open: () => void
+  open: (msg?: string) => void
   close: () => void
   assistant: AssistantAPI
 }
@@ -167,10 +167,17 @@ interface AssistantCtx {
 const Ctx = React.createContext<AssistantCtx | null>(null)
 
 function AssistantProvider({ children }: React.PropsWithChildren<{}>) {
-  const [isOpen, setOpen] = React.useState(false)
-  const open = React.useCallback(() => setOpen(true), [])
-  const close = React.useCallback(() => setOpen(false), [])
   const assistant = useAssistant()
+  const [isOpen, setOpen] = React.useState(false)
+  const { sendMessage } = assistant
+  const open = React.useCallback(
+    (msg?: string) => {
+      setOpen(true)
+      if (msg) sendMessage(msg)
+    },
+    [sendMessage],
+  )
+  const close = React.useCallback(() => setOpen(false), [])
   const value = { isOpen, open, close, assistant }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -183,8 +190,8 @@ export function Provider({ children }: React.PropsWithChildren<{}>) {
   )
 }
 
-function Assistant({ messages, sendMessage }: AssistantAPI) {
-  return <Chat history={{ messages }} initializing={false} onSubmit={sendMessage} />
+function Assistant({ messages, sendMessage, loading }: AssistantAPI) {
+  return <Chat history={{ messages }} initializing={loading} onSubmit={sendMessage} />
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -227,9 +234,13 @@ export function Trigger() {
   if (!ctx) return null
   return (
     <M.Zoom in={!ctx.isOpen}>
-      <M.Fab onClick={ctx.open} className={classes.trigger} color="primary">
+      <M.Fab onClick={() => ctx.open()} className={classes.trigger} color="primary">
         <M.Icon>assistant</M.Icon>
       </M.Fab>
     </M.Zoom>
   )
+}
+
+export function useAssistantCtx() {
+  return React.useContext(Ctx)
 }
