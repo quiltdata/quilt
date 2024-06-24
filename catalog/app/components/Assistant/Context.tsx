@@ -1,6 +1,9 @@
 import invariant from 'invariant'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as uuid from 'uuid'
+
+import useMemoEq from 'utils/useMemoEq'
 
 export interface ToolDescriptor<I, O> {
   description?: string
@@ -18,7 +21,7 @@ interface ContextShape {
 interface ContextAggregator {
   push: (context: ContextShape) => () => void
   counter: number
-  aggregate: () => ContextShape
+  getValues: () => ContextShape[]
 }
 
 export const ContextAggregatorCtx = React.createContext<ContextAggregator | null>(null)
@@ -41,12 +44,12 @@ export function ContextAggregatorProvider({ children }: React.PropsWithChildren<
     [mountedRef],
   )
 
-  const aggregate = React.useCallback(
-    () => aggregateContext(Object.values(mountedRef.current)),
+  const getValues = React.useCallback(
+    () => Object.values(mountedRef.current),
     [mountedRef],
   )
 
-  const value = { push, counter, aggregate }
+  const value = { push, counter, getValues }
 
   return (
     <ContextAggregatorCtx.Provider value={value}>
@@ -77,14 +80,16 @@ export function useAggregatedContext(): ContextShape {
   const ctx = React.useContext(ContextAggregatorCtx)
   invariant(ctx, 'ContextAggregator must be used within a ContextAggregatorProvider')
 
-  const { aggregate, counter } = ctx
-  const [computed, setComputed] = React.useState(aggregate)
+  const { getValues, counter } = ctx
+  const [computed, setComputed] = React.useState(() => aggregateContext(getValues()))
 
   React.useEffect(() => {
+    const values = getValues()
+    const aggregated = aggregateContext(values)
     // eslint-disable-next-line no-console
-    console.log('COMPUTE aggregated')
-    setComputed(aggregate())
-  }, [setComputed, aggregate, counter])
+    console.log('COMPUTE aggregated', { counter, values, aggregated })
+    setComputed(aggregated)
+  }, [setComputed, getValues, counter])
 
   return computed
 }
@@ -93,7 +98,8 @@ export function usePushContext(context: ContextShape) {
   const ctx = React.useContext(ContextAggregatorCtx)
   invariant(ctx, 'ContextAggregator must be used within a ContextAggregatorProvider')
   const { push } = ctx
-  React.useEffect(() => push(context), [push, context])
+  const contextMemo = useMemoEq(context, R.identity)
+  React.useEffect(() => push(contextMemo), [push, contextMemo])
 }
 
 export function Push(context: ContextShape) {
