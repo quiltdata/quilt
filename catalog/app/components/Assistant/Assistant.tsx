@@ -9,6 +9,7 @@ import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
 
 import * as Context from './Context'
+import * as Tools from './tools'
 
 const MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0'
 // const MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
@@ -21,7 +22,8 @@ const stringifyContentBlock = (content: BedrockTypes.ContentBlock): string => {
 }
 
 function useGlobalTools(): Context.ToolMap {
-  return React.useMemo(() => ({}), [])
+  const searchTools = Tools.useSearchTools()
+  return React.useMemo(() => ({ ...searchTools }), [searchTools])
 }
 
 const SYSTEM_PROMPT = `
