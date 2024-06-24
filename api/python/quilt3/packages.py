@@ -975,7 +975,7 @@ class Package:
         self._meta['user_meta'] = meta
         return self
 
-    def _fix_sha256(self):
+    def _calculate_missing_hashes(self):
         """
         Calculate and set missing hash values
         """
@@ -1076,7 +1076,7 @@ class Package:
         registry = get_package_registry(registry)
 
         self._set_commit_message(message)
-        self._fix_sha256()
+        self._calculate_missing_hashes()
 
         top_hash = self.top_hash
         self._push_manifest(name, registry, top_hash)
@@ -1542,7 +1542,7 @@ class Package:
 
         # Some entries may miss hash values (e.g because of selector_fn), so we need
         # to fix them before calculating the top hash.
-        pkg._fix_sha256()
+        pkg._calculate_missing_hashes()
         top_hash = pkg._calculate_top_hash(pkg._meta, pkg.walk())
 
         if dedupe and top_hash == latest_hash:
