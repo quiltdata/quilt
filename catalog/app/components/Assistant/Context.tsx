@@ -2,6 +2,7 @@ import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as uuid from 'uuid'
+import { JSONSchema, Schema } from '@effect/schema'
 
 import useMemoEq from 'utils/useMemoEq'
 
@@ -12,6 +13,26 @@ export interface ToolDescriptor<I, O> {
 }
 
 export type ToolMap = Record<string, ToolDescriptor<any, any>>
+
+export function makeTool<I, O>(
+  schema: Schema.Schema<I>,
+  fn: (params: I) => O,
+): ToolDescriptor<I, O> {
+  const jsonSchema = JSONSchema.make(schema)
+  const decode = Schema.decodeUnknownSync(schema, {
+    errors: 'all',
+    onExcessProperty: 'error',
+  })
+  const wrappedFn = (params: unknown) => {
+    const paramsDecoded = decode(params)
+    return fn(paramsDecoded)
+  }
+  return {
+    description: jsonSchema.description,
+    schema: jsonSchema,
+    fn: wrappedFn,
+  }
+}
 
 interface ContextShape {
   messages: string[]
