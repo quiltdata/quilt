@@ -28,7 +28,7 @@ numpy==1.22.0
 openpyxl==3.0.7
 packaging==23.1
 pandas==1.1.5
-pandocfilters==1.4.2
+pandocfilters==1.5.1
 psutil==5.7.0
 pyarrow==14.0.1
 Pygments==2.15.0

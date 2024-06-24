@@ -183,7 +183,6 @@ function DelayedProgress() {
 }
 
 export default function SearchWrapper(props: SearchProps) {
-  if (cfg.disableNavigator) return null
   if (cfg.mode === 'LOCAL') return <SearchNotAvailable />
   return (
     <React.Suspense fallback={<DelayedProgress />}>

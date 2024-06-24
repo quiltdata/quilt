@@ -21,6 +21,7 @@ ui:
     createPackage: True
     deleteRevision: False
     revisePackage: True
+    writeFile: True
   blocks:
     analytics: True
     browser: True
@@ -46,11 +47,14 @@ ui:
 * `ui.nav.files: False` - hide Files tab
 * `ui.nav.packages: False` - hide Packages tab
 * `ui.nav.queries: False` - hide Queries tab
+* `ui.actions: False` - hide all buttons used to create and edit packages and files
+(make the catalog "read-only")
 * `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
 * `ui.actions.revisePackage: False` - hide the button to revise packages
+* `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page
 * `ui.blocks.browser: False` - hide files browser on both Bucket and Packages tab
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate

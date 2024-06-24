@@ -37,17 +37,29 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
+  const prefs = BucketPreferences.use()
   const prompt = FileEditor.useCreateFileInBucket(bucket, path)
   const menuItems = React.useMemo(
-    () => [
-      {
-        onClick: prompt.open,
-        title: 'Create file',
-      },
-    ],
-    [prompt.open],
+    () =>
+      BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) => {
+            const menu = []
+            if (actions.writeFile) {
+              menu.push({
+                onClick: prompt.open,
+                title: 'Create file',
+              })
+            }
+            return menu
+          },
+          _: () => [],
+        },
+        prefs,
+      ),
+    [prefs, prompt.open],
   )
-
+  if (!menuItems.length) return null
   return (
     <>
       {prompt.render()}

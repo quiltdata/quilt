@@ -229,13 +229,14 @@ export function useQueryS<Data, Variables>(
   throw err
 }
 
-interface RunMutationContext extends Partial<urql.OperationContext> {
+interface RunMutationContext<Data> extends Partial<urql.OperationContext> {
   silent?: boolean
+  optimisticResponse?: Data
 }
 
 type RunMutation<Data, Variables> = (
   variables?: Variables,
-  context?: RunMutationContext,
+  context?: RunMutationContext<Data>,
 ) => Promise<Data>
 
 /**
@@ -258,9 +259,14 @@ export function useMutation<Data, Variables>(
   const [, execMutation] = urql.useMutation<Data, Variables>(query)
 
   return React.useCallback(
-    async (variables?: Variables, context?: RunMutationContext) => {
-      const { silent = false, ...ctx } = context || {}
-      const result = await execMutation(variables, ctx)
+    async (variables?: Variables, context?: RunMutationContext<Data>) => {
+      // XXX: probably this logic for optimistic responses is not necessary
+      const { silent = false, optimisticResponse, ...ctx } = context || {}
+      const computedVariables = {
+        __optimisticResponse: optimisticResponse,
+        ...variables,
+      } as Variables
+      const result = await execMutation(computedVariables, ctx)
 
       if (!result.data) {
         const err = result.error || new MutationError(result)
