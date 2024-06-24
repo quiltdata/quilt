@@ -180,6 +180,7 @@
     "@types/react-test-renderer": "^17.0.2",
     "@types/remarkable": "^2.0.3",
     "@types/semver": "^7.5.0",
+    "@types/uuid": "^10.0.0",
     "@types/zxcvbn": "^4.4.1",
     "@typescript-eslint/eslint-plugin": "^6.3.0",
     "@typescript-eslint/parser": "^6.3.0",
