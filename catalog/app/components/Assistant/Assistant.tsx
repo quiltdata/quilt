@@ -47,6 +47,8 @@ const getToolConfig = (tools: Context.ToolMap) =>
     },
   }))
 
+const MAX_TOOL_USE_ROUNDS = 3
+
 function useAssistant() {
   const bedrock = AWS.Bedrock.useClient()
 
@@ -93,42 +95,64 @@ function useAssistant() {
 
   const converseRec = React.useCallback(
     async (messages: BedrockTypes.Messages) => {
-      const resp = await converse(messages)
-      if (resp.stopReason !== 'tool_use') return resp
+      let roundsLeft = MAX_TOOL_USE_ROUNDS
+      while (true) {
+        const resp = await converse(messages)
+        if (resp.stopReason !== 'tool_use') return resp
+        if (roundsLeft <= 0) {
+          return {
+            ...resp,
+            output: {
+              ...resp.output,
+              message: {
+                role: 'assistant',
+                content: [
+                  ...(resp.output.message?.content || []),
+                  { text: `Error: tool use rounds exhausted (${MAX_TOOL_USE_ROUNDS})` },
+                ],
+              },
+            },
+          }
+        }
 
-      const assistantMsg = resp.output.message
-      invariant(assistantMsg, 'expected assistant message to be non-empty')
+        const assistantMsg = resp.output.message
+        invariant(assistantMsg, 'expected assistant message to be non-empty')
 
-      setHistory((h) => h.concat(assistantMsg))
+        setHistory((h) => h.concat(assistantMsg))
 
-      const tus = assistantMsg.content.reduce(
-        (acc, c) => (c.toolUse ? acc.concat(c.toolUse) : acc),
-        [] as BedrockTypes.ToolUseBlock[],
-      )
+        const tus = assistantMsg.content.reduce(
+          (acc, c) => (c.toolUse ? acc.concat(c.toolUse) : acc),
+          [] as BedrockTypes.ToolUseBlock[],
+        )
 
-      const toolResultsPs = tus.map(({ toolUseId, name, input }) =>
-        callTool(name, input)
-          .then((json) => ({
-            toolUseId,
-            content: [{ json }],
-          }))
-          .catch((err) => ({
-            toolUseId,
-            content: [{ text: `Error: ${err}` }],
-            status: 'error',
-          })),
-      )
+        invariant(tus.length, 'expected one or more tool use blocks')
 
-      const toolResults = await Promise.all(toolResultsPs)
+        const toolResultsPs = tus.map(({ toolUseId, name, input }) =>
+          callTool(name, input)
+            .then((json) => ({
+              toolUseId,
+              content: [{ json }],
+            }))
+            .catch((err) => ({
+              toolUseId,
+              content: [{ text: `Error: ${err}` }],
+              status: 'error',
+            })),
+        )
 
-      const userMsg: BedrockTypes.Message = {
-        role: 'user',
-        content: toolResults.map((toolResult) => ({ toolResult })),
+        const toolResults = await Promise.all(toolResultsPs)
+
+        const userMsg: BedrockTypes.Message = {
+          role: 'user',
+          content: toolResults.map((toolResult) => ({ toolResult })),
+        }
+
+        setHistory((h) => h.concat(userMsg))
+
+        // start new round
+        messages = messages.concat(assistantMsg, userMsg)
+        roundsLeft--
       }
-
-      setHistory((h) => h.concat(userMsg))
-
-      return converse(messages.concat(assistantMsg, userMsg))
     },
     [converse, callTool],
   )
