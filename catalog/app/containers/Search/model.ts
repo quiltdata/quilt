@@ -60,7 +60,7 @@ export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 
 interface SearchUrlStateBase {
   searchString: string | null
-  buckets: string[]
+  buckets: readonly string[]
   order: Model.GQLTypes.SearchResultOrder
 }
 
@@ -1270,7 +1270,7 @@ function useSearchUIModel() {
   )
 
   const setBuckets = React.useCallback(
-    (buckets: string[]) => {
+    (buckets: readonly string[]) => {
       // XXX: reset filters or smth?
       updateUrlState((s) => ({ ...s, buckets }))
     },

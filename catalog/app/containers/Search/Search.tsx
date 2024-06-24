@@ -3,6 +3,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Assistant from 'components/Assistant'
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
@@ -14,6 +15,7 @@ import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 
 import * as SearchUIModel from './model'
+import AssistantContext from './AssistantContext'
 import BucketSelector from './Buckets'
 import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
@@ -723,6 +725,14 @@ function PackageFilters({ className }: PackageFiltersProps) {
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
+  const message = [
+    'Active search filters:',
+    ...activeFilters.map((f) => `- ${f}: ${JSON.stringify(predicates[f])}`),
+    'Available search filters:',
+    ...availableFilters.map((f) => `- ${f}`),
+  ].join('\n')
+  Assistant.Context.usePushContext({ messages: [message] })
+
   return (
     <div className={className}>
       <div className={classes.title}>Filter by</div>
@@ -870,6 +880,14 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
+
+  const message = [
+    'Active search filters:',
+    ...activeFilters.map((f) => `- ${f}: ${JSON.stringify(predicates[f])}`),
+    'Available search filters:',
+    ...availableFilters.map((f) => `- ${f}`),
+  ].join('\n')
+  Assistant.Context.usePushContext({ messages: [message] })
 
   return (
     <div className={className}>
@@ -1040,6 +1058,10 @@ function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) 
   const loadMore = React.useCallback(() => {
     setMore(true)
   }, [])
+
+  const message = `You see a page of search results:\n${JSON.stringify(hits, null, 2)}`
+  Assistant.Context.usePushContext({ messages: [message] })
+
   return (
     <div className={className}>
       {hits.map((hit) => (
@@ -1283,6 +1305,7 @@ function SearchLayout() {
 export default function Search() {
   return (
     <SearchUIModel.Provider>
+      <AssistantContext />
       <Layout pre={<SearchLayout />} />
     </SearchUIModel.Provider>
   )

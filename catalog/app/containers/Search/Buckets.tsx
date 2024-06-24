@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Assistant from 'components/Assistant'
 import * as Filters from 'components/Filters'
 import * as BucketConfig from 'utils/BucketConfig'
 
@@ -19,6 +20,22 @@ export default function Buckets({ className }: { className?: string }) {
   const model = SearchUIModel.use()
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  const message = [
+    'Available buckets:',
+    ...bucketConfigs.map((b) =>
+      JSON.stringify(
+        {
+          name: b.name,
+          title: b.title,
+          description: b.description,
+          tags: b.tags,
+        },
+        null,
+        2,
+      ),
+    ),
+  ].join('\n')
+  Assistant.Context.usePushContext({ messages: [message] })
   return (
     <div className={cx(classes.root, className)}>
       <Filters.Enum
@@ -27,7 +44,7 @@ export default function Buckets({ className }: { className?: string }) {
         onChange={model.actions.setBuckets}
         placeholder="Select buckets"
         size="small"
-        value={model.state.buckets}
+        value={model.state.buckets as string[]}
         variant="outlined"
         selectAll={'All buckets'}
       />
