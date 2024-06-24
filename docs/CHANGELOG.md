@@ -14,10 +14,10 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# unreleased - YYYY-MM-DD
+# 6.0.0a5 - 2024-06-24
 ## Python API
 
-## CLI
+* [Fixed] Fix PhysicalKey to URI conversion in Python 3.12 on Windows ([#4027](https://github.com/quiltdata/quilt/pull/4027))
 
 ## Catalog, Lambdas
 * [Removed] Drop MARKETING mode support, delete associated dead code ([#4009](https://github.com/quiltdata/quilt/pull/4009))
