@@ -71,15 +71,25 @@ function useAssistant() {
 
   const converse = React.useCallback(
     async (messages: BedrockTypes.Messages) => {
+      const system = ctx.messages.map((text) => ({ text }))
+      const tools = getToolConfig(ctx.tools)
+
       // eslint-disable-next-line no-console
       console.log('converse', { system: ctx.messages, tools: ctx.tools, messages })
+      // eslint-disable-next-line no-console
+      console.log('converse stats', {
+        system: ctx.messages.map((m) => JSON.stringify(m).length),
+        tools: tools.map((t) => JSON.stringify(t).length),
+        messages: messages.map((m) => JSON.stringify(m).length),
+      })
+
       const resp = await bedrock
         .converse({
           modelId: MODEL_ID,
-          system: ctx.messages.map((text) => ({ text })),
+          system,
           messages,
           toolConfig: {
-            tools: getToolConfig(ctx.tools),
+            tools,
             // toolChoice,
           },
           // inferenceConfig?: InferenceConfiguration;

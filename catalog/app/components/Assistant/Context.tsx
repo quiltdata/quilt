@@ -34,25 +34,37 @@ export function makeTool<I, O>(
   }
 }
 
+const EMPTY_DEPS: React.DependencyList = []
+
+export function useMakeTool<I, O>(
+  schema: Schema.Schema<I>,
+  fn: (params: I) => O,
+  deps?: React.DependencyList,
+): ToolDescriptor<I, O> {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fnMemo = React.useCallback(fn, deps ?? EMPTY_DEPS)
+  return React.useMemo(() => makeTool(schema, fnMemo), [schema, fnMemo])
+}
+
 interface ContextShape {
   messages: string[]
   tools: ToolMap
 }
 
 interface ContextAggregator {
-  push: (context: ContextShape) => () => void
+  push: (context: Partial<ContextShape>) => () => void
   counter: number
-  getValues: () => ContextShape[]
+  getValues: () => Partial<ContextShape>[]
 }
 
 export const ContextAggregatorCtx = React.createContext<ContextAggregator | null>(null)
 
 export function ContextAggregatorProvider({ children }: React.PropsWithChildren<{}>) {
-  const mountedRef = React.useRef<Record<string, ContextShape>>({})
+  const mountedRef = React.useRef<Record<string, Partial<ContextShape>>>({})
   const [counter, setCounter] = React.useState(0)
 
   const push = React.useCallback(
-    (context: ContextShape) => {
+    (context: Partial<ContextShape>) => {
       const id = uuid.v4()
       // eslint-disable-next-line no-console
       console.log('push context', id, context)
@@ -84,14 +96,14 @@ const ROOT_CONTEXT: ContextShape = {
   messages: [],
 }
 
-function aggregateContext(contexts: ContextShape[]) {
+function aggregateContext(contexts: Partial<ContextShape>[]) {
   // eslint-disable-next-line no-console
   console.log('aggregate', contexts)
   return contexts.reduce(
-    (acc, next) => ({
+    (acc: ContextShape, next) => ({
       // XXX: check for conflicts?
       tools: { ...acc.tools, ...next.tools },
-      messages: acc.messages.concat(next.messages),
+      messages: acc.messages.concat(next.messages || []),
     }),
     ROOT_CONTEXT,
   )
@@ -115,7 +127,7 @@ export function useAggregatedContext(): ContextShape {
   return computed
 }
 
-export function usePushContext(context: ContextShape) {
+export function usePushContext(context: Partial<ContextShape>) {
   const ctx = React.useContext(ContextAggregatorCtx)
   invariant(ctx, 'ContextAggregator must be used within a ContextAggregatorProvider')
   const { push } = ctx
