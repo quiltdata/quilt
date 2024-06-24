@@ -20,26 +20,64 @@ const stringifyContentBlock = (content: BedrockTypes.ContentBlock): string => {
   return JSON.stringify(content)
 }
 
+function useGlobalTools(): Context.ToolMap {
+  return React.useMemo(() => ({}), [])
+}
+
+const SYSTEM_PROMPT = `
+You are Qurator -- Quilt Data's AI Assistant.
+You are a conservative and creative scientist.
+When asked a question about Quilt, refer to the documentation at https://docs.quiltdata.com.
+For cross-account bucket policies, see https://docs.quiltdata.com/advanced/crossaccount.
+Use GitHub flavored Markdown syntax for formatting when appropriate.
+
+Use tools proactively, but don't mention that unnecessarily, so that it feels transparent.
+`
+
+function useGlobalMessages(): string[] {
+  return React.useMemo(() => [SYSTEM_PROMPT], [])
+}
+
+const getToolConfig = (tools: Context.ToolMap) =>
+  Object.entries(tools).map(([name, { description, schema }]) => ({
+    toolSpec: {
+      name,
+      description,
+      inputSchema: { json: schema },
+    },
+  }))
+
 function useAssistant() {
   const bedrock = AWS.Bedrock.useClient()
 
   const [history, setHistory] = React.useState([] as BedrockTypes.Messages)
   const [loading, setLoading] = React.useState(false)
 
-  const { getSystemPrompt, getToolConfig, callTool } = Context.useContext()
+  Context.usePushContext({
+    tools: useGlobalTools(),
+    messages: useGlobalMessages(),
+  })
+
+  const ctx = Context.useAggregatedContext()
+
+  const callTool = React.useCallback(
+    async (name: string, input: any) => ctx.tools[name].fn(input),
+    [ctx.tools],
+  )
 
   const converse = React.useCallback(
     async (messages: BedrockTypes.Messages) => {
-      const system = getSystemPrompt()
-      const toolConfig = getToolConfig()
       // eslint-disable-next-line no-console
-      console.log('converse', { system, messages, toolConfig })
+      console.log('converse', { system: ctx.messages, tools: ctx.tools, messages })
       const resp = await bedrock
         .converse({
           modelId: MODEL_ID,
-          system,
+          system: ctx.messages.map((text) => ({ text })),
           messages,
-          toolConfig,
+          toolConfig: {
+            tools: getToolConfig(ctx.tools),
+            // toolChoice,
+          },
           // inferenceConfig?: InferenceConfiguration;
           // guardrailConfig?: GuardrailConfiguration;
           // additionalModelRequestFields?: Document;
@@ -50,7 +88,7 @@ function useAssistant() {
       console.log('converse resp', resp)
       return resp
     },
-    [bedrock, getSystemPrompt, getToolConfig],
+    [bedrock, ctx.messages, ctx.tools],
   )
 
   const converseRec = React.useCallback(
