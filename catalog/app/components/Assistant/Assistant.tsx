@@ -1,4 +1,5 @@
 import type { Types as BedrockTypes } from 'aws-sdk/clients/bedrockruntime'
+import dedent from 'dedent'
 import invariant from 'invariant'
 
 import * as React from 'react'
@@ -26,19 +27,60 @@ function useGlobalTools(): Context.ToolMap {
   return React.useMemo(() => ({ ...searchTools }), [searchTools])
 }
 
-const SYSTEM_PROMPT = `
-You are Qurator -- Quilt Data's AI Assistant.
-You are a conservative and creative scientist.
-When asked a question about Quilt, refer to the documentation at https://docs.quiltdata.com.
-For cross-account bucket policies, see https://docs.quiltdata.com/advanced/crossaccount.
-Use GitHub flavored Markdown syntax for formatting when appropriate.
+// prompt structure
+// - task context
+// - tone context
+// - Background data, documents, and images
+// - detailed task description and rules
+// - examples
+// - input data
+//   - conversation history
+//   - user input
+// - immediate task
+// - precognition
+// - output formatting
+// - prefill
 
-Use tools proactively, but don't mention that unnecessarily, so that it feels transparent.
+const TASK_CONTEXT = dedent`
+  You are Qurator, an AI assistant created by Quilt Data.
+  Your goal is to assist users of Quilt Data products.
+  Specifically, you will be replying to the users of the Quilt Catalog web app.
+
+  Act and speak like a conservative and creative scientist.
 `
 
-function useGlobalMessages(): string[] {
-  return React.useMemo(() => [SYSTEM_PROMPT], [])
-}
+// XXX: add context about quilt products?
+// XXX: add context about catalog structure and features?
+
+const TASK_DESCRIPTION = dedent`
+  When asked a question about Quilt or Quilt Data, refer to the documentation at https://docs.quiltdata.com.
+  For cross-account bucket policies, see https://docs.quiltdata.com/advanced/crossaccount.
+`
+
+const IMMEDIATE_TASK = dedent`
+  The actual conversation will follow, advance it in the most helpful way possible.
+`
+
+const PRECOGNITION = dedent`
+  Think step by step and carefully analyze the provided context to prevent giving incomplete or inaccurate information.
+  Never make things up, always double-check your responses and use the context to your advantage.
+`
+
+const OUTPUT_INSTRUCTIONS = dedent`
+  Use GitHub flavored Markdown syntax for formatting when appropriate.
+  Use tools proactively, but don't mention that unnecessarily, so that it feels transparent.
+`
+
+const makeSystemPrompt = (extraContext: string) => dedent`
+  ${TASK_CONTEXT}
+  ${TASK_DESCRIPTION}
+  <context>
+  ${extraContext}
+  </context>
+  ${PRECOGNITION}
+  ${OUTPUT_INSTRUCTIONS}
+  ${IMMEDIATE_TASK}
+`
 
 const getToolConfig = (tools: Context.ToolMap) =>
   Object.entries(tools).map(([name, { description, schema }]) => ({
@@ -59,7 +101,6 @@ function useAssistant() {
 
   Context.usePushContext({
     tools: useGlobalTools(),
-    messages: useGlobalMessages(),
   })
 
   const ctx = Context.useAggregatedContext()
@@ -71,14 +112,16 @@ function useAssistant() {
 
   const converse = React.useCallback(
     async (messages: BedrockTypes.Messages) => {
-      const system = ctx.messages.map((text) => ({ text }))
+      const extraContext = ctx.messages.join('\n')
+      const system = makeSystemPrompt(extraContext)
       const tools = getToolConfig(ctx.tools)
 
       // eslint-disable-next-line no-console
-      console.log('converse', { system: ctx.messages, tools: ctx.tools, messages })
+      console.log('converse', { system, tools: ctx.tools, messages })
       // eslint-disable-next-line no-console
       console.log('converse stats', {
-        system: ctx.messages.map((m) => JSON.stringify(m).length),
+        extraContext: ctx.messages.map((m) => m.length),
+        systemTotal: system.length,
         tools: tools.map((t) => JSON.stringify(t).length),
         messages: messages.map((m) => JSON.stringify(m).length),
       })
@@ -86,7 +129,7 @@ function useAssistant() {
       const resp = await bedrock
         .converse({
           modelId: MODEL_ID,
-          system,
+          system: [{ text: system }],
           messages,
           toolConfig: {
             tools,

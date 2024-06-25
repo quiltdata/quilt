@@ -726,10 +726,14 @@ function PackageFilters({ className }: PackageFiltersProps) {
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
   const message = [
-    'Active search filters:',
-    ...activeFilters.map((f) => `- ${f}: ${JSON.stringify(predicates[f])}`),
-    'Available search filters:',
-    ...availableFilters.map((f) => `- ${f}`),
+    '<active-search-filters>',
+    ...activeFilters.map(
+      (f) => `<search-filter>${f}: ${JSON.stringify(predicates[f])}</search-filter>`,
+    ),
+    '</active-search-filters>',
+    '<available-search-filters>',
+    ...availableFilters.map((f) => `<search-filter>${f}</search-filter>`),
+    '</available-search-filters>',
   ].join('\n')
   Assistant.Context.usePushContext({ messages: [message] })
 
@@ -882,10 +886,14 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
   const message = [
-    'Active search filters:',
-    ...activeFilters.map((f) => `- ${f}: ${JSON.stringify(predicates[f])}`),
-    'Available search filters:',
-    ...availableFilters.map((f) => `- ${f}`),
+    '<active-search-filters>',
+    ...activeFilters.map(
+      (f) => `<search-filter>${f}: ${JSON.stringify(predicates[f])}</search-filter>`,
+    ),
+    '</active-search-filters>',
+    '<available-search-filters>',
+    ...availableFilters.map((f) => `<search-filter>${f}</search-filter>`),
+    '</available-search-filters>',
   ].join('\n')
   Assistant.Context.usePushContext({ messages: [message] })
 
@@ -1059,8 +1067,13 @@ function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) 
     setMore(true)
   }, [])
 
-  const message = `You see a page of search results:\n${JSON.stringify(hits, null, 2)}`
-  Assistant.Context.usePushContext({ messages: [message] })
+  Assistant.Context.usePushContext({
+    messages: [
+      '<search-results-page>',
+      JSON.stringify(hits, null, 2),
+      '</search-results-page>',
+    ],
+  })
 
   return (
     <div className={className}>

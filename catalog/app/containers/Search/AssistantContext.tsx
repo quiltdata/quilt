@@ -14,6 +14,7 @@ const RESULT_TYPE_LABELS = {
 const intro = (model: SearchUIModel.SearchUIModel) => {
   let lines: string[] = []
   lines.push(`You see the Quilt Catalog's search page with the following parameters:`)
+  lines.push('<search-parameters>')
   lines.push(`- result type: ${RESULT_TYPE_LABELS[model.state.resultType]}`)
   lines.push(`- result order: ${model.state.order}`)
   lines.push(
@@ -26,7 +27,8 @@ const intro = (model: SearchUIModel.SearchUIModel) => {
       ? `- in buckets: ${model.state.buckets.join(', ')}`
       : '- in all buckets',
   )
-  lines.push('Prefer using local tools over global')
+  lines.push('</search-parameters>')
+  lines.push('Prefer using local tools over global') // XXX
   return lines.join('\n')
 }
 

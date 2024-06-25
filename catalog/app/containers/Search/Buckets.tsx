@@ -21,9 +21,9 @@ export default function Buckets({ className }: { className?: string }) {
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
   const message = [
-    'Available buckets:',
-    ...bucketConfigs.map((b) =>
-      JSON.stringify(
+    '<available-buckets>',
+    ...bucketConfigs.map((b) => {
+      const str = JSON.stringify(
         {
           name: b.name,
           title: b.title,
@@ -32,8 +32,10 @@ export default function Buckets({ className }: { className?: string }) {
         },
         null,
         2,
-      ),
-    ),
+      )
+      return `<bucket>${str}</bucket>`
+    }),
+    '</available-buckets>',
   ].join('\n')
   Assistant.Context.usePushContext({ messages: [message] })
   return (
