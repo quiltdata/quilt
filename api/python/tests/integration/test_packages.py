@@ -747,7 +747,7 @@ class PackageTest(QuiltTestCase):
             file_path = entry.physical_key.path
             assert pathlib.Path(file_path).exists(), "The serialization files should exist"
 
-        pkg._fix_sha256()
+        pkg._calculate_missing_hashes()
         for lk, entry in pkg.walk():
             assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object " \
                                                    "that was serialized"
@@ -1705,7 +1705,7 @@ class PackageTest(QuiltTestCase):
         _test_verify_fails('test', extra_files_ok=True)
 
     @patch('quilt3.packages.calculate_checksum')
-    def test_fix_sha256_fail(self, mocked_calculate_checksum):
+    def test_calculate_missing_hashes_fail(self, mocked_calculate_checksum):
         data = b'Hello, World!'
         pkg = Package()
         pkg.set('foo', data)
@@ -1714,13 +1714,13 @@ class PackageTest(QuiltTestCase):
         exc = Exception('test exception')
         mocked_calculate_checksum.return_value = [exc]
         with pytest.raises(quilt3.exceptions.PackageException) as excinfo:
-            pkg._fix_sha256()
+            pkg._calculate_missing_hashes()
         mocked_calculate_checksum.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash is None
         assert excinfo.value.__cause__ == exc
 
     @patch('quilt3.packages.calculate_checksum')
-    def test_fix_sha256(self, mocked_calculate_checksum):
+    def test_calculate_missing_hashes(self, mocked_calculate_checksum):
         data = b'Hello, World!'
         pkg = Package()
         pkg.set('foo', data)
@@ -1728,7 +1728,7 @@ class PackageTest(QuiltTestCase):
 
         hash_ = object()
         mocked_calculate_checksum.return_value = [(hash_)]
-        pkg._fix_sha256()
+        pkg._calculate_missing_hashes()
         mocked_calculate_checksum.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash == {'type': 'sha2-256-chunked', 'value': hash_}
 
@@ -1763,9 +1763,9 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException, match='Found multiple matches'):
             Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
 
-    @patch('quilt3.Package._fix_sha256', wraps=quilt3.Package._fix_sha256)
+    @patch('quilt3.Package._calculate_missing_hashes', wraps=quilt3.Package._calculate_missing_hashes)
     @patch('quilt3.Package._build', wraps=quilt3.Package._build)
-    def test_workflow_validation_error(self, build_mock, fix_hashes):
+    def test_workflow_validation_error(self, build_mock, calculate_missing_hashes):
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
 
         pkg = Package().set('foo', DATA_DIR / 'foo.txt')
@@ -1780,7 +1780,7 @@ class PackageTest(QuiltTestCase):
                     assert excinfo.value is workflow_validate_mock.side_effect
                     workflow_validate_mock.assert_called_once()
                     assert not build_mock.mock_calls
-                    assert not fix_hashes.mock_calls
+                    assert not calculate_missing_hashes.mock_calls
                     assert pkg._workflow is None
 
     @patch('quilt3.packages.copy_file_list')
