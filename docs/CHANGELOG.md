@@ -14,7 +14,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# 6.0.0a5 - 2024-06-24
+# 6.0.0a5 - 2024-06-25
 ## Python API
 
 * [Fixed] Fix PhysicalKey to URI conversion in Python 3.12 on Windows ([#4027](https://github.com/quiltdata/quilt/pull/4027))
