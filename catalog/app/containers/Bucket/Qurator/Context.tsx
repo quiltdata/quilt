@@ -36,9 +36,9 @@ function useGetObjectContentsAndMetadata() {
       })
       const res: EsOutput = await req(`/search${qs}`)
       // eslint-disable-next-line no-underscore-dangle
-      const src = res?.hits?.hits?.[0]._source
-      if (!src) throw new Error('Failed to find the content for this file')
-      return src
+      const content = res?.hits?.hits?.[0]._source?.content
+      if (!content) throw new Error('Failed to find the content for this file')
+      return [{ text: content }]
     },
     [req],
   )

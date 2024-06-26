@@ -1,3 +1,4 @@
+import type { Types as BedrockTypes } from 'aws-sdk/clients/bedrockruntime'
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -6,18 +7,18 @@ import { JSONSchema, Schema } from '@effect/schema'
 
 import useMemoEq from 'utils/useMemoEq'
 
-export interface ToolDescriptor<I, O> {
+export type ToolResult = Promise<BedrockTypes.ToolResultContentBlocks>
+export type ToolFn<I> = (params: I) => ToolResult
+
+export interface ToolDescriptor<I> {
   description?: string
   schema: {}
-  fn: (params: I) => O
+  fn: ToolFn<I>
 }
 
-export type ToolMap = Record<string, ToolDescriptor<any, any>>
+export type ToolMap = Record<string, ToolDescriptor<any>>
 
-export function makeTool<I, O>(
-  schema: Schema.Schema<I>,
-  fn: (params: I) => O,
-): ToolDescriptor<I, O> {
+export function makeTool<I>(schema: Schema.Schema<I>, fn: ToolFn<I>): ToolDescriptor<I> {
   const jsonSchema = JSONSchema.make(schema)
   const decode = Schema.decodeUnknownSync(schema, {
     errors: 'all',
@@ -36,11 +37,11 @@ export function makeTool<I, O>(
 
 const EMPTY_DEPS: React.DependencyList = []
 
-export function useMakeTool<I, O>(
+export function useMakeTool<I>(
   schema: Schema.Schema<I>,
-  fn: (params: I) => O,
+  fn: ToolFn<I>,
   deps?: React.DependencyList,
-): ToolDescriptor<I, O> {
+): ToolDescriptor<I> {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fnMemo = React.useCallback(fn, deps ?? EMPTY_DEPS)
   return React.useMemo(() => makeTool(schema, fnMemo), [schema, fnMemo])

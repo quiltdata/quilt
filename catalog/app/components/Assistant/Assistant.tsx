@@ -184,15 +184,12 @@ function useAssistant() {
 
         const toolResultsPs = tus.map(({ toolUseId, name, input }) =>
           callTool(name, input)
-            .then((json) => ({
-              toolUseId,
-              content: [{ json }],
-            }))
+            .then((content) => ({ content }))
             .catch((err) => ({
-              toolUseId,
               content: [{ text: `Error: ${err}` }],
               status: 'error',
-            })),
+            }))
+            .then((data) => ({ ...data, toolUseId })),
         )
 
         const toolResults = await Promise.all(toolResultsPs)

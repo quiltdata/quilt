@@ -49,7 +49,7 @@ function useStartSearch() {
       const defaultParams = SearchModel.parseSearchParams(`t=${params.resultType}`)
       const url = makeUrl({ ...defaultParams, ...params } as SearchModel.SearchUrlState)
       history.push(url)
-      return { result: 'navigating to the search page and starting the search session' }
+      return [{ text: 'navigating to the search page and starting the search session' }]
     },
     [makeUrl, history],
   )

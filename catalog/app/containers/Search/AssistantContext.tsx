@@ -60,29 +60,22 @@ function useMessages(model: SearchUIModel.SearchUIModel) {
   return [intro(model), results(model)]
 }
 
-const SetSearchStringSchema = S.Struct({
-  searchString: S.String,
-}).annotations({
-  description: 'Search UI: set search string',
-})
-
-const SetOrderSchema = S.Struct({
-  order: S.Enums(Model.GQLTypes.SearchResultOrder),
-}).annotations({
-  description: 'Search UI: set result order',
-})
-
-const SetResultTypeSchema = S.Struct({
-  resultType: S.Enums(SearchUIModel.ResultType),
-}).annotations({
-  description: 'Search UI: set result type',
-})
-
-const SetBucketsSchema = S.Struct({
-  buckets: S.Array(S.String),
+const RefineSearchSchema = S.Struct({
+  searchString: S.optional(S.String).annotations({
+    description: 'set search string',
+  }),
+  order: S.optional(S.Enums(Model.GQLTypes.SearchResultOrder)).annotations({
+    description: 'set result order',
+  }),
+  resultType: S.optional(S.Enums(SearchUIModel.ResultType)).annotations({
+    description: 'set result type',
+  }),
+  buckets: S.optional(S.Array(S.String)).annotations({
+    description: 'select buckets to search in (keep empty to search in all buckets)',
+  }),
 }).annotations({
   description:
-    'Search UI: select buckets to search in (keep empty to search in all buckets)',
+    'Refine current search by adjusting search parameters. Dont provide a parameter to keep it as is',
 })
 
 const withPrefix = <T extends Record<string, any>>(prefix: string, obj: T) =>
@@ -90,10 +83,11 @@ const withPrefix = <T extends Record<string, any>>(prefix: string, obj: T) =>
 
 function useTools(model: SearchUIModel.SearchUIModel) {
   const {
-    setSearchString,
-    setOrder,
-    setResultType,
-    setBuckets,
+    updateUrlState,
+    // setSearchString,
+    // setOrder,
+    // setResultType,
+    // setBuckets,
     //
     // activateObjectsFilter,
     // deactivateObjectsFilter,
@@ -112,25 +106,14 @@ function useTools(model: SearchUIModel.SearchUIModel) {
   } = model.actions
 
   return withPrefix('catalog_search_', {
-    setSearchString: Assistant.Context.useMakeTool(
-      SetSearchStringSchema,
-      ({ searchString }) => setSearchString(searchString),
-      [setSearchString],
-    ),
-    setOrder: Assistant.Context.useMakeTool(
-      SetOrderSchema,
-      ({ order }) => setOrder(order),
-      [setOrder],
-    ),
-    setResultType: Assistant.Context.useMakeTool(
-      SetResultTypeSchema,
-      ({ resultType }) => setResultType(resultType),
-      [setResultType],
-    ),
-    setBuckets: Assistant.Context.useMakeTool(
-      SetBucketsSchema,
-      ({ buckets }) => setBuckets(buckets),
-      [setBuckets],
+    refine: Assistant.Context.useMakeTool(
+      RefineSearchSchema,
+      async (params) => {
+        // TODO
+        updateUrlState((s) => ({ ...s, ...(params as any) }))
+        return []
+      },
+      [updateUrlState],
     ),
     //
     // activateObjectsFilter,
