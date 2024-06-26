@@ -1445,6 +1445,8 @@ function useSearchUIModel() {
 
         clearFilters,
         reset,
+
+        updateUrlState,
       },
       baseSearchQuery,
       firstPageQuery,
