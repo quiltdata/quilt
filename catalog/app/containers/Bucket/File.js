@@ -32,7 +32,8 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import FileCodeSamples from './CodeSamples/File'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
-import QuratorSection from './Qurator/Section'
+import QuratorButton from './Qurator/Button'
+import QuratorContext from './Qurator/Context'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
@@ -479,6 +480,14 @@ export default function File() {
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
+          {cfg.qurator &&
+            BucketPreferences.Result.match(
+              {
+                Ok: ({ ui: { blocks } }) => (blocks.qurator ? <QuratorButton /> : null),
+                _: () => null,
+              },
+              prefs,
+            )}
         </div>
       </div>
       {objExistsData.case({
@@ -505,9 +514,7 @@ export default function File() {
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
-                      {cfg.qurator && blocks.qurator && (
-                        <QuratorSection handle={handle} />
-                      )}
+                      {cfg.qurator && <QuratorContext handle={handle} />}
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />

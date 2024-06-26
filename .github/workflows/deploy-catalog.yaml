@@ -3,7 +3,8 @@ name: Deploy catalog to ECR
 on:
   push:
     branches:
-      - master
+      # - master
+      - qurator-omni
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
@@ -64,5 +65,5 @@ jobs:
             -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
             .
           docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
+          # docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          # docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
