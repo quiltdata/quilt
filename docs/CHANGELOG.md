@@ -14,6 +14,15 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Fixed] **SECURITY**: Remove `polyfill.io` references ([#4038](https://github.com/quiltdata/quilt/pull/4038))
+
 # 6.0.0a5 - 2024-06-25
 ## Python API
 
