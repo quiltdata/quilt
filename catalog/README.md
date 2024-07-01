@@ -54,3 +54,18 @@ vi build/config.js # edit config file as required
 firebase use ENV
 firebase deploy --only hosting
 ```
+
+# Third-party services
+
+Injected using `document.createElement('script').src = '...'`:
+
+* Intercom, TODO: only if `cfg.intercomAppId`?
+
+Injected using npm libraries:
+
+* Mixpanel, TODO: only if cfg.mixpanelToken?
+* Sentry, TODO: only if cfg.sentryDsn?
+
+Using `<link href="...">`:
+
+* Google fonts: Roboto and Material Icons
