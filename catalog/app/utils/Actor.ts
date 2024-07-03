@@ -3,68 +3,83 @@ import * as React from 'react'
 
 import useConstant from 'utils/useConstant'
 
-type Tagged<TT extends string> = { readonly _tag: TT }
-type Tag<T extends Tagged<any>> = T extends Tagged<infer TT> ? TT : never
-type Variant<T extends Tagged<any>, TT extends string> = Extract<T, Tagged<TT>>
+export type Dispatch<Action> = (action: Action) => Eff.Effect.Effect<boolean>
 
 // transition to the next state,
 // optionally fork a fiber to run background work, which may dispatch actions as well
-type TransitionHandler<
-  State extends Tagged<any>,
-  Action extends Tagged<any>,
-  StateTag extends Tag<State>,
-  ActionTag extends Tag<Action>,
-  R,
-> = (
-  state: Variant<State, StateTag>,
-  action: Variant<Action, ActionTag>,
-  dispatch: (action: Action) => Eff.Effect.Effect<boolean>,
+export type ActorDefinition<State, Action, R> = (
+  state: State,
+  action: Action,
+  dispatch: Dispatch<Action>,
 ) => Eff.Effect.Effect<State, never, R>
 
-type TransitionsFromState<
-  State extends Tagged<any>,
-  Action extends Tagged<any>,
-  StateTag extends Tag<State>,
-  R,
-> = {
-  [ActionTag in Tag<Action>]: TransitionHandler<State, Action, StateTag, ActionTag, R>
-}
-
-type TransitionConfig<State extends Tagged<any>, Action extends Tagged<any>, R> = {
-  [StateTag in Tag<State>]: TransitionsFromState<State, Action, StateTag, R>
-}
-
-interface ActorDefinition<State extends Tagged<any>, Action extends Tagged<any>, R> {
-  transitions: TransitionConfig<State, Action, R>
-}
-
-// type Action
-// type State
-export function setup<State extends Tagged<any>, Action extends Tagged<any>, R>(
-  transitions: TransitionConfig<State, Action, R>,
-): ActorDefinition<State, Action, R> {
-  return {
-    transitions,
-  }
-}
-
-interface ActorStopReason<State extends Tagged<any>> {
+interface ActorStopReason<State> {
   state: State
 }
 
-interface Actor<State extends Tagged<any>, Action extends Tagged<any>> {
+interface Actor<State, Action> {
   state: Eff.SubscriptionRef.SubscriptionRef<State>
   actions: Eff.Queue.Queue<Action>
   fiber: Eff.Fiber.RuntimeFiber<ActorStopReason<State>>
-  dispatch: (action: Action) => Eff.Effect.Effect<boolean>
+  dispatch: Dispatch<Action>
 }
 
-export function start<State extends Tagged<any>, Action extends Tagged<any>, R>(
+export const fromCurried =
+  <State, Action, R>(
+    curried: (
+      dispatch: Dispatch<Action>,
+    ) => (state: State) => (action: Action) => Eff.Effect.Effect<State, never, R>,
+  ): ActorDefinition<State, Action, R> =>
+  (state, action, dispatch) =>
+    curried(dispatch)(state)(action)
+
+type ActionHandlers<
+  State extends Tagged<string>,
+  Action extends Tagged<string>,
+  StateTag extends State['_tag'],
+> = {
+  [ActionTag in Action['_tag']]?: (
+    state: Extract<State, { _tag: StateTag }>,
+    action: Extract<Action, { _tag: ActionTag }>,
+    dispatch: Dispatch<Action>,
+  ) => Eff.Effect.Effect<State>
+}
+
+interface Tagged<T> {
+  _tag: T
+}
+
+type StateHandlers<State extends Tagged<string>, Action extends Tagged<string>> = {
+  [StateTag in State['_tag']]?: ActionHandlers<State, Action, StateTag>
+}
+
+export function taggedHandler<
+  State extends Tagged<string>,
+  Action extends Tagged<string>,
+>(transitions: StateHandlers<State, Action>): ActorDefinition<State, Action, never> {
+  return <ST extends State['_tag'], AT extends Action['_tag']>(
+    state: State,
+    action: Action,
+    dispatch: Dispatch<Action>,
+  ): Eff.Effect.Effect<State> => {
+    const transition = transitions[state._tag as ST]?.[action._tag as AT]
+    if (transition) {
+      return transition(
+        state as Extract<State, { _tag: ST }>,
+        action as Extract<Action, { _tag: AT }>,
+        dispatch,
+      )
+    }
+    return Eff.Effect.succeed(state)
+  }
+}
+
+export function start<State, Action, R>(
   definition: ActorDefinition<State, Action, R>,
   state: State,
 ): Eff.Effect.Effect<Actor<State, Action>, never, R> {
   return Eff.Effect.gen(function* () {
-    yield* Eff.Console.log('starting actor', { definition, state })
+    yield* Eff.Console.log('Actor/start: starting actor', { definition, state })
 
     const stateRef = yield* Eff.SubscriptionRef.make(state)
     const actions = yield* Eff.Queue.unbounded<Action>()
@@ -74,26 +89,18 @@ export function start<State extends Tagged<any>, Action extends Tagged<any>, R>(
     const fiber = yield* Eff.Effect.forkDaemon(
       Eff.Effect.gen(function* () {
         // all state transitions are executed in this fiber
-        yield* Eff.Console.log('started listener fiber')
+        yield* Eff.Console.log('Actor/start/listener: listening')
         while (true) {
           const action = yield* Eff.Queue.take(actions)
-          yield* Eff.Console.log('got action', action)
-          const stateSnapshot = yield* Eff.SubscriptionRef.get(stateRef)
-          yield* Eff.Console.log('state', stateSnapshot)
-          const stateTag: Tag<State> = stateSnapshot._tag
-          const actionTag: Tag<Action> = action._tag
-          const transition = definition.transitions[stateTag][actionTag]
-          const newState = yield* transition(
-            stateSnapshot as Variant<State, Tag<State>>,
-            action as Variant<Action, Tag<Action>>,
-            dispatch,
+          yield* Eff.Console.log('Actor/start/listener: got action', action)
+          yield* Eff.SubscriptionRef.updateEffect(stateRef, (s) =>
+            definition(s, action, dispatch),
           )
-          yield* Eff.Console.log('transitioned to', newState)
-          yield* Eff.SubscriptionRef.set(stateRef, newState)
-          yield* Eff.Console.log('state updated')
+          yield* Eff.Console.log('Actor/start/listener: state updated')
         }
       }),
     )
+    yield* Eff.Console.log('Actor/start: started listener fiber', fiber)
     return {
       state: stateRef,
       actions,
@@ -105,7 +112,7 @@ export function start<State extends Tagged<any>, Action extends Tagged<any>, R>(
 
 export const ignore = Eff.Effect.succeed
 
-export function useState<State extends Tagged<any>>(
+export function useState<State>(
   stateRef: Eff.SubscriptionRef.SubscriptionRef<State>,
 ): State {
   const [state, setState] = React.useState<State>(() =>
@@ -139,7 +146,7 @@ export function useState<State extends Tagged<any>>(
   return state
 }
 
-export function useActor<State extends Tagged<any>, Action extends Tagged<any>>(
+export function useActor<State, Action>(
   defEff: Eff.Effect.Effect<ActorDefinition<State, Action, never>>,
   initEff: Eff.Effect.Effect<State>,
 ) {
