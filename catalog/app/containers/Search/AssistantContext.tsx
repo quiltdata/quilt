@@ -1,3 +1,4 @@
+import * as Eff from 'effect'
 import { Schema as S } from '@effect/schema'
 
 import * as Assistant from 'components/Assistant'
@@ -106,13 +107,15 @@ function useTools(model: SearchUIModel.SearchUIModel) {
   } = model.actions
 
   return withPrefix('catalog_search_', {
-    refine: Assistant.Context.useMakeTool(
+    refine: Assistant.Model.Tool.useMakeTool(
       RefineSearchSchema,
-      async (params) => {
-        // TODO
-        updateUrlState((s) => ({ ...s, ...(params as any) }))
-        return []
-      },
+      (params) =>
+        Eff.Effect.gen(function* () {
+          yield* Eff.Effect.sync(() =>
+            updateUrlState((s) => ({ ...s, ...(params as any) })),
+          )
+          return Eff.Option.none()
+        }),
       [updateUrlState],
     ),
     //
