@@ -1,9 +1,10 @@
 import * as Eff from 'effect'
+import * as React from 'react'
 import { Schema as S } from '@effect/schema'
 
 import * as Assistant from 'components/Assistant'
 import * as Model from 'model'
-import assertNever from 'utils/assertNever'
+import useConstant from 'utils/useConstant'
 
 import * as SearchUIModel from './model'
 
@@ -33,32 +34,8 @@ const intro = (model: SearchUIModel.SearchUIModel) => {
   return lines.join('\n')
 }
 
-const results = (model: SearchUIModel.SearchUIModel) => {
-  const r = model.firstPageQuery
-  switch (r._tag) {
-    case 'fetching':
-      return 'Search results are still loading...'
-    case 'error':
-      return `Search request failed with error:\n${JSON.stringify(r.error)}`
-    case 'data':
-      switch (r.data.__typename) {
-        case 'InvalidInput':
-          return `Search request failed with error:\n${JSON.stringify(r.data)}`
-        case 'EmptySearchResultSet':
-          return 'Search request returned no results'
-        case 'ObjectsSearchResultSet':
-        case 'PackagesSearchResultSet':
-          return `Search request returned ${r.data.stats.total} results`
-        default:
-          assertNever(r.data)
-      }
-    default:
-      assertNever(r)
-  }
-}
-
 function useMessages(model: SearchUIModel.SearchUIModel) {
-  return [intro(model), results(model)]
+  return [intro(model)]
 }
 
 const RefineSearchSchema = S.Struct({
@@ -78,6 +55,119 @@ const RefineSearchSchema = S.Struct({
   description:
     'Refine current search by adjusting search parameters. Dont provide a parameter to keep it as is',
 })
+
+const GetResultsSchema = S.Struct({
+  dummy: S.optional(S.String).annotations({
+    description: 'not used',
+  }),
+}).annotations({
+  description: 'Get current search results',
+})
+
+function useGetResults(model: SearchUIModel.SearchUIModel) {
+  const result: Eff.Option.Option<Assistant.Model.Tool.Result> = React.useMemo(
+    () =>
+      Eff.Match.value(model.firstPageQuery).pipe(
+        Eff.Match.tag('fetching', () => Eff.Option.none()),
+        Eff.Match.tag('error', (r) =>
+          Eff.Option.some(
+            Assistant.Model.Tool.Result({
+              status: 'error',
+              content: [
+                Assistant.Model.Content.text(
+                  `Search request failed with error:\n${JSON.stringify(r.error)}`,
+                ),
+              ],
+            }),
+          ),
+        ),
+        Eff.Match.tag('data', (r) =>
+          Eff.Match.value(r.data).pipe(
+            Eff.Match.when({ __typename: 'InvalidInput' }, (data) =>
+              Eff.Option.some(
+                Assistant.Model.Tool.Result({
+                  status: 'error',
+                  content: [
+                    Assistant.Model.Content.text(
+                      `Search request failed with error:\n${JSON.stringify(data)}`,
+                    ),
+                  ],
+                }),
+              ),
+            ),
+            Eff.Match.when({ __typename: 'EmptySearchResultSet' }, () =>
+              Eff.Option.some(
+                Assistant.Model.Tool.Result({
+                  status: 'success',
+                  content: [
+                    Assistant.Model.Content.text('Search request returned no results'),
+                  ],
+                }),
+              ),
+            ),
+            Eff.Match.orElse((data) => {
+              // 'ObjectsSearchResultSet'
+              // 'PackagesSearchResultSet'
+              const label =
+                data.__typename === 'ObjectsSearchResultSet' ? 'objects' : 'packages'
+              return Eff.Option.some(
+                Assistant.Model.Tool.Result({
+                  status: 'success',
+                  content: [
+                    Assistant.Model.Content.text(
+                      `Found ${data.stats.total} ${label}. First page follows:`,
+                    ),
+                    ...data.firstPage.hits.map((hit, i) =>
+                      Assistant.Model.Content.text(
+                        `<search-result index=${i}>\n${JSON.stringify(
+                          hit,
+                          null,
+                          2,
+                        )}\n</search-result>`,
+                      ),
+                    ),
+                  ],
+                }),
+              )
+            }),
+          ),
+        ),
+        Eff.Match.exhaustive,
+      ),
+    [model.firstPageQuery],
+  )
+
+  const ref = useConstant(() => Eff.Effect.runSync(Eff.SubscriptionRef.make(result)))
+
+  React.useEffect(() => {
+    Eff.Effect.runFork(Eff.SubscriptionRef.set(ref, result))
+  }, [result, ref])
+
+  return Assistant.Model.Tool.useMakeTool(
+    GetResultsSchema,
+    () =>
+      Eff.Effect.gen(function* () {
+        yield* Eff.Console.debug('tool: get search results')
+        // wait til results are Some
+        const lastOpt = yield* ref.changes.pipe(
+          Eff.Stream.takeUntil((x) => Eff.Option.isSome(x)),
+          Eff.Stream.runLast,
+        )
+        const last = Eff.Option.flatten(lastOpt)
+        // should be some
+        const res = Eff.Option.match(last, {
+          onSome: (value) => value,
+          onNone: () =>
+            Assistant.Model.Tool.Result({
+              status: 'error',
+              content: [Assistant.Model.Content.text('Got empty results')],
+            }),
+        })
+        return Eff.Option.some(res)
+      }),
+    [ref],
+  )
+}
 
 const withPrefix = <T extends Record<string, any>>(prefix: string, obj: T) =>
   Object.entries(obj).reduce((acc, [k, v]) => ({ ...acc, [prefix + k]: v }), {})
@@ -114,7 +204,16 @@ function useTools(model: SearchUIModel.SearchUIModel) {
           yield* Eff.Effect.sync(() =>
             updateUrlState((s) => ({ ...s, ...(params as any) })),
           )
-          return Eff.Option.none()
+          return Eff.Option.some(
+            Assistant.Model.Tool.Result({
+              status: 'success',
+              content: [
+                Assistant.Model.Content.text(
+                  'Search parameters updated. Use catalog_search_getResults tool to get the search results.',
+                ),
+              ],
+            }),
+          )
         }),
       [updateUrlState],
     ),
@@ -133,6 +232,7 @@ function useTools(model: SearchUIModel.SearchUIModel) {
     //
     // clearFilters,
     // reset,
+    getResults: useGetResults(model),
   })
 }
 

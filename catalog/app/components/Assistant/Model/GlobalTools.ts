@@ -48,7 +48,7 @@ function useStartSearch() {
             status: 'success',
             content: [
               Content.ToolResultContentBlock.Text({
-                text: `navigating to the search page and starting the search session`,
+                text: 'Navigating to the search page and starting the search session. Use catalog_search_getResults tool to get the search results.',
               }),
             ],
           }),

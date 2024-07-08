@@ -235,7 +235,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer role="assistant">
-            Hi! I'm Qurator. How can I help you?
+            Hi! I'm Qurator, your AI assistant. How can I help you?
           </MessageContainer>
           {state.events.map(
             Model.Conversation.Event.$match({
