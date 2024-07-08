@@ -1,8 +1,9 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 // import * as Lab from '@material-ui/lab'
 
-// import Skeleton from 'components/Skeleton'
+import Markdown from 'components/Markdown'
 
 import * as Model from '../../Model'
 
@@ -20,11 +21,14 @@ function Message({
   role,
   content,
 }: ConversationDispatchProps & ReturnType<typeof Model.Conversation.Event.Message>) {
-  // XXX: render markdown?
   return (
-    <div>
-      <b>{role === 'user' ? 'You' : 'Assistant'}</b>: {JSON.stringify(content)}
-    </div>
+    <MessageContainer role={role}>
+      {Model.Content.MessageContentBlock.$match(content, {
+        Text: ({ text }) => <Markdown data={text} />,
+        Image: ({ format }) => `${format} image`,
+        Document: ({ name, format }) => `${format} document "${name}"`,
+      })}
+    </MessageContainer>
   )
 }
 
@@ -36,15 +40,26 @@ function ToolUse({
   input,
   result, // dispatch,
 }: ConversationDispatchProps & ReturnType<typeof Model.Conversation.Event.ToolUse>) {
-  return (
-    <div>
-      <b>
-        {name} ({toolUseId}):
-      </b>{' '}
-      {JSON.stringify(input)}
+  const details = (
+    <>
+      <b>Tool Use ID:</b> {toolUseId}
       <br />
-      <b>Result:</b> {JSON.stringify(result)}
-    </div>
+      <b>Tool Name:</b> {name}
+      <br />
+      <b>Input:</b>
+      <pre>{JSON.stringify(input, null, 2)}</pre>
+      <b>Result:</b>
+      <pre>{JSON.stringify(result, null, 2)}</pre>
+    </>
+  )
+  return (
+    <MessageContainer role="assistant">
+      <M.Tooltip title={details}>
+        <span>
+          Tool Use: <b>{name}</b> ({result.status})
+        </span>
+      </M.Tooltip>
+    </MessageContainer>
   )
 }
 
@@ -80,24 +95,105 @@ function ToolUse({
 //   },
 // }))
 
+const useMessageContainerStyles = M.makeStyles((t) => ({
+  role_user: {},
+  role_assistant: {},
+  messageContainer: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    gap: `${t.spacing(1)}px`,
+    '&$role_user': {
+      alignSelf: 'flex-end',
+      flexFlow: 'row-reverse',
+    },
+    '&$role_assistant': {
+      alignSelf: 'flex-start',
+    },
+  },
+  avatar: {
+    height: `${t.spacing(4)}px`,
+    width: `${t.spacing(4)}px`,
+    '$role_user &': {
+      background: t.palette.primary.main,
+      color: t.palette.primary.contrastText,
+    },
+    '$role_assistant &': {
+      background: t.palette.background.paper,
+      color: t.palette.text.primary,
+    },
+  },
+  contents: {
+    borderRadius: `${t.spacing(1)}px`,
+    padding: `${t.spacing(1.5)}px`,
+    ...t.typography.body2,
+    '$role_user &': {
+      background: t.palette.primary.main,
+      borderBottomRightRadius: 0,
+      color: t.palette.primary.contrastText,
+    },
+    '$role_assistant &': {
+      background: t.palette.background.paper,
+      borderBottomLeftRadius: 0,
+      color: t.palette.text.primary,
+    },
+  },
+  spacer: {
+    flexShrink: 0,
+    width: `${t.spacing(4)}px`,
+  },
+}))
+
+interface MessageContainerProps {
+  role: 'user' | 'assistant'
+  children: React.ReactNode
+}
+
+function MessageContainer({ role, children }: MessageContainerProps) {
+  const classes = useMessageContainerStyles()
+  return (
+    <div className={cx(classes.messageContainer, classes[`role_${role}`])}>
+      <M.Avatar className={classes.avatar}>
+        <M.Icon fontSize="small">{role === 'user' ? 'person' : 'assistant'}</M.Icon>
+      </M.Avatar>
+      <div className={classes.contents}>{children}</div>
+      <div className={classes.spacer} />
+    </div>
+  )
+}
+
 const useChatStyles = M.makeStyles((t) => ({
-  root: {
+  chat: {
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
     overflow: 'hidden',
   },
-  error: {
-    marginTop: t.spacing(2),
+  header: {
+    padding: `${t.spacing(2)}px`,
+    paddingBottom: `${t.spacing(1)}px`,
+  },
+  historyContainer: {
+    flexGrow: 1,
+    overflowY: 'auto',
+    // TODO: nice overflow markers
+    // position: 'relative',
+    // '&::before': {
+    //   content: '""',
+    //   position: 'absolute',
+    // },
+    // '&::after': {
+    // },
   },
   history: {
-    ...t.typography.body1,
-    maxHeight: t.spacing(70),
-    overflowY: 'auto',
+    background: M.fade(t.palette.primary.main, 0.2),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: `${t.spacing(2)}px`,
+    justifyContent: 'flex-end',
+    minHeight: '100%',
+    padding: `${t.spacing(2)}px`,
   },
-  input: {
-    marginTop: t.spacing(2),
-  },
+  input: {},
 }))
 
 interface ChatProps {
@@ -127,17 +223,57 @@ export default function Chat({ state, dispatch }: ChatProps) {
     },
     [dispatch],
   )
-  return (
-    <div className={classes.root}>
-      <div className={classes.history}>
-        {state.events.map(
-          Model.Conversation.Event.$match({
-            Message: (event) => <Message key={event.id} dispatch={dispatch} {...event} />,
-            ToolUse: (event) => <ToolUse key={event.id} dispatch={dispatch} {...event} />,
-          }),
-        )}
-      </div>
 
+  return (
+    <div className={classes.chat}>
+      <div className={classes.header}>
+        <M.Typography variant="h4">Qurator</M.Typography>
+        <M.Typography variant="caption" color="textSecondary">
+          Qurator may make errors. Verify important information.
+        </M.Typography>
+      </div>
+      <div className={classes.historyContainer}>
+        <div className={classes.history}>
+          <MessageContainer role="assistant">
+            Hi! I'm Qurator. How can I help you?
+          </MessageContainer>
+          {state.events.map(
+            Model.Conversation.Event.$match({
+              Message: (event) => (
+                <Message key={event.id} dispatch={dispatch} {...event} />
+              ),
+              ToolUse: (event) => (
+                <ToolUse key={event.id} dispatch={dispatch} {...event} />
+              ),
+            }),
+          )}
+          {Model.Conversation.State.$match(state, {
+            Idle: () => null,
+            WaitingForAssistant: () => (
+              <MessageContainer role="assistant">Thinking...</MessageContainer>
+            ),
+            ToolUse: ({ calls }) => {
+              const details = Object.entries(calls).map(([id, call]) => (
+                <React.Fragment key={id}>
+                  <b>Tool Use ID:</b> {id}
+                  <br />
+                  <b>Tool Name:</b> {call.name}
+                  <br />
+                  <b>Input:</b>
+                  <pre>{JSON.stringify(call.input, null, 2)}</pre>
+                </React.Fragment>
+              ))
+              return (
+                <MessageContainer role="assistant">
+                  <M.Tooltip title={details}>
+                    <span>Using tools ({calls.length})...</span>
+                  </M.Tooltip>
+                </MessageContainer>
+              )
+            },
+          })}
+        </div>
+      </div>
       <Input className={classes.input} disabled={inputDisabled} onSubmit={ask} />
     </div>
   )

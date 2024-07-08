@@ -6,12 +6,13 @@ import * as style from 'constants/style'
 import * as Model from '../Model'
 import Chat from './Chat'
 
-const useSidebarStyles = M.makeStyles((t) => ({
-  root: {
-    padding: t.spacing(2),
+const useSidebarStyles = M.makeStyles({
+  sidebar: {
+    display: 'flex',
+    height: '100%',
     width: '50vw',
   },
-}))
+})
 
 function Sidebar() {
   const classes = useSidebarStyles()
@@ -22,8 +23,7 @@ function Sidebar() {
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Drawer anchor="right" open={api.visible} onClose={api.hide}>
-        <div className={classes.root}>
-          <M.Typography variant="h4">Qurator</M.Typography>
+        <div className={classes.sidebar}>
           <Chat state={api.state} dispatch={api.dispatch} />
         </div>
       </M.Drawer>
