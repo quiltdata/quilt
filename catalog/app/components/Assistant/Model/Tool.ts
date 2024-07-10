@@ -12,6 +12,12 @@ export interface Result {
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Result = Eff.Data.case<Result>()
 
+export const succeed = (...content: Content.ToolResultContentBlock[]) =>
+  Result({ status: 'success', content })
+
+export const fail = (...content: Content.ToolResultContentBlock[]) =>
+  Result({ status: 'error', content })
+
 export type ResultOption = Eff.Option.Option<Result>
 
 export type Executor<I> = (params: I) => Eff.Effect.Effect<ResultOption>

@@ -5,8 +5,8 @@ import * as S from '@effect/schema/Schema'
 import * as SearchModel from 'containers/Search/model'
 import * as Model from 'model'
 
-import * as Content from './Content'
-import * as Tool from './Tool'
+import * as Content from '../Content'
+import * as Tool from '../Tool'
 
 // TODO: more comprehensive params
 const SearchParamsSchema = S.Struct({
@@ -31,7 +31,7 @@ const SearchParamsSchema = S.Struct({
   description: 'Start a search session',
 })
 
-function useStartSearch() {
+export function useStartSearch() {
   const makeUrl = SearchModel.useMakeUrl()
   const history = useHistory()
   return Tool.useMakeTool(
@@ -44,24 +44,13 @@ function useStartSearch() {
         const url = makeUrl({ ...defaultParams, ...params } as SearchModel.SearchUrlState)
         yield* Eff.Effect.sync(() => history.push(url))
         return Eff.Option.some(
-          Tool.Result({
-            status: 'success',
-            content: [
-              Content.ToolResultContentBlock.Text({
-                text: 'Navigating to the search page and starting the search session. Use catalog_search_getResults tool to get the search results.',
-              }),
-            ],
-          }),
+          Tool.succeed(
+            Content.ToolResultContentBlock.Text({
+              text: 'Navigating to the search page and starting the search session. Use catalog_search_getResults tool to get the search results.',
+            }),
+          ),
         )
       }),
     [makeUrl, history],
   )
 }
-
-export function useGlobalTools(): Tool.Collection {
-  return {
-    catalog_global_startSearch: useStartSearch(),
-  }
-}
-
-export { useGlobalTools as use }

@@ -4,16 +4,18 @@ import { JsonRecord } from 'utils/types'
 
 // XXX: schema for en/decoding to/from aws bedrock types?
 
-export type DocumentFormat =
-  | 'pdf'
-  | 'csv'
-  | 'doc'
-  | 'docx'
-  | 'xls'
-  | 'xlsx'
-  | 'html'
-  | 'txt'
-  | 'md'
+export const DOCUMENT_FORMATS = [
+  'pdf',
+  'csv',
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'html',
+  'txt',
+  'md',
+] as const
+export type DocumentFormat = (typeof DOCUMENT_FORMATS)[number]
 
 export interface DocumentBlock {
   format: DocumentFormat
@@ -22,7 +24,8 @@ export interface DocumentBlock {
   source: Buffer | Uint8Array | Blob | string
 }
 
-export type ImageFormat = 'png' | 'jpeg' | 'gif' | 'webp'
+export const IMAGE_FORMATS = ['png', 'jpeg', 'gif', 'webp'] as const
+export type ImageFormat = (typeof IMAGE_FORMATS)[number]
 
 export interface ImageBlock {
   format: ImageFormat
@@ -63,7 +66,7 @@ export type ToolResultStatus = 'success' | 'error'
 export interface ToolResultBlock {
   toolUseId: string
   content: ToolResultContentBlock[]
-  status?: ToolResultStatus
+  status: ToolResultStatus
 }
 
 export type ResponseMessageContentBlock = Eff.Data.TaggedEnum<{
