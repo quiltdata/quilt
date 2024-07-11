@@ -1,6 +1,7 @@
 import * as Eff from 'effect'
 import * as React from 'react'
 
+import { runtime } from 'utils/Effect'
 import useConstant from 'utils/useConstant'
 
 export type Dispatch<Action> = (action: Action) => Eff.Effect.Effect<boolean>
@@ -116,11 +117,11 @@ export function useState<State>(
   stateRef: Eff.SubscriptionRef.SubscriptionRef<State>,
 ): State {
   const [state, setState] = React.useState<State>(() =>
-    Eff.Effect.runSync(Eff.SubscriptionRef.get(stateRef)),
+    runtime.runSync(Eff.SubscriptionRef.get(stateRef)),
   )
   React.useEffect(() => {
     // subscribe to state changes
-    const listener = Eff.Effect.runFork(
+    const listener = runtime.runFork(
       Eff.Effect.gen(function* () {
         yield* Eff.Console.log('useState: subscribing to state changes', stateRef)
         yield* Eff.Stream.runForEach(stateRef.changes, (s) =>
@@ -139,7 +140,7 @@ export function useState<State>(
         yield* Eff.Console.log('useState: unsubscribing from state changes', listener)
         const exit = yield* Eff.Fiber.interrupt(listener)
         yield* Eff.Console.log('useState: listener fiber interrupted', exit)
-      }).pipe(Eff.Effect.runFork)
+      }).pipe(runtime.runFork)
     }
   }, [stateRef])
 
@@ -161,7 +162,7 @@ export function useActor<State, Action>(
       yield* Eff.Console.log('useActor: started actor', a)
       return a
       // TODO: how/where to provide dependencies?
-    }).pipe(Eff.Effect.runSync),
+    }).pipe(runtime.runSync),
   )
 
   // TODO: stop/interrupt on unmount
@@ -171,7 +172,7 @@ export function useActor<State, Action>(
 
   // XXX: provide dependencies to dispatch?
   const dispatch = React.useCallback(
-    (action: Action) => Eff.Effect.runSync(actor.dispatch(action)),
+    (action: Action) => runtime.runSync(actor.dispatch(action)),
     [actor],
   )
   return [state, dispatch] as const

@@ -4,6 +4,7 @@ import { Schema as S } from '@effect/schema'
 
 import * as Assistant from 'components/Assistant'
 import * as Model from 'model'
+import { runtime } from 'utils/Effect'
 import useConstant from 'utils/useConstant'
 
 import * as SearchUIModel from './model'
@@ -137,10 +138,10 @@ function useGetResults(model: SearchUIModel.SearchUIModel) {
     [model.firstPageQuery],
   )
 
-  const ref = useConstant(() => Eff.Effect.runSync(Eff.SubscriptionRef.make(result)))
+  const ref = useConstant(() => runtime.runSync(Eff.SubscriptionRef.make(result)))
 
   React.useEffect(() => {
-    Eff.Effect.runFork(Eff.SubscriptionRef.set(ref, result))
+    runtime.runFork(Eff.SubscriptionRef.set(ref, result))
   }, [result, ref])
 
   return Assistant.Model.Tool.useMakeTool(
