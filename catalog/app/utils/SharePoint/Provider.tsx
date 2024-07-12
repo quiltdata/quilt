@@ -40,6 +40,7 @@ function getUser(
 }
 
 interface SharePoint {
+  client: Client | null
   msal: IMsalContext
   signIn: () => Promise<void>
   user: MSUser | Error | null
@@ -127,7 +128,10 @@ function InternalProvider({ children }: React.PropsWithChildren<{}>) {
     }
   }, [authProvider, client, msal.instance])
 
-  const value = React.useMemo(() => ({ msal, signIn, user }), [msal, signIn, user])
+  const value = React.useMemo(
+    () => ({ client, msal, signIn, user }),
+    [client, msal, signIn, user],
+  )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

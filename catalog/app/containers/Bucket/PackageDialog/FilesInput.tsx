@@ -16,6 +16,7 @@ import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
+import * as SharePoint from 'utils/SharePoint'
 
 import EditFileMeta from './EditFileMeta'
 import {
@@ -1584,6 +1585,11 @@ export function FilesInput({
     setS3FilePickerOpen(true)
   }, [])
 
+  const ms = SharePoint.use()
+  const handleSharePointBtn = React.useCallback(async () => {
+    SharePoint.launchPicker(ms.msal.instance)
+  }, [ms.msal.instance])
+
   const isS3FilePickerEnabled = !!buckets?.length
 
   return (
@@ -1756,6 +1762,15 @@ export function FilesInput({
             </StyledLink>
           </Lab.Alert>
         )}
+        <M.Button
+          onClick={handleSharePointBtn}
+          disabled={disabled}
+          className={classes.action}
+          variant="outlined"
+          size="small"
+        >
+          Add files from SharePoint
+        </M.Button>
       </div>
     </Root>
   )
