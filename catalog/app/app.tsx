@@ -42,6 +42,7 @@ import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { PFSCookieManager } from 'utils/PFSCookieManager'
 import * as Cache from 'utils/ResourceCache'
+import * as SharePoint from 'utils/SharePoint'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
 import { nest } from 'utils/reactTools'
@@ -57,6 +58,12 @@ import WithGlobalStyles from './global-styles'
 const globalApi = new GlobalAPI()
 globalApi.attach(window)
 const GlobalAPIProvider = globalApi.getProvider()
+
+const msAuth = {
+  clientId: '6d354507-beeb-4c38-858c-abf6018427df',
+  authority: 'https://login.microsoftonline.com/046409b6-ae78-4b35-a678-54defa97f5b4',
+  redirectUri: 'http://localhost:3000',
+}
 
 // listen for Roboto fonts
 fontLoader('Roboto', 'Roboto Mono')
@@ -104,6 +111,7 @@ const render = () => {
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { storage }],
+      [SharePoint.Provider, { auth: msAuth }],
       [
         Intercom.Provider,
         {
