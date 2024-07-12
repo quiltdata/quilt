@@ -46,6 +46,8 @@
     ]
   },
   "dependencies": {
+    "@azure/msal-browser": "^3.18.0",
+    "@azure/msal-react": "^2.0.20",
     "@braintree/sanitize-url": "^6.0.4",
     "@finos/perspective": "^1.9.4",
     "@finos/perspective-viewer": "^1.9.4",
