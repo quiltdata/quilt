@@ -40,7 +40,7 @@ import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
-import { isS3File } from './S3FilePicker'
+import { isS3File, isSharePointEntry } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
@@ -301,7 +301,7 @@ function PackageCreationForm({
       if (file === FI.EMPTY_DIR_MARKER) return
       if (isS3File(file)) {
         addedS3Entries.push({ path, file })
-      } else {
+      } else if (!isSharePointEntry(file)) {
         addedLocalEntries.push({ path, file })
       }
     })

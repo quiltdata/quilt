@@ -75,3 +75,24 @@ export interface S3File {
   size: number
   version?: string
 }
+
+export interface SharePointDummy {
+  name: string
+  etag: string
+  size?: number
+}
+
+export interface SharePointFile extends SharePointDummy {
+  contents: Promise<string>
+}
+
+export interface SharePointEntry extends SharePointDummy {
+  hash: {
+    ready: boolean
+    value?: Checksum
+    error?: Error
+    promise: Promise<Checksum | undefined>
+  }
+  size: number
+  meta?: EntryMeta
+}

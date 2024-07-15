@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import { FileWithPath } from 'react-dropzone'
 
 import type * as Model from 'model'
+import computeFileChecksum from 'utils/checksums'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
@@ -96,10 +97,12 @@ export interface FileWithHash extends File {
   meta?: Types.JsonRecord
 }
 
+export interface SharePointFile {}
+
 export type LocalFile = FileWithPath & FileWithHash
 
 export interface FilesState {
-  added: Record<string, LocalFile | Model.S3File>
+  added: Record<string, LocalFile | Model.S3File | Model.SharePointEntry>
   deleted: Record<string, true>
   existing: Record<string, Model.PackageEntry>
   // XXX: workaround used to re-trigger validation and dependent computations
@@ -144,6 +147,7 @@ export const FilesAction = tagged.create(
     Add: (v: { files: FileWithHash[]; prefix?: string }) => v,
     AddFolder: (path: string) => path,
     AddFromS3: (filesMap: Record<string, Model.S3File>) => filesMap,
+    AddFromSharePoint: (command: any) => command,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
@@ -158,7 +162,7 @@ export const FilesAction = tagged.create(
 export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
 const addMetaToFile = (
-  file: Model.PackageEntry | LocalFile | Model.S3File,
+  file: Model.PackageEntry | LocalFile | Model.S3File | Model.SharePointEntry,
   meta?: Model.EntryMeta,
 ) => {
   if (file instanceof window.File) {
@@ -215,6 +219,48 @@ export const handleFilesAction = FilesAction.match<
       added: R.mergeLeft(filesMap),
       deleted: R.omit(Object.keys(filesMap)),
     }),
+  AddFromSharePoint: (items: Model.SharePointFile[]) => (state) => {
+    const entries: Model.SharePointEntry[] = items.map(({ contents, ...item }) => {
+      const hash: Model.SharePointEntry['hash'] = {
+        ready: false,
+        promise: getHashPromise(),
+      }
+      async function getHashPromise() {
+        try {
+          const file = new File([Buffer.from(await contents)], item.name)
+          const value = await computeFileChecksum(file)
+          hash.value = value
+          return value
+        } catch (error) {
+          if (error instanceof Error) {
+            hash.error = error
+          }
+          return Promise.reject(error)
+        }
+      }
+      return {
+        ...item,
+        size: item.size || 0,
+        hash,
+      }
+    })
+    const filesMap = entries.reduce(
+      (acc, entry) => ({
+        ...acc,
+        [entry.name]: entry,
+      }),
+      {} as Record<string, Model.SharePointEntry>,
+    )
+    /* eslint-disable-next-line no-console */
+    console.log(filesMap)
+    return R.evolve(
+      {
+        added: R.mergeLeft(filesMap),
+        deleted: R.omit(Object.keys(filesMap)),
+      },
+      state,
+    )
+  },
   Delete: (path) =>
     R.evolve({
       added: R.dissoc(path),
@@ -237,14 +283,16 @@ export const handleFilesAction = FilesAction.match<
     }),
   Meta: ({ path, meta }) => {
     const mkSetMeta =
-      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
+      <
+        T extends Model.PackageEntry | LocalFile | Model.S3File | Model.SharePointEntry,
+      >() =>
       (filesDict: Record<string, T>) => {
         const file = filesDict[path]
         if (!file) return filesDict
         return R.assoc(path, addMetaToFile(file, meta), filesDict)
       }
     return R.evolve({
-      added: mkSetMeta<LocalFile | Model.S3File>(),
+      added: mkSetMeta<LocalFile | Model.S3File | Model.SharePointEntry>(),
       existing: mkSetMeta<Model.PackageEntry>(),
     })
   },

@@ -1,6 +1,63 @@
 import { IPublicClientApplication, SilentRequest } from '@azure/msal-browser'
+import * as Model from 'model'
 
-/* eslint-disable no-console */
+export enum DispatchEventType {
+  Submit,
+}
+
+export interface DispatchEvent {
+  type: DispatchEventType
+  data: any
+}
+
+export type Dispatcher = (event: DispatchEvent) => void
+
+interface ListingItem {
+  id: string
+  '@sharePoint.endpoint': string
+  parentReference: {
+    driveId: string
+  }
+}
+
+interface DriveItem {
+  eTag: string
+  '@content.downloadUrl': string
+  id: string
+  name: string
+  size?: number
+  // content?: Stream???
+}
+
+async function resolveFile(
+  item: ListingItem,
+  authToken: String,
+): Promise<Model.SharePointFile> {
+  const url = `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}`
+  const driveItemResponse = await window.fetch(url, {
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  })
+  const driveItem: DriveItem = await driveItemResponse.json()
+  const contentsResponse = await window.fetch(driveItem['@content.downloadUrl'])
+  // FIXME: contentsResponse.arrayBuffer
+  //        return arrayBuffer and consume it for checksum
+
+  return {
+    name: driveItem.name,
+    etag: driveItem.eTag,
+    size: driveItem.size,
+    contents: contentsResponse.text(),
+  }
+}
+
+function resolveFiles(
+  items: ListingItem[],
+  authToken: String,
+): Promise<Model.SharePointFile>[] {
+  return items.map((item) => resolveFile(item, authToken))
+}
 
 const baseUrl = 'https://quiltdatainc-my.sharepoint.com/'
 
@@ -74,11 +131,12 @@ async function messageListener(
   app: IPublicClientApplication,
   win: Window,
   port: MessagePort,
+  dispatcher: Dispatcher,
+  authToken: String,
   message: MessageEvent,
 ) {
   switch (message.data.type) {
     case 'notification':
-      console.log(`notification: ${message.data}`)
       break
 
     case 'command':
@@ -104,6 +162,7 @@ async function messageListener(
               },
             })
           } else {
+            /* eslint-disable-next-line no-console */
             console.error(
               `Could not get auth token for command: ${JSON.stringify(command)}`,
             )
@@ -112,18 +171,12 @@ async function messageListener(
           break
 
         case 'close':
-          console.log('CLOSE')
           win.close()
           break
 
         case 'pick':
-          console.log(`Picked: ${JSON.stringify(command)}`)
-
-          // document.getElementById('pickedFiles').innerHTML = `<pre>${JSON.stringify(
-          //   command,
-          //   null,
-          //   2,
-          // )}</pre>`
+          const data = await Promise.all(resolveFiles(command.items, authToken))
+          dispatcher({ type: DispatchEventType.Submit, data })
 
           port.postMessage({
             type: 'result',
@@ -138,6 +191,7 @@ async function messageListener(
           break
 
         default:
+          /* eslint-disable-next-line no-console */
           console.warn(`Unsupported command: ${JSON.stringify(command)}`, 2)
 
           port.postMessage({
@@ -155,7 +209,10 @@ async function messageListener(
   }
 }
 
-export async function launchPicker(app: IPublicClientApplication) {
+export async function launchPicker(
+  app: IPublicClientApplication,
+  dispatcher: Dispatcher,
+) {
   const win = window.open('', 'Picker', 'width=800,height=600')
 
   const authToken = await getToken(app, {
@@ -163,7 +220,6 @@ export async function launchPicker(app: IPublicClientApplication) {
     // command: 'authenticate',
     type: 'SharePoint',
   })
-  console.log({ authToken })
 
   const queryString = new URLSearchParams({
     filePicker: JSON.stringify(params),
@@ -195,7 +251,9 @@ export async function launchPicker(app: IPublicClientApplication) {
         message.channelId === params.messaging.channelId
       ) {
         const port = event.ports[0]
-        port.addEventListener('message', (m) => messageListener(app, win, port, m))
+        port.addEventListener('message', (m) =>
+          messageListener(app, win, port, dispatcher, authToken, m),
+        )
         port.start()
         port.postMessage({
           type: 'activate',
