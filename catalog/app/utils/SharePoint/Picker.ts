@@ -5,14 +5,15 @@ export enum DispatchEventType {
   Submit,
 }
 
-export interface DispatchEvent {
-  type: DispatchEventType
-  data: any
+export type DispatchEvent = {
+  type: DispatchEventType.Submit
+  data: Model.SharePointFile[]
 }
 
 export type Dispatcher = (event: DispatchEvent) => void
 
 interface ListingItem {
+  folder: {}
   id: string
   '@sharePoint.endpoint': string
   parentReference: {
@@ -32,7 +33,8 @@ interface DriveItem {
 async function resolveFile(
   item: ListingItem,
   authToken: String,
-): Promise<Model.SharePointFile> {
+): Promise<[Model.SharePointFile]> {
+  // if (item.folder)
   const url = new URL(
     `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}`,
   )
@@ -43,22 +45,29 @@ async function resolveFile(
   })
   const driveItem: DriveItem = await driveItemResponse.json()
   const contentsResponse = await window.fetch(driveItem['@content.downloadUrl'])
-  return {
-    address: {
-      host: url.hostname,
-      etag: driveItem.eTag,
-      id: driveItem.id,
+  return [
+    {
+      address: {
+        host: url.hostname,
+        etag: driveItem.eTag,
+        id: driveItem.id,
+      },
+      name: driveItem.name,
+      size: driveItem.size,
+      contents: contentsResponse.arrayBuffer(),
     },
-    name: driveItem.name,
-    size: driveItem.size,
-    contents: contentsResponse.arrayBuffer(),
-  }
+  ]
 }
 
+// TODO: return Promise<object>
+//       object that can reference the same object
+//       so we can use recursive structures
+//       SharePointDir?
+//       SharePointListing?
 function resolveFiles(
   items: ListingItem[],
   authToken: String,
-): Promise<Model.SharePointFile>[] {
+): Promise<Model.SharePointFile[]>[] {
   return items.map((item) => resolveFile(item, authToken))
 }
 
@@ -75,7 +84,7 @@ const params = {
     channelId: '27',
   },
   typesAndSources: {
-    mode: 'files',
+    mode: 'all',
     pivots: {
       oneDrive: true,
       shared: true,
@@ -192,7 +201,7 @@ async function messageListener(
 
         case 'pick':
           const data = await Promise.all(resolveFiles(command.items, authToken))
-          dispatcher({ type: DispatchEventType.Submit, data })
+          dispatcher({ type: DispatchEventType.Submit, data: data.flat() })
 
           port.postMessage({
             type: 'result',
