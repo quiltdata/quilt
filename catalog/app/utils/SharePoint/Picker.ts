@@ -134,7 +134,7 @@ const params = {
   },
   authentication: {},
   messaging: {
-    origin: 'http://localhost:3000',
+    origin: `${window.location.protocol}//${window.location.host}`,
     channelId: '27',
   },
   typesAndSources: {
