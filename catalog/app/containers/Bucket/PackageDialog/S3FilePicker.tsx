@@ -89,7 +89,8 @@ export const isS3File = (f: any): f is Model.S3File =>
   (typeof f.version === 'string' || typeof f.version === 'undefined') &&
   typeof f.size === 'number'
 
-export const isSharePointEntry = (f: any): f is Model.SharePointEntry => !!f && !!f.etag
+export const isSharePointEntry = (f: any): f is Model.SharePointEntry =>
+  !!f && !!f.address?.etag
 
 function ExpandMore({ className }: { className?: string }) {
   return <M.Icon className={className}>expand_more</M.Icon>

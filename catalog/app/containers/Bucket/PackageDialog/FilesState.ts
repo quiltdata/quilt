@@ -229,6 +229,7 @@ export const handleFilesAction = FilesAction.match<
         try {
           const file = new File([Buffer.from(await contents)], item.name)
           const value = await computeFileChecksum(file)
+          hash.ready = true
           hash.value = value
           return value
         } catch (error) {
@@ -252,7 +253,6 @@ export const handleFilesAction = FilesAction.match<
       {} as Record<string, Model.SharePointEntry>,
     )
     /* eslint-disable-next-line no-console */
-    console.log(filesMap)
     return R.evolve(
       {
         added: R.mergeLeft(filesMap),

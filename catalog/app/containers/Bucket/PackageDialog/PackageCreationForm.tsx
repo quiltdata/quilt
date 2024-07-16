@@ -63,6 +63,11 @@ export interface S3Entry {
   file: Model.S3File
 }
 
+export interface SharePointEntry {
+  path: string
+  file: Model.SharePointEntry
+}
+
 export interface PackageCreationSuccess {
   name: string
   hash?: string
@@ -297,11 +302,14 @@ function PackageCreationForm({
   const onSubmitWeb = async ({ name, msg, files, meta, workflow }: SubmitWebArgs) => {
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
+    const addedSharePointEntries: SharePointEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
       if (file === FI.EMPTY_DIR_MARKER) return
       if (isS3File(file)) {
         addedS3Entries.push({ path, file })
-      } else if (!isSharePointEntry(file)) {
+      } else if (isSharePointEntry(file)) {
+        addedSharePointEntries.push({ path, file })
+      } else {
         addedLocalEntries.push({ path, file })
       }
     })
@@ -349,16 +357,33 @@ function PackageCreationForm({
       return mkFormError(PD.ERROR_MESSAGES.UPLOAD)
     }
 
-    const s3Entries = FP.function.pipe(
-      addedS3Entries,
-      R.map(
-        ({ path, file }) =>
-          [
-            path,
-            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
-          ] as R.KeyValuePair<string, PartialPackageEntry>,
-      ),
-      R.fromPairs,
+    const s3Entries = addedS3Entries.reduce(
+      (memo, { path, file }) => ({
+        ...memo,
+        [path]: {
+          physicalKey: s3paths.handleToS3Url(file),
+          meta: file.meta,
+        },
+      }),
+      {} as Record<string, PartialPackageEntry>,
+    )
+
+    const sharePointEntries = addedSharePointEntries.reduce(
+      (memo, { path, file: { hash, address, size, meta: m } }) => {
+        if (!hash.ready) {
+          throw new Error('Hash is not ready')
+        }
+        return {
+          ...memo,
+          [path]: {
+            physicalKey: `sharepoint://${address.host}/${address.id}?versionId=${address.etag}`,
+            hash: hash.value,
+            size,
+            meta: m,
+          },
+        }
+      },
+      {} as Record<string, PartialPackageEntry>,
     )
 
     const allEntries = FP.function.pipe(
@@ -366,6 +391,7 @@ function PackageCreationForm({
       R.omit(Object.keys(files.deleted)),
       R.mergeLeft(uploadedEntries),
       R.mergeLeft(s3Entries),
+      R.mergeLeft(sharePointEntries),
       R.toPairs,
       R.map(([logicalKey, data]: [string, PartialPackageEntry]) => ({
         logicalKey,

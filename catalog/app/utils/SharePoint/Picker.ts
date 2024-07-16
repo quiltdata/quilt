@@ -33,7 +33,9 @@ async function resolveFile(
   item: ListingItem,
   authToken: String,
 ): Promise<Model.SharePointFile> {
-  const url = `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}`
+  const url = new URL(
+    `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}`,
+  )
   const driveItemResponse = await window.fetch(url, {
     headers: {
       Authorization: `Bearer ${authToken}`,
@@ -45,8 +47,12 @@ async function resolveFile(
   //        return arrayBuffer and consume it for checksum
 
   return {
+    address: {
+      host: url.hostname,
+      etag: driveItem.eTag,
+      id: driveItem.id,
+    },
     name: driveItem.name,
-    etag: driveItem.eTag,
     size: driveItem.size,
     contents: contentsResponse.text(),
   }

@@ -76,9 +76,15 @@ export interface S3File {
   version?: string
 }
 
-export interface SharePointDummy {
-  name: string
+export interface SharePointLocation {
+  host: string
+  id: string
   etag: string
+}
+
+export interface SharePointDummy {
+  address: SharePointLocation
+  name: string
   size?: number
 }
 
