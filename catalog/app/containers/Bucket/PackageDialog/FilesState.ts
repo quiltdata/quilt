@@ -227,16 +227,17 @@ export const handleFilesAction = FilesAction.match<
       }
       async function getHashPromise() {
         try {
-          const file = new File([Buffer.from(await contents)], item.name)
+          const file = new File([await contents], item.name)
           const value = await computeFileChecksum(file)
           hash.ready = true
           hash.value = value
           return value
         } catch (error) {
           if (error instanceof Error) {
+            hash.ready = true
             hash.error = error
           }
-          return Promise.reject(error)
+          return undefined
         }
       }
       return {

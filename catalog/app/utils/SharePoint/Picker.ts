@@ -43,9 +43,6 @@ async function resolveFile(
   })
   const driveItem: DriveItem = await driveItemResponse.json()
   const contentsResponse = await window.fetch(driveItem['@content.downloadUrl'])
-  // FIXME: contentsResponse.arrayBuffer
-  //        return arrayBuffer and consume it for checksum
-
   return {
     address: {
       host: url.hostname,
@@ -54,7 +51,7 @@ async function resolveFile(
     },
     name: driveItem.name,
     size: driveItem.size,
-    contents: contentsResponse.text(),
+    contents: contentsResponse.arrayBuffer(),
   }
 }
 
@@ -81,9 +78,22 @@ const params = {
     mode: 'files',
     pivots: {
       oneDrive: true,
+      shared: true,
+      myOrganization: true,
+      site: true,
       recent: true,
     },
   },
+  selection: {
+    mode: 'multiple',
+  },
+  // TODO: How does it work? I download the file for the hash.
+  //       Perhaps I can do the same with this configuration property.
+  // commands: {
+  //   pick: {
+  //     action: 'download',
+  //   },
+  // },
 }
 
 function combine(...paths: any[]) {
