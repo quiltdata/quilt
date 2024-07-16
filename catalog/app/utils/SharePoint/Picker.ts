@@ -1,4 +1,3 @@
-import { join } from 'path'
 import { IPublicClientApplication, SilentRequest } from '@azure/msal-browser'
 import * as Model from 'model'
 
@@ -13,11 +12,14 @@ export type DispatchEvent = {
 
 export type Dispatcher = (event: DispatchEvent) => void
 
-interface ListingItem {
+export type Folder = {}
+
+interface PickerItem {
   '@sharePoint.endpoint': string
-  folder: {}
+  folder: Folder
   id: string
   parentReference: {
+    name?: string
     driveId: string
   }
 }
@@ -25,29 +27,31 @@ interface ListingItem {
 interface DriveItem {
   '@content.downloadUrl': string
   eTag: string
+  folder: Folder
   id: string
   name: string
   parentReference: {
     id: string
+    driveId: string
     name: string
   }
   size?: number
 }
 
-async function resolveDriveItem(
+async function fetchFile(
   driveItem: DriveItem,
   host: string,
   parentReference?: DriveItem['parentReference'],
-): Promise<Model.SharePointFile> {
+): Promise<Model.SharePointFile[]> {
   const { '@content.downloadUrl': downloadUrl, eTag: etag, id, name, size } = driveItem
   const contents = (await window.fetch(downloadUrl)).arrayBuffer()
   const address = { host, etag, id }
-  const logicalKey = parentReference ? join(parentReference.name, name) : name
-  return { address, logicalKey, size, contents }
+  const logicalKey = parentReference ? `${parentReference.name}/${name}` : name
+  return [{ address, logicalKey, size, contents }]
 }
 
 async function resolveFile(
-  item: ListingItem,
+  item: PickerItem,
   authToken: string,
 ): Promise<Model.SharePointFile[]> {
   const url = new URL(
@@ -59,12 +63,12 @@ async function resolveFile(
     },
   })
   const driveItem = await response.json()
-  const file = await resolveDriveItem(driveItem, url.hostname)
-  return [file]
+  const files = await fetchFile(driveItem, url.hostname)
+  return files
 }
 
 async function resolveDir(
-  item: ListingItem,
+  item: PickerItem,
   authToken: String,
 ): Promise<Model.SharePointFile[]> {
   const url = new URL(
@@ -76,16 +80,34 @@ async function resolveDir(
     },
   })
   const driveItemsList: DriveItem[] = (await driveItemResponse.json()).value
-  const contentsResponse = await Promise.all(
-    driveItemsList.map((driveItem) =>
-      resolveDriveItem(driveItem, url.hostname, driveItem.parentReference),
-    ),
-  )
+  const contentsResponse = (
+    await Promise.all(
+      driveItemsList.map((driveItem) => {
+        const parentReference = {
+          ...driveItem.parentReference,
+          name: item.parentReference.name
+            ? `${item.parentReference.name}/${driveItem.parentReference.name}`
+            : driveItem.parentReference.name,
+        }
+        return driveItem.folder
+          ? resolveDir(
+              {
+                '@sharePoint.endpoint': item['@sharePoint.endpoint'],
+                folder: driveItem.folder,
+                id: driveItem.id,
+                parentReference,
+              },
+              authToken,
+            )
+          : fetchFile(driveItem, url.hostname, parentReference)
+      }),
+    )
+  ).flat()
   return contentsResponse
 }
 
 async function resolveSelectionItem(
-  item: ListingItem,
+  item: PickerItem,
   authToken: string,
 ): Promise<Model.SharePointFile[]> {
   return item.folder ? resolveDir(item, authToken) : resolveFile(item, authToken)
@@ -97,7 +119,7 @@ async function resolveSelectionItem(
 //       SharePointDir?
 //       SharePointListing?
 function resolveSelection(
-  items: ListingItem[],
+  items: PickerItem[],
   authToken: string,
 ): Promise<Model.SharePointFile[]>[] {
   return items.map((item) => resolveSelectionItem(item, authToken))
