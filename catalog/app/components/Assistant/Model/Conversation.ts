@@ -2,11 +2,14 @@ import * as Eff from 'effect'
 import * as uuid from 'uuid'
 
 import * as Actor from 'utils/Actor'
+import * as Log from 'utils/Logging'
 
 import * as Content from './Content'
 import * as Context from './Context'
 import * as LLM from './LLM'
 import * as Tool from './Tool'
+
+const MODULE = 'Assistant/Conversation'
 
 const genId = Eff.Effect.sync(uuid.v4)
 
@@ -111,24 +114,23 @@ export const init = State.Idle({
   error: Eff.Option.none(),
 })
 
-// TODO: separate "service" from handlers
-export const ConversationActor = Eff.Effect.gen(function* () {
-  const llm = yield* LLM.LLM
-  const ctxService = yield* Context.ConversationContext
-
-  const llmRequest = (events: Event[]) =>
+const llmRequest = (events: Event[]) =>
+  Log.scoped({
+    name: `${MODULE}.ConversationActor:llmRequest`,
+    enter: [Log.br, 'events:', events],
+  })(
     Eff.Effect.gen(function* () {
+      const llm = yield* LLM.LLM
+      const ctxService = yield* Context.ConversationContext
       const ctx = yield* ctxService.context
       const prompt = yield* constructPrompt(events, ctx)
 
       const result = yield* Eff.Effect.either(llm.converse(prompt))
       if (Eff.Either.isLeft(result)) {
-        yield* Eff.Console.debug('llm error', result.left)
         return Action.LLMError({ error: result.left })
       }
 
       const response = result.right
-      yield* Eff.Console.debug('llm response', response)
       if (Eff.Option.isNone(response.content)) {
         const error = new Eff.Cause.UnknownException(
           new Error('No content in LLM response'),
@@ -143,131 +145,140 @@ export const ConversationActor = Eff.Effect.gen(function* () {
       const timestamp = new Date(yield* Eff.Clock.currentTimeMillis)
       // XXX: record response stats?
       return Action.LLMResponse({ timestamp, content, toolUses })
-    })
+    }),
+  )
 
-  return Actor.taggedHandler<State, Action>({
-    Idle: {
-      Ask: (state, action, dispatch) =>
-        Eff.Effect.gen(function* () {
-          const event = Event.Message({
-            id: yield* genId,
-            timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
-            role: 'user',
-            content: Content.text(action.content),
-          })
-          const events = state.events.concat(event)
-
-          const requestFiber = yield* llmRequest(events).pipe(
-            Eff.Effect.andThen(dispatch),
-            Eff.Effect.fork,
-          )
-          return State.WaitingForAssistant({ events, requestFiber })
-        }),
-
-      Clear: () =>
-        Eff.Effect.succeed(State.Idle({ events: [], error: Eff.Option.none() })),
-      Discard: (state, { id }) =>
-        Eff.Effect.succeed({
-          ...state,
-          events: state.events.filter((e) => e.id !== id),
-        }),
-    },
-    WaitingForAssistant: {
-      LLMError: (state, { error }) =>
-        Eff.Effect.gen(function* () {
-          return State.Idle({
-            events: state.events,
-            error: Eff.Option.some({
-              message: 'Error while interacting with LLM. Please try again.',
-              details: `${error}`,
-            }),
-          })
-        }),
-      LLMResponse: (state, { timestamp, content, toolUses }, dispatch) =>
-        Eff.Effect.gen(function* () {
-          let { events } = state
-          if (content.length) {
-            events = events.concat(
-              yield* Eff.Effect.all(
-                content.map((c) =>
-                  Eff.Effect.andThen(genId, (id) =>
-                    Event.Message({
-                      id,
-                      timestamp,
-                      role: 'assistant',
-                      content: c,
-                    }),
-                  ),
-                ),
-              ),
-            )
-          }
-
-          if (!toolUses.length) return State.Idle({ events, error: Eff.Option.none() })
-
-          const { tools } = yield* ctxService.context
-          const calls: Record<string, ToolCall> = {}
-          for (const tu of toolUses) {
-            const fiber = yield* Eff.Effect.fork(
-              Eff.Effect.gen(function* () {
-                const result = yield* Tool.execute(tools, tu.name, tu.input)
-                yield* dispatch(Action.ToolResult({ id: tu.toolUseId, result }))
-              }),
-            )
-            calls[tu.toolUseId] = {
-              name: tu.name,
-              input: tu.input,
-              fiber,
-            }
-          }
-
-          return State.ToolUse({ events, calls })
-        }),
-      Abort: (state) =>
-        Eff.Effect.gen(function* () {
-          // TODO: interrupt current request fiber and go back to idle
-          return state
-        }),
-    },
-    ToolUse: {
-      ToolResult: (state, { id, result }, dispatch) =>
-        Eff.Effect.gen(function* () {
-          if (!(id in state.calls)) return state
-
-          const calls = { ...state.calls }
-          const call = calls[id]
-          delete calls[id]
-
-          let events = state.events
-          if (Eff.Option.isSome(result)) {
-            const event = Event.ToolUse({
+// TODO: separate "service" from handlers
+// const llm = yield* LLM.LLM
+// const ctxService = yield* Context.ConversationContext
+export const ConversationActor = Eff.Effect.succeed(
+  Log.scopedFn(`${MODULE}.ConversationActor`)(
+    Actor.taggedHandler<State, Action, LLM.LLM | Context.ConversationContext>({
+      Idle: {
+        Ask: (state, action, dispatch) =>
+          Eff.Effect.gen(function* () {
+            const event = Event.Message({
               id: yield* genId,
               timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
-              toolUseId: id,
-              name: call.name,
-              input: call.input,
-              result: result.value,
+              role: 'user',
+              content: Content.text(action.content),
             })
-            events = events.concat(event)
-          }
+            const events = state.events.concat(event)
 
-          if (Object.keys(calls).length) return State.ToolUse({ events, calls })
+            const requestFiber = yield* llmRequest(events).pipe(
+              Eff.Effect.andThen(dispatch),
+              Eff.Effect.fork,
+            )
+            return State.WaitingForAssistant({ events, requestFiber })
+          }),
 
-          // all calls completed, send results back to LLM
-          const requestFiber = yield* llmRequest(events).pipe(
-            Eff.Effect.andThen(dispatch),
-            Eff.Effect.fork,
-          )
-          return State.WaitingForAssistant({ events, requestFiber })
-        }),
-      Abort: (state) =>
-        Eff.Effect.gen(function* () {
-          // TODO: interrupt current request fiber and go back to idle
-          return state
-        }),
-    },
-  })
-})
+        Clear: () =>
+          Eff.Effect.succeed(State.Idle({ events: [], error: Eff.Option.none() })),
+        Discard: (state, { id }) =>
+          Eff.Effect.succeed({
+            ...state,
+            events: state.events.filter((e) => e.id !== id),
+          }),
+      },
+      WaitingForAssistant: {
+        LLMError: (state, { error }) =>
+          Eff.Effect.gen(function* () {
+            return State.Idle({
+              events: state.events,
+              error: Eff.Option.some({
+                message: 'Error while interacting with LLM. Please try again.',
+                details: `${error}`,
+              }),
+            })
+          }),
+        LLMResponse: (state, { timestamp, content, toolUses }, dispatch) =>
+          Eff.Effect.gen(function* () {
+            let { events } = state
+            if (content.length) {
+              events = events.concat(
+                yield* Eff.Effect.all(
+                  content.map((c) =>
+                    Eff.Effect.andThen(genId, (id) =>
+                      Event.Message({
+                        id,
+                        timestamp,
+                        role: 'assistant',
+                        content: c,
+                      }),
+                    ),
+                  ),
+                ),
+              )
+            }
+
+            if (!toolUses.length) return State.Idle({ events, error: Eff.Option.none() })
+
+            const ctxService = yield* Context.ConversationContext
+            const { tools } = yield* ctxService.context
+            const calls: Record<string, ToolCall> = {}
+            for (const tu of toolUses) {
+              const fiber = yield* Eff.Effect.fork(
+                Eff.Effect.gen(function* () {
+                  const result = yield* Tool.execute(tools, tu.name, tu.input)
+                  yield* dispatch(Action.ToolResult({ id: tu.toolUseId, result }))
+                }),
+              )
+              calls[tu.toolUseId] = {
+                name: tu.name,
+                input: tu.input,
+                fiber,
+              }
+            }
+
+            return State.ToolUse({ events, calls })
+          }),
+        Abort: (state) =>
+          Eff.Effect.gen(function* () {
+            // TODO: interrupt current request fiber and go back to idle
+            return state
+          }),
+      },
+      ToolUse: {
+        ToolResult: (state, { id, result }, dispatch) =>
+          Eff.Effect.gen(function* () {
+            if (!(id in state.calls)) return state
+
+            const calls = { ...state.calls }
+            const call = calls[id]
+            delete calls[id]
+
+            let events = state.events
+            if (Eff.Option.isSome(result)) {
+              const event = Event.ToolUse({
+                id: yield* genId,
+                timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
+                toolUseId: id,
+                name: call.name,
+                input: call.input,
+                result: result.value,
+              })
+              events = events.concat(event)
+            }
+
+            if (Object.keys(calls).length) return State.ToolUse({ events, calls })
+
+            // all calls completed, send results back to LLM
+            const requestFiber = yield* llmRequest(events).pipe(
+              Eff.Effect.andThen(dispatch),
+              // Eff.Effect.provide(llm),
+              Eff.Effect.fork,
+            )
+            return State.WaitingForAssistant({ events, requestFiber })
+          }),
+        Abort: (state) =>
+          Eff.Effect.gen(function* () {
+            // TODO: interrupt current request fiber and go back to idle
+            return state
+          }),
+      },
+    }),
+  ),
+)
 
 const NAME = 'Qurator'
 
@@ -317,61 +328,65 @@ const constructPrompt = (
   events: Event[],
   context: Context.ContextShape,
 ): Eff.Effect.Effect<LLM.Prompt> =>
-  Eff.Effect.gen(function* () {
-    yield* Eff.Console.debug('constructPrompt', events, context)
-    // XXX: add context about quilt products?
-    // XXX: add context about catalog structure and features?
+  Log.scoped({
+    name: `${MODULE}.constructPrompt`,
+    enter: [Log.br, 'events:', events, Log.br, 'context:', context],
+  })(
+    Eff.Effect.gen(function* () {
+      // XXX: add context about quilt products?
+      // XXX: add context about catalog structure and features?
 
-    const [msgEvents, toolEvents] = Eff.Array.partitionMap(
-      events,
-      Event.$match({
-        Message: (m) => Eff.Either.left(m),
-        ToolUse: (t) => Eff.Either.right(t),
-      }),
-    )
+      const [msgEvents, toolEvents] = Eff.Array.partitionMap(
+        events,
+        Event.$match({
+          Message: (m) => Eff.Either.left(m),
+          ToolUse: (t) => Eff.Either.right(t),
+        }),
+      )
 
-    const toolMessages = Eff.Array.flatMap(
-      toolEvents,
-      ({ toolUseId, name, input, result }) => [
-        LLM.assistantMessage(
-          Content.PromptMessageContentBlock.ToolUse({ toolUseId, name, input }),
-        ),
+      const toolMessages = Eff.Array.flatMap(
+        toolEvents,
+        ({ toolUseId, name, input, result }) => [
+          LLM.assistantMessage(
+            Content.PromptMessageContentBlock.ToolUse({ toolUseId, name, input }),
+          ),
+          LLM.userMessage(
+            Content.PromptMessageContentBlock.ToolResult({ toolUseId, ...result }),
+          ),
+        ],
+      )
+
+      // prompt structure
+      // - task context
+      // - tone context
+      // - Background data, documents, and images
+      // - detailed task description and rules
+      // - examples
+      // - input data
+      //   - conversation history
+      //   - user input
+      // - immediate task
+      // - precognition
+      // - output formatting
+      // - prefill
+      const messages: Eff.Array.NonEmptyArray<LLM.PromptMessage> = [
         LLM.userMessage(
-          Content.PromptMessageContentBlock.ToolResult({ toolUseId, ...result }),
+          Content.text(
+            TASK_CONTEXT,
+            TASK_DESCRIPTION,
+            `<context>\n${context.messages.join('\n')}\n</context>`,
+            CONVERSATION_START,
+          ),
         ),
-      ],
-    )
+        ...msgEvents.map(({ role, content }) => LLM.PromptMessage({ role, content })),
+        LLM.userMessage(Content.text(CONVERSATION_END, IMMEDIATE_TASK)),
+        ...toolMessages,
+      ]
 
-    // prompt structure
-    // - task context
-    // - tone context
-    // - Background data, documents, and images
-    // - detailed task description and rules
-    // - examples
-    // - input data
-    //   - conversation history
-    //   - user input
-    // - immediate task
-    // - precognition
-    // - output formatting
-    // - prefill
-    const messages: Eff.Array.NonEmptyArray<LLM.PromptMessage> = [
-      LLM.userMessage(
-        Content.text(
-          TASK_CONTEXT,
-          TASK_DESCRIPTION,
-          `<context>\n${context.messages.join('\n')}\n</context>`,
-          CONVERSATION_START,
-        ),
-      ),
-      ...msgEvents.map(({ role, content }) => LLM.PromptMessage({ role, content })),
-      LLM.userMessage(Content.text(CONVERSATION_END, IMMEDIATE_TASK)),
-      ...toolMessages,
-    ]
-
-    return {
-      system: SYSTEM,
-      messages,
-      toolConfig: { tools: context.tools },
-    }
-  })
+      return {
+        system: SYSTEM,
+        messages,
+        toolConfig: { tools: context.tools },
+      }
+    }),
+  )

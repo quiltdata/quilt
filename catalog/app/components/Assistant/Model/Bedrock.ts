@@ -1,8 +1,12 @@
 import BedrockRuntime from 'aws-sdk/clients/bedrockruntime'
 import * as Eff from 'effect'
 
+import * as Log from 'utils/Logging'
+
 import * as Content from './Content'
 import * as LLM from './LLM'
+
+const MODULE = 'Bedrock'
 
 // const MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0'
 const MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
@@ -110,20 +114,35 @@ const toolConfigToBedrock = (
 // a layer providing the service over aws.bedrock
 export function LLMBedrock(bedrock: BedrockRuntime) {
   const converse = (prompt: LLM.Prompt, opts?: LLM.Options) =>
-    Eff.Effect.tryPromise(() =>
-      bedrock
-        .converse({
-          modelId: MODEL_ID,
-          system: [{ text: prompt.system }],
-          messages: messagesToBedrock(prompt.messages),
-          toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
-          ...opts,
-        })
-        .promise()
-        .then((backendResponse) => ({
-          backendResponse,
-          content: mapContent(backendResponse.output.message?.content),
-        })),
+    Log.scoped({
+      name: `${MODULE}.converse`,
+      enter: [
+        Log.br,
+        'model id:',
+        MODEL_ID,
+        Log.br,
+        'prompt:',
+        prompt,
+        Log.br,
+        'opts:',
+        opts,
+      ],
+    })(
+      Eff.Effect.tryPromise(() =>
+        bedrock
+          .converse({
+            modelId: MODEL_ID,
+            system: [{ text: prompt.system }],
+            messages: messagesToBedrock(prompt.messages),
+            toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
+            ...opts,
+          })
+          .promise()
+          .then((backendResponse) => ({
+            backendResponse,
+            content: mapContent(backendResponse.output.message?.content),
+          })),
+      ),
     )
 
   return Eff.Layer.succeed(LLM.LLM, { converse })

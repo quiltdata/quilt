@@ -11,15 +11,24 @@ import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as GlobalTools from './GlobalTools'
 
+function usePassThru<T>(val: T): T {
+  const ref = React.useRef(val)
+  ref.current = val
+  return ref.current
+}
+
 function useConstructAssistantAPI() {
-  const bedrock = AWS.Bedrock.useClient()
-  const contextLayer = Context.useLayer()
-  const [state, dispatch] = Actor.useActor(
-    Conversation.ConversationActor.pipe(
-      Eff.Effect.provide(Bedrock.LLMBedrock(bedrock)),
-      Eff.Effect.provide(contextLayer),
-    ),
+  const passThru = usePassThru({
+    bedrock: AWS.Bedrock.useClient(),
+    context: Context.useLayer(),
+  })
+  const layerEff = Eff.Effect.sync(() =>
+    Eff.Layer.merge(Bedrock.LLMBedrock(passThru.bedrock), passThru.context),
+  )
+  const [state, dispatch] = Actor.useActorLayer(
+    Conversation.ConversationActor,
     Eff.Effect.succeed(Conversation.init),
+    layerEff,
   )
 
   Context.usePushContext({
