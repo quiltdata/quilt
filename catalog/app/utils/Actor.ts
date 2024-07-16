@@ -229,3 +229,38 @@ export function useActorLayer<State, Action, R>(
   )
   return [state, dispatch] as const
 }
+
+export const forkRequest = <A, E, R, Action>(
+  effect: Eff.Effect.Effect<A, E, R>,
+  dispatch: Dispatch<Action>,
+  onSuccess: (a: A) => Eff.Effect.Effect<Action>,
+  onFailure: (e: E) => Eff.Effect.Effect<Action>,
+) =>
+  effect.pipe(
+    Eff.Effect.either,
+    Eff.Effect.andThen(
+      Eff.Either.match({
+        onLeft: onFailure,
+        onRight: onSuccess,
+      }),
+    ),
+    Eff.Effect.andThen(dispatch),
+    Eff.Effect.fork,
+  )
+
+// export class CurrentActor extends Eff.Context.Tag('CurrentActor')<
+//   CurrentActor,
+//   {
+//     dispatch: <Action>(action: Action) => Eff.Effect.Effect<void>
+//   }
+// >() {}
+
+// provide actor "self" context
+// entities:
+//
+// Actor
+// - handler
+// - fiber / pid?
+// - mailbox
+//
+// Msg

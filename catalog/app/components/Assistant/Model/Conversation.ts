@@ -11,6 +11,7 @@ import * as Tool from './Tool'
 
 const MODULE = 'Assistant/Conversation'
 
+// TODO: make this a globally available service?
 const genId = Eff.Effect.sync(uuid.v4)
 
 interface ToolCall {
@@ -125,17 +126,14 @@ const llmRequest = (events: Event[]) =>
       const ctx = yield* ctxService.context
       const prompt = yield* constructPrompt(events, ctx)
 
-      const result = yield* Eff.Effect.either(llm.converse(prompt))
-      if (Eff.Either.isLeft(result)) {
-        return Action.LLMError({ error: result.left })
-      }
+      const response = yield* llm.converse(prompt)
 
-      const response = result.right
       if (Eff.Option.isNone(response.content)) {
         const error = new Eff.Cause.UnknownException(
           new Error('No content in LLM response'),
         )
-        return Action.LLMError({ error })
+        yield* error
+        throw error // won't actually throw
       }
 
       const [toolUses, content] = Eff.Array.partitionMap(response.content.value, (c) =>
@@ -144,13 +142,11 @@ const llmRequest = (events: Event[]) =>
 
       const timestamp = new Date(yield* Eff.Clock.currentTimeMillis)
       // XXX: record response stats?
-      return Action.LLMResponse({ timestamp, content, toolUses })
+      return { timestamp, content, toolUses }
     }),
   )
 
-// TODO: separate "service" from handlers
-// const llm = yield* LLM.LLM
-// const ctxService = yield* Context.ConversationContext
+// XXX: separate "service" from handlers
 export const ConversationActor = Eff.Effect.succeed(
   Log.scopedFn(`${MODULE}.ConversationActor`)(
     Actor.taggedHandler<State, Action, LLM.LLM | Context.ConversationContext>({
@@ -165,9 +161,11 @@ export const ConversationActor = Eff.Effect.succeed(
             })
             const events = state.events.concat(event)
 
-            const requestFiber = yield* llmRequest(events).pipe(
-              Eff.Effect.andThen(dispatch),
-              Eff.Effect.fork,
+            const requestFiber = yield* Actor.forkRequest(
+              llmRequest(events),
+              dispatch,
+              (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
+              (error) => Eff.Effect.succeed(Action.LLMError({ error })),
             )
             return State.WaitingForAssistant({ events, requestFiber })
           }),
@@ -263,10 +261,11 @@ export const ConversationActor = Eff.Effect.succeed(
             if (Object.keys(calls).length) return State.ToolUse({ events, calls })
 
             // all calls completed, send results back to LLM
-            const requestFiber = yield* llmRequest(events).pipe(
-              Eff.Effect.andThen(dispatch),
-              // Eff.Effect.provide(llm),
-              Eff.Effect.fork,
+            const requestFiber = yield* Actor.forkRequest(
+              llmRequest(events),
+              dispatch,
+              (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
+              (error) => Eff.Effect.succeed(Action.LLMError({ error })),
             )
             return State.WaitingForAssistant({ events, requestFiber })
           }),
