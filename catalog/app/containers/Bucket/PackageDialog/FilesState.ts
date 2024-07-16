@@ -227,7 +227,7 @@ export const handleFilesAction = FilesAction.match<
       }
       async function getHashPromise() {
         try {
-          const file = new File([await contents], item.name)
+          const file = new File([await contents], item.logicalKey)
           const value = await computeFileChecksum(file)
           hash.ready = true
           hash.value = value
@@ -249,7 +249,7 @@ export const handleFilesAction = FilesAction.match<
     const filesMap = entries.reduce(
       (acc, entry) => ({
         ...acc,
-        [entry.name]: entry,
+        [entry.logicalKey]: entry,
       }),
       {} as Record<string, Model.SharePointEntry>,
     )

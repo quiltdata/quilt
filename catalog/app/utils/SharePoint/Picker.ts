@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { IPublicClientApplication, SilentRequest } from '@azure/msal-browser'
 import * as Model from 'model'
 
@@ -6,57 +7,88 @@ export enum DispatchEventType {
 }
 
 export type DispatchEvent = {
-  type: DispatchEventType.Submit
   data: Model.SharePointFile[]
+  type: DispatchEventType.Submit
 }
 
 export type Dispatcher = (event: DispatchEvent) => void
 
 interface ListingItem {
+  '@sharePoint.endpoint': string
   folder: {}
   id: string
-  '@sharePoint.endpoint': string
   parentReference: {
     driveId: string
   }
 }
 
 interface DriveItem {
-  eTag: string
   '@content.downloadUrl': string
+  eTag: string
   id: string
   name: string
+  parentReference: {
+    id: string
+    name: string
+  }
   size?: number
-  // content?: Stream???
+}
+
+async function resolveDriveItem(
+  driveItem: DriveItem,
+  host: string,
+  parentReference?: DriveItem['parentReference'],
+): Promise<Model.SharePointFile> {
+  const { '@content.downloadUrl': downloadUrl, eTag: etag, id, name, size } = driveItem
+  const contents = (await window.fetch(downloadUrl)).arrayBuffer()
+  const address = { host, etag, id }
+  const logicalKey = parentReference ? join(parentReference.name, name) : name
+  return { address, logicalKey, size, contents }
 }
 
 async function resolveFile(
   item: ListingItem,
-  authToken: String,
-): Promise<[Model.SharePointFile]> {
-  // if (item.folder)
+  authToken: string,
+): Promise<Model.SharePointFile[]> {
   const url = new URL(
     `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}`,
+  )
+  const response = await window.fetch(url, {
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  })
+  const driveItem = await response.json()
+  const file = await resolveDriveItem(driveItem, url.hostname)
+  return [file]
+}
+
+async function resolveDir(
+  item: ListingItem,
+  authToken: String,
+): Promise<Model.SharePointFile[]> {
+  const url = new URL(
+    `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}/children`,
   )
   const driveItemResponse = await window.fetch(url, {
     headers: {
       Authorization: `Bearer ${authToken}`,
     },
   })
-  const driveItem: DriveItem = await driveItemResponse.json()
-  const contentsResponse = await window.fetch(driveItem['@content.downloadUrl'])
-  return [
-    {
-      address: {
-        host: url.hostname,
-        etag: driveItem.eTag,
-        id: driveItem.id,
-      },
-      name: driveItem.name,
-      size: driveItem.size,
-      contents: contentsResponse.arrayBuffer(),
-    },
-  ]
+  const driveItemsList: DriveItem[] = (await driveItemResponse.json()).value
+  const contentsResponse = await Promise.all(
+    driveItemsList.map((driveItem) =>
+      resolveDriveItem(driveItem, url.hostname, driveItem.parentReference),
+    ),
+  )
+  return contentsResponse
+}
+
+async function resolveSelectionItem(
+  item: ListingItem,
+  authToken: string,
+): Promise<Model.SharePointFile[]> {
+  return item.folder ? resolveDir(item, authToken) : resolveFile(item, authToken)
 }
 
 // TODO: return Promise<object>
@@ -64,11 +96,11 @@ async function resolveFile(
 //       so we can use recursive structures
 //       SharePointDir?
 //       SharePointListing?
-function resolveFiles(
+function resolveSelection(
   items: ListingItem[],
-  authToken: String,
+  authToken: string,
 ): Promise<Model.SharePointFile[]>[] {
-  return items.map((item) => resolveFile(item, authToken))
+  return items.map((item) => resolveSelectionItem(item, authToken))
 }
 
 const baseUrl = 'https://quiltdatainc-my.sharepoint.com/'
@@ -157,7 +189,7 @@ async function messageListener(
   win: Window,
   port: MessagePort,
   dispatcher: Dispatcher,
-  authToken: String,
+  authToken: string,
   message: MessageEvent,
 ) {
   switch (message.data.type) {
@@ -200,7 +232,7 @@ async function messageListener(
           break
 
         case 'pick':
-          const data = await Promise.all(resolveFiles(command.items, authToken))
+          const data = await Promise.all(resolveSelection(command.items, authToken))
           dispatcher({ type: DispatchEventType.Submit, data: data.flat() })
 
           port.postMessage({

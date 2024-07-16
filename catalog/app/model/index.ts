@@ -84,7 +84,7 @@ export interface SharePointLocation {
 
 export interface SharePointDummy {
   address: SharePointLocation
-  name: string
+  logicalKey: string
   size?: number
 }
 
