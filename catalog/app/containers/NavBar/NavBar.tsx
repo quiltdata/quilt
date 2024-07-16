@@ -10,7 +10,7 @@ import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as SharePoint from 'utils/SharePoint'
+// import * as SharePoint from 'utils/SharePoint'
 
 import bg from './bg.png'
 
@@ -218,7 +218,7 @@ export function NavBar() {
 
   const hideControls = cfg.alwaysRequiresAuth && !authenticated
 
-  const ms = SharePoint.use()
+  // const ms = SharePoint.use()
 
   return (
     <Container>
@@ -230,7 +230,7 @@ export function NavBar() {
 
       {sub.invalid && <LicenseError restore={sub.restore} />}
 
-      {ms.user ? (
+      {/*ms.user ? (
         ms.user instanceof Error ? (
           <M.Button startIcon={<M.Icon>apple</M.Icon>} onClick={ms.signIn}>
             Sign in
@@ -240,7 +240,7 @@ export function NavBar() {
         )
       ) : (
         <M.CircularProgress size="32" />
-      )}
+      )*/}
 
       <NavMenu.Menu collapse={collapse} />
 
