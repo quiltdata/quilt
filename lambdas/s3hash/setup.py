@@ -8,11 +8,11 @@ setup(
     install_requires=[
         "aiobotocore ~= 2.11",
         "botocore ~= 1.31",
-        "pydantic ~= 1.10",
+        "pydantic ~= 2.8",
         "types-aiobotocore[s3] ~= 2.11",
         (
             "quilt_shared[pydantic,boto,quilt] @ git+https://github.com/quiltdata/quilt@"
-            "7c6edd14fbe8a26613bc26b1bbdc0b956132ef8c"
+            "b56fe52de4590242f998a23401017b3014411306"
             "#subdirectory=py-shared"
         ),
     ],
