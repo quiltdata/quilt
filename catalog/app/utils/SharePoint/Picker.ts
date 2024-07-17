@@ -28,7 +28,7 @@ interface SelectionItem {
   id: string
 }
 
-const parseSelectionItem = (item: PickerItem): SelectionItem => ({
+const parseSelectionItem = (item: SharePointPickedItem): SelectionItem => ({
   endpoint: new URL(item['@sharePoint.endpoint']),
   driveId: item.parentReference.driveId,
   id: item.id,
@@ -62,7 +62,7 @@ async function listChildren(authToken: string, loc: SelectionItem): Promise<Driv
 const parentNameAccum = (name: string, parentName?: string): string =>
   parentName ? `${parentName}/${name}` : name
 
-interface PickerItem {
+interface SharePointPickedItem {
   '@sharePoint.endpoint': string
   folder?: Folder
   id: string
@@ -131,7 +131,7 @@ async function resolveDir(
 
 async function traverseSelection(
   authToken: string,
-  items: PickerItem[],
+  items: SharePointPickedItem[],
 ): Promise<Model.SharePointFile[]> {
   return (
     await Promise.all(
@@ -229,18 +229,28 @@ function createMessageListener(
             // TODO:
             // Return unresolved promise with circular structures?
             // So, we can resolve and fetch data in PackageDialog?
-            const list = await traverseSelection(authToken, command.items)
-            onSubmit(list)
+            try {
+              const list = await traverseSelection(authToken, command.items)
+              onSubmit(list)
 
-            port.postMessage({
-              type: 'result',
-              id,
-              data: {
-                result: 'success',
-              },
-            })
+              port.postMessage({
+                type: 'result',
+                id,
+                data: {
+                  result: 'success',
+                },
+              })
 
-            win.close()
+              win.close()
+            } catch (e) {
+              port.postMessage({
+                result: 'error',
+                error: {
+                  code: 'unableToTraverseFiles',
+                  message: 'Unable to traverse selected files',
+                },
+              })
+            }
 
             break
 
