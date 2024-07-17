@@ -76,7 +76,7 @@ class Checksum(ChecksumBase):
     def for_parts(cls, checksums: T.Sequence[bytes]):
         return cls.sha256_chunked(hash_parts(checksums))
 
-    _EMPTY_HASH = hashlib.sha256().digest()
+    _EMPTY_HASH: T.ClassVar[bytes] = hashlib.sha256().digest()
 
     @classmethod
     def empty(cls):
