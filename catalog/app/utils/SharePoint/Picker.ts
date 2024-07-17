@@ -6,6 +6,39 @@ import * as Model from 'model'
 import { BASE_URL } from './constants'
 import getToken from './token'
 
+const MESSAGES = {
+  TOKEN: (id: string, token: string) => ({
+    type: 'result',
+    id,
+    data: {
+      result: 'token',
+      token,
+    },
+  }),
+  ERROR: (id: string, code: string, message: string) => ({
+    type: 'result',
+    id,
+    data: {
+      result: 'error',
+      error: {
+        code,
+        message,
+      },
+    },
+  }),
+  ACKNOWLEDGE: (id: string) => ({
+    type: 'acknowledge',
+    id,
+  }),
+  SUCCESS: (id: string) => ({
+    type: 'result',
+    id,
+    data: {
+      result: 'success',
+    },
+  }),
+}
+
 type Folder = {}
 
 async function downloadFile(driveItem: SharePointDriveItem): Promise<ArrayBuffer> {
@@ -197,10 +230,7 @@ function createMessageListener(
         break
 
       case 'command':
-        port.postMessage({
-          type: 'acknowledge',
-          id,
-        })
+        port.postMessage(MESSAGES.ACKNOWLEDGE(id))
 
         const command = payload.data
 
@@ -209,26 +239,11 @@ function createMessageListener(
             const token = await getToken(app, command)
 
             if (token) {
-              port.postMessage({
-                type: 'result',
-                id,
-                data: {
-                  result: 'token',
-                  token,
-                },
-              })
+              port.postMessage(MESSAGES.TOKEN(id, token))
             } else {
-              port.postMessage({
-                type: 'result',
-                id,
-                data: {
-                  result: 'error',
-                  error: {
-                    code: 'unableToObtainToken',
-                    message: 'Unable to obtain a token',
-                  },
-                },
-              })
+              port.postMessage(
+                MESSAGES.ERROR(id, 'unableToObtainToken', 'Unable to obtain a token'),
+              )
             }
 
             break
@@ -255,26 +270,19 @@ function createMessageListener(
 
               win.close()
             } catch (e) {
-              port.postMessage({
-                result: 'error',
-                error: {
-                  code: 'unableToTraverseFiles',
-                  message: 'Unable to traverse selected files',
-                },
-              })
+              port.postMessage(
+                MESSAGES.ERROR(
+                  id,
+                  'unableToTraverseFiles',
+                  'Unable to traverse selected files',
+                ),
+              )
             }
 
             break
 
           default:
-            port.postMessage({
-              result: 'error',
-              error: {
-                code: 'unsupportedCommand',
-                message: command.command,
-              },
-              isExpected: true,
-            })
+            port.postMessage(MESSAGES.ERROR(id, 'unsupportedCommand', command.command))
             break
         }
 
