@@ -6,11 +6,65 @@ import * as Model from 'model'
 import { BASE_URL } from './constants'
 import getToken from './token'
 
-export type Folder = {}
+type Folder = {}
+
+async function downloadFile(driveItem: DriveItem): Promise<ArrayBuffer> {
+  const url = driveItem['@content.downloadUrl']
+  return (await window.fetch(url)).arrayBuffer()
+}
+
+async function makeRequestSigned(authToken: string, url: RequestInfo | string | URL) {
+  const response = await window.fetch(url, {
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  })
+  return response.json()
+}
+
+interface SelectionItem {
+  endpoint: URL
+  driveId: string
+  id: string
+}
+
+const parseSelectionItem = (item: PickerItem): SelectionItem => ({
+  endpoint: new URL(item['@sharePoint.endpoint']),
+  driveId: item.parentReference.driveId,
+  id: item.id,
+})
+
+const driveItemToSharePointFile = (
+  driveItem: DriveItem,
+  host: string,
+  parentName?: string,
+): Model.SharePointDummy => ({
+  address: {
+    host,
+    etag: driveItem.eTag,
+    id: driveItem.id,
+  },
+  logicalKey: parentNameAccum(driveItem.name, parentName),
+  size: driveItem.size,
+})
+
+function getDriveItem(authToken: string, loc: SelectionItem): Promise<DriveItem> {
+  const url = `${loc.endpoint.href}/drives/${loc.driveId}/items/${loc.id}`
+  return makeRequestSigned(authToken, url)
+}
+
+async function listChildren(authToken: string, loc: SelectionItem): Promise<DriveItem[]> {
+  const url = `${loc.endpoint.href}/drives/${loc.driveId}/items/${loc.id}/children`
+  const { value: list }: { value: DriveItem[] } = await makeRequestSigned(authToken, url)
+  return list
+}
+
+const parentNameAccum = (name: string, parentName?: string): string =>
+  parentName ? `${parentName}/${name}` : name
 
 interface PickerItem {
   '@sharePoint.endpoint': string
-  folder: Folder
+  folder?: Folder
   id: string
   parentReference: {
     name?: string
@@ -35,82 +89,58 @@ interface DriveItem {
 async function fetchFile(
   driveItem: DriveItem,
   host: string,
-  parentReference?: DriveItem['parentReference'],
+  parentName?: string,
 ): Promise<Model.SharePointFile[]> {
-  const { '@content.downloadUrl': downloadUrl, eTag: etag, id, name, size } = driveItem
-  const contents = (await window.fetch(downloadUrl)).arrayBuffer()
-  const address = { host, etag, id }
-  const logicalKey = parentReference ? `${parentReference.name}/${name}` : name
-  return [{ address, logicalKey, size, contents }]
+  const file = driveItemToSharePointFile(driveItem, host, parentName)
+  const contents = downloadFile(driveItem)
+  return [{ ...file, contents }]
 }
 
 async function resolveFile(
-  item: PickerItem,
   authToken: string,
+  loc: SelectionItem,
 ): Promise<Model.SharePointFile[]> {
-  const url = new URL(
-    `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}`,
-  )
-  const response = await window.fetch(url, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  })
-  const driveItem = await response.json()
-  const files = await fetchFile(driveItem, url.hostname)
-  return files
+  const driveItem = await getDriveItem(authToken, loc)
+  return fetchFile(driveItem, loc.endpoint.hostname)
 }
 
 async function resolveDir(
-  item: PickerItem,
-  authToken: String,
+  authToken: string,
+  loc: SelectionItem,
+  parentName?: string,
 ): Promise<Model.SharePointFile[]> {
-  const url = new URL(
-    `${item['@sharePoint.endpoint']}/drives/${item.parentReference.driveId}/items/${item.id}/children`,
-  )
-  const driveItemResponse = await window.fetch(url, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  })
-  const driveItemsList: DriveItem[] = (await driveItemResponse.json()).value
+  const list = await listChildren(authToken, loc)
   return (
     await Promise.all(
-      driveItemsList.map((driveItem) => {
-        const parentReference = {
-          ...driveItem.parentReference,
-          name: item.parentReference.name
-            ? `${item.parentReference.name}/${driveItem.parentReference.name}`
-            : driveItem.parentReference.name,
-        }
-        return driveItem.folder
+      list.map((driveItem) =>
+        driveItem.folder
           ? resolveDir(
-              {
-                '@sharePoint.endpoint': item['@sharePoint.endpoint'],
-                folder: driveItem.folder,
-                id: driveItem.id,
-                parentReference,
-              },
               authToken,
+              { ...loc, id: driveItem.id },
+              parentNameAccum(driveItem.parentReference.name, parentName),
             )
-          : fetchFile(driveItem, url.hostname, parentReference)
-      }),
+          : fetchFile(
+              driveItem,
+              loc.endpoint.hostname,
+              parentNameAccum(driveItem.parentReference.name, parentName),
+            ),
+      ),
     )
   ).flat()
 }
 
-async function resolveSelectionItem(
-  item: PickerItem,
+async function traverseSelection(
   authToken: string,
-): Promise<Model.SharePointFile[]> {
-  return item.folder ? resolveDir(item, authToken) : resolveFile(item, authToken)
-}
-
-function resolveSelection(
   items: PickerItem[],
-  authToken: string,
-): Promise<Model.SharePointFile[]>[] {
-  return items.map((item) => resolveSelectionItem(item, authToken))
+): Promise<Model.SharePointFile[]> {
+  return (
+    await Promise.all(
+      items.map((item) => {
+        const loc = parseSelectionItem(item)
+        return item.folder ? resolveDir(authToken, loc) : resolveFile(authToken, loc)
+      }),
+    )
+  ).flat()
 }
 
 const PICKER_OPTIONS = {
@@ -138,87 +168,96 @@ const PICKER_OPTIONS = {
   },
 }
 
-async function messageListener(
+function createMessageListener(
   app: IPublicClientApplication,
   win: Window,
   port: MessagePort,
-  onSubmit: (files: Model.SharePointFile[]) => void,
   authToken: string,
-  message: MessageEvent,
+  onSubmit: (files: Model.SharePointFile[]) => void,
 ) {
-  switch (message.data.type) {
-    case 'notification':
-      break
+  return async (message: MessageEvent) => {
+    const payload = message.data
+    const id = payload.id
+    switch (payload.type) {
+      case 'notification':
+        /* eslint-disable-next-line no-console */
+        console.debug(payload.data)
+        break
 
-    case 'command':
-      port.postMessage({
-        type: 'acknowledge',
-        id: message.data.id,
-      })
+      case 'command':
+        port.postMessage({
+          type: 'acknowledge',
+          id,
+        })
 
-      const command = message.data.data
+        const command = payload.data
 
-      switch (command.command) {
-        case 'authenticate':
-          const token = await getToken(app, command)
+        switch (command.command) {
+          case 'authenticate':
+            const token = await getToken(app, command)
 
-          if (typeof token !== 'undefined' && token !== null) {
+            if (token) {
+              port.postMessage({
+                type: 'result',
+                id,
+                data: {
+                  result: 'token',
+                  token,
+                },
+              })
+            } else {
+              port.postMessage({
+                type: 'result',
+                id,
+                data: {
+                  result: 'error',
+                  error: {
+                    code: 'unableToObtainToken',
+                    message: 'Unable to obtain a token',
+                  },
+                },
+              })
+            }
+
+            break
+
+          case 'close':
+            win.close()
+            break
+
+          case 'pick':
+            // TODO:
+            // Return unresolved promise with circular structures?
+            // So, we can resolve and fetch data in PackageDialog?
+            const list = await traverseSelection(authToken, command.items)
+            onSubmit(list)
+
             port.postMessage({
               type: 'result',
-              id: message.data.id,
+              id,
               data: {
-                result: 'token',
-                token,
+                result: 'success',
               },
             })
-          } else {
-            /* eslint-disable-next-line no-console */
-            console.error(
-              `Could not get auth token for command: ${JSON.stringify(command)}`,
-            )
-          }
 
-          break
+            win.close()
 
-        case 'close':
-          win.close()
-          break
+            break
 
-        case 'pick':
-          // TODO:
-          // Return unresolved promise with circular structures?
-          // So, we can resolve and fetch data in PackageDialog?
-          const data = await Promise.all(resolveSelection(command.items, authToken))
-          onSubmit(data.flat())
+          default:
+            port.postMessage({
+              result: 'error',
+              error: {
+                code: 'unsupportedCommand',
+                message: command.command,
+              },
+              isExpected: true,
+            })
+            break
+        }
 
-          port.postMessage({
-            type: 'result',
-            id: message.data.id,
-            data: {
-              result: 'success',
-            },
-          })
-
-          win.close()
-
-          break
-
-        default:
-          /* eslint-disable-next-line no-console */
-          console.warn(`Unsupported command: ${JSON.stringify(command)}`, 2)
-
-          port.postMessage({
-            result: 'error',
-            error: {
-              code: 'unsupportedCommand',
-              message: command.command,
-            },
-            isExpected: true,
-          })
-          break
-      }
-
-      break
+        break
+    }
   }
 }
 
@@ -242,35 +281,39 @@ function requestPicker(win: Window, accessToken: string) {
   form.submit()
 }
 
-// Must be normal non-async function. Otherwise, popup will not open.
-export function launchPicker(
+// NOTE: Must be normal non-async function. Otherwise, popup will not open.
+export default function launchPicker(
   app: IPublicClientApplication,
-  onSubmit: (files: Model.SharePointFile[]) => void,
   authToken: string,
+  onSubmit: (files: Model.SharePointFile[]) => void,
 ) {
-  const win = window.open('', 'Picker', 'width=800,height=600')
+  const width = window.screen.width / 2
+  const height = (window.screen.height * 2) / 3
+  const win = window.open('', 'Picker', `width=${width},height=${height}`)
 
   if (!win) return
 
   requestPicker(win, authToken)
 
   window.addEventListener('message', (event) => {
-    if (event.source && event.source === win) {
-      const message = event.data
-
-      if (
-        message.type === 'initialize' &&
-        message.channelId === PICKER_OPTIONS.messaging.channelId
-      ) {
-        const port = event.ports[0]
-        port.addEventListener('message', (m) =>
-          messageListener(app, win, port, onSubmit, authToken, m),
-        )
-        port.start()
-        port.postMessage({
-          type: 'activate',
-        })
-      }
+    if (event.source !== win) {
+      return
     }
+
+    const message = event.data
+    if (
+      message.type !== 'initialize' &&
+      message.channelId !== PICKER_OPTIONS.messaging.channelId
+    ) {
+      return
+    }
+
+    const port = event.ports[0]
+    const listener = createMessageListener(app, win, port, authToken, onSubmit)
+    port.addEventListener('message', listener)
+    port.start()
+    port.postMessage({
+      type: 'activate',
+    })
   })
 }

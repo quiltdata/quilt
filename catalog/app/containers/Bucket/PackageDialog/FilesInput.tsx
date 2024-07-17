@@ -1598,7 +1598,7 @@ export function FilesInput({
       resource: SharePoint.BASE_URL,
       type: 'SharePoint',
     })
-    SharePoint.launchPicker(msal.instance, handleSharePointPicker, authToken)
+    SharePoint.launchPicker(msal.instance, authToken, handleSharePointPicker)
   }, [handleSharePointPicker, msal.instance])
 
   const isS3FilePickerEnabled = !!buckets?.length
