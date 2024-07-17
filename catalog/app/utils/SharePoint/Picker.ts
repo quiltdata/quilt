@@ -1,5 +1,9 @@
 import { IPublicClientApplication, SilentRequest } from '@azure/msal-browser'
+import * as uuid from 'uuid'
+
 import * as Model from 'model'
+
+import { BASE_URL } from './constants'
 
 export enum DispatchEventType {
   Submit,
@@ -113,11 +117,6 @@ async function resolveSelectionItem(
   return item.folder ? resolveDir(item, authToken) : resolveFile(item, authToken)
 }
 
-// TODO: return Promise<object>
-//       object that can reference the same object
-//       so we can use recursive structures
-//       SharePointDir?
-//       SharePointListing?
 function resolveSelection(
   items: PickerItem[],
   authToken: string,
@@ -125,9 +124,7 @@ function resolveSelection(
   return items.map((item) => resolveSelectionItem(item, authToken))
 }
 
-export const BASE_URL = 'https://quiltdatainc-my.sharepoint.com/'
-
-const params = {
+const PICKER_OPTIONS = {
   sdk: '8.0',
   entry: {
     myOrganization: {},
@@ -135,7 +132,7 @@ const params = {
   authentication: {},
   messaging: {
     origin: `${window.location.protocol}//${window.location.host}`,
-    channelId: '27',
+    channelId: uuid.v1(),
   },
   typesAndSources: {
     mode: 'all',
@@ -150,13 +147,6 @@ const params = {
   selection: {
     mode: 'multiple',
   },
-  // TODO: How does it work? I download the file for the hash.
-  //       Perhaps I can do the same with this configuration property.
-  // commands: {
-  //   pick: {
-  //     action: 'download',
-  //   },
-  // },
 }
 
 function combine(...paths: any[]) {
@@ -254,6 +244,9 @@ async function messageListener(
           break
 
         case 'pick':
+          // TODO:
+          // Return unresolved promise with circular structures?
+          // So, we can resolve and fetch data in PackageDialog?
           const data = await Promise.all(resolveSelection(command.items, authToken))
           dispatcher({ type: DispatchEventType.Submit, data: data.flat() })
 
@@ -288,20 +281,11 @@ async function messageListener(
   }
 }
 
-export function launchPicker(
-  app: IPublicClientApplication,
-  dispatcher: Dispatcher,
-  authToken: string,
-) {
-  const win = window.open('', 'Picker', 'width=800,height=600')
-
+function requestPicker(win: Window, accessToken: string) {
   const queryString = new URLSearchParams({
-    filePicker: JSON.stringify(params),
+    filePicker: JSON.stringify(PICKER_OPTIONS),
   })
-
-  const url = combine(BASE_URL, `_layouts/15/FilePicker.aspx?${queryString}`)
-
-  if (!win) return
+  const url = `${BASE_URL}/_layouts/15/FilePicker.aspx?${queryString}`
 
   const form = win.document.createElement('form')
   form.setAttribute('action', url)
@@ -311,10 +295,23 @@ export function launchPicker(
   const input = win.document.createElement('input')
   input.setAttribute('type', 'hidden')
   input.setAttribute('name', 'access_token')
-  input.setAttribute('value', authToken)
+  input.setAttribute('value', accessToken)
   form.appendChild(input)
 
   form.submit()
+}
+
+// Must be normal non-async function. Otherwise, popup will not open.
+export function launchPicker(
+  app: IPublicClientApplication,
+  dispatcher: Dispatcher,
+  authToken: string,
+) {
+  const win = window.open('', 'Picker', 'width=800,height=600')
+
+  if (!win) return
+
+  requestPicker(win, authToken)
 
   window.addEventListener('message', (event) => {
     if (event.source && event.source === win) {
@@ -322,7 +319,7 @@ export function launchPicker(
 
       if (
         message.type === 'initialize' &&
-        message.channelId === params.messaging.channelId
+        message.channelId === PICKER_OPTIONS.messaging.channelId
       ) {
         const port = event.ports[0]
         port.addEventListener('message', (m) =>
