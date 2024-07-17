@@ -23,9 +23,10 @@ async function makeRequestSigned(authToken: string, url: RequestInfo | string | 
 }
 
 interface SelectionItem {
-  endpoint: URL
   driveId: string
+  endpoint: URL
   id: string
+  isDirectory: boolean
 }
 
 const parseSelectionItem = (item: SharePointPickedItem): SelectionItem => ({
