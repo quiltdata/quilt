@@ -89,7 +89,7 @@ export interface SharePointDummy {
 }
 
 export interface SharePointFile extends SharePointDummy {
-  contents: Promise<ArrayBuffer>
+  getContent: () => Promise<ArrayBuffer>
 }
 
 export interface SharePointEntry extends SharePointDummy {

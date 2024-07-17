@@ -1,5 +1,6 @@
 import { join, basename } from 'path'
 
+import pLimit from 'p-limit'
 import * as R from 'ramda'
 import { FileWithPath } from 'react-dropzone'
 
@@ -192,6 +193,8 @@ function hasDir(dir: string, obj: FilesState['existing'] | FilesState['added']) 
   return false
 }
 
+const sharePointLimit = pLimit(5)
+
 export const handleFilesAction = FilesAction.match<
   (state: FilesState) => FilesState,
   [{ initial: FilesState }]
@@ -220,14 +223,14 @@ export const handleFilesAction = FilesAction.match<
       deleted: R.omit(Object.keys(filesMap)),
     }),
   AddFromSharePoint: (items: Model.SharePointFile[]) => (state) => {
-    const entries: Model.SharePointEntry[] = items.map(({ contents, ...item }) => {
+    const entries: Model.SharePointEntry[] = items.map(({ getContent, ...item }) => {
       const hash: Model.SharePointEntry['hash'] = {
         ready: false,
-        promise: getHashPromise(),
+        promise: sharePointLimit(getHashPromise),
       }
       async function getHashPromise() {
         try {
-          const file = new File([await contents], item.logicalKey)
+          const file = new File([await getContent()], item.logicalKey)
           const value = await computeFileChecksum(file)
           hash.ready = true
           hash.value = value

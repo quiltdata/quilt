@@ -6,6 +6,8 @@ import * as Model from 'model'
 import { BASE_URL } from './constants'
 import getToken from './token'
 
+// TODO: handle paginated results
+
 const MESSAGES = {
   TOKEN: (id: string, token: string) => ({
     type: 'result',
@@ -135,9 +137,11 @@ async function fetchFile(
   host: string,
   parentName?: string,
 ): Promise<Model.SharePointFile[]> {
-  const file = driveItemToSharePointFile(driveItem, host, parentName)
-  const contents = downloadFile(driveItem)
-  return [{ ...file, contents }]
+  const file = {
+    ...driveItemToSharePointFile(driveItem, host, parentName),
+    getContent: () => downloadFile(driveItem),
+  }
+  return [file]
 }
 
 async function resolveFile(
@@ -253,9 +257,6 @@ function createMessageListener(
             break
 
           case 'pick':
-            // TODO:
-            // Return unresolved promise with circular structures?
-            // So, we can resolve and fetch data in PackageDialog?
             try {
               const list = await traverseSelection(authToken, command.items)
               onSubmit(list)
