@@ -125,7 +125,7 @@ function resolveSelection(
   return items.map((item) => resolveSelectionItem(item, authToken))
 }
 
-const baseUrl = 'https://quiltdatainc-my.sharepoint.com/'
+export const BASE_URL = 'https://quiltdatainc-my.sharepoint.com/'
 
 const params = {
   sdk: '8.0',
@@ -171,7 +171,7 @@ interface TokenCommand {
   resource: string
 }
 
-async function getToken(app: IPublicClientApplication, command: TokenCommand) {
+export async function getToken(app: IPublicClientApplication, command: TokenCommand) {
   let accessToken = ''
   let authParams = null
 
@@ -288,23 +288,18 @@ async function messageListener(
   }
 }
 
-export async function launchPicker(
+export function launchPicker(
   app: IPublicClientApplication,
   dispatcher: Dispatcher,
+  authToken: string,
 ) {
   const win = window.open('', 'Picker', 'width=800,height=600')
-
-  const authToken = await getToken(app, {
-    resource: baseUrl,
-    // command: 'authenticate',
-    type: 'SharePoint',
-  })
 
   const queryString = new URLSearchParams({
     filePicker: JSON.stringify(params),
   })
 
-  const url = combine(baseUrl, `_layouts/15/FilePicker.aspx?${queryString}`)
+  const url = combine(BASE_URL, `_layouts/15/FilePicker.aspx?${queryString}`)
 
   if (!win) return
 

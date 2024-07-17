@@ -1597,7 +1597,12 @@ export function FilesInput({
 
   const ms = SharePoint.use()
   const handleSharePointBtn = React.useCallback(async () => {
-    SharePoint.launchPicker(ms.msal.instance, dispatcher)
+    const authToken = await SharePoint.getToken(ms.msal.instance, {
+      resource: SharePoint.BASE_URL,
+      // command: 'authenticate',
+      type: 'SharePoint',
+    })
+    SharePoint.launchPicker(ms.msal.instance, dispatcher, authToken)
   }, [dispatcher, ms.msal.instance])
 
   const isS3FilePickerEnabled = !!buckets?.length
