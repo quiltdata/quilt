@@ -1,9 +1,10 @@
-import { IPublicClientApplication, SilentRequest } from '@azure/msal-browser'
+import { IPublicClientApplication } from '@azure/msal-browser'
 import * as uuid from 'uuid'
 
 import * as Model from 'model'
 
 import { BASE_URL } from './constants'
+import getToken from './token'
 
 export enum DispatchEventType {
   Submit,
@@ -147,53 +148,6 @@ const PICKER_OPTIONS = {
   selection: {
     mode: 'multiple',
   },
-}
-
-function combine(...paths: any[]) {
-  return paths
-    .map((path) => path.replace(/^[\\|/]/, '').replace(/[\\|/]$/, ''))
-    .join('/')
-    .replace(/\\/g, '/')
-}
-
-interface TokenCommand {
-  type: string
-  resource: string
-}
-
-export async function getToken(app: IPublicClientApplication, command: TokenCommand) {
-  let accessToken = ''
-  let authParams = null
-
-  switch (command.type) {
-    case 'SharePoint':
-    case 'SharePoint_SelfIssued':
-      authParams = {
-        scopes: [`${combine(command.resource, '.default')}`],
-      } as SilentRequest
-      break
-    default:
-      break
-  }
-
-  try {
-    const resp = await app.acquireTokenSilent(
-      authParams || ({ scopes: [] } as SilentRequest),
-    )
-    accessToken = resp.accessToken
-  } catch (e) {
-    const resp = await app.loginPopup(authParams || ({ scopes: [] } as SilentRequest))
-    app.setActiveAccount(resp.account)
-
-    if (resp.idToken) {
-      const resp2 = await app.acquireTokenSilent(
-        authParams || ({ scopes: [] } as SilentRequest),
-      )
-      accessToken = resp2.accessToken
-    }
-  }
-
-  return accessToken
 }
 
 async function messageListener(
