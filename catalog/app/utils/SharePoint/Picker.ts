@@ -6,17 +6,6 @@ import * as Model from 'model'
 import { BASE_URL } from './constants'
 import getToken from './token'
 
-export enum DispatchEventType {
-  Submit,
-}
-
-export type DispatchEvent = {
-  data: Model.SharePointFile[]
-  type: DispatchEventType.Submit
-}
-
-export type Dispatcher = (event: DispatchEvent) => void
-
 export type Folder = {}
 
 interface PickerItem {
@@ -85,7 +74,7 @@ async function resolveDir(
     },
   })
   const driveItemsList: DriveItem[] = (await driveItemResponse.json()).value
-  const contentsResponse = (
+  return (
     await Promise.all(
       driveItemsList.map((driveItem) => {
         const parentReference = {
@@ -108,7 +97,6 @@ async function resolveDir(
       }),
     )
   ).flat()
-  return contentsResponse
 }
 
 async function resolveSelectionItem(
@@ -154,7 +142,7 @@ async function messageListener(
   app: IPublicClientApplication,
   win: Window,
   port: MessagePort,
-  dispatcher: Dispatcher,
+  onSubmit: (files: Model.SharePointFile[]) => void,
   authToken: string,
   message: MessageEvent,
 ) {
@@ -201,7 +189,7 @@ async function messageListener(
           // Return unresolved promise with circular structures?
           // So, we can resolve and fetch data in PackageDialog?
           const data = await Promise.all(resolveSelection(command.items, authToken))
-          dispatcher({ type: DispatchEventType.Submit, data: data.flat() })
+          onSubmit(data.flat())
 
           port.postMessage({
             type: 'result',
@@ -257,7 +245,7 @@ function requestPicker(win: Window, accessToken: string) {
 // Must be normal non-async function. Otherwise, popup will not open.
 export function launchPicker(
   app: IPublicClientApplication,
-  dispatcher: Dispatcher,
+  onSubmit: (files: Model.SharePointFile[]) => void,
   authToken: string,
 ) {
   const win = window.open('', 'Picker', 'width=800,height=600')
@@ -276,7 +264,7 @@ export function launchPicker(
       ) {
         const port = event.ports[0]
         port.addEventListener('message', (m) =>
-          messageListener(app, win, port, dispatcher, authToken, m),
+          messageListener(app, win, port, onSubmit, authToken, m),
         )
         port.start()
         port.postMessage({

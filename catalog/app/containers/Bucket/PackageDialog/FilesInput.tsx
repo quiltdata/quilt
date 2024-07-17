@@ -1585,24 +1585,21 @@ export function FilesInput({
     setS3FilePickerOpen(true)
   }, [])
 
-  const dispatcher = React.useCallback(
-    async (event: SharePoint.DispatchEvent) => {
-      switch (event.type) {
-        case SharePoint.DispatchEventType.Submit:
-          dispatch(FilesAction.AddFromSharePoint(event.data))
-      }
+  const handleSharePointPicker = React.useCallback(
+    async (files: Model.SharePointFile[]) => {
+      dispatch(FilesAction.AddFromSharePoint(files))
     },
     [dispatch],
   )
 
-  const ms = SharePoint.use()
+  const { msal } = SharePoint.use()
   const handleSharePointBtn = React.useCallback(async () => {
-    const authToken = await SharePoint.getToken(ms.msal.instance, {
+    const authToken = await SharePoint.getToken(msal.instance, {
       resource: SharePoint.BASE_URL,
       type: 'SharePoint',
     })
-    SharePoint.launchPicker(ms.msal.instance, dispatcher, authToken)
-  }, [dispatcher, ms.msal.instance])
+    SharePoint.launchPicker(msal.instance, handleSharePointPicker, authToken)
+  }, [handleSharePointPicker, msal.instance])
 
   const isS3FilePickerEnabled = !!buckets?.length
 
