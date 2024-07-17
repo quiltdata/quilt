@@ -4,6 +4,7 @@ import enum
 import typing as T
 
 import pydantic
+import typing_extensions as TX
 
 from .aws import AWSCredentials
 from .types import NonEmptyStr
@@ -14,12 +15,16 @@ if T.TYPE_CHECKING:
     from quilt3.util import PhysicalKey
 
 
-class TopHash(pydantic.ConstrainedStr):
-    min_length = 64
-    max_length = 64
-    regex = r"^[0-9a-f]+$"
-    strip_whitespace = True
-    to_lower = True
+TopHash = TX.Annotated[
+    str,
+    pydantic.StringConstraints(
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]+$",
+        strip_whitespace=True,
+        to_lower=True,
+    ),
+]
 
 
 class S3ObjectSource(pydantic.BaseModel):

@@ -6,6 +6,7 @@ import tempfile
 import typing as T
 
 import pydantic
+import typing_extensions as TX
 
 from . import const
 
@@ -15,10 +16,7 @@ if T.TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
 
 
-class VersionId(pydantic.ConstrainedStr):
-    strip_whitespace = True
-    min_length = 1
-    max_length = 1024
+VersionId = TX.Annotated[str, pydantic.StringConstraints(strip_whitespace=True, min_length=1, max_length=1024)]
 
 
 class RequestTooLarge(Exception):
