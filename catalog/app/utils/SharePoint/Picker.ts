@@ -8,7 +8,7 @@ import getToken from './token'
 
 type Folder = {}
 
-async function downloadFile(driveItem: DriveItem): Promise<ArrayBuffer> {
+async function downloadFile(driveItem: SharePointDriveItem): Promise<ArrayBuffer> {
   const url = driveItem['@content.downloadUrl']
   return (await window.fetch(url)).arrayBuffer()
 }
@@ -32,10 +32,11 @@ const parseSelectionItem = (item: SharePointPickedItem): SelectionItem => ({
   endpoint: new URL(item['@sharePoint.endpoint']),
   driveId: item.parentReference.driveId,
   id: item.id,
+  isDirectory: !!item.folder,
 })
 
 const driveItemToSharePointFile = (
-  driveItem: DriveItem,
+  driveItem: SharePointDriveItem,
   host: string,
   parentName?: string,
 ): Model.SharePointDummy => ({
@@ -48,14 +49,23 @@ const driveItemToSharePointFile = (
   size: driveItem.size,
 })
 
-function getDriveItem(authToken: string, loc: SelectionItem): Promise<DriveItem> {
+function getDriveItem(
+  authToken: string,
+  loc: SelectionItem,
+): Promise<SharePointDriveItem> {
   const url = `${loc.endpoint.href}/drives/${loc.driveId}/items/${loc.id}`
   return makeRequestSigned(authToken, url)
 }
 
-async function listChildren(authToken: string, loc: SelectionItem): Promise<DriveItem[]> {
+async function listChildren(
+  authToken: string,
+  loc: SelectionItem,
+): Promise<SharePointDriveItem[]> {
   const url = `${loc.endpoint.href}/drives/${loc.driveId}/items/${loc.id}/children`
-  const { value: list }: { value: DriveItem[] } = await makeRequestSigned(authToken, url)
+  const { value: list }: { value: SharePointDriveItem[] } = await makeRequestSigned(
+    authToken,
+    url,
+  )
   return list
 }
 
@@ -72,7 +82,7 @@ interface SharePointPickedItem {
   }
 }
 
-interface DriveItem {
+interface SharePointDriveItem {
   '@content.downloadUrl': string
   eTag: string
   folder: Folder
@@ -87,7 +97,7 @@ interface DriveItem {
 }
 
 async function fetchFile(
-  driveItem: DriveItem,
+  driveItem: SharePointDriveItem,
   host: string,
   parentName?: string,
 ): Promise<Model.SharePointFile[]> {
@@ -135,10 +145,11 @@ async function traverseSelection(
 ): Promise<Model.SharePointFile[]> {
   return (
     await Promise.all(
-      items.map((item) => {
-        const loc = parseSelectionItem(item)
-        return item.folder ? resolveDir(authToken, loc) : resolveFile(authToken, loc)
-      }),
+      items
+        .map(parseSelectionItem)
+        .map((loc) =>
+          loc.isDirectory ? resolveDir(authToken, loc) : resolveFile(authToken, loc),
+        ),
     )
   ).flat()
 }
