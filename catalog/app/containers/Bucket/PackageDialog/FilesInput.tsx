@@ -1599,7 +1599,6 @@ export function FilesInput({
   const handleSharePointBtn = React.useCallback(async () => {
     const authToken = await SharePoint.getToken(ms.msal.instance, {
       resource: SharePoint.BASE_URL,
-      // command: 'authenticate',
       type: 'SharePoint',
     })
     SharePoint.launchPicker(ms.msal.instance, dispatcher, authToken)

@@ -218,7 +218,6 @@ async function messageListener(
 
       switch (command.command) {
         case 'authenticate':
-          // getToken is from scripts/auth.js
           const token = await getToken(app, command)
 
           if (typeof token !== 'undefined' && token !== null) {

@@ -59,12 +59,6 @@ const globalApi = new GlobalAPI()
 globalApi.attach(window)
 const GlobalAPIProvider = globalApi.getProvider()
 
-const msAuth = {
-  clientId: '6d354507-beeb-4c38-858c-abf6018427df',
-  authority: 'https://login.microsoftonline.com/046409b6-ae78-4b35-a678-54defa97f5b4',
-  redirectUri: `${window.location.protocol}//${window.location.host}`,
-}
-
 // listen for Roboto fonts
 fontLoader('Roboto', 'Roboto Mono')
   .then(() => {
@@ -111,7 +105,7 @@ const render = () => {
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { storage }],
-      [SharePoint.Provider, { auth: msAuth }],
+      [SharePoint.Provider, { auth: SharePoint.SHAREPOINT_INIT_PROPS }],
       [
         Intercom.Provider,
         {
