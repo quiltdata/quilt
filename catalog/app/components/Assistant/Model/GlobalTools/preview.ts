@@ -7,13 +7,17 @@ import * as S from '@effect/schema/Schema'
 import cfg from 'constants/config'
 import { S3ObjectLocation } from 'model/S3'
 import * as AWS from 'utils/AWS'
+import * as Log from 'utils/Logging'
 import mkSearch from 'utils/mkSearch'
 
 import * as Content from '../Content'
 import * as Tool from '../Tool'
 
+const MODULE = 'GlobalTools/preview'
+
 type AWSEffect<T> = Eff.Effect.Effect<T, AWSSDK.AWSError>
 
+// TODO: move this out
 export class S3 extends Eff.Context.Tag('S3')<
   S3,
   {
@@ -112,74 +116,78 @@ export function useGetObject() {
 }
 
 const getObject = (handle: S3ObjectLocation) =>
-  Eff.Effect.gen(function* () {
-    const s3 = yield* S3
-    yield* Eff.Console.debug('TOOL: getObjectContents', handle)
-    const headE = yield* Eff.Effect.either(s3.headObject(handle))
-    if (Eff.Either.isLeft(headE)) {
-      return Tool.fail(
-        Content.text(
-          'Error while getting S3 object metadata:\n',
-          `<object-metadata-error>\n${headE.left}'n</object-metadata-error>`,
-        ),
+  Log.scoped({
+    name: `${MODULE}.getObject`,
+    enter: [Log.br, 'handle:', handle],
+  })(
+    Eff.Effect.gen(function* () {
+      const s3 = yield* S3
+      const headE = yield* Eff.Effect.either(s3.headObject(handle))
+      if (Eff.Either.isLeft(headE)) {
+        return Tool.fail(
+          Content.text(
+            'Error while getting S3 object metadata:\n',
+            `<object-metadata-error>\n${headE.left}'n</object-metadata-error>`,
+          ),
+        )
+      }
+      const head = headE.right
+
+      const metaBlock = Content.text(
+        'Got S3 object metadata:\n',
+        `<object-metadata>\n${JSON.stringify(head, null, 2)}\n</object-metadata>`,
       )
-    }
-    const head = headE.right
 
-    const metaBlock = Content.text(
-      'Got S3 object metadata:\n',
-      `<object-metadata>\n${JSON.stringify(head, null, 2)}\n</object-metadata>`,
-    )
+      const size = head.ContentLength
+      if (size == null) {
+        return Tool.succeed(
+          metaBlock,
+          Content.text('Could not determine object content length'),
+        )
+      }
 
-    const size = head.ContentLength
-    if (size == null) {
-      return Tool.succeed(
-        metaBlock,
-        Content.text('Could not determine object content length'),
-      )
-    }
+      const fileType = detectFileType(handle.key)
 
-    const fileType = detectFileType(handle.key)
-
-    const contentBlocks: Content.ToolResultContentBlock[] = yield* FileType.$match(
-      fileType,
-      {
-        Image: () =>
-          getImagePreview(handle).pipe(
-            Eff.Effect.map(({ format, bytes }) =>
-              Content.ToolResultContentBlock.Image({
-                format,
-                source: bytes as $TSFixMe,
-              }),
-            ),
-            Eff.Effect.catchAll((e) =>
-              Eff.Effect.succeed(
-                Content.text(
-                  'Error while getting image preview:\n',
-                  `<object-contents-error>\n${e}'n</object-contents-error>`,
+      const contentBlocks: Content.ToolResultContentBlock[] = yield* FileType.$match(
+        fileType,
+        {
+          Image: () =>
+            getImagePreview(handle).pipe(
+              Eff.Effect.map(({ format, bytes }) =>
+                Content.ToolResultContentBlock.Image({
+                  format,
+                  source: bytes as $TSFixMe,
+                }),
+              ),
+              Eff.Effect.catchAll((e) =>
+                Eff.Effect.succeed(
+                  Content.text(
+                    'Error while getting image preview:\n',
+                    `<object-contents-error>\n${e}'n</object-contents-error>`,
+                  ),
                 ),
               ),
+              Eff.Effect.map(Eff.Array.of),
             ),
-            Eff.Effect.map(Eff.Array.of),
-          ),
-        Document: ({ format }) =>
-          size > THRESHOLD
-            ? Eff.Effect.succeed([
-                Content.text('Object is too large to include its contents directly'),
-              ])
-            : getDocumentPreview(handle, format),
-        Unidentified: () =>
-          Eff.Effect.succeed([
-            Content.text(
-              'Error while getting object contents:\n',
-              `<object-contents-error>\nUnidentified file type\n</object-contents-error>`,
-            ),
-          ]),
-      },
-    )
+          Document: ({ format }) =>
+            size > THRESHOLD
+              ? Eff.Effect.succeed([
+                  Content.text('Object is too large to include its contents directly'),
+                ])
+              : getDocumentPreview(handle, format),
+          Unidentified: () =>
+            Eff.Effect.succeed([
+              Content.text(
+                'Error while getting object contents:\n',
+                `<object-contents-error>\nUnidentified file type\n</object-contents-error>`,
+              ),
+            ]),
+        },
+      )
 
-    return Tool.succeed(metaBlock, ...contentBlocks)
-  })
+      return Tool.succeed(metaBlock, ...contentBlocks)
+    }),
+  )
 
 const SUPPORTED_IMAGE_EXTENSIONS = [
   '.jpg',
