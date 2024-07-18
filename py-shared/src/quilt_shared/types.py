@@ -4,10 +4,7 @@ import typing as T
 import pydantic
 import typing_extensions as TX
 
-
-class NonEmptyStr(pydantic.ConstrainedStr):
-    min_length = 1
-    strip_whitespace = True
+NonEmptyStr = TX.Annotated[str, pydantic.StringConstraints(min_length=1, strip_whitespace=True)]
 
 
 ConsParams = TX.ParamSpec("ConsParams")

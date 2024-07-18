@@ -126,14 +126,15 @@ def test_invoke_hash_lambda(lambda_stub: Stubber):
                         "key": pk.path,
                         "version": pk.version_id,
                     },
-                }
+                },
+                separators=(",", ":"),
             ),
         },
     )
 
     assert (
         t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS, SCRATCH_BUCKETS)
-        == checksum
+        == Checksum(**checksum)
     )
 
 
@@ -164,7 +165,8 @@ def test_invoke_hash_lambda_error(lambda_stub: Stubber):
                         "key": pk.path,
                         "version": pk.version_id,
                     },
-                }
+                },
+                separators=(",", ":"),
             ),
         },
     )

@@ -12,7 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pydantic = [
-  "pydantic ~= 1.10",
+  "pydantic ~= 2.8",
   "typing-extensions ~= 4.9",
 ]
 boto = [
