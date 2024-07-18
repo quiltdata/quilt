@@ -304,7 +304,7 @@ export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
 
 export async function getObjectExistence({ s3, bucket, key, version }) {
   let s3Location = { bucket, key, version }
-  if (SharePoint.isSharePoint(s3Location)) {
+  if (SharePoint.isValidLocation(s3Location)) {
     // FIXME: getToken + get driveItem
     return ObjectExistence.Exists({})
   }

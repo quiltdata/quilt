@@ -24,7 +24,7 @@ import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as SharePoint from 'utils/SharePoint'
+import * as SP from 'utils/SharePoint'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -598,6 +598,11 @@ function FileDisplay({
     [file, packageHandle],
   )
 
+  const spLocation = React.useMemo(
+    () => (SP.isValidUri(file.physicalKey) ? SP.fromPhysicalKey(file.physicalKey) : null),
+    [file.physicalKey],
+  )
+
   return (
     // @ts-expect-error
     <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
@@ -676,7 +681,7 @@ function FileDisplay({
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMetaSection meta={file.metadata} />
-                          <FileView.ObjectTags handle={handle} />
+                          {!spLocation && <FileView.ObjectTags handle={handle} />}
                         </>
                       )}
                       {cfg.qurator && blocks.qurator && (
@@ -690,10 +695,8 @@ function FileDisplay({
               )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
-                  {SharePoint.isSharePointUri(file.physicalKey) ? (
-                    <SharePoint.Embed
-                      loc={SharePoint.fromPhysicalKey(file.physicalKey)}
-                    />
+                  {spLocation ? (
+                    <SP.Embed loc={spLocation} />
                   ) : (
                     withPreview(
                       { archived, deleted },

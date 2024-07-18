@@ -3,15 +3,15 @@ import { parse as parseUrl } from 'url'
 
 import type * as Model from 'model'
 
-export function fromSharePointLocation(loc: Model.SharePointLocation) {
+export function locationToUri(loc: Model.SharePointLocation) {
   return `s3://sharepoint/${loc.host}/${loc.driveId}/${loc.id}?versionId=${loc.etag}`
 }
 
-export function isSharePoint(loc: Model.S3.S3ObjectLocation) {
+export function isValidLocation(loc: Model.S3.S3ObjectLocation) {
   return loc.bucket === 'sharepoint'
 }
 
-export function isSharePointUri(uri: string) {
+export function isValidUri(uri: string) {
   return uri.startsWith('s3://sharepoint')
 }
 

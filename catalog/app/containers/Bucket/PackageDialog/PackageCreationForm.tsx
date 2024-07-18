@@ -379,7 +379,7 @@ function PackageCreationForm({
           [path]: {
             hash: hash.value,
             meta: m,
-            physicalKey: SharePoint.fromSharePointLocation(address),
+            physicalKey: SharePoint.locationToUri(address),
             size,
           },
         }
