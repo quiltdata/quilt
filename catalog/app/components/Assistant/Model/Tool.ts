@@ -30,7 +30,7 @@ export interface Descriptor<I> {
 
 export type Collection = Record<string, Descriptor<any>>
 
-export function make<I>(schema: Schema.Schema<I>, fn: Executor<I>): Descriptor<I> {
+export function make<A, I>(schema: Schema.Schema<A, I>, fn: Executor<A>): Descriptor<A> {
   const jsonSchema = JSONSchema.make(schema)
 
   const decode = Schema.decodeUnknown(schema, {
@@ -66,11 +66,11 @@ export function make<I>(schema: Schema.Schema<I>, fn: Executor<I>): Descriptor<I
 
 const EMPTY_DEPS: React.DependencyList = []
 
-export function useMakeTool<I>(
-  schema: Schema.Schema<I>,
-  fn: Executor<I>,
+export function useMakeTool<A, I>(
+  schema: Schema.Schema<A, I>,
+  fn: Executor<A>,
   deps: React.DependencyList = EMPTY_DEPS,
-): Descriptor<I> {
+): Descriptor<A> {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fnMemo = React.useCallback(fn, deps)
   return React.useMemo(() => make(schema, fnMemo), [schema, fnMemo])
