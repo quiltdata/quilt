@@ -1,10 +1,10 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import type * as Model from 'model'
 
 import { useSharePoint } from './Provider'
-import { BASE_URL } from './constants'
 import { postSigned } from './requests'
 import getToken from './token'
 
@@ -26,7 +26,7 @@ export default function Embed({ loc }: EmbedProps) {
   React.useEffect(() => {
     async function loadEmbedUrl() {
       const authToken = await getToken(msal.instance, {
-        resource: BASE_URL,
+        resource: cfg.sharePoint.baseUrl,
         type: 'SharePoint',
       })
       const embedUrl = await getEmbedUrl(authToken, loc)

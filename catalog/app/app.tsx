@@ -105,7 +105,7 @@ const render = () => {
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { storage }],
-      [SharePoint.Provider, { auth: SharePoint.SHAREPOINT_INIT_PROPS }],
+      [SharePoint.Provider, { auth: cfg.sharePoint.auth }],
       [
         Intercom.Provider,
         {

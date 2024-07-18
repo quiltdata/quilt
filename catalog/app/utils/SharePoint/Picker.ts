@@ -1,9 +1,9 @@
 import { IPublicClientApplication } from '@azure/msal-browser'
 import * as uuid from 'uuid'
 
+import cfg from 'constants/config'
 import * as Model from 'model'
 
-import { BASE_URL } from './constants'
 import { makeRequestSigned } from './requests'
 import getToken from './token'
 
@@ -289,7 +289,7 @@ function requestPicker(win: Window, accessToken: string) {
   const queryString = new URLSearchParams({
     filePicker: JSON.stringify(PICKER_OPTIONS),
   })
-  const url = `${BASE_URL}/_layouts/15/FilePicker.aspx?${queryString}`
+  const url = `${cfg.sharePoint.baseUrl}/_layouts/15/FilePicker.aspx?${queryString}`
 
   const form = win.document.createElement('form')
   form.setAttribute('action', url)

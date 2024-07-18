@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Dialog from 'components/Dialog'
+import cfg from 'constants/config'
 import * as urls from 'constants/urls'
 import type * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
@@ -1595,7 +1596,7 @@ export function FilesInput({
   const { msal } = SharePoint.use()
   const handleSharePointBtn = React.useCallback(async () => {
     const authToken = await SharePoint.getToken(msal.instance, {
-      resource: SharePoint.BASE_URL,
+      resource: cfg.sharePoint.baseUrl,
       type: 'SharePoint',
     })
     SharePoint.launchPicker(msal.instance, authToken, handleSharePointPicker)

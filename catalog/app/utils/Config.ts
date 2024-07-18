@@ -9,6 +9,15 @@ import configSchema from '../../config-schema.json'
 type Mode = 'OPEN' | 'PRODUCT' | 'LOCAL'
 type AuthMethodConfig = 'ENABLED' | 'DISABLED' | 'SIGN_IN_ONLY'
 
+interface SharePoint {
+  auth: {
+    clientId: string
+    authority: string
+    redirectUri: string
+  }
+  baseUrl: string
+}
+
 // manually synced w/ config-schema.json
 export interface ConfigJson {
   region: string
@@ -47,6 +56,8 @@ export interface ConfigJson {
   qurator?: boolean
 
   build_version?: string // not sure where this comes from
+
+  sharePoint: SharePoint
 }
 
 const ajv = new Ajv({ allErrors: true, removeAdditional: true })
@@ -92,6 +103,14 @@ const transformConfig = (cfg: ConfigJson) => ({
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
   qurator: !!cfg.qurator,
+  sharePoint: {
+    auth: {
+      clientId: '6d354507-beeb-4c38-858c-abf6018427df',
+      authority: 'https://login.microsoftonline.com/046409b6-ae78-4b35-a678-54defa97f5b4',
+      redirectUri: `${window.location.protocol}//${window.location.host}`,
+    },
+    baseUrl: 'https://quiltdatainc-my.sharepoint.com',
+  },
 })
 
 export function prepareConfig(input: unknown) {
