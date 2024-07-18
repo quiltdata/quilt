@@ -657,7 +657,7 @@ function FileDisplay({
                   },
                   prefs,
                 )}
-                {!!viewModes.modes.length && (
+                {!!viewModes.modes.length && !spLocation && (
                   <FileView.ViewModeSelector
                     className={classes.button}
                     // @ts-expect-error
@@ -684,7 +684,7 @@ function FileDisplay({
                           {!spLocation && <FileView.ObjectTags handle={handle} />}
                         </>
                       )}
-                      {cfg.qurator && blocks.qurator && (
+                      {cfg.qurator && blocks.qurator && !spLocation && (
                         <QuratorSection handle={handle} />
                       )}
                     </>
