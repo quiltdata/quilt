@@ -4,7 +4,7 @@ import * as uuid from 'uuid'
 import cfg from 'constants/config'
 import * as Model from 'model'
 
-import { makeRequestSigned } from './requests'
+import { SharePointDriveItem, makeRequestSigned } from './requests'
 import getToken from './token'
 
 // TODO: handle paginated results
@@ -41,8 +41,6 @@ const MESSAGES = {
     },
   }),
 }
-
-type Folder = {}
 
 async function downloadFile(driveItem: SharePointDriveItem): Promise<ArrayBuffer> {
   const url = driveItem['@content.downloadUrl']
@@ -103,26 +101,12 @@ const parentNameAccum = (name: string, parentName?: string): string =>
 
 interface SharePointPickedItem {
   '@sharePoint.endpoint': string
-  folder?: Folder
+  folder?: {}
   id: string
   parentReference: {
     name?: string
     driveId: string
   }
-}
-
-interface SharePointDriveItem {
-  '@content.downloadUrl': string
-  eTag: string
-  folder: Folder
-  id: string
-  name: string
-  parentReference: {
-    id: string
-    driveId: string
-    name: string
-  }
-  size?: number
 }
 
 async function fetchFile(

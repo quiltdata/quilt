@@ -603,6 +603,11 @@ function FileDisplay({
     [file.physicalKey],
   )
 
+  const { embedUrl, driveItem } = SP.useFile(spLocation, {
+    driveItem: true,
+    embedURL: true,
+  })
+
   return (
     // @ts-expect-error
     <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
@@ -634,8 +639,12 @@ function FileDisplay({
               <TopBar crumbs={crumbs}>
                 <FileProperties
                   className={classes.fileProperties}
-                  lastModified={lastModified}
-                  size={size}
+                  lastModified={
+                    driveItem && driveItem.lastModifiedDateTime
+                      ? new Date(driveItem.lastModifiedDateTime)
+                      : lastModified
+                  }
+                  size={driveItem ? driveItem.size : size}
                 />
                 {BucketPreferences.Result.match(
                   {
@@ -696,7 +705,7 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {spLocation ? (
-                    <SP.Embed loc={spLocation} />
+                    <SP.Embed url={embedUrl} />
                   ) : (
                     withPreview(
                       { archived, deleted },
