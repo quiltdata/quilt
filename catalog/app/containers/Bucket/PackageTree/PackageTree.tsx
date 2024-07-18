@@ -24,6 +24,7 @@ import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as SharePoint from 'utils/SharePoint'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -516,6 +517,10 @@ function FileDisplayQuery({
             crumbs={crumbs}
           />
         )
+      }
+
+      if (SharePoint.isSharePointUri(file.physicalKey)) {
+        return <SharePoint.Embed loc={SharePoint.fromPhysicalKey(file.physicalKey)} />
       }
 
       return <FileDisplay {...{ bucket, name, hash, path, crumbs, file }} {...props} />

@@ -77,9 +77,10 @@ export interface S3File {
 }
 
 export interface SharePointLocation {
+  driveId: string
+  etag: string
   host: string
   id: string
-  etag: string
 }
 
 export interface SharePointDummy {

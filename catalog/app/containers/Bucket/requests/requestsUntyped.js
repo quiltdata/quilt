@@ -11,6 +11,7 @@ import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import * as quiltConfigs from 'constants/quiltConfigs'
 import cfg from 'constants/config'
 import * as Resource from 'utils/Resource'
+import * as SharePoint from 'utils/SharePoint'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
@@ -302,6 +303,11 @@ const MAX_IMGS = 100
 export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
 
 export async function getObjectExistence({ s3, bucket, key, version }) {
+  let s3Location = { bucket, key, version }
+  if (SharePoint.isSharePoint(s3Location)) {
+    // FIXME: getToken + get driveItem
+    return ObjectExistence.Exists({})
+  }
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()

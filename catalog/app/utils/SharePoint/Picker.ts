@@ -4,6 +4,7 @@ import * as uuid from 'uuid'
 import * as Model from 'model'
 
 import { BASE_URL } from './constants'
+import { makeRequestSigned } from './requests'
 import getToken from './token'
 
 // TODO: handle paginated results
@@ -48,15 +49,6 @@ async function downloadFile(driveItem: SharePointDriveItem): Promise<ArrayBuffer
   return (await window.fetch(url)).arrayBuffer()
 }
 
-async function makeRequestSigned(authToken: string, url: RequestInfo | string | URL) {
-  const response = await window.fetch(url, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  })
-  return response.json()
-}
-
 interface SelectionItem {
   driveId: string
   endpoint: URL
@@ -78,6 +70,7 @@ const driveItemToSharePointFile = (
 ): Model.SharePointDummy => ({
   address: {
     host,
+    driveId: driveItem.parentReference.driveId,
     etag: driveItem.eTag,
     id: driveItem.id,
   },

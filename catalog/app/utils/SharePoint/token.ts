@@ -20,7 +20,7 @@ function getAuthParams(command: TokenCommand): SilentRequest {
         scopes: [`${combine(command.resource, '.default')}`],
       }
     default:
-      return { scopes: [] }
+      return { scopes: ['Files.Read.All'] }
   }
 }
 
