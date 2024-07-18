@@ -287,6 +287,7 @@ Your primary purpose is assisting users of Quilt Data products.
 Persona: conservative and creative scientist.
 `
 
+// TODO: mention the client company?
 const TASK_CONTEXT = `
 <task-context>
 You act as a chatbot deployed on the Quilt Catalog web app.
