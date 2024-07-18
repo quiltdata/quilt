@@ -11,10 +11,10 @@ import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as GlobalTools from './GlobalTools'
 
-function usePassThru<T>(val: T): T {
+function usePassThru<T>(val: T) {
   const ref = React.useRef(val)
   ref.current = val
-  return ref.current
+  return ref
 }
 
 function useConstructAssistantAPI() {
@@ -23,7 +23,10 @@ function useConstructAssistantAPI() {
     context: Context.useLayer(),
   })
   const layerEff = Eff.Effect.sync(() =>
-    Eff.Layer.merge(Bedrock.LLMBedrock(passThru.bedrock), passThru.context),
+    Eff.Layer.merge(
+      Bedrock.LLMBedrock(passThru.current.bedrock),
+      passThru.current.context,
+    ),
   )
   const [state, dispatch] = Actor.useActorLayer(
     Conversation.ConversationActor,
