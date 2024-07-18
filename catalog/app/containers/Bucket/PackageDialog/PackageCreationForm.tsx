@@ -19,6 +19,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
 import { useMutation } from 'utils/GraphQL'
+import * as SharePoint from 'utils/SharePoint'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
@@ -376,10 +377,10 @@ function PackageCreationForm({
         return {
           ...memo,
           [path]: {
-            physicalKey: `sharepoint://${address.host}/${address.id}?versionId=${address.etag}`,
             hash: hash.value,
-            size,
             meta: m,
+            physicalKey: SharePoint.fromSharePointLocation(address),
+            size,
           },
         }
       },
