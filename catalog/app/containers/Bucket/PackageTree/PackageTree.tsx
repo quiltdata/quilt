@@ -519,10 +519,6 @@ function FileDisplayQuery({
         )
       }
 
-      if (SharePoint.isSharePointUri(file.physicalKey)) {
-        return <SharePoint.Embed loc={SharePoint.fromPhysicalKey(file.physicalKey)} />
-      }
-
       return <FileDisplay {...{ bucket, name, hash, path, crumbs, file }} {...props} />
     },
   })
@@ -694,11 +690,17 @@ function FileDisplay({
               )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
-                  {withPreview(
-                    { archived, deleted },
-                    handle,
-                    viewModes.mode,
-                    renderPreview(viewModes.handlePreviewResult),
+                  {SharePoint.isSharePointUri(file.physicalKey) ? (
+                    <SharePoint.Embed
+                      loc={SharePoint.fromPhysicalKey(file.physicalKey)}
+                    />
+                  ) : (
+                    withPreview(
+                      { archived, deleted },
+                      handle,
+                      viewModes.mode,
+                      renderPreview(viewModes.handlePreviewResult),
+                    )
                   )}
                 </div>
               </Section>
