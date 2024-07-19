@@ -20,7 +20,7 @@ const EMPTY_DIR_MARKER_PATH = '[$.quiltkeep$]'
 
 export const isSharePointEntry = (
   f: Model.S3File | LocalFile | Model.SharePointEntry,
-): f is Model.SharePointEntry => (f as any).address._tag === 'sharepoint'
+): f is Model.SharePointEntry => (f as any)?.address?._tag === 'sharepoint'
 
 // Rename root key in object
 // In other words, move value from one key to another
