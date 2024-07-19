@@ -494,7 +494,7 @@ function File({
           setDragRef={isDragReady(state) ? setDragRef : undefined}
           state={stateDisplay}
         >
-          {type === 'sp' || type === 's3' ? 'cloud' : 'insert_drive_file'}
+          {type === 'sp' ? 'cloud' : 'insert_drive_file'}
         </EntryIcon>
         <div className={classes.name} title={name}>
           {name}
