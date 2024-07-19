@@ -3,283 +3,199 @@ import { encode } from 'utils/s3paths'
 
 const PACKAGE_PATTERN = '[^/]+/[^/]+'
 
-// TODO: make sure types are explicitly divide codebase into
+// TODO: make sure types explicitly divide codebase into
 //       main catalog and embed,
 //       so catalog routes aren't called in embed
 
-export type NoArgs = []
-
-type Route<Args extends any[] = NoArgs> = {
-  path: string
+export type Route<Path extends string, Args extends any[]> = {
+  path: Path
   url: (...args: Args) => string
 }
 
-export type HomeArgs = [options?: { q?: string }]
+const route = <Path extends string, Args extends any[] = []>(
+  path: Path,
+  url?: (...args: Args) => string,
+): Route<Path, Args> => ({ path, url: url ?? (() => path) })
 
-export const home: Route<HomeArgs> = {
-  path: '/',
-  url: ({ q } = {}) => `/${mkSearch({ q })}`,
-}
+// The actuals routes start
 
-export const install: Route = {
-  path: '/install',
-  url: () => '/install',
-}
+export const home = route(
+  '/',
+  (params?: { q?: string }) => `/${mkSearch({ q: params?.q })}`,
+)
+
+export const install = route('/install', () => '/install')
 
 // Auth
+export const activate = route(
+  '/activate/:token',
+  (params: { registryUrl: string; token: string }) =>
+    `${params.registryUrl}/activate/${params.token}`,
+)
 
-export type ActivateArgs = [options: { registryUrl: string; token: string }]
+export const signIn = route('/signin', (next?: string) => `/signin${mkSearch({ next })}`)
 
-export const activate: Route<ActivateArgs> = {
-  path: '/activate/:token',
-  url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
-}
+export const signOut = route('/signout')
 
-export type SignInArgs = [next: string]
+export const signUp = route('/signup', (next?: string) => `/signup${mkSearch({ next })}`)
 
-export const signIn: Route<SignInArgs> = {
-  path: '/signin',
-  url: (next) => `/signin${mkSearch({ next })}`,
-}
+export const passReset = route('/reset_password')
 
-export const signOut: Route = {
-  path: '/signout',
-  url: () => '/signout',
-}
+export const passChange = route(
+  '/reset_password/:link',
+  (link: string) => `/reset_password/${link}`,
+)
 
-export type SignOutArgs = [next: string]
+export const code = route('/code')
 
-export const signUp: Route<SignOutArgs> = {
-  path: '/signup',
-  url: (next) => `/signup${mkSearch({ next })}`,
-}
-
-export const passReset: Route = {
-  path: '/reset_password',
-  url: () => '/reset_password',
-}
-
-export type PassChangeArgs = [link: string]
-
-export const passChange: Route<PassChangeArgs> = {
-  path: '/reset_password/:link',
-  url: (link) => `/reset_password/${link}`,
-}
-
-export const code: Route = {
-  path: '/code',
-  url: () => '/code',
-}
-
-export const activationError: Route = {
-  path: '/activation_error',
-  url: () => '/activation_error',
-}
+export const activationError = route('/activation_error')
 
 // Profile
-
-export const profile: Route = {
-  path: '/profile',
-  url: () => '/profile',
-}
+export const profile = route('/profile')
 
 // Global search
-
-export type SearchArgs = [
-  options: { q: string; buckets: string; p: string; mode: string; retry: string },
-]
-
-export const search: Route<SearchArgs> = {
-  path: '/search',
-  url: ({ q, buckets, p, mode, retry }) =>
-    `/search${mkSearch({ q, buckets, p, mode, retry })}`,
+interface SearchOpts {
+  q?: string
+  buckets?: string
+  p?: string
+  mode?: string
+  retry?: string
 }
+
+export const search = route(
+  '/search',
+  ({ q, buckets, p, mode, retry }: SearchOpts) =>
+    `/search${mkSearch({ q, buckets, p, mode, retry })}`,
+)
 
 // Immutable URI resolver
-
-export type UriResolverArgs = [uri: string]
-
-export const uriResolver: Route<UriResolverArgs> = {
-  path: '/uri/:uri(.*)',
-  url: (uri) => `/uri/${uri ? encodeURIComponent(uri) : ''}`,
-}
+export const uriResolver = route(
+  '/uri/:uri(.*)',
+  (uri: string) => `/uri/${uri ? encodeURIComponent(uri) : ''}`,
+)
 
 // Bucket
-
-export type BucketRootArgs = [bucket: string]
-
-export const bucketRoot: Route<BucketRootArgs> = {
-  path: '/b/:bucket',
-  url: (bucket) => `/b/${bucket}`,
-}
-
-export type BucketSearchArgs = [
-  bucket: string,
-  options?: { q?: string; p?: string; mode?: string; retry?: string },
-]
-
+export const bucketRoot = route('/b/:bucket', (bucket: string) => `/b/${bucket}`)
 export const bucketOverview = bucketRoot
 
 // redirects to global search
-export const bucketSearch: Route<BucketSearchArgs> = {
-  path: '/b/:bucket/search',
-  url: (bucket, { q, p, mode, retry } = {}) =>
+export const bucketSearch = route(
+  '/b/:bucket/search',
+  (bucket: string, { q, p, mode, retry }: SearchOpts = {}) =>
     `/b/${bucket}/search${mkSearch({ q, p, mode, retry })}`,
+)
+
+interface BucketFileOpts {
+  add?: string
+  edit?: boolean
+  mode?: string
+  next?: string
+  version?: string
 }
 
-export type BucketFileArgs = [
-  bucket: string,
-  path: string,
-  options?: {
-    add?: string
-    edit?: boolean
-    mode?: string
-    next?: string
-    version?: string
-  },
-]
+export const bucketFile = route(
+  '/b/:bucket/tree/:path(.*[^/])',
+  (
+    bucket: string,
+    path: string,
+    { add, edit, mode, next, version }: BucketFileOpts = {},
+  ) => `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
+)
+export type BucketFileArgs = Parameters<typeof bucketFile.url>
 
-export const bucketFile: Route<BucketFileArgs> = {
-  path: '/b/:bucket/tree/:path(.*[^/])',
-  url: (bucket, path, { add, edit, mode, next, version } = {}) =>
-    `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
-}
-
-export type BucketDirArgs = [bucket: string, path?: string, prefix?: string]
-
-export const bucketDir: Route<BucketDirArgs> = {
-  path: '/b/:bucket/tree/:path(.+/)?',
-  // eslint-disable-next-line @typescript-eslint/default-param-last
-  url: (bucket, path = '', prefix) =>
+export const bucketDir = route(
+  '/b/:bucket/tree/:path(.+/)?',
+  (bucket: string, path: string = '', prefix?: string) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
+)
+export type BucketDirArgs = Parameters<typeof bucketDir.url>
+
+interface BucketPackageListOpts {
+  filter?: string
+  sort?: string
+  p?: string
 }
 
-export type BucketPackageListArgs = [
-  bucket: string,
-  options?: { filter?: string; sort?: string; p?: string },
-]
-
-export const bucketPackageList: Route<BucketPackageListArgs> = {
-  path: '/b/:bucket/packages/',
-  url: (bucket, { filter, sort, p } = {}) =>
+export const bucketPackageList = route(
+  '/b/:bucket/packages/',
+  (bucket: string, { filter, sort, p }: BucketPackageListOpts = {}) =>
     `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
+)
+export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
+
+interface BucketPackageDetailOpts {
+  action?: string
 }
 
-export type BucketPackageDetailArgs = [
-  bucket: string,
-  name: string,
-  options?: { action?: string },
-]
-
-export const bucketPackageDetail: Route<BucketPackageDetailArgs> = {
-  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  url: (bucket, name, { action } = {}) =>
+export const bucketPackageDetail = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
+  (bucket: string, name: string, { action }: BucketPackageDetailOpts = {}) =>
     `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
-}
+)
+export type BucketPackageDetailArgs = Parameters<typeof bucketPackageDetail.url>
 
-export type BucketPackageTreeArgs = [
-  bucket: string,
-  name: string,
-  revision?: string,
-  path?: string,
-  mode?: string,
-]
-
-export const bucketPackageTree: Route<BucketPackageTreeArgs> = {
-  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
-  // eslint-disable-next-line @typescript-eslint/default-param-last
-  url: (bucket, name, revision, path = '', mode) =>
+export const bucketPackageTree = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
+  (bucket: string, name: string, revision?: string, path: string = '', mode?: string) =>
     path || (revision && revision !== 'latest')
       ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
           path,
         )}${mkSearch({ mode })}`
       : bucketPackageDetail.url(bucket, name),
+)
+export type BucketPackageTreeArgs = Parameters<typeof bucketPackageTree.url>
+
+interface BucketPackageRevisionsOpts {
+  p?: string
 }
 
-export type BucketPackageRevisionsArgs = [
-  bucket: string,
-  name: string,
-  options?: { p?: string },
-]
-
-export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
-  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
-  url: (bucket, name, { p } = {}) =>
+export const bucketPackageRevisions = route(
+  `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
+  (bucket: string, name: string, { p }: BucketPackageRevisionsOpts = {}) =>
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
-}
+)
 
-export type BucketQueriesArgs = [bucket: string]
+export const bucketQueries = route(
+  '/b/:bucket/queries',
+  (bucket: string) => `/b/${bucket}/queries`,
+)
 
-export const bucketQueries: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/queries',
-  url: (bucket) => `/b/${bucket}/queries`,
-}
+export const bucketESQueries = route(
+  '/b/:bucket/queries/es',
+  (bucket: string) => `/b/${bucket}/queries/es`,
+)
 
-export const bucketESQueries: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/queries/es',
-  url: (bucket) => `/b/${bucket}/queries/es`,
-}
+export const bucketAthena = route(
+  '/b/:bucket/queries/athena',
+  (bucket: string) => `/b/${bucket}/queries/athena`,
+)
 
-export const bucketAthena: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/queries/athena',
-  url: (bucket) => `/b/${bucket}/queries/athena`,
-}
+export const bucketAthenaWorkgroup = route(
+  '/b/:bucket/queries/athena/:workgroup',
+  (bucket: string, workgroup: string) => `/b/${bucket}/queries/athena/${workgroup}`,
+)
 
-export type BucketAthenaWorkgroupArgs = [bucket: string, workgroup: string]
-
-export const bucketAthenaWorkgroup: Route<BucketAthenaWorkgroupArgs> = {
-  path: '/b/:bucket/queries/athena/:workgroup',
-  url: (bucket, workgroup) => `/b/${bucket}/queries/athena/${workgroup}`,
-}
-
-export type BucketAthenaExecutionArgs = [
-  bucket: string,
-  workgroup: string,
-  queryExecutionId: string,
-]
-
-export const bucketAthenaExecution: Route<BucketAthenaExecutionArgs> = {
-  path: '/b/:bucket/queries/athena/:workgroup/:queryExecutionId',
-  url: (bucket, workgroup, queryExecutionId) =>
+export const bucketAthenaExecution = route(
+  '/b/:bucket/queries/athena/:workgroup/:queryExecutionId',
+  (bucket: string, workgroup: string, queryExecutionId: string) =>
     `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
-}
+)
 
 // Legacy stuff
-
-export type LegacyPackagesArgs = [root: string, loc: Location]
-
-export const legacyPackages: Route<LegacyPackagesArgs> = {
-  path: `/package/:path+`,
-  url: (root, loc) => `${root}${loc.pathname}${loc.search}${loc.hash}`,
-}
+export const legacyPackages = route(
+  `/package/:path+`,
+  (root: string, loc: Location) => `${root}${loc.pathname}${loc.search}${loc.hash}`,
+)
 
 // Admin
-
-export const admin: Route = {
-  path: '/admin',
-  url: () => '/admin',
-}
-
+export const admin = route('/admin')
 export const adminUsers = admin
 
-export type AdminBucketsArgs = [bucket: string]
+export const adminBuckets = route(
+  '/admin/buckets',
+  (bucket: string) => `/admin/buckets${mkSearch({ bucket })}`,
+)
 
-export const adminBuckets: Route<AdminBucketsArgs> = {
-  path: '/admin/buckets',
-  url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
-}
-
-export const adminSettings: Route = {
-  path: '/admin/settings',
-  url: () => '/admin/settings',
-}
-
-export const adminSync: Route = {
-  path: '/admin/sync',
-  url: () => '/admin/sync',
-}
-
-export const adminStatus: Route = {
-  path: '/admin/status',
-  url: () => '/admin/status',
-}
+export const adminSettings = route('/admin/settings')
+export const adminSync = route('/admin/sync')
+export const adminStatus = route('/admin/status')
