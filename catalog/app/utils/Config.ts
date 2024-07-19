@@ -109,7 +109,7 @@ const transformConfig = (cfg: ConfigJson) => ({
       authority: 'https://login.microsoftonline.com/046409b6-ae78-4b35-a678-54defa97f5b4',
       redirectUri: `${window.location.protocol}//${window.location.host}`,
     },
-    baseUrl: 'https://quiltdatainc-my.sharepoint.com',
+    baseUrl: 'https://quiltdatainc.sharepoint.com',
   },
 })
 
