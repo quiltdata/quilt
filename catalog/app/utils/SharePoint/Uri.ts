@@ -44,5 +44,5 @@ export function fromPhysicalKey(uri: string) {
   if (!etag || Array.isArray(etag)) {
     throw new Error(`Invalid etag "${etag}" in SharePoint URI: ${uri}`)
   }
-  return { driveId, etag, host, id }
+  return { _tag: 'sharepoint' as const, driveId, etag, host, id }
 }

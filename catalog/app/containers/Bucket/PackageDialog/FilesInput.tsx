@@ -11,13 +11,13 @@ import cfg from 'constants/config'
 import * as urls from 'constants/urls'
 import type * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
+import * as SP from 'utils/SharePoint'
 import assertNever from 'utils/assertNever'
 import computeFileChecksum from 'utils/checksums'
 import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
-import * as SharePoint from 'utils/SharePoint'
 
 import EditFileMeta from './EditFileMeta'
 import {
@@ -28,13 +28,15 @@ import {
   FilesAction,
   FileWithHash,
   FilesState,
+  LocalFile,
   handleFilesAction,
+  isSharePointEntry,
   EMPTY_DIR_MARKER,
 } from './FilesState'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 
-export { EMPTY_DIR_MARKER, FilesAction } from './FilesState'
+export { EMPTY_DIR_MARKER, FilesAction, isSharePointEntry } from './FilesState'
 export type { LocalFile, FilesState } from './FilesState'
 
 const COLORS = {
@@ -164,6 +166,18 @@ function matchErrorToEntry(path: string, errors: PD.EntriesValidationErrors | nu
   return errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)
 }
 
+const computeFileType = (
+  file: LocalFile | Model.S3File | Model.SharePointEntry,
+): FilesEntryType => {
+  if (file === EMPTY_DIR_MARKER) return 'hidden'
+  if (S3FilePicker.isS3File(file)) return 's3'
+  if (isSharePointEntry(file)) return 'sp'
+  return 'local'
+}
+
+const computeEntryType = (entry: Model.PackageEntry): FilesEntryType =>
+  SP.isValidUri(entry.physicalKey) ? 'sp' : 'local'
+
 const computeEntries = ({
   value: { added, deleted, existing },
   errors,
@@ -172,22 +186,32 @@ const computeEntries = ({
   errors: PD.EntriesValidationErrors | null
 }) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
-    ([path, { size, hash, meta }]) => {
+    ([path, f]) => {
+      const { size, hash, meta } = f
       if (path in deleted) {
-        return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
+        return {
+          state: 'deleted' as const,
+          type: computeEntryType(f),
+          path,
+          size,
+          meta,
+        }
       }
       if (matchErrorToEntry(path, errors)) {
-        return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
+        return {
+          state: 'invalid' as const,
+          type: computeEntryType(f),
+          path,
+          size,
+          meta,
+        }
       }
       if (path in added) {
         const a = added[path]
         let state: FilesEntryState
-        let type: FilesEntryType
         if (S3FilePicker.isS3File(a)) {
-          type = 's3' as const
           state = 'modified' as const
         } else {
-          type = 'local' as const
           // eslint-disable-next-line no-nested-ternary
           state = !a.hash.ready
             ? ('hashing' as const)
@@ -195,9 +219,15 @@ const computeEntries = ({
             ? ('unchanged' as const)
             : ('modified' as const)
         }
-        return { state, type, path, size: a.size, meta }
+        return { state, type: computeFileType(a), path, size: a.size, meta }
       }
-      return { state: 'unchanged' as const, type: 'local' as const, path, size, meta }
+      return {
+        state: 'unchanged' as const,
+        type: computeEntryType(f),
+        path,
+        size,
+        meta,
+      }
     },
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
@@ -211,14 +241,13 @@ const computeEntries = ({
         meta: f.meta,
       })
     }
-    const type =
-      // eslint-disable-next-line no-nested-ternary
-      f === EMPTY_DIR_MARKER
-        ? ('hidden' as const)
-        : S3FilePicker.isS3File(f)
-        ? ('s3' as const)
-        : ('local' as const)
-    return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
+    return acc.concat({
+      state: 'added',
+      type: computeFileType(f),
+      path,
+      size: f.size,
+      meta: f.meta,
+    })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
@@ -445,7 +474,10 @@ function File({
 
   // XXX: reset EditFileMeta state when file is reverted
   const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
-
+  const typeMap: { [k in FilesEntryType]?: string } = {
+    s3: 'S3',
+    sp: 'SP',
+  }
   return (
     <div
       className={cx(
@@ -458,7 +490,7 @@ function File({
     >
       <div className={cx(classes.inner, faint && classes.faint)}>
         <EntryIcon
-          overlay={type === 's3' ? 'S3' : undefined}
+          overlay={typeMap[type]}
           setDragRef={isDragReady(state) ? setDragRef : undefined}
           state={stateDisplay}
         >
@@ -1593,13 +1625,13 @@ export function FilesInput({
     [dispatch],
   )
 
-  const { msal } = SharePoint.use()
+  const { msal } = SP.use()
   const handleSharePointBtn = React.useCallback(async () => {
-    const authToken = await SharePoint.getToken(msal.instance, {
+    const authToken = await SP.getToken(msal.instance, {
       resource: cfg.sharePoint.baseUrl,
       type: 'SharePoint',
     })
-    SharePoint.launchPicker(msal.instance, authToken, handleSharePointPicker)
+    SP.launchPicker(msal.instance, authToken, handleSharePointPicker)
   }, [handleSharePointPicker, msal.instance])
 
   const isS3FilePickerEnabled = !!buckets?.length

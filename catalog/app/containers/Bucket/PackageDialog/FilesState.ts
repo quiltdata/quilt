@@ -18,6 +18,10 @@ export const EMPTY_DIR_MARKER = {
 }
 const EMPTY_DIR_MARKER_PATH = '[$.quiltkeep$]'
 
+export const isSharePointEntry = (
+  f: Model.S3File | LocalFile | Model.SharePointEntry,
+): f is Model.SharePointEntry => (f as any).address._tag === 'sharepoint'
+
 // Rename root key in object
 // In other words, move value from one key to another
 export function renameKey<T = Types.Json>(
@@ -119,7 +123,8 @@ export type FilesEntryState =
   | 'added'
   | 'invalid'
 
-export type FilesEntryType = 's3' | 'local' | 'hidden'
+// TODO: 'local' → 'local' and 'package'/'existing'
+export type FilesEntryType = 's3' | 'local' | 'hidden' | 'sp'
 
 const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
 

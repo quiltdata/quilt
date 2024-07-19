@@ -67,9 +67,10 @@ const driveItemToSharePointFile = (
   parentName?: string,
 ): Model.SharePointDummy => ({
   address: {
-    host,
+    _tag: 'sharepoint',
     driveId: driveItem.parentReference.driveId,
     etag: driveItem.eTag,
+    host,
     id: driveItem.id,
   },
   logicalKey: parentNameAccum(driveItem.name, parentName),
