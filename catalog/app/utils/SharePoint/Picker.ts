@@ -81,7 +81,7 @@ function getDriveItem(
   authToken: string,
   loc: SelectionItem,
 ): Promise<SharePointDriveItem> {
-  const url = `${loc.endpoint.href}/drives/${loc.driveId}/items/${loc.id}`
+  const url = `${cfg.sharePoint.baseUrl}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}`
   return makeRequestSigned(authToken, url)
 }
 
