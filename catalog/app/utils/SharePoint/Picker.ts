@@ -183,11 +183,11 @@ const PICKER_OPTIONS = {
   typesAndSources: {
     mode: 'all',
     pivots: {
-      oneDrive: true,
-      shared: true,
       myOrganization: true,
-      site: true,
+      oneDrive: false,
       recent: true,
+      shared: false,
+      site: true,
     },
   },
   selection: {
