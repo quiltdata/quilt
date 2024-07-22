@@ -4,6 +4,7 @@ import * as React from 'react'
 import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 
+import * as Icon from 'components/Icon'
 import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
 import { JsonRecord } from 'utils/types'
@@ -74,11 +75,9 @@ function ParquetMeta({
   return (
     <div className={className} {...props}>
       <M.Typography className={classes.header} onClick={toggleShow}>
-        <M.Icon
+        <Icon.ExpandMore
           className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
-        >
-          expand_more
-        </M.Icon>
+        />
         Parquet metadata
       </M.Typography>
       <M.Collapse in={show}>
@@ -142,9 +141,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
     <div className={cx(classes.root, className)}>
       {truncated && (
         <span className={cx(classes.message, classes.item)}>
-          <M.Icon fontSize="small" color="inherit" className={classes.icon}>
-            info_outlined
-          </M.Icon>
+          <Icon.InfoOutlined fontSize="small" color="inherit" className={classes.icon} />
           {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
         </span>
       )}
@@ -152,7 +149,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
       {!!onLoadMore && (
         <M.Button
           className={classes.item}
-          startIcon={<M.Icon>refresh</M.Icon>}
+          startIcon={<Icon.Refresh />}
           size="small"
           onClick={onLoadMore}
         >
@@ -163,7 +160,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
       {state?.toggleConfig && (
         <M.Button
           className={classes.item}
-          startIcon={<M.Icon>tune</M.Icon>}
+          startIcon={<Icon.Tune />}
           size="small"
           onClick={state?.toggleConfig}
         >
@@ -174,7 +171,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
       {state?.rotateThemes && (
         <M.Button
           className={classes.item}
-          startIcon={<M.Icon>palette_outlined</M.Icon>}
+          startIcon={<Icon.PaletteOutlined />}
           size="small"
           onClick={state?.rotateThemes}
         >

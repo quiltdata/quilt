@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
 import BucketIcon from 'components/BucketIcon'
+import * as Icon from 'components/Icon'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
@@ -188,7 +189,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
             typeof option === 'string' ? (
               <>
                 <M.Box display="flex" pr={1} fontSize={40}>
-                  <M.Icon fontSize="inherit">arrow_forward</M.Icon>
+                  <Icon.ArrowForward fontSize="inherit" />
                 </M.Box>
                 <span>
                   Go to <b>s3://{normalizeBucket(option)}</b>

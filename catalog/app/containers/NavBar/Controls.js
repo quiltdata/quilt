@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Icon from 'components/Icon'
 import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
 
@@ -43,7 +44,7 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
       >
         <span className={classes.s3}>s3://</span>
         <span className={classes.bucket}>{bucket}</span>
-        <M.Icon>expand_more</M.Icon>
+        <Icon.ExpandMore />
       </M.Button>
       {locked && <M.Box position="absolute" top={0} bottom={0} left={0} right={0} />}
     </M.Box>

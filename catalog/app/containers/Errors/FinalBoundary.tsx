@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Icon from 'components/Icon'
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
@@ -77,10 +78,8 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
       {isCredentialsError ? (
         <>
           <M.Typography variant="h4" className={classes.header}>
-            <M.Icon fontSize="large" className={classes.headerIcon}>
-              no_encryption
-            </M.Icon>{' '}
-            S3 credentials error
+            <Icon.NoEncryption fontSize="large" className={classes.headerIcon} /> S3
+            credentials error
           </M.Typography>
           <M.Typography variant="body1" className={classes.header}>
             {error.headline}
@@ -95,7 +94,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
         <M.Button
           className={classes.button}
           disabled={disabled}
-          startIcon={<M.Icon>refresh</M.Icon>}
+          startIcon={<Icon.Refresh />}
           variant="contained"
         >
           Reload page
@@ -118,7 +117,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
               className={classes.button}
               disabled={disabled}
               onClick={onLogout}
-              startIcon={<M.Icon>power_settings_new</M.Icon>}
+              startIcon={<Icon.PowerSettingsNew />}
               variant="outlined"
             >
               Restart session

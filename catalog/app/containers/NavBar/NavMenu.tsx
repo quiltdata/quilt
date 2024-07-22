@@ -7,6 +7,7 @@ import { createStructuredSelector } from 'reselect'
 import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
 
+import * as Icon from 'components/Icon'
 import * as Intercom from 'components/Intercom'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
@@ -275,7 +276,7 @@ function useGetAuthItems() {
           <ItemContents
             icon={
               <M.Badge invisible={!bookmarks?.hasUpdates} color="secondary" variant="dot">
-                <M.Icon>bookmarks_outline</M.Icon>
+                <Icon.BookmarksOutlined />
               </M.Badge>
             }
             primary="Bookmarks"
@@ -324,12 +325,12 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
             variant="dot"
             overlap="circle"
           >
-            <M.Icon fontSize="small">account_circle</M.Icon>
+            <Icon.AccountCircle fontSize="small" />
           </M.Badge>
           &nbsp;&nbsp;
           {user.name}
           &nbsp;
-          <M.Icon fontSize="small">expand_more</M.Icon>
+          <Icon.ExpandMore fontSize="small" />
         </M.Button>
       )}
       items={getAuthItems(user)}
@@ -354,7 +355,7 @@ function DesktopSignIn({ error }: DesktopSignInProps) {
     <>
       {!!error && (
         <M.Tooltip title={`${error.message}\n${JSON.stringify(error)}`}>
-          <M.Icon className={classes.icon}>error_outline</M.Icon>
+          <Icon.ErrorOutlined className={classes.icon} />
         </M.Tooltip>
       )}
       <M.Button component={Link} to={urls.signIn()} variant="contained" color="primary">
@@ -459,7 +460,7 @@ function MobileMenu({ auth }: MobileMenuProps) {
             variant="dot"
             overlap="circle"
           >
-            <M.Icon>menu</M.Icon>
+            <Icon.Menu />
           </M.Badge>
         </M.IconButton>
       )}
