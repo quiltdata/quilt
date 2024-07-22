@@ -11,6 +11,7 @@ import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
 import type { Urls } from 'utils/NamedRoutes'
+import * as SP from 'utils/SharePoint'
 import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
@@ -32,6 +33,7 @@ export interface Item {
   size?: number
   modified?: Date
   archived?: boolean
+  physicalKey?: string
 }
 
 export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
@@ -1131,7 +1133,15 @@ export function Listing({
               )}
             >
               <M.Icon className={classes.icon}>
-                {i.type === 'file' ? 'insert_drive_file' : 'folder_open'}
+                {
+                  /* eslint-disable-line no-nested-ternary*/ SP.isValidUri(
+                    i.physicalKey || '',
+                  )
+                    ? 'cloud'
+                    : i.type === 'file'
+                    ? 'insert_drive_file'
+                    : 'folder_open'
+                }
               </M.Icon>
               <span className={classes.ellipsis}>{i.name || EMPTY}</span>
             </CellComponent>
