@@ -184,9 +184,9 @@ const PICKER_OPTIONS = {
     mode: 'all',
     pivots: {
       myOrganization: true,
-      oneDrive: false,
+      oneDrive: true,
       recent: true,
-      shared: false,
+      shared: true,
       site: true,
     },
   },

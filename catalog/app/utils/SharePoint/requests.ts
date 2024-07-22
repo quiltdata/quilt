@@ -1,6 +1,5 @@
 import * as React from 'react'
 
-import cfg from 'constants/config'
 import type * as Model from 'model'
 
 import { useSharePoint } from './Provider'
@@ -82,7 +81,7 @@ export function useFile(
       // TODO: request whole data, including expireOn
       //       increment counter on expiration
       const token = await getToken(msal.instance, {
-        resource: cfg.sharePoint.baseUrl,
+        resource: `https://${loc.host}`,
         type: 'SharePoint',
       })
       setAuthToken(token)
