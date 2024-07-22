@@ -1020,8 +1020,7 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   icon: {
-    fontSize: t.typography.body1.fontSize,
-    marginRight: t.spacing(0.5),
+    marginRight: t.spacing(1),
   },
   archived: {
     opacity: 0.5,
@@ -1132,9 +1131,9 @@ export function Listing({
               )}
             >
               {i.type === 'file' ? (
-                <Icon.InsertDriveFileOutlined className={classes.icon} />
+                <Icon.InsertDriveFileOutlined fontSize="small" className={classes.icon} />
               ) : (
-                <Icon.FolderOutlined className={classes.icon} />
+                <Icon.FolderOutlined fontSize="small" className={classes.icon} />
               )}
               <span className={classes.ellipsis}>{i.name || EMPTY}</span>
             </CellComponent>
