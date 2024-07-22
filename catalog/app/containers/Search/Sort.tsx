@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Icon from 'components/Icon'
 import SelectDropdown from 'components/SelectDropdown'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
@@ -110,7 +111,7 @@ export default function Sort({ className }: SortProps) {
       onChange={handleChange}
       ButtonProps={ButtonProps}
     >
-      {sm ? <M.Icon>sort</M.Icon> : 'Sort by:'}
+      {sm ? <Icon.Sort /> : 'Sort by:'}
     </SelectDropdown>
   )
 }

@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
+import * as Icon from 'components/Icon'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
 import type { Urls } from 'utils/NamedRoutes'
@@ -778,7 +779,7 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
         <div className={classes.cellFirst}>
           <M.Tooltip title="Directories" arrow enterDelay={TIP_DELAY}>
             <div className={classes.group}>
-              <M.Icon className={classes.icon}>folder_open</M.Icon>
+              <Icon.Folder className={classes.icon} />
               {filteredStats && <>{filteredStats.dirs} / </>}
               {stats.dirs}
               {truncated && '+'}
@@ -787,7 +788,7 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
 
           <M.Tooltip title="Files" arrow enterDelay={TIP_DELAY}>
             <div className={classes.group}>
-              <M.Icon className={classes.icon}>insert_drive_file</M.Icon>
+              <Icon.InsertDriveFile className={classes.icon} />
               {filteredStats && <>{filteredStats.files} / </>}
               {stats.files}
               {truncated && '+'}
@@ -1130,9 +1131,11 @@ export function Listing({
                 i.archived && classes.archived,
               )}
             >
-              <M.Icon className={classes.icon}>
-                {i.type === 'file' ? 'insert_drive_file' : 'folder_open'}
-              </M.Icon>
+              {i.type === 'file' ? (
+                <Icon.InsertDriveFileOutlined className={classes.icon} />
+              ) : (
+                <Icon.FolderOutlined className={classes.icon} />
+              )}
               <span className={classes.ellipsis}>{i.name || EMPTY}</span>
             </CellComponent>
           )
