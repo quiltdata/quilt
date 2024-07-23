@@ -6,12 +6,13 @@ import { useSharePoint } from './Provider'
 import getToken from './token'
 
 export interface SharePointDriveItem {
-  '@content.downloadUrl': string
+  '@content.downloadUrl'?: string
+  '@microsoft.graph.downloadUrl'?: string
   eTag: string
   folder: {}
   id: string
-  name: string
   lastModifiedDateTime?: string
+  name: string
   parentReference: {
     id: string
     driveId: string
@@ -48,7 +49,7 @@ export function getDriveItem(
   authToken: string,
   loc: Model.SharePointLocation,
 ): Promise<SharePointDriveItem> {
-  const url = `https://${loc.host}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}`
+  const url = `https://${loc.host}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}?select=eTag,folder,id,lastModifiedDateTime,name,parentReference,size,@microsoft.graph.downloadUrl`
   return makeRequestSigned(authToken, url)
 }
 

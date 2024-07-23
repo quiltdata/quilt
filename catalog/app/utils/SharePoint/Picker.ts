@@ -43,7 +43,11 @@ const MESSAGES = {
 }
 
 async function downloadFile(driveItem: SharePointDriveItem): Promise<ArrayBuffer> {
-  const url = driveItem['@content.downloadUrl']
+  const url =
+    driveItem['@content.downloadUrl'] || driveItem['@microsoft.graph.downloadUrl']
+  if (!url) {
+    throw new Error('No `downloadUrl`')
+  }
   return (await window.fetch(url)).arrayBuffer()
 }
 
