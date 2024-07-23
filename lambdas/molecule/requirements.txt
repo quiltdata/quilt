@@ -26,5 +26,5 @@ simplejson==3.17.2
     # via awslambdaric
 urllib3==1.26.18
     # via requests
-zipp==3.8.0
+zipp==3.19.1
     # via importlib-resources

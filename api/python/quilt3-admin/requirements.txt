@@ -14,7 +14,7 @@ autoflake==2.3.1
     # via ariadne-codegen
 black==24.4.2
     # via ariadne-codegen
-certifi==2024.6.2
+certifi==2024.7.4
     # via
     #   httpcore
     #   httpx
