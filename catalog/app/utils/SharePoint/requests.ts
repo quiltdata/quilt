@@ -42,6 +42,8 @@ export async function postSigned(authToken: string, url: RequestInfo | string | 
   return response.json()
 }
 
+// TODO: parse driveItem and use structures similar to exisitng s3 files
+//       `lastModified: Date`, in particular
 export function getDriveItem(
   authToken: string,
   loc: Model.SharePointLocation,

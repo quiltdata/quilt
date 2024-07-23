@@ -123,7 +123,7 @@ export type FilesEntryState =
   | 'added'
   | 'invalid'
 
-// TODO: 'local' → 'local' and 'package'/'existing'
+// TODO: 'local' → 'local' and ('in package' or 'existing')
 export type FilesEntryType = 's3' | 'local' | 'hidden' | 'sp'
 
 const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
@@ -153,7 +153,7 @@ export const FilesAction = tagged.create(
     Add: (v: { files: FileWithHash[]; prefix?: string }) => v,
     AddFolder: (path: string) => path,
     AddFromS3: (filesMap: Record<string, Model.S3File>) => filesMap,
-    AddFromSharePoint: (command: any) => command,
+    AddFromSharePoint: (items: Model.SharePointFile[]) => items,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,

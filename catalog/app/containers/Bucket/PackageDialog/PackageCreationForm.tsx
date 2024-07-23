@@ -403,13 +403,6 @@ function PackageCreationForm({
       })),
       R.sortBy(R.prop('logicalKey')),
     )
-    /* eslint-disable-next-line no-console */
-    console.log('ENTRIES IN MANIFEST:')
-    /* eslint-disable-next-line no-console */
-    console.table(allEntries)
-    // if (Object.keys(sharePointEntries).length) {
-    //   return mkFormError('sharepoint:// URLs in manifest are not allowed')
-    // }
 
     try {
       const { packageConstruct: r } = await constructPackage({

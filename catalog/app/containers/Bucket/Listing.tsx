@@ -27,13 +27,12 @@ const TIP_DELAY = 1000
 const TOOLBAR_INNER_HEIGHT = 28
 
 export interface Item {
-  type: 'dir' | 'file'
+  type: 'dir' | 'file' | 'file-external'
   name: string
   to: string
   size?: number
   modified?: Date
   archived?: boolean
-  physicalKey?: string
 }
 
 export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
@@ -116,7 +115,9 @@ export function format(
           size,
         }),
         File: ({ key, size, archived, modified, physicalKey }) => ({
-          type: 'file' as const,
+          type: SP.isValidUri(physicalKey || '')
+            ? ('file-external' as const)
+            : ('file' as const),
           name: s3paths.withoutPrefix(prefix, key),
           to: toFile(key),
           size,
@@ -1134,13 +1135,11 @@ export function Listing({
             >
               <M.Icon className={classes.icon}>
                 {
-                  /* eslint-disable-line no-nested-ternary*/ SP.isValidUri(
-                    i.physicalKey || '',
-                  )
-                    ? 'cloud'
-                    : i.type === 'file'
-                    ? 'insert_drive_file'
-                    : 'folder_open'
+                  {
+                    'file-external': 'cloud',
+                    file: 'insert_drive_file',
+                    dir: 'folder_open',
+                  }[i.type]
                 }
               </M.Icon>
               <span className={classes.ellipsis}>{i.name || EMPTY}</span>
