@@ -4,6 +4,7 @@ import { matchPath, match as Match } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Bookmarks from 'containers/Bookmarks/Provider'
+import cfg from 'constants/config'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -226,7 +227,7 @@ export function RowActions({ archived, physicalKey, to }: RowActionsProps) {
   const classes = useRowActionsStyles()
   const { location, handle, revision, path } = useMatchedParams(to)
 
-  if (archived) return <></>
+  if (archived || cfg.noDownload) return <></>
 
   if (location) {
     const DownloadButton = s3paths.isDir(location.key) ? BucketDirectory : BucketFile

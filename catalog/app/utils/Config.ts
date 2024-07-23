@@ -91,6 +91,15 @@ const AUTH_MAP = {
 
 const startWithOrigin = (s: string) => (s.startsWith('/') ? window.origin + s : s)
 
+const sharePoint = {
+  auth: {
+    clientId: '6d354507-beeb-4c38-858c-abf6018427df',
+    authority: 'https://login.microsoftonline.com/046409b6-ae78-4b35-a678-54defa97f5b4',
+    redirectUri: `${window.location.protocol}//${window.location.host}`,
+  },
+  baseUrl: 'https://quiltdatainc.sharepoint.com',
+}
+
 const transformConfig = (cfg: ConfigJson) => ({
   ...cfg,
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
@@ -98,19 +107,12 @@ const transformConfig = (cfg: ConfigJson) => ({
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
   s3Proxy: startWithOrigin(cfg.s3Proxy),
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
-  noDownload: !!cfg.noDownload,
+  noDownload: !!cfg.noDownload || !!sharePoint,
   noOverviewImages: !!cfg.noOverviewImages,
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
   qurator: !!cfg.qurator,
-  sharePoint: {
-    auth: {
-      clientId: '6d354507-beeb-4c38-858c-abf6018427df',
-      authority: 'https://login.microsoftonline.com/046409b6-ae78-4b35-a678-54defa97f5b4',
-      redirectUri: `${window.location.protocol}//${window.location.host}`,
-    },
-    baseUrl: 'https://quiltdatainc.sharepoint.com',
-  },
+  sharePoint,
 })
 
 export function prepareConfig(input: unknown) {
