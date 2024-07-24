@@ -9,12 +9,6 @@ import {
 } from '@azure/msal-browser'
 import { useMsal, MsalProvider } from '@azure/msal-react'
 
-export const SHAREPOINT_INIT_PROPS = {
-  clientId: '6d354507-beeb-4c38-858c-abf6018427df',
-  authority: 'https://login.microsoftonline.com/046409b6-ae78-4b35-a678-54defa97f5b4',
-  redirectUri: `${window.location.protocol}//${window.location.host}`,
-}
-
 function createMsalInstance(auth: BrowserAuthOptions): PublicClientApplication {
   const msalInstance = new PublicClientApplication({
     auth,
