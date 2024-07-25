@@ -1,84 +1,45 @@
-import * as React from 'react'
-
 import type * as Model from 'model'
 
-import { useSharePoint } from './Provider'
-import { preview, versionsList } from './client'
-import getToken from './token'
-
-// Requests.ts is a place for functions like
-// getDriveItemAttrs => parseDriveItemAttrs(await driveItem)
-//
-// TODO: make sure no one uses xhrGet/xhrPost
-//       and no one uses client#funcs and client#types outside requests.ts
+import { preview, versionsList as versions } from './client'
+import type { DriveItemVersionsList, DriveItemVersion } from './client/types'
 
 export interface DriveItemAttrs {
   lastModified: Date
   size: number
 }
 
-// TODO: parse driveItem and use structures similar to exisitng s3 files
-//       `lastModified: Date`, in particular
-export async function getDriveItemAttrs(
+export async function loadDriveItemAttrs(
   authToken: string,
   loc: Model.SharePointLocation,
-): Promise<{ lastModified: Date; size: number }> {
-  const versions = await versionsList(authToken, loc.id, loc.driveId, loc.host)
-  const found = versions.value.find(({ id }) => id === loc.versionId)
-  if (!found) {
-    return Promise.reject(new Error('Version not found'))
-  }
-  return { lastModified: new Date(found.lastModifiedDateTime), size: found.size }
+): Promise<DriveItemAttrs> {
+  const versionsList = await versions(authToken, loc.id, loc.driveId, loc.host)
+  return parseDriveItemAttrs(versionsList, loc.versionId)
 }
 
-async function getEmbedUrl(
+export async function loadEmbedUrl(
   authToken: string,
   loc: Model.SharePointLocation,
 ): Promise<string> {
   return (await preview(authToken, loc.id, loc.driveId, loc.host)).getUrl
 }
 
-interface FileAttributes {
-  driveItem?: true
-  embedURL?: true
-}
-
-export function useFile(
-  loc: Model.SharePointLocation | null,
-  attrs: FileAttributes = {},
-) {
-  const { msal } = useSharePoint()
-
-  const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
-  const [embedUrl, setEmbedUrl] = React.useState<string | undefined>(undefined)
-  const [driveItemAttrs, setDriveItemAttrs] = React.useState<DriveItemAttrs | undefined>(
-    undefined,
-  )
-
-  React.useEffect(() => {
-    async function loadData() {
-      if (!loc) return
-      // TODO: request whole data, including expireOn
-      //       increment counter on expiration
-      const token = await getToken(msal.instance, {
-        resource: `https://${loc.host}`,
-        type: 'SharePoint',
-      })
-      setAuthToken(token)
-
-      if (attrs.embedURL) {
-        const url = await getEmbedUrl(token, loc)
-        setEmbedUrl(url)
-      }
-
-      if (attrs.driveItem) {
-        const response = await getDriveItemAttrs(token, loc)
-        setDriveItemAttrs(response)
-      }
-    }
-
-    loadData()
-  }, [loc, msal, attrs.embedURL, attrs.driveItem])
-
-  return { authToken, driveItem: driveItemAttrs, embedUrl }
+function parseDriveItemAttrs(versionsList: DriveItemVersionsList, versionId?: string) {
+  if (versionsList.value.length === 0) {
+    throw new Error('No versions found')
+  }
+  const found = versionId
+    ? versionsList.value.find(({ id }) => id === versionId)
+    : versionsList.value.reduce(
+        (memo, version) => {
+          if (!memo) return version
+          if (version.id > memo.id) return version
+          // if (memo.id > version.id) return memo
+          return memo
+        },
+        null as DriveItemVersion | null,
+      )
+  if (!found) {
+    throw new Error('Version not found')
+  }
+  return { lastModified: new Date(found.lastModifiedDateTime), size: found.size }
 }

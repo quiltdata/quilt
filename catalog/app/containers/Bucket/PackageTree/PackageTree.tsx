@@ -603,10 +603,7 @@ function FileDisplay({
     [file.physicalKey],
   )
 
-  const { embedUrl, driveItem } = SP.useFile(spLocation, {
-    driveItem: true,
-    embedURL: true,
-  })
+  const [authToken, retryAuthToken] = SP.useAuthToken(`https://${spLocation?.host}`)
 
   return (
     // @ts-expect-error
@@ -637,11 +634,19 @@ function FileDisplay({
           Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
             <>
               <TopBar crumbs={crumbs}>
-                <FileProperties
-                  className={classes.fileProperties}
-                  lastModified={driveItem?.lastModified ?? lastModified}
-                  size={driveItem?.size ?? size}
-                />
+                {spLocation ? (
+                  authToken ? (
+                    <h1>Ready for size</h1>
+                  ) : (
+                    <M.Button onClick={retryAuthToken}>Get auth</M.Button>
+                  )
+                ) : (
+                  <FileProperties
+                    className={classes.fileProperties}
+                    lastModified={lastModified}
+                    size={size}
+                  />
+                )}
                 {BucketPreferences.Result.match(
                   {
                     Ok: ({ ui: { actions } }) =>
@@ -701,7 +706,11 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {spLocation ? (
-                    <SP.Embed url={embedUrl} />
+                    <SP.Embed
+                      authToken={authToken}
+                      loc={spLocation}
+                      retry={retryAuthToken}
+                    />
                   ) : (
                     withPreview(
                       { archived, deleted },

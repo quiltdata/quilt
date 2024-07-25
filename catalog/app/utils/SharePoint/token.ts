@@ -1,34 +1,9 @@
-import { IPublicClientApplication, SilentRequest } from '@azure/msal-browser'
+import { IPublicClientApplication } from '@azure/msal-browser'
 
-function combine(...paths: any[]) {
-  return paths
-    .map((path) => path.replace(/^[\\|/]/, '').replace(/[\\|/]$/, ''))
-    .join('/')
-    .replace(/\\/g, '/')
-}
-
-interface TokenCommand {
-  type: string
-  resource: string
-}
-
-function getAuthParams(command: TokenCommand): SilentRequest {
-  switch (command.type) {
-    case 'SharePoint':
-    case 'SharePoint_SelfIssued':
-      return {
-        scopes: [`${combine(command.resource, '.default')}`],
-      }
-    default:
-      return { scopes: ['Files.Read.All'] }
+export default async function getToken(app: IPublicClientApplication, host: string) {
+  const authParams = {
+    scopes: [`${host}/.default`],
   }
-}
-
-export default async function getToken(
-  app: IPublicClientApplication,
-  command: TokenCommand,
-) {
-  const authParams = getAuthParams(command)
 
   try {
     const resp = await app.acquireTokenSilent(authParams)

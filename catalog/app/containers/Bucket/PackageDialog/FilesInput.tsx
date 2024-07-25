@@ -1627,10 +1627,7 @@ export function FilesInput({
 
   const { msal } = SP.use()
   const handleSharePointBtn = React.useCallback(async () => {
-    const authToken = await SP.getToken(msal.instance, {
-      resource: cfg.sharePoint.baseUrl,
-      type: 'SharePoint',
-    })
+    const authToken = await SP.getToken(msal.instance, cfg.sharePoint.baseUrl)
     SP.launchPicker(msal.instance, authToken, handleSharePointPicker)
   }, [handleSharePointPicker, msal.instance])
 
