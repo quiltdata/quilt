@@ -6,7 +6,6 @@ import type * as Model from 'model'
 
 import { useSharePoint } from './Provider'
 import { DriveItemAttrs, loadDriveItemAttrs, loadEmbedUrl } from './requests'
-import getToken from './token'
 
 const useEmbedSkeletonStyles = M.makeStyles((t) => ({
   header: {
@@ -22,13 +21,43 @@ const useEmbedSkeletonStyles = M.makeStyles((t) => ({
 
 function EmbedSkeleton() {
   const classes = useEmbedSkeletonStyles()
-
   return (
     <div>
       <Skeleton className={classes.header} />
       <div className={classes.body}>
         <Skeleton className={classes.content} />
       </div>
+    </div>
+  )
+}
+
+const useEmbedPlaceholderStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '600px',
+    padding: t.spacing(2),
+  },
+  header: {
+    marginBottom: t.spacing(2),
+  },
+}))
+
+interface EmbedPlaceholderProps {
+  onClick: () => void
+}
+function EmbedPlaceholder({ onClick }: EmbedPlaceholderProps) {
+  const classes = useEmbedPlaceholderStyles()
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="h5" className={classes.header}>
+        Unable to obtain SharePoint credentials
+      </M.Typography>
+      <M.Button onClick={onClick} variant="outlined">
+        Click to resolve
+      </M.Button>
     </div>
   )
 }
@@ -42,11 +71,7 @@ interface EmbedProps {
 export function Embed({ authToken, retry, loc }: EmbedProps) {
   const embedUrl = useEmbedUrl(authToken, loc)
   if (!authToken) {
-    return (
-      <M.Button onClick={retry}>
-        <M.Icon>get_app</M.Icon>
-      </M.Button>
-    )
+    return <EmbedPlaceholder onClick={retry} />
   }
   return embedUrl ? (
     <iframe width="100%" height="600px" src={embedUrl} />
@@ -55,48 +80,27 @@ export function Embed({ authToken, retry, loc }: EmbedProps) {
   )
 }
 
-interface FileAttributes {
-  driveItem?: true
-  embedURL?: true
+interface FilePropertiesProps {
+  authToken?: string
+  loc: Model.SharePointLocation
+  retry: () => void
 }
 
-export function useFile(
-  loc: Model.SharePointLocation | null,
-  attrs: FileAttributes = {},
-) {
-  const { msal } = useSharePoint()
-
-  const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
-  const [embedUrl, setEmbedUrl] = React.useState<string | undefined>(undefined)
-  const [driveItemAttrs, setDriveItemAttrs] = React.useState<DriveItemAttrs | undefined>(
-    undefined,
-  )
-
-  React.useEffect(() => {
-    async function loadData() {
-      if (!loc) return
-      // TODO: request whole data, including expireOn
-      //       increment counter on expiration
-      const token = await getToken(msal.instance, `https://${loc.host}`)
-      setAuthToken(token)
-
-      if (attrs.embedURL) {
-        const url = await loadEmbedUrl(token, loc)
-        setEmbedUrl(url)
-      }
-
-      if (attrs.driveItem) {
-        const response = await loadDriveItemAttrs(token, loc)
-        setDriveItemAttrs(response)
-      }
-    }
-
-    loadData()
-  }, [loc, msal, attrs.embedURL, attrs.driveItem])
-
-  return { authToken, driveItem: driveItemAttrs, embedUrl }
+export function FileProperties({ authToken, retry, loc }: FilePropertiesProps) {
+  const attrs = useFileAttrs(authToken, loc)
+  if (!authToken) {
+    return (
+      <div>
+        No size, <M.Button onClick={retry}>click!</M.Button>
+      </div>
+    )
+  }
+  return attrs ? <h1>{attrs.toString()}</h1> : <M.CircularProgress />
 }
 
+/**
+ * @deprecated
+ */
 export function useAuthToken(host?: string): [string | undefined, () => void] {
   const { msal } = useSharePoint()
   const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
@@ -139,4 +143,21 @@ function useEmbedUrl(authToken?: string, loc?: Model.SharePointLocation) {
   }, [authToken, loc, msal])
 
   return embedUrl
+}
+
+function useFileAttrs(authToken?: string, loc?: Model.SharePointLocation) {
+  const { msal } = useSharePoint()
+
+  const [attrs, setAttrs] = React.useState<DriveItemAttrs | undefined>(undefined)
+
+  React.useEffect(() => {
+    async function loadData() {
+      if (!loc || !authToken) return
+      const loaded = await loadDriveItemAttrs(authToken, loc)
+      setAttrs(loaded)
+    }
+    loadData()
+  }, [authToken, loc, msal])
+
+  return attrs
 }

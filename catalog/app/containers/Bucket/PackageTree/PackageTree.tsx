@@ -603,7 +603,7 @@ function FileDisplay({
     [file.physicalKey],
   )
 
-  const [authToken, retryAuthToken] = SP.useAuthToken(`https://${spLocation?.host}`)
+  const { authToken, retryToken } = SP.use(spLocation?.host)
 
   return (
     // @ts-expect-error
@@ -635,11 +635,11 @@ function FileDisplay({
             <>
               <TopBar crumbs={crumbs}>
                 {spLocation ? (
-                  authToken ? (
-                    <h1>Ready for size</h1>
-                  ) : (
-                    <M.Button onClick={retryAuthToken}>Get auth</M.Button>
-                  )
+                  <SP.FileProperties
+                    authToken={authToken}
+                    loc={spLocation}
+                    retry={retryToken}
+                  />
                 ) : (
                   <FileProperties
                     className={classes.fileProperties}
@@ -706,11 +706,7 @@ function FileDisplay({
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
                   {spLocation ? (
-                    <SP.Embed
-                      authToken={authToken}
-                      loc={spLocation}
-                      retry={retryAuthToken}
-                    />
+                    <SP.Embed authToken={authToken} loc={spLocation} retry={retryToken} />
                   ) : (
                     withPreview(
                       { archived, deleted },
