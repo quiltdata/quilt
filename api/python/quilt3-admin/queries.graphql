@@ -187,3 +187,21 @@ mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String)
     }
   }
 }
+
+query getSsoConfig {
+  admin {
+    ssoConfig
+  }
+}
+
+mutation setSsoConfig($config: String) {
+  admin {
+    setSsoConfig(config: $config) {
+      ... on Ok {
+        _
+      }
+      ...InvalidInputSelection
+      ...OperationErrorSelection
+    }
+  }
+}

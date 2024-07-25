@@ -5,11 +5,18 @@ from typing import Any, Dict, List, Optional, Union
 
 from .base_client import BaseClient
 from .base_model import UNSET, UnsetType
+from .get_sso_config import GetSsoConfig
 from .input_types import UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
     RolesListRolesUnmanagedRole,
+)
+from .set_sso_config import (
+    SetSsoConfig,
+    SetSsoConfigAdminSetSsoConfigInvalidInput,
+    SetSsoConfigAdminSetSsoConfigOk,
+    SetSsoConfigAdminSetSsoConfigOperationError,
 )
 from .users_add_roles import UsersAddRoles, UsersAddRolesAdminUserMutate
 from .users_create import (
@@ -852,3 +859,65 @@ class Client(BaseClient):
         )
         data = self.get_data(response)
         return UsersRemoveRoles.model_validate(data).admin.user.mutate
+
+    def get_sso_config(self, **kwargs: Any) -> Optional[str]:
+        query = gql(
+            """
+            query getSsoConfig {
+              admin {
+                ssoConfig
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query, operation_name="getSsoConfig", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return GetSsoConfig.model_validate(data).admin.sso_config
+
+    def set_sso_config(
+        self, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
+    ) -> Union[
+        SetSsoConfigAdminSetSsoConfigOk,
+        SetSsoConfigAdminSetSsoConfigInvalidInput,
+        SetSsoConfigAdminSetSsoConfigOperationError,
+    ]:
+        query = gql(
+            """
+            mutation setSsoConfig($config: String) {
+              admin {
+                setSsoConfig(config: $config) {
+                  __typename
+                  ... on Ok {
+                    _
+                  }
+                  ...InvalidInputSelection
+                  ...OperationErrorSelection
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+            """
+        )
+        variables: Dict[str, object] = {"config": config}
+        response = self.execute(
+            query=query, operation_name="setSsoConfig", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SetSsoConfig.model_validate(data).admin.set_sso_config

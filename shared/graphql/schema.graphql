@@ -499,6 +499,7 @@ type UserAdminQueries {
 
 type AdminQueries {
   user: UserAdminQueries!
+  ssoConfig: String
 }
 
 type MyRole {
@@ -860,8 +861,11 @@ type UserAdminMutations {
   mutate(name: String!): MutateUserAdminMutations
 }
 
+union SetSsoConfigResult = Ok | InvalidInput | OperationError
+
 type AdminMutations {
   user: UserAdminMutations!
+  setSsoConfig(config: String): SetSsoConfigResult!
 }
 
 type Mutation {
