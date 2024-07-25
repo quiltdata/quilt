@@ -4,11 +4,7 @@ import * as uuid from 'uuid'
 import cfg from 'constants/config'
 import * as Model from 'model'
 
-import {
-  SharePointDriveItem,
-  SharePointDriveItemVersion,
-  makeRequestSigned,
-} from './requests'
+import { SharePointDriveItem, getVersionsList, makeRequestSigned } from './requests'
 import getToken from './token'
 
 // TODO: handle paginated results
@@ -91,17 +87,6 @@ function getDriveItem(
   return makeRequestSigned(authToken, url)
 }
 
-function getVersionsList(
-  authToken: string,
-  loc: {
-    driveId: string
-    id: string
-  },
-): Promise<SharePointDriveItemVersion[]> {
-  const url = `${cfg.sharePoint.baseUrl}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}/versions`
-  return makeRequestSigned(authToken, url)
-}
-
 async function listChildren(
   authToken: string,
   loc: SelectionItem,
@@ -135,9 +120,10 @@ async function fetchFile(
 ): Promise<Model.SharePointFile[]> {
   const versions = await getVersionsList(authToken, {
     driveId: driveItem.parentReference.driveId,
+    host,
     id: driveItem.id,
   })
-  const address = createSharePointLocation(driveItem, versions[0].id, host)
+  const address = createSharePointLocation(driveItem, versions.value[0].id, host)
   const file: Model.SharePointFile = {
     address,
     logicalKey: parentNameAccum(driveItem.name, parentName),

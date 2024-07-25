@@ -27,6 +27,14 @@ export interface SharePointDriveItemVersion {
   lastModifiedDateTime: string
   size: number
 }
+export interface SharePointDriveItemVersionOutput {
+  value: SharePointDriveItemVersion[]
+}
+
+export interface DriveItemAttrs {
+  lastModified: Date
+  size: number
+}
 
 export async function makeRequestSigned(
   authToken: string,
@@ -50,14 +58,30 @@ export async function postSigned(authToken: string, url: RequestInfo | string | 
   return response.json()
 }
 
+export function getVersionsList(
+  authToken: string,
+  loc: {
+    driveId: string
+    host: string
+    id: string
+  },
+): Promise<SharePointDriveItemVersionOutput> {
+  const url = `https://${loc.host}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}/versions`
+  return makeRequestSigned(authToken, url)
+}
+
 // TODO: parse driveItem and use structures similar to exisitng s3 files
 //       `lastModified: Date`, in particular
-export function getDriveItem(
+export async function getDriveItemAttrs(
   authToken: string,
   loc: Model.SharePointLocation,
-): Promise<SharePointDriveItem> {
-  const url = `https://${loc.host}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}?select=eTag,folder,id,lastModifiedDateTime,name,parentReference,size,@microsoft.graph.downloadUrl`
-  return makeRequestSigned(authToken, url)
+): Promise<{ lastModified: Date; size: number }> {
+  const versions = await getVersionsList(authToken, loc)
+  const found = versions.value.find(({ id }) => id === loc.versionId)
+  if (!found) {
+    return Promise.reject(new Error('Version not found'))
+  }
+  return { lastModified: new Date(found.lastModifiedDateTime), size: found.size }
 }
 
 async function getEmbedUrl(
@@ -81,7 +105,7 @@ export function useFile(
 
   const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
   const [embedUrl, setEmbedUrl] = React.useState<string | undefined>(undefined)
-  const [driveItem, setDriveItem] = React.useState<SharePointDriveItem | undefined>(
+  const [driveItemAttrs, setDriveItemAttrs] = React.useState<DriveItemAttrs | undefined>(
     undefined,
   )
 
@@ -102,13 +126,13 @@ export function useFile(
       }
 
       if (attrs.driveItem) {
-        const response = await getDriveItem(token, loc)
-        setDriveItem(response)
+        const response = await getDriveItemAttrs(token, loc)
+        setDriveItemAttrs(response)
       }
     }
 
     loadData()
   }, [loc, msal, attrs.embedURL, attrs.driveItem])
 
-  return { authToken, driveItem, embedUrl }
+  return { authToken, driveItem: driveItemAttrs, embedUrl }
 }

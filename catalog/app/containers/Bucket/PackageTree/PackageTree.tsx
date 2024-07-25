@@ -639,12 +639,8 @@ function FileDisplay({
               <TopBar crumbs={crumbs}>
                 <FileProperties
                   className={classes.fileProperties}
-                  lastModified={
-                    driveItem && driveItem.lastModifiedDateTime
-                      ? new Date(driveItem.lastModifiedDateTime)
-                      : lastModified
-                  }
-                  size={driveItem ? driveItem.size : size}
+                  lastModified={driveItem?.lastModified ?? lastModified}
+                  size={driveItem?.size ?? size}
                 />
                 {BucketPreferences.Result.match(
                   {
