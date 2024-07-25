@@ -3,71 +3,18 @@ import * as React from 'react'
 import type * as Model from 'model'
 
 import { useSharePoint } from './Provider'
+import { preview, versionsList } from './client'
 import getToken from './token'
 
-export interface SharePointDriveItem {
-  '@content.downloadUrl'?: string
-  '@microsoft.graph.downloadUrl'?: string
-  eTag: string
-  folder: {}
-  id: string
-  lastModifiedDateTime?: string
-  name: string
-  parentReference: {
-    id: string
-    driveId: string
-    name: string
-  }
-  size?: number
-}
-
-export interface SharePointDriveItemVersion {
-  '@content.downloadUrl'?: string
-  id: string
-  lastModifiedDateTime: string
-  size: number
-}
-export interface SharePointDriveItemVersionOutput {
-  value: SharePointDriveItemVersion[]
-}
+// Requests.ts is a place for functions like
+// getDriveItemAttrs => parseDriveItemAttrs(await driveItem)
+//
+// TODO: make sure no one uses xhrGet/xhrPost
+//       and no one uses client#funcs and client#types outside requests.ts
 
 export interface DriveItemAttrs {
   lastModified: Date
   size: number
-}
-
-export async function makeRequestSigned(
-  authToken: string,
-  url: RequestInfo | string | URL,
-) {
-  const response = await window.fetch(url, {
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  })
-  return response.json()
-}
-
-export async function postSigned(authToken: string, url: RequestInfo | string | URL) {
-  const response = await window.fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${authToken}`,
-    },
-  })
-  return response.json()
-}
-
-export function getVersionsList(
-  authToken: string,
-  loc: {
-    driveId: string
-    host: string
-    id: string
-  },
-): Promise<SharePointDriveItemVersionOutput> {
-  const url = `https://${loc.host}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}/versions`
-  return makeRequestSigned(authToken, url)
 }
 
 // TODO: parse driveItem and use structures similar to exisitng s3 files
@@ -76,7 +23,7 @@ export async function getDriveItemAttrs(
   authToken: string,
   loc: Model.SharePointLocation,
 ): Promise<{ lastModified: Date; size: number }> {
-  const versions = await getVersionsList(authToken, loc)
+  const versions = await versionsList(authToken, loc.id, loc.driveId, loc.host)
   const found = versions.value.find(({ id }) => id === loc.versionId)
   if (!found) {
     return Promise.reject(new Error('Version not found'))
@@ -88,8 +35,7 @@ async function getEmbedUrl(
   authToken: string,
   loc: Model.SharePointLocation,
 ): Promise<string> {
-  const url = `https://${loc.host}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}/preview`
-  return (await postSigned(authToken, url)).getUrl
+  return (await preview(authToken, loc.id, loc.driveId, loc.host)).getUrl
 }
 
 interface FileAttributes {

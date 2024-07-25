@@ -4,7 +4,12 @@ import * as uuid from 'uuid'
 import cfg from 'constants/config'
 import * as Model from 'model'
 
-import { SharePointDriveItem, getVersionsList, makeRequestSigned } from './requests'
+import {
+  children as listChildren,
+  driveItem as getDriveItem,
+  versionsList,
+} from './client'
+import type { DriveItem, PickedItem } from './client/types'
 import getToken from './token'
 
 // TODO: handle paginated results
@@ -42,7 +47,7 @@ const MESSAGES = {
   }),
 }
 
-async function downloadFile(driveItem: SharePointDriveItem): Promise<ArrayBuffer> {
+async function downloadFile(driveItem: DriveItem): Promise<ArrayBuffer> {
   const url =
     driveItem['@content.downloadUrl'] || driveItem['@microsoft.graph.downloadUrl']
   if (!url) {
@@ -58,7 +63,7 @@ interface SelectionItem {
   isDirectory: boolean
 }
 
-const parseSelectionItem = (item: SharePointPickedItem): SelectionItem => ({
+const parseSelectionItem = (item: PickedItem): SelectionItem => ({
   endpoint: new URL(item['@sharePoint.endpoint']),
   driveId: item.parentReference.driveId,
   id: item.id,
@@ -66,7 +71,7 @@ const parseSelectionItem = (item: SharePointPickedItem): SelectionItem => ({
 })
 
 function createSharePointLocation(
-  driveItem: SharePointDriveItem,
+  driveItem: DriveItem,
   versionId: string,
   host: string,
 ): Model.SharePointLocation {
@@ -79,50 +84,21 @@ function createSharePointLocation(
   }
 }
 
-function getDriveItem(
-  authToken: string,
-  loc: SelectionItem,
-): Promise<SharePointDriveItem> {
-  const url = `${cfg.sharePoint.baseUrl}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}`
-  return makeRequestSigned(authToken, url)
-}
-
-async function listChildren(
-  authToken: string,
-  loc: SelectionItem,
-): Promise<SharePointDriveItem[]> {
-  const url = `${loc.endpoint.href}/drives/${loc.driveId}/items/${loc.id}/children`
-  const { value: list }: { value: SharePointDriveItem[] } = await makeRequestSigned(
-    authToken,
-    url,
-  )
-  return list
-}
-
 const parentNameAccum = (name: string, parentName?: string): string =>
   parentName ? `${parentName}/${name}` : name
 
-interface SharePointPickedItem {
-  '@sharePoint.endpoint': string
-  folder?: {}
-  id: string
-  parentReference: {
-    name?: string
-    driveId: string
-  }
-}
-
 async function fetchFile(
   authToken: string,
-  driveItem: SharePointDriveItem,
+  driveItem: DriveItem,
   host: string,
   parentName?: string,
 ): Promise<Model.SharePointFile[]> {
-  const versions = await getVersionsList(authToken, {
-    driveId: driveItem.parentReference.driveId,
+  const versions = await versionsList(
+    authToken,
+    driveItem.id,
+    driveItem.parentReference.driveId,
     host,
-    id: driveItem.id,
-  })
+  )
   const address = createSharePointLocation(driveItem, versions.value[0].id, host)
   const file: Model.SharePointFile = {
     address,
@@ -137,7 +113,12 @@ async function resolveFile(
   authToken: string,
   loc: SelectionItem,
 ): Promise<Model.SharePointFile[]> {
-  const driveItem = await getDriveItem(authToken, loc)
+  const driveItem = await getDriveItem(
+    authToken,
+    loc.id,
+    loc.driveId,
+    loc.endpoint.hostname,
+  )
   return fetchFile(authToken, driveItem, loc.endpoint.hostname)
 }
 
@@ -146,10 +127,15 @@ async function resolveDir(
   loc: SelectionItem,
   parentName?: string,
 ): Promise<Model.SharePointFile[]> {
-  const list = await listChildren(authToken, loc)
+  const children = await listChildren(
+    authToken,
+    loc.id,
+    loc.driveId,
+    loc.endpoint.hostname,
+  )
   return (
     await Promise.all(
-      list.map((driveItem) =>
+      children.value.map((driveItem) =>
         driveItem.folder
           ? resolveDir(
               authToken,
@@ -169,7 +155,7 @@ async function resolveDir(
 
 async function traverseSelection(
   authToken: string,
-  items: SharePointPickedItem[],
+  items: PickedItem[],
 ): Promise<Model.SharePointFile[]> {
   return (
     await Promise.all(
