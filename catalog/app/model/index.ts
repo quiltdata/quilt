@@ -79,7 +79,7 @@ export interface S3File {
 export interface SharePointLocation {
   _tag: 'sharepoint'
   driveId: string
-  etag: string
+  versionId: string
   host: string
   id: string
 }

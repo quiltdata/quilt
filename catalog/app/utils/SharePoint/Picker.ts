@@ -4,7 +4,11 @@ import * as uuid from 'uuid'
 import cfg from 'constants/config'
 import * as Model from 'model'
 
-import { SharePointDriveItem, makeRequestSigned } from './requests'
+import {
+  SharePointDriveItem,
+  SharePointDriveItemVersion,
+  makeRequestSigned,
+} from './requests'
 import getToken from './token'
 
 // TODO: handle paginated results
@@ -65,27 +69,36 @@ const parseSelectionItem = (item: SharePointPickedItem): SelectionItem => ({
   isDirectory: !!item.folder,
 })
 
-const driveItemToSharePointFile = (
+function createSharePointLocation(
   driveItem: SharePointDriveItem,
+  versionId: string,
   host: string,
-  parentName?: string,
-): Model.SharePointDummy => ({
-  address: {
+): Model.SharePointLocation {
+  return {
     _tag: 'sharepoint',
     driveId: driveItem.parentReference.driveId,
-    etag: driveItem.eTag,
+    versionId,
     host,
     id: driveItem.id,
-  },
-  logicalKey: parentNameAccum(driveItem.name, parentName),
-  size: driveItem.size,
-})
+  }
+}
 
 function getDriveItem(
   authToken: string,
   loc: SelectionItem,
 ): Promise<SharePointDriveItem> {
   const url = `${cfg.sharePoint.baseUrl}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}`
+  return makeRequestSigned(authToken, url)
+}
+
+function getVersionsList(
+  authToken: string,
+  loc: {
+    driveId: string
+    id: string
+  },
+): Promise<SharePointDriveItemVersion[]> {
+  const url = `${cfg.sharePoint.baseUrl}/_api/v2.0/drives/${loc.driveId}/items/${loc.id}/versions`
   return makeRequestSigned(authToken, url)
 }
 
@@ -115,12 +128,20 @@ interface SharePointPickedItem {
 }
 
 async function fetchFile(
+  authToken: string,
   driveItem: SharePointDriveItem,
   host: string,
   parentName?: string,
 ): Promise<Model.SharePointFile[]> {
-  const file = {
-    ...driveItemToSharePointFile(driveItem, host, parentName),
+  const versions = await getVersionsList(authToken, {
+    driveId: driveItem.parentReference.driveId,
+    id: driveItem.id,
+  })
+  const address = createSharePointLocation(driveItem, versions[0].id, host)
+  const file: Model.SharePointFile = {
+    address,
+    logicalKey: parentNameAccum(driveItem.name, parentName),
+    size: driveItem.size,
     getContent: () => downloadFile(driveItem),
   }
   return [file]
@@ -131,7 +152,7 @@ async function resolveFile(
   loc: SelectionItem,
 ): Promise<Model.SharePointFile[]> {
   const driveItem = await getDriveItem(authToken, loc)
-  return fetchFile(driveItem, loc.endpoint.hostname)
+  return fetchFile(authToken, driveItem, loc.endpoint.hostname)
 }
 
 async function resolveDir(
@@ -150,6 +171,7 @@ async function resolveDir(
               parentNameAccum(driveItem.parentReference.name, parentName),
             )
           : fetchFile(
+              authToken,
               driveItem,
               loc.endpoint.hostname,
               parentNameAccum(driveItem.parentReference.name, parentName),
@@ -209,67 +231,65 @@ function createMessageListener(
   return async (message: MessageEvent) => {
     const payload = message.data
     const id = payload.id
-    switch (payload.type) {
-      case 'notification':
-        /* eslint-disable-next-line no-console */
-        console.debug(payload.data)
-        break
 
-      case 'command':
-        port.postMessage(MESSAGES.ACKNOWLEDGE(id))
+    if (payload.type === 'notification') {
+      /* eslint-disable-next-line no-console */
+      console.debug(payload.data)
+    }
 
-        const command = payload.data
+    if (payload.type === 'command') {
+      port.postMessage(MESSAGES.ACKNOWLEDGE(id))
 
-        switch (command.command) {
-          case 'authenticate':
-            const token = await getToken(app, command)
+      const command = payload.data
 
-            if (token) {
-              port.postMessage(MESSAGES.TOKEN(id, token))
-            } else {
-              port.postMessage(
-                MESSAGES.ERROR(id, 'unableToObtainToken', 'Unable to obtain a token'),
-              )
-            }
+      switch (command.command) {
+        case 'authenticate': {
+          const token = await getToken(app, command)
 
-            break
+          if (token) {
+            port.postMessage(MESSAGES.TOKEN(id, token))
+          } else {
+            port.postMessage(
+              MESSAGES.ERROR(id, 'unableToObtainToken', 'Unable to obtain a token'),
+            )
+          }
 
-          case 'close':
-            win.close()
-            break
-
-          case 'pick':
-            try {
-              const list = await traverseSelection(authToken, command.items)
-              onSubmit(list)
-
-              port.postMessage({
-                type: 'result',
-                id,
-                data: {
-                  result: 'success',
-                },
-              })
-
-              win.close()
-            } catch (e) {
-              port.postMessage(
-                MESSAGES.ERROR(
-                  id,
-                  'unableToTraverseFiles',
-                  'Unable to traverse selected files',
-                ),
-              )
-            }
-
-            break
-
-          default:
-            port.postMessage(MESSAGES.ERROR(id, 'unsupportedCommand', command.command))
-            break
+          break
         }
 
-        break
+        case 'close': {
+          win.close()
+          break
+        }
+
+        case 'pick': {
+          try {
+            const list = await traverseSelection(authToken, command.items)
+            onSubmit(list)
+
+            port.postMessage(MESSAGES.SUCCESS(id))
+
+            win.close()
+          } catch (e) {
+            /* eslint-disable-next-line no-console */
+            console.error(e)
+            port.postMessage(
+              MESSAGES.ERROR(
+                id,
+                'unableToTraverseFiles',
+                'Unable to traverse selected files',
+              ),
+            )
+          }
+
+          break
+        }
+
+        default: {
+          port.postMessage(MESSAGES.ERROR(id, 'unsupportedCommand', command.command))
+          break
+        }
+      }
     }
   }
 }
@@ -300,6 +320,7 @@ export default function launchPicker(
   authToken: string,
   onSubmit: (files: Model.SharePointFile[]) => void,
 ) {
+  // Let's open popup half of the screen width and 2/3 of the screen height
   const width = window.screen.width / 2
   const height = (window.screen.height * 2) / 3
   const win = window.open('', 'Picker', `width=${width},height=${height}`)
@@ -325,8 +346,6 @@ export default function launchPicker(
     const listener = createMessageListener(app, win, port, authToken, onSubmit)
     port.addEventListener('message', listener)
     port.start()
-    port.postMessage({
-      type: 'activate',
-    })
+    port.postMessage({ type: 'activate' })
   })
 }

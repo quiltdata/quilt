@@ -4,7 +4,7 @@ import { parse as parseUrl } from 'url'
 import type * as Model from 'model'
 
 export function locationToUri(loc: Model.SharePointLocation) {
-  return `s3://sharepoint/${loc.host}/${loc.driveId}/${loc.id}?versionId=${loc.etag}`
+  return `s3://sharepoint/${loc.host}/${loc.driveId}/${loc.id}?versionId=${loc.versionId}`
 }
 
 export function isValidLocation(loc: Model.S3.S3ObjectLocation) {
@@ -40,9 +40,9 @@ export function fromPhysicalKey(uri: string) {
   if (!url.query) {
     throw new Error(`No query in SharePoint URI: ${uri}`)
   }
-  const { versionId: etag } = parseQs(url.query)
-  if (!etag || Array.isArray(etag)) {
-    throw new Error(`Invalid etag "${etag}" in SharePoint URI: ${uri}`)
+  const { versionId } = parseQs(url.query)
+  if (!versionId || Array.isArray(versionId)) {
+    throw new Error(`Invalid etag "${versionId}" in SharePoint URI: ${uri}`)
   }
-  return { _tag: 'sharepoint' as const, driveId, etag, host, id }
+  return { _tag: 'sharepoint' as const, driveId, versionId, host, id }
 }

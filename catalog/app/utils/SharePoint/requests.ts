@@ -21,6 +21,13 @@ export interface SharePointDriveItem {
   size?: number
 }
 
+export interface SharePointDriveItemVersion {
+  '@content.downloadUrl'?: string
+  id: string
+  lastModifiedDateTime: string
+  size: number
+}
+
 export async function makeRequestSigned(
   authToken: string,
   url: RequestInfo | string | URL,
