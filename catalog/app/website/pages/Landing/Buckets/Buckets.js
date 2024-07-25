@@ -172,7 +172,7 @@ export default function Buckets() {
           />
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No buckets mathcing <b>&quot;{filter}&quot;</b>
+            No buckets matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>
