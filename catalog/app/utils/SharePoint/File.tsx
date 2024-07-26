@@ -7,6 +7,11 @@ import type * as Model from 'model'
 import { useSharePoint } from './Provider'
 import { DriveItemAttrs, loadDriveItemAttrs, loadEmbedUrl } from './requests'
 
+export const L = Symbol('Loading')
+
+export type EmbedUrl = typeof L | Error | string
+export type FileAttrs = DriveItemAttrs | typeof L | Error
+
 const useEmbedSkeletonStyles = M.makeStyles((t) => ({
   header: {
     height: t.spacing(6),
@@ -64,112 +69,98 @@ function EmbedPlaceholder({ onClick }: EmbedPlaceholderProps) {
 
 interface EmbedProps {
   authToken?: string
-  loc: Model.SharePointLocation
+  embedUrl?: EmbedUrl
   retry: () => void
 }
 
-export function Embed({ authToken, retry, loc }: EmbedProps) {
-  const embedUrl = useEmbedUrl(authToken, loc)
-  if (!authToken) {
-    return <EmbedPlaceholder onClick={retry} />
-  }
-  return embedUrl ? (
-    <iframe width="100%" height="600px" src={embedUrl} />
-  ) : (
-    <EmbedSkeleton />
-  )
+export function Embed({ embedUrl, retry }: EmbedProps) {
+  if (!embedUrl || embedUrl instanceof Error) return <EmbedPlaceholder onClick={retry} />
+  if (embedUrl === L) return <EmbedSkeleton />
+  return <iframe width="100%" height="600px" src={embedUrl} />
 }
 
 interface FilePropertiesProps {
-  authToken?: string
-  loc: Model.SharePointLocation
+  attrs?: DriveItemAttrs | typeof L | Error
   retry: () => void
+  children: (props: DriveItemAttrs) => React.ReactNode
 }
 
-export function FileProperties({ authToken, retry, loc }: FilePropertiesProps) {
-  const attrs = useFileAttrs(authToken, loc)
-  if (!authToken) {
+export function FileProperties({ attrs, children, retry }: FilePropertiesProps) {
+  if (!attrs || attrs instanceof Error) {
     return (
       <div>
         No size, <M.Button onClick={retry}>click!</M.Button>
       </div>
     )
   }
-  return attrs ? <h1>{attrs.toString()}</h1> : <M.CircularProgress />
-}
-
-/**
- * @deprecated
- */
-export function useAuthToken(host?: string): [string | undefined, () => void] {
-  const { msal } = useSharePoint()
-  const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
-  const [inc, setInc] = React.useState(0)
-  const retry = React.useCallback(() => setInc((i) => i + 1), [])
-  React.useEffect(() => {
-    const authParams = {
-      scopes: [`${host}/.default`],
-    }
-    if (inc) {
-      msal.instance.loginPopup(authParams).then((resp) => {
-        msal.instance.setActiveAccount(resp.account)
-        if (resp.idToken) {
-          msal.instance
-            .acquireTokenSilent(authParams)
-            .then((resp2) => setAuthToken(resp2.accessToken))
-        }
-      })
-    } else {
-      msal.instance
-        .acquireTokenSilent(authParams)
-        .then((resp) => setAuthToken(resp.accessToken))
-    }
-  }, [host, inc, msal.instance])
-  return [authToken, retry]
+  if (attrs === L) return <M.CircularProgress />
+  return <>{children(attrs)}</>
 }
 
 function useEmbedUrl(authToken?: string, loc?: Model.SharePointLocation) {
-  const { msal } = useSharePoint()
-
-  const [embedUrl, setEmbedUrl] = React.useState<string | undefined>(undefined)
+  const [embedUrl, setEmbedUrl] = React.useState<EmbedUrl>()
 
   React.useEffect(() => {
     async function loadData() {
       if (!loc || !authToken) return
-      const url = await loadEmbedUrl(authToken, loc)
-      setEmbedUrl(url)
+      setEmbedUrl(L)
+      try {
+        const url = await loadEmbedUrl(authToken, loc)
+        setEmbedUrl(url)
+      } catch (e) {
+        setEmbedUrl(e instanceof Error ? e : new Error('Failed to load embed URL'))
+      }
     }
     loadData()
-  }, [authToken, loc, msal])
+  }, [authToken, loc])
 
   return embedUrl
 }
 
 function useFileAttrs(authToken?: string, loc?: Model.SharePointLocation) {
-  const { msal } = useSharePoint()
-
-  const [attrs, setAttrs] = React.useState<DriveItemAttrs | undefined>(undefined)
+  const [attrs, setAttrs] = React.useState<FileAttrs>()
 
   React.useEffect(() => {
     async function loadData() {
       if (!loc || !authToken) return
-      const loaded = await loadDriveItemAttrs(authToken, loc)
-      setAttrs(loaded)
+      setAttrs(L)
+      try {
+        const loaded = await loadDriveItemAttrs(authToken, loc)
+        setAttrs(loaded)
+      } catch (e) {
+        setAttrs(e instanceof Error ? e : new Error('Failed to load file attributes'))
+      }
     }
     loadData()
-  }, [authToken, loc, msal])
+  }, [authToken, loc])
 
   return attrs
 }
 
-// const Ctx = React.createContext(null)
-//
-// interface ProviderProps {
-//   children: React.ReactNode
-//   loc: Model.SharePointLocation
-// }
-//
-// export function DriveItemProvider({ loc, children }: ProviderProps) {
-//   const { authToken, retryToken } = useSharePoint(loc.host)
-//   return <Ctx.Provider value={null}>{children}</Ctx.Provider>
-// }
+const Ctx = React.createContext(null)
+
+export interface FileProviderRenderProps {
+  embedUrl?: EmbedUrl
+  attrs?: FileAttrs
+  retry: () => void
+}
+
+interface FileProviderProps {
+  children: (v: FileProviderRenderProps) => React.ReactNode
+  loc: Model.SharePointLocation
+}
+
+export function FileProvider({ loc, children }: FileProviderProps) {
+  const { authToken, retryToken } = useSharePoint(loc.host)
+  const embedUrl = useEmbedUrl(authToken, loc)
+  const attrs = useFileAttrs(authToken, loc)
+  const renderProps: FileProviderRenderProps = React.useMemo(
+    () => ({
+      attrs,
+      retry: retryToken,
+      embedUrl,
+    }),
+    [attrs, retryToken, embedUrl],
+  )
+  return <Ctx.Provider value={null}>{children(renderProps)}</Ctx.Provider>
+}

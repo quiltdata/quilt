@@ -502,6 +502,7 @@ function FileDisplayQuery({
   ...props
 }: FileDisplayQueryProps) {
   const s3 = AWS.S3.use()
+
   const fileQuery = GQL.useQuery(FILE_QUERY, { bucket, name, hash, path })
   return GQL.fold(fileQuery, {
     fetching: () => <FileDisplaySkeleton crumbs={crumbs} />,
@@ -517,6 +518,30 @@ function FileDisplayQuery({
             detail="Seems like there's no such file in this package"
             crumbs={crumbs}
           />
+        )
+      }
+
+      if (SP.isValidUri(file.physicalKey)) {
+        return (
+          <SP.FileProvider loc={SP.fromPhysicalKey(file.physicalKey)}>
+            {(sourceFile) => (
+              <FileDisplay
+                {...{
+                  sourceType: 'sp',
+                  file,
+                  archived: false,
+                  deleted: false,
+                  bucket,
+                  name,
+                  hash,
+                  path,
+                  crumbs,
+                  ...props,
+                  sourceFile,
+                }}
+              />
+            )}
+          </SP.FileProvider>
         )
       }
 
@@ -552,6 +577,7 @@ function FileDisplayQuery({
               Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
                 <FileDisplay
                   {...{
+                    sourceType: 's3',
                     file,
                     archived,
                     deleted,
@@ -600,8 +626,12 @@ interface FileDisplayProps extends FileDisplayQueryProps {
   deleted: boolean
   lastModified?: Date
   size?: number
+
+  sourceType: 's3' | 'sp'
+  sourceFile?: SP.FileProviderRenderProps
 }
 
+// The file is either on SharePoint, or on S3
 function FileDisplay({
   archived,
   deleted,
@@ -615,6 +645,9 @@ function FileDisplay({
   path,
   crumbs,
   file,
+
+  sourceType,
+  sourceFile,
 }: FileDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -656,18 +689,13 @@ function FileDisplay({
     history.push(editUrl)
   }, [file, bucket, history, name, path, urls])
 
-  const spLocation = React.useMemo(
-    () => (SP.isValidUri(file.physicalKey) ? SP.fromPhysicalKey(file.physicalKey) : null),
-    [file.physicalKey],
-  )
-
-  const { authToken, retryToken } = SP.use(spLocation?.host)
-
   return (
     <>
       <TopBar crumbs={crumbs}>
-        {spLocation ? (
-          <SP.FileProperties authToken={authToken} loc={spLocation} retry={retryToken} />
+        {sourceType === 'sp' && sourceFile ? (
+          <SP.FileProperties attrs={sourceFile.attrs} retry={sourceFile.retry}>
+            {(attrs) => <FileProperties className={classes.fileProperties} {...attrs} />}
+          </SP.FileProperties>
         ) : (
           <FileProperties
             className={classes.fileProperties}
@@ -693,7 +721,7 @@ function FileDisplay({
           },
           prefs,
         )}
-        {!!viewModes.modes.length && !spLocation && (
+        {!!viewModes.modes.length && sourceType === 's3' && (
           <FileView.ViewModeSelector
             className={classes.button}
             // @ts-expect-error
@@ -717,10 +745,10 @@ function FileDisplay({
               {blocks.meta && (
                 <>
                   <FileView.ObjectMetaSection meta={file.metadata} />
-                  {!spLocation && <FileView.ObjectTags handle={handle} />}
+                  {sourceType === 's3' && <FileView.ObjectTags handle={handle} />}
                 </>
               )}
-              {cfg.qurator && blocks.qurator && !spLocation && (
+              {cfg.qurator && blocks.qurator && sourceType === 's3' && (
                 <QuratorSection handle={handle} />
               )}
             </>
@@ -731,8 +759,8 @@ function FileDisplay({
       )}
       <Section icon="remove_red_eye" heading="Preview" expandable={false}>
         <div className={classes.preview}>
-          {spLocation ? (
-            <SP.Embed authToken={authToken} loc={spLocation} retry={retryToken} />
+          {sourceType === 'sp' && sourceFile ? (
+            <SP.Embed embedUrl={sourceFile?.embedUrl} retry={sourceFile?.retry} />
           ) : (
             withPreview(
               { archived, deleted },

@@ -39,15 +39,18 @@ export function Provider({ auth, children }: ProviderProps) {
   return <MsalProvider instance={msal}>{children}</MsalProvider>
 }
 
+export type RetryToken = () => void
+
 function useAuthToken(
   app: PublicClientApplication,
   hostOpt?: string,
-): [string | undefined, () => void] {
+): [string | undefined, RetryToken] {
   const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
   const [inc, setInc] = React.useState(0)
   const retry = React.useCallback(() => setInc((i) => i + 1), [])
   React.useEffect(() => {
-    const host = hostOpt ? `https://${hostOpt}` : cfg.sharePoint.baseUrl
+    const base = hostOpt || cfg.sharePoint.baseUrl
+    const host = base.startsWith('http') ? base : `https://${base}`
     const authParams = {
       scopes: [`${host}/.default`],
     }

@@ -216,7 +216,7 @@ function createMessageListener(
 
       switch (command.command) {
         case 'authenticate': {
-          const token = await getToken(app, command)
+          const token = await getToken(app, command.resource)
 
           if (token) {
             port.postMessage(MESSAGES.TOKEN(id, token))

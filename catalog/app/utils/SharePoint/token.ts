@@ -1,6 +1,10 @@
 import { IPublicClientApplication } from '@azure/msal-browser'
 
-export default async function getToken(app: IPublicClientApplication, host: string) {
+import cfg from 'constants/config'
+
+export default async function getToken(app: IPublicClientApplication, hostOpt?: string) {
+  const base = hostOpt || cfg.sharePoint.baseUrl
+  const host = base.startsWith('http') ? base : `https://${base}`
   const authParams = {
     scopes: [`${host}/.default`],
   }
