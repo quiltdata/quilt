@@ -9,8 +9,9 @@ import {
 } from '@azure/msal-browser'
 import { useMsal, MsalProvider } from '@azure/msal-react'
 
-import cfg from 'constants/config'
 import log from 'utils/Logging'
+
+import { AuthToken, getTokenPopup, getTokenSilent } from './token'
 
 function createMsalInstance(auth: BrowserAuthOptions): PublicClientApplication {
   const msalInstance = new PublicClientApplication({
@@ -45,29 +46,18 @@ export type RetryToken = () => void
 function useAuthToken(
   app: PublicClientApplication,
   hostOpt?: string,
-): [string | undefined, RetryToken] {
-  const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
+): [AuthToken | undefined, RetryToken] {
+  const [authToken, setAuthToken] = React.useState<AuthToken | undefined>()
   const [inc, setInc] = React.useState(0)
   const retry = React.useCallback(() => setInc((i) => i + 1), [])
   React.useEffect(() => {
-    const base = hostOpt || cfg.sharePoint.baseUrl
-    const host = base.startsWith('http') ? base : `https://${base}`
-    const authParams = {
-      scopes: [`${host}/.default`],
-    }
     if (inc) {
-      app.loginPopup(authParams).then((resp) => {
-        app.setActiveAccount(resp.account)
-        if (resp.idToken) {
-          app
-            .acquireTokenSilent(authParams)
-            .then((resp2) => setAuthToken(resp2.accessToken))
-        }
-      })
+      getTokenPopup(app, hostOpt)
+        .then(setAuthToken)
+        .catch(() => log.warn('Failed to get token via popup.'))
     } else {
-      app
-        .acquireTokenSilent(authParams)
-        .then((resp) => setAuthToken(resp.accessToken))
+      getTokenSilent(app, hostOpt)
+        .then(setAuthToken)
         .catch(() => log.warn('Unable to get token silently. Need a user interaction'))
     }
   }, [hostOpt, inc, app])

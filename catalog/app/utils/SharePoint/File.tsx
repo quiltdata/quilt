@@ -6,6 +6,7 @@ import Skeleton from 'components/Skeleton'
 import type * as Model from 'model'
 
 import { useSharePoint } from './Provider'
+import type { AuthToken } from './token'
 import {
   getDownloadUrl,
   DriveItemAttrs,
@@ -75,7 +76,7 @@ function EmbedPlaceholder({ onClick }: EmbedPlaceholderProps) {
 }
 
 interface EmbedProps {
-  authToken?: string
+  authToken?: AuthToken
   embedUrl?: EmbedUrl
   retry: () => void
 }
@@ -104,7 +105,7 @@ export function FileProperties({ attrs, children, retry }: FilePropertiesProps) 
   return <>{children(attrs)}</>
 }
 
-function useEmbedUrl(authToken?: string, loc?: Model.SharePointLocation) {
+function useEmbedUrl(authToken?: AuthToken, loc?: Model.SharePointLocation) {
   const [embedUrl, setEmbedUrl] = React.useState<EmbedUrl>()
 
   React.useEffect(() => {
@@ -124,7 +125,7 @@ function useEmbedUrl(authToken?: string, loc?: Model.SharePointLocation) {
   return embedUrl
 }
 
-function useFileAttrs(authToken?: string, loc?: Model.SharePointLocation) {
+function useFileAttrs(authToken?: AuthToken, loc?: Model.SharePointLocation) {
   const [attrs, setAttrs] = React.useState<FileAttrs>()
 
   React.useEffect(() => {

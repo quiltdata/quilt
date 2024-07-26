@@ -5,13 +5,14 @@ import cfg from 'constants/config'
 import * as Model from 'model'
 import log from 'utils/Logging'
 
+// FIXME: use SharePoint/requests
 import {
   children as listChildren,
   driveItem as getDriveItem,
   versionsList,
 } from './client'
 import type { DriveItem, PickedItem } from './client/types'
-import getToken from './token'
+import { AuthToken, getToken } from './token'
 
 // TODO: handle paginated results
 
@@ -89,13 +90,13 @@ const parentNameAccum = (name: string, parentName?: string): string =>
   parentName ? `${parentName}/${name}` : name
 
 async function fetchFile(
-  authToken: string,
+  authToken: AuthToken,
   driveItem: DriveItem,
   host: string,
   parentName?: string,
 ): Promise<Model.SharePointFile[]> {
   const versions = await versionsList(
-    authToken,
+    authToken.accessToken,
     driveItem.id,
     driveItem.parentReference.driveId,
     host,
@@ -111,11 +112,11 @@ async function fetchFile(
 }
 
 async function resolveFile(
-  authToken: string,
+  authToken: AuthToken,
   loc: SelectionItem,
 ): Promise<Model.SharePointFile[]> {
   const driveItem = await getDriveItem(
-    authToken,
+    authToken.accessToken,
     loc.id,
     loc.driveId,
     loc.endpoint.hostname,
@@ -124,12 +125,12 @@ async function resolveFile(
 }
 
 async function resolveDir(
-  authToken: string,
+  authToken: AuthToken,
   loc: SelectionItem,
   parentName?: string,
 ): Promise<Model.SharePointFile[]> {
   const children = await listChildren(
-    authToken,
+    authToken.accessToken,
     loc.id,
     loc.driveId,
     loc.endpoint.hostname,
@@ -155,7 +156,7 @@ async function resolveDir(
 }
 
 async function traverseSelection(
-  authToken: string,
+  authToken: AuthToken,
   items: PickedItem[],
 ): Promise<Model.SharePointFile[]> {
   return (
@@ -198,7 +199,7 @@ function createMessageListener(
   app: IPublicClientApplication,
   win: Window,
   port: MessagePort,
-  authToken: string,
+  authToken: AuthToken,
   onSubmit: (files: Model.SharePointFile[]) => void,
 ) {
   return async (message: MessageEvent) => {
@@ -216,13 +217,16 @@ function createMessageListener(
 
       switch (command.command) {
         case 'authenticate': {
-          const token = await getToken(app, command.resource)
-
-          if (token) {
-            port.postMessage(MESSAGES.TOKEN(id, token))
-          } else {
+          try {
+            const token = await getToken(app, command.resource)
+            port.postMessage(MESSAGES.TOKEN(id, token.accessToken))
+          } catch (e) {
             port.postMessage(
-              MESSAGES.ERROR(id, 'unableToObtainToken', 'Unable to obtain a token'),
+              MESSAGES.ERROR(
+                id,
+                'unableToAuthenticate',
+                e ? e.toString() : 'Unable to authenticate',
+              ),
             )
           }
 
@@ -243,13 +247,11 @@ function createMessageListener(
 
             win.close()
           } catch (e) {
-            /* eslint-disable-next-line no-console */
-            console.error(e)
             port.postMessage(
               MESSAGES.ERROR(
                 id,
                 'unableToTraverseFiles',
-                'Unable to traverse selected files',
+                e ? e.toString() : 'Unable to traverse selected files',
               ),
             )
           }
@@ -266,7 +268,7 @@ function createMessageListener(
   }
 }
 
-function requestPicker(win: Window, accessToken: string) {
+function requestPicker(win: Window, accessToken: AuthToken) {
   const queryString = new URLSearchParams({
     filePicker: JSON.stringify(PICKER_OPTIONS),
   })
@@ -280,7 +282,7 @@ function requestPicker(win: Window, accessToken: string) {
   const input = win.document.createElement('input')
   input.setAttribute('type', 'hidden')
   input.setAttribute('name', 'access_token')
-  input.setAttribute('value', accessToken)
+  input.setAttribute('value', accessToken.accessToken)
   form.appendChild(input)
 
   form.submit()
@@ -289,7 +291,7 @@ function requestPicker(win: Window, accessToken: string) {
 // NOTE: Must be normal non-async function. Otherwise, popup will not open.
 export default function launchPicker(
   app: IPublicClientApplication,
-  authToken: string,
+  authToken: AuthToken,
   onSubmit: (files: Model.SharePointFile[]) => void,
 ) {
   // Let's open popup half of the screen width and 2/3 of the screen height

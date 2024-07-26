@@ -2,6 +2,7 @@ import type * as Model from 'model'
 
 import { content, preview, versionsList as versions } from './client'
 import type { DriveItemVersionsList, DriveItemVersion } from './client/types'
+import type { AuthToken } from './token'
 
 export interface DriveItemAttrs {
   lastModified: Date
@@ -9,18 +10,23 @@ export interface DriveItemAttrs {
 }
 
 export async function loadDriveItemAttrs(
-  authToken: string,
+  authToken: AuthToken,
   loc: Model.SharePointLocation,
 ): Promise<DriveItemAttrs> {
-  const versionsList = await versions(authToken, loc.id, loc.driveId, loc.host)
+  const versionsList = await versions(
+    authToken.accessToken,
+    loc.id,
+    loc.driveId,
+    loc.host,
+  )
   return parseDriveItemAttrs(versionsList, loc.versionId)
 }
 
 export async function loadEmbedUrl(
-  authToken: string,
+  authToken: AuthToken,
   loc: Model.SharePointLocation,
 ): Promise<string> {
-  return (await preview(authToken, loc.id, loc.driveId, loc.host)).getUrl
+  return (await preview(authToken.accessToken, loc.id, loc.driveId, loc.host)).getUrl
 }
 
 function parseDriveItemAttrs(versionsList: DriveItemVersionsList, versionId?: string) {
