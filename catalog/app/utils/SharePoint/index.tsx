@@ -1,4 +1,4 @@
-export * from './Embed'
+export * from './File'
 export { default as launchPicker } from './Picker'
 export * from './Provider'
 export * from './Uri'

@@ -161,3 +161,15 @@ function useFileAttrs(authToken?: string, loc?: Model.SharePointLocation) {
 
   return attrs
 }
+
+// const Ctx = React.createContext(null)
+//
+// interface ProviderProps {
+//   children: React.ReactNode
+//   loc: Model.SharePointLocation
+// }
+//
+// export function DriveItemProvider({ loc, children }: ProviderProps) {
+//   const { authToken, retryToken } = useSharePoint(loc.host)
+//   return <Ctx.Provider value={null}>{children}</Ctx.Provider>
+// }

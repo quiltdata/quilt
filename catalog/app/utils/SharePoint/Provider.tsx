@@ -76,6 +76,6 @@ export function useSharePoint(host?: string) {
   )
 }
 
-// TODO: add Provider for file data in SharePoint/File.tsx (rename Embed.tsx to File.tsx)
+// FIXME: add Provider for file data in SharePoint/File.tsx (rename Embed.tsx to File.tsx)
 
 export const use = useSharePoint
