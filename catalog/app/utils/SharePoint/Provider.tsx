@@ -39,8 +39,10 @@ export function Provider({ auth, children }: ProviderProps) {
   return <MsalProvider instance={msal}>{children}</MsalProvider>
 }
 
-function useAuthToken(hostOpt?: string): [string | undefined, () => void] {
-  const { msal } = useSharePoint()
+function useAuthToken(
+  app: PublicClientApplication,
+  hostOpt?: string,
+): [string | undefined, () => void] {
   const [authToken, setAuthToken] = React.useState<string | undefined>(undefined)
   const [inc, setInc] = React.useState(0)
   const retry = React.useCallback(() => setInc((i) => i + 1), [])
@@ -50,26 +52,27 @@ function useAuthToken(hostOpt?: string): [string | undefined, () => void] {
       scopes: [`${host}/.default`],
     }
     if (inc) {
-      msal.instance.loginPopup(authParams).then((resp) => {
-        msal.instance.setActiveAccount(resp.account)
+      app.loginPopup(authParams).then((resp) => {
+        app.setActiveAccount(resp.account)
         if (resp.idToken) {
-          msal.instance
+          app
             .acquireTokenSilent(authParams)
             .then((resp2) => setAuthToken(resp2.accessToken))
         }
       })
     } else {
-      msal.instance
-        .acquireTokenSilent(authParams)
-        .then((resp) => setAuthToken(resp.accessToken))
+      app.acquireTokenSilent(authParams).then((resp) => setAuthToken(resp.accessToken))
     }
-  }, [hostOpt, inc, msal.instance])
+  }, [hostOpt, inc, app])
   return [authToken, retry]
 }
 
 export function useSharePoint(host?: string) {
   const msal = useMsal()
-  const [authToken, retryToken] = useAuthToken(host)
+  const [authToken, retryToken] = useAuthToken(
+    msal.instance as PublicClientApplication,
+    host,
+  )
   return React.useMemo(
     () => ({ authToken, msal, retryToken }),
     [authToken, msal, retryToken],
