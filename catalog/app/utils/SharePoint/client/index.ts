@@ -51,3 +51,7 @@ export function children(
   const url = `${baseUrl(host)}/drives/${driveId}/items/${driveItemId}/children`
   return xhrGet(authToken, url)
 }
+
+export function content(driveItemId: string, driveId: string, host?: string): string {
+  return `${baseUrl(host)}/drives/${driveId}/items/${driveItemId}/content`
+}

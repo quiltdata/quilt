@@ -731,6 +731,12 @@ function FileDisplay({
             onChange={onViewModeChange}
           />
         )}
+        {sourceType === 'sp' && (
+          <SP.DownloadButton
+            className={classes.button}
+            downloadUrl={sourceFile?.downloadUrl}
+          />
+        )}
         {!cfg.noDownload && !deleted && !archived && (
           <FileView.DownloadButton className={classes.button} handle={handle} />
         )}

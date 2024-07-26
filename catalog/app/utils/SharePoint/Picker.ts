@@ -3,6 +3,7 @@ import * as uuid from 'uuid'
 
 import cfg from 'constants/config'
 import * as Model from 'model'
+import log from 'utils/Logging'
 
 import {
   children as listChildren,
@@ -205,8 +206,7 @@ function createMessageListener(
     const id = payload.id
 
     if (payload.type === 'notification') {
-      /* eslint-disable-next-line no-console */
-      console.debug(payload.data)
+      log.debug(payload.data)
     }
 
     if (payload.type === 'command') {

@@ -1,6 +1,6 @@
 import type * as Model from 'model'
 
-import { preview, versionsList as versions } from './client'
+import { content, preview, versionsList as versions } from './client'
 import type { DriveItemVersionsList, DriveItemVersion } from './client/types'
 
 export interface DriveItemAttrs {
@@ -42,4 +42,8 @@ function parseDriveItemAttrs(versionsList: DriveItemVersionsList, versionId?: st
     throw new Error('Version not found')
   }
   return { lastModified: new Date(found.lastModifiedDateTime), size: found.size }
+}
+
+export function getDownloadUrl(loc: Model.SharePointLocation) {
+  return content(loc.id, loc.driveId, loc.host)
 }

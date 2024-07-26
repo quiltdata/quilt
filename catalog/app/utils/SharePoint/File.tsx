@@ -1,16 +1,23 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import Skeleton from 'components/Skeleton'
 import type * as Model from 'model'
 
 import { useSharePoint } from './Provider'
-import { DriveItemAttrs, loadDriveItemAttrs, loadEmbedUrl } from './requests'
+import {
+  getDownloadUrl,
+  DriveItemAttrs,
+  loadDriveItemAttrs,
+  loadEmbedUrl,
+} from './requests'
 
 export const L = Symbol('Loading')
 
 export type EmbedUrl = typeof L | Error | string
-export type FileAttrs = DriveItemAttrs | typeof L | Error
+export type FileAttrs = typeof L | Error | DriveItemAttrs
+export type DownloadUrl = typeof L | Error | string
 
 const useEmbedSkeletonStyles = M.makeStyles((t) => ({
   header: {
@@ -137,11 +144,32 @@ function useFileAttrs(authToken?: string, loc?: Model.SharePointLocation) {
   return attrs
 }
 
+interface DownloadButtonProps {
+  className?: string
+  downloadUrl?: DownloadUrl
+}
+
+export function DownloadButton({ className, downloadUrl }: DownloadButtonProps) {
+  if (typeof downloadUrl !== 'string') return <M.CircularProgress />
+  // TS can't infer download/href params
+
+  return (
+    <Buttons.Iconized
+      className={/* @ts-expect-error */ className}
+      href={downloadUrl}
+      download
+      label="Download file"
+      icon="arrow_downward"
+    />
+  )
+}
+
 const Ctx = React.createContext(null)
 
 export interface FileProviderRenderProps {
-  embedUrl?: EmbedUrl
   attrs?: FileAttrs
+  downloadUrl?: DownloadUrl
+  embedUrl?: EmbedUrl
   retry: () => void
 }
 
@@ -151,16 +179,18 @@ interface FileProviderProps {
 }
 
 export function FileProvider({ loc, children }: FileProviderProps) {
-  const { authToken, retryToken } = useSharePoint(loc.host)
+  const { authToken, retry } = useSharePoint(loc.host)
   const embedUrl = useEmbedUrl(authToken, loc)
   const attrs = useFileAttrs(authToken, loc)
+  const downloadUrl = getDownloadUrl(loc)
   const renderProps: FileProviderRenderProps = React.useMemo(
     () => ({
       attrs,
-      retry: retryToken,
+      downloadUrl,
       embedUrl,
+      retry,
     }),
-    [attrs, retryToken, embedUrl],
+    [attrs, downloadUrl, embedUrl, retry],
   )
   return <Ctx.Provider value={null}>{children(renderProps)}</Ctx.Provider>
 }

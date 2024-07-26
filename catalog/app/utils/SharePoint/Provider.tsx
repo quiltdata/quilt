@@ -10,6 +10,7 @@ import {
 import { useMsal, MsalProvider } from '@azure/msal-react'
 
 import cfg from 'constants/config'
+import log from 'utils/Logging'
 
 function createMsalInstance(auth: BrowserAuthOptions): PublicClientApplication {
   const msalInstance = new PublicClientApplication({
@@ -64,7 +65,10 @@ function useAuthToken(
         }
       })
     } else {
-      app.acquireTokenSilent(authParams).then((resp) => setAuthToken(resp.accessToken))
+      app
+        .acquireTokenSilent(authParams)
+        .then((resp) => setAuthToken(resp.accessToken))
+        .catch(() => log.warn('Unable to get token silently. Need a user interaction'))
     }
   }, [hostOpt, inc, app])
   return [authToken, retry]
@@ -72,16 +76,8 @@ function useAuthToken(
 
 export function useSharePoint(host?: string) {
   const msal = useMsal()
-  const [authToken, retryToken] = useAuthToken(
-    msal.instance as PublicClientApplication,
-    host,
-  )
-  return React.useMemo(
-    () => ({ authToken, msal, retryToken }),
-    [authToken, msal, retryToken],
-  )
+  const [authToken, retry] = useAuthToken(msal.instance as PublicClientApplication, host)
+  return React.useMemo(() => ({ authToken, msal, retry }), [authToken, msal, retry])
 }
-
-// FIXME: add Provider for file data in SharePoint/File.tsx (rename Embed.tsx to File.tsx)
 
 export const use = useSharePoint
