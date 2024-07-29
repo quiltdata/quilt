@@ -1,32 +1,15 @@
 import type * as Model from 'model'
 
-import { content, preview, versionsList as versions } from './client'
-import type { DriveItemVersionsList, DriveItemVersion } from './client/types'
+import { content, preview, versionsList as versions } from '../client'
+import type { DriveItemVersionsList, DriveItemVersion } from '../client/types'
 import type { AuthToken } from './token'
+
+export { getToken, getTokenPopup, getTokenSilent } from './token'
+export type { AuthToken } from './token'
 
 export interface DriveItemAttrs {
   lastModified: Date
   size: number
-}
-
-export async function loadDriveItemAttrs(
-  authToken: AuthToken,
-  loc: Model.SharePointLocation,
-): Promise<DriveItemAttrs> {
-  const versionsList = await versions(
-    authToken.accessToken,
-    loc.id,
-    loc.driveId,
-    loc.host,
-  )
-  return parseDriveItemAttrs(versionsList, loc.versionId)
-}
-
-export async function loadEmbedUrl(
-  authToken: AuthToken,
-  loc: Model.SharePointLocation,
-): Promise<string> {
-  return (await preview(authToken.accessToken, loc.id, loc.driveId, loc.host)).getUrl
 }
 
 function parseDriveItemAttrs(versionsList: DriveItemVersionsList, versionId?: string) {
@@ -48,6 +31,26 @@ function parseDriveItemAttrs(versionsList: DriveItemVersionsList, versionId?: st
     throw new Error('Version not found')
   }
   return { lastModified: new Date(found.lastModifiedDateTime), size: found.size }
+}
+
+export async function loadDriveItemAttrs(
+  authToken: AuthToken,
+  loc: Model.SharePointLocation,
+): Promise<DriveItemAttrs> {
+  const versionsList = await versions(
+    authToken.accessToken,
+    loc.id,
+    loc.driveId,
+    loc.host,
+  )
+  return parseDriveItemAttrs(versionsList, loc.versionId)
+}
+
+export async function loadEmbedUrl(
+  authToken: AuthToken,
+  loc: Model.SharePointLocation,
+): Promise<string> {
+  return (await preview(authToken.accessToken, loc.id, loc.driveId, loc.host)).getUrl
 }
 
 export function getDownloadUrl(loc: Model.SharePointLocation) {

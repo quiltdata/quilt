@@ -11,7 +11,7 @@ import { useMsal, MsalProvider } from '@azure/msal-react'
 
 import log from 'utils/Logging'
 
-import { AuthToken, getTokenPopup, getTokenSilent } from './token'
+import { AuthToken, getTokenPopup, getTokenSilent } from './requests'
 
 function createMsalInstance(auth: BrowserAuthOptions): PublicClientApplication {
   const msalInstance = new PublicClientApplication({

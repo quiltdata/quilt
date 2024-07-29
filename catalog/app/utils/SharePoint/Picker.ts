@@ -5,14 +5,14 @@ import cfg from 'constants/config'
 import * as Model from 'model'
 import log from 'utils/Logging'
 
-// FIXME: use SharePoint/requests
+// TODO: use SharePoint/requests
 import {
   children as listChildren,
   driveItem as getDriveItem,
   versionsList,
 } from './client'
 import type { DriveItem, PickedItem } from './client/types'
-import { AuthToken, getToken } from './token'
+import { AuthToken, getToken } from './requests'
 
 // TODO: handle paginated results
 

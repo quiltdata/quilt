@@ -6,8 +6,8 @@ import Skeleton from 'components/Skeleton'
 import type * as Model from 'model'
 
 import { useSharePoint } from './Provider'
-import type { AuthToken } from './token'
 import {
+  AuthToken,
   getDownloadUrl,
   DriveItemAttrs,
   loadDriveItemAttrs,
