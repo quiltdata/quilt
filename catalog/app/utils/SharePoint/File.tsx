@@ -101,7 +101,7 @@ export function FileProperties({ attrs, children, retry }: FilePropertiesProps) 
       </div>
     )
   }
-  if (attrs === L) return <M.CircularProgress />
+  if (attrs === L) return <Skeleton width={100} height={24} />
   return <>{children(attrs)}</>
 }
 
