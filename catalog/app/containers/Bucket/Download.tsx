@@ -1,9 +1,10 @@
 import * as React from 'react'
 
-import cfg from 'constants/config'
-import mkStorage from 'utils/storage'
-
 import * as Buttons from 'components/Buttons'
+import cfg from 'constants/config'
+import * as SP from 'utils/SharePoint'
+import StyledTooltip from 'utils/StyledTooltip'
+import mkStorage from 'utils/storage'
 
 import * as FileView from './FileView'
 
@@ -15,6 +16,7 @@ interface DownloadButtonProps {
 }
 
 export function DownloadButton({ className, label, onClick, path }: DownloadButtonProps) {
+  const { authToken, retry } = SP.useSharePoint()
   if (cfg.noDownload) return null
 
   if (cfg.desktop) {
@@ -28,9 +30,21 @@ export function DownloadButton({ className, label, onClick, path }: DownloadButt
       />
     )
   }
+  if (!authToken) {
+    return (
+      <StyledTooltip title="Unable to get SharePoint credentials. Click to obtain">
+        <Buttons.Iconized
+          className={className}
+          label={label}
+          icon="replay"
+          onClick={retry}
+        />
+      </StyledTooltip>
+    )
+  }
 
   return (
-    <FileView.ZipDownloadForm suffix={path}>
+    <FileView.ZipDownloadForm suffix={path} spAccessToken={authToken.accessToken}>
       <Buttons.Iconized
         className={className}
         label={label}

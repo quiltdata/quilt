@@ -13,6 +13,11 @@ function getAuthParams(hostOpt?: string) {
   const host = base.startsWith('http') ? base : `https://${base}`
   return {
     scopes: [`${host}/.default`],
+    // TODO: add offline_access, so we can pass refresh_token to server.
+    //       I don't see refresh token in token
+    //       and I don't see 'offline_access' in list of scopes
+    //       when I just added it
+    // scopes: [`${host}/.default`, 'offline_access'],
   }
 }
 

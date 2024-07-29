@@ -647,7 +647,7 @@ function FileDisplay({
   file,
 
   sourceType,
-  sourceFile,
+  sourceFile, // TODO: put everything s3 to sourceFile union type
 }: FileDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -693,7 +693,11 @@ function FileDisplay({
     <>
       <TopBar crumbs={crumbs}>
         {sourceType === 'sp' && sourceFile ? (
-          <SP.FileProperties attrs={sourceFile.attrs} retry={sourceFile.retry}>
+          <SP.FileProperties
+            className={classes.fileProperties}
+            attrs={sourceFile.attrs}
+            retry={sourceFile.retry}
+          >
             {(attrs) => <FileProperties className={classes.fileProperties} {...attrs} />}
           </SP.FileProperties>
         ) : (
@@ -731,13 +735,13 @@ function FileDisplay({
             onChange={onViewModeChange}
           />
         )}
-        {sourceType === 'sp' && (
+        {!cfg.noDownload && sourceType === 'sp' && (
           <SP.DownloadButton
             className={classes.button}
             downloadUrl={sourceFile?.downloadUrl}
           />
         )}
-        {!cfg.noDownload && !deleted && !archived && (
+        {!cfg.noDownload && sourceType === 's3' && !deleted && !archived && (
           <FileView.DownloadButton className={classes.button} handle={handle} />
         )}
       </TopBar>

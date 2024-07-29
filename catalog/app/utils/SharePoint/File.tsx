@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import * as Buttons from 'components/Buttons'
 import Skeleton from 'components/Skeleton'
 import type * as Model from 'model'
+import StyledTooltip from 'utils/StyledTooltip'
 
 import { useSharePoint } from './Provider'
 import {
@@ -68,7 +69,7 @@ function EmbedPlaceholder({ onClick }: EmbedPlaceholderProps) {
       <M.Typography variant="h5" className={classes.header}>
         Unable to obtain SharePoint credentials
       </M.Typography>
-      <M.Button onClick={onClick} variant="outlined">
+      <M.Button endIcon={<M.Icon>replay</M.Icon>} onClick={onClick} variant="outlined">
         Click to resolve
       </M.Button>
     </div>
@@ -88,17 +89,28 @@ export function Embed({ embedUrl, retry }: EmbedProps) {
 }
 
 interface FilePropertiesProps {
+  className?: string
   attrs?: DriveItemAttrs | typeof L | Error
   retry: () => void
   children: (props: DriveItemAttrs) => React.ReactNode
 }
 
-export function FileProperties({ attrs, children, retry }: FilePropertiesProps) {
+export function FileProperties({
+  className,
+  attrs,
+  children,
+  retry,
+}: FilePropertiesProps) {
   if (!attrs || attrs instanceof Error) {
     return (
-      <div>
-        No size, <M.Button onClick={retry}>click!</M.Button>
-      </div>
+      <StyledTooltip title="Unable to get file attributes. Click to retry">
+        <div className={className} onClick={retry}>
+          ? ?? ? B
+          <M.IconButton size="small">
+            <M.Icon>replay</M.Icon>
+          </M.IconButton>
+        </div>
+      </StyledTooltip>
     )
   }
   if (attrs === L) return <Skeleton width={100} height={24} />
@@ -152,7 +164,7 @@ interface DownloadButtonProps {
 
 export function DownloadButton({ className, downloadUrl }: DownloadButtonProps) {
   if (typeof downloadUrl !== 'string') return <M.CircularProgress />
-  // TS can't infer download/href params
+  // TS can't infer download/href params, so we put `@ts-expect-error`
 
   return (
     <Buttons.Iconized

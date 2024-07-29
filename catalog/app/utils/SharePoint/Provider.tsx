@@ -51,17 +51,21 @@ function useAuthToken(
   const [inc, setInc] = React.useState(0)
   const retry = React.useCallback(() => setInc((i) => i + 1), [])
   React.useEffect(() => {
-    if (inc) {
-      getTokenPopup(app, hostOpt)
-        .then(setAuthToken)
-        .catch(() => log.warn('Failed to get token via popup.'))
-    } else {
-      getTokenSilent(app, hostOpt)
-        .then(setAuthToken)
-        .catch(() => log.warn('Unable to get token silently. Need a user interaction'))
-    }
+    // Timeout is a workaround for some React bug
+    // https://github.com/facebook/react/issues/17355
+    setTimeout(() => {
+      if (inc) {
+        getTokenPopup(app, hostOpt)
+          .then(setAuthToken)
+          .catch(() => log.warn('Failed to get token via popup.'))
+      } else {
+        getTokenSilent(app, hostOpt)
+          .then(setAuthToken)
+          .catch(() => log.warn('Unable to get token silently. Need a user interaction'))
+      }
+    }, 0)
   }, [hostOpt, inc, app])
-  return [authToken, retry]
+  return React.useMemo(() => [authToken, retry], [authToken, retry])
 }
 
 export function useSharePoint(host?: string) {

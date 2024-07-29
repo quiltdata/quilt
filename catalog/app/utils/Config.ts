@@ -107,7 +107,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
   s3Proxy: startWithOrigin(cfg.s3Proxy),
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
-  noDownload: !!cfg.noDownload || !!sharePoint,
+  noDownload: !!cfg.noDownload,
   noOverviewImages: !!cfg.noOverviewImages,
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
