@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Assistant/Model/navigation NavigableRouteSchema shoult decode input 1`] = `
+{
+  "name": "search",
+  "params": {
+    "params": {
+      "resultType": "o",
+    },
+  },
+}
+`;

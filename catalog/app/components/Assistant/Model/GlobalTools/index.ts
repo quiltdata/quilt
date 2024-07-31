@@ -1,6 +1,6 @@
 import * as Tool from '../Tool'
 
-import { useNavigate } from './navigation'
+import { useNavigate } from './navigate'
 import { useGetObject } from './preview'
 
 export function useGlobalTools(): Tool.Collection {

@@ -7,10 +7,7 @@ import * as ROUTES from 'constants/routes'
 import * as Log from 'utils/Logging'
 import * as Nav from 'utils/Navigation'
 
-import * as Content from '../Content'
-import * as Tool from '../Tool'
-
-const MODULE = 'GlobalTools/navigation'
+const MODULE = 'Assistant/Model/navigation'
 
 const home = Nav.makeRoute({
   name: 'home',
@@ -37,18 +34,11 @@ export const NavigableRouteSchema = S.Union(
   ...routeList.map((r) => r.navigableRouteSchema),
 )
 
-type NavigableRoute = typeof NavigableRouteSchema.Type
+export type NavigableRoute = typeof NavigableRouteSchema.Type
 
-export const NavigateSchema = S.Struct({
-  route: NavigableRouteSchema,
-}).annotations({
-  title: 'navigate the catalog',
-  description: 'navigate to a provided route',
-})
+export type History = ReturnType<typeof RR.useHistory>
 
-type History = ReturnType<typeof RR.useHistory>
-
-const navigate = (route: NavigableRoute, history: History) =>
+export const navigate = (route: NavigableRoute, history: History) =>
   Log.scoped({
     name: `${MODULE}.navigate`,
     enter: [`to: ${route.name}`, Log.br, 'params:', route.params],
@@ -59,21 +49,5 @@ const navigate = (route: NavigableRoute, history: History) =>
       S.encode(routes[route.name].paramsSchema),
       Eff.Effect.tap((loc) => Eff.Effect.log(`Navigating to location:`, Log.br, loc)),
       Eff.Effect.andThen((loc) => Eff.Effect.sync(() => history.push(loc))),
-      Eff.Effect.match({
-        onSuccess: () =>
-          Tool.succeed(Content.text(`Navigating to the '${route.name}' route.`)),
-        onFailure: (e) =>
-          Tool.fail(
-            Content.text(`Failed to navigate to the '${route.name}' route: ${e}`),
-          ),
-      }),
-      Eff.Effect.map(Eff.Option.some),
     ),
   )
-
-export function useNavigate() {
-  const history = RR.useHistory()
-  return Tool.useMakeTool(NavigateSchema, ({ route }) => navigate(route, history), [
-    history,
-  ])
-}

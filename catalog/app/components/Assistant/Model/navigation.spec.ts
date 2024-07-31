@@ -1,4 +1,4 @@
-import { Schema, JSONSchema } from '@effect/schema'
+import { Schema } from '@effect/schema'
 
 import * as Nav from './navigation'
 
@@ -7,15 +7,7 @@ jest.mock(
   jest.fn(() => ({})),
 )
 
-describe('components/Assistant/Model/GlobalTools/navigation', () => {
-  describe('NavigateSchema', () => {
-    describe('produced JSON Schema', () => {
-      it('should match the snapshot', () => {
-        const jsonSchema = JSONSchema.make(Nav.NavigateSchema)
-        expect(jsonSchema).toMatchSnapshot()
-      })
-    })
-  })
+describe('components/Assistant/Model/navigation', () => {
   describe('NavigableRouteSchema', () => {
     it('shoult decode input', () => {
       const routeInput = {
