@@ -3,7 +3,7 @@ import * as React from 'react'
 import { Schema as S } from '@effect/schema'
 
 import * as Assistant from 'components/Assistant'
-import * as Model from 'model'
+// import * as Model from 'model'
 import { runtime } from 'utils/Effect'
 import useConstant from 'utils/useConstant'
 
@@ -39,23 +39,23 @@ function useMessages(model: SearchUIModel.SearchUIModel) {
   return [intro(model)]
 }
 
-const RefineSearchSchema = S.Struct({
-  searchString: S.optional(S.String).annotations({
-    description: 'set search string',
-  }),
-  order: S.optional(S.Enums(Model.GQLTypes.SearchResultOrder)).annotations({
-    description: 'set result order',
-  }),
-  resultType: S.optional(S.Enums(SearchUIModel.ResultType)).annotations({
-    description: 'set result type',
-  }),
-  buckets: S.optional(S.Array(S.String)).annotations({
-    description: 'select buckets to search in (keep empty to search in all buckets)',
-  }),
-}).annotations({
-  description:
-    'Refine current search by adjusting search parameters. Dont provide a parameter to keep it as is',
-})
+// const RefineSearchSchema = S.Struct({
+//   searchString: S.optional(S.String).annotations({
+//     description: 'set search string',
+//   }),
+//   order: S.optional(S.Enums(Model.GQLTypes.SearchResultOrder)).annotations({
+//     description: 'set result order',
+//   }),
+//   resultType: S.optional(S.Enums(SearchUIModel.ResultType)).annotations({
+//     description: 'set result type',
+//   }),
+//   buckets: S.optional(S.Array(S.String)).annotations({
+//     description: 'select buckets to search in (keep empty to search in all buckets)',
+//   }),
+// }).annotations({
+//   description:
+//     'Refine current search by adjusting search parameters. Dont provide a parameter to keep it as is',
+// })
 
 const GetResultsSchema = S.Struct({
   dummy: S.optional(S.String).annotations({
@@ -174,50 +174,50 @@ const withPrefix = <T extends Record<string, any>>(prefix: string, obj: T) =>
   Object.entries(obj).reduce((acc, [k, v]) => ({ ...acc, [prefix + k]: v }), {})
 
 function useTools(model: SearchUIModel.SearchUIModel) {
-  const {
-    updateUrlState,
-    // setSearchString,
-    // setOrder,
-    // setResultType,
-    // setBuckets,
-    //
-    // activateObjectsFilter,
-    // deactivateObjectsFilter,
-    // setObjectsFilter,
-    //
-    // activatePackagesFilter,
-    // deactivatePackagesFilter,
-    // setPackagesFilter,
-    //
-    // activatePackagesMetaFilter,
-    // deactivatePackagesMetaFilter,
-    // setPackagesMetaFilter,
-    //
-    // clearFilters,
-    // reset,
-  } = model.actions
+  // const {
+  //   updateUrlState,
+  //   // setSearchString,
+  //   // setOrder,
+  //   // setResultType,
+  //   // setBuckets,
+  //   //
+  //   // activateObjectsFilter,
+  //   // deactivateObjectsFilter,
+  //   // setObjectsFilter,
+  //   //
+  //   // activatePackagesFilter,
+  //   // deactivatePackagesFilter,
+  //   // setPackagesFilter,
+  //   //
+  //   // activatePackagesMetaFilter,
+  //   // deactivatePackagesMetaFilter,
+  //   // setPackagesMetaFilter,
+  //   //
+  //   // clearFilters,
+  //   // reset,
+  // } = model.actions
 
   return withPrefix('catalog_search_', {
-    refine: Assistant.Model.Tool.useMakeTool(
-      RefineSearchSchema,
-      (params) =>
-        Eff.Effect.gen(function* () {
-          yield* Eff.Effect.sync(() =>
-            updateUrlState((s) => ({ ...s, ...(params as any) })),
-          )
-          return Eff.Option.some(
-            Assistant.Model.Tool.Result({
-              status: 'success',
-              content: [
-                Assistant.Model.Content.text(
-                  'Search parameters updated. Use catalog_search_getResults tool to get the search results.',
-                ),
-              ],
-            }),
-          )
-        }),
-      [updateUrlState],
-    ),
+    // refine: Assistant.Model.Tool.useMakeTool(
+    //   RefineSearchSchema,
+    //   (params) =>
+    //     Eff.Effect.gen(function* () {
+    //       yield* Eff.Effect.sync(() =>
+    //         updateUrlState((s) => ({ ...s, ...(params as any) })),
+    //       )
+    //       return Eff.Option.some(
+    //         Assistant.Model.Tool.Result({
+    //           status: 'success',
+    //           content: [
+    //             Assistant.Model.Content.text(
+    //               'Search parameters updated. Use catalog_search_getResults tool to get the search results.',
+    //             ),
+    //           ],
+    //         }),
+    //       )
+    //     }),
+    //   [updateUrlState],
+    // ),
     //
     // activateObjectsFilter,
     // deactivateObjectsFilter,

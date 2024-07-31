@@ -14,7 +14,7 @@ const Location = S.Struct({
 
 const SearchParamAll = S.Array(S.String)
 
-const SearchParams = S.Record({ key: S.String, value: SearchParamAll })
+export const SearchParams = S.Record({ key: S.String, value: SearchParamAll })
 
 export const SearchParamLastOpt = S.optionalToOptional(SearchParamAll, S.String, {
   decode: Eff.Option.flatMap(Eff.Array.last),
@@ -37,7 +37,7 @@ const UrlParamsFromString = S.transform(S.String, UrlParams.schema, {
 
 const SearchParamsFromString = S.compose(UrlParamsFromString, SearchParamsFromUrlParams)
 
-const PathParams = S.Record({
+export const PathParams = S.Record({
   key: S.String,
   value: S.Union(S.String, S.Number, S.Boolean),
 })

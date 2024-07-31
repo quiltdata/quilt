@@ -1,0 +1,601 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Assistant/Model/GlobalTools/navigation NavigableRouteSchema shoult decode input 1`] = `
+{
+  "name": "search",
+  "params": {
+    "params": {
+      "resultType": "o",
+    },
+  },
+}
+`;
+
+exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produced JSON Schema should match the snapshot 1`] = `
+{
+  "$defs": {
+    "BooleanPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "false": {
+          "type": "boolean",
+        },
+        "true": {
+          "type": "boolean",
+        },
+      },
+      "required": [],
+      "title": "Boolean predicate state",
+      "type": "object",
+    },
+    "BooleanTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "Boolean",
+        },
+        "value": {
+          "$ref": "#/$defs/BooleanPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "DatetimePredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "gte": {
+          "description": "ISO date string",
+          "format": "date-time",
+          "type": "string",
+        },
+        "lte": {
+          "description": "ISO date string",
+          "format": "date-time",
+          "type": "string",
+        },
+      },
+      "required": [],
+      "title": "Datetime predicate state",
+      "type": "object",
+    },
+    "DatetimeTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "Datetime",
+        },
+        "value": {
+          "$ref": "#/$defs/DatetimePredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "KeywordEnumPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "terms": {
+          "items": {
+            "type": "string",
+          },
+          "type": "array",
+        },
+      },
+      "required": [],
+      "title": "KeywordEnum predicate state",
+      "type": "object",
+    },
+    "KeywordEnumTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "KeywordEnum",
+        },
+        "value": {
+          "$ref": "#/$defs/KeywordEnumPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "KeywordWildcardPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "wildcard": {
+          "type": "string",
+        },
+      },
+      "required": [],
+      "title": "KeywordWildcard predicate state",
+      "type": "object",
+    },
+    "KeywordWildcardTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "KeywordWildcard",
+        },
+        "value": {
+          "$ref": "#/$defs/KeywordWildcardPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "NumberPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "gte": {
+          "type": "number",
+        },
+        "lte": {
+          "type": "number",
+        },
+      },
+      "required": [],
+      "title": "Number predicate state",
+      "type": "object",
+    },
+    "NumberTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "Number",
+        },
+        "value": {
+          "$ref": "#/$defs/NumberPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "TextPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "queryString": {
+          "type": "string",
+        },
+      },
+      "required": [],
+      "title": "Text predicate state",
+      "type": "object",
+    },
+    "TextTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "Text",
+        },
+        "value": {
+          "$ref": "#/$defs/TextPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "description": "navigate to a provided route",
+  "properties": {
+    "route": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "Home page",
+          "properties": {
+            "name": {
+              "const": "home",
+            },
+            "params": {
+              "$id": "/schemas/{}",
+              "oneOf": [
+                {
+                  "type": "object",
+                },
+                {
+                  "type": "array",
+                },
+              ],
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "Search page",
+          "properties": {
+            "name": {
+              "const": "search",
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "buckets": {
+                  "description": "a list of buckets to search in (keep empty to search in all buckets)",
+                  "items": {
+                    "type": "string",
+                  },
+                  "title": "search buckets",
+                  "type": "array",
+                },
+                "order": {
+                  "$comment": "/schemas/enums",
+                  "description": "order of search results",
+                  "oneOf": [
+                    {
+                      "const": "BEST_MATCH",
+                      "title": "BEST_MATCH",
+                    },
+                    {
+                      "const": "NEWEST",
+                      "title": "NEWEST",
+                    },
+                    {
+                      "const": "OLDEST",
+                      "title": "OLDEST",
+                    },
+                  ],
+                  "title": "search order",
+                },
+                "params": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "filter": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "modified",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/DatetimePredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "last modified date",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "size",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/NumberPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "file size in bytes",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "name",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordWildcardPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "package name (aka namespace)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "hash",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordWildcardPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "package revision hash",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "entries",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/NumberPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "number of package entries",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "comment",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/TextPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "package revision comment (aka commit message)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "workflow",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordEnumPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "package workflow",
+                                "type": "object",
+                              },
+                            ],
+                          },
+                          "title": "result filters (system)",
+                          "type": "array",
+                        },
+                        "resultType": {
+                          "const": "p",
+                          "title": "result type: Quilt Package",
+                        },
+                        "userMetaFilters": {
+                          "description": "filter results by user metadata",
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                              },
+                              "predicate": {
+                                "anyOf": [
+                                  {
+                                    "$ref": "#/$defs/BooleanTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/DatetimeTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/KeywordEnumTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/KeywordWildcardTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/NumberTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/TextTaggedPredicate",
+                                  },
+                                ],
+                              },
+                            },
+                            "required": [
+                              "path",
+                              "predicate",
+                            ],
+                            "type": "object",
+                          },
+                          "title": "result filters (user metadata)",
+                          "type": "array",
+                        },
+                      },
+                      "required": [
+                        "resultType",
+                      ],
+                      "title": "package-specific search parameters",
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "filter": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "modified",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/DatetimePredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "last modified date",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "size",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/NumberPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "file size in bytes",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "ext",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordEnumPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "file extensions (with a leading dot)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "key",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordWildcardPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "file name (aka S3 Object Key)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "content",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/TextPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "indexed text contents",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "const": "deleted",
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/BooleanPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "whether a file is a delete marker",
+                                "type": "object",
+                              },
+                            ],
+                          },
+                          "title": "result filters",
+                          "type": "array",
+                        },
+                        "resultType": {
+                          "const": "o",
+                          "title": "result type: S3 Object",
+                        },
+                      },
+                      "required": [
+                        "resultType",
+                      ],
+                      "title": "object-specific search parameters",
+                      "type": "object",
+                    },
+                  ],
+                  "title": "result type-specific parameters",
+                },
+                "searchString": {
+                  "description": "string to search for, ElasticSearch syntax supported",
+                  "title": "search string",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "params",
+              ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+      ],
+    },
+  },
+  "required": [
+    "route",
+  ],
+  "title": "navigate the catalog",
+  "type": "object",
+}
+`;

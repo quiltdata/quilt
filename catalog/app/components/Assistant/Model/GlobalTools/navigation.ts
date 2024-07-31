@@ -2,6 +2,7 @@ import * as Eff from 'effect'
 import * as RR from 'react-router-dom'
 import { Schema as S } from '@effect/schema'
 
+import search from 'containers/Search/Route'
 import * as ROUTES from 'constants/routes'
 import * as Log from 'utils/Logging'
 import * as Nav from 'utils/Navigation'
@@ -25,15 +26,6 @@ const home = Nav.makeRoute({
   // }),
 })
 
-const search = Nav.makeRoute({
-  name: 'search' as const,
-  path: ROUTES.home.path,
-  description: 'Search page',
-  // TODO: add search params
-  // pathParams: emptyPathParams,
-  // searchParams: emptySearchParams,
-})
-
 const routeList = [home, search] as const
 type KnownRoute = (typeof routeList)[number]
 type KnownRouteMap = {
@@ -41,11 +33,13 @@ type KnownRouteMap = {
 }
 const routes = Object.fromEntries(routeList.map((r) => [r.name, r])) as KnownRouteMap
 
-const NavigableRouteSchema = S.Union(...routeList.map((r) => r.navigableRouteSchema))
+export const NavigableRouteSchema = S.Union(
+  ...routeList.map((r) => r.navigableRouteSchema),
+)
 
 type NavigableRoute = typeof NavigableRouteSchema.Type
 
-const NavigateSchema = S.Struct({
+export const NavigateSchema = S.Struct({
   route: NavigableRouteSchema,
 }).annotations({
   title: 'navigate the catalog',
@@ -61,7 +55,9 @@ const navigate = (route: NavigableRoute, history: History) =>
   })(
     Eff.pipe(
       route.params,
+      // @ts-expect-error
       S.encode(routes[route.name].paramsSchema),
+      Eff.Effect.tap((loc) => Eff.Effect.log(`Navigating to location:`, Log.br, loc)),
       Eff.Effect.andThen((loc) => Eff.Effect.sync(() => history.push(loc))),
       Eff.Effect.match({
         onSuccess: () =>

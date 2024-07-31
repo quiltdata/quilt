@@ -17,7 +17,7 @@ const route = <Path extends string, Args extends any[] = []>(
   url?: (...args: Args) => string,
 ): Route<Path, Args> => ({ path, url: url ?? (() => path) })
 
-// The actuals routes start
+// The actual routes start
 
 export const home = route(
   '/',
@@ -64,6 +64,7 @@ interface SearchOpts {
 
 export const search = route(
   '/search',
+  // TODO: these params are outdated -- sync with actual search params
   ({ q, buckets, p, mode, retry }: SearchOpts) =>
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 )

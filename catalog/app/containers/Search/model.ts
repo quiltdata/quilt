@@ -4,7 +4,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 import { useDebounce } from 'use-debounce'
-import * as S from '@effect/schema/Schema'
 import * as Sentry from '@sentry/react'
 
 import * as Model from 'model'
@@ -100,7 +99,6 @@ interface PredicateIO<Tag extends string, State, GQLType> {
   readonly _tag: Tag
   initialState: Tagged<Tag, State>
   fromString: (input: string) => Tagged<Tag, State>
-  fromJSON: (input: unknown) => Tagged<Tag, State>
   toString: (state: Tagged<Tag, State>) => string | null
   toGQL: (state: Tagged<Tag, State>) => GQLType | null
 }
@@ -120,7 +118,6 @@ function Predicate<Tag extends string, State, GQLType>(input: {
   tag: Tag
   init: State
   fromString: (input: string) => State
-  fromJSON: (input: unknown) => State
   toString: (state: Tagged<Tag, State>) => string | null
   toGQL: (state: Tagged<Tag, State>) => GQLType | null
 }): PredicateIO<Tag, State, GQLType> {
@@ -128,7 +125,6 @@ function Predicate<Tag extends string, State, GQLType>(input: {
     _tag: input.tag,
     initialState: addTag(input.tag, input.init),
     fromString: (s: string) => addTag(input.tag, input.fromString(s)),
-    fromJSON: (s: unknown) => addTag(input.tag, input.fromJSON(s)),
     toString: input.toString,
     toGQL: input.toGQL,
   }
@@ -148,10 +144,6 @@ export const Predicates = {
         lte: parseDate(json.lte),
       }
     },
-    fromJSON: (input: unknown) => ({
-      gte: parseDate((input as any)?.gte),
-      lte: parseDate((input as any)?.lte),
-    }),
     toString: ({ _tag, ...state }) => JSON.stringify(state),
     toGQL: ({ _tag, ...state }) =>
       state.gte == null && state.lte === null
@@ -172,10 +164,6 @@ export const Predicates = {
         lte: (json.lte as number) ?? null,
       }
     },
-    fromJSON: (input: unknown) => ({
-      gte: ((input as any)?.gte as number) ?? null,
-      lte: ((input as any)?.lte as number) ?? null,
-    }),
     toString: ({ _tag, ...state }) => JSON.stringify(state),
     toGQL: ({ _tag, ...state }) =>
       state.gte == null && state.lte === null
@@ -187,7 +175,6 @@ export const Predicates = {
     tag: 'Text',
     init: { queryString: '' },
     fromString: (input: string) => ({ queryString: input }),
-    fromJSON: (input: unknown) => ({ queryString: input as string }),
     toString: ({ _tag, ...state }) => state.queryString.trim(),
     toGQL: ({ _tag, ...state }) => {
       const queryString = state.queryString.trim()
@@ -199,7 +186,6 @@ export const Predicates = {
     tag: 'KeywordEnum',
     init: { terms: [] as string[] },
     fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
-    fromJSON: (input: unknown) => ({ terms: input as string[] }),
     toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
     toGQL: ({ terms }) =>
       terms.length
@@ -213,7 +199,6 @@ export const Predicates = {
       wildcard: '' as string,
     },
     fromString: (wildcard: string) => ({ wildcard }),
-    fromJSON: (input: unknown) => ({ wildcard: input as string }),
     toString: ({ wildcard }) => wildcard,
     toGQL: ({ wildcard }) =>
       wildcard
@@ -228,10 +213,6 @@ export const Predicates = {
       const values = input.split(',')
       return { true: values.includes('true'), false: values.includes('false') }
     },
-    fromJSON: (input: unknown) => ({
-      true: (input as any)?.includes?.('true'),
-      false: (input as any)?.includes?.('false'),
-    }),
     toString: (state) => {
       const values = []
       if (state.true) values.push('true')
@@ -278,7 +259,6 @@ type CombinedGQLType<PM extends PredicateMap> = {
 
 interface FilterIO<PM extends PredicateMap> {
   fromURLSearchParams: (params: URLSearchParams) => OrderedCombinedState<PM>
-  fromJSON: (params: Record<string, unknown> | undefined) => OrderedCombinedState<PM>
   toURLSearchParams: (state: OrderedCombinedState<PM>) => [string, string][]
   toGQL: (state: OrderedCombinedState<PM>) => CombinedGQLType<PM> | null
   children: PM
@@ -319,19 +299,6 @@ function Filter<PM extends PredicateMap>(children: PM): FilterIO<PM> {
       if (!predicate) return
       state.order.push(k as keyof PM)
       state.predicates[k as keyof PM] = predicate.fromString(v)
-    })
-    return state
-  }
-
-  function fromJSON(
-    params: Record<string, unknown> | undefined,
-  ): OrderedCombinedState<PM> {
-    const state = initState()
-    Object.entries(params ?? {}).forEach(([k, v]) => {
-      const predicate = children[k]
-      if (!predicate) return
-      state.order.push(k as keyof PM)
-      state.predicates[k as keyof PM] = predicate.fromJSON(v)
     })
     return state
   }
@@ -406,7 +373,6 @@ function Filter<PM extends PredicateMap>(children: PM): FilterIO<PM> {
 
   return {
     fromURLSearchParams,
-    fromJSON,
     toURLSearchParams,
     toGQL,
     children,
@@ -439,59 +405,6 @@ export const PackagesSearchFilterIO = Filter({
   comment: Predicates.Text,
   workflow: Predicates.KeywordEnum,
 })
-
-// XXX: identifiers for predicate types?
-export const PredicatesJSON = {
-  Datetime: S.Struct({
-    gte: S.optional(S.NullOr(S.DateFromString)),
-    lte: S.optional(S.NullOr(S.DateFromString)),
-  }),
-  Number: S.Struct({
-    gte: S.optional(S.NullOr(S.Number)),
-    lte: S.optional(S.NullOr(S.Number)),
-  }),
-  Text: S.String,
-  KeywordEnum: S.Array(S.String),
-  KeywordWildcard: S.String,
-  Boolean: S.Array(S.Literal('true', 'false')),
-}
-
-// XXX: somehow map instead of enumerating manually?
-export const PredicateWithState = S.Union(
-  S.Struct({
-    path: S.String,
-    type: S.Literal('Datetime'),
-    value: PredicatesJSON.Datetime,
-  }),
-  S.Struct({
-    path: S.String,
-    type: S.Literal('Number'),
-    value: PredicatesJSON.Number,
-  }),
-  S.Struct({
-    path: S.String,
-    type: S.Literal('Text'),
-    value: PredicatesJSON.Text,
-  }),
-  S.Struct({
-    path: S.String,
-    type: S.Literal('KeywordEnum'),
-    value: PredicatesJSON.KeywordEnum,
-  }),
-  S.Struct({
-    path: S.String,
-    type: S.Literal('KeywordWildcard'),
-    value: PredicatesJSON.KeywordWildcard,
-  }),
-  S.Struct({
-    path: S.String,
-    type: S.Literal('Boolean'),
-    value: PredicatesJSON.Boolean,
-  }),
-)
-
-// XXX: make it a record?
-export const UserMetaFiltersSchema = S.Array(PredicateWithState)
 
 type UserMetaFilterMap = Map<string, PredicateState<KnownPredicate>>
 
@@ -538,18 +451,6 @@ export class UserMetaFilters {
       if (!predicate) return
       const path = withoutPrefix.slice(idx)
       filters.set(path, predicate.fromString(v))
-    })
-    return new this(filters)
-  }
-
-  static fromJSON(
-    params: S.Schema.Type<typeof UserMetaFiltersSchema> | undefined,
-  ): UserMetaFilters {
-    const filters: UserMetaFilterMap = new Map()
-    ;(params ?? []).forEach(({ path, type, value }) => {
-      const predicate = UserMetaFilters.typeMap[type]
-      if (!predicate) return
-      filters.set(path, predicate.fromJSON(value))
     })
     return new this(filters)
   }
@@ -631,9 +532,9 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
   return DEFAULT_RESULT_TYPE
 }
 
-const META_PREFIX = 'meta.'
+export const META_PREFIX = 'meta.'
 
-// XXX: use io-ts or @effect/schema for morphisms between url (querystring) and search state
+// XXX: use @effect/schema for morphisms between url (querystring) and search state
 export function parseSearchParams(qs: string): SearchUrlState {
   const params = new URLSearchParams(qs)
   const searchString = params.get('q')
