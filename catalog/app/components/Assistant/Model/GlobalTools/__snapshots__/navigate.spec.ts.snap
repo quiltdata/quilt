@@ -215,6 +215,31 @@ exports[`components/Assistant/Model/GlobalTools/navigate NavigateSchema produced
         },
         {
           "additionalProperties": false,
+          "description": "Installation page",
+          "properties": {
+            "name": {
+              "const": "install",
+            },
+            "params": {
+              "$id": "/schemas/{}",
+              "oneOf": [
+                {
+                  "type": "object",
+                },
+                {
+                  "type": "array",
+                },
+              ],
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
           "description": "Search page",
           "properties": {
             "name": {
@@ -570,6 +595,56 @@ exports[`components/Assistant/Model/GlobalTools/navigate NavigateSchema produced
                 "params",
               ],
               "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "TBD",
+          "properties": {
+            "name": {
+              "const": "activate",
+            },
+            "params": {
+              "$id": "/schemas/{}",
+              "oneOf": [
+                {
+                  "type": "object",
+                },
+                {
+                  "type": "array",
+                },
+              ],
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "Bucket root page",
+          "properties": {
+            "name": {
+              "const": "bucket",
+            },
+            "params": {
+              "$id": "/schemas/{}",
+              "oneOf": [
+                {
+                  "type": "object",
+                },
+                {
+                  "type": "array",
+                },
+              ],
             },
           },
           "required": [

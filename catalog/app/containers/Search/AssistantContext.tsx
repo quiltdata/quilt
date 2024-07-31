@@ -3,59 +3,10 @@ import * as React from 'react'
 import { Schema as S } from '@effect/schema'
 
 import * as Assistant from 'components/Assistant'
-// import * as Model from 'model'
 import { runtime } from 'utils/Effect'
 import useConstant from 'utils/useConstant'
 
 import * as SearchUIModel from './model'
-
-const RESULT_TYPE_LABELS = {
-  [SearchUIModel.ResultType.QuiltPackage]: 'Quilt Packages',
-  [SearchUIModel.ResultType.S3Object]: 'S3 Objects',
-}
-
-const intro = (model: SearchUIModel.SearchUIModel) => {
-  let lines: string[] = []
-  lines.push(`You see the Quilt Catalog's search page with the following parameters:`)
-  lines.push('<search-parameters>')
-  lines.push(`- result type: ${RESULT_TYPE_LABELS[model.state.resultType]}`)
-  lines.push(`- result order: ${model.state.order}`)
-  lines.push(
-    model.state.searchString
-      ? `- search string: ${model.state.searchString}`
-      : '- search string is empty',
-  )
-  lines.push(
-    model.state.buckets.length
-      ? `- in buckets: ${model.state.buckets.join(', ')}`
-      : '- in all buckets',
-  )
-  lines.push('</search-parameters>')
-  lines.push('Prefer using local tools over global') // XXX
-  return lines.join('\n')
-}
-
-function useMessages(model: SearchUIModel.SearchUIModel) {
-  return [intro(model)]
-}
-
-// const RefineSearchSchema = S.Struct({
-//   searchString: S.optional(S.String).annotations({
-//     description: 'set search string',
-//   }),
-//   order: S.optional(S.Enums(Model.GQLTypes.SearchResultOrder)).annotations({
-//     description: 'set result order',
-//   }),
-//   resultType: S.optional(S.Enums(SearchUIModel.ResultType)).annotations({
-//     description: 'set result type',
-//   }),
-//   buckets: S.optional(S.Array(S.String)).annotations({
-//     description: 'select buckets to search in (keep empty to search in all buckets)',
-//   }),
-// }).annotations({
-//   description:
-//     'Refine current search by adjusting search parameters. Dont provide a parameter to keep it as is',
-// })
 
 const GetResultsSchema = S.Struct({
   dummy: S.optional(S.String).annotations({
@@ -148,7 +99,6 @@ function useGetResults(model: SearchUIModel.SearchUIModel) {
     GetResultsSchema,
     () =>
       Eff.Effect.gen(function* () {
-        yield* Eff.Console.debug('tool: get search results')
         // wait til results are Some
         const lastOpt = yield* ref.changes.pipe(
           Eff.Stream.takeUntil((x) => Eff.Option.isSome(x)),
@@ -170,78 +120,10 @@ function useGetResults(model: SearchUIModel.SearchUIModel) {
   )
 }
 
-const withPrefix = <T extends Record<string, any>>(prefix: string, obj: T) =>
-  Object.entries(obj).reduce((acc, [k, v]) => ({ ...acc, [prefix + k]: v }), {})
-
-function useTools(model: SearchUIModel.SearchUIModel) {
-  // const {
-  //   updateUrlState,
-  //   // setSearchString,
-  //   // setOrder,
-  //   // setResultType,
-  //   // setBuckets,
-  //   //
-  //   // activateObjectsFilter,
-  //   // deactivateObjectsFilter,
-  //   // setObjectsFilter,
-  //   //
-  //   // activatePackagesFilter,
-  //   // deactivatePackagesFilter,
-  //   // setPackagesFilter,
-  //   //
-  //   // activatePackagesMetaFilter,
-  //   // deactivatePackagesMetaFilter,
-  //   // setPackagesMetaFilter,
-  //   //
-  //   // clearFilters,
-  //   // reset,
-  // } = model.actions
-
-  return withPrefix('catalog_search_', {
-    // refine: Assistant.Model.Tool.useMakeTool(
-    //   RefineSearchSchema,
-    //   (params) =>
-    //     Eff.Effect.gen(function* () {
-    //       yield* Eff.Effect.sync(() =>
-    //         updateUrlState((s) => ({ ...s, ...(params as any) })),
-    //       )
-    //       return Eff.Option.some(
-    //         Assistant.Model.Tool.Result({
-    //           status: 'success',
-    //           content: [
-    //             Assistant.Model.Content.text(
-    //               'Search parameters updated. Use catalog_search_getResults tool to get the search results.',
-    //             ),
-    //           ],
-    //         }),
-    //       )
-    //     }),
-    //   [updateUrlState],
-    // ),
-    //
-    // activateObjectsFilter,
-    // deactivateObjectsFilter,
-    // setObjectsFilter,
-    //
-    // activatePackagesFilter,
-    // deactivatePackagesFilter,
-    // setPackagesFilter,
-    //
-    // activatePackagesMetaFilter,
-    // deactivatePackagesMetaFilter,
-    // setPackagesMetaFilter,
-    //
-    // clearFilters,
-    // reset,
-    getResults: useGetResults(model),
-  })
-}
-
 export default function AssistantContext() {
   const model = SearchUIModel.use()
   Assistant.Context.usePushContext({
-    tools: useTools(model),
-    messages: useMessages(model),
+    tools: { getSearchResults: useGetResults(model) },
   })
   return null
 }

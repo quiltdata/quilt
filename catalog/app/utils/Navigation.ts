@@ -6,7 +6,7 @@ import { Schema as S, ParseResult } from '@effect/schema'
 import { JsonRecord } from 'utils/types'
 
 // XXX: make into a class?
-const Location = S.Struct({
+export const Location = S.Struct({
   pathname: S.String,
   search: S.String,
   hash: S.String,

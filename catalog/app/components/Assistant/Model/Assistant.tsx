@@ -9,6 +9,7 @@ import * as Actor from 'utils/Actor'
 import * as Bedrock from './Bedrock'
 import * as Context from './Context'
 import * as Conversation from './Conversation'
+import * as GlobalContext from './GlobalContext'
 import * as GlobalTools from './GlobalTools'
 
 function usePassThru<T>(val: T) {
@@ -36,6 +37,7 @@ function useConstructAssistantAPI() {
 
   Context.usePushContext({
     tools: GlobalTools.use(),
+    messages: GlobalContext.use(),
   })
 
   // XXX: move this to actor state?
