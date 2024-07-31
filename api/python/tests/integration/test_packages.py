@@ -774,7 +774,7 @@ class PackageTest(QuiltTestCase):
             with self.subTest(flag_value=flag_value, version_id=version_id):
                 pkg = Package()
                 pkg.set("bar", "s3://bucket/bar", unversioned=flag_value)
-                assert pkg["bar"].physical_key == PhysicalKey("bucket", "bar", version_id)
+                assert pkg["bar"].physical_key == PhysicalKey.from_s3("bucket", "bar", version_id)
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
@@ -1896,7 +1896,7 @@ class PackageTest(QuiltTestCase):
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
-        )[lk].physical_key == PhysicalKey(dest_bucket, dest_key, version)
+        )[lk].physical_key == PhysicalKey.from_s3(dest_bucket, dest_key, version)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
@@ -1918,11 +1918,11 @@ class PackageTest(QuiltTestCase):
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
-        calculate_checksum_mock.assert_called_once_with([PhysicalKey(src_bucket, src_key, src_version)], [0])
+        calculate_checksum_mock.assert_called_once_with([PhysicalKey.from_s3(src_bucket, src_key, src_version)], [0])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
-        )[lk].physical_key == PhysicalKey(src_bucket, src_key, src_version)
+        )[lk].physical_key == PhysicalKey.from_s3(src_bucket, src_key, src_version)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
@@ -1969,7 +1969,7 @@ class PackageTest(QuiltTestCase):
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
-        )[lk].physical_key == PhysicalKey(dst_bucket, dst_key, dst_version)
+        )[lk].physical_key == PhysicalKey.from_s3(dst_bucket, dst_key, dst_version)
 
     def test_package_dump_file_mode(self):
         """

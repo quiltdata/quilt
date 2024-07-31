@@ -119,63 +119,32 @@ class RemovedInQuilt4Warning(FutureWarning):
 class URLParseError(ValueError):
     pass
 
-
-class PhysicalKey:
-    __slots__ = ('bucket', 'path', 'version_id')
-
-    def __init__(self, bucket, path, version_id):
-        """
-        For internal use only; call from_path or from_url instead.
-        """
-        assert bucket is None or isinstance(bucket, str)
-        assert isinstance(path, str)
-        assert version_id is None or isinstance(version_id, str)
-
-        if bucket is None:
-            assert path is not None, "Local keys must have a path"
-            assert version_id is None, "Local keys cannot have a version ID"
-            if os.name == 'nt':
-                assert '\\' not in path, "Paths must use / as a separator"
-        else:
-            assert not path.startswith('/'), "S3 paths must not start with '/'"
-
-        self.bucket = bucket
+class LocalLocation:
+    __slots__ = ('path')
+    def __init__(self, path):
+        assert path is not None, "Local keys must have a path"
+        if os.name == 'nt':
+            assert '\\' not in path, "Paths must use / as a separator"
         self.path = path
-        self.version_id = version_id
 
     @classmethod
     def from_url(cls, url):
         parsed = urlparse(url)
+        assert parsed.scheme == 'file', "Not a file URL"
 
-        if parsed.scheme == 's3':
-            if not parsed.netloc:
-                raise URLParseError("Missing bucket")
-            bucket = parsed.netloc
-            assert not parsed.path or parsed.path.startswith('/')
-            path = unquote(parsed.path)[1:]
-            # Parse the version ID the way the Java SDK does:
-            # https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3URI.java#L192
-            query = parse_qs(parsed.query)
-            version_id = query.pop('versionId', [None])[0]
-            if query:
-                raise URLParseError(f"Unexpected S3 query string: {parsed.query!r}")
-            return cls(bucket, path, version_id)
-        elif parsed.scheme == 'file':
-            if parsed.netloc not in ('', 'localhost'):
-                raise URLParseError("Unexpected hostname")
-            if not parsed.path:
-                raise URLParseError("Missing path")
-            if not parsed.path.startswith('/'):
-                raise URLParseError("Relative paths are not allowed")
-            if parsed.query:
-                raise URLParseError("Unexpected query")
-            path = url2pathname(parsed.path)
-            if parsed.path.endswith('/') and not path.endswith(os.path.sep):
-                # On Windows, url2pathname loses the trailing `/`.
-                path += os.path.sep
-            return cls.from_path(path)
-        else:
-            raise URLParseError(f"Unexpected scheme: {parsed.scheme!r}")
+        if parsed.netloc not in ('', 'localhost'):
+            raise URLParseError("Unexpected hostname")
+        if not parsed.path:
+            raise URLParseError("Missing path")
+        if not parsed.path.startswith('/'):
+            raise URLParseError("Relative paths are not allowed")
+        if parsed.query:
+            raise URLParseError("Unexpected query")
+        path = url2pathname(parsed.path)
+        if parsed.path.endswith('/') and not path.endswith(os.path.sep):
+            # On Windows, url2pathname loses the trailing `/`.
+            path += os.path.sep
+        return cls.from_path(path)
 
     @classmethod
     def from_path(cls, path):
@@ -188,10 +157,82 @@ class PhysicalKey:
         if (path.endswith(os.path.sep) or
                 (os.path.altsep is not None and path.endswith(os.path.altsep))):
             new_path += '/'
-        return cls(None, new_path, None)
+        return cls(new_path)
 
-    def is_local(self):
-        return self.bucket is None
+    def join(self, rel_path):
+        if os.name == 'nt' and '\\' in rel_path:
+            raise ValueError("Paths must use / as a separator")
+
+        if self.path:
+            new_path = self.path.rstrip('/') + '/' + rel_path.lstrip('/')
+        else:
+            new_path = rel_path.lstrip('/')
+        return LocalLocation(new_path)
+
+    def basename(self):
+        return self.path.rsplit('/', 1)[-1]
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, self.__class__) and
+            self.path == other.path
+        )
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.path!r})'
+
+    def __str__(self):
+        return pathlib.PurePath(self.path).as_uri()
+
+
+class S3ObjectLocation:
+    __slots__ = ('bucket', 'path', 'version_id')
+
+    def __init__(self, bucket, path, version_id):
+        """
+        For internal use only; call from_path or from_url instead.
+        """
+        assert isinstance(bucket, str)
+        assert isinstance(path, str)
+        assert version_id is None or isinstance(version_id, str)
+
+        assert not path.startswith('/'), "S3 paths must not start with '/'"
+
+        self.bucket = bucket
+        self.path = path
+        self.version_id = version_id
+
+    @classmethod
+    def from_url(cls, url):
+        parsed = urlparse(url)
+
+        assert parsed.scheme == 's3', "Not an S3 URL"
+        if not parsed.netloc:
+            raise URLParseError("Missing bucket")
+        bucket = parsed.netloc
+        assert not parsed.path or parsed.path.startswith('/')
+        path = unquote(parsed.path)[1:]
+        # Parse the version ID the way the Java SDK does:
+        # https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3URI.java#L192
+        query = parse_qs(parsed.query)
+        version_id = query.pop('versionId', [None])[0]
+        if query:
+            raise URLParseError(f"Unexpected S3 query string: {parsed.query!r}")
+        return cls(bucket, path, version_id)
+
+    @classmethod
+    def from_path(cls, path):
+        # TODO: consider to remove this method
+        path = os.fspath(path)
+        new_path = os.path.realpath(path)
+        # Use '/' as the path separator.
+        if os.path.sep != '/':
+            new_path = new_path.replace(os.path.sep, '/')
+        # Add back a trailing '/' if the original path has it.
+        if (path.endswith(os.path.sep) or
+                (os.path.altsep is not None and path.endswith(os.path.altsep))):
+            new_path += '/'
+        return cls(None, new_path, None)
 
     def join(self, rel_path):
         if self.version_id is not None:
@@ -204,7 +245,7 @@ class PhysicalKey:
             new_path = self.path.rstrip('/') + '/' + rel_path.lstrip('/')
         else:
             new_path = rel_path.lstrip('/')
-        return PhysicalKey(self.bucket, new_path, None)
+        return S3ObjectLocation(self.bucket, new_path, None)
 
     def basename(self):
         return self.path.rsplit('/', 1)[-1]
@@ -221,14 +262,100 @@ class PhysicalKey:
         return f'{self.__class__.__name__}({self.bucket!r}, {self.path!r}, {self.version_id!r})'
 
     def __str__(self):
-        if self.bucket is None:
-            return pathlib.PurePath(self.path).as_uri()
+        if self.version_id is None:
+            params = {}
         else:
-            if self.version_id is None:
-                params = {}
-            else:
-                params = {'versionId': self.version_id}
-            return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+            params = {'versionId': self.version_id}
+        return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+
+
+class PhysicalKey:
+    __slots__ = ('location')
+
+    def __init__(self, location):
+        """
+        For internal use only; call from_path or from_url instead.
+        """
+        self.location = location
+
+    @classmethod
+    def from_url(cls, url):
+        parsed = urlparse(url)
+
+        if parsed.scheme == 's3':
+            location = S3ObjectLocation.from_url(url)
+            return cls(location)
+        elif parsed.scheme == 'file':
+            location = LocalLocation.from_url(url)
+            return cls(location)
+        else:
+            raise URLParseError(f"Unexpected scheme: {parsed.scheme!r}")
+
+    @classmethod
+    def from_path(cls, path):
+        return PhysicalKey(LocalLocation.from_path(path))
+
+    @classmethod
+    def from_local(cls, path):
+        return PhysicalKey(LocalLocation(path))
+
+    @classmethod
+    def from_s3(cls, bucket, path, version_id):
+        return PhysicalKey(S3ObjectLocation(bucket, path, version_id))
+
+
+    def is_local(self):
+        if isinstance(self.location, LocalLocation):
+            return True
+        return False
+
+    def join(self, rel_path):
+        return PhysicalKey(self.location.join(rel_path))
+
+    def basename(self):
+        return self.location.basename()
+
+    def __eq__(self, other):
+        return (
+            isinstance(other.location, self.location.__class__) and
+            self.location == other.location
+        )
+
+    def __repr__(self):
+        return self.location.__repr__()
+
+    def __str__(self):
+        return self.location.__str__()
+
+    @property
+    def bucket(self):
+        if isinstance(self.location, LocalLocation):
+            return None
+        return self.location.bucket
+
+    @bucket.setter
+    def bucket(self, value):
+        assert isinstance(self.location, S3ObjectLocation)
+        self.location.bucket = value
+
+    @property
+    def version_id(self):
+        if isinstance(self.location, LocalLocation):
+            return None
+        return self.location.version_id
+
+    @version_id.setter
+    def version_id(self, value):
+        assert isinstance(self.location, S3ObjectLocation)
+        self.location.version_id = value
+
+    @property
+    def path(self):
+        return self.location.path
+
+    @path.setter
+    def path(self, value):
+        self.location.path = value
 
 
 def fix_url(url):
