@@ -501,7 +501,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
     handler = staticmethod(t4_lambda_pkgpush.create_package)
     path = 'data/sample.csv'
     version_id = '1234'
-    physical_key = PhysicalKey(
+    physical_key = PhysicalKey.from_s3(
         bucket=PackagePromoteTestBase.parent_bucket,
         path=path,
         version_id=version_id,

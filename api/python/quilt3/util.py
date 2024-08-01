@@ -120,7 +120,7 @@ class URLParseError(ValueError):
     pass
 
 class LocalLocation:
-    __slots__ = ('path')
+    __slots__ = ('path',)
     def __init__(self, path):
         assert path is not None, "Local keys must have a path"
         if os.name == 'nt':
@@ -270,7 +270,7 @@ class S3ObjectLocation:
 
 
 class PhysicalKey:
-    __slots__ = ('location')
+    __slots__ = ('location',)
 
     def __init__(self, location):
         """
