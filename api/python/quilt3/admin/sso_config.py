@@ -2,6 +2,7 @@ import typing as T
 
 from . import util
 
+
 def get() -> T.Optional[str]:
     """
     Get the current SSO configuration.
