@@ -119,8 +119,10 @@ class RemovedInQuilt4Warning(FutureWarning):
 class URLParseError(ValueError):
     pass
 
+
 class LocalLocation:
     __slots__ = ('path',)
+
     def __init__(self, path):
         assert path is not None, "Local keys must have a path"
         if os.name == 'nt':
@@ -302,7 +304,6 @@ class PhysicalKey:
     @classmethod
     def from_s3(cls, bucket, path, version_id):
         return PhysicalKey(S3ObjectLocation(bucket, path, version_id))
-
 
     def is_local(self):
         if isinstance(self.location, LocalLocation):
