@@ -8,9 +8,13 @@ import * as ROUTES from 'constants/routes'
 import * as Log from 'utils/Logging'
 import * as Nav from 'utils/Navigation'
 
-const MODULE = 'Assistant/Model/navigation'
+import * as Content from '../Content'
+import * as Tool from '../Tool'
+
+const MODULE = 'GlobalContext/navigation'
 
 // the routes are in the order of matching
+// TODO: specify/describe all the *relevant* routes
 const routeList = [
   Nav.makeRoute({
     name: 'home',
@@ -104,11 +108,11 @@ export const NavigableRouteSchema = S.Union(
   ...routeList.map((r) => r.navigableRouteSchema),
 )
 
-export type NavigableRoute = typeof NavigableRouteSchema.Type
+type NavigableRoute = typeof NavigableRouteSchema.Type
 
-export type History = ReturnType<typeof RR.useHistory>
+type History = ReturnType<typeof RR.useHistory>
 
-export const navigate = (route: NavigableRoute, history: History) =>
+const navigate = (route: NavigableRoute, history: History) =>
   Log.scoped({
     name: `${MODULE}.navigate`,
     enter: [`to: ${route.name}`, Log.br, 'params:', route.params],
@@ -147,16 +151,75 @@ const matchLocation = (loc: typeof Nav.Location.Type): Match | null =>
     Eff.Option.getOrNull,
   )
 
-interface LocationInfo {
-  loc: typeof Nav.Location.Type
-  match: Match | null
-}
-
-export function useCurrentRoute(): LocationInfo {
+export function useRouteContext() {
   const loc = RR.useLocation()
+
   const match = React.useMemo(
     () => matchLocation({ pathname: loc.pathname, search: loc.search, hash: '' }),
     [loc.pathname, loc.search],
   )
-  return { match, loc }
+
+  const description = React.useMemo(() => {
+    if (!match) return ''
+    const params = match.decoded?.params
+      ? `
+<parameters>
+  ${JSON.stringify(match.decoded.params, null, 2)}
+</parameters>
+`
+      : ''
+    return `
+<route-info>
+  Name: "${match.descriptor.name}"
+  <description>
+    ${match.descriptor.description}
+  </description>
+  ${params}
+</route-info>
+`
+  }, [match])
+
+  const msg = React.useMemo(
+    () =>
+      `
+<viewport>
+  <current-location>
+    ${JSON.stringify(loc, null, 2)}
+  </current-location>
+  ${description}
+  Refer to "navigate" tool schema for navigable routes and their parameters.
+</viewport>
+`,
+    [description, loc],
+  )
+
+  return msg
+}
+
+export const NavigateSchema = S.Struct({
+  route: NavigableRouteSchema,
+}).annotations({
+  title: 'navigate the catalog',
+  description: 'navigate to a provided route',
+})
+
+export function useNavigate() {
+  const history = RR.useHistory()
+  return Tool.useMakeTool(
+    NavigateSchema,
+    ({ route }) =>
+      Eff.pipe(
+        navigate(route, history),
+        Eff.Effect.match({
+          onSuccess: () =>
+            Tool.succeed(Content.text(`Navigating to the '${route.name}' route.`)),
+          onFailure: (e) =>
+            Tool.fail(
+              Content.text(`Failed to navigate to the '${route.name}' route: ${e}`),
+            ),
+        }),
+        Eff.Effect.map(Eff.Option.some),
+      ),
+    [history],
+  )
 }

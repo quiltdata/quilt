@@ -1,49 +1,16 @@
-import * as React from 'react'
+import * as Context from '../Context'
 
-import { useCurrentRoute } from '../navigation'
-
-function useRouteContext() {
-  const { match, loc } = useCurrentRoute()
-
-  const description = React.useMemo(() => {
-    if (!match) return ''
-    const params = match.decoded?.params
-      ? `
-<parameters>
-  ${JSON.stringify(match.decoded.params, null, 2)}
-</parameters>
-`
-      : ''
-    return `
-<route-info>
-  Name: "${match.descriptor.name}"
-  <description>
-    ${match.descriptor.description}
-  </description>
-  ${params}
-</route-info>
-`
-  }, [match])
-
-  const msg = React.useMemo(
-    () =>
-      `
-<viewport>
-  <current-location>
-    ${JSON.stringify(loc, null, 2)}
-  </current-location>
-  ${description}
-  Refer to "navigate" tool schema for navigable routes and their parameters.
-</viewport>
-`,
-    [description, loc],
-  )
-
-  return msg
-}
+import { useNavigate, useRouteContext } from './navigation'
+import { useGetObject } from './preview'
 
 export function useGlobalContext() {
-  return [useRouteContext()]
+  Context.usePushContext({
+    tools: {
+      navigate: useNavigate(),
+      catalog_global_getObject: useGetObject(),
+    },
+    messages: [useRouteContext()],
+  })
 }
 
 export { useGlobalContext as use }

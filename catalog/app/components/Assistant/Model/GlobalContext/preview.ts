@@ -13,7 +13,7 @@ import mkSearch from 'utils/mkSearch'
 import * as Content from '../Content'
 import * as Tool from '../Tool'
 
-const MODULE = 'GlobalTools/preview'
+const MODULE = 'GlobalContext/preview'
 
 type AWSEffect<T> = Eff.Effect.Effect<T, AWSSDK.AWSError>
 

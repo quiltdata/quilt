@@ -1,6 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`components/Assistant/Model/GlobalTools/navigate NavigateSchema produced JSON Schema should match the snapshot 1`] = `
+exports[`components/Assistant/Model/GlobalTools/navigation NavigableRouteSchema should decode input 1`] = `
+{
+  "name": "search",
+  "params": {
+    "params": {
+      "resultType": "o",
+    },
+  },
+}
+`;
+
+exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produced JSON Schema should match the snapshot 1`] = `
 {
   "$defs": {
     "BooleanPredicateState": {

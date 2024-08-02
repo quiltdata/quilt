@@ -10,7 +10,6 @@ import * as Bedrock from './Bedrock'
 import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
-import * as GlobalTools from './GlobalTools'
 
 function usePassThru<T>(val: T) {
   const ref = React.useRef(val)
@@ -35,10 +34,7 @@ function useConstructAssistantAPI() {
     layerEff,
   )
 
-  Context.usePushContext({
-    tools: GlobalTools.use(),
-    messages: GlobalContext.use(),
-  })
+  GlobalContext.use()
 
   // XXX: move this to actor state?
   const [visible, setVisible] = React.useState(false)
