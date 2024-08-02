@@ -11,6 +11,7 @@ import * as Tool from './Tool'
 export interface ContextShape {
   messages: string[]
   tools: Tool.Collection
+  markers: Record<string, boolean>
 }
 
 interface ContextAggregator {
@@ -56,6 +57,7 @@ export function ContextAggregatorProvider({ children }: React.PropsWithChildren<
 const ROOT_CONTEXT: ContextShape = {
   tools: {},
   messages: [],
+  markers: {},
 }
 
 function aggregateContext(contexts: Partial<ContextShape>[]) {
@@ -66,6 +68,7 @@ function aggregateContext(contexts: Partial<ContextShape>[]) {
       // XXX: check for conflicts?
       tools: { ...acc.tools, ...next.tools },
       messages: acc.messages.concat(next.messages || []),
+      markers: { ...acc.markers, ...next.markers },
     }),
     ROOT_CONTEXT,
   )
@@ -97,7 +100,7 @@ export function usePushContext(context: Partial<ContextShape>) {
   React.useEffect(() => push(contextMemo), [push, contextMemo])
 }
 
-export function Push(context: ContextShape) {
+export function Push(context: Partial<ContextShape>) {
   usePushContext(context)
   return null
 }
