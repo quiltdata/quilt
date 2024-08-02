@@ -5,10 +5,13 @@ import { Schema as S } from '@effect/schema'
 
 import search from 'containers/Search/Route'
 import * as ROUTES from 'constants/routes'
+import { runtime } from 'utils/Effect'
 import * as Log from 'utils/Logging'
 import * as Nav from 'utils/Navigation'
+import useConst from 'utils/useConstant'
 
 import * as Content from '../Content'
+import * as Context from '../Context'
 import * as Tool from '../Tool'
 
 const MODULE = 'GlobalContext/navigation'
@@ -112,7 +115,13 @@ type NavigableRoute = typeof NavigableRouteSchema.Type
 
 type History = ReturnType<typeof RR.useHistory>
 
-const navigate = (route: NavigableRoute, history: History) =>
+const WAIT_TIMEOUT = Eff.Duration.seconds(30)
+
+const navigate = (
+  route: NavigableRoute,
+  history: History,
+  markersChanges: Eff.Stream.Stream<Record<string, boolean>>,
+) =>
   Log.scoped({
     name: `${MODULE}.navigate`,
     enter: [`to: ${route.name}`, Log.br, 'params:', route.params],
@@ -123,6 +132,28 @@ const navigate = (route: NavigableRoute, history: History) =>
       S.encode(routes[route.name].paramsSchema),
       Eff.Effect.tap((loc) => Eff.Effect.log(`Navigating to location:`, Log.br, loc)),
       Eff.Effect.andThen((loc) => Eff.Effect.sync(() => history.push(loc))),
+      Eff.Effect.andThen(() =>
+        Eff.Effect.gen(function* () {
+          const { waitForMarkers } = routes[route.name]
+          if (!waitForMarkers.length) return
+          yield* Eff.Effect.log(`Waiting for markers: ${waitForMarkers.join(', ')}`)
+          yield* Eff.pipe(
+            markersChanges,
+            Eff.Stream.timeoutFail(() => ({ _tag: 'timeout' as const }), WAIT_TIMEOUT),
+            Eff.Stream.runForEachWhile((markers) =>
+              Eff.Effect.succeed(!waitForMarkers.every((k) => markers[k])),
+            ),
+            Eff.Effect.andThen(() => Eff.Effect.log('Markers found')),
+            Eff.Effect.catchTag('timeout', () =>
+              Eff.Effect.log(
+                `Timed out after ${Eff.Duration.format(
+                  WAIT_TIMEOUT,
+                )} while waiting for markers`,
+              ),
+            ),
+          )
+        }),
+      ),
     ),
   )
 
@@ -203,13 +234,24 @@ export const NavigateSchema = S.Struct({
   description: 'navigate to a provided route',
 })
 
+function useMarkersRef() {
+  const { markers } = Context.useAggregatedContext()
+  const ref = useConst(() => runtime.runSync(Eff.SubscriptionRef.make(markers)))
+  React.useEffect(() => {
+    runtime.runFork(Eff.SubscriptionRef.set(ref, markers))
+  }, [markers, ref])
+  return ref
+}
+
 export function useNavigate() {
   const history = RR.useHistory()
+  const markers = useMarkersRef()
+
   return Tool.useMakeTool(
     NavigateSchema,
     ({ route }) =>
       Eff.pipe(
-        navigate(route, history),
+        navigate(route, history, markers.changes),
         Eff.Effect.match({
           onSuccess: () =>
             Tool.succeed(Content.text(`Navigating to the '${route.name}' route.`)),
@@ -220,6 +262,6 @@ export function useNavigate() {
         }),
         Eff.Effect.map(Eff.Option.some),
       ),
-    [history],
+    [history, markers],
   )
 }

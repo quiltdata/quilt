@@ -212,4 +212,5 @@ export default Nav.makeRoute({
   path: routes.search.path,
   description: 'Search page',
   searchParams: RouteSearchParams,
+  waitForMarkers: ['searchResultsReady'],
 })

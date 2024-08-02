@@ -165,6 +165,7 @@ interface RouteDescriptor<
     name: Name
     params: RouteSearchParams & RoutePathParams
   }>
+  waitForMarkers: string[]
 }
 
 export function makeRoute<
@@ -178,6 +179,7 @@ export function makeRoute<
   description: string
   searchParams?: S.Schema<RouteSearchParams, typeof SearchParams.Type>
   pathParams?: S.Schema<RoutePathParams, typeof PathParams.Type>
+  waitForMarkers?: string[]
 }): RouteDescriptor<Name, Path, RouteSearchParams, RoutePathParams> {
   // Location <-> ParsedLocation
   const locationSchema = makeParsedLocation(input.path)
@@ -213,5 +215,6 @@ export function makeRoute<
     paramsSchema,
     navigableRouteSchema,
     description: input.description,
+    waitForMarkers: input.waitForMarkers ?? [],
   }
 }
