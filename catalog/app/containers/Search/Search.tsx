@@ -3,7 +3,6 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Assistant from 'components/Assistant'
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
@@ -725,18 +724,6 @@ function PackageFilters({ className }: PackageFiltersProps) {
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
-  const message = [
-    '<active-search-filters>',
-    ...activeFilters.map(
-      (f) => `<search-filter>${f}: ${JSON.stringify(predicates[f])}</search-filter>`,
-    ),
-    '</active-search-filters>',
-    '<available-search-filters>',
-    ...availableFilters.map((f) => `<search-filter>${f}</search-filter>`),
-    '</available-search-filters>',
-  ].join('\n')
-  Assistant.Context.usePushContext({ messages: [message] })
-
   return (
     <div className={className}>
       <div className={classes.title}>Filter by</div>
@@ -884,18 +871,6 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
-
-  const message = [
-    '<active-search-filters>',
-    ...activeFilters.map(
-      (f) => `<search-filter>${f}: ${JSON.stringify(predicates[f])}</search-filter>`,
-    ),
-    '</active-search-filters>',
-    '<available-search-filters>',
-    ...availableFilters.map((f) => `<search-filter>${f}</search-filter>`),
-    '</available-search-filters>',
-  ].join('\n')
-  Assistant.Context.usePushContext({ messages: [message] })
 
   return (
     <div className={className}>
@@ -1066,14 +1041,6 @@ function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) 
   const loadMore = React.useCallback(() => {
     setMore(true)
   }, [])
-
-  Assistant.Context.usePushContext({
-    messages: [
-      '<search-results-page>',
-      JSON.stringify(hits, null, 2),
-      '</search-results-page>',
-    ],
-  })
 
   return (
     <div className={className}>
