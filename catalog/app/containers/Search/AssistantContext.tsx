@@ -287,10 +287,7 @@ function useSearchContext() {
   }, [ctxO])
 
   return {
-    // TODO: implement context markers
-    // markers: {
-    //   searchResultsReady: Eff.Option.isSome(ctxO),
-    // },
+    markers: { searchResultsReady: Eff.Option.isSome(ctxO) },
     messages: [React.useMemo(() => tag.toString(), [tag])],
   }
 }
