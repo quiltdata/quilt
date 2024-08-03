@@ -4,6 +4,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as uuid from 'uuid'
 
+import { runtime } from 'utils/Effect'
+import useConst from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 
 import * as Tool from './Tool'
@@ -118,4 +120,13 @@ export function useLayer() {
   if (ref.current !== contextObj) ref.current = contextObj
   const context = React.useMemo(() => Eff.Effect.sync(() => ref.current), [ref])
   return Eff.Layer.succeed(ConversationContext, { context })
+}
+
+export function useMarkersRef() {
+  const { markers } = useAggregatedContext()
+  const ref = useConst(() => runtime.runSync(Eff.SubscriptionRef.make(markers)))
+  React.useEffect(() => {
+    runtime.runFork(Eff.SubscriptionRef.set(ref, markers))
+  }, [markers, ref])
+  return ref
 }

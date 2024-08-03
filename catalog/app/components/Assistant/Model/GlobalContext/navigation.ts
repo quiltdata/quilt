@@ -5,10 +5,8 @@ import { Schema as S } from '@effect/schema'
 
 import search from 'containers/Search/Route'
 import * as ROUTES from 'constants/routes'
-import { runtime } from 'utils/Effect'
 import * as Log from 'utils/Logging'
 import * as Nav from 'utils/Navigation'
-import useConst from 'utils/useConstant'
 
 import * as Content from '../Content'
 import * as Context from '../Context'
@@ -234,18 +232,9 @@ export const NavigateSchema = S.Struct({
   description: 'navigate to a provided route',
 })
 
-function useMarkersRef() {
-  const { markers } = Context.useAggregatedContext()
-  const ref = useConst(() => runtime.runSync(Eff.SubscriptionRef.make(markers)))
-  React.useEffect(() => {
-    runtime.runFork(Eff.SubscriptionRef.set(ref, markers))
-  }, [markers, ref])
-  return ref
-}
-
 export function useNavigate() {
   const history = RR.useHistory()
-  const markers = useMarkersRef()
+  const markers = Context.useMarkersRef()
 
   return Tool.useMakeTool(
     NavigateSchema,
