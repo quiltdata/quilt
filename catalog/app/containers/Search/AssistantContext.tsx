@@ -3,62 +3,9 @@ import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
 import * as GQL from 'utils/GraphQL'
+import * as XML from 'utils/XML'
 
 import * as SearchUIModel from './model'
-
-type AttrValue = string | number
-
-type Attrs = Record<string, AttrValue>
-
-type Child = XMLTag | string | null
-
-type Children = Child[]
-
-class XMLTag {
-  readonly name: string
-
-  readonly attrsProp: Attrs
-
-  readonly childrenProp: Children
-
-  constructor(name: string, attrs: Attrs, children: Children) {
-    this.name = name
-    this.attrsProp = attrs
-    this.childrenProp = children
-  }
-
-  static make(name: string, attrs: Attrs = {}, ...children: Children) {
-    return new XMLTag(name, attrs, children)
-  }
-
-  attrs(attrs: Attrs) {
-    return new XMLTag(this.name, { ...this.attrsProp, ...attrs }, this.childrenProp)
-  }
-
-  children(...children: Children) {
-    return new XMLTag(this.name, this.attrsProp, [...this.childrenProp, ...children])
-  }
-
-  toString(): string {
-    const attrs = Object.entries(this.attrsProp)
-      .map(([k, v]) => ` ${k}=${JSON.stringify(v)}`)
-      .join('')
-
-    const children = Eff.pipe(
-      this.childrenProp,
-      Eff.Array.filterMap(
-        Eff.flow(
-          Eff.Option.fromNullable,
-          Eff.Option.map((c) => (typeof c === 'string' ? c : c.toString())),
-        ),
-      ),
-    )
-
-    const parts = [`<${this.name}${attrs}>`, ...children, `</${this.name}>`]
-
-    return parts.join('\n')
-  }
-}
 
 const resultTypeDisplay = (resultType: SearchUIModel.ResultType) =>
   resultType === SearchUIModel.ResultType.S3Object ? 'objects' : 'packages'
@@ -227,15 +174,11 @@ function useSearchContext() {
 
   const tag = React.useMemo(() => {
     if (Eff.Option.isNone(ctxO)) {
-      return XMLTag.make(
-        'search-results',
-        { status: 'pending' },
-        'Loading search results...',
-      )
+      return XML.tag('search-results', { status: 'pending' }, 'Loading search results...')
     }
     const ctxE = ctxO.value
     if (Eff.Either.isLeft(ctxE)) {
-      return XMLTag.make(
+      return XML.tag(
         'search-results',
         { status: 'error' },
         `Unexpected errors while loading search results: ${ctxE.left}`,
@@ -244,7 +187,7 @@ function useSearchContext() {
 
     const ctx = ctxE.right
 
-    const meta = XMLTag.make(
+    const meta = XML.tag(
       'metadata',
       {},
       `Total **${resultTypeDisplay(ctx.resultType)}** found before applying filters: ${
@@ -256,7 +199,7 @@ function useSearchContext() {
       Eff.Option.match(ctx.facets, {
         onNone: () => null,
         onSome: (facets) =>
-          XMLTag.make(
+          XML.tag(
             'facets',
             {},
             'Search facets aggregated from the result set:',
@@ -268,22 +211,21 @@ function useSearchContext() {
       )}** found matching the same criteria before applying filters: ${ctx.totalOther}`,
     )
 
-    let hits = XMLTag.make('hits', {})
-    if (ctx.firstPage.length) {
-      hits = hits.children(
-        XMLTag.make(
-          'page',
-          { number: 1 },
-          ...ctx.firstPage.map((hit, index) =>
-            XMLTag.make('search-result', { index }, JSON.stringify(hit, null, 2)),
-          ),
-        ),
-      )
-    } else {
-      hits = hits.children('Search request returned no results')
-    }
+    const hits = XML.tag(
+      'hits',
+      {},
+      ctx.firstPage.length
+        ? XML.tag(
+            'page',
+            { number: 1 },
+            ...ctx.firstPage.map((hit, index) =>
+              XML.tag('search-result', { index }, JSON.stringify(hit, null, 2)),
+            ),
+          )
+        : 'Search request returned no results',
+    )
 
-    return XMLTag.make('search-results', { status: 'success' }, meta, hits)
+    return XML.tag('search-results', { status: 'success' }, meta, hits)
   }, [ctxO])
 
   return {
