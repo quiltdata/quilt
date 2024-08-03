@@ -289,19 +289,19 @@ Persona: conservative and creative scientist.
 `
 
 // TODO: mention the client company?
-const TASK_CONTEXT = `
-<task-context>
-You act as a chatbot deployed on the Quilt Catalog web app.
-You have access to the the Quilt Catalog UI via context and tools.
-</task-context>
-`
+const TASK_CONTEXT = XML.tag(
+  'task-context',
+  {},
+  'You act as a chatbot deployed on the Quilt Catalog web app.',
+  'You have access to the the Quilt Catalog UI via context and tools.',
+).toString()
 
 // detailed task description and rules
-const TASK_DESCRIPTION = `
-<task-description>
-When asked a question about Quilt or Quilt Data, refer to the documentation at https://docs.quiltdata.com.
-</task-description>
-`
+const TASK_DESCRIPTION = XML.tag(
+  'task-description',
+  {},
+  'When asked a question about Quilt or Quilt Data, refer to the documentation at https://docs.quiltdata.com.',
+).toString()
 
 const CONVERSATION_START = `
 Following is the conversation history:
@@ -377,7 +377,7 @@ const constructPrompt = (
           Content.text(
             TASK_CONTEXT,
             TASK_DESCRIPTION,
-            `<context>\n${context.messages.join('\n')}\n</context>`,
+            XML.tag('context', {}, ...context.messages).toString(),
             XML.tag('current-time', {}, currentTime).toString(),
             CONVERSATION_START,
           ),
