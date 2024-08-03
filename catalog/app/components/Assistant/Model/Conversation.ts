@@ -3,6 +3,7 @@ import * as uuid from 'uuid'
 
 import * as Actor from 'utils/Actor'
 import * as Log from 'utils/Logging'
+import * as XML from 'utils/XML'
 
 import * as Content from './Content'
 import * as Context from './Context'
@@ -356,6 +357,8 @@ const constructPrompt = (
         ],
       )
 
+      const currentTime = new Date(yield* Eff.Clock.currentTimeMillis).toISOString()
+
       // prompt structure
       // - task context
       // - tone context
@@ -375,6 +378,7 @@ const constructPrompt = (
             TASK_CONTEXT,
             TASK_DESCRIPTION,
             `<context>\n${context.messages.join('\n')}\n</context>`,
+            XML.tag('current-time', {}, currentTime).toString(),
             CONVERSATION_START,
           ),
         ),
