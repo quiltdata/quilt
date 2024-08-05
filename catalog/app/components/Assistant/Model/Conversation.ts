@@ -10,7 +10,7 @@ import * as Context from './Context'
 import * as LLM from './LLM'
 import * as Tool from './Tool'
 
-const MODULE = 'Assistant/Conversation'
+const MODULE = 'Conversation'
 
 // TODO: make this a globally available service?
 const genId = Eff.Effect.sync(uuid.v4)
@@ -24,6 +24,7 @@ interface ToolCall {
 interface EventBase {
   readonly id: string
   readonly timestamp: Date
+  readonly discarded?: boolean
 }
 
 // XXX: add "aborted" event?
@@ -118,7 +119,7 @@ export const init = State.Idle({
 
 const llmRequest = (events: Event[]) =>
   Log.scoped({
-    name: `${MODULE}.ConversationActor:llmRequest`,
+    name: `${MODULE}.llmRequest`,
     enter: [Log.br, 'events:', events],
   })(
     Eff.Effect.gen(function* () {
@@ -130,11 +131,9 @@ const llmRequest = (events: Event[]) =>
       const response = yield* llm.converse(prompt)
 
       if (Eff.Option.isNone(response.content)) {
-        const error = new Eff.Cause.UnknownException(
+        return yield* new Eff.Cause.UnknownException(
           new Error('No content in LLM response'),
         )
-        yield* error
-        throw error // won't actually throw
       }
 
       const [toolUses, content] = Eff.Array.partitionMap(response.content.value, (c) =>
@@ -170,13 +169,14 @@ export const ConversationActor = Eff.Effect.succeed(
             )
             return State.WaitingForAssistant({ events, requestFiber })
           }),
-
         Clear: () =>
           Eff.Effect.succeed(State.Idle({ events: [], error: Eff.Option.none() })),
         Discard: (state, { id }) =>
           Eff.Effect.succeed({
             ...state,
-            events: state.events.filter((e) => e.id !== id),
+            events: state.events.map((e) =>
+              e.id === id ? { ...e, discarded: true } : e,
+            ),
           }),
       },
       WaitingForAssistant: {
