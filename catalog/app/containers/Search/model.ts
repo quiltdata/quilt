@@ -1042,10 +1042,12 @@ export type SearhHitPackage = Extract<
 
 export type SearchHit = SearhHitObject | SearhHitPackage
 
-export type PackageUserMetaFacet = Extract<
+type PackageUserMetaFacetFull = Extract<
   GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
 >['stats']['userMeta'][number]
+
+export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
 
 const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,
