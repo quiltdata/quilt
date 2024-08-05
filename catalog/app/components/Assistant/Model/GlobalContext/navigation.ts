@@ -7,6 +7,7 @@ import search from 'containers/Search/Route'
 import * as ROUTES from 'constants/routes'
 import * as Log from 'utils/Logging'
 import * as Nav from 'utils/Navigation'
+import * as XML from 'utils/XML'
 
 import * as Content from '../Content'
 import * as Context from '../Context'
@@ -103,7 +104,9 @@ type KnownRoute = (typeof routeList)[number]
 type KnownRouteMap = {
   [K in KnownRoute['name']]: Extract<KnownRoute, { name: K }>
 }
-const routes = Object.fromEntries(routeList.map((r) => [r.name, r])) as KnownRouteMap
+export const routes = Object.fromEntries(
+  routeList.map((r) => [r.name, r]),
+) as KnownRouteMap
 
 export const NavigableRouteSchema = S.Union(
   ...routeList.map((r) => r.navigableRouteSchema),
@@ -191,34 +194,26 @@ export function useRouteContext() {
   const description = React.useMemo(() => {
     if (!match) return ''
     const params = match.decoded?.params
-      ? `
-<parameters>
-  ${JSON.stringify(match.decoded.params, null, 2)}
-</parameters>
-`
-      : ''
-    return `
-<route-info>
-  Name: "${match.descriptor.name}"
-  <description>
-    ${match.descriptor.description}
-  </description>
-  ${params}
-</route-info>
-`
+      ? XML.tag('parameters', {}, JSON.stringify(match.decoded.params, null, 2))
+      : null
+    return XML.tag(
+      'route-info',
+      {},
+      `Name: "${match.descriptor.name}"`,
+      XML.tag('description', {}, match.descriptor.description),
+      params,
+    )
   }, [match])
 
   const msg = React.useMemo(
     () =>
-      `
-<viewport>
-  <current-location>
-    ${JSON.stringify(loc, null, 2)}
-  </current-location>
-  ${description}
-  Refer to "navigate" tool schema for navigable routes and their parameters.
-</viewport>
-`,
+      XML.tag(
+        'viewport',
+        {},
+        XML.tag('current-location', {}, JSON.stringify(loc, null, 2)),
+        description,
+        'Refer to "navigate" tool schema for navigable routes and their parameters.',
+      ).toString(),
     [description, loc],
   )
 
