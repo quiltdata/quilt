@@ -29,7 +29,6 @@ const EntrySchema = S.Struct({
 
 export const UserMetaFiltersSchema = S.Array(EntrySchema)
 
-// const TYPE_MAP: Record<string, Predicates.KnownPredicate> = {
 const TYPE_MAP = {
   d: Predicates.Datetime,
   n: Predicates.Number,
@@ -85,15 +84,13 @@ export const fromSearchParams = S.transform(Nav.SearchParams, UserMetaFiltersSch
     ),
   ),
   // json api to qs
-  // if (v == null) return params
-  // if (s == null) return params
   encode: Eff.flow(
     Eff.Array.reduce({}, (acc, { path, predicate: { type, value } }) =>
       Eff.pipe(
         // @ts-expect-error
         value,
         // @ts-expect-error
-        S.encode(PREDICATE_TYPE_MAP[type].str),
+        S.encodeOption(PREDICATE_TYPE_MAP[type].str),
         Eff.Option.match({
           onNone: () => acc,
           onSome: (s) => ({
