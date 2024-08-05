@@ -4,10 +4,36 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigableRouteSchema 
 {
   "name": "search",
   "params": {
+    "buckets": [],
+    "order": "NEWEST",
     "params": {
-      "resultType": "o",
+      "filter": [],
+      "resultType": "p",
+      "userMetaFilters": [
+        {
+          "path": "/author",
+          "predicate": {
+            "type": "KeywordEnum",
+            "value": {
+              "terms": [
+                "Aneesh",
+                "Maksim",
+              ],
+            },
+          },
+        },
+      ],
     },
+    "searchString": "",
   },
+}
+`;
+
+exports[`components/Assistant/Model/GlobalTools/navigation NavigableRouteSchema should decode input 2`] = `
+{
+  "hash": "",
+  "pathname": "/search",
+  "search": "o=NEWEST&meta.e%2Fauthor=%22Aneesh%22%2C%22Maksim%22",
 }
 `;
 
