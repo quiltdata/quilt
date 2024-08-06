@@ -30,7 +30,7 @@ function useConstructAssistantAPI() {
   )
   const [state, dispatch] = Actor.useActorLayer(
     Conversation.ConversationActor,
-    Eff.Effect.succeed(Conversation.init),
+    Conversation.init,
     layerEff,
   )
 

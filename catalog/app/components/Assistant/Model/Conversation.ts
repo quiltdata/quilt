@@ -15,7 +15,7 @@ const MODULE = 'Conversation'
 // TODO: make this a globally available service?
 const genId = Eff.Effect.sync(uuid.v4)
 
-interface ToolCall {
+export interface ToolCall {
   readonly name: string
   readonly input: Record<string, any>
   readonly fiber: Eff.Fiber.RuntimeFiber<void>
@@ -49,12 +49,16 @@ export type Event = Eff.Data.TaggedEnum<{
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Event = Eff.Data.taggedEnum<Event>()
 
+interface StateBase {
+  readonly events: Event[]
+  readonly timestamp: Date
+}
+
 export type State = Eff.Data.TaggedEnum<{
   /**
    * Waiting for user input
    */
-  Idle: {
-    readonly events: Event[]
+  Idle: StateBase & {
     readonly error: Eff.Option.Option<{
       message: string
       details: string
@@ -64,16 +68,14 @@ export type State = Eff.Data.TaggedEnum<{
   /**
    * Waiting for assistant (LLM) to respond
    */
-  WaitingForAssistant: {
-    readonly events: Event[]
+  WaitingForAssistant: StateBase & {
     readonly requestFiber: Eff.Fiber.RuntimeFiber<boolean>
   }
 
   /**
    * Tool use in progress
    */
-  ToolUse: {
-    readonly events: Event[]
+  ToolUse: StateBase & {
     // TODO: use HashMap?
     readonly calls: Record<string, ToolCall>
     // readonly retries: number
@@ -112,9 +114,12 @@ export type Action = Eff.Data.TaggedEnum<{
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Action = Eff.Data.taggedEnum<Action>()
 
-export const init = State.Idle({
-  events: [],
-  error: Eff.Option.none(),
+export const init = Eff.Effect.gen(function* () {
+  return State.Idle({
+    timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
+    events: [],
+    error: Eff.Option.none(),
+  })
 })
 
 const llmRequest = (events: Event[]) =>
@@ -153,9 +158,10 @@ export const ConversationActor = Eff.Effect.succeed(
       Idle: {
         Ask: (state, action, dispatch) =>
           Eff.Effect.gen(function* () {
+            const timestamp = new Date(yield* Eff.Clock.currentTimeMillis)
             const event = Event.Message({
               id: yield* genId,
-              timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
+              timestamp,
               role: 'user',
               content: Content.text(action.content),
             })
@@ -167,10 +173,13 @@ export const ConversationActor = Eff.Effect.succeed(
               (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
               (error) => Eff.Effect.succeed(Action.LLMError({ error })),
             )
-            return State.WaitingForAssistant({ events, requestFiber })
+            return State.WaitingForAssistant({ events, timestamp, requestFiber })
           }),
         Clear: () =>
-          Eff.Effect.succeed(State.Idle({ events: [], error: Eff.Option.none() })),
+          Eff.Effect.gen(function* () {
+            const timestamp = new Date(yield* Eff.Clock.currentTimeMillis)
+            return State.Idle({ events: [], timestamp, error: Eff.Option.none() })
+          }),
         Discard: (state, { id }) =>
           Eff.Effect.succeed({
             ...state,
@@ -184,6 +193,7 @@ export const ConversationActor = Eff.Effect.succeed(
           Eff.Effect.gen(function* () {
             return State.Idle({
               events: state.events,
+              timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
               error: Eff.Option.some({
                 message: 'Error while interacting with LLM. Please try again.',
                 details: `${error}`,
@@ -210,7 +220,8 @@ export const ConversationActor = Eff.Effect.succeed(
               )
             }
 
-            if (!toolUses.length) return State.Idle({ events, error: Eff.Option.none() })
+            if (!toolUses.length)
+              return State.Idle({ events, timestamp, error: Eff.Option.none() })
 
             const ctxService = yield* Context.ConversationContext
             const { tools } = yield* ctxService.context
@@ -229,7 +240,7 @@ export const ConversationActor = Eff.Effect.succeed(
               }
             }
 
-            return State.ToolUse({ events, calls })
+            return State.ToolUse({ events, timestamp: state.timestamp, calls })
           }),
         Abort: (state) =>
           Eff.Effect.gen(function* () {
@@ -259,7 +270,8 @@ export const ConversationActor = Eff.Effect.succeed(
               events = events.concat(event)
             }
 
-            if (Object.keys(calls).length) return State.ToolUse({ events, calls })
+            if (Object.keys(calls).length)
+              return State.ToolUse({ events, timestamp: state.timestamp, calls })
 
             // all calls completed, send results back to LLM
             const requestFiber = yield* Actor.forkRequest(
@@ -268,7 +280,12 @@ export const ConversationActor = Eff.Effect.succeed(
               (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
               (error) => Eff.Effect.succeed(Action.LLMError({ error })),
             )
-            return State.WaitingForAssistant({ events, requestFiber })
+            return State.WaitingForAssistant({
+              events,
+
+              timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
+              requestFiber,
+            })
           }),
         Abort: (state) =>
           Eff.Effect.gen(function* () {

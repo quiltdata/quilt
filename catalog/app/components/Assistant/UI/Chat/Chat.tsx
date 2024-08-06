@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 // import * as Lab from '@material-ui/lab'
 
+import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
 
 import * as Model from '../../Model'
@@ -53,6 +54,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   contents: {
     ...t.typography.body2,
     color: t.palette.text.primary,
+    maxWidth: 'calc(50vw - 112px)',
     padding: `${t.spacing(1.5)}px`,
   },
   footer: {
@@ -131,19 +133,26 @@ function MessageAction({ children, onClick }: MessageActionProps) {
 
 type ConversationDispatch = (action: Model.Conversation.Action) => void
 
-interface MessageSharedProps {
+interface ConversationDispatchProps {
   dispatch: ConversationDispatch
+}
+
+interface ConversationStateProps {
   state: Model.Conversation.State['_tag']
 }
 
-function Message({
+type MessageEventProps = ConversationDispatchProps &
+  ConversationStateProps &
+  ReturnType<typeof Model.Conversation.Event.Message>
+
+function MessageEvent({
   state,
   id,
   timestamp,
   dispatch,
   role,
   content,
-}: MessageSharedProps & ReturnType<typeof Model.Conversation.Event.Message>) {
+}: MessageEventProps) {
   const discard = React.useMemo(
     () =>
       state === 'Idle' ? () => dispatch(Model.Conversation.Action.Discard({ id })) : null,
@@ -152,7 +161,7 @@ function Message({
   return (
     <MessageContainer
       role={role}
-      actions={<>{discard && <MessageAction onClick={discard}>discard</MessageAction>}</>}
+      actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
       timestamp={timestamp}
     >
       {Model.Content.MessageContentBlock.$match(content, {
@@ -164,44 +173,79 @@ function Message({
   )
 }
 
-type ToolUseEvent = ReturnType<typeof Model.Conversation.Event.ToolUse>
-interface ToolUseProps
-  extends MessageSharedProps,
-    Omit<ToolUseEvent, '_tag' | 'timestamp' | 'id' | 'result'> {
-  result?: ToolUseEvent['result']
-}
+type ToolUseEventProps = ConversationDispatchProps &
+  ConversationStateProps &
+  ReturnType<typeof Model.Conversation.Event.ToolUse>
 
-function ToolUse({
-  // id,
-  // timestamp,
+function ToolUseEvent({
+  state,
+  id,
+  timestamp,
   toolUseId,
   name,
   input,
-  result, // dispatch,
-}: ToolUseProps) {
-  const details = (
-    <>
-      <b>Tool Use ID:</b> {toolUseId}
-      <br />
-      <b>Tool Name:</b> {name}
-      <br />
-      <b>Input:</b>
-      <pre>{JSON.stringify(input, null, 2)}</pre>
-      {!!result && (
-        <>
-          <b>Result:</b>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        </>
-      )}
-    </>
+  result,
+  dispatch,
+}: ToolUseEventProps) {
+  const discard = React.useMemo(
+    () =>
+      state === 'Idle' ? () => dispatch(Model.Conversation.Action.Discard({ id })) : null,
+    [dispatch, id, state],
   )
+  const details = React.useMemo(
+    () => ({ toolUseId, input, result }),
+    [toolUseId, input, result],
+  )
+  // FIXME: JsonDisplay expansion doesn't work
   return (
-    <MessageContainer role="assistant">
-      <M.Tooltip title={details}>
-        <span>
-          Tool Use: <b>{name}</b> ({result?.status ?? 'in progress'})
-        </span>
-      </M.Tooltip>
+    <MessageContainer
+      role="assistant"
+      timestamp={timestamp}
+      actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
+    >
+      <span>
+        Tool Use: <b>{name}</b> ({result.status})
+      </span>
+      <M.Box py={0.5}>
+        {/* @ts-expect-error */}
+        <JsonDisplay name="details" value={details} />
+      </M.Box>
+    </MessageContainer>
+  )
+}
+
+interface ToolUseStateProps
+  extends ConversationDispatchProps,
+    Model.Conversation.ToolCall {
+  toolUseId: string
+  timestamp: Date
+}
+
+function ToolUseState({
+  timestamp,
+  toolUseId,
+  name,
+  input,
+  dispatch,
+}: ToolUseStateProps) {
+  const abort = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Abort()),
+    [dispatch],
+  )
+  const details = React.useMemo(() => ({ toolUseId, input }), [toolUseId, input])
+  return (
+    <MessageContainer
+      role="assistant"
+      timestamp={timestamp}
+      actions={<MessageAction onClick={abort}>abort</MessageAction>}
+    >
+      <span>
+        Tool Use: <b>{name}</b> (in progress)
+      </span>
+      <M.Box py={0.5}>
+        {/* @ts-expect-error */}
+        <JsonDisplay name="details" value={details} />
+      </M.Box>
     </MessageContainer>
   )
 }
@@ -319,7 +363,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
             .map(
               Model.Conversation.Event.$match({
                 Message: (event) => (
-                  <Message
+                  <MessageEvent
                     state={state._tag}
                     key={event.id}
                     dispatch={dispatch}
@@ -327,7 +371,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
                   />
                 ),
                 ToolUse: (event) => (
-                  <ToolUse
+                  <ToolUseEvent
                     state={state._tag}
                     key={event.id}
                     dispatch={dispatch}
@@ -340,7 +384,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
             Idle: (s) =>
               Eff.Option.match(s.error, {
                 onSome: (e) => (
-                  <MessageContainer role="assistant">
+                  <MessageContainer role="assistant" timestamp={s.timestamp}>
                     Error occurred:
                     {e.message}
                     {e.details}
@@ -349,14 +393,17 @@ export default function Chat({ state, dispatch }: ChatProps) {
                 ),
                 onNone: () => null,
               }),
-            WaitingForAssistant: () => (
-              <MessageContainer role="assistant">Processing...</MessageContainer>
+            WaitingForAssistant: (s) => (
+              // TODO: abort
+              <MessageContainer role="assistant" timestamp={s.timestamp}>
+                Processing...
+              </MessageContainer>
             ),
-            ToolUse: ({ calls }) =>
+            ToolUse: ({ calls, timestamp }) =>
               Object.entries(calls).map(([id, call]) => (
-                <ToolUse
-                  state={state._tag}
+                <ToolUseState
                   key={id}
+                  timestamp={timestamp}
                   dispatch={dispatch}
                   toolUseId={id}
                   {...call}
