@@ -11,6 +11,124 @@ import * as Model from '../../Model'
 import Input from './Input'
 import backgroundPattern from './bg.svg'
 
+const USER_BG = M.colors.cyan[100]
+
+const useMessageContainerStyles = M.makeStyles((t) => ({
+  role_user: {},
+  role_assistant: {},
+  messageContainer: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    gap: `${t.spacing(1)}px`,
+    '&$role_user': {
+      alignSelf: 'flex-end',
+      flexFlow: 'row-reverse',
+    },
+    '&$role_assistant': {
+      alignSelf: 'flex-start',
+    },
+  },
+  avatar: {
+    color: t.palette.text.primary,
+    height: `${t.spacing(4)}px`,
+    width: `${t.spacing(4)}px`,
+    '$role_user &': {
+      background: USER_BG,
+    },
+    '$role_assistant &': {
+      background: t.palette.background.paper,
+    },
+  },
+  contentArea: {
+    borderRadius: `${t.spacing(1)}px`,
+    '$role_user &': {
+      background: USER_BG,
+      borderBottomRightRadius: 0,
+    },
+    '$role_assistant &': {
+      background: t.palette.background.paper,
+      borderBottomLeftRadius: 0,
+    },
+  },
+  contents: {
+    ...t.typography.body2,
+    color: t.palette.text.primary,
+    padding: `${t.spacing(1.5)}px`,
+  },
+  footer: {
+    ...t.typography.caption,
+    color: t.palette.text.hint,
+    display: 'flex',
+    gap: t.spacing(1),
+    justifyContent: 'flex-end',
+    padding: t.spacing(0, 1.5, 1, 1.5),
+    marginTop: t.spacing(-1.5),
+  },
+  actions: {
+    opacity: 0.5,
+    '$messageContainer:hover &': {
+      opacity: 1,
+    },
+  },
+  spacer: {
+    flexShrink: 0,
+    width: `${t.spacing(4)}px`,
+  },
+}))
+
+interface MessageContainerProps {
+  role: 'user' | 'assistant'
+  children: React.ReactNode
+  actions?: React.ReactNode
+  timestamp?: Date
+}
+
+function MessageContainer({ role, children, actions, timestamp }: MessageContainerProps) {
+  const classes = useMessageContainerStyles()
+  return (
+    <div className={cx(classes.messageContainer, classes[`role_${role}`])}>
+      <M.Avatar className={classes.avatar}>
+        <M.Icon fontSize="small">{role === 'user' ? 'person' : 'assistant'}</M.Icon>
+      </M.Avatar>
+      <div className={classes.contentArea}>
+        <div className={classes.contents}>{children}</div>
+        {!!(actions || timestamp) && (
+          <div className={classes.footer}>
+            {!!actions && <div className={classes.actions}>{actions}</div>}
+            {timestamp && <span>{timestamp.toLocaleTimeString()}</span>}
+          </div>
+        )}
+      </div>
+      <div className={classes.spacer} />
+    </div>
+  )
+}
+
+const useMessageActionStyles = M.makeStyles({
+  action: {
+    cursor: 'pointer',
+    opacity: 0.5,
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+})
+
+interface MessageActionProps {
+  children: React.ReactNode
+  className?: string
+  onClick?: () => void
+}
+
+function MessageAction({ children, onClick }: MessageActionProps) {
+  const classes = useMessageActionStyles()
+  return (
+    <span className={classes.action} onClick={onClick}>
+      {children}
+    </span>
+  )
+}
+
 type ConversationDispatch = (action: Model.Conversation.Action) => void
 
 interface MessageSharedProps {
@@ -19,28 +137,23 @@ interface MessageSharedProps {
 }
 
 function Message({
-  // state,
-  // id,
-  // timestamp,
-  // dispatch,
+  state,
+  id,
+  timestamp,
+  dispatch,
   role,
   content,
 }: MessageSharedProps & ReturnType<typeof Model.Conversation.Event.Message>) {
-  // const discard = React.useCallback(() => {
-  //   if (state !== 'Idle') return
-  //   dispatch(Model.Conversation.Action.Discard({ id }))
-  // }, [dispatch, id, state])
-  // TODO: only show action on hover?
+  const discard = React.useMemo(
+    () =>
+      state === 'Idle' ? () => dispatch(Model.Conversation.Action.Discard({ id })) : null,
+    [dispatch, id, state],
+  )
   return (
     <MessageContainer
       role={role}
-      // action={
-      //   <M.Tooltip title="Discard">
-      //     <M.IconButton onClick={discard} size="small" disabled={state !== 'Idle'}>
-      //       <M.Icon>close</M.Icon>
-      //     </M.IconButton>
-      //   </M.Tooltip>
-      // }
+      actions={<>{discard && <MessageAction onClick={discard}>discard</MessageAction>}</>}
+      timestamp={timestamp}
     >
       {Model.Content.MessageContentBlock.$match(content, {
         Text: ({ text }) => <Markdown data={text} />,
@@ -124,73 +237,6 @@ function ToolUse({
 //     },
 //   },
 // }))
-
-const USER_BG = M.colors.cyan[100]
-
-const useMessageContainerStyles = M.makeStyles((t) => ({
-  role_user: {},
-  role_assistant: {},
-  messageContainer: {
-    alignItems: 'flex-end',
-    display: 'flex',
-    gap: `${t.spacing(1)}px`,
-    '&$role_user': {
-      alignSelf: 'flex-end',
-      flexFlow: 'row-reverse',
-    },
-    '&$role_assistant': {
-      alignSelf: 'flex-start',
-    },
-  },
-  avatar: {
-    color: t.palette.text.primary,
-    height: `${t.spacing(4)}px`,
-    width: `${t.spacing(4)}px`,
-    '$role_user &': {
-      background: USER_BG,
-    },
-    '$role_assistant &': {
-      background: t.palette.background.paper,
-    },
-  },
-  contents: {
-    borderRadius: `${t.spacing(1)}px`,
-    color: t.palette.text.primary,
-    padding: `${t.spacing(1.5)}px`,
-    ...t.typography.body2,
-    '$role_user &': {
-      background: USER_BG,
-      borderBottomRightRadius: 0,
-    },
-    '$role_assistant &': {
-      background: t.palette.background.paper,
-      borderBottomLeftRadius: 0,
-    },
-  },
-  action: {
-    flexShrink: 0,
-    width: `${t.spacing(4)}px`,
-  },
-}))
-
-interface MessageContainerProps {
-  role: 'user' | 'assistant'
-  children: React.ReactNode
-  action?: React.ReactNode
-}
-
-function MessageContainer({ role, children, action }: MessageContainerProps) {
-  const classes = useMessageContainerStyles()
-  return (
-    <div className={cx(classes.messageContainer, classes[`role_${role}`])}>
-      <M.Avatar className={classes.avatar}>
-        <M.Icon fontSize="small">{role === 'user' ? 'person' : 'assistant'}</M.Icon>
-      </M.Avatar>
-      <div className={classes.contents}>{children}</div>
-      <div className={classes.action}>{!!action && action}</div>
-    </div>
-  )
-}
 
 const useChatStyles = M.makeStyles((t) => ({
   chat: {
