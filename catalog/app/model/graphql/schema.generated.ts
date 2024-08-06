@@ -98,8 +98,33 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'setSsoConfig',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'SetSsoConfigResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'config',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
       },
       {
         kind: 'OBJECT',
@@ -114,6 +139,15 @@ export default {
                 name: 'UserAdminQueries',
                 ofType: null,
               },
+            },
+            args: [],
+          },
+          {
+            name: 'ssoConfig',
+            type: {
+              kind: 'OBJECT',
+              name: 'SsoConfig',
+              ofType: null,
             },
             args: [],
           },
@@ -143,10 +177,6 @@ export default {
             name: 'IPackageUserMetaFacet',
           },
         ],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
       },
       {
         kind: 'SCALAR',
@@ -4278,6 +4308,10 @@ export default {
           },
           {
             kind: 'OBJECT',
+            name: 'RoleNameUsedBySsoConfig',
+          },
+          {
+            kind: 'OBJECT',
             name: 'RoleAssigned',
           },
         ],
@@ -4411,6 +4445,22 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'RoleNameUsedBySsoConfig',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
         kind: 'UNION',
         name: 'RoleSetDefaultResult',
         possibleTypes: [
@@ -4421,6 +4471,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'RoleDoesNotExist',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'SsoConfigExists',
           },
         ],
       },
@@ -4462,6 +4516,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'RoleNameInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameUsedBySsoConfig',
           },
           {
             kind: 'OBJECT',
@@ -4722,8 +4780,85 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'UNION',
+        name: 'SetSsoConfigResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
         kind: 'OBJECT',
         name: 'SnsInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SsoConfig',
+        fields: [
+          {
+            name: 'text',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'timestamp',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'uploader',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'User',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SsoConfigExists',
         fields: [
           {
             name: '_',

@@ -339,6 +339,9 @@ function Delete({ role, close }: DeleteProps) {
             `Unable to delete role "${role.name}" assigned to some user(s). Unassign this role from everyone and try again.`,
           )
           return
+        case 'RoleNameUsedBySsoConfig':
+          push("Shouldn't happen")
+          return
         default:
           assertNever(r)
       }
@@ -387,6 +390,8 @@ function SetDefault({ role, close }: SetDefaultProps) {
         case 'RoleDoesNotExist':
           throw new Error(r.__typename)
         case 'RoleSetDefaultSuccess':
+          return
+        case 'SsoConfigExists':
           return
         default:
           assertNever(r)
@@ -488,6 +493,7 @@ function Edit({ role, close }: EditProps) {
             return { policies: 'Too many policies to attach' }
           case 'RoleIsManaged':
           case 'RoleIsUnmanaged':
+          case 'RoleNameUsedBySsoConfig':
             throw new Error(r.__typename)
           default:
             return assertNever(r)

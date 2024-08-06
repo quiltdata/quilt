@@ -497,8 +497,15 @@ type UserAdminQueries {
   get(name: String!): User
 }
 
+type SsoConfig {
+  text: String!
+  timestamp: Datetime!
+  uploader: User!
+}
+
 type AdminQueries {
   user: UserAdminQueries!
+  ssoConfig: SsoConfig
 }
 
 type MyRole {
@@ -693,6 +700,10 @@ type RoleNameInvalid {
   _: Boolean
 }
 
+type RoleNameUsedBySsoConfig {
+  _: Boolean
+}
+
 type RoleDoesNotExist {
   _: Boolean
 }
@@ -729,6 +740,7 @@ union RoleUpdateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
@@ -745,9 +757,14 @@ union RoleDeleteResult =
     RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
+  | RoleNameUsedBySsoConfig
   | RoleAssigned
 
-union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+type SsoConfigExists {
+  _: Boolean
+}
+
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigExists
 
 type RoleSetDefaultSuccess {
   role: Role!
@@ -860,8 +877,11 @@ type UserAdminMutations {
   mutate(name: String!): MutateUserAdminMutations
 }
 
+union SetSsoConfigResult = Ok | InvalidInput | OperationError
+
 type AdminMutations {
   user: UserAdminMutations!
+  setSsoConfig(config: String): SetSsoConfigResult!
 }
 
 type Mutation {

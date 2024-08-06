@@ -39,11 +39,17 @@ export interface AccessCounts {
 export interface AdminMutations {
   readonly __typename: 'AdminMutations'
   readonly user: UserAdminMutations
+  readonly setSsoConfig: SetSsoConfigResult
+}
+
+export interface AdminMutationssetSsoConfigArgs {
+  config: Maybe<Scalars['String']>
 }
 
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
+  readonly ssoConfig: Maybe<SsoConfig>
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -924,6 +930,7 @@ export type RoleDeleteResult =
   | RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
+  | RoleNameUsedBySsoConfig
   | RoleAssigned
 
 export interface RoleDeleteSuccess {
@@ -966,7 +973,15 @@ export interface RoleNameReserved {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
-export type RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+export interface RoleNameUsedBySsoConfig {
+  readonly __typename: 'RoleNameUsedBySsoConfig'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export type RoleSetDefaultResult =
+  | RoleSetDefaultSuccess
+  | RoleDoesNotExist
+  | SsoConfigExists
 
 export interface RoleSetDefaultSuccess {
   readonly __typename: 'RoleSetDefaultSuccess'
@@ -978,6 +993,7 @@ export type RoleUpdateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
@@ -1019,6 +1035,8 @@ export enum SearchResultOrder {
   OLDEST = 'OLDEST',
 }
 
+export type SetSsoConfigResult = Ok | InvalidInput | OperationError
+
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
   readonly _: Maybe<Scalars['Boolean']>
@@ -1027,6 +1045,18 @@ export interface SnsInvalid {
 export enum SortDirection {
   ASC = 'ASC',
   DESC = 'DESC',
+}
+
+export interface SsoConfig {
+  readonly __typename: 'SsoConfig'
+  readonly text: Scalars['String']
+  readonly timestamp: Scalars['Datetime']
+  readonly uploader: User
+}
+
+export interface SsoConfigExists {
+  readonly __typename: 'SsoConfigExists'
+  readonly _: Maybe<Scalars['Boolean']>
 }
 
 export interface Status {
