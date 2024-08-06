@@ -161,8 +161,6 @@ class PhysicalKey:
                 raise URLParseError(f"Unexpected S3 query string: {parsed.query!r}")
             return cls(bucket, path, version_id)
         elif parsed.scheme == 'file':
-            if parsed.netloc not in ('', 'localhost'):
-                raise URLParseError("Unexpected hostname")
             if not parsed.path:
                 raise URLParseError("Missing path")
             if not parsed.path.startswith('/'):
