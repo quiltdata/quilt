@@ -665,7 +665,11 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
         submitting,
       }) => (
         <>
-          <M.DialogTitle>Assign roles to &quot;{user.name}&quot;</M.DialogTitle>
+          <M.DialogTitle>
+            {user.isRoleAssignmentDisabled
+              ? `Roles assigned to "${user.name}"`
+              : `Assign roles to "${user.name}"`}
+          </M.DialogTitle>
           <M.DialogContent>
             <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelect.Value> name="roles" validate={RoleSelect.validate}>
@@ -673,6 +677,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
+                    nonEditable={user.isRoleAssignmentDisabled}
                     {...props}
                   />
                 )}
@@ -682,30 +687,43 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
               </Form.FormErrorAuto>
             </DialogForm>
           </M.DialogContent>
-          <M.DialogActions>
-            <M.Button
-              onClick={() => form.reset()}
-              color="primary"
-              disabled={pristine || submitting}
-            >
-              Reset
-            </M.Button>
-            <M.Button onClick={close} color="primary" disabled={submitting}>
-              Cancel
-            </M.Button>
-            <M.Button
-              onClick={handleSubmit}
-              color="primary"
-              variant="contained"
-              disabled={
-                submitting ||
-                (hasValidationErrors && submitFailed) ||
-                (hasSubmitErrors && !modifiedSinceLastSubmit)
-              }
-            >
-              Save
-            </M.Button>
-          </M.DialogActions>
+          {user.isRoleAssignmentDisabled ? (
+            <M.DialogActions>
+              <M.Button
+                color="primary"
+                disabled={submitting}
+                onClick={close}
+                variant="contained"
+              >
+                Ok
+              </M.Button>
+            </M.DialogActions>
+          ) : (
+            <M.DialogActions>
+              <M.Button
+                onClick={() => form.reset()}
+                color="primary"
+                disabled={pristine || submitting}
+              >
+                Reset
+              </M.Button>
+              <M.Button onClick={close} color="primary" disabled={submitting}>
+                Cancel
+              </M.Button>
+              <M.Button
+                onClick={handleSubmit}
+                color="primary"
+                variant="contained"
+                disabled={
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
+              >
+                Save
+              </M.Button>
+            </M.DialogActions>
+          )}
         </>
       )}
     </RF.Form>
@@ -820,7 +838,7 @@ function RoleDisplay({ user, roles, defaultRole, openDialog }: RoleDisplayProps)
     })
 
   return (
-    <M.Tooltip title="Click to edit">
+    <M.Tooltip title={user.isRoleAssignmentDisabled ? 'Click to view' : 'Click to edit'}>
       <Clickable onClick={edit}>
         {user.role?.name ?? emptyRole}
         {user.extraRoles.length > 0 && <Hint> +{user.extraRoles.length}</Hint>}
@@ -911,7 +929,7 @@ const columns: Table.Column<User>[] = [
     getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => (
       <EditableSwitch
         hint="Admins can see this page, add/remove users, and make/remove admins"
-        disabled={isSelf}
+        disabled={isSelf || u.isAdminAssignmentDisabled}
         checked={u.isAdmin}
         onChange={(admin) =>
           openDialog<boolean>(
