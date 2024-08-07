@@ -7,6 +7,10 @@ import pytest
 from quilt3 import admin
 from quilt3.admin import _graphql_client
 
+OK = {
+    "__typename": "Ok",
+    "_": None,
+}
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
     "id": "d7d15bef-c482-4086-ae6b-d0372b6145d2",
@@ -31,6 +35,12 @@ USER = {
     "isService": False,
     "role": UNMANAGED_ROLE,
     "extraRoles": [MANAGED_ROLE],
+}
+SSO_CONFIG = {
+    "__typename": "SsoConfig",
+    "text": "",
+    "timestamp": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    "uploader": USER,
 }
 MUTATION_ERRORS = (
     (
@@ -324,3 +334,31 @@ def test_remove_roles(data, result):
                 admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole")
         else:
             assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole") == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (None, None),
+    ],
+)
+def test_sso_config_get(data, result):
+    with mock_client(_make_nested_dict("admin.sso_config", data), "ssoConfigGet"):
+        assert admin.sso_config.get() == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (OK, None),
+        *MUTATION_ERRORS,
+    ],
+)
+def test_sso_config_set(data, result):
+    with mock_client(_make_nested_dict("admin.set_sso_config", data), "ssoConfigSet", variables={"config": ""}):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.sso_config.set("")
+        else:
+            assert admin.sso_config.set("") == result
