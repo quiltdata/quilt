@@ -6,4 +6,4 @@ APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services
 
 from . import roles, sso_config, users
 from .exceptions import Quilt3AdminError, UserNotFoundError
-from .types import ManagedRole, UnmanagedRole, User
+from .types import ManagedRole, UnmanagedRole, SSOConfig, User

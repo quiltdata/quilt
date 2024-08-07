@@ -188,13 +188,19 @@ mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String)
   }
 }
 
-query getSsoConfig {
+query ssoConfigGet {
   admin {
-    ssoConfig
+    ssoConfig {
+      text
+      timestamp
+      uploader {
+        ...UserSelection
+      }
+    }
   }
 }
 
-mutation setSsoConfig($config: String) {
+mutation ssoConfigSet($config: String) {
   admin {
     setSsoConfig(config: $config) {
       ... on Ok {

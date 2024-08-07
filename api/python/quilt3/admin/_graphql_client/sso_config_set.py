@@ -9,30 +9,30 @@ from .base_model import BaseModel
 from .fragments import InvalidInputSelection, OperationErrorSelection
 
 
-class SetSsoConfig(BaseModel):
-    admin: "SetSsoConfigAdmin"
+class SsoConfigSet(BaseModel):
+    admin: "SsoConfigSetAdmin"
 
 
-class SetSsoConfigAdmin(BaseModel):
+class SsoConfigSetAdmin(BaseModel):
     set_sso_config: Union[
-        "SetSsoConfigAdminSetSsoConfigOk",
-        "SetSsoConfigAdminSetSsoConfigInvalidInput",
-        "SetSsoConfigAdminSetSsoConfigOperationError",
+        "SsoConfigSetAdminSetSsoConfigOk",
+        "SsoConfigSetAdminSetSsoConfigInvalidInput",
+        "SsoConfigSetAdminSetSsoConfigOperationError",
     ] = Field(alias="setSsoConfig", discriminator="typename__")
 
 
-class SetSsoConfigAdminSetSsoConfigOk(BaseModel):
+class SsoConfigSetAdminSetSsoConfigOk(BaseModel):
     typename__: Literal["Ok"] = Field(alias="__typename")
     underscore_named_field_: Optional[bool] = Field(alias="_")
 
 
-class SetSsoConfigAdminSetSsoConfigInvalidInput(InvalidInputSelection):
+class SsoConfigSetAdminSetSsoConfigInvalidInput(InvalidInputSelection):
     typename__: Literal["InvalidInput"] = Field(alias="__typename")
 
 
-class SetSsoConfigAdminSetSsoConfigOperationError(OperationErrorSelection):
+class SsoConfigSetAdminSetSsoConfigOperationError(OperationErrorSelection):
     typename__: Literal["OperationError"] = Field(alias="__typename")
 
 
-SetSsoConfig.model_rebuild()
-SetSsoConfigAdmin.model_rebuild()
+SsoConfigSet.model_rebuild()
+SsoConfigSetAdmin.model_rebuild()

@@ -202,6 +202,8 @@ type User {
   isService: Boolean!
   role: Role
   extraRoles: [Role!]!
+  isRoleAssignmentDisabled: Boolean!
+  isAdminAssignmentDisabled: Boolean!
 }
 
 type AccessCountForDate {
@@ -497,9 +499,16 @@ type UserAdminQueries {
   get(name: String!): User
 }
 
+type SsoConfig {
+  text: String!
+  timestamp: Datetime!
+  uploader: User!
+}
+
 type AdminQueries {
   user: UserAdminQueries!
-  ssoConfig: String
+  ssoConfig: SsoConfig
+  isDefaultRoleSettingDisabled: Boolean!
 }
 
 type MyRole {
@@ -694,6 +703,10 @@ type RoleNameInvalid {
   _: Boolean
 }
 
+type RoleNameUsedBySsoConfig {
+  _: Boolean
+}
+
 type RoleDoesNotExist {
   _: Boolean
 }
@@ -730,6 +743,7 @@ union RoleUpdateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
@@ -746,9 +760,14 @@ union RoleDeleteResult =
     RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
+  | RoleNameUsedBySsoConfig
   | RoleAssigned
 
-union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+type SsoConfigConflict {
+  _: Boolean
+}
+
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigConflict
 
 type RoleSetDefaultSuccess {
   role: Role!

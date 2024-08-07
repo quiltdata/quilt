@@ -5,18 +5,18 @@ from typing import Any, Dict, List, Optional, Union
 
 from .base_client import BaseClient
 from .base_model import UNSET, UnsetType
-from .get_sso_config import GetSsoConfig
 from .input_types import UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
     RolesListRolesUnmanagedRole,
 )
-from .set_sso_config import (
-    SetSsoConfig,
-    SetSsoConfigAdminSetSsoConfigInvalidInput,
-    SetSsoConfigAdminSetSsoConfigOk,
-    SetSsoConfigAdminSetSsoConfigOperationError,
+from .sso_config_get import SsoConfigGet, SsoConfigGetAdminSsoConfig
+from .sso_config_set import (
+    SsoConfigSet,
+    SsoConfigSetAdminSetSsoConfigInvalidInput,
+    SsoConfigSetAdminSetSsoConfigOk,
+    SsoConfigSetAdminSetSsoConfigOperationError,
 )
 from .users_add_roles import UsersAddRoles, UsersAddRolesAdminUserMutate
 from .users_create import (
@@ -860,33 +860,74 @@ class Client(BaseClient):
         data = self.get_data(response)
         return UsersRemoveRoles.model_validate(data).admin.user.mutate
 
-    def get_sso_config(self, **kwargs: Any) -> Optional[str]:
+    def sso_config_get(self, **kwargs: Any) -> Optional[SsoConfigGetAdminSsoConfig]:
         query = gql(
             """
-            query getSsoConfig {
+            query ssoConfigGet {
               admin {
-                ssoConfig
+                ssoConfig {
+                  text
+                  timestamp
+                  uploader {
+                    ...UserSelection
+                  }
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
               }
             }
             """
         )
         variables: Dict[str, object] = {}
         response = self.execute(
-            query=query, operation_name="getSsoConfig", variables=variables, **kwargs
+            query=query, operation_name="ssoConfigGet", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return GetSsoConfig.model_validate(data).admin.sso_config
+        return SsoConfigGet.model_validate(data).admin.sso_config
 
-    def set_sso_config(
+    def sso_config_set(
         self, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
     ) -> Union[
-        SetSsoConfigAdminSetSsoConfigOk,
-        SetSsoConfigAdminSetSsoConfigInvalidInput,
-        SetSsoConfigAdminSetSsoConfigOperationError,
+        SsoConfigSetAdminSetSsoConfigOk,
+        SsoConfigSetAdminSetSsoConfigInvalidInput,
+        SsoConfigSetAdminSetSsoConfigOperationError,
     ]:
         query = gql(
             """
-            mutation setSsoConfig($config: String) {
+            mutation ssoConfigSet($config: String) {
               admin {
                 setSsoConfig(config: $config) {
                   __typename
@@ -917,7 +958,7 @@ class Client(BaseClient):
         )
         variables: Dict[str, object] = {"config": config}
         response = self.execute(
-            query=query, operation_name="setSsoConfig", variables=variables, **kwargs
+            query=query, operation_name="ssoConfigSet", variables=variables, **kwargs
         )
         data = self.get_data(response)
-        return SetSsoConfig.model_validate(data).admin.set_sso_config
+        return SsoConfigSet.model_validate(data).admin.set_sso_config
