@@ -196,7 +196,6 @@ function ToolUseEvent({
     () => ({ toolUseId, input, result }),
     [toolUseId, input, result],
   )
-  // FIXME: JsonDisplay expansion doesn't work
   return (
     <MessageContainer
       role="assistant"
@@ -207,7 +206,6 @@ function ToolUseEvent({
         Tool Use: <b>{name}</b> ({result.status})
       </span>
       <M.Box py={0.5}>
-        {/* @ts-expect-error */}
         <JsonDisplay name="details" value={details} />
       </M.Box>
     </MessageContainer>
@@ -243,7 +241,6 @@ function ToolUseState({
         Tool Use: <b>{name}</b> (in progress)
       </span>
       <M.Box py={0.5}>
-        {/* @ts-expect-error */}
         <JsonDisplay name="details" value={details} />
       </M.Box>
     </MessageContainer>
