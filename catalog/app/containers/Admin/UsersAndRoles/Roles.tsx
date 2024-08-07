@@ -640,9 +640,14 @@ function Edit({ role, close }: EditProps) {
 interface SettingsMenuProps {
   role: Role
   openDialog: Dialogs.Dialogs['open']
+  isDefaultRoleSettingDisabled: boolean
 }
 
-function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
+function SettingsMenu({
+  role,
+  openDialog,
+  isDefaultRoleSettingDisabled,
+}: SettingsMenuProps) {
   const openDeleteDialog = React.useCallback(() => {
     openDialog(({ close }) => <Delete {...{ role, close }} />)
   }, [openDialog, role])
@@ -681,8 +686,11 @@ function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
           <M.Icon>more_vert</M.Icon>
         </M.IconButton>
       </M.Tooltip>
+
       <M.Menu anchorEl={anchorEl} keepMounted open={!!anchorEl} onClose={handleClose}>
-        <M.MenuItem onClick={handleMakeDefault}>Set as default</M.MenuItem>
+        {!isDefaultRoleSettingDisabled && (
+          <M.MenuItem onClick={handleMakeDefault}>Set as default</M.MenuItem>
+        )}
         <M.MenuItem onClick={handleDelete}>Delete</M.MenuItem>
       </M.Menu>
     </>
@@ -693,6 +701,7 @@ export default function Roles() {
   const data = GQL.useQueryS(ROLES_QUERY)
   const rows = data.roles
   const defaultRoleId = data.defaultRole?.id
+  const isDefaultRoleSettingDisabled = !!data.admin?.isDefaultRoleSettingDisabled
 
   const filtering = Table.useFiltering({
     rows,
@@ -759,7 +768,11 @@ export default function Roles() {
                 ))}
                 <M.TableCell align="right" padding="none">
                   <Table.InlineActions actions={inlineActions(i)}>
-                    <SettingsMenu role={i} openDialog={dialogs.open} />
+                    <SettingsMenu
+                      role={i}
+                      openDialog={dialogs.open}
+                      isDefaultRoleSettingDisabled={isDefaultRoleSettingDisabled}
+                    />
                   </Table.InlineActions>
                 </M.TableCell>
               </M.TableRow>
