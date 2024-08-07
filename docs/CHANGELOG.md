@@ -18,6 +18,8 @@ Entries inside each section should be ordered by type:
 # unreleased - YYYY-MM-DD
 ## Python API
 
+* [Added] New `quilt3.admin.sso_config` sub-module for management of SSO configuration ([#4065](https://github.com/quiltdata/quilt/pull/4065))
+
 ## CLI
 
 ## Catalog, Lambdas
