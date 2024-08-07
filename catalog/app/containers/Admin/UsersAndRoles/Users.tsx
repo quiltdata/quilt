@@ -57,9 +57,15 @@ interface InviteProps {
   close: () => void
   roles: readonly Role[]
   defaultRole: Role | null
+  isDefaultRoleSettingDisabled: boolean
 }
 
-function Invite({ close, roles, defaultRole }: InviteProps) {
+function Invite({
+  close,
+  roles,
+  defaultRole,
+  isDefaultRoleSettingDisabled,
+}: InviteProps) {
   const classes = useInviteStyles()
   const create = GQL.useMutation(USER_CREATE_MUTATION)
   const { push } = Notifications.use()
@@ -137,8 +143,8 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
       onSubmit={onSubmit}
       initialValues={{
         roles: {
-          active: defaultRole,
-          selected: defaultRole ? [defaultRole] : [],
+          active: isDefaultRoleSettingDisabled ? null : defaultRole,
+          selected: defaultRole && !isDefaultRoleSettingDisabled ? [defaultRole] : [],
         },
       }}
       initialValuesEqual={R.equals}
@@ -201,7 +207,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
                 {(props) => (
                   <RoleSelect.RoleSelect
                     roles={roles}
-                    defaultRole={defaultRole}
+                    defaultRole={isDefaultRoleSettingDisabled ? null : defaultRole}
                     {...props}
                   />
                 )}
@@ -999,6 +1005,7 @@ export default function Users() {
 
   const data = GQL.useQueryS(USERS_QUERY)
   const rows = data.admin.user.list
+  const isDefaultRoleSettingDisabled = data.admin.isDefaultRoleSettingDisabled
   const { roles, defaultRole } = data
 
   const openDialog = Dialogs.use()
@@ -1022,11 +1029,16 @@ export default function Users() {
       title: 'Invite',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        openDialog(({ close }) => <Invite {...{ close, roles, defaultRole }} />, {
-          ...DIALOG_PROPS,
-          maxWidth: 'sm',
-        })
-      }, [roles, defaultRole, openDialog]),
+        openDialog(
+          ({ close }) => (
+            <Invite {...{ close, roles, defaultRole, isDefaultRoleSettingDisabled }} />
+          ),
+          {
+            ...DIALOG_PROPS,
+            maxWidth: 'sm',
+          },
+        )
+      }, [roles, defaultRole, openDialog, isDefaultRoleSettingDisabled]),
     },
   ]
 
