@@ -151,8 +151,24 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'isDefaultRoleSettingDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -177,10 +193,6 @@ export default {
             name: 'IPackageUserMetaFacet',
           },
         ],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -4474,7 +4486,7 @@ export default {
           },
           {
             kind: 'OBJECT',
-            name: 'SsoConfigExists',
+            name: 'SsoConfigConflict',
           },
         ],
       },
@@ -4858,7 +4870,7 @@ export default {
       },
       {
         kind: 'OBJECT',
-        name: 'SsoConfigExists',
+        name: 'SsoConfigConflict',
         fields: [
           {
             name: '_',
@@ -5452,6 +5464,30 @@ export default {
                     ofType: null,
                   },
                 },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'isRoleAssignmentDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'isAdminAssignmentDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
               },
             },
             args: [],

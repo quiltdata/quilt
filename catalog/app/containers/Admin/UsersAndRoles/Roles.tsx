@@ -391,7 +391,7 @@ function SetDefault({ role, close }: SetDefaultProps) {
           throw new Error(r.__typename)
         case 'RoleSetDefaultSuccess':
           return
-        case 'SsoConfigExists':
+        case 'SsoConfigConflict':
           return
         default:
           assertNever(r)

@@ -202,6 +202,8 @@ type User {
   isService: Boolean!
   role: Role
   extraRoles: [Role!]!
+  isRoleAssignmentDisabled: Boolean!
+  isAdminAssignmentDisabled: Boolean!
 }
 
 type AccessCountForDate {
@@ -506,6 +508,7 @@ type SsoConfig {
 type AdminQueries {
   user: UserAdminQueries!
   ssoConfig: SsoConfig
+  isDefaultRoleSettingDisabled: Boolean!
 }
 
 type MyRole {
@@ -760,11 +763,11 @@ union RoleDeleteResult =
   | RoleNameUsedBySsoConfig
   | RoleAssigned
 
-type SsoConfigExists {
+type SsoConfigConflict {
   _: Boolean
 }
 
-union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigExists
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigConflict
 
 type RoleSetDefaultSuccess {
   role: Role!

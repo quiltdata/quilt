@@ -50,6 +50,7 @@ export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
   readonly ssoConfig: Maybe<SsoConfig>
+  readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -981,7 +982,7 @@ export interface RoleNameUsedBySsoConfig {
 export type RoleSetDefaultResult =
   | RoleSetDefaultSuccess
   | RoleDoesNotExist
-  | SsoConfigExists
+  | SsoConfigConflict
 
 export interface RoleSetDefaultSuccess {
   readonly __typename: 'RoleSetDefaultSuccess'
@@ -1054,8 +1055,8 @@ export interface SsoConfig {
   readonly uploader: User
 }
 
-export interface SsoConfigExists {
-  readonly __typename: 'SsoConfigExists'
+export interface SsoConfigConflict {
+  readonly __typename: 'SsoConfigConflict'
   readonly _: Maybe<Scalars['Boolean']>
 }
 
@@ -1177,6 +1178,8 @@ export interface User {
   readonly isService: Scalars['Boolean']
   readonly role: Maybe<Role>
   readonly extraRoles: ReadonlyArray<Role>
+  readonly isRoleAssignmentDisabled: Scalars['Boolean']
+  readonly isAdminAssignmentDisabled: Scalars['Boolean']
 }
 
 export interface UserAdminMutations {
