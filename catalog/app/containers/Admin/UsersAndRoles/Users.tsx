@@ -683,7 +683,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
-                    nonEditable={user.isRoleAssignmentDisabled}
+                    nonAssignable={user.isRoleAssignmentDisabled}
                     {...props}
                   />
                 )}
@@ -695,12 +695,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
           </M.DialogContent>
           {user.isRoleAssignmentDisabled ? (
             <M.DialogActions>
-              <M.Button
-                color="primary"
-                disabled={submitting}
-                onClick={close}
-                variant="contained"
-              >
+              <M.Button color="primary" onClick={close} variant="contained">
                 Ok
               </M.Button>
             </M.DialogActions>

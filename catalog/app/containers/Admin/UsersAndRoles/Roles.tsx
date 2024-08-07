@@ -340,7 +340,7 @@ function Delete({ role, close }: DeleteProps) {
           )
           return
         case 'RoleNameUsedBySsoConfig':
-          push("Shouldn't happen")
+          push("Can't delete role used by SSO configuration")
           return
         default:
           assertNever(r)
@@ -387,11 +387,10 @@ function SetDefault({ role, close }: SetDefaultProps) {
     try {
       const { roleSetDefault: r } = await setDefault({ id: role.id })
       switch (r.__typename) {
+        case 'SsoConfigConflict':
         case 'RoleDoesNotExist':
           throw new Error(r.__typename)
         case 'RoleSetDefaultSuccess':
-          return
-        case 'SsoConfigConflict':
           return
         default:
           assertNever(r)

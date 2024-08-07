@@ -60,7 +60,7 @@ const useRoleSelectStyles = M.makeStyles((t) => ({
 interface RoleSelectProps extends RF.FieldRenderProps<Value> {
   roles: readonly Role[]
   defaultRole: Role | null
-  nonEditable?: boolean
+  nonAssignable?: boolean
 }
 
 export function RoleSelect({
@@ -68,12 +68,12 @@ export function RoleSelect({
   defaultRole,
   input: { value, onChange },
   meta,
-  nonEditable,
+  nonAssignable,
 }: RoleSelectProps) {
   const classes = useRoleSelectStyles({ roles: roles.length })
 
   const error = meta.submitFailed && meta.error
-  const disabled = meta.submitting || meta.submitSucceeded || nonEditable
+  const disabled = meta.submitting || meta.submitSucceeded || nonAssignable
 
   const { active, selected } = value ?? EMPTY_VALUE
 
@@ -124,9 +124,14 @@ export function RoleSelect({
         </M.Typography>
       ) : (
         <M.Typography variant="body2" color="textSecondary">
-          {nonEditable
-            ? 'Roles assigned via role mapping and can be changed in config only'
-            : 'User can assume any of the assigned roles'}
+          {nonAssignable ? (
+            <>
+              Roles assigned via role mapping and may be changed in config.
+              {/* <a href="docs/TODO">Learn more</a>*/}.
+            </>
+          ) : (
+            'User can assume any of the assigned roles.'
+          )}
         </M.Typography>
       )}
 
