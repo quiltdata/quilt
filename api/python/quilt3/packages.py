@@ -286,7 +286,7 @@ class PackageEntry:
         if use_cache_if_available:
             cached_path = self.get_cached_path()
             if cached_path is not None:
-                return get_bytes(PhysicalKey(None, cached_path, None))
+                return get_bytes(PhysicalKey.from_local(cached_path))
 
         data = get_bytes(self.physical_key)
         return data
@@ -924,7 +924,7 @@ class Package:
                     if obj['Size'] != 0:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
-                obj_pk = PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
+                obj_pk = PhysicalKey.from_s3(src.bucket, obj['Key'], obj.get('VersionId'))
                 logical_key = obj['Key'][len(src_path):]
                 # check update policy
                 if update_policy == 'existing' and logical_key in root:

@@ -703,7 +703,7 @@ class DataTransferTest(QuiltTestCase):
 
         a_contents = b'a' * 10
 
-        pk = PhysicalKey(bucket, key, vid)
+        pk = PhysicalKey.from_s3(bucket, key, vid)
         exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
         mocked_api_call.side_effect = exc
         results = data_transfer.calculate_checksum([pk], [len(a_contents)])
@@ -716,8 +716,8 @@ class DataTransferTest(QuiltTestCase):
         key = 'dir/a'
         vid = None
 
-        src = PhysicalKey(bucket, key, vid)
-        dst = PhysicalKey(other_bucket, key, vid)
+        src = PhysicalKey.from_s3(bucket, key, vid)
+        dst = PhysicalKey.from_s3(other_bucket, key, vid)
 
         with mock.patch('botocore.client.BaseClient._make_api_call',
                         side_effect=ClientError({}, 'CopyObject')) as mocked_api_call:
@@ -734,8 +734,8 @@ class DataTransferTest(QuiltTestCase):
         key = 'dir/a'
         vid = None
 
-        src = PhysicalKey(bucket, key, vid)
-        dst = PhysicalKey(other_bucket, key, vid)
+        src = PhysicalKey.from_s3(bucket, key, vid)
+        dst = PhysicalKey.from_s3(other_bucket, key, vid)
 
         with mock.patch('botocore.client.BaseClient._make_api_call',
                         side_effect=Exception('test exception')) as mocked_api_call:
@@ -749,8 +749,8 @@ class DataTransferTest(QuiltTestCase):
         key = 'dir/a'
         vid = None
 
-        src = PhysicalKey(bucket, key, vid)
-        dst = PhysicalKey(other_bucket, key, vid)
+        src = PhysicalKey.from_s3(bucket, key, vid)
+        dst = PhysicalKey.from_s3(other_bucket, key, vid)
         parts = 2 * data_transfer.s3_transfer_config.max_request_concurrency
         size = parts * data_transfer.s3_transfer_config.multipart_threshold
 
@@ -765,7 +765,7 @@ class DataTransferTest(QuiltTestCase):
                 data_transfer.copy_file_list([(src, dst, size)])
 
     def test_calculate_checksum_retry(self):
-        src = PhysicalKey('test-bucket', 'dir/a', None)
+        src = PhysicalKey.from_s3('test-bucket', 'dir/a', None)
 
         # TODO: copy_file_list also retries ClientError. Should calculate_checksum do that?
         with mock.patch('botocore.client.BaseClient._make_api_call',
@@ -775,8 +775,8 @@ class DataTransferTest(QuiltTestCase):
             self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_FIX_HASH_RETRIES)
 
     def test_calculate_checksum_partial_retry(self):
-        src1 = PhysicalKey('test-bucket', 'dir/a', None)
-        src2 = PhysicalKey('test-bucket', 'dir/b', None)
+        src1 = PhysicalKey.from_s3('test-bucket', 'dir/a', None)
+        src2 = PhysicalKey.from_s3('test-bucket', 'dir/b', None)
 
         def side_effect(operation_name, *args, **kwargs):
             if args[0]['Key'] == 'dir/a':
@@ -811,7 +811,7 @@ class DataTransferTest(QuiltTestCase):
     def test_download_latest_in_versioned_bucket(self):
         bucket = 'example'
         key = 'foo.csv'
-        src = PhysicalKey(bucket, key, None)
+        src = PhysicalKey.from_s3(bucket, key, None)
         latest_version = '1'
         latest_size = 3
 
@@ -904,13 +904,13 @@ class S3DownloadTest(QuiltTestCase):
 
     bucket = 'test-bucket'
     key = 'test-key'
-    src = PhysicalKey(bucket, key, None)
+    src = PhysicalKey.from_s3(bucket, key, None)
 
     filename = 'some-file-name'
-    dst = PhysicalKey(None, filename, None)
+    dst = PhysicalKey.from_local(filename)
 
     def _test_download(self, *, threshold, chunksize, parts=data, devnull=False):
-        dst = PhysicalKey(None, os.devnull, None) if devnull else self.dst
+        dst = PhysicalKey.from_local(os.devnull) if devnull else self.dst
 
         with self.s3_test_multi_thread_download(
             self.bucket, self.key, parts, threshold=threshold, chunksize=chunksize
@@ -950,7 +950,7 @@ class S3DownloadTest(QuiltTestCase):
 class S3HashingTest(QuiltTestCase):
     bucket = 'test-bucket'
     key = 'test-key'
-    src = PhysicalKey(bucket, key, None)
+    src = PhysicalKey.from_s3(bucket, key, None)
 
     def test_adjust_chunksize(self):
         default = 8 * 1024 * 1024

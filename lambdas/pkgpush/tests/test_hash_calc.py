@@ -102,7 +102,7 @@ def test_calculate_pkg_entry_hash(
 
 def test_invoke_hash_lambda(lambda_stub: Stubber):
     checksum = {"type": "sha2-256-chunked", "value": "base64hash"}
-    pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
+    pk = PhysicalKey.from_s3(bucket="bucket", path="path", version_id="version-id")
 
     lambda_stub.add_response(
         "invoke",
@@ -138,7 +138,7 @@ def test_invoke_hash_lambda(lambda_stub: Stubber):
 
 
 def test_invoke_hash_lambda_error(lambda_stub: Stubber):
-    pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
+    pk = PhysicalKey.from_s3(bucket="bucket", path="path", version_id="version-id")
 
     lambda_stub.add_response(
         "invoke",

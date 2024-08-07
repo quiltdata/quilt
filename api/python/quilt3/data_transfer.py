@@ -318,7 +318,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['ChecksumSHA256'])
-        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
+        ctx.done(PhysicalKey.from_s3(dest_bucket, dest_key, version_id), checksum)
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -365,7 +365,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
-                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
+                ctx.done(PhysicalKey.from_s3(dest_bucket, dest_key, version_id), checksum)
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -479,7 +479,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
         ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['CopyObjectResult']['ChecksumSHA256'])
-        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
+        ctx.done(PhysicalKey.from_s3(dest_bucket, dest_key, version_id), checksum)
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -527,7 +527,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
-                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
+                ctx.done(PhysicalKey.from_s3(dest_bucket, dest_key, version_id), checksum)
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -588,7 +588,7 @@ def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_buc
     if result is not None:
         dest_version_id, checksum = result
         ctx.progress(size)
-        ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id), checksum)
+        ctx.done(PhysicalKey.from_s3(dest_bucket, dest_path, dest_version_id), checksum)
         return  # Optimization succeeded.
     # If the optimization didn't happen, do the normal upload.
     _upload_file(ctx, size, src_path, dest_bucket, dest_path)
@@ -900,7 +900,10 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
         if size is None:
             size, version_id = get_size_and_version(src)
             if src.version_id is None:
-                src = PhysicalKey(src.bucket, src.path, version_id)
+                if src.bucket is None:
+                    src = PhysicalKey.from_local(src.path)
+                else:
+                    src = PhysicalKey.from_s3(src.bucket, src.path, version_id)
         url_list.append((src, dest, size))
 
     _copy_file_list_internal(url_list, [None] * len(url_list), message, callback)
@@ -949,7 +952,7 @@ def get_bytes_and_effective_pk(src: PhysicalKey) -> Tuple[bytes, PhysicalKey]:
         return _local_get_bytes(src), src
 
     resp = _s3_query_object(src)
-    return resp['Body'].read(), PhysicalKey(src.bucket, src.path, resp.get('VersionId'))
+    return resp['Body'].read(), PhysicalKey.from_s3(src.bucket, src.path, resp.get('VersionId'))
 
 
 def get_size_and_version(src: PhysicalKey):

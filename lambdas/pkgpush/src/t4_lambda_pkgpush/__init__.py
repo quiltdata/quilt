@@ -188,7 +188,7 @@ def copy_pkg_entry_data(
     idx: int,
 ) -> T.Tuple[int, PhysicalKey]:
     version_id = invoke_copy_lambda(credentials, src, dst)
-    return idx, PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
+    return idx, PhysicalKey.from_s3(bucket=dst.bucket, path=dst.path, version_id=version_id)
 
 
 def copy_file_list(
