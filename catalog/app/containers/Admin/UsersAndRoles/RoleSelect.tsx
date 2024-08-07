@@ -126,8 +126,8 @@ export function RoleSelect({
         <M.Typography variant="body2" color="textSecondary">
           {nonAssignable ? (
             <>
-              Roles assigned via role mapping and may be changed in config.
-              {/* <a href="docs/TODO">Learn more</a>*/}.
+              Roles are assigned via role mapping and may be changed in config.
+              {/* <a href="docs/TODO">Learn more</a>.*/}
             </>
           ) : (
             'User can assume any of the assigned roles.'
