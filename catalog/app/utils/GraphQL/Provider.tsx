@@ -108,6 +108,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
+          SsoConfig: (c) => c.timestamp as string,
           Status: () => null,
           StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
           StatusReportList: () => null,
@@ -302,6 +303,10 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, () => ({
                 defaultRole: { __typename: role.__typename, id: role.id },
               }))
+            },
+            setSsoConfig: (result, _vars, cache) => {
+              if ((result.setSsoConfig as any)?.__typename !== 'Ok') return
+              cache.invalidate({ __typename: 'SsoConfig' })
             },
             packageRevisionDelete: (result, { bucket, name, hash }, cache) => {
               const del = result.packageRevisionDelete as any
