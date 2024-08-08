@@ -4,7 +4,6 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import Lock from 'components/Lock'
-import TextEditor from 'components/FileEditor/TextEditor'
 import { loadMode } from 'components/FileEditor/loader'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
@@ -16,11 +15,12 @@ import * as validators from 'utils/validators'
 import SET_SSO_CONFIG_MUTATION from './gql/SetSsoConfig.generated'
 import SSO_CONFIG_QUERY from './gql/SsoConfig.generated'
 
+const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
+
 // TODO: wait for mutation result
 // TODO: show error in dialog
 // TODO: move  <SsoConfigForm /> to Suspended
 // TODO: validate yaml
-// TODO: lazy-load TextEditor
 
 type TextFieldProps = RF.FieldRenderProps<string> & M.TextFieldProps
 
