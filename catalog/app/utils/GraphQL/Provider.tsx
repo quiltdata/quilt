@@ -304,10 +304,6 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 defaultRole: { __typename: role.__typename, id: role.id },
               }))
             },
-            setSsoConfig: (result, _vars, cache) => {
-              if ((result.setSsoConfig as any)?.__typename !== 'Ok') return
-              cache.invalidate({ __typename: 'SsoConfig' })
-            },
             packageRevisionDelete: (result, { bucket, name, hash }, cache) => {
               const del = result.packageRevisionDelete as any
               if (del.__typename !== 'PackageRevisionDeleteSuccess') return
@@ -339,6 +335,10 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   { query: USERS_QUERY },
                   R.evolve({ admin: { user: { list: rmUser } } }),
                 )
+              }
+              if (result.admin?.setSsoConfig?.__typename === 'Ok') {
+                cache.invalidate({ __typename: 'Query' }, 'admin')
+                cache.invalidate({ __typename: 'Query' }, 'roles')
               }
             },
           },
