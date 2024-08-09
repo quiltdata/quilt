@@ -13,10 +13,12 @@ import Input from './Input'
 import backgroundPattern from './bg.svg'
 
 const USER_BG = M.colors.cyan[100]
+const TOOL_BG = M.colors.amber[100]
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   role_user: {},
   role_assistant: {},
+  role_tool: {},
   messageContainer: {
     alignItems: 'flex-end',
     display: 'flex',
@@ -25,7 +27,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
       alignSelf: 'flex-end',
       flexFlow: 'row-reverse',
     },
-    '&$role_assistant': {
+    '&$role_assistant, &$role_tool': {
       alignSelf: 'flex-start',
     },
   },
@@ -39,6 +41,9 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     '$role_assistant &': {
       background: t.palette.background.paper,
     },
+    '$role_tool &': {
+      background: TOOL_BG,
+    },
   },
   contentArea: {
     borderRadius: `${t.spacing(1)}px`,
@@ -48,6 +53,10 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     },
     '$role_assistant &': {
       background: t.palette.background.paper,
+      borderBottomLeftRadius: 0,
+    },
+    '$role_tool &': {
+      background: TOOL_BG,
       borderBottomLeftRadius: 0,
     },
   },
@@ -78,8 +87,14 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   },
 }))
 
+const ICONS = {
+  user: 'person',
+  assistant: 'assistant',
+  tool: 'build',
+}
+
 interface MessageContainerProps {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'tool'
   children: React.ReactNode
   actions?: React.ReactNode
   timestamp?: Date
@@ -90,7 +105,7 @@ function MessageContainer({ role, children, actions, timestamp }: MessageContain
   return (
     <div className={cx(classes.messageContainer, classes[`role_${role}`])}>
       <M.Avatar className={classes.avatar}>
-        <M.Icon fontSize="small">{role === 'user' ? 'person' : 'assistant'}</M.Icon>
+        <M.Icon fontSize="small">{ICONS[role]}</M.Icon>
       </M.Avatar>
       <div className={classes.contentArea}>
         <div className={classes.contents}>{children}</div>
@@ -198,7 +213,7 @@ function ToolUseEvent({
   )
   return (
     <MessageContainer
-      role="assistant"
+      role="tool"
       timestamp={timestamp}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
     >
@@ -232,7 +247,7 @@ function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
 
   return (
     <MessageContainer
-      role="assistant"
+      role="tool"
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
