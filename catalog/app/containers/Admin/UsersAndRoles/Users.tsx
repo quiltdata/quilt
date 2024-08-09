@@ -696,7 +696,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
           {user.isRoleAssignmentDisabled ? (
             <M.DialogActions>
               <M.Button color="primary" onClick={close} variant="contained">
-                Ok
+                Close
               </M.Button>
             </M.DialogActions>
           ) : (
