@@ -18,8 +18,10 @@ import * as Form from '../Form'
 import * as Table from '../Table'
 
 import AttachedPolicies from './AttachedPolicies'
+import SsoConfig from './SsoConfig'
 import { MAX_POLICIES_PER_ROLE, getArnLink } from './shared'
 
+import HAS_SSO_CONFIG_QUERY from './gql/HasSsoConfig.generated'
 import ROLES_QUERY from './gql/Roles.generated'
 import ROLE_CREATE_MANAGED_MUTATION from './gql/RoleCreateManaged.generated'
 import ROLE_CREATE_UNMANAGED_MUTATION from './gql/RoleCreateUnmanaged.generated'
@@ -703,6 +705,9 @@ export default function Roles() {
   const defaultRoleId = data.defaultRole?.id
   const isDefaultRoleSettingDisabled = !!data.admin?.isDefaultRoleSettingDisabled
 
+  const ssoConfigData = GQL.useQueryS(HAS_SSO_CONFIG_QUERY)
+  const hasSsoConfig = !!ssoConfigData.admin?.ssoConfig
+
   const filtering = Table.useFiltering({
     rows,
     filterBy: ({ name }) => name,
@@ -713,15 +718,21 @@ export default function Roles() {
   })
   const dialogs = Dialogs.use()
 
-  const toolbarActions = [
-    {
-      title: 'Create',
-      icon: <M.Icon>add</M.Icon>,
-      fn: React.useCallback(() => {
-        dialogs.open(({ close }) => <Create {...{ close }} />)
-      }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
-    },
-  ]
+  const createAction = {
+    title: 'Create',
+    icon: <M.Icon>add</M.Icon>,
+    fn: React.useCallback(() => {
+      dialogs.open(({ close }) => <Create {...{ close }} />)
+    }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
+  }
+  const ssoConfigAction = {
+    title: 'SSO Config',
+    icon: <M.Icon>assignment_ind</M.Icon>,
+    fn: React.useCallback(() => {
+      dialogs.open(({ close }) => <SsoConfig {...{ close }} />)
+    }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
+  }
+  const toolbarActions = hasSsoConfig ? [ssoConfigAction, createAction] : [createAction]
 
   const inlineActions = (role: Role) => [
     role.arn

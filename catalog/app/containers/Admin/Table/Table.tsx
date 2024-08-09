@@ -133,6 +133,7 @@ const useToolbarStyles = M.makeStyles((t) => ({
   },
   actions: {
     color: t.palette.text.secondary,
+    display: 'flex',
   },
   title: {
     flex: '0 0 auto',
