@@ -60,6 +60,7 @@ const useRoleSelectStyles = M.makeStyles((t) => ({
 interface RoleSelectProps extends RF.FieldRenderProps<Value> {
   roles: readonly Role[]
   defaultRole: Role | null
+  nonAssignable?: boolean
 }
 
 export function RoleSelect({
@@ -67,11 +68,12 @@ export function RoleSelect({
   defaultRole,
   input: { value, onChange },
   meta,
+  nonAssignable,
 }: RoleSelectProps) {
   const classes = useRoleSelectStyles({ roles: roles.length })
 
   const error = meta.submitFailed && meta.error
-  const disabled = meta.submitting || meta.submitSucceeded
+  const disabled = meta.submitting || meta.submitSucceeded || nonAssignable
 
   const { active, selected } = value ?? EMPTY_VALUE
 
@@ -122,7 +124,14 @@ export function RoleSelect({
         </M.Typography>
       ) : (
         <M.Typography variant="body2" color="textSecondary">
-          User can assume any of the assigned roles
+          {nonAssignable ? (
+            <>
+              Roles are assigned via role mapping and may be changed in config.
+              {/* <a href="docs/TODO">Learn more</a>.*/}
+            </>
+          ) : (
+            'User can assume any of the assigned roles.'
+          )}
         </M.Typography>
       )}
 
@@ -134,18 +143,15 @@ export function RoleSelect({
               secondary={`${selected.length} / ${roles.length} roles`}
               primaryTypographyProps={{ color: error ? 'error' : undefined }}
             />
-            <M.ListItemSecondaryAction>
-              <M.Tooltip title="Unassign all roles">
-                <M.IconButton
-                  onClick={clear}
-                  edge="end"
-                  size="small"
-                  disabled={disabled || selected.length === 0}
-                >
-                  <M.Icon>clear_all</M.Icon>
-                </M.IconButton>
-              </M.Tooltip>
-            </M.ListItemSecondaryAction>
+            {!disabled && selected.length > 0 && (
+              <M.ListItemSecondaryAction>
+                <M.Tooltip title="Unassign all roles">
+                  <M.IconButton onClick={clear} edge="end" size="small">
+                    <M.Icon>clear_all</M.Icon>
+                  </M.IconButton>
+                </M.Tooltip>
+              </M.ListItemSecondaryAction>
+            )}
           </M.ListItem>
           {selected.length ? (
             <M.List dense disablePadding className={classes.list}>
@@ -171,13 +177,15 @@ export function RoleSelect({
                   <M.ListItemText primaryTypographyProps={{ noWrap: true }}>
                     {roleNameDisplay(r)}
                   </M.ListItemText>
-                  <M.ListItemSecondaryAction>
-                    <M.Tooltip title="Unassign role">
-                      <M.IconButton edge="end" size="small" onClick={() => remove(r)}>
-                        <M.Icon>close</M.Icon>
-                      </M.IconButton>
-                    </M.Tooltip>
-                  </M.ListItemSecondaryAction>
+                  {!disabled && (
+                    <M.ListItemSecondaryAction>
+                      <M.Tooltip title="Unassign role">
+                        <M.IconButton edge="end" size="small" onClick={() => remove(r)}>
+                          <M.Icon>close</M.Icon>
+                        </M.IconButton>
+                      </M.Tooltip>
+                    </M.ListItemSecondaryAction>
+                  )}
                 </M.ListItem>
               ))}
             </M.List>

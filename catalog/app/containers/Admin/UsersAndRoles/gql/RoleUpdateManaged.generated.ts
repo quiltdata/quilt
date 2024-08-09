@@ -28,6 +28,7 @@ export type containers_Admin_UsersAndRoles_gql_RoleUpdateManagedMutation = {
     | { readonly __typename: 'RoleNameReserved' }
     | { readonly __typename: 'RoleNameExists' }
     | { readonly __typename: 'RoleNameInvalid' }
+    | { readonly __typename: 'RoleNameUsedBySsoConfig' }
     | { readonly __typename: 'RoleIsManaged' }
     | { readonly __typename: 'RoleIsUnmanaged' }
     | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }

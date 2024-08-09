@@ -339,6 +339,9 @@ function Delete({ role, close }: DeleteProps) {
             `Unable to delete role "${role.name}" assigned to some user(s). Unassign this role from everyone and try again.`,
           )
           return
+        case 'RoleNameUsedBySsoConfig':
+          push("Can't delete role used by SSO configuration")
+          return
         default:
           assertNever(r)
       }
@@ -384,6 +387,7 @@ function SetDefault({ role, close }: SetDefaultProps) {
     try {
       const { roleSetDefault: r } = await setDefault({ id: role.id })
       switch (r.__typename) {
+        case 'SsoConfigConflict':
         case 'RoleDoesNotExist':
           throw new Error(r.__typename)
         case 'RoleSetDefaultSuccess':
@@ -488,6 +492,7 @@ function Edit({ role, close }: EditProps) {
             return { policies: 'Too many policies to attach' }
           case 'RoleIsManaged':
           case 'RoleIsUnmanaged':
+          case 'RoleNameUsedBySsoConfig':
             throw new Error(r.__typename)
           default:
             return assertNever(r)
@@ -635,9 +640,14 @@ function Edit({ role, close }: EditProps) {
 interface SettingsMenuProps {
   role: Role
   openDialog: Dialogs.Dialogs['open']
+  isDefaultRoleSettingDisabled: boolean
 }
 
-function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
+function SettingsMenu({
+  role,
+  openDialog,
+  isDefaultRoleSettingDisabled,
+}: SettingsMenuProps) {
   const openDeleteDialog = React.useCallback(() => {
     openDialog(({ close }) => <Delete {...{ role, close }} />)
   }, [openDialog, role])
@@ -676,8 +686,11 @@ function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
           <M.Icon>more_vert</M.Icon>
         </M.IconButton>
       </M.Tooltip>
+
       <M.Menu anchorEl={anchorEl} keepMounted open={!!anchorEl} onClose={handleClose}>
-        <M.MenuItem onClick={handleMakeDefault}>Set as default</M.MenuItem>
+        {!isDefaultRoleSettingDisabled && (
+          <M.MenuItem onClick={handleMakeDefault}>Set as default</M.MenuItem>
+        )}
         <M.MenuItem onClick={handleDelete}>Delete</M.MenuItem>
       </M.Menu>
     </>
@@ -688,6 +701,7 @@ export default function Roles() {
   const data = GQL.useQueryS(ROLES_QUERY)
   const rows = data.roles
   const defaultRoleId = data.defaultRole?.id
+  const isDefaultRoleSettingDisabled = !!data.admin?.isDefaultRoleSettingDisabled
 
   const filtering = Table.useFiltering({
     rows,
@@ -754,7 +768,11 @@ export default function Roles() {
                 ))}
                 <M.TableCell align="right" padding="none">
                   <Table.InlineActions actions={inlineActions(i)}>
-                    <SettingsMenu role={i} openDialog={dialogs.open} />
+                    <SettingsMenu
+                      role={i}
+                      openDialog={dialogs.open}
+                      isDefaultRoleSettingDisabled={isDefaultRoleSettingDisabled}
+                    />
                   </Table.InlineActions>
                 </M.TableCell>
               </M.TableRow>

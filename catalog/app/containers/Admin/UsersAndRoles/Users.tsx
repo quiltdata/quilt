@@ -57,9 +57,15 @@ interface InviteProps {
   close: () => void
   roles: readonly Role[]
   defaultRole: Role | null
+  isDefaultRoleSettingDisabled: boolean
 }
 
-function Invite({ close, roles, defaultRole }: InviteProps) {
+function Invite({
+  close,
+  roles,
+  defaultRole,
+  isDefaultRoleSettingDisabled,
+}: InviteProps) {
   const classes = useInviteStyles()
   const create = GQL.useMutation(USER_CREATE_MUTATION)
   const { push } = Notifications.use()
@@ -137,8 +143,8 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
       onSubmit={onSubmit}
       initialValues={{
         roles: {
-          active: defaultRole,
-          selected: defaultRole ? [defaultRole] : [],
+          active: isDefaultRoleSettingDisabled ? null : defaultRole,
+          selected: defaultRole && !isDefaultRoleSettingDisabled ? [defaultRole] : [],
         },
       }}
       initialValuesEqual={R.equals}
@@ -201,7 +207,7 @@ function Invite({ close, roles, defaultRole }: InviteProps) {
                 {(props) => (
                   <RoleSelect.RoleSelect
                     roles={roles}
-                    defaultRole={defaultRole}
+                    defaultRole={isDefaultRoleSettingDisabled ? null : defaultRole}
                     {...props}
                   />
                 )}
@@ -665,7 +671,11 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
         submitting,
       }) => (
         <>
-          <M.DialogTitle>Assign roles to &quot;{user.name}&quot;</M.DialogTitle>
+          <M.DialogTitle>
+            {user.isRoleAssignmentDisabled
+              ? `Roles assigned to "${user.name}"`
+              : `Assign roles to "${user.name}"`}
+          </M.DialogTitle>
           <M.DialogContent>
             <DialogForm onSubmit={handleSubmit}>
               <RF.Field<RoleSelect.Value> name="roles" validate={RoleSelect.validate}>
@@ -673,6 +683,7 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
                   <RoleSelect.RoleSelect
                     roles={roles}
                     defaultRole={defaultRole}
+                    nonAssignable={user.isRoleAssignmentDisabled}
                     {...props}
                   />
                 )}
@@ -682,30 +693,38 @@ function EditRoles({ close, roles, defaultRole, user }: EditRolesProps) {
               </Form.FormErrorAuto>
             </DialogForm>
           </M.DialogContent>
-          <M.DialogActions>
-            <M.Button
-              onClick={() => form.reset()}
-              color="primary"
-              disabled={pristine || submitting}
-            >
-              Reset
-            </M.Button>
-            <M.Button onClick={close} color="primary" disabled={submitting}>
-              Cancel
-            </M.Button>
-            <M.Button
-              onClick={handleSubmit}
-              color="primary"
-              variant="contained"
-              disabled={
-                submitting ||
-                (hasValidationErrors && submitFailed) ||
-                (hasSubmitErrors && !modifiedSinceLastSubmit)
-              }
-            >
-              Save
-            </M.Button>
-          </M.DialogActions>
+          {user.isRoleAssignmentDisabled ? (
+            <M.DialogActions>
+              <M.Button color="primary" onClick={close} variant="contained">
+                Close
+              </M.Button>
+            </M.DialogActions>
+          ) : (
+            <M.DialogActions>
+              <M.Button
+                onClick={() => form.reset()}
+                color="primary"
+                disabled={pristine || submitting}
+              >
+                Reset
+              </M.Button>
+              <M.Button onClick={close} color="primary" disabled={submitting}>
+                Cancel
+              </M.Button>
+              <M.Button
+                onClick={handleSubmit}
+                color="primary"
+                variant="contained"
+                disabled={
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
+              >
+                Save
+              </M.Button>
+            </M.DialogActions>
+          )}
         </>
       )}
     </RF.Form>
@@ -820,7 +839,7 @@ function RoleDisplay({ user, roles, defaultRole, openDialog }: RoleDisplayProps)
     })
 
   return (
-    <M.Tooltip title="Click to edit">
+    <M.Tooltip title={user.isRoleAssignmentDisabled ? 'Click to view' : 'Click to edit'}>
       <Clickable onClick={edit}>
         {user.role?.name ?? emptyRole}
         {user.extraRoles.length > 0 && <Hint> +{user.extraRoles.length}</Hint>}
@@ -911,7 +930,7 @@ const columns: Table.Column<User>[] = [
     getDisplay: (_v, u, { openDialog, isSelf }: ColumnDisplayProps) => (
       <EditableSwitch
         hint="Admins can see this page, add/remove users, and make/remove admins"
-        disabled={isSelf}
+        disabled={isSelf || u.isAdminAssignmentDisabled}
         checked={u.isAdmin}
         onChange={(admin) =>
           openDialog<boolean>(
@@ -981,6 +1000,7 @@ export default function Users() {
 
   const data = GQL.useQueryS(USERS_QUERY)
   const rows = data.admin.user.list
+  const isDefaultRoleSettingDisabled = data.admin.isDefaultRoleSettingDisabled
   const { roles, defaultRole } = data
 
   const openDialog = Dialogs.use()
@@ -1004,11 +1024,16 @@ export default function Users() {
       title: 'Invite',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        openDialog(({ close }) => <Invite {...{ close, roles, defaultRole }} />, {
-          ...DIALOG_PROPS,
-          maxWidth: 'sm',
-        })
-      }, [roles, defaultRole, openDialog]),
+        openDialog(
+          ({ close }) => (
+            <Invite {...{ close, roles, defaultRole, isDefaultRoleSettingDisabled }} />
+          ),
+          {
+            ...DIALOG_PROPS,
+            maxWidth: 'sm',
+          },
+        )
+      }, [roles, defaultRole, openDialog, isDefaultRoleSettingDisabled]),
     },
   ]
 

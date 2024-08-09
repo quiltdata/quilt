@@ -17,6 +17,7 @@ export type containers_Admin_UsersAndRoles_gql_RoleSetDefaultMutation = {
           | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
       })
     | { readonly __typename: 'RoleDoesNotExist' }
+    | { readonly __typename: 'SsoConfigConflict' }
 }
 
 export const containers_Admin_UsersAndRoles_gql_RoleSetDefaultDocument = {
