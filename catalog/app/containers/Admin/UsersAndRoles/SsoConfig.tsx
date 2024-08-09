@@ -64,7 +64,7 @@ function Form({
 }: FormProps) {
   const classes = useStyles()
   return (
-    <form onSubmit={handleSubmit}>
+    <>
       <M.DialogTitle disableTypography>
         <M.Typography variant="h5">SSO config</M.Typography>
       </M.DialogTitle>
@@ -90,7 +90,11 @@ function Form({
         <M.Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
           Cancel
         </M.Button>
-        <M.Button color="primary" disabled={pristine || submitting} type="submit">
+        <M.Button
+          color="primary"
+          disabled={pristine || submitting}
+          onClick={handleSubmit}
+        >
           Save
         </M.Button>
       </M.DialogActions>
@@ -99,7 +103,7 @@ function Form({
           <M.CircularProgress size={80} />
         </Lock>
       )}
-    </form>
+    </>
   )
 }
 
