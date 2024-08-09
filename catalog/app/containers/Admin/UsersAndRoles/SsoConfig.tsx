@@ -19,7 +19,7 @@ const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
 // TODO: wait for mutation result
 // TODO: show error in dialog
-// TODO: move  <SsoConfigForm /> to Suspended
+// TODO: move  onSubmit to Suspended
 // TODO: validate yaml
 
 type TextFieldProps = RF.FieldRenderProps<string> & M.TextFieldProps
@@ -47,13 +47,7 @@ interface FormProps
   ssoConfig: Pick<Model.GQLTypes.SsoConfig, 'text'> | null
 }
 
-function SsoConfigForm({
-  close,
-  handleSubmit,
-  pristine,
-  ssoConfig,
-  submitting,
-}: FormProps) {
+function Form({ close, handleSubmit, pristine, ssoConfig, submitting }: FormProps) {
   const classes = useStyles()
   return (
     <form onSubmit={handleSubmit}>
@@ -91,10 +85,11 @@ function SsoConfigForm({
 }
 
 interface SsoConfigProps {
+  children: (props: $TSFixMe) => React.ReactNode
   close: Dialogs.Close<string | void>
 }
 
-function Data({ close }: SsoConfigProps) {
+function Data({ children, close }: SsoConfigProps) {
   const { push } = Notifications.use()
 
   const data = GQL.useQueryS(SSO_CONFIG_QUERY)
@@ -138,9 +133,7 @@ function Data({ close }: SsoConfigProps) {
 
   return (
     <RF.Form onSubmit={onSubmit}>
-      {(props) => (
-        <SsoConfigForm {...props} close={close} ssoConfig={data.admin?.ssoConfig} />
-      )}
+      {(props) => children({ ...props, close, ssoConfig: data.admin?.ssoConfig })}
     </RF.Form>
   )
 }
@@ -152,7 +145,7 @@ interface SuspendedProps {
 export default function Suspended({ close }: SuspendedProps) {
   return (
     <React.Suspense fallback={<M.CircularProgress size={80} />}>
-      <Data close={close} />
+      <Data close={close}>{(props) => <Form {...props} />}</Data>
     </React.Suspense>
   )
 }
