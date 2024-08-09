@@ -335,7 +335,7 @@ function CompoundEntry({
 }
 
 interface JsonDisplayInnerProps<Value> {
-  name: string
+  name?: string
   value: Value
   topLevel: boolean
   defaultExpanded: number
@@ -357,7 +357,7 @@ function JsonDisplayInner({ value, ...rest }: JsonDisplayInnerProps<unknown>) {
 }
 
 interface JsonDisplayProps extends M.BoxProps {
-  name: string
+  name?: string
   value: unknown
   topLevel?: boolean
   // true (expand all) | false (collapse all) | int (expand N levels deep)
