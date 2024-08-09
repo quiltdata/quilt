@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
 
@@ -296,6 +297,7 @@ const useChatStyles = M.makeStyles((t) => ({
     justifyContent: 'flex-end',
     minHeight: '100%',
     padding: `${t.spacing(2)}px`,
+    paddingBottom: 0,
   },
   input: {},
 }))
@@ -307,19 +309,20 @@ interface ChatProps {
 
 export default function Chat({ state, dispatch }: ChatProps) {
   const classes = useChatStyles()
+  const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const inputDisabled = state._tag != 'Idle'
 
-  // XXX: scroll to new message
-  // const ref = React.useRef<HTMLDivElement | null>(null)
-  // usePrevious(messages, (prev) => {
-  //   if (prev && messages.length > prev.length) {
-  //     ref.current?.scroll({
-  //       top: ref.current?.firstElementChild?.clientHeight,
-  //       behavior: 'smooth',
-  //     })
-  //   }
-  // })
+  const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
+
+  usePrevious(stateFingerprint, (prev) => {
+    if (prev && stateFingerprint !== prev) {
+      scrollRef.current?.scrollIntoView({
+        block: 'end',
+        behavior: 'smooth',
+      })
+    }
+  })
 
   const ask = React.useCallback(
     (content: string) => {
@@ -382,6 +385,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
               <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
             ),
           })}
+          <div ref={scrollRef} />
         </div>
       </div>
       <Input className={classes.input} disabled={inputDisabled} onSubmit={ask} />
