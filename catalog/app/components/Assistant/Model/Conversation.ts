@@ -15,11 +15,18 @@ const MODULE = 'Conversation'
 // TODO: make this a globally available service?
 const genId = Eff.Effect.sync(uuid.v4)
 
+// TODO: use effect/DateTime after upgrading
+const getNow = Eff.Clock.currentTimeMillis.pipe(Eff.Effect.map((t) => new Date(t)))
+
 export interface ToolCall {
   readonly name: string
   readonly input: Record<string, any>
   readonly fiber: Eff.Fiber.RuntimeFiber<void>
 }
+
+export type ToolUseId = string
+
+export type ToolCalls = Record<ToolUseId, ToolCall>
 
 interface EventBase {
   readonly id: string
@@ -27,13 +34,7 @@ interface EventBase {
   readonly discarded?: boolean
 }
 
-// XXX: add "aborted" event?
 export type Event = Eff.Data.TaggedEnum<{
-  // XXX: add trace/debug level?
-  // Notification: EventBase & {
-  //   readonly severity: 'info' | 'warning' | 'error'
-  //   readonly content: string
-  // }
   Message: EventBase & {
     readonly role: 'user' | 'assistant'
     readonly content: Content.MessageContentBlock
@@ -49,6 +50,11 @@ export type Event = Eff.Data.TaggedEnum<{
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Event = Eff.Data.taggedEnum<Event>()
 
+interface ConversationError {
+  message: string
+  details: string
+}
+
 interface StateBase {
   readonly events: Event[]
   readonly timestamp: Date
@@ -59,10 +65,7 @@ export type State = Eff.Data.TaggedEnum<{
    * Waiting for user input
    */
   Idle: StateBase & {
-    readonly error: Eff.Option.Option<{
-      message: string
-      details: string
-    }>
+    readonly error: Eff.Option.Option<ConversationError>
   }
 
   /**
@@ -82,6 +85,11 @@ export type State = Eff.Data.TaggedEnum<{
   }
 }>
 
+const idle = (events: Event[], error?: ConversationError) =>
+  Eff.Effect.map(getNow, (timestamp) =>
+    State.Idle({ events, timestamp, error: Eff.Option.fromNullable(error) }),
+  )
+
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const State = Eff.Data.taggedEnum<State>()
 
@@ -93,7 +101,6 @@ export type Action = Eff.Data.TaggedEnum<{
     readonly error: Eff.Cause.UnknownException
   }
   LLMResponse: {
-    readonly timestamp: Date
     readonly content: Exclude<Content.ResponseMessageContentBlock, { _tag: 'ToolUse' }>[]
     readonly toolUses: Extract<Content.ResponseMessageContentBlock, { _tag: 'ToolUse' }>[]
   }
@@ -116,7 +123,7 @@ export const Action = Eff.Data.taggedEnum<Action>()
 
 export const init = Eff.Effect.gen(function* () {
   return State.Idle({
-    timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
+    timestamp: yield* getNow,
     events: [],
     error: Eff.Option.none(),
   })
@@ -131,7 +138,8 @@ const llmRequest = (events: Event[]) =>
       const llm = yield* LLM.LLM
       const ctxService = yield* Context.ConversationContext
       const ctx = yield* ctxService.context
-      const prompt = yield* constructPrompt(events, ctx)
+      const filteredEvents = events.filter((e) => !e.discarded)
+      const prompt = yield* constructPrompt(filteredEvents, ctx)
 
       const response = yield* llm.converse(prompt)
 
@@ -145,9 +153,7 @@ const llmRequest = (events: Event[]) =>
         c._tag === 'ToolUse' ? Eff.Either.left(c) : Eff.Either.right(c),
       )
 
-      const timestamp = new Date(yield* Eff.Clock.currentTimeMillis)
-      // XXX: record response stats?
-      return { timestamp, content, toolUses }
+      return { content, toolUses }
     }),
   )
 
@@ -158,7 +164,7 @@ export const ConversationActor = Eff.Effect.succeed(
       Idle: {
         Ask: (state, action, dispatch) =>
           Eff.Effect.gen(function* () {
-            const timestamp = new Date(yield* Eff.Clock.currentTimeMillis)
+            const timestamp = yield* getNow
             const event = Event.Message({
               id: yield* genId,
               timestamp,
@@ -175,11 +181,7 @@ export const ConversationActor = Eff.Effect.succeed(
             )
             return State.WaitingForAssistant({ events, timestamp, requestFiber })
           }),
-        Clear: () =>
-          Eff.Effect.gen(function* () {
-            const timestamp = new Date(yield* Eff.Clock.currentTimeMillis)
-            return State.Idle({ events: [], timestamp, error: Eff.Option.none() })
-          }),
+        Clear: () => idle([]),
         Discard: (state, { id }) =>
           Eff.Effect.succeed({
             ...state,
@@ -189,19 +191,15 @@ export const ConversationActor = Eff.Effect.succeed(
           }),
       },
       WaitingForAssistant: {
-        LLMError: (state, { error }) =>
-          Eff.Effect.gen(function* () {
-            return State.Idle({
-              events: state.events,
-              timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
-              error: Eff.Option.some({
-                message: 'Error while interacting with LLM. Please try again.',
-                details: `${error}`,
-              }),
-            })
+        LLMError: ({ events }, { error }) =>
+          idle(events, {
+            message: 'Error while interacting with LLM. Please try again.',
+            details: `${error}`,
           }),
-        LLMResponse: (state, { timestamp, content, toolUses }, dispatch) =>
+        LLMResponse: (state, { content, toolUses }, dispatch) =>
           Eff.Effect.gen(function* () {
+            const timestamp = yield* getNow
+
             let { events } = state
             if (content.length) {
               events = events.concat(
@@ -220,8 +218,9 @@ export const ConversationActor = Eff.Effect.succeed(
               )
             }
 
-            if (!toolUses.length)
+            if (!toolUses.length) {
               return State.Idle({ events, timestamp, error: Eff.Option.none() })
+            }
 
             const ctxService = yield* Context.ConversationContext
             const { tools } = yield* ctxService.context
@@ -242,10 +241,16 @@ export const ConversationActor = Eff.Effect.succeed(
 
             return State.ToolUse({ events, timestamp: state.timestamp, calls })
           }),
-        Abort: (state) =>
+        Abort: ({ events, requestFiber }) =>
           Eff.Effect.gen(function* () {
-            // TODO: interrupt current request fiber and go back to idle
-            return state
+            // interrupt current request fiber and go back to idle
+            yield* Eff.Fiber.interruptFork(requestFiber)
+
+            return State.Idle({
+              events,
+              timestamp: yield* getNow,
+              error: Eff.Option.none(),
+            })
           }),
       },
       ToolUse: {
@@ -261,7 +266,7 @@ export const ConversationActor = Eff.Effect.succeed(
             if (Eff.Option.isSome(result)) {
               const event = Event.ToolUse({
                 id: yield* genId,
-                timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
+                timestamp: yield* getNow,
                 toolUseId: id,
                 name: call.name,
                 input: call.input,
@@ -270,8 +275,10 @@ export const ConversationActor = Eff.Effect.succeed(
               events = events.concat(event)
             }
 
-            if (Object.keys(calls).length)
+            if (Object.keys(calls).length) {
+              // some calls still in progress
               return State.ToolUse({ events, timestamp: state.timestamp, calls })
+            }
 
             // all calls completed, send results back to LLM
             const requestFiber = yield* Actor.forkRequest(
@@ -280,17 +287,28 @@ export const ConversationActor = Eff.Effect.succeed(
               (r) => Eff.Effect.succeed(Action.LLMResponse(r)),
               (error) => Eff.Effect.succeed(Action.LLMError({ error })),
             )
+
             return State.WaitingForAssistant({
               events,
-
-              timestamp: new Date(yield* Eff.Clock.currentTimeMillis),
+              timestamp: yield* getNow,
               requestFiber,
             })
           }),
-        Abort: (state) =>
+        Abort: ({ events, calls }) =>
           Eff.Effect.gen(function* () {
-            // TODO: interrupt current request fiber and go back to idle
-            return state
+            // interrupt current tool use fibers and go back to idle
+            yield* Eff.pipe(
+              calls,
+              Eff.Record.collect((_k, v) => v.fiber),
+              Eff.Array.map(Eff.Fiber.interruptFork),
+              Eff.Effect.all,
+            )
+
+            return State.Idle({
+              events,
+              timestamp: yield* getNow,
+              error: Eff.Option.none(),
+            })
           }),
       },
     }),
@@ -374,7 +392,7 @@ const constructPrompt = (
         ],
       )
 
-      const currentTime = new Date(yield* Eff.Clock.currentTimeMillis).toISOString()
+      const currentTime = (yield* getNow).toISOString()
 
       // prompt structure
       // - task context

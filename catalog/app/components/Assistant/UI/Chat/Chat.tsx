@@ -2,7 +2,6 @@ import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-// import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
@@ -212,25 +211,24 @@ function ToolUseEvent({
   )
 }
 
-interface ToolUseStateProps
-  extends ConversationDispatchProps,
-    Model.Conversation.ToolCall {
-  toolUseId: string
+interface ToolUseStateProps extends ConversationDispatchProps {
   timestamp: Date
+  calls: Model.Conversation.ToolCalls
 }
 
-function ToolUseState({
-  timestamp,
-  toolUseId,
-  name,
-  input,
-  dispatch,
-}: ToolUseStateProps) {
+function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
   const abort = React.useCallback(
     () => dispatch(Model.Conversation.Action.Abort()),
     [dispatch],
   )
-  const details = React.useMemo(() => ({ toolUseId, input }), [toolUseId, input])
+
+  const details = React.useMemo(
+    () => Eff.Record.map(calls, Eff.Struct.pick('name', 'input')),
+    [calls],
+  )
+
+  const names = Eff.Record.collect(calls, (_k, v) => v.name)
+
   return (
     <MessageContainer
       role="assistant"
@@ -238,7 +236,7 @@ function ToolUseState({
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
       <span>
-        Tool Use: <b>{name}</b> (in progress)
+        Tool Use: <b>{names.join(', ')}</b>
       </span>
       <M.Box py={0.5}>
         <JsonDisplay name="details" value={details} />
@@ -247,37 +245,25 @@ function ToolUseState({
   )
 }
 
-// const useHistoryStyles = M.makeStyles((t) => ({
-//   assistant: {
-//     animation: `$show 300ms ease-out`,
-//   },
-//   message: {
-//     '& + &': {
-//       marginTop: t.spacing(2),
-//     },
-//   },
-//   user: {
-//     animation: `$slide 150ms ease-out`,
-//     marginLeft: 'auto',
-//     width: '60%',
-//   },
-//   '@keyframes slide': {
-//     '0%': {
-//       transform: `translateX($${t.spacing(8)}px)`,
-//     },
-//     '100%': {
-//       transform: `translateX(0)`,
-//     },
-//   },
-//   '@keyframes show': {
-//     '0%': {
-//       opacity: 0.7,
-//     },
-//     '100%': {
-//       opacity: '1',
-//     },
-//   },
-// }))
+interface WaitingStateProps extends ConversationDispatchProps {
+  timestamp: Date
+}
+
+function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
+  const abort = React.useCallback(
+    () => dispatch(Model.Conversation.Action.Abort()),
+    [dispatch],
+  )
+  return (
+    <MessageContainer
+      role="assistant"
+      timestamp={timestamp}
+      actions={<MessageAction onClick={abort}>abort</MessageAction>}
+    >
+      Processing...
+    </MessageContainer>
+  )
+}
 
 const useChatStyles = M.makeStyles((t) => ({
   chat: {
@@ -361,17 +347,17 @@ export default function Chat({ state, dispatch }: ChatProps) {
               Model.Conversation.Event.$match({
                 Message: (event) => (
                   <MessageEvent
-                    state={state._tag}
                     key={event.id}
                     dispatch={dispatch}
+                    state={state._tag}
                     {...event}
                   />
                 ),
                 ToolUse: (event) => (
                   <ToolUseEvent
-                    state={state._tag}
                     key={event.id}
                     dispatch={dispatch}
+                    state={state._tag}
                     {...event}
                   />
                 ),
@@ -382,30 +368,19 @@ export default function Chat({ state, dispatch }: ChatProps) {
               Eff.Option.match(s.error, {
                 onSome: (e) => (
                   <MessageContainer role="assistant" timestamp={s.timestamp}>
-                    Error occurred:
-                    {e.message}
-                    {e.details}
+                    Error occurred: {e.message}
+                    <div>{e.details}</div>
                   </MessageContainer>
                   // TODO: retry / discard
                 ),
                 onNone: () => null,
               }),
             WaitingForAssistant: (s) => (
-              // TODO: abort
-              <MessageContainer role="assistant" timestamp={s.timestamp}>
-                Processing...
-              </MessageContainer>
+              <WaitingState dispatch={dispatch} timestamp={s.timestamp} />
             ),
-            ToolUse: ({ calls, timestamp }) =>
-              Object.entries(calls).map(([id, call]) => (
-                <ToolUseState
-                  key={id}
-                  timestamp={timestamp}
-                  dispatch={dispatch}
-                  toolUseId={id}
-                  {...call}
-                />
-              )),
+            ToolUse: (s) => (
+              <ToolUseState dispatch={dispatch} timestamp={s.timestamp} calls={s.calls} />
+            ),
           })}
         </div>
       </div>
