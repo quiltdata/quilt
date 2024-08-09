@@ -60,7 +60,7 @@ export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 
 interface SearchUrlStateBase {
   searchString: string | null
-  buckets: string[]
+  buckets: readonly string[]
   order: Model.GQLTypes.SearchResultOrder
 }
 
@@ -408,7 +408,7 @@ export const PackagesSearchFilterIO = Filter({
 
 type UserMetaFilterMap = Map<string, PredicateState<KnownPredicate>>
 
-class UserMetaFilters {
+export class UserMetaFilters {
   filters: UserMetaFilterMap
 
   static typeMap: Record<string, KnownPredicate> = {
@@ -532,9 +532,9 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
   return DEFAULT_RESULT_TYPE
 }
 
-const META_PREFIX = 'meta.'
+export const META_PREFIX = 'meta.'
 
-// XXX: use io-ts or @effect/schema for morphisms between url (querystring) and search state
+// XXX: use @effect/schema for morphisms between url (querystring) and search state
 export function parseSearchParams(qs: string): SearchUrlState {
   const params = new URLSearchParams(qs)
   const searchString = params.get('q')
@@ -1042,10 +1042,12 @@ export type SearhHitPackage = Extract<
 
 export type SearchHit = SearhHitObject | SearhHitPackage
 
-export type PackageUserMetaFacet = Extract<
+type PackageUserMetaFacetFull = Extract<
   GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
 >['stats']['userMeta'][number]
+
+export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
 
 const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,
@@ -1270,7 +1272,7 @@ function useSearchUIModel() {
   )
 
   const setBuckets = React.useCallback(
-    (buckets: string[]) => {
+    (buckets: readonly string[]) => {
       // XXX: reset filters or smth?
       updateUrlState((s) => ({ ...s, buckets }))
     },
@@ -1445,6 +1447,8 @@ function useSearchUIModel() {
 
         clearFilters,
         reset,
+
+        updateUrlState,
       },
       baseSearchQuery,
       firstPageQuery,

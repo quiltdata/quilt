@@ -10,6 +10,24 @@ import * as Credentials from '../Credentials'
 import { foldMessages, historyAppend, History } from './History'
 import { CONTENT_TYPE, bedrockBodyToMessage, createMessage } from './Message'
 
+type ConfigOverrides = Partial<BedrockRuntime.Types.ClientConfiguration>
+
+export function useClient(overrides?: ConfigOverrides) {
+  Credentials.use().suspend()
+
+  const awsConfig = Config.use()
+
+  return React.useMemo(
+    () =>
+      new BedrockRuntime({
+        ...awsConfig,
+        region: cfg.region,
+        ...overrides,
+      }),
+    [awsConfig, overrides],
+  )
+}
+
 const MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0'
 const ANTHROPIC_VERSION = 'bedrock-2023-05-31'
 
@@ -24,21 +42,8 @@ export const MAX_TOKENS = 100000
 // You can use `MOCK_BEDROCK = true` to mock Bedrock API response
 const MOCK_BEDROCK = false
 
-export function useBedrock(
-  overrides?: Partial<BedrockRuntime.Types.ClientConfiguration>,
-) {
-  Credentials.use().suspend()
-
-  const awsConfig = Config.use()
-
-  const client: BedrockRuntime = React.useMemo(() => {
-    const opts = {
-      ...awsConfig,
-      region: cfg.region,
-      ...overrides,
-    }
-    return new BedrockRuntime(opts)
-  }, [awsConfig, overrides])
+export function useBedrock(overrides?: ConfigOverrides) {
+  const client = useClient(overrides)
 
   // `invokeModel()` with prepared new history (last message should be `user` or `system` message)
   // Returns new history with appended `assistant` message

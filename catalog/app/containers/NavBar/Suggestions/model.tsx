@@ -42,7 +42,7 @@ const inAllBuckets = (
     in <b>all buckets</b>
   </>
 )
-const inSelectedBuckets = (buckets: string[]) => {
+const inSelectedBuckets = (buckets: readonly string[]) => {
   const bucketsDisplay = buckets.length === 1 ? `s3://${buckets[0]}` : 'selected buckets'
   return (
     <>
