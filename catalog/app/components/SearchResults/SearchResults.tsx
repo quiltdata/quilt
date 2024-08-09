@@ -363,7 +363,6 @@ function Meta({ meta }: $TSFixMe) {
 
   return (
     <PreviewBox expanded={expanded} onToggle={onToggle}>
-      {/* @ts-expect-error */}
       <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
