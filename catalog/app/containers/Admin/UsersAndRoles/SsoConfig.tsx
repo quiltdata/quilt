@@ -25,11 +25,12 @@ const ERRORS = {
   required: 'Enter an SSO config',
 }
 
-function TextField({ input, meta }: TextFieldProps) {
+function TextField({ errors, input, meta }: TextFieldProps) {
   // TODO: lint yaml
+  const errorMessage = meta.submitFailed && errors[meta.error]
   return (
     <TextEditor
-      error={null}
+      error={errorMessage ? new Error(errorMessage) : null}
       onChange={input.onChange}
       type={TEXT_EDITOR_TYPE}
       value={meta.initial}
@@ -60,25 +61,29 @@ function Form({
   close,
   error,
   ssoConfig,
-  formApi: { dirtySinceLastSubmit, handleSubmit, pristine, submitting },
+  formApi: {
+    dirtySinceLastSubmit,
+    handleSubmit,
+    hasValidationErrors,
+    pristine,
+    submitFailed,
+    submitting,
+  },
 }: FormProps) {
   const classes = useStyles()
   return (
     <>
       <M.DialogTitle disableTypography>
-        <M.Typography variant="h5">SSO config</M.Typography>
+        <M.Typography variant="h5">SSO role mapping config</M.Typography>
       </M.DialogTitle>
       <M.DialogContent>
         <RF.Field
           component={TextField}
-          name="config"
-          validate={validators.required as FF.FieldValidator<any>}
-          placeholder="Enter SSO config"
-          label="SSO config"
-          fullWidth
-          margin="normal"
           errors={ERRORS}
           initialValue={ssoConfig?.text}
+          label="SSO config"
+          name="config"
+          validate={validators.required as FF.FieldValidator<any>}
         />
         {!!error && !dirtySinceLastSubmit && (
           <Lab.Alert className={classes.error} severity="error">
@@ -92,7 +97,7 @@ function Form({
         </M.Button>
         <M.Button
           color="primary"
-          disabled={pristine || submitting}
+          disabled={pristine || submitting || (submitFailed && hasValidationErrors)}
           onClick={handleSubmit}
         >
           Save
@@ -121,6 +126,9 @@ function Data({ children, close }: DataProps) {
   const onSubmit = React.useCallback(
     async ({ config }: FormValues) => {
       try {
+        if (!config) {
+          throw new Error('Enter an SSO config')
+        }
         const {
           admin: { setSsoConfig: r },
         } = await setSsoConfig({ config })
