@@ -17,8 +17,6 @@ import SSO_CONFIG_QUERY from './gql/SsoConfig.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
-// TODO: validate yaml
-
 type TextFieldProps = RF.FieldRenderProps<string> & M.TextFieldProps
 
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
@@ -28,6 +26,7 @@ const ERRORS = {
 }
 
 function TextField({ input, meta }: TextFieldProps) {
+  // TODO: lint yaml
   return (
     <TextEditor
       error={null}
