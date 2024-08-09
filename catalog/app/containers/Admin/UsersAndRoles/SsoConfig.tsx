@@ -2,10 +2,10 @@ import * as FF from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 import { loadMode } from 'components/FileEditor/loader'
-import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import type * as Dialogs from 'utils/GlobalDialogs'
 import * as GQL from 'utils/GraphQL'
@@ -17,9 +17,6 @@ import SSO_CONFIG_QUERY from './gql/SsoConfig.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
-// TODO: wait for mutation result
-// TODO: show error in dialog
-// TODO: move  onSubmit to Suspended
 // TODO: validate yaml
 
 type TextFieldProps = RF.FieldRenderProps<string> & M.TextFieldProps
@@ -30,24 +27,42 @@ const ERRORS = {
   required: 'Enter an SSO config',
 }
 
-function TextField({ input }: TextFieldProps) {
-  return <TextEditor {...input} error={null} type={TEXT_EDITOR_TYPE} />
+function TextField({ input, meta }: TextFieldProps) {
+  return (
+    <TextEditor
+      error={null}
+      onChange={input.onChange}
+      type={TEXT_EDITOR_TYPE}
+      value={meta.initial}
+    />
+  )
 }
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   lock: {
-    bottom: 52,
-    top: 64,
+    bottom: t.spacing(6.5),
+    top: t.spacing(8),
   },
-})
+  error: {
+    marginTop: t.spacing(2),
+  },
+}))
 
-interface FormProps
-  extends Pick<RF.FormRenderProps, 'handleSubmit' | 'pristine' | 'submitting'> {
+type FormValues = Record<'config', string>
+
+interface FormProps {
+  formApi: RF.FormRenderProps<FormValues>
   close: Dialogs.Close<string | void>
   ssoConfig: Pick<Model.GQLTypes.SsoConfig, 'text'> | null
+  error: null | Error
 }
 
-function Form({ close, handleSubmit, pristine, ssoConfig, submitting }: FormProps) {
+function Form({
+  close,
+  error,
+  ssoConfig,
+  formApi: { dirtySinceLastSubmit, handleSubmit, pristine, submitting },
+}: FormProps) {
   const classes = useStyles()
   return (
     <form onSubmit={handleSubmit}>
@@ -66,6 +81,11 @@ function Form({ close, handleSubmit, pristine, ssoConfig, submitting }: FormProp
           errors={ERRORS}
           initialValue={ssoConfig?.text}
         />
+        {!!error && !dirtySinceLastSubmit && (
+          <Lab.Alert className={classes.error} severity="error">
+            {error.message}
+          </Lab.Alert>
+        )}
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
@@ -84,56 +104,45 @@ function Form({ close, handleSubmit, pristine, ssoConfig, submitting }: FormProp
   )
 }
 
-interface SsoConfigProps {
-  children: (props: $TSFixMe) => React.ReactNode
+interface DataProps {
+  children: (props: FormProps) => React.ReactNode
   close: Dialogs.Close<string | void>
 }
 
-function Data({ children, close }: SsoConfigProps) {
-  const { push } = Notifications.use()
-
+function Data({ children, close }: DataProps) {
   const data = GQL.useQueryS(SSO_CONFIG_QUERY)
   loadMode('yaml')
   const setSsoConfig = GQL.useMutation(SET_SSO_CONFIG_MUTATION)
+  const [error, setError] = React.useState<null | Error>(null)
 
-  const submit = React.useCallback(
-    async (config: string) => {
+  const onSubmit = React.useCallback(
+    async ({ config }: FormValues) => {
       try {
         const {
           admin: { setSsoConfig: r },
         } = await setSsoConfig({ config })
         switch (r.__typename) {
           case 'Ok':
-            return
+            return close('submit')
           case 'InvalidInput':
-            // shouldnt happen
-            push('Unable to update SSO config')
-            return
+            return setError(new Error('Unable to update SSO config'))
           case 'OperationError':
-            push(`Unable to update SSO config: ${r.message}`)
-            return
+            return setError(new Error(`Unable to update SSO config: ${r.message}`))
           default:
             assertNever(r)
         }
       } catch (e) {
-        push('Error updating SSO config')
-        // eslint-disable-next-line no-console
-        console.error('Error deleting policy')
-        // eslint-disable-next-line no-console
-        console.error(e)
+        return setError(e instanceof Error ? e : new Error('Error updating SSO config'))
       }
     },
-    [push, setSsoConfig],
-  )
-
-  const onSubmit = React.useCallback(
-    ({ config }) => close(submit(config)),
-    [close, submit],
+    [close, setSsoConfig],
   )
 
   return (
     <RF.Form onSubmit={onSubmit}>
-      {(props) => children({ ...props, close, ssoConfig: data.admin?.ssoConfig })}
+      {(formApi) =>
+        children({ formApi, close, error: error, ssoConfig: data.admin?.ssoConfig })
+      }
     </RF.Form>
   )
 }
