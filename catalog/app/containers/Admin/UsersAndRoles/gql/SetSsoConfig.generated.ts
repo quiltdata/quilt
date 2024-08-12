@@ -12,7 +12,10 @@ export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
     readonly setSsoConfig:
-      | { readonly __typename: 'SsoConfig' }
+      | ({ readonly __typename: 'SsoConfig' } & Pick<
+          Types.SsoConfig,
+          'timestamp' | 'text'
+        >)
       | ({ readonly __typename: 'InvalidInput' } & {
           readonly errors: ReadonlyArray<
             { readonly __typename: 'InputError' } & Pick<
@@ -71,6 +74,20 @@ export const containers_Admin_UsersAndRoles_gql_SetSsoConfigDocument = {
                     kind: 'SelectionSet',
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
+                      {
+                        kind: 'InlineFragment',
+                        typeCondition: {
+                          kind: 'NamedType',
+                          name: { kind: 'Name', value: 'SsoConfig' },
+                        },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'timestamp' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'text' } },
+                          ],
+                        },
+                      },
                       {
                         kind: 'InlineFragment',
                         typeCondition: {

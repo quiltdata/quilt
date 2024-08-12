@@ -2,6 +2,10 @@ mutation ($config: String!) {
   admin {
     setSsoConfig(config: $config) {
       __typename
+      ... on SsoConfig {
+        timestamp
+        text
+      }
       ... on InvalidInput {
         errors {
           path
