@@ -1,0 +1,16 @@
+mutation ($config: String!) {
+  admin {
+    setSsoConfig(config: $config) {
+      __typename
+      ... on InvalidInput {
+        errors {
+          path
+          message
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}
