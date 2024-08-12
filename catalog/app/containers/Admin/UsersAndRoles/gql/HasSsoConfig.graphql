@@ -1,7 +1,0 @@
-query {
-  admin {
-    ssoConfig {
-      timestamp
-    }
-  }
-}

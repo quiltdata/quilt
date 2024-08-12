@@ -21,7 +21,6 @@ import AttachedPolicies from './AttachedPolicies'
 import SsoConfig from './SsoConfig'
 import { MAX_POLICIES_PER_ROLE, getArnLink } from './shared'
 
-import HAS_SSO_CONFIG_QUERY from './gql/HasSsoConfig.generated'
 import ROLES_QUERY from './gql/Roles.generated'
 import ROLE_CREATE_MANAGED_MUTATION from './gql/RoleCreateManaged.generated'
 import ROLE_CREATE_UNMANAGED_MUTATION from './gql/RoleCreateUnmanaged.generated'
@@ -30,6 +29,7 @@ import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/RoleUpdateUnmanaged.generated'
 import ROLE_DELETE_MUTATION from './gql/RoleDelete.generated'
 import ROLE_SET_DEFAULT_MUTATION from './gql/RoleSetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
+import SSO_CONFIG_QUERY from './gql/SsoConfig.generated'
 
 const columns: Table.Column<Role>[] = [
   {
@@ -705,7 +705,7 @@ export default function Roles() {
   const defaultRoleId = data.defaultRole?.id
   const isDefaultRoleSettingDisabled = !!data.admin?.isDefaultRoleSettingDisabled
 
-  const ssoConfigData = GQL.useQueryS(HAS_SSO_CONFIG_QUERY)
+  const ssoConfigData = GQL.useQueryS(SSO_CONFIG_QUERY)
   const hasSsoConfig = !!ssoConfigData.admin?.ssoConfig
 
   const filtering = Table.useFiltering({
