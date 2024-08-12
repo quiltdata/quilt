@@ -880,7 +880,7 @@ type UserAdminMutations {
   mutate(name: String!): MutateUserAdminMutations
 }
 
-union SetSsoConfigResult = Ok | InvalidInput | OperationError
+union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 
 type AdminMutations {
   user: UserAdminMutations!

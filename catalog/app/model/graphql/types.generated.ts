@@ -1036,7 +1036,7 @@ export enum SearchResultOrder {
   OLDEST = 'OLDEST',
 }
 
-export type SetSsoConfigResult = Ok | InvalidInput | OperationError
+export type SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'

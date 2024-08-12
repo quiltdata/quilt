@@ -12,7 +12,7 @@ export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
     readonly setSsoConfig:
-      | { readonly __typename: 'Ok' }
+      | { readonly __typename: 'SsoConfig' }
       | ({ readonly __typename: 'InvalidInput' } & {
           readonly errors: ReadonlyArray<
             { readonly __typename: 'InputError' } & Pick<

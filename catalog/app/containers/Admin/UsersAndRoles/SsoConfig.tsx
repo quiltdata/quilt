@@ -133,7 +133,7 @@ function Data({ children, close }: DataProps) {
           admin: { setSsoConfig: r },
         } = await setSsoConfig({ config })
         switch (r.__typename) {
-          case 'Ok':
+          case 'SsoConfig':
             return close('submit')
           case 'InvalidInput':
             return setError(new Error('Unable to update SSO config'))

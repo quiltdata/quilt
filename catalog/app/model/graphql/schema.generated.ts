@@ -4797,7 +4797,7 @@ export default {
         possibleTypes: [
           {
             kind: 'OBJECT',
-            name: 'Ok',
+            name: 'SsoConfig',
           },
           {
             kind: 'OBJECT',
