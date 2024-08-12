@@ -7,10 +7,6 @@ import pytest
 from quilt3 import admin
 from quilt3.admin import _graphql_client
 
-OK = {
-    "__typename": "Ok",
-    "_": None,
-}
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
     "id": "d7d15bef-c482-4086-ae6b-d0372b6145d2",
@@ -351,7 +347,7 @@ def test_sso_config_get(data, result):
 @pytest.mark.parametrize(
     "data,result",
     [
-        (OK, None),
+        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
         *MUTATION_ERRORS,
     ],
 )

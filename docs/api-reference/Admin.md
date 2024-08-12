@@ -140,7 +140,7 @@ __Arguments__
 Get the current SSO configuration.
 
 
-## set(config: Optional[str]) -> None  {#set}
+## set(config: Optional[str]) -> quilt3.admin.types.SSOConfig  {#set}
 
 Set the SSO configuration.
 

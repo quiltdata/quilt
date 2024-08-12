@@ -15,8 +15,8 @@ from .sso_config_get import SsoConfigGet, SsoConfigGetAdminSsoConfig
 from .sso_config_set import (
     SsoConfigSet,
     SsoConfigSetAdminSetSsoConfigInvalidInput,
-    SsoConfigSetAdminSetSsoConfigOk,
     SsoConfigSetAdminSetSsoConfigOperationError,
+    SsoConfigSetAdminSetSsoConfigSsoConfig,
 )
 from .users_add_roles import UsersAddRoles, UsersAddRolesAdminUserMutate
 from .users_create import (
@@ -866,11 +866,7 @@ class Client(BaseClient):
             query ssoConfigGet {
               admin {
                 ssoConfig {
-                  text
-                  timestamp
-                  uploader {
-                    ...UserSelection
-                  }
+                  ...SsoConfigSelection
                 }
               }
             }
@@ -885,6 +881,14 @@ class Client(BaseClient):
               __typename
               ...UnmanagedRoleSelection
               ...ManagedRoleSelection
+            }
+
+            fragment SsoConfigSelection on SsoConfig {
+              text
+              timestamp
+              uploader {
+                ...UserSelection
+              }
             }
 
             fragment UnmanagedRoleSelection on UnmanagedRole {
@@ -921,7 +925,7 @@ class Client(BaseClient):
     def sso_config_set(
         self, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
     ) -> Union[
-        SsoConfigSetAdminSetSsoConfigOk,
+        SsoConfigSetAdminSetSsoConfigSsoConfig,
         SsoConfigSetAdminSetSsoConfigInvalidInput,
         SsoConfigSetAdminSetSsoConfigOperationError,
     ]:
@@ -931,9 +935,7 @@ class Client(BaseClient):
               admin {
                 setSsoConfig(config: $config) {
                   __typename
-                  ... on Ok {
-                    _
-                  }
+                  ...SsoConfigSelection
                   ...InvalidInputSelection
                   ...OperationErrorSelection
                 }
@@ -949,10 +951,53 @@ class Client(BaseClient):
               }
             }
 
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
             fragment OperationErrorSelection on OperationError {
               message
               name
               context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment SsoConfigSelection on SsoConfig {
+              text
+              timestamp
+              uploader {
+                ...UserSelection
+              }
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
             }
             """
         )
