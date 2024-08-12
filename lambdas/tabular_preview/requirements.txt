@@ -70,5 +70,5 @@ xlrd==2.0.1
     # via t4_lambda_tabular_preview (setup.py)
 yarl==1.7.2
     # via aiohttp
-zipp==3.17.0
+zipp==3.19.1
     # via importlib-resources
