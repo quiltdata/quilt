@@ -42,7 +42,7 @@ strict-rfc3339==0.7
 tenacity==5.0.3
 traitlets==4.3.2
 typing_extensions==4.5.0
-urllib3==1.26.18
+urllib3==1.26.19
 xlrd==2.0.1
 XlsxWriter==3.1.0
 zipp==3.19.1
