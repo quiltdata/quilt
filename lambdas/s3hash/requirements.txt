@@ -6,7 +6,7 @@
 #
 aiobotocore==2.11.1
     # via t4_lambda_s3hash (setup.py)
-aiohttp==3.9.4
+aiohttp==3.10.2
     # via aiobotocore
 aioitertools==0.11.0
     # via aiobotocore
