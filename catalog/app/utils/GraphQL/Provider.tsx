@@ -108,7 +108,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
-          SsoConfig: (c) => (c.timestamp ? c.timestamp.toString() : null),
+          SsoConfig: (c) =>
+            c.timestamp instanceof Date ? c.timestamp.getTime().toString() : null,
           Status: () => null,
           StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
           StatusReportList: () => null,
