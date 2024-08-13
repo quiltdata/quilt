@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements.txt ../shared/setup.py setup.py
 #
-aiohttp==3.9.4
+aiohttp==3.10.2
     # via fsspec
 aiosignal==1.2.0
     # via aiohttp
@@ -60,7 +60,7 @@ python-dateutil==2.8.2
     # via pandas
 pytz==2021.3
     # via pandas
-requests==2.31.0
+requests==2.32.2
     # via fsspec
 six==1.16.0
     # via python-dateutil
@@ -70,5 +70,5 @@ xlrd==2.0.1
     # via t4_lambda_tabular_preview (setup.py)
 yarl==1.7.2
     # via aiohttp
-zipp==3.17.0
+zipp==3.19.1
     # via importlib-resources

@@ -1,6 +1,9 @@
 # import RoleSelection from "./RoleSelection.graphql"
 
 query {
+  admin {
+    isDefaultRoleSettingDisabled
+  }
   roles {
     ...RoleSelection
   }

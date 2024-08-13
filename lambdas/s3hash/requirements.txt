@@ -6,7 +6,7 @@
 #
 aiobotocore==2.11.1
     # via t4_lambda_s3hash (setup.py)
-aiohttp==3.9.4
+aiohttp==3.10.2
     # via aiobotocore
 aioitertools==0.11.0
     # via aiobotocore
@@ -37,7 +37,7 @@ botocore-stubs==1.34.31
     # via
     #   boto3-stubs
     #   types-aiobotocore
-certifi==2023.11.17
+certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
@@ -83,7 +83,7 @@ python-dateutil==2.8.2
     # via botocore
 pyyaml==6.0.1
     # via quilt3
-quilt-shared[boto,pydantic,quilt] @ git+https://github.com/quiltdata/quilt@7c6edd14fbe8a26613bc26b1bbdc0b956132ef8c#subdirectory=py-shared
+quilt-shared[boto,pydantic,quilt] @ https://github.com/quiltdata/quilt/archive/7c6edd14fbe8a26613bc26b1bbdc0b956132ef8c.zip#subdirectory=py-shared
     # via t4_lambda_s3hash (setup.py)
 quilt3==5.4.0
     # via quilt-shared
@@ -141,5 +141,5 @@ wrapt==1.16.0
     # via aiobotocore
 yarl==1.9.4
     # via aiohttp
-zipp==3.17.0
+zipp==3.19.1
     # via importlib-resources

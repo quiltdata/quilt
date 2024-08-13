@@ -1,6 +1,6 @@
 ARG FUNCTION_DIR="/function"
 
-FROM debian:bullseye-20240722-slim@sha256:9b2119db9c4a2ae63cb34cee144524c41b425194f0798a248119eca22a849519 as base-image
+FROM debian:bullseye-20240812-slim@sha256:9058862a1be84689bd13292549ba981364f85ff99e50a612f94b188ac69db137 as base-image
 
 FROM base-image as build-image
 

@@ -1,4 +1,4 @@
-FROM amazonlinux:2023.5.20240708.0
+FROM amazonlinux:2023.5.20240805.0
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 ENV LC_ALL=C.UTF-8
