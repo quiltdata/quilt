@@ -10,7 +10,7 @@ attrs==22.2.0
     # via jsonschema
 awslambdaric==2.0.4
     # via t4-lambda-shared (../shared/setup.py)
-certifi==2023.7.22
+certifi==2024.7.4
     # via requests
 charset-normalizer==3.0.1
     # via requests
@@ -51,7 +51,7 @@ simplejson==3.17.2
     # via awslambdaric
 tifffile==0.15.1
     # via aicsimageio
-urllib3==1.26.18
+urllib3==1.26.19
     # via requests
 xlsxwriter==3.0.7
     # via python-pptx
