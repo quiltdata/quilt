@@ -11,6 +11,13 @@ from .roles_list import (
     RolesListRolesManagedRole,
     RolesListRolesUnmanagedRole,
 )
+from .sso_config_get import SsoConfigGet, SsoConfigGetAdminSsoConfig
+from .sso_config_set import (
+    SsoConfigSet,
+    SsoConfigSetAdminSetSsoConfigInvalidInput,
+    SsoConfigSetAdminSetSsoConfigOperationError,
+    SsoConfigSetAdminSetSsoConfigSsoConfig,
+)
 from .users_add_roles import UsersAddRoles, UsersAddRolesAdminUserMutate
 from .users_create import (
     UsersCreate,
@@ -852,3 +859,151 @@ class Client(BaseClient):
         )
         data = self.get_data(response)
         return UsersRemoveRoles.model_validate(data).admin.user.mutate
+
+    def sso_config_get(self, **kwargs: Any) -> Optional[SsoConfigGetAdminSsoConfig]:
+        query = gql(
+            """
+            query ssoConfigGet {
+              admin {
+                ssoConfig {
+                  ...SsoConfigSelection
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment SsoConfigSelection on SsoConfig {
+              text
+              timestamp
+              uploader {
+                ...UserSelection
+              }
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query, operation_name="ssoConfigGet", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SsoConfigGet.model_validate(data).admin.sso_config
+
+    def sso_config_set(
+        self, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
+    ) -> Union[
+        SsoConfigSetAdminSetSsoConfigSsoConfig,
+        SsoConfigSetAdminSetSsoConfigInvalidInput,
+        SsoConfigSetAdminSetSsoConfigOperationError,
+    ]:
+        query = gql(
+            """
+            mutation ssoConfigSet($config: String) {
+              admin {
+                setSsoConfig(config: $config) {
+                  __typename
+                  ...SsoConfigSelection
+                  ...InvalidInputSelection
+                  ...OperationErrorSelection
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment SsoConfigSelection on SsoConfig {
+              text
+              timestamp
+              uploader {
+                ...UserSelection
+              }
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"config": config}
+        response = self.execute(
+            query=query, operation_name="ssoConfigSet", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SsoConfigSet.model_validate(data).admin.set_sso_config

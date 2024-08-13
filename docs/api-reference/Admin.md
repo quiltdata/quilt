@@ -11,6 +11,9 @@
 ## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
 
 
+## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}
+
+
 # quilt3.admin.roles
 
 
@@ -127,4 +130,17 @@ __Arguments__
 * __name__:  Username of user to update.
 * __roles__:  Roles to remove from the user.
 * __fallback__:  If set, the role to assign to the user if the active role is removed.
+
+
+# quilt3.admin.sso_config
+
+
+## get() -> Optional[quilt3.admin.types.SSOConfig]  {#get}
+
+Get the current SSO configuration.
+
+
+## set(config: Optional[str]) -> quilt3.admin.types.SSOConfig  {#set}
+
+Set the SSO configuration.
 

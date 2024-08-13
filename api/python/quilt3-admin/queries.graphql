@@ -47,6 +47,13 @@ fragment OperationErrorSelection on OperationError {
   name
   context
 }
+fragment SsoConfigSelection on SsoConfig {
+  text
+  timestamp
+  uploader {
+    ...UserSelection
+  }
+}
 
 query rolesList {
   roles {
@@ -184,6 +191,24 @@ mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String)
           ...OperationErrorSelection
         }
       }
+    }
+  }
+}
+
+query ssoConfigGet {
+  admin {
+    ssoConfig {
+      ...SsoConfigSelection
+    }
+  }
+}
+
+mutation ssoConfigSet($config: String) {
+  admin {
+    setSsoConfig(config: $config) {
+      ...SsoConfigSelection
+      ...InvalidInputSelection
+      ...OperationErrorSelection
     }
   }
 }
