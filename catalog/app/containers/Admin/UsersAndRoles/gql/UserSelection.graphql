@@ -8,6 +8,8 @@ fragment UserSelection on User {
   isAdmin
   isSsoOnly
   isService
+  isRoleAssignmentDisabled
+  isAdminAssignmentDisabled
   role {
     __typename
     ... on ManagedRole {
