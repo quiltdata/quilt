@@ -18,7 +18,6 @@ const POLICIES_QUERY = urql.gql`{ policies { id } }`
 const ROLES_QUERY = urql.gql`{ roles { id } }`
 const USERS_QUERY = urql.gql`{ admin { user { list { name } } } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
-const SSO_CONFIG_QUERY = urql.gql`{ admin { ssoConfig { text timestamp } } }`
 
 function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
@@ -341,10 +340,6 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               if (result.admin?.setSsoConfig?.__typename === 'SsoConfig') {
                 cache.invalidate({ __typename: 'Query' }, 'admin')
                 cache.invalidate({ __typename: 'Query' }, 'roles')
-                cache.updateQuery(
-                  { query: SSO_CONFIG_QUERY },
-                  () => result.admin.setSsoConfig,
-                )
               }
             },
           },
