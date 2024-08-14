@@ -42,10 +42,21 @@ export const PathParams = S.Record({
   value: S.Union(S.String, S.Number, S.Boolean),
 })
 
-const matchPath = (path: string) =>
+export const fromPathParams = <T extends typeof PathParams.Type>(schema: S.Schema<T>) =>
+  S.transformOrFail(PathParams, schema, {
+    encode: (toI) => Eff.Effect.succeed(toI),
+    decode: (fromA, _parseOptions, ast) =>
+      Eff.pipe(
+        fromA,
+        S.decodeUnknown(schema),
+        Eff.Effect.mapError((e) => new ParseResult.Type(ast, fromA, e.message)),
+      ),
+  })
+
+const matchPath = (path: string, exact: boolean, strict: boolean) =>
   S.transformOrFail(S.String, PathParams, {
     decode: (input, options, ast) => {
-      const match = RR.matchPath(input, { path })
+      const match = RR.matchPath(input, { path, exact, strict })
       if (!match)
         return ParseResult.fail(
           new ParseResult.Type(ast, input, `Path does not match path pattern '${path}'`),
@@ -82,8 +93,8 @@ const ParsedLocation = S.Struct({
 })
 
 // XXX: accept route matching params? e.g. strict etc*/
-function makeParsedLocation(path: string) {
-  const pathParamsSchema = matchPath(path)
+function makeParsedLocation(path: string, exact: boolean, strict: boolean) {
+  const pathParamsSchema = matchPath(path, exact, strict)
   return S.transformOrFail(Location, ParsedLocation, {
     decode: (input, options, ast) =>
       Eff.Effect.gen(function* () {
@@ -117,7 +128,6 @@ function makeParsedParams<
 ) {
   const RouteParamsSchema = S.extend(S.typeSchema(SPS), S.typeSchema(PPS))
   return S.transformOrFail(ParsedLocation, RouteParamsSchema, {
-    strict: true,
     decode: (input, options, ast) =>
       Eff.Effect.gen(function* () {
         // XXX: accumulate both errors
@@ -159,6 +169,8 @@ interface RouteDescriptor<
 > {
   name: Name
   path: Path
+  exact: boolean
+  strict: boolean
   description: string
   paramsSchema: S.Schema<RouteSearchParams & RoutePathParams, typeof Location.Type>
   navigableRouteSchema: S.Schema<{
@@ -176,13 +188,18 @@ export function makeRoute<
 >(input: {
   name: Name
   path: Path
+  exact?: boolean
+  strict?: boolean
   description: string
   searchParams?: S.Schema<RouteSearchParams, typeof SearchParams.Type>
   pathParams?: S.Schema<RoutePathParams, typeof PathParams.Type>
   waitForMarkers?: string[]
 }): RouteDescriptor<Name, Path, RouteSearchParams, RoutePathParams> {
+  const exact = input.exact ?? false
+  const strict = input.strict ?? false
+
   // Location <-> ParsedLocation
-  const locationSchema = makeParsedLocation(input.path)
+  const locationSchema = makeParsedLocation(input.path, exact, strict)
 
   const searchParams =
     input.searchParams ??
@@ -200,18 +217,20 @@ export function makeRoute<
   // Location <-> RouteParams
   const paramsSchema = S.compose(locationSchema, parseParams)
 
-  const navigableRouteSchema = S.Struct({
-    name: S.Literal(input.name),
-    params: paramsSchema,
+  const navigableRouteSchema = S.typeSchema(
+    S.Struct({
+      name: S.Literal(input.name),
+      params: paramsSchema,
+    }),
+  ).annotations({
+    description: input.description,
   })
-    .pipe(S.typeSchema)
-    .annotations({
-      description: input.description,
-    })
 
   return {
     name: input.name,
     path: input.path,
+    exact,
+    strict,
     paramsSchema,
     navigableRouteSchema,
     description: input.description,
