@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1.0"
+    },
+    "mappings": {
+      "description": "List of mapping to match against the user ID token. Only the first matching mapping is used.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "description": "JSON schema to match against the user ID token.",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          },
+          "roles": {
+            "description": "Names of roles to assign to the user if the schema matches.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "admin": {
+            "description": "Value of admin flag to assign to the user if the schema matches.",
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "schema",
+          "roles"
+        ]
+      }
+
+    }
+  },
+  "default_role": {
+    "type": "string",
+    "description": "The default role to assign if none of mappings are matched."
+  },
+  "required": [
+    "version",
+    "mappings",
+    "default_role"
+  ]
+}
