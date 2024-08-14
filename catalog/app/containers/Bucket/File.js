@@ -6,6 +6,7 @@ import * as React from 'react'
 import { Link, useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Assistant from 'components/Assistant'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
@@ -30,14 +31,25 @@ import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import FileCodeSamples from './CodeSamples/File'
+import * as AssistantContext from './FileAssistantContext'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
-import QuratorButton from './Qurator/Button'
-import QuratorContext from './Qurator/Context'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 import { useViewModes, viewModeToSelectOption } from './viewModes'
+
+function SummarizeButton() {
+  const assist = Assistant.use()
+  const msg = 'Summarize this document'
+  return (
+    <M.IconButton color="primary" onClick={() => assist(msg)} edge="end">
+      <M.Tooltip title="Summarize and chat with AI">
+        <M.Icon>assistant</M.Icon>
+      </M.Tooltip>
+    </M.IconButton>
+  )
+}
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
@@ -83,6 +95,8 @@ function VersionInfo({ bucket, path, version }) {
   }
 
   const data = useData(requests.objectVersions, { s3, bucket, path })
+
+  AssistantContext.useVersionsContext(data)
 
   return (
     <>
@@ -344,6 +358,8 @@ export default function File() {
     resetKey,
   })
 
+  AssistantContext.useCurrentVersionContext(version, objExistsData, versionExistsData)
+
   const objExists = objExistsData.case({
     _: () => false,
     Ok: requests.ObjectExistence.case({
@@ -483,7 +499,8 @@ export default function File() {
           {cfg.qurator &&
             BucketPreferences.Result.match(
               {
-                Ok: ({ ui: { blocks } }) => (blocks.qurator ? <QuratorButton /> : null),
+                // XXX: only show this when the object exists?
+                Ok: ({ ui: { blocks } }) => (blocks.qurator ? <SummarizeButton /> : null),
                 _: () => null,
               },
               prefs,
@@ -514,7 +531,6 @@ export default function File() {
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
-                      {cfg.qurator && <QuratorContext handle={handle} />}
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />

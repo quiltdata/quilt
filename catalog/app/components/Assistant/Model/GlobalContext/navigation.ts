@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RR from 'react-router-dom'
 import { Schema as S } from '@effect/schema'
 
+import bucketRoutes from 'containers/Bucket/Routes'
 import search from 'containers/Search/Route'
 import * as ROUTES from 'constants/routes'
 import * as Log from 'utils/Logging'
@@ -21,6 +22,7 @@ const routeList = [
   Nav.makeRoute({
     name: 'home',
     path: ROUTES.home.path,
+    exact: true,
     description: 'Home page',
     // searchParams: S.Struct({
     //   // XXX: passing this param doesn't actually work bc of how it's implemented in
@@ -92,12 +94,7 @@ const routeList = [
   //           <UriResolver />
   //         </Route>
   //
-  Nav.makeRoute({
-    name: 'bucket',
-    path: ROUTES.bucketRoot.path,
-    description: 'Bucket root page',
-    // XXX: this should hold the bucket name and subroute info (e.g. package vs file view)
-  }),
+  ...bucketRoutes,
 ] as const
 
 type KnownRoute = (typeof routeList)[number]
@@ -114,6 +111,10 @@ export const NavigableRouteSchema = S.Union(
 
 type NavigableRoute = typeof NavigableRouteSchema.Type
 
+export const locationFromRoute = (route: NavigableRoute) =>
+  // @ts-expect-error
+  S.encode(routes[route.name].paramsSchema)(route.params)
+
 type History = ReturnType<typeof RR.useHistory>
 
 const WAIT_TIMEOUT = Eff.Duration.seconds(30)
@@ -128,9 +129,7 @@ const navigate = (
     enter: [`to: ${route.name}`, Log.br, 'params:', route.params],
   })(
     Eff.pipe(
-      route.params,
-      // @ts-expect-error
-      S.encode(routes[route.name].paramsSchema),
+      locationFromRoute(route),
       Eff.Effect.tap((loc) => Eff.Effect.log(`Navigating to location:`, Log.br, loc)),
       Eff.Effect.andThen((loc) => Eff.Effect.sync(() => history.push(loc))),
       Eff.Effect.andThen(() =>
@@ -166,7 +165,11 @@ interface Match {
 const matchLocation = (loc: typeof Nav.Location.Type): Match | null =>
   Eff.pipe(
     Eff.Array.findFirst(routeList, (route) =>
-      RR.matchPath(loc.pathname, { path: route.path, exact: true })
+      RR.matchPath(loc.pathname, {
+        path: route.path,
+        exact: route.exact,
+        strict: route.strict,
+      })
         ? Eff.Option.some(route)
         : Eff.Option.none(),
     ),

@@ -1,42 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`components/Assistant/Model/GlobalTools/navigation NavigableRouteSchema should decode input 1`] = `
-{
-  "name": "search",
-  "params": {
-    "buckets": [],
-    "order": "NEWEST",
-    "params": {
-      "filter": [],
-      "resultType": "p",
-      "userMetaFilters": [
-        {
-          "path": "/author",
-          "predicate": {
-            "type": "KeywordEnum",
-            "value": {
-              "terms": [
-                "Aneesh",
-                "Maksim",
-              ],
-            },
-          },
-        },
-      ],
-    },
-    "searchString": "",
-  },
-}
-`;
-
-exports[`components/Assistant/Model/GlobalTools/navigation NavigableRouteSchema should decode input 2`] = `
-{
-  "hash": "",
-  "pathname": "/search",
-  "search": "o=NEWEST&meta.e%2Fauthor=%22Aneesh%22%2C%22Maksim%22",
-}
-`;
-
 exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produced JSON Schema should match the snapshot 1`] = `
 {
   "$defs": {
@@ -667,21 +630,64 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
         },
         {
           "additionalProperties": false,
-          "description": "Bucket root page",
+          "description": "Bucket overview page",
           "properties": {
             "name": {
-              "const": "bucket",
+              "const": "bucket.overview",
             },
             "params": {
-              "$id": "/schemas/{}",
-              "oneOf": [
-                {
-                  "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "type": "string",
                 },
-                {
-                  "type": "array",
-                },
+              },
+              "required": [
+                "bucket",
               ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "S3 Object (aka File) Detail page",
+          "properties": {
+            "name": {
+              "const": "bucket.object",
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "type": "string",
+                },
+                "mode": {
+                  "description": "Contents preview mode",
+                  "title": "Viewing Mode",
+                  "type": "string",
+                },
+                "path": {
+                  "description": "a string",
+                  "title": "string & Brand<"S3Path">",
+                  "type": "string",
+                },
+                "version": {
+                  "description": "S3 Object Version ID (omit for latest version)",
+                  "title": "Version ID",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "bucket",
+                "path",
+              ],
+              "type": "object",
             },
           },
           "required": [
