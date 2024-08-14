@@ -29,7 +29,6 @@ import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/RoleUpdateUnmanaged.generated'
 import ROLE_DELETE_MUTATION from './gql/RoleDelete.generated'
 import ROLE_SET_DEFAULT_MUTATION from './gql/RoleSetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
-import SSO_CONFIG_QUERY from './gql/SsoConfig.generated'
 
 const columns: Table.Column<Role>[] = [
   {
@@ -705,9 +704,6 @@ export default function Roles() {
   const defaultRoleId = data.defaultRole?.id
   const isDefaultRoleSettingDisabled = !!data.admin?.isDefaultRoleSettingDisabled
 
-  const ssoConfigData = GQL.useQueryS(SSO_CONFIG_QUERY)
-  const hasSsoConfig = !!ssoConfigData.admin?.ssoConfig
-
   const filtering = Table.useFiltering({
     rows,
     filterBy: ({ name }) => name,
@@ -718,21 +714,22 @@ export default function Roles() {
   })
   const dialogs = Dialogs.use()
 
-  const createAction = {
-    title: 'Create',
-    icon: <M.Icon>add</M.Icon>,
-    fn: React.useCallback(() => {
-      dialogs.open(({ close }) => <Create {...{ close }} />)
-    }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
-  }
-  const ssoConfigAction = {
-    title: 'SSO Config',
-    icon: <M.Icon>assignment_ind</M.Icon>,
-    fn: React.useCallback(() => {
-      dialogs.open(({ close }) => <SsoConfig {...{ close }} />)
-    }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
-  }
-  const toolbarActions = hasSsoConfig ? [ssoConfigAction, createAction] : [createAction]
+  const toolbarActions = [
+    {
+      title: 'SSO Config',
+      icon: <M.Icon>assignment_ind</M.Icon>,
+      fn: React.useCallback(() => {
+        dialogs.open(({ close }) => <SsoConfig {...{ close }} />)
+      }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
+    },
+    {
+      title: 'Create',
+      icon: <M.Icon>add</M.Icon>,
+      fn: React.useCallback(() => {
+        dialogs.open(({ close }) => <Create {...{ close }} />)
+      }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
+    },
+  ]
 
   const inlineActions = (role: Role) => [
     role.arn
