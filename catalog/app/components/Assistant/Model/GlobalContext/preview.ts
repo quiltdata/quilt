@@ -252,7 +252,9 @@ const getDocumentPreview = (handle: S3ObjectLocation, format: Content.DocumentFo
         return Content.text('Could not get object contents')
       }
       return Content.ToolResultContentBlock.Document({
-        name: normalizeDocumentName(handle.key),
+        name: normalizeDocumentName(
+          `${handle.bucket} ${handle.key} ${handle.version || ''}`,
+        ),
         format,
         source: blob as $TSFixMe,
       })
@@ -428,6 +430,9 @@ const detectFileType = (key: string): FileType => {
     return FileType.Document({ format: 'xlsx' })
   }
   if (isText(key)) {
+    return FileType.Document({ format: 'txt' })
+  }
+  if (ext === '.ipynb') {
     return FileType.Document({ format: 'txt' })
   }
   return FileType.Unidentified()
