@@ -924,10 +924,12 @@ class Client(BaseClient):
 
     def sso_config_set(
         self, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
-    ) -> Union[
-        SsoConfigSetAdminSetSsoConfigSsoConfig,
-        SsoConfigSetAdminSetSsoConfigInvalidInput,
-        SsoConfigSetAdminSetSsoConfigOperationError,
+    ) -> Optional[
+        Union[
+            SsoConfigSetAdminSetSsoConfigSsoConfig,
+            SsoConfigSetAdminSetSsoConfigInvalidInput,
+            SsoConfigSetAdminSetSsoConfigOperationError,
+        ]
     ]:
         query = gql(
             """
