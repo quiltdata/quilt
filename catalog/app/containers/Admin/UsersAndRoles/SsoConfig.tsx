@@ -179,7 +179,7 @@ function Data({ children, close }: DataProps) {
         }
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Error updating policy')
+        console.error('Error updating SSO config')
         // eslint-disable-next-line no-console
         console.error(e)
         return mkFormError('unexpected')
