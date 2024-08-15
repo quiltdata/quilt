@@ -107,10 +107,11 @@ function Form({
           <>
             <FormError error={error || submitError} errors={FORM_ERRORS} />
             <M.Typography variant="body2">
+              Learn more about{' '}
               <StyledLink href={`${docs}/advanced/sso-permissions`} target="_blank">
-                See docs
-              </StyledLink>{' '}
-              to learn more on how to configure SSO mappings.
+                SSO permissions mapping
+              </StyledLink>
+              .
             </M.Typography>
           </>
         )}
