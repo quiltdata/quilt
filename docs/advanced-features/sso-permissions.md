@@ -61,4 +61,5 @@ admin flag set to true
 to false (except the user with `admin@example.com` email)
 1. all other users will have `ReadQuiltBucket` role
 
-NOTE: Unrecognized users will have their role set to the `default_role`, but their admin flag will be unchanged.
+> Note: Unrecognized users will have their role set to the `default_role`, but
+their admin flag will be unchanged.
