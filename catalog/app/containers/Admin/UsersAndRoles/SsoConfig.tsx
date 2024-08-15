@@ -216,7 +216,13 @@ interface SuspendedProps {
 
 export default function Suspended({ close }: SuspendedProps) {
   return (
-    <React.Suspense fallback={<M.CircularProgress size={80} />}>
+    <React.Suspense
+      fallback={
+        <M.Box m="32px auto">
+          <M.CircularProgress size={80} />
+        </M.Box>
+      }
+    >
       <Data close={close}>{(props) => <Form {...props} />}</Data>
     </React.Suspense>
   )
