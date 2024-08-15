@@ -13,7 +13,7 @@ The configuration can be set with `quilt3.admin.sso_config.set()` or with admin 
 
 > Note: Roles used by configuration can't be removed or renamed.
 
-> Note: User who sets configuration last can't be revoked admin flag.
+> Note: The user who sets the configuration will never have their admin flag revoked.
 
 > Note: After configuration is set, any user who logs in via SSO can't be manually
 assigned roles or admin permissions.
