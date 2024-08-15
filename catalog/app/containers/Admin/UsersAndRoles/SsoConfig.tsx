@@ -46,26 +46,34 @@ function TextField({ errors, input, meta }: TextFieldProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  lock: {
-    bottom: t.spacing(6.5),
-    top: t.spacing(8),
+  delete: {
+    background: t.palette.error.light,
+    color: t.palette.error.contrastText,
+    marginRight: 'auto',
+    '&:hover': {
+      background: t.palette.error.main,
+    },
   },
   error: {
     marginTop: t.spacing(2),
+  },
+  lock: {
+    bottom: t.spacing(6.5),
+    top: t.spacing(8),
   },
 }))
 
 type FormValues = Record<'config', string>
 
 interface FormProps {
-  formApi: RF.FormRenderProps<FormValues>
   close: Dialogs.Close<string | void>
+  formApi: RF.FormRenderProps<FormValues>
+  onDelete: () => Promise<void>
   ssoConfig: Pick<Model.GQLTypes.SsoConfig, 'text'> | null
 }
 
 function Form({
   close,
-  ssoConfig,
   formApi: {
     error,
     handleSubmit,
@@ -75,6 +83,8 @@ function Form({
     submitFailed,
     submitting,
   },
+  onDelete,
+  ssoConfig,
 }: FormProps) {
   const classes = useStyles()
   return (
@@ -94,6 +104,14 @@ function Form({
         {submitFailed && <FormError error={error || submitError} errors={FORM_ERRORS} />}
       </M.DialogContent>
       <M.DialogActions>
+        <M.Button
+          onClick={onDelete}
+          color="inherit"
+          disabled={submitting}
+          className={classes.delete}
+        >
+          Delete
+        </M.Button>
         <M.Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
           Cancel
         </M.Button>
@@ -124,12 +142,9 @@ function Data({ children, close }: DataProps) {
   loadMode('yaml')
   const setSsoConfig = GQL.useMutation(SET_SSO_CONFIG_MUTATION)
 
-  const onSubmit = React.useCallback(
-    async ({ config }: FormValues) => {
+  const submitConfig = React.useCallback(
+    async (config: string | null) => {
       try {
-        if (!config) {
-          return { config: 'required' }
-        }
         const {
           admin: { setSsoConfig: r },
         } = await setSsoConfig({ config })
@@ -154,10 +169,38 @@ function Data({ children, close }: DataProps) {
     },
     [close, setSsoConfig],
   )
+  const onSubmit = React.useCallback(
+    ({ config }: FormValues) => (config ? submitConfig(config) : { config: 'required' }),
+    [submitConfig],
+  )
+  const [deleting, setDeleting] = React.useState<
+    FF.SubmissionErrors | boolean | undefined
+  >()
+  const onDelete = React.useCallback(async (): Promise<void> => {
+    setDeleting(true)
+    const errors = await submitConfig(null)
+    setDeleting(errors)
+  }, [submitConfig])
 
   return (
     <RF.Form onSubmit={onSubmit}>
-      {(formApi) => children({ formApi, close, ssoConfig: data.admin?.ssoConfig })}
+      {(formApi) =>
+        children({
+          onDelete,
+          // eslint-disable-next-line no-nested-ternary
+          formApi: !deleting
+            ? formApi
+            : deleting === true
+            ? { ...formApi, submitting: true }
+            : {
+                ...formApi,
+                submitError: deleting[FF.FORM_ERROR] || formApi.submitError,
+                submitFailed: true,
+              },
+          close,
+          ssoConfig: data.admin?.ssoConfig,
+        })
+      }
     </RF.Form>
   )
 }
