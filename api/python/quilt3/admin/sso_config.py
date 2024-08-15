@@ -11,8 +11,9 @@ def get() -> T.Optional[types.SSOConfig]:
     return None if result is None else types.SSOConfig(**result.model_dump())
 
 
-def set(config: T.Optional[str]) -> types.SSOConfig:
+def set(config: T.Optional[str]) -> T.Optional[types.SSOConfig]:
     """
-    Set the SSO configuration.
+    Set the SSO configuration. Pass `None` to remove SSO configuration.
     """
-    return types.SSOConfig(**util.handle_errors(util.get_client().sso_config_set(config)).model_dump())
+    result = util.get_client().sso_config_set(config)
+    return None if result is None else types.SSOConfig(**util.handle_errors(result).model_dump())
