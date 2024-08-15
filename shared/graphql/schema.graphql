@@ -884,7 +884,7 @@ union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 
 type AdminMutations {
   user: UserAdminMutations!
-  setSsoConfig(config: String): SetSsoConfigResult!
+  setSsoConfig(config: String): SetSsoConfigResult
 }
 
 type Mutation {
