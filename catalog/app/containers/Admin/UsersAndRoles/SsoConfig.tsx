@@ -109,7 +109,7 @@ function Form({
             <M.Typography variant="body2">
               <StyledLink href={`${docs}/advanced/sso-permissions`} target="_blank">
                 See docs
-              </StyledLink>
+              </StyledLink>{' '}
               to learn more on how to configure SSO mappings.
             </M.Typography>
           </>
