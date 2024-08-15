@@ -148,7 +148,7 @@ function Data({ children, close }: DataProps) {
         const {
           admin: { setSsoConfig: r },
         } = await setSsoConfig({ config })
-        if ((r === config) === null) {
+        if (!r && !config) {
           close('submit')
           return undefined
         }
