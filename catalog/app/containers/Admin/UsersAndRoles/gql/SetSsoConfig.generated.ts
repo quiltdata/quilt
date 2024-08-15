@@ -11,7 +11,7 @@ export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly setSsoConfig:
+    readonly setSsoConfig: Types.Maybe<
       | ({ readonly __typename: 'SsoConfig' } & Pick<
           Types.SsoConfig,
           'timestamp' | 'text'
@@ -28,6 +28,7 @@ export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
           Types.OperationError,
           'message'
         >)
+    >
   }
 }
 

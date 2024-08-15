@@ -148,6 +148,11 @@ function Data({ children, close }: DataProps) {
         const {
           admin: { setSsoConfig: r },
         } = await setSsoConfig({ config })
+        if ((r === config) === null) {
+          close('submit')
+          return undefined
+        }
+        if (!r) return assertNever(r as never)
         switch (r.__typename) {
           case 'SsoConfig':
             close('submit')
