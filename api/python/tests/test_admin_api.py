@@ -348,6 +348,7 @@ def test_sso_config_get(data, result):
     "data,result",
     [
         (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (None, None),
         *MUTATION_ERRORS,
     ],
 )
