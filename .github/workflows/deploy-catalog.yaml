@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - enable-sso-config-editing
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
