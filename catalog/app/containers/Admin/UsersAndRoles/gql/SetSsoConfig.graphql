@@ -1,4 +1,4 @@
-mutation ($config: String!) {
+mutation ($config: String) {
   admin {
     setSsoConfig(config: $config) {
       __typename

@@ -4,7 +4,7 @@ import * as Types from '../../../../model/graphql/types.generated'
 
 export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutationVariables =
   Types.Exact<{
-    config: Types.Scalars['String']
+    config: Types.Maybe<Types.Scalars['String']>
   }>
 
 export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
@@ -42,10 +42,7 @@ export const containers_Admin_UsersAndRoles_gql_SetSsoConfigDocument = {
         {
           kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'config' } },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
-          },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
         },
       ],
       selectionSet: {
