@@ -5,9 +5,11 @@ import * as M from '@material-ui/core'
 
 import Lock from 'components/Lock'
 import { loadMode } from 'components/FileEditor/loader'
+import { docs } from 'constants/urls'
 import type * as Model from 'model'
 import type * as Dialogs from 'utils/GlobalDialogs'
 import * as GQL from 'utils/GraphQL'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as validators from 'utils/validators'
@@ -101,7 +103,17 @@ function Form({
           name="config"
           validate={validators.required as FF.FieldValidator<any>}
         />
-        {submitFailed && <FormError error={error || submitError} errors={FORM_ERRORS} />}
+        {submitFailed && (
+          <>
+            <FormError error={error || submitError} errors={FORM_ERRORS} />
+            <M.Typography variant="body2">
+              <StyledLink href={`${docs}/advanced/sso-permissions`} target="_blank">
+                See docs
+              </StyledLink>
+              to learn more on how to configure SSO mappings.
+            </M.Typography>
+          </>
+        )}
       </M.DialogContent>
       <M.DialogActions>
         <M.Button
