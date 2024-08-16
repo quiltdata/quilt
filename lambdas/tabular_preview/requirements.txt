@@ -64,7 +64,7 @@ requests==2.32.2
     # via fsspec
 six==1.16.0
     # via python-dateutil
-urllib3==1.26.18
+urllib3==1.26.19
     # via requests
 xlrd==2.0.1
     # via t4_lambda_tabular_preview (setup.py)
