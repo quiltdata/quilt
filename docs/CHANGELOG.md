@@ -25,7 +25,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 * [Fixed] **SECURITY**: Remove `polyfill.io` references ([#4038](https://github.com/quiltdata/quilt/pull/4038))
 * [Changed] Renamed "Admin settings" to "Admin" ([#4045](https://github.com/quiltdata/quilt/pull/4045))
-* [Added] Admin: Support SSO permissions mapping (SSO config editor, disable role assignment for SSO-mapped users) ([#4070](https://github.com/quiltdata/quilt/pull/4070), [#4097](https://github.com/quiltdata/quilt/pull/4097))
+* [Added] Admin: Support SSO permissions mapping (SSO config editor, disable role assignment for SSO-mapped users) ([#4070](https://github.com/quiltdata/quilt/pull/4070), [#4097](https://github.com/quiltdata/quilt/pull/4097), [#4099](https://github.com/quiltdata/quilt/pull/4099))
 
 # 6.0.0a5 - 2024-06-25
 ## Python API
