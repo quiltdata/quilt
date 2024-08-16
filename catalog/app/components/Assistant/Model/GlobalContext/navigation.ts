@@ -118,11 +118,12 @@ export const locationFromRoute = (route: NavigableRoute) =>
 type History = ReturnType<typeof RR.useHistory>
 
 const WAIT_TIMEOUT = Eff.Duration.seconds(30)
+const NAV_LAG = Eff.Duration.seconds(1)
 
 const navigate = (
   route: NavigableRoute,
   history: History,
-  markersChanges: Eff.Stream.Stream<Record<string, boolean>>,
+  markers: Eff.SubscriptionRef.SubscriptionRef<Record<string, boolean>>,
 ) =>
   Log.scoped({
     name: `${MODULE}.navigate`,
@@ -137,11 +138,12 @@ const navigate = (
           const { waitForMarkers } = routes[route.name]
           if (!waitForMarkers.length) return
           yield* Eff.Effect.log(`Waiting for markers: ${waitForMarkers.join(', ')}`)
+          yield* Eff.Effect.sleep(NAV_LAG)
           yield* Eff.pipe(
-            markersChanges,
+            markers.changes,
             Eff.Stream.timeoutFail(() => ({ _tag: 'timeout' as const }), WAIT_TIMEOUT),
-            Eff.Stream.runForEachWhile((markers) =>
-              Eff.Effect.succeed(!waitForMarkers.every((k) => markers[k])),
+            Eff.Stream.runForEachWhile((currentMarkers) =>
+              Eff.Effect.succeed(!waitForMarkers.every((k) => currentMarkers[k])),
             ),
             Eff.Effect.andThen(() => Eff.Effect.log('Markers found')),
             Eff.Effect.catchTag('timeout', () =>
@@ -238,7 +240,7 @@ export function useNavigate() {
     NavigateSchema,
     ({ route }) =>
       Eff.pipe(
-        navigate(route, history, markers.changes),
+        navigate(route, history, markers),
         Eff.Effect.match({
           onSuccess: () =>
             Tool.succeed(Content.text(`Navigating to the '${route.name}' route.`)),
