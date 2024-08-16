@@ -337,7 +337,10 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                   R.evolve({ admin: { user: { list: rmUser } } }),
                 )
               }
-              if (result.admin?.setSsoConfig?.__typename === 'SsoConfig') {
+              if (
+                result.admin?.setSsoConfig?.__typename === 'SsoConfig' ||
+                result.admin?.setSsoConfig === null
+              ) {
                 cache.invalidate({ __typename: 'Query' }, 'admin')
                 cache.invalidate({ __typename: 'Query' }, 'roles')
               }

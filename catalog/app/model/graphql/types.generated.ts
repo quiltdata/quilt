@@ -39,7 +39,7 @@ export interface AccessCounts {
 export interface AdminMutations {
   readonly __typename: 'AdminMutations'
   readonly user: UserAdminMutations
-  readonly setSsoConfig: SetSsoConfigResult
+  readonly setSsoConfig: Maybe<SetSsoConfigResult>
 }
 
 export interface AdminMutationssetSsoConfigArgs {

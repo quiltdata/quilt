@@ -4,14 +4,14 @@ import * as Types from '../../../../model/graphql/types.generated'
 
 export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutationVariables =
   Types.Exact<{
-    config: Types.Scalars['String']
+    config: Types.Maybe<Types.Scalars['String']>
   }>
 
 export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly setSsoConfig:
+    readonly setSsoConfig: Types.Maybe<
       | ({ readonly __typename: 'SsoConfig' } & Pick<
           Types.SsoConfig,
           'timestamp' | 'text'
@@ -28,6 +28,7 @@ export type containers_Admin_UsersAndRoles_gql_SetSsoConfigMutation = {
           Types.OperationError,
           'message'
         >)
+    >
   }
 }
 
@@ -42,10 +43,7 @@ export const containers_Admin_UsersAndRoles_gql_SetSsoConfigDocument = {
         {
           kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'config' } },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
-          },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
         },
       ],
       selectionSet: {

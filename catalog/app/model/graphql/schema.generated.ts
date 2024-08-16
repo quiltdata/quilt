@@ -101,12 +101,9 @@ export default {
           {
             name: 'setSsoConfig',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'SetSsoConfigResult',
-                ofType: null,
-              },
+              kind: 'UNION',
+              name: 'SetSsoConfigResult',
+              ofType: null,
             },
             args: [
               {

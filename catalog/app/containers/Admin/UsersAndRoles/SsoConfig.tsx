@@ -2,32 +2,41 @@ import * as FF from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 import { loadMode } from 'components/FileEditor/loader'
+import { docs } from 'constants/urls'
 import type * as Model from 'model'
 import type * as Dialogs from 'utils/GlobalDialogs'
 import * as GQL from 'utils/GraphQL'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
+import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as validators from 'utils/validators'
+
+import { FormError } from '../Form'
 
 import SET_SSO_CONFIG_MUTATION from './gql/SetSsoConfig.generated'
 import SSO_CONFIG_QUERY from './gql/SsoConfig.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
+const TEXT_FIELD_ERRORS = {
+  required: 'Enter an SSO config',
+}
+
+const FORM_ERRORS = {
+  unexpected: 'Unable to update SSO config: something went wrong',
+}
+
 type TextFieldProps = RF.FieldRenderProps<string> & M.TextFieldProps
 
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
 
-const ERRORS = {
-  required: 'Enter an SSO config',
-}
-
 function TextField({ errors, input, meta }: TextFieldProps) {
   // TODO: lint yaml
-  const errorMessage = meta.submitFailed && errors[meta.error]
+  const error = meta.error || meta.submitError
+  const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
   return (
     <TextEditor
       error={errorMessage ? new Error(errorMessage) : null}
@@ -39,36 +48,45 @@ function TextField({ errors, input, meta }: TextFieldProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  lock: {
-    bottom: t.spacing(6.5),
-    top: t.spacing(8),
+  delete: {
+    background: t.palette.error.light,
+    color: t.palette.error.contrastText,
+    marginRight: 'auto',
+    '&:hover': {
+      background: t.palette.error.main,
+    },
   },
   error: {
     marginTop: t.spacing(2),
+  },
+  lock: {
+    bottom: t.spacing(6.5),
+    top: t.spacing(8),
   },
 }))
 
 type FormValues = Record<'config', string>
 
 interface FormProps {
-  formApi: RF.FormRenderProps<FormValues>
   close: Dialogs.Close<string | void>
+  formApi: RF.FormRenderProps<FormValues>
+  onDelete: () => Promise<void>
   ssoConfig: Pick<Model.GQLTypes.SsoConfig, 'text'> | null
-  error: null | Error
 }
 
 function Form({
   close,
-  error,
-  ssoConfig,
   formApi: {
-    dirtySinceLastSubmit,
+    error,
     handleSubmit,
     hasValidationErrors,
     pristine,
+    submitError,
     submitFailed,
     submitting,
   },
+  onDelete,
+  ssoConfig,
 }: FormProps) {
   const classes = useStyles()
   return (
@@ -79,19 +97,34 @@ function Form({
       <M.DialogContent>
         <RF.Field
           component={TextField}
-          errors={ERRORS}
+          errors={TEXT_FIELD_ERRORS}
           initialValue={ssoConfig?.text}
           label="SSO config"
           name="config"
           validate={validators.required as FF.FieldValidator<any>}
         />
-        {!!error && !dirtySinceLastSubmit && (
-          <Lab.Alert className={classes.error} severity="error">
-            {error.message}
-          </Lab.Alert>
+        {submitFailed && (
+          <>
+            <FormError error={error || submitError} errors={FORM_ERRORS} />
+            <M.Typography variant="body2">
+              Learn more about{' '}
+              <StyledLink href={`${docs}/advanced/sso-permissions`} target="_blank">
+                SSO permissions mapping
+              </StyledLink>
+              .
+            </M.Typography>
+          </>
         )}
       </M.DialogContent>
       <M.DialogActions>
+        <M.Button
+          onClick={onDelete}
+          color="inherit"
+          disabled={submitting}
+          className={classes.delete}
+        >
+          Delete
+        </M.Button>
         <M.Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
           Cancel
         </M.Button>
@@ -121,38 +154,70 @@ function Data({ children, close }: DataProps) {
   const data = GQL.useQueryS(SSO_CONFIG_QUERY)
   loadMode('yaml')
   const setSsoConfig = GQL.useMutation(SET_SSO_CONFIG_MUTATION)
-  const [error, setError] = React.useState<null | Error>(null)
 
-  const onSubmit = React.useCallback(
-    async ({ config }: FormValues) => {
+  const submitConfig = React.useCallback(
+    async (config: string | null) => {
       try {
-        if (!config) {
-          throw new Error('Enter an SSO config')
-        }
         const {
           admin: { setSsoConfig: r },
         } = await setSsoConfig({ config })
+        if (!r && !config) {
+          close('submit')
+          return undefined
+        }
+        if (!r) return assertNever(r as never)
         switch (r.__typename) {
           case 'SsoConfig':
-            return close('submit')
+            close('submit')
+            return undefined
           case 'InvalidInput':
-            return setError(new Error('Unable to update SSO config'))
+            return mapInputErrors(r.errors)
           case 'OperationError':
-            return setError(new Error(`Unable to update SSO config: ${r.message}`))
+            return mkFormError(r.message)
           default:
-            assertNever(r)
+            return assertNever(r)
         }
       } catch (e) {
-        return setError(e instanceof Error ? e : new Error('Error updating SSO config'))
+        // eslint-disable-next-line no-console
+        console.error('Error updating SSO config')
+        // eslint-disable-next-line no-console
+        console.error(e)
+        return mkFormError('unexpected')
       }
     },
     [close, setSsoConfig],
   )
+  const onSubmit = React.useCallback(
+    ({ config }: FormValues) => (config ? submitConfig(config) : { config: 'required' }),
+    [submitConfig],
+  )
+  const [deleting, setDeleting] = React.useState<
+    FF.SubmissionErrors | boolean | undefined
+  >()
+  const onDelete = React.useCallback(async (): Promise<void> => {
+    setDeleting(true)
+    const errors = await submitConfig(null)
+    setDeleting(errors)
+  }, [submitConfig])
 
   return (
     <RF.Form onSubmit={onSubmit}>
       {(formApi) =>
-        children({ formApi, close, error: error, ssoConfig: data.admin?.ssoConfig })
+        children({
+          onDelete,
+          // eslint-disable-next-line no-nested-ternary
+          formApi: !deleting
+            ? formApi
+            : deleting === true
+            ? { ...formApi, submitting: true }
+            : {
+                ...formApi,
+                submitError: deleting[FF.FORM_ERROR] || formApi.submitError,
+                submitFailed: true,
+              },
+          close,
+          ssoConfig: data.admin?.ssoConfig,
+        })
       }
     </RF.Form>
   )
@@ -164,7 +229,13 @@ interface SuspendedProps {
 
 export default function Suspended({ close }: SuspendedProps) {
   return (
-    <React.Suspense fallback={<M.CircularProgress size={80} />}>
+    <React.Suspense
+      fallback={
+        <M.Box m="32px auto">
+          <M.CircularProgress size={80} />
+        </M.Box>
+      }
+    >
       <Data close={close}>{(props) => <Form {...props} />}</Data>
     </React.Suspense>
   )
