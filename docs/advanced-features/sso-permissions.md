@@ -4,27 +4,29 @@
 
 ## Overview
 
-This feature allows Quilt admin to configure what roles and admin flag value are
-assigned to the user who logs in via SSO based on the user's ID token claims.
+_SSO permissions mapping_ enables administrators to specify which roles are assigned
+to new users depending on claims in their SSO ID token and is a form of
+_just in time provisioning_.
 
-The configuration can be set with `quilt3.admin.sso_config.set()` or with admin UI.
+You can use `quilt3.admin.sso_config.set()` or the Catalog Admin UI to configure
+your mapping logic.
 
 ![admin UI for setting SSO permissions mapping](../imgs/admin-sso-config.png)
 
-> Note: Roles used by configuration can't be removed or renamed.
+> Note: You cannot delete or rename roles referenced by the SSO configuration.
 
-> Note: The user who sets the configuration will never have their admin flag revoked.
+> Note: The last user to set a the mapping configuration remains an admin in perpetuity.
 
-> Note: After configuration is set, any user who logs in via SSO can't be manually
-assigned roles or admin permissions.
+> Note: Once a configuration is set you can no longer manually assign roles to SSO users.
 
 ## Configuration
 
-The configuration file is to be written in YAML and is defined by [this JSON Schema](https://github.com/quiltdata/quilt/blob/master/shared/schemas/sso-config-1.0.json)
+The configuration file is YAML that conforms to the following
+[JSON Schema](https://github.com/quiltdata/quilt/blob/master/shared/schemas/sso-config-1.0.json)
 which includes descriptions of all the fields.
 
-> Warning: In schemas don't forget to add claims you want to check to `required`,
-because otherwise the schema will match any ID token even if these claims are missing.
+> Warning: Be sure to add any claims you wish to check map under `required`,
+> otherwise the schema will match _any_ ID token when the claims are missing.
 
 ### Example
 
@@ -55,11 +57,11 @@ mappings:
       - ReadWriteQuiltBucket
 ```
 
-1. user with email `admin@example.com` will have `ReadWriteQuiltBucket` role and
-admin flag set to true
-1. user with group `rw` will have `ReadWriteQuiltBucket` role and admin flag set
-to false (except the user with `admin@example.com` email)
-1. all other users will have `ReadQuiltBucket` role
+1. The user with email `admin@example.com` will have the role `ReadWriteQuiltBucket`
+role and will be an admin.
+1. Any user with the group `rw` will have the `ReadWriteQuiltBucket` role and
+will not be an admin (with the exception of the user `admin@example.com`).
+1. All other users will have the `ReadQuiltBucket` role
 
-> Note: Unrecognized users will have their role set to the `default_role`, but
-their admin flag will be unchanged.
+> Note: Users who do not match any schema will have their role set to `default_role`
+> and will retain their current admin / non-admin status.
