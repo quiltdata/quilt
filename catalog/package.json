@@ -103,6 +103,7 @@
     "p-limit": "^4.0.0",
     "papaparse": "^5.4.1",
     "path-browserify": "^1.0.1",
+    "path-to-regexp": "^6.2.2",
     "process": "^0.11.10",
     "prop-types": "^15.8.1",
     "ramda": "^0.27.1",
