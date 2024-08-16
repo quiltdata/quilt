@@ -91,11 +91,9 @@ function Form({
 }: FormProps) {
   const classes = useStyles()
   const confirm = useConfirm({
-    title: 'You are about to delete SSO mapping config?',
+    title: 'You are about to delete SSO mapping config',
     submitTitle: 'Delete',
-    onSubmit: (confirmed) => {
-      if (confirmed) onDelete()
-    },
+    onSubmit: (confirmed) => confirmed && onDelete(),
   })
   return (
     <>
