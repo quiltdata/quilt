@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import { useConfirm } from 'components/Dialog'
 import Lock from 'components/Lock'
 import { loadMode } from 'components/FileEditor/loader'
 import { docs } from 'constants/urls'
@@ -89,8 +90,14 @@ function Form({
   ssoConfig,
 }: FormProps) {
   const classes = useStyles()
+  const confirm = useConfirm({
+    title: 'You are about to delete SSO mapping config',
+    submitTitle: 'Delete',
+    onSubmit: (confirmed) => confirmed && onDelete(),
+  })
   return (
     <>
+      {confirm.render(<></>)}
       <M.DialogTitle disableTypography>
         <M.Typography variant="h5">SSO role mapping config</M.Typography>
       </M.DialogTitle>
@@ -118,7 +125,7 @@ function Form({
       </M.DialogContent>
       <M.DialogActions>
         <M.Button
-          onClick={onDelete}
+          onClick={confirm.open}
           color="inherit"
           disabled={submitting}
           className={classes.delete}
