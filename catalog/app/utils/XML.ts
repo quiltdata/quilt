@@ -1,12 +1,12 @@
 import * as Eff from 'effect'
 
-type AttrValue = string | number
+export type AttrValue = string | number
 
-type Attrs = Record<string, AttrValue>
+export type Attrs = Record<string, AttrValue>
 
-type Child = Tag | string | null
+export type Child = Tag | string | null
 
-type Children = Child[]
+export type Children = Child[]
 
 export class Tag {
   readonly name: string
