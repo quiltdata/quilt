@@ -57,6 +57,7 @@
 * [Event-driven packaging](advanced-features/event-driven-packaging.md)
 * [GxP & Quilt](advanced-features/good-practice.md)
 * [Private endpoints](advanced-features/private-endpoint-access.md)
+* [SSO permissions mapping](advanced-features/sso-permissions.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
