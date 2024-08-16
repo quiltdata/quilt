@@ -25,7 +25,7 @@ The configuration file is YAML that conforms to the following
 [JSON Schema](https://github.com/quiltdata/quilt/blob/master/shared/schemas/sso-config-1.0.json)
 which includes descriptions of all the fields.
 
-> Warning: Be sure to add any claims you wish to check map under `required`,
+> Warning: Be sure to add any claims you wish to check under `required`,
 > otherwise the schema will match _any_ ID token when the claims are missing.
 
 ### Example
