@@ -14,10 +14,10 @@ your mapping logic.
 ![admin UI for setting SSO permissions mapping](../imgs/admin-sso-config.png)
 
 > Note: You cannot delete or rename roles referenced by the SSO configuration.
-
-> Note: The last user to set a the mapping configuration remains an admin in perpetuity.
-
-> Note: Once a configuration is set you can no longer manually assign roles to SSO users.
+> Note: The last user to set a the mapping configuration becomes an admin in
+> perpetuity.
+> Note: Once a configuration is set you can no longer manually assign roles to
+> SSO users.
 
 ## Configuration
 
