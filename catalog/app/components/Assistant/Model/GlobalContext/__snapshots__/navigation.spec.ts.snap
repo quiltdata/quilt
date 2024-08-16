@@ -630,33 +630,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
         },
         {
           "additionalProperties": false,
-          "description": "Bucket overview page",
-          "properties": {
-            "name": {
-              "const": "bucket.overview",
-            },
-            "params": {
-              "additionalProperties": false,
-              "properties": {
-                "bucket": {
-                  "type": "string",
-                },
-              },
-              "required": [
-                "bucket",
-              ],
-              "type": "object",
-            },
-          },
-          "required": [
-            "name",
-            "params",
-          ],
-          "type": "object",
-        },
-        {
-          "additionalProperties": false,
-          "description": "S3 Object (aka File) Detail page",
+          "description": "S3 Object (aka File) page",
           "properties": {
             "name": {
               "const": "bucket.object",
@@ -673,8 +647,8 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                   "type": "string",
                 },
                 "path": {
-                  "description": "a string",
-                  "title": "string & Brand<"S3Path">",
+                  "description": "S3 Object Key aka File Path",
+                  "title": "Path",
                   "type": "string",
                 },
                 "version": {
@@ -686,6 +660,64 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "required": [
                 "bucket",
                 "path",
+              ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "S3 Prefix (aka Directory) page",
+          "properties": {
+            "name": {
+              "const": "bucket.prefix",
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "type": "string",
+                },
+                "path": {
+                  "description": "S3 Prefix aka Directory Path",
+                  "title": "Path",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "bucket",
+                "path",
+              ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "Bucket overview page",
+          "properties": {
+            "name": {
+              "const": "bucket.overview",
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "bucket",
               ],
               "type": "object",
             },

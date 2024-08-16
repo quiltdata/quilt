@@ -62,6 +62,20 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
           hash: '',
         },
       },
+      {
+        route: {
+          name: 'bucket.prefix',
+          params: {
+            bucket: 'quilt-example',
+            path: 'data/random-data-benchmark/100kb/',
+          },
+        },
+        loc: {
+          pathname: '/b/quilt-example/tree/data/random-data-benchmark/100kb/',
+          search: '',
+          hash: '',
+        },
+      },
     ]
 
     const encode = Eff.flow(
@@ -70,14 +84,15 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
       Eff.Effect.runPromise,
     )
 
-    for (let i in TEST_CASES) {
-      const tc = TEST_CASES[i]
+    TEST_CASES.forEach((tc, i) => {
       describe(`${i + 1}: ${tc.route.name}`, () => {
         it('should encode', async () => {
-          const loc = await encode(tc.route)
-          expect(loc).toEqual(tc.loc)
+          expect(await encode(tc.route)).toEqual(tc.loc)
+        })
+        it('should decode', async () => {
+          expect(nav.matchLocation(tc.loc)?.decoded).toEqual(tc.route)
         })
       })
-    }
+    })
   })
 })

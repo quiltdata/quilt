@@ -24,26 +24,28 @@ const mapSegments = (separator: string, map: (s: string) => string) =>
 
 const S3Path = S.brand('S3Path')(S.String)
 
-const S3PathFromString = S.transform(S.String, S3Path, {
-  encode: mapSegments(PATH_SEP, encodeURIComponent),
-  decode: mapSegments(PATH_SEP, decodeURIComponent),
-})
+const S3PathFromString = (S3PathSchema: typeof S3Path) =>
+  S.transform(S.String, S3PathSchema, {
+    encode: mapSegments(PATH_SEP, encodeURIComponent),
+    strict: true,
+    decode: mapSegments(PATH_SEP, decodeURIComponent),
+  })
 
 export const s3Object = Nav.makeRoute({
   name: 'bucket.object',
   path: routes.bucketFile.path,
   exact: true,
   strict: true,
-  description: 'S3 Object (aka File) Detail page',
+  description: 'S3 Object (aka File) page',
   waitForMarkers: ['versionsReady', 'currentVersionReady'],
   pathParams: Nav.fromPathParams(
     S.extend(
       BucketPathParams,
       S.Struct({
-        path: S3PathFromString.annotations({
-          title: 'Object Key',
+        path: S3Path.annotations({
+          title: 'Path',
           description: 'S3 Object Key aka File Path',
-        }),
+        }).pipe(S3PathFromString),
       }),
     ),
   ),
@@ -63,13 +65,25 @@ export const s3Object = Nav.makeRoute({
   }),
 })
 
-// export const bucketDir = route(
-//   '/b/:bucket/tree/:path(.+/)?',
-//   (bucket: string, path: string = '', prefix?: string) =>
-//     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
-// )
-// export type BucketDirArgs = Parameters<typeof bucketDir.url>
-//
+export const s3Prefix = Nav.makeRoute({
+  name: 'bucket.prefix',
+  path: routes.bucketDir.path,
+  exact: true,
+  description: 'S3 Prefix (aka Directory) page',
+  waitForMarkers: ['listingReady'],
+  pathParams: Nav.fromPathParams(
+    S.extend(
+      BucketPathParams,
+      S.Struct({
+        path: S3Path.annotations({
+          title: 'Path',
+          description: 'S3 Prefix aka Directory Path',
+        }).pipe(S3PathFromString),
+      }),
+    ),
+  ),
+})
+
 // interface BucketPackageListOpts {
 //   filter?: string
 //   sort?: string
@@ -140,4 +154,4 @@ export const s3Object = Nav.makeRoute({
 //   (bucket: string, workgroup: string, queryExecutionId: string) =>
 //     `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
 
-export default [overview, s3Object]
+export default [s3Object, s3Prefix, overview]

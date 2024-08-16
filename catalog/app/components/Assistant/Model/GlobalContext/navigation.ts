@@ -159,12 +159,12 @@ const navigate = (
     ),
   )
 
-interface Match {
+export interface Match {
   descriptor: KnownRoute
   decoded: NavigableRoute | null
 }
 
-const matchLocation = (loc: typeof Nav.Location.Type): Match | null =>
+export const matchLocation = (loc: typeof Nav.Location.Type): Match | null =>
   Eff.pipe(
     Eff.Array.findFirst(routeList, (route) =>
       RR.matchPath(loc.pathname, {
