@@ -1,5 +1,5 @@
 import * as Eff from 'effect'
-import * as RR from 'react-router-dom'
+import * as PathToRe from 'path-to-regexp'
 import { UrlParams } from '@effect/platform'
 import { Schema as S, ParseResult } from '@effect/schema'
 
@@ -42,6 +42,9 @@ export const PathParams = S.Record({
   value: S.Union(S.String, S.Number, S.Boolean),
 })
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type PathParams = typeof PathParams.Type
+
 export const fromPathParams = <T extends typeof PathParams.Type>(schema: S.Schema<T>) =>
   S.transformOrFail(PathParams, schema, {
     encode: (toI) => Eff.Effect.succeed(toI),
@@ -53,29 +56,31 @@ export const fromPathParams = <T extends typeof PathParams.Type>(schema: S.Schem
       ),
   })
 
-const matchPath = (path: string, exact: boolean, strict: boolean) =>
-  S.transformOrFail(S.String, PathParams, {
-    decode: (input, options, ast) => {
-      const match = RR.matchPath(input, { path, exact, strict })
-      if (!match)
-        return ParseResult.fail(
-          new ParseResult.Type(ast, input, `Path does not match path pattern '${path}'`),
-        )
-      return ParseResult.succeed(match.params)
+const makePathSchema = (path: string, exact: boolean, strict: boolean) => {
+  // XXX: should we en/decode uri components?
+  const matchPath = PathToRe.match(path, { end: exact, strict }) // { decode }
+  const generatePath = PathToRe.compile(path) // { validate, encode }
+
+  return S.transformOrFail(S.String, PathParams, {
+    decode: (input, _options, ast) => {
+      const m = matchPath(input)
+      if (m) return ParseResult.succeed(m.params as PathParams)
+      return ParseResult.fail(
+        new ParseResult.Type(ast, input, `Path does not match path pattern '${path}'`),
+      )
     },
-    encode: (input, options, ast) =>
-      Eff.pipe(
-        Eff.Effect.try(() => RR.generatePath(path, input)),
-        Eff.Effect.mapError(
-          (e) =>
-            new ParseResult.Type(
-              ast,
-              input,
-              `Params does not match path pattern '${path}': ${e}`,
-            ),
-        ),
-      ),
+    encode: (input, _options, ast) =>
+      ParseResult.try({
+        try: () => generatePath(input),
+        catch: (e) =>
+          new ParseResult.Type(
+            ast,
+            input,
+            `Params do not match path pattern '${path}': ${e}`,
+          ),
+      }),
   })
+}
 
 const emptySearchParams = S.transform(SearchParams, S.Struct({}), {
   encode: () => ({}),
@@ -92,9 +97,8 @@ const ParsedLocation = S.Struct({
   searchParams: SearchParams,
 })
 
-// XXX: accept route matching params? e.g. strict etc*/
 function makeParsedLocation(path: string, exact: boolean, strict: boolean) {
-  const pathParamsSchema = matchPath(path, exact, strict)
+  const pathParamsSchema = makePathSchema(path, exact, strict)
   return S.transformOrFail(Location, ParsedLocation, {
     decode: (input, options, ast) =>
       Eff.Effect.gen(function* () {
