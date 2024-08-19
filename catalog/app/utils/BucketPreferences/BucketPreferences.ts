@@ -142,6 +142,8 @@ const defaultPreferences: BucketPreferences = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
+      downloadFile: true,
+      downloadPackage: true,
       openInDesktop: false,
       revisePackage: true,
       writeFile: true,

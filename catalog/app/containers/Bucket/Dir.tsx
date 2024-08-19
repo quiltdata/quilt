@@ -356,32 +356,40 @@ export default function Dir() {
           />
           {BucketPreferences.Result.match(
             {
-              Ok: ({ ui: { actions } }) =>
-                actions.createPackage && (
-                  <Successors.Button
-                    bucket={bucket}
-                    className={classes.button}
-                    onChange={openPackageCreationDialog}
-                    variant={hasSelection ? 'contained' : 'outlined'}
-                    color={hasSelection ? 'primary' : 'default'}
-                  >
-                    Create package
-                  </Successors.Button>
-                ),
-              Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
+              Ok: ({ ui: { actions } }) => (
+                <>
+                  {actions.createPackage && (
+                    <Successors.Button
+                      bucket={bucket}
+                      className={classes.button}
+                      onChange={openPackageCreationDialog}
+                      variant={hasSelection ? 'contained' : 'outlined'}
+                      color={hasSelection ? 'primary' : 'default'}
+                    >
+                      Create package
+                    </Successors.Button>
+                  )}
+                  {!cfg.noDownload && !cfg.desktop && actions.downloadFile && (
+                    <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
+                      <Buttons.Iconized
+                        className={classes.button}
+                        label="Download directory"
+                        icon="archive"
+                        type="submit"
+                      />
+                    </FileView.ZipDownloadForm>
+                  )}
+                </>
+              ),
+              Pending: () => (
+                <>
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                </>
+              ),
               Init: () => null,
             },
             prefs,
-          )}
-          {!cfg.noDownload && !cfg.desktop && (
-            <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
-              <Buttons.Iconized
-                className={classes.button}
-                label="Download directory"
-                icon="archive"
-                type="submit"
-              />
-            </FileView.ZipDownloadForm>
           )}
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>

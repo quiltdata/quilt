@@ -355,12 +355,14 @@ function DirDisplay({
                             Push to bucket
                           </Successors.Button>
                         )}
-                        <Download.DownloadButton
-                          className={classes.button}
-                          label={path ? 'Download sub-package' : 'Download package'}
-                          onClick={openInDesktopState.confirm}
-                          path={downloadPath}
-                        />
+                        {actions.downloadPackage && (
+                          <Download.DownloadButton
+                            className={classes.button}
+                            label={path ? 'Download sub-package' : 'Download package'}
+                            onClick={openInDesktopState.confirm}
+                            path={downloadPath}
+                          />
+                        )}
                         <RevisionMenu
                           className={classes.button}
                           onDelete={confirmDelete}
