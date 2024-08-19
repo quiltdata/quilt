@@ -15,7 +15,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 6.0.0 - 2024-08-19
 ## Python API
 
 * [Added] New `quilt3.admin.sso_config` sub-module for management of SSO configuration ([#4065](https://github.com/quiltdata/quilt/pull/4065), [#4098](https://github.com/quiltdata/quilt/pull/4098))
