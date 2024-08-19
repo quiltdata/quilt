@@ -16,9 +16,18 @@ import usePrevious from 'utils/usePrevious'
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
 
-import ME_QUERY from '../gql/Me.generated'
+import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
 
 const PER_PAGE = 9
+
+function useIsAdmin() {
+  const data = GQL.useQuery(IS_ADMIN_QUERY)
+  return GQL.fold(data, {
+    data: ({ me: { isAdmin } }) => isAdmin,
+    fetching: R.F,
+    error: R.F,
+  })
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -135,12 +144,7 @@ export default function Buckets() {
     filtering.set()
   }, [filtering])
 
-  const meQuery = GQL.useQuery(ME_QUERY)
-  const isAdmin = GQL.fold(meQuery, {
-    data: ({ me }) => me.isAdmin,
-    fetching: R.F,
-    error: R.F,
-  })
+  const isAdmin = useIsAdmin()
 
   return (
     <div className={classes.root}>
