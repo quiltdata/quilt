@@ -12,6 +12,8 @@ export type ActionPreferences = Record<
   | 'copyPackage'
   | 'createPackage'
   | 'deleteRevision'
+  | 'downloadFile'
+  | 'downloadPackage'
   | 'openInDesktop'
   | 'revisePackage'
   | 'writeFile',
