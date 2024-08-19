@@ -138,8 +138,8 @@ export default function Buckets() {
   const meQuery = GQL.useQuery(ME_QUERY)
   const isAdmin = GQL.fold(meQuery, {
     data: ({ me }) => me.isAdmin,
-    fetching: () => false,
-    error: () => false,
+    fetching: R.F,
+    error: R.F,
   })
 
   return (
