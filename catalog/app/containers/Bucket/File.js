@@ -366,7 +366,7 @@ export default function File() {
           !archived &&
           BucketPreferences.Result.match(
             {
-              Ok: ({ ui }) => ui.actions.downloadFile,
+              Ok: ({ ui }) => ui.actions.downloadObject,
               _: R.F,
             },
             prefs,

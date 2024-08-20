@@ -355,7 +355,7 @@ function DirDisplay({
                             Push to bucket
                           </Successors.Button>
                         )}
-                        {actions.downloadPackage && (
+                        {actions.downloadPackaged && (
                           <Download.DownloadButton
                             className={classes.button}
                             label={path ? 'Download sub-package' : 'Download package'}
@@ -663,8 +663,24 @@ function FileDisplay({
                     onChange={onViewModeChange}
                   />
                 )}
-                {!cfg.noDownload && !deleted && !archived && (
-                  <FileView.DownloadButton className={classes.button} handle={handle} />
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      !cfg.noDownload &&
+                      !deleted &&
+                      !archived &&
+                      actions.downloadPackaged && (
+                        <FileView.DownloadButton
+                          className={classes.button}
+                          handle={handle}
+                        />
+                      ),
+                    Pending: () => (
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
                 )}
               </TopBar>
               {BucketPreferences.Result.match(

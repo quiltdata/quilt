@@ -12,8 +12,8 @@ export type ActionPreferences = Record<
   | 'copyPackage'
   | 'createPackage'
   | 'deleteRevision'
-  | 'downloadFile'
-  | 'downloadPackage'
+  | 'downloadObject'
+  | 'downloadPackaged'
   | 'openInDesktop'
   | 'revisePackage'
   | 'writeFile',
@@ -142,8 +142,8 @@ const defaultPreferences: BucketPreferences = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
-      downloadFile: true,
-      downloadPackage: true,
+      downloadObject: true,
+      downloadPackaged: true,
       openInDesktop: false,
       revisePackage: true,
       writeFile: true,

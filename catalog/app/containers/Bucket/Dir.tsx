@@ -369,7 +369,7 @@ export default function Dir() {
                       Create package
                     </Successors.Button>
                   )}
-                  {!cfg.noDownload && !cfg.desktop && actions.downloadFile && (
+                  {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
                     <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
                       <Buttons.Iconized
                         className={classes.button}
