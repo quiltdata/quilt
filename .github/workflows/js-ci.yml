@@ -43,4 +43,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: 'catalog/package.json'
-      - run: npx --package=markdownlint-cli markdownlint --ignore node_modules **/*.md
+      - run: npx --package=markdownlint-cli markdownlint --ignore node_modules "**/*.md"
