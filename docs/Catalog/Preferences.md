@@ -19,6 +19,8 @@ ui:
   actions:
     copyPackage: True
     createPackage: True
+    downloadObject: True
+    downloadPackaged: True
     deleteRevision: False
     revisePackage: True
     writeFile: True
@@ -53,6 +55,8 @@ ui:
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
+* `ui.actions.downloadObject: False` - hide buttons to download files and directories under "Bucket" tab
+* `ui.actions.downloadPackaged: False` - hide buttons to download files and directories under "Packages" tab
 * `ui.actions.revisePackage: False` - hide the button to revise packages
 * `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page
