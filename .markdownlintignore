@@ -1,6 +1,6 @@
-docs/api-reference
-catalog/node_modules
 api
+catalog/node_modules
+docs/api-reference
 gendocs
 lambdas
 py-shared
