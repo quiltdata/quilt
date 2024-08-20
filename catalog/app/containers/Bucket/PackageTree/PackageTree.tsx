@@ -355,12 +355,14 @@ function DirDisplay({
                             Push to bucket
                           </Successors.Button>
                         )}
-                        <Download.DownloadButton
-                          className={classes.button}
-                          label={path ? 'Download sub-package' : 'Download package'}
-                          onClick={openInDesktopState.confirm}
-                          path={downloadPath}
-                        />
+                        {actions.downloadPackage && (
+                          <Download.DownloadButton
+                            className={classes.button}
+                            label={path ? 'Download sub-package' : 'Download package'}
+                            onClick={openInDesktopState.confirm}
+                            path={downloadPath}
+                          />
+                        )}
                         <RevisionMenu
                           className={classes.button}
                           onDelete={confirmDelete}
@@ -661,8 +663,24 @@ function FileDisplay({
                     onChange={onViewModeChange}
                   />
                 )}
-                {!cfg.noDownload && !deleted && !archived && (
-                  <FileView.DownloadButton className={classes.button} handle={handle} />
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      !cfg.noDownload &&
+                      !deleted &&
+                      !archived &&
+                      actions.downloadPackage && (
+                        <FileView.DownloadButton
+                          className={classes.button}
+                          handle={handle}
+                        />
+                      ),
+                    Pending: () => (
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
                 )}
               </TopBar>
               {BucketPreferences.Result.match(

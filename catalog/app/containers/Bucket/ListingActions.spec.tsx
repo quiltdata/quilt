@@ -14,6 +14,17 @@ jest.mock(
   })),
 )
 
+const defaultPrefs = {
+  copyPackage: true,
+  createPackage: true,
+  deleteRevision: true,
+  downloadObject: true,
+  downloadPackage: true,
+  openInDesktop: true,
+  revisePackage: true,
+  writeFile: true,
+}
+
 function TestBucket({ children }: React.PropsWithChildren<{}>) {
   return (
     <Bookmarks.Provider>
@@ -30,7 +41,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions archived to="" />
+            <RowActions archived to="" prefs={defaultPrefs} />
           </TestBucket>,
         )
         .toJSON()
@@ -41,7 +52,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="" />
+            <RowActions to="" prefs={defaultPrefs} />
           </TestBucket>,
         )
         .toJSON()
@@ -52,7 +63,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/BRANCH/fileB" />
+            <RowActions to="/b/bucketA/BRANCH/fileB" prefs={defaultPrefs} />
           </TestBucket>,
         )
         .toJSON()
@@ -64,7 +75,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/tree/dirB/" />
+            <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} />
           </TestBucket>,
         )
         .toJSON()
@@ -76,7 +87,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/tree/fileB" />
+            <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} />
           </TestBucket>,
         )
         .toJSON()
@@ -87,7 +98,10 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/" />
+            <RowActions
+              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
+              prefs={defaultPrefs}
+            />
           </TestBucket>,
         )
         .toJSON()
@@ -101,6 +115,51 @@ describe('components/ListingActions', () => {
             <RowActions
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
               physicalKey="s3://bucketA/pathB/fileB"
+              prefs={defaultPrefs}
+            />
+          </TestBucket>,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('should render Bucket file without download button', () => {
+      jest.mock('utils/AWS')
+      const tree = renderer
+        .create(
+          <TestBucket>
+            <RowActions
+              to="/b/bucketA/tree/fileB"
+              prefs={{ ...defaultPrefs, downloadObject: false }}
+            />
+          </TestBucket>,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('should render Package directory without download button', () => {
+      const tree = renderer
+        .create(
+          <TestBucket>
+            <RowActions
+              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
+              prefs={{ ...defaultPrefs, downloadPackage: false }}
+            />
+          </TestBucket>,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('should render Package file without download button', () => {
+      const tree = renderer
+        .create(
+          <TestBucket>
+            <RowActions
+              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+              physicalKey="s3://bucketA/pathB/fileB"
+              prefs={{ ...defaultPrefs, downloadPackage: false }}
             />
           </TestBucket>,
         )

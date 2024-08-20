@@ -171,6 +171,51 @@ exports[`components/ListingActions RowActions should render Bucket file 1`] = `
 </div>
 `;
 
+exports[`components/ListingActions RowActions should render Bucket file without download button 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <div
+    className="makeStyles-wrapper-5"
+  >
+    <div
+      className="makeStyles-container-3"
+    >
+      <button
+        className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7 makeStyles-item-4"
+        disabled={false}
+        onBlur={[Function]}
+        onClick={[Function]}
+        onDragLeave={[Function]}
+        onFocus={[Function]}
+        onKeyDown={[Function]}
+        onKeyUp={[Function]}
+        onMouseDown={[Function]}
+        onMouseLeave={[Function]}
+        onMouseUp={[Function]}
+        onTouchEnd={[Function]}
+        onTouchMove={[Function]}
+        onTouchStart={[Function]}
+        tabIndex={0}
+        title="Bookmark"
+        type="button"
+      >
+        <span
+          className="MuiIconButton-label"
+        >
+          <span
+            aria-hidden={true}
+            className="material-icons MuiIcon-root"
+          >
+            turned_in_not
+          </span>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`components/ListingActions RowActions should render Package directory 1`] = `
 <div
   className="makeStyles-root-1"
@@ -231,6 +276,8 @@ exports[`components/ListingActions RowActions should render Package directory 1`
 </div>
 `;
 
+exports[`components/ListingActions RowActions should render Package directory without download button 1`] = `null`;
+
 exports[`components/ListingActions RowActions should render Package file 1`] = `
 <div
   className="makeStyles-root-1"
@@ -278,6 +325,8 @@ exports[`components/ListingActions RowActions should render Package file 1`] = `
   </div>
 </div>
 `;
+
+exports[`components/ListingActions RowActions should render Package file without download button 1`] = `null`;
 
 exports[`components/ListingActions RowActions should render nothing if archived 1`] = `null`;
 
