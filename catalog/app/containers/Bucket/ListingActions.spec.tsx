@@ -19,7 +19,7 @@ const defaultPrefs = {
   createPackage: true,
   deleteRevision: true,
   downloadObject: true,
-  downloadPackaged: true,
+  downloadPackage: true,
   openInDesktop: true,
   revisePackage: true,
   writeFile: true,
@@ -144,7 +144,7 @@ describe('components/ListingActions', () => {
           <TestBucket>
             <RowActions
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
-              prefs={{ ...defaultPrefs, downloadPackaged: false }}
+              prefs={{ ...defaultPrefs, downloadPackage: false }}
             />
           </TestBucket>,
         )
@@ -159,7 +159,7 @@ describe('components/ListingActions', () => {
             <RowActions
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
               physicalKey="s3://bucketA/pathB/fileB"
-              prefs={{ ...defaultPrefs, downloadPackaged: false }}
+              prefs={{ ...defaultPrefs, downloadPackage: false }}
             />
           </TestBucket>,
         )

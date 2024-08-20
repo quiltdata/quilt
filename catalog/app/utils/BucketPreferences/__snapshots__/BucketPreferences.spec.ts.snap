@@ -6,7 +6,7 @@ exports[`utils/BucketPreferences parse Actions = false disables all actions 1`] 
   "createPackage": false,
   "deleteRevision": false,
   "downloadObject": false,
-  "downloadPackaged": false,
+  "downloadPackage": false,
   "openInDesktop": false,
   "revisePackage": false,
   "writeFile": false,

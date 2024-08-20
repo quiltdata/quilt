@@ -246,7 +246,7 @@ export function RowActions({ archived, physicalKey, to, prefs }: RowActionsProps
     )
   }
 
-  if (handle && prefs.downloadPackaged) {
+  if (handle && prefs.downloadPackage) {
     return (
       <div className={classes.root}>
         <div className={classes.wrapper}>

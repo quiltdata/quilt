@@ -355,7 +355,7 @@ function DirDisplay({
                             Push to bucket
                           </Successors.Button>
                         )}
-                        {actions.downloadPackaged && (
+                        {actions.downloadPackage && (
                           <Download.DownloadButton
                             className={classes.button}
                             label={path ? 'Download sub-package' : 'Download package'}
@@ -669,7 +669,7 @@ function FileDisplay({
                       !cfg.noDownload &&
                       !deleted &&
                       !archived &&
-                      actions.downloadPackaged && (
+                      actions.downloadPackage && (
                         <FileView.DownloadButton
                           className={classes.button}
                           handle={handle}
