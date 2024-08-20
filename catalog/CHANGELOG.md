@@ -16,4 +16,4 @@ where verb is one of
 
 ## Changes
 
-* [Added] Add `ui.actions.downloadObject` and `ui.actions.downloadPackage` for configuring visibility of buttons for downloading files and directories under "Bucket" and "Packages" respectively ([#4111](https://github.com/quiltdata/quilt/pull/4111))
+- [Added] Support `ui.actions.downloadObject` and `ui.actions.downloadPackage` options for configuring visibility of download buttons under "Bucket" and "Packages" respectively ([#4111](https://github.com/quiltdata/quilt/pull/4111))
