@@ -122,5 +122,49 @@ describe('components/ListingActions', () => {
         .toJSON()
       expect(tree).toMatchSnapshot()
     })
+
+    it('should render Bucket file without download button', () => {
+      jest.mock('utils/AWS')
+      const tree = renderer
+        .create(
+          <TestBucket>
+            <RowActions
+              to="/b/bucketA/tree/fileB"
+              prefs={{ ...defaultPrefs, downloadObject: false }}
+            />
+          </TestBucket>,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('should render Package directory without download button', () => {
+      const tree = renderer
+        .create(
+          <TestBucket>
+            <RowActions
+              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
+              prefs={{ ...defaultPrefs, downloadPackaged: false }}
+            />
+          </TestBucket>,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('should render Package file without download button', () => {
+      const tree = renderer
+        .create(
+          <TestBucket>
+            <RowActions
+              to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
+              physicalKey="s3://bucketA/pathB/fileB"
+              prefs={{ ...defaultPrefs, downloadPackaged: false }}
+            />
+          </TestBucket>,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
   })
 })
