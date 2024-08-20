@@ -1,0 +1,12 @@
+docs/api-reference
+catalog/node_modules
+api
+gendocs
+lambdas
+py-shared
+quilt3_local
+s3-proxy
+testdocs
+
+.git
+venv
