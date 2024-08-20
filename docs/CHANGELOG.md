@@ -15,7 +15,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 6.0.0 - 2024-08-19
 ## Python API
 
 * [Added] New `quilt3.admin.sso_config` sub-module for management of SSO configuration ([#4065](https://github.com/quiltdata/quilt/pull/4065), [#4098](https://github.com/quiltdata/quilt/pull/4098))
@@ -24,7 +24,9 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 * [Fixed] **SECURITY**: Remove `polyfill.io` references ([#4038](https://github.com/quiltdata/quilt/pull/4038))
+* [Fixed] Don't show negative number as search result count, in particular don't show `-1` when `secure_search: True` ([#4101](https://github.com/quiltdata/quilt/pull/4101))
 * [Changed] Renamed "Admin settings" to "Admin" ([#4045](https://github.com/quiltdata/quilt/pull/4045))
+* [Changed] Hide "Add bucket" button for non-admin users from main landing page ([#4106](https://github.com/quiltdata/quilt/pull/4106))
 * [Added] Admin: Support SSO permissions mapping (SSO config editor, disable role assignment for SSO-mapped users) ([#4070](https://github.com/quiltdata/quilt/pull/4070), [#4097](https://github.com/quiltdata/quilt/pull/4097), [#4099](https://github.com/quiltdata/quilt/pull/4099))
 * [Added] Add `ui.actions.downloadObject` and `ui.actions.downloadPackaged` for configuring visibility of buttons for downloading files and directories under "Bucket" and "Packages" respectively ([#4111](https://github.com/quiltdata/quilt/pull/4111))
 
