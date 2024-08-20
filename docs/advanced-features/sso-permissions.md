@@ -11,20 +11,28 @@ The configuration can be set with `quilt3.admin.sso_config.set()` or with admin 
 
 ![admin UI for setting SSO permissions mapping](../imgs/admin-sso-config.png)
 
-> Note: Roles used by configuration can't be removed or renamed.
->
-> Note: The user who sets the configuration will never have their admin flag revoked.
->
-> Note: After configuration is set, any user who logs in via SSO can't be manually
+{% hint style="info" %}
+Roles used by configuration can't be removed or renamed.
+{% endhint %}
+
+{% hint style="info" %}
+The user who sets the configuration will never have their admin flag revoked.
+{% endhint %}
+
+{% hint style="info" %}
+After configuration is set, any user who logs in via SSO can't be manually
 assigned roles or admin permissions.
+{% endhint %}
 
 ## Configuration
 
 The configuration file is to be written in YAML and is defined by [this JSON Schema](https://github.com/quiltdata/quilt/blob/master/shared/schemas/sso-config-1.0.json)
 which includes descriptions of all the fields.
 
-> Warning: In schemas don't forget to add claims you want to check to `required`,
+{% hint style="warning" %}
+In schemas don't forget to add claims you want to check to `required`,
 because otherwise the schema will match any ID token even if these claims are missing.
+{% endhint %}
 
 ### Example
 
