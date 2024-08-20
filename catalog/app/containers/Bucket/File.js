@@ -360,7 +360,17 @@ export default function File() {
         downloadable: false,
       }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        downloadable: !cfg.noDownload && !deleted && !archived,
+        downloadable:
+          !cfg.noDownload &&
+          !deleted &&
+          !archived &&
+          BucketPreferences.Result.match(
+            {
+              Ok: ({ ui }) => ui.actions.downloadObject,
+              _: R.F,
+            },
+            prefs,
+          ),
         fileVersionId: versionId,
       }),
     }),
