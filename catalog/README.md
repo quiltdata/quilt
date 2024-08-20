@@ -2,8 +2,6 @@
 
 The catalog is a web frontend for browsing meta-data held by the Quilt registry.
 
-# Developer
-
 ## Configuration
 
 The app configuration (API endpoints, bucket federations, etc.) is read from
@@ -41,8 +39,10 @@ $ npm start
 
 ### Fetch
 
-- An accurate check for a successful fetch() would include checking that the promise resolved, then checking that the Response.ok property has a value of true. The code would look something like this:
-  [msdn fetch doc](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
+- An accurate check for a successful fetch() would include checking that
+the promise resolved, then checking that the Response.ok property has
+a value of true. The code would look something like this:
+ [msdn fetch doc](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
 
 ## Deployment (for Quilt internal usage)
 
