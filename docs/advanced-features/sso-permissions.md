@@ -1,3 +1,4 @@
+<!-- markdownlint-disable no-blanks-blockquote -->
 # SSO permissions mapping
 
 > This feature requires Quilt stack version 1.54.0 or higher
@@ -11,18 +12,12 @@ The configuration can be set with `quilt3.admin.sso_config.set()` or with admin 
 
 ![admin UI for setting SSO permissions mapping](../imgs/admin-sso-config.png)
 
-{% hint style="info" %}
-Roles used by configuration can't be removed or renamed.
-{% endhint %}
+> NOTE: Roles used by configuration can't be removed or renamed.
 
-{% hint style="info" %}
-The user who sets the configuration will never have their admin flag revoked.
-{% endhint %}
+> NOTE: The user who sets the configuration will never have their admin flag revoked.
 
-{% hint style="info" %}
-After configuration is set, any user who logs in via SSO can't be manually
+> NOTE: After configuration is set, any user who logs in via SSO can't be manually
 assigned roles or admin permissions.
-{% endhint %}
 
 ## Configuration
 
