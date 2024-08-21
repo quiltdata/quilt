@@ -1386,6 +1386,7 @@ class Package:
             name: name for package in registry
             dest: where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
                 in the registry bucket, or a callable that takes logical_key and package_entry, and returns an S3 URI.
+                (Changed in 6.0.0a1) previously top_hash was passed to the callable dest as a third argument.
             registry: registry where to create the new package
             message: the commit message for the new package
             selector_fn: An optional function that determines which package entries should be copied to S3.
