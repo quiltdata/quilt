@@ -23,19 +23,39 @@ Resources:
                   - apigateway:PATCH
                   - apigateway:POST
                   - apigateway:PUT
+                  - apigateway:SetWebACL
                   - apigateway:UpdateRestApiPolicy
+                  - appsync:SetWebACL
+                  - apprunner:AssociateWebAcl
+                  - apprunner:DescribeWebAclForService
+                  - apprunner:DisassociateWebAcl
+                  - athena:CreateWorkGroup
+                  - athena:DeleteWorkGroup
+                  - athena:GetWorkGroup
                   - autoscaling:CreateAutoScalingGroup
                   - autoscaling:DeleteAutoScalingGroup
                   - autoscaling:DescribeAutoScalingGroups
                   - autoscaling:DescribeAutoScalingInstances
+                  - autoscaling:DescribeLifecycleHooks
+                  - autoscaling:DescribeNotificationConfigurations
                   - autoscaling:DescribeScalingActivities
                   - autoscaling:UpdateAutoScalingGroup
+                  - cloudtrail:AddTags
                   - cloudtrail:CreateTrail
                   - cloudtrail:DeleteTrail
                   - cloudtrail:DescribeTrails
+                  - cloudtrail:GetEventSelectors
+                  - cloudtrail:GetInsightSelectors
+                  - cloudtrail:GetTrail
+                  - cloudtrail:GetTrailStatus
+                  - cloudtrail:ListTags
                   - cloudtrail:PutEventSelectors
                   - cloudtrail:StartLogging
+                  - cognito-idp:AssociateWebACL
+                  - cognito-idp:DisassociateWebACL
+                  - cognito-idp:GetWebACLForResource
                   - ec2:AssociateRouteTable
+                  - ec2:AssociateVerifiedAccessInstanceWebAcl
                   - ec2:AttachInternetGateway
                   - ec2:AuthorizeSecurityGroupEgress
                   - ec2:AuthorizeSecurityGroupIngress
@@ -62,13 +82,17 @@ Resources:
                   - ec2:DescribeLaunchTemplateVersions
                   - ec2:DescribeLaunchTemplates
                   - ec2:DescribeNetworkAcls
+                  - ec2:DescribeNetworkInterfaces
                   - ec2:DescribeRouteTables
+                  - ec2:DescribeSecurityGroupRules
                   - ec2:DescribeSecurityGroups
                   - ec2:DescribeSubnets
                   - ec2:DescribeVpcAttribute
                   - ec2:DescribeVpcs
                   - ec2:DetachInternetGateway
                   - ec2:DisassociateRouteTable
+                  - ec2:DisassociateVerifiedAccessInstanceWebAcl
+                  - ec2:GetVerifiedAccessInstanceWebAcl
                   - ec2:ModifyVpcAttribute
                   - ec2:RevokeSecurityGroupEgress
                   - ec2:RunInstances
@@ -82,6 +106,8 @@ Resources:
                   - ecs:DescribeClusters
                   - ecs:DescribeServices
                   - ecs:RegisterTaskDefinition
+                  - ecs:UpdateService
+                  - elasticloadbalancing:AddTags
                   - elasticloadbalancing:CreateListener
                   - elasticloadbalancing:CreateLoadBalancer
                   - elasticloadbalancing:CreateRule
@@ -91,19 +117,30 @@ Resources:
                   - elasticloadbalancing:DeleteRule
                   - elasticloadbalancing:DeleteTargetGroup
                   - elasticloadbalancing:DescribeListeners
+                  - elasticloadbalancing:DescribeLoadBalancerAttributes
                   - elasticloadbalancing:DescribeLoadBalancers
                   - elasticloadbalancing:DescribeRules
+                  - elasticloadbalancing:DescribeTags
+                  - elasticloadbalancing:DescribeTargetGroupAttributes
                   - elasticloadbalancing:DescribeTargetGroups
+                  - elasticloadbalancing:DescribeTargetHealth
                   - elasticloadbalancing:ModifyLoadBalancerAttributes
                   - elasticloadbalancing:ModifyTargetGroupAttributes
+                  - elasticloadbalancing:SetWebAcl
                   - es:CreateElasticsearchDomain
                   - es:DeleteElasticsearchDomain
                   - es:DescribeElasticsearchDomain
+                  - es:UpdateElasticsearchDomainConfig
                   - events:DeleteRule
                   - events:DescribeRule
+                  - events:ListTargetsByRule
                   - events:PutRule
                   - events:PutTargets
                   - events:RemoveTargets
+                  - firehose:CreateDeliveryStream
+                  - firehose:DeleteDeliveryStream
+                  - firehose:DescribeDeliveryStream
+                  - firehose:ListTagsForDeliveryStream
                   - glue:CreateDatabase
                   - glue:CreateTable
                   - glue:DeleteDatabase
@@ -113,6 +150,7 @@ Resources:
                   - iam:CreateInstanceProfile
                   - iam:CreatePolicy
                   - iam:CreateRole
+                  - iam:CreateServiceLinkedRole
                   - iam:DeleteInstanceProfile
                   - iam:DeletePolicy
                   - iam:DeletePolicyVersion
@@ -127,6 +165,18 @@ Resources:
                   - iam:PassRole
                   - iam:PutRolePolicy
                   - iam:RemoveRoleFromInstanceProfile
+                  - kms:CreateGrant
+                  - kms:CreateKey
+                  - kms:Decrypt
+                  - kms:DescribeKey
+                  - kms:Encrypt
+                  - kms:GenerateDataKey
+                  - kms:GetKeyPolicy
+                  - kms:GetKeyRotationStatus
+                  - kms:ListResourceTags
+                  - kms:PutKeyPolicy
+                  - kms:ScheduleKeyDeletion
+                  - kms:TagResource
                   - lambda:AddPermission
                   - lambda:CreateEventSourceMapping
                   - lambda:CreateFunction
@@ -135,37 +185,76 @@ Resources:
                   - lambda:DeleteLayerVersion
                   - lambda:GetEventSourceMapping
                   - lambda:GetFunction
+                  - lambda:GetFunctionCodeSigningConfig
+                  - lambda:GetFunctionConfiguration
                   - lambda:GetLayerVersion
+                  - lambda:GetRuntimeManagementConfig
                   - lambda:InvokeFunction
                   - lambda:PublishLayerVersion
+                  - lambda:PublishVersion
                   - lambda:PutFunctionConcurrency
                   - lambda:RemovePermission
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
                   - logs:CreateLogGroup
+                  - logs:CreateLogStream
                   - logs:DeleteLogGroup
+                  - logs:DeleteLogStream
                   - logs:DeleteResourcePolicy
                   - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
                   - logs:DescribeResourcePolicies
                   - logs:PutResourcePolicy
                   - logs:PutRetentionPolicy
+                  - organizations:ListAWSServiceAccessForOrganization
                   - rds:AddTagsToResource
                   - rds:CreateDBInstance
                   - rds:CreateDBSubnetGroup
+                  - rds:CreateTenantDatabase
                   - rds:DeleteDBInstance
                   - rds:DeleteDBSubnetGroup
+                  - rds:DeleteTenantDatabase
                   - rds:DescribeDBInstances
                   - rds:DescribeDBSubnetGroups
+                  - rds:ListTagsForResource
                   - rds:ModifyDBInstance
                   - s3:CreateBucket
                   - s3:DeleteBucket
                   - s3:DeleteBucketPolicy
+                  - s3:GetAccelerateConfiguration
+                  - s3:GetAnalyticsConfiguration
+                  - s3:GetBucketCORS
+                  - s3:GetBucketLocation
+                  - s3:GetBucketLogging
+                  - s3:GetBucketNotification
+                  - s3:GetBucketObjectLockConfiguration
+                  - s3:GetBucketOwnershipControls
                   - s3:GetBucketPolicy
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:GetBucketTagging
+                  - s3:GetBucketVersioning
+                  - s3:GetBucketWebsite
+                  - s3:GetEncryptionConfiguration
+                  - s3:GetIntelligentTieringConfiguration
+                  - s3:GetInventoryConfiguration
+                  - s3:GetLifecycleConfiguration
+                  - s3:GetMetricsConfiguration
                   - s3:GetObject
+                  - s3:GetReplicationConfiguration
                   - s3:PutBucketCORS
                   - s3:PutBucketPolicy
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:PutBucketTagging
                   - s3:PutBucketVersioning
                   - s3:PutLifecycleConfiguration
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:TagResource
+                  - servicediscovery:CreatePrivateDnsNamespace
+                  - servicediscovery:CreateService
+                  - servicediscovery:DeleteNamespace
+                  - servicediscovery:DeleteService
+                  - servicediscovery:GetOperation
+                  - servicediscovery:GetService
                   - sns:Publish  # To publish to CFN notification topic.
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
@@ -173,4 +262,19 @@ Resources:
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
+                  - synthetics:CreateCanary
+                  - synthetics:DeleteCanary
+                  - synthetics:GetCanary
+                  - synthetics:StartCanary
+                  - synthetics:StopCanary
+                  - wafv2:AssociateWebACL
+                  - wafv2:CreateRegexPatternSet
+                  - wafv2:CreateWebACL
+                  - wafv2:DeleteRegexPatternSet
+                  - wafv2:DeleteWebACL
+                  - wafv2:DisassociateWebACL
+                  - wafv2:GetRegexPatternSet
+                  - wafv2:GetWebACL
+                  - wafv2:GetWebACLForResource
+                  - wafv2:ListTagsForResource
                 Resource: '*'
