@@ -148,7 +148,7 @@ Service Catalog).
     1. You may choose to use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     for stack creation and updates.
-    1. Refer to this [example service role](./cfn-service-role.yml)
+    1. Refer to this [example service role](./cfn-service-role.yaml)
     and modify as needed to fit your use case.
 
     > Ensure that your service role is up-to-date with the example before every stack
