@@ -145,11 +145,11 @@ You will need the following:
         ```
 1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
-    1. We recommend that you use a
+    1. You may choose to use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     for stack creation and updates.
-    1. See this [example service role](./cfn-service-role.yml) for minimal permissions
-    to install a Quilt stack.
+    1. Refer to this [example service role](./cfn-service-role.yml)
+    and modify as needed to fit your use case.
 
     > Ensure that your service role is up-to-date with the example before every stack
     update so as to prevent installation failures.
