@@ -11,7 +11,7 @@ Resources:
               Service: cloudformation.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: root
+        - PolicyName: QuiltServiceRolePolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -19,7 +19,6 @@ Resources:
                 Action:
                   - apigateway:DELETE
                   - apigateway:GET
-                  - apigateway:GetResources
                   - apigateway:PATCH
                   - apigateway:POST
                   - apigateway:PUT
@@ -32,6 +31,7 @@ Resources:
                   - athena:CreateWorkGroup
                   - athena:DeleteWorkGroup
                   - athena:GetWorkGroup
+                  - athena:TagResource
                   - autoscaling:CreateAutoScalingGroup
                   - autoscaling:DeleteAutoScalingGroup
                   - autoscaling:DescribeAutoScalingGroups
@@ -106,6 +106,7 @@ Resources:
                   - ecs:DescribeClusters
                   - ecs:DescribeServices
                   - ecs:RegisterTaskDefinition
+                  - ecs:TagResource
                   - ecs:UpdateService
                   - elasticloadbalancing:AddTags
                   - elasticloadbalancing:CreateListener
@@ -127,6 +128,7 @@ Resources:
                   - elasticloadbalancing:ModifyLoadBalancerAttributes
                   - elasticloadbalancing:ModifyTargetGroupAttributes
                   - elasticloadbalancing:SetWebAcl
+                  - es:AddTags
                   - es:CreateElasticsearchDomain
                   - es:DeleteElasticsearchDomain
                   - es:DescribeElasticsearchDomain
@@ -137,14 +139,17 @@ Resources:
                   - events:PutRule
                   - events:PutTargets
                   - events:RemoveTargets
+                  - events:TagResource
                   - firehose:CreateDeliveryStream
                   - firehose:DeleteDeliveryStream
                   - firehose:DescribeDeliveryStream
                   - firehose:ListTagsForDeliveryStream
+                  - firehose:TagDeliveryStream 
                   - glue:CreateDatabase
                   - glue:CreateTable
                   - glue:DeleteDatabase
                   - glue:DeleteTable
+                  - glue:TagResource
                   - iam:AddRoleToInstanceProfile
                   - iam:AttachRolePolicy
                   - iam:CreateInstanceProfile
@@ -165,6 +170,8 @@ Resources:
                   - iam:PassRole
                   - iam:PutRolePolicy
                   - iam:RemoveRoleFromInstanceProfile
+                  - iam:TagRole
+                  - iam:TagPolicy
                   - kms:CreateGrant
                   - kms:CreateKey
                   - kms:Decrypt
@@ -194,6 +201,7 @@ Resources:
                   - lambda:PublishVersion
                   - lambda:PutFunctionConcurrency
                   - lambda:RemovePermission
+                  - lambda:TagResource
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
                   - logs:CreateLogGroup
@@ -206,6 +214,7 @@ Resources:
                   - logs:DescribeResourcePolicies
                   - logs:PutResourcePolicy
                   - logs:PutRetentionPolicy
+                  - logs:TagResource
                   - organizations:ListAWSServiceAccessForOrganization
                   - rds:AddTagsToResource
                   - rds:CreateDBInstance
@@ -218,35 +227,8 @@ Resources:
                   - rds:DescribeDBSubnetGroups
                   - rds:ListTagsForResource
                   - rds:ModifyDBInstance
-                  - s3:CreateBucket
-                  - s3:DeleteBucket
-                  - s3:DeleteBucketPolicy
-                  - s3:GetAccelerateConfiguration
-                  - s3:GetAnalyticsConfiguration
-                  - s3:GetBucketCORS
-                  - s3:GetBucketLocation
-                  - s3:GetBucketLogging
-                  - s3:GetBucketNotification
-                  - s3:GetBucketObjectLockConfiguration
-                  - s3:GetBucketOwnershipControls
-                  - s3:GetBucketPolicy
-                  - s3:GetBucketPublicAccessBlock
-                  - s3:GetBucketTagging
-                  - s3:GetBucketVersioning
-                  - s3:GetBucketWebsite
-                  - s3:GetEncryptionConfiguration
-                  - s3:GetIntelligentTieringConfiguration
-                  - s3:GetInventoryConfiguration
-                  - s3:GetLifecycleConfiguration
-                  - s3:GetMetricsConfiguration
-                  - s3:GetObject
-                  - s3:GetReplicationConfiguration
-                  - s3:PutBucketCORS
-                  - s3:PutBucketPolicy
-                  - s3:PutBucketPublicAccessBlock
-                  - s3:PutBucketTagging
-                  - s3:PutBucketVersioning
-                  - s3:PutLifecycleConfiguration
+                  - route53:CreateHostedZone
+                  - s3:* # could be improved but canary buckets failing on access denied even with GetObject
                   - secretsmanager:CreateSecret
                   - secretsmanager:TagResource
                   - servicediscovery:CreatePrivateDnsNamespace
@@ -255,10 +237,19 @@ Resources:
                   - servicediscovery:DeleteService
                   - servicediscovery:GetOperation
                   - servicediscovery:GetService
+                  - servicediscovery:TagResource
+                  - sns:CreateTopic*
+                  - sns:DeleteTopic
+                  - sns:Get*
                   - sns:Publish  # To publish to CFN notification topic.
+                  - sns:SetTopicAttributes 
+                  - sns:Subscribe
+                  - sns:TagResource
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
                   - sqs:GetQueueAttributes
+                  - sqs:TagQueue
+                  - ssm:AddTagsToResource 
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
@@ -267,6 +258,7 @@ Resources:
                   - synthetics:GetCanary
                   - synthetics:StartCanary
                   - synthetics:StopCanary
+                  - synthetics:TagResource
                   - wafv2:AssociateWebACL
                   - wafv2:CreateRegexPatternSet
                   - wafv2:CreateWebACL
@@ -277,4 +269,9 @@ Resources:
                   - wafv2:GetWebACL
                   - wafv2:GetWebACLForResource
                   - wafv2:ListTagsForResource
+                  - wafv2:TagResource
                 Resource: '*'
+Outputs:
+  QuiltServiceRoleArn:
+    Description: "ARN of the Quilt Service IAM Role"
+    Value: !GetAtt QuiltCloudFormationServiceRole.Arn
