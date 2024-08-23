@@ -69,6 +69,7 @@ Resources:
                   - ec2:CreateVpc
                   - ec2:DeleteInternetGateway
                   - ec2:DeleteLaunchTemplate
+                  - ec2:DeleteNetworkInterface
                   - ec2:DeleteRoute
                   - ec2:DeleteRouteTable
                   - ec2:DeleteSecurityGroup
@@ -90,6 +91,7 @@ Resources:
                   - ec2:DescribeVpcAttribute
                   - ec2:DescribeVpcs
                   - ec2:DetachInternetGateway
+                  - ec2:DetachNetworkInterface
                   - ec2:DisassociateRouteTable
                   - ec2:DisassociateVerifiedAccessInstanceWebAcl
                   - ec2:GetVerifiedAccessInstanceWebAcl
