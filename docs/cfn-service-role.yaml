@@ -228,7 +228,7 @@ Resources:
                   - rds:ListTagsForResource
                   - rds:ModifyDBInstance
                   - route53:CreateHostedZone
-                  - s3:* # could be improved but canary buckets failing on access denied even with GetObject
+                  - s3:*  # Stack has this anyway; Canary buckets get Access Denied even with GetObject
                   - secretsmanager:CreateSecret
                   - secretsmanager:TagResource
                   - servicediscovery:CreatePrivateDnsNamespace
