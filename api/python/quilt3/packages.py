@@ -979,7 +979,7 @@ class Package:
         """
         Calculate and set missing hash values
         """
-        logger.info('fix package hashes: started')
+        logger.debug('fix package hashes: started')
 
         self._incomplete_entries = [entry for key, entry in self.walk() if entry.hash is None]
 
@@ -1001,7 +1001,7 @@ class Package:
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
             raise PackageException(msg.format(path=incomplete_manifest_path)) from exc
 
-        logger.info('fix package hashes: finished')
+        logger.debug('fix package hashes: finished')
 
     def _set_commit_message(self, msg):
         """

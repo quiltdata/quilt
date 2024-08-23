@@ -614,7 +614,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
     if not file_list:
         return []
 
-    logger.info('copy files: started')
+    logger.debug('copy files: started')
 
     assert len(file_list) == len(results)
 
@@ -709,7 +709,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
             # Make sure all tasks exit quickly if the main thread exits before they're done.
             stopped = True
 
-    logger.info('copy files: finished')
+    logger.debug('copy files: finished')
 
     return results
 
