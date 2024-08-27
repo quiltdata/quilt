@@ -973,6 +973,14 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
+const useEditStyles = M.makeStyles({
+  breadcrumbs: {
+    '& li::before': {
+      content: 'none',
+    },
+  },
+})
+
 interface EditProps {
   bucket: BucketConfig
   close: (reason?: string) => void
@@ -984,6 +992,8 @@ function Edit({ bucket, close }: EditProps) {
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
   const closeReindex = React.useCallback(() => setReindexOpen(false), [])
+
+  const classes = useEditStyles()
 
   const onSubmit = React.useCallback(
     async (values) => {
@@ -1061,7 +1071,21 @@ function Edit({ bucket, close }: EditProps) {
       }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
+          <M.DialogTitle>
+            <M.Breadcrumbs className={classes.breadcrumbs}>
+              <M.Button
+                onClick={() => close()}
+                variant="outlined"
+                startIcon={<M.Icon>arrow_back</M.Icon>}
+                size="small"
+              >
+                Back to buckets
+              </M.Button>
+              <M.Typography variant="h5" color="textPrimary">
+                Edit the &quot;{bucket.name}&quot; bucket
+              </M.Typography>
+            </M.Breadcrumbs>
+          </M.DialogTitle>
           <M.DialogContent>
             <React.Suspense fallback={<BucketFieldsPlaceholder />}>
               <form onSubmit={handleSubmit}>
@@ -1334,13 +1358,16 @@ function CRUD({ bucketName }: CRUDProps) {
     return <RRDom.Redirect to={urls.adminBuckets()} />
   }
 
+  if (editingBucket) {
+    return (
+      <M.Paper>
+        <Edit bucket={editingBucket} close={onBucketClose} />
+      </M.Paper>
+    )
+  }
   return (
     <M.Paper>
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
-
-      <M.Dialog open={!!editingBucket} fullWidth maxWidth="xs">
-        {editingBucket && <Edit bucket={editingBucket} close={onBucketClose} />}
-      </M.Dialog>
 
       <Table.Toolbar heading="Buckets" actions={toolbarActions}>
         <Table.Filter {...filtering} />
