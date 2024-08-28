@@ -39,6 +39,9 @@ import REMOVE_MUTATION from './gql/BucketsRemove.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 
+// FIXME: add FormActions component
+//        that become fixed M.AppBar when scrolled out of view
+
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
 const DO_NOT_SUBSCRIBE_STR = 'DO_NOT_SUBSCRIBE'
@@ -335,23 +338,14 @@ function Hint({ children }: HintProps) {
 }
 
 const useBucketFieldsStyles = M.makeStyles((t) => ({
-  group: {
-    '& > *:first-child': {
-      marginTop: 0,
-    },
+  primary: {
+    padding: t.spacing(2),
   },
-  panel: {
-    margin: '0 !important',
-    '&::before': {
-      content: 'none',
-    },
+  secondary: {
+    marginTop: t.spacing(2),
   },
-  panelSummary: {
-    padding: 0,
-    minHeight: 'auto !important',
-  },
-  panelSummaryContent: {
-    margin: `${t.spacing(1)}px 0 !important`,
+  section: {
+    flexDirection: 'column',
   },
   warning: {
     background: t.palette.warning.main,
@@ -366,17 +360,18 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
 interface BucketFieldsProps {
   bucket?: BucketConfig
   reindex?: () => void
+  className: string
 }
 
-function BucketFields({ bucket, reindex }: BucketFieldsProps) {
+function BucketFields({ bucket, className, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
 
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
   const settings = data.config.contentIndexingSettings
 
   return (
-    <M.Box>
-      <M.Box className={classes.group} mt={-1} pb={2}>
+    <div className={className}>
+      <M.Paper className={classes.primary}>
         {bucket ? (
           <M.TextField
             label="Name"
@@ -441,269 +436,257 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
           fullWidth
           margin="normal"
         />
-      </M.Box>
-      <M.Accordion elevation={0} className={classes.panel}>
-        <M.AccordionSummary
-          expandIcon={<M.Icon>expand_more</M.Icon>}
-          classes={{
-            root: classes.panelSummary,
-            content: classes.panelSummaryContent,
-          }}
-        >
-          <M.Typography variant="h6">Metadata</M.Typography>
-        </M.AccordionSummary>
-        <M.Box className={classes.group} pt={1} pb={2}>
-          <RF.Field
-            component={Form.Field}
-            name="relevanceScore"
-            label="Relevance score"
-            placeholder="Higher numbers appear first, -1 to hide"
-            parse={R.pipe(
-              R.replace(/[^0-9-]/g, ''),
-              R.replace(/(.+)-+$/g, '$1'),
-              R.take(16) as (s: string) => string,
+      </M.Paper>
+      <div className={classes.secondary}>
+        <M.Accordion>
+          <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
+            <M.Typography variant="h6">Metadata</M.Typography>
+          </M.AccordionSummary>
+          <M.AccordionDetails className={classes.section}>
+            <RF.Field
+              component={Form.Field}
+              name="relevanceScore"
+              label="Relevance score"
+              placeholder="Higher numbers appear first, -1 to hide"
+              parse={R.pipe(
+                R.replace(/[^0-9-]/g, ''),
+                R.replace(/(.+)-+$/g, '$1'),
+                R.take(16) as (s: string) => string,
+              )}
+              validate={validators.integer as FF.FieldValidator<any>}
+              errors={{
+                integer: 'Enter a valid integer',
+              }}
+              fullWidth
+              margin="normal"
+            />
+            <RF.Field
+              component={Form.Field}
+              name="tags"
+              label="Tags (comma-separated)"
+              placeholder='e.g. "geospatial", for bucket discovery'
+              fullWidth
+              margin="normal"
+              multiline
+              rows={1}
+              rowsMax={3}
+            />
+            <RF.Field
+              component={Form.Field}
+              name="overviewUrl"
+              label="Overview URL"
+              parse={R.trim}
+              fullWidth
+              margin="normal"
+            />
+            <RF.Field
+              component={Form.Field}
+              name="linkedData"
+              label="Structured data (JSON-LD)"
+              validate={validators.jsonObject as FF.FieldValidator<any>}
+              errors={{
+                jsonObject: 'Must be a valid JSON object',
+              }}
+              fullWidth
+              multiline
+              rows={1}
+              rowsMax={10}
+              margin="normal"
+            />
+          </M.AccordionDetails>
+        </M.Accordion>
+        <M.Accordion>
+          <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
+            <M.Typography variant="h6">Indexing and notifications</M.Typography>
+          </M.AccordionSummary>
+          <M.AccordionDetails className={classes.section}>
+            {!!reindex && (
+              <M.Box pb={2.5}>
+                <M.Button variant="outlined" fullWidth onClick={reindex}>
+                  Re-index and repair
+                </M.Button>
+              </M.Box>
             )}
-            validate={validators.integer as FF.FieldValidator<any>}
-            errors={{
-              integer: 'Enter a valid integer',
-            }}
-            fullWidth
-            margin="normal"
-          />
-          <RF.Field
-            component={Form.Field}
-            name="tags"
-            label="Tags (comma-separated)"
-            placeholder='e.g. "geospatial", for bucket discovery'
-            fullWidth
-            margin="normal"
-            multiline
-            rows={1}
-            rowsMax={3}
-          />
-          <RF.Field
-            component={Form.Field}
-            name="overviewUrl"
-            label="Overview URL"
-            parse={R.trim}
-            fullWidth
-            margin="normal"
-          />
-          <RF.Field
-            component={Form.Field}
-            name="linkedData"
-            label="Structured data (JSON-LD)"
-            validate={validators.jsonObject as FF.FieldValidator<any>}
-            errors={{
-              jsonObject: 'Must be a valid JSON object',
-            }}
-            fullWidth
-            multiline
-            rows={1}
-            rowsMax={10}
-            margin="normal"
-          />
-        </M.Box>
-      </M.Accordion>
-      <M.Accordion elevation={0} className={classes.panel}>
-        <M.AccordionSummary
-          expandIcon={<M.Icon>expand_more</M.Icon>}
-          classes={{
-            root: classes.panelSummary,
-            content: classes.panelSummaryContent,
-          }}
-        >
-          <M.Typography variant="h6">Indexing and notifications</M.Typography>
-        </M.AccordionSummary>
-        <M.Box className={classes.group} pt={1}>
-          {!!reindex && (
-            <M.Box pb={2.5}>
-              <M.Button variant="outlined" fullWidth onClick={reindex}>
-                Re-index and repair
-              </M.Button>
-            </M.Box>
-          )}
 
-          <RF.Field
-            component={Form.Checkbox}
-            type="checkbox"
-            name="enableDeepIndexing"
-            label={
-              <>
-                Enable deep indexing
-                <Hint>
-                  Deep indexing adds the <em>contents</em> of an object to your search
-                  index, while shallow indexing only covers object metadata. Deep indexing
-                  may require more disk in ElasticSearch. Enable deep indexing when you
-                  want your users to find files by their contents.
-                </Hint>
-              </>
-            }
-          />
-
-          <RF.FormSpy subscription={{ modified: true, values: true }}>
-            {({ modified, values }) => {
-              // don't need this while adding a bucket
-              if (!bucket) return null
-              if (
-                !modified?.enableDeepIndexing &&
-                !modified?.fileExtensionsToIndex &&
-                !modified?.indexContentBytes
-              )
-                return null
-              try {
-                if (
-                  R.equals(
-                    bucket.fileExtensionsToIndex,
-                    editFormSpec.fileExtensionsToIndex(values),
-                  ) &&
-                  R.equals(
-                    bucket.indexContentBytes,
-                    editFormSpec.indexContentBytes(values),
-                  )
-                )
-                  return null
-              } catch {
-                return null
-              }
-
-              return (
-                <Lab.Alert
-                  className={classes.warning}
-                  icon={
-                    <M.Icon fontSize="inherit" className={classes.warningIcon}>
-                      error
-                    </M.Icon>
-                  }
-                  severity="warning"
-                >
-                  Changing these settings affects files that are indexed after the change.
-                  If you wish to deep index existing files, click{' '}
-                  <strong>&quot;Re-index and repair&quot;</strong>.
-                </Lab.Alert>
-              )
-            }}
-          </RF.FormSpy>
-
-          <RF.FormSpy subscription={{ values: true }}>
-            {({ values }) => {
-              if (!values.enableDeepIndexing) return null
-              return (
-                <>
-                  <RF.Field
-                    component={Form.Field}
-                    name="fileExtensionsToIndex"
-                    label={
-                      <>
-                        File extensions to deep index (comma-separated)
-                        <Hint>
-                          Default extensions:
-                          <ul>
-                            {settings.extensions.map((ext) => (
-                              <li key={ext}>{ext}</li>
-                            ))}
-                          </ul>
-                        </Hint>
-                      </>
-                    }
-                    placeholder='e.g. ".txt, .md", leave blank to use default settings'
-                    validate={validateExtensions}
-                    errors={{
-                      validExtensions: (
-                        <>
-                          Enter a comma-separated list of{' '}
-                          <abbr title="Must start with the dot and contain only alphanumeric characters thereafter">
-                            valid
-                          </abbr>{' '}
-                          file extensions
-                        </>
-                      ),
-                    }}
-                    fullWidth
-                    margin="normal"
-                    multiline
-                    rows={1}
-                    rowsMax={3}
-                  />
-                  <RF.Field
-                    component={Form.Field}
-                    name="indexContentBytes"
-                    label={
-                      <>
-                        Content bytes to deep index
-                        <Hint>Defaults to {settings.bytesDefault}</Hint>
-                      </>
-                    }
-                    placeholder='e.g. "1024", leave blank to use default settings'
-                    parse={R.replace(/[^0-9]/g, '')}
-                    validate={integerInRange(settings.bytesMin, settings.bytesMax)}
-                    errors={{
-                      integerInRange: (
-                        <>
-                          Enter an integer from {settings.bytesMin} to {settings.bytesMax}
-                        </>
-                      ),
-                    }}
-                    fullWidth
-                    margin="normal"
-                  />
-                </>
-              )
-            }}
-          </RF.FormSpy>
-          <RF.Field
-            component={Form.Field}
-            name="scannerParallelShardsDepth"
-            label="Scanner parallel shards depth"
-            placeholder="Leave blank to use default settings"
-            validate={validators.integer as FF.FieldValidator<any>}
-            errors={{
-              integer: 'Enter a valid integer',
-            }}
-            parse={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16) as (s: string) => string)}
-            fullWidth
-            margin="normal"
-          />
-          <RF.Field
-            component={SnsField}
-            name="snsNotificationArn"
-            validate={validateSns}
-          />
-          <M.Box mt={2}>
             <RF.Field
               component={Form.Checkbox}
               type="checkbox"
-              name="skipMetaDataIndexing"
-              label="Skip metadata indexing"
+              name="enableDeepIndexing"
+              label={
+                <>
+                  Enable deep indexing
+                  <Hint>
+                    Deep indexing adds the <em>contents</em> of an object to your search
+                    index, while shallow indexing only covers object metadata. Deep
+                    indexing may require more disk in ElasticSearch. Enable deep indexing
+                    when you want your users to find files by their contents.
+                  </Hint>
+                </>
+              }
             />
-          </M.Box>
-          {!bucket && (
-            <M.Box mt={1}>
+
+            <RF.FormSpy subscription={{ modified: true, values: true }}>
+              {({ modified, values }) => {
+                // don't need this while adding a bucket
+                if (!bucket) return null
+                if (
+                  !modified?.enableDeepIndexing &&
+                  !modified?.fileExtensionsToIndex &&
+                  !modified?.indexContentBytes
+                )
+                  return null
+                try {
+                  if (
+                    R.equals(
+                      bucket.fileExtensionsToIndex,
+                      editFormSpec.fileExtensionsToIndex(values),
+                    ) &&
+                    R.equals(
+                      bucket.indexContentBytes,
+                      editFormSpec.indexContentBytes(values),
+                    )
+                  )
+                    return null
+                } catch {
+                  return null
+                }
+
+                return (
+                  <Lab.Alert
+                    className={classes.warning}
+                    icon={
+                      <M.Icon fontSize="inherit" className={classes.warningIcon}>
+                        error
+                      </M.Icon>
+                    }
+                    severity="warning"
+                  >
+                    Changing these settings affects files that are indexed after the
+                    change. If you wish to deep index existing files, click{' '}
+                    <strong>&quot;Re-index and repair&quot;</strong>.
+                  </Lab.Alert>
+                )
+              }}
+            </RF.FormSpy>
+
+            <RF.FormSpy subscription={{ values: true }}>
+              {({ values }) => {
+                if (!values.enableDeepIndexing) return null
+                return (
+                  <>
+                    <RF.Field
+                      component={Form.Field}
+                      name="fileExtensionsToIndex"
+                      label={
+                        <>
+                          File extensions to deep index (comma-separated)
+                          <Hint>
+                            Default extensions:
+                            <ul>
+                              {settings.extensions.map((ext) => (
+                                <li key={ext}>{ext}</li>
+                              ))}
+                            </ul>
+                          </Hint>
+                        </>
+                      }
+                      placeholder='e.g. ".txt, .md", leave blank to use default settings'
+                      validate={validateExtensions}
+                      errors={{
+                        validExtensions: (
+                          <>
+                            Enter a comma-separated list of{' '}
+                            <abbr title="Must start with the dot and contain only alphanumeric characters thereafter">
+                              valid
+                            </abbr>{' '}
+                            file extensions
+                          </>
+                        ),
+                      }}
+                      fullWidth
+                      margin="normal"
+                      multiline
+                      rows={1}
+                      rowsMax={3}
+                    />
+                    <RF.Field
+                      component={Form.Field}
+                      name="indexContentBytes"
+                      label={
+                        <>
+                          Content bytes to deep index
+                          <Hint>Defaults to {settings.bytesDefault}</Hint>
+                        </>
+                      }
+                      placeholder='e.g. "1024", leave blank to use default settings'
+                      parse={R.replace(/[^0-9]/g, '')}
+                      validate={integerInRange(settings.bytesMin, settings.bytesMax)}
+                      errors={{
+                        integerInRange: (
+                          <>
+                            Enter an integer from {settings.bytesMin} to{' '}
+                            {settings.bytesMax}
+                          </>
+                        ),
+                      }}
+                      fullWidth
+                      margin="normal"
+                    />
+                  </>
+                )
+              }}
+            </RF.FormSpy>
+            <RF.Field
+              component={Form.Field}
+              name="scannerParallelShardsDepth"
+              label="Scanner parallel shards depth"
+              placeholder="Leave blank to use default settings"
+              validate={validators.integer as FF.FieldValidator<any>}
+              errors={{
+                integer: 'Enter a valid integer',
+              }}
+              parse={R.pipe(
+                R.replace(/[^0-9]/g, ''),
+                R.take(16) as (s: string) => string,
+              )}
+              fullWidth
+              margin="normal"
+            />
+            <RF.Field
+              component={SnsField}
+              name="snsNotificationArn"
+              validate={validateSns}
+            />
+            <M.Box mt={2}>
               <RF.Field
                 component={Form.Checkbox}
                 type="checkbox"
-                name="delayScan"
-                label="Delay scan"
+                name="skipMetaDataIndexing"
+                label="Skip metadata indexing"
               />
             </M.Box>
-          )}
-        </M.Box>
-      </M.Accordion>
-      <M.Accordion elevation={0} className={classes.panel}>
-        <M.AccordionSummary
-          expandIcon={<M.Icon>expand_more</M.Icon>}
-          classes={{
-            root: classes.panelSummary,
-            content: classes.panelSummaryContent,
-          }}
-        >
-          <M.Typography variant="h6">File preview options</M.Typography>
-        </M.AccordionSummary>
-        <M.Box className={classes.group} pt={1}>
-          <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
-        </M.Box>
-      </M.Accordion>
-    </M.Box>
+            {!bucket && (
+              <M.Box mt={1}>
+                <RF.Field
+                  component={Form.Checkbox}
+                  type="checkbox"
+                  name="delayScan"
+                  label="Delay scan"
+                />
+              </M.Box>
+            )}
+          </M.AccordionDetails>
+        </M.Accordion>
+        <M.Accordion>
+          <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
+            <M.Typography variant="h6">File preview options</M.Typography>
+          </M.AccordionSummary>
+          <M.AccordionDetails className={classes.section}>
+            <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
+          </M.AccordionDetails>
+        </M.Accordion>
+      </div>
+    </div>
   )
 }
 
@@ -720,6 +703,24 @@ function BucketFieldsPlaceholder() {
   )
 }
 
+const useAddStyles = M.makeStyles((t) => ({
+  actions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: t.spacing(2),
+    top: 'auto',
+    bottom: 0,
+  },
+  btn: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
+  },
+  fields: {
+    marginTop: t.spacing(2),
+  },
+}))
+
 interface AddProps {
   close: (reason?: string) => void
 }
@@ -728,6 +729,7 @@ function Add({ close }: AddProps) {
   const { push } = Notifications.use()
   const t = useTracker()
   const add = GQL.useMutation(ADD_MUTATION)
+  const classes = useAddStyles()
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -792,27 +794,27 @@ function Add({ close }: AddProps) {
         hasValidationErrors,
       }) => (
         <>
-          <M.DialogTitle>Add a bucket</M.DialogTitle>
-          <M.DialogContent>
-            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
-              <form onSubmit={handleSubmit}>
-                <BucketFields />
-                {submitFailed && (
-                  <Form.FormError
-                    error={error || submitError}
-                    errors={{
-                      unexpected: 'Something went wrong',
-                      notificationConfigurationError: 'Notification configuration error',
-                      insufficientPermissions: 'Insufficient permissions',
-                      subscriptionInvalid: 'Subscription invalid',
-                    }}
-                  />
-                )}
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-            </React.Suspense>
-          </M.DialogContent>
-          <M.DialogActions>
+          <M.Typography variant="h6" color="textPrimary">
+            Add a bucket
+          </M.Typography>
+          <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+            <form onSubmit={handleSubmit}>
+              <BucketFields className={classes.fields} />
+              {submitFailed && (
+                <Form.FormError
+                  error={error || submitError}
+                  errors={{
+                    unexpected: 'Something went wrong',
+                    notificationConfigurationError: 'Notification configuration error',
+                    insufficientPermissions: 'Insufficient permissions',
+                    subscriptionInvalid: 'Subscription invalid',
+                  }}
+                />
+              )}
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
+          </React.Suspense>
+          <div className={classes.actions}>
             {submitting && (
               <Delay>
                 {() => (
@@ -823,6 +825,7 @@ function Add({ close }: AddProps) {
               </Delay>
             )}
             <M.Button
+              className={classes.btn}
               onClick={() => close('cancel')}
               color="primary"
               disabled={submitting}
@@ -830,13 +833,15 @@ function Add({ close }: AddProps) {
               Cancel
             </M.Button>
             <M.Button
+              className={classes.btn}
               onClick={handleSubmit}
               color="primary"
               disabled={submitting || (submitFailed && hasValidationErrors)}
+              variant="outlined"
             >
               Add
             </M.Button>
-          </M.DialogActions>
+          </div>
         </>
       )}
     </RF.Form>
@@ -973,13 +978,16 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
-const useEditStyles = M.makeStyles({
+const useEditStyles = M.makeStyles((t) => ({
   breadcrumbs: {
     '& li::before': {
       content: 'none',
     },
   },
-})
+  fields: {
+    marginTop: t.spacing(2),
+  },
+}))
 
 interface EditProps {
   bucket: BucketConfig
@@ -1071,39 +1079,47 @@ function Edit({ bucket, close }: EditProps) {
       }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <M.DialogTitle>
-            <M.Breadcrumbs className={classes.breadcrumbs}>
-              <M.Button
-                onClick={() => close()}
-                variant="outlined"
-                startIcon={<M.Icon>arrow_back</M.Icon>}
-                size="small"
-              >
-                Back to buckets
-              </M.Button>
-              <M.Typography variant="h5" color="textPrimary">
-                Edit the &quot;{bucket.name}&quot; bucket
-              </M.Typography>
-            </M.Breadcrumbs>
-          </M.DialogTitle>
-          <M.DialogContent>
-            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
-              <form onSubmit={handleSubmit}>
-                <BucketFields bucket={bucket} reindex={openReindex} />
-                {submitFailed && (
-                  <Form.FormError
-                    error={error || submitError}
-                    errors={{
-                      unexpected: 'Something went wrong',
-                      notificationConfigurationError: 'Notification configuration error',
-                      bucketNotFound: 'Bucket not found',
-                    }}
-                  />
-                )}
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-            </React.Suspense>
-          </M.DialogContent>
+          <M.Breadcrumbs className={classes.breadcrumbs}>
+            <M.Button
+              onClick={() => {
+                if (pristine) return close()
+                const confirmed = window.confirm(
+                  'You have unsaved changes. Discard changes?',
+                )
+                if (confirmed) {
+                  close()
+                }
+              }}
+              variant="outlined"
+              startIcon={<M.Icon>arrow_back</M.Icon>}
+              size="small"
+            >
+              Back to buckets
+            </M.Button>
+            <M.Typography variant="h6" color="textPrimary">
+              Edit the &quot;{bucket.name}&quot; bucket
+            </M.Typography>
+          </M.Breadcrumbs>
+          <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+            <form onSubmit={handleSubmit}>
+              <BucketFields
+                className={classes.fields}
+                bucket={bucket}
+                reindex={openReindex}
+              />
+              {submitFailed && (
+                <Form.FormError
+                  error={error || submitError}
+                  errors={{
+                    unexpected: 'Something went wrong',
+                    notificationConfigurationError: 'Notification configuration error',
+                    bucketNotFound: 'Bucket not found',
+                  }}
+                />
+              )}
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
+          </React.Suspense>
           <M.DialogActions>
             {submitting && (
               <Delay>
@@ -1315,13 +1331,14 @@ function CRUD({ bucketName }: CRUDProps) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
+  // TODO: use route /admin/buckets/new
+  const [addingBucket, setAddingBucket] = React.useState(false)
+
   const toolbarActions = [
     {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
-      fn: React.useCallback(() => {
-        openDialog(({ close }) => <Add {...{ close }} />)
-      }, [openDialog]),
+      fn: React.useCallback(() => setAddingBucket(true), []),
     },
   ]
 
@@ -1344,6 +1361,8 @@ function CRUD({ bucketName }: CRUDProps) {
     },
   ]
 
+  // FIXME: use route /admin/buckets/:bucketName
+  //        and redirect old routes
   const editingBucket = React.useMemo(
     () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
     [bucketName, rows],
@@ -1359,12 +1378,13 @@ function CRUD({ bucketName }: CRUDProps) {
   }
 
   if (editingBucket) {
-    return (
-      <M.Paper>
-        <Edit bucket={editingBucket} close={onBucketClose} />
-      </M.Paper>
-    )
+    return <Edit bucket={editingBucket} close={onBucketClose} />
   }
+
+  if (addingBucket) {
+    return <Add close={() => setAddingBucket(false)} />
+  }
+
   return (
     <M.Paper>
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
