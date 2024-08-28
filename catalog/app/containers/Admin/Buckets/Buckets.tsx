@@ -6,6 +6,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
+import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -39,8 +40,70 @@ import REMOVE_MUTATION from './gql/BucketsRemove.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 
-// FIXME: add FormActions component
-//        that become fixed M.AppBar when scrolled out of view
+const useFormActionsStyles = M.makeStyles((t) => ({
+  sticky: {
+    position: 'fixed',
+    left: '50%',
+    bottom: 0,
+    transform: `translateX(-50%)`,
+  },
+  actions: {
+    padding: t.spacing(2, 1),
+    display: 'flex',
+    justifyContent: 'flex-end',
+    '& > * + *': {
+      marginLeft: t.spacing(2),
+    },
+  },
+  placeholder: {
+    height: 64,
+  },
+}))
+
+interface FormActionsProps {
+  children: React.ReactNode
+  siblingHeight?: number
+}
+
+function FormActions({ children, siblingHeight }: FormActionsProps) {
+  const classes = useFormActionsStyles()
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [sticky, setSticky] = React.useState(false)
+  const handleScroll = React.useCallback(() => {
+    const rect = ref.current?.getBoundingClientRect()
+    if (!rect || !rect.width) return
+    const shouldStick =
+      rect.bottom >= (window.innerHeight || document.documentElement.clientHeight)
+    if (shouldStick && !sticky) {
+      setSticky(true)
+    }
+    if (sticky && !shouldStick) {
+      setSticky(false)
+    }
+  }, [sticky])
+  React.useEffect(() => {
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
+  React.useEffect(() => handleScroll(), [handleScroll, siblingHeight])
+  return (
+    <div ref={ref}>
+      {sticky ? (
+        <>
+          <M.Container className={classes.sticky} maxWidth="lg">
+            <M.Paper className={classes.actions} elevation={8}>
+              {children}
+            </M.Paper>
+          </M.Container>
+          <div className={classes.placeholder} />
+        </>
+      ) : (
+        <div className={classes.actions}>{children}</div>
+      )}
+    </div>
+  )
+}
+
 const useSubPageHeaderStyles = M.makeStyles({
   root: {
     '& li::before': {
@@ -746,18 +809,6 @@ function BucketFieldsPlaceholder() {
 }
 
 const useAddStyles = M.makeStyles((t) => ({
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginTop: t.spacing(2),
-    top: 'auto',
-    bottom: 0,
-  },
-  btn: {
-    '& + &': {
-      marginLeft: t.spacing(2),
-    },
-  },
   fields: {
     marginTop: t.spacing(2),
   },
@@ -825,6 +876,9 @@ function Add({ back }: AddProps) {
     [add, push, back, t],
   )
 
+  const formRef = React.useRef<HTMLFormElement>(null)
+  const { height } = useResizeObserver({ ref: formRef })
+
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
@@ -834,13 +888,14 @@ function Add({ back }: AddProps) {
         error,
         submitError,
         hasValidationErrors,
+        pristine,
       }) => (
         <>
-          <SubPageHeader danger back={back} submit={handleSubmit}>
+          <SubPageHeader danger={!pristine} back={back} submit={handleSubmit}>
             Add a bucket
           </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields className={classes.fields} />
               {submitFailed && (
                 <Form.FormError
@@ -856,7 +911,7 @@ function Add({ back }: AddProps) {
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
-          <div className={classes.actions}>
+          <FormActions siblingHeight={height}>
             {submitting && (
               <Delay>
                 {() => (
@@ -867,7 +922,6 @@ function Add({ back }: AddProps) {
               </Delay>
             )}
             <M.Button
-              className={classes.btn}
               onClick={() => back('cancel')}
               color="primary"
               disabled={submitting}
@@ -875,15 +929,14 @@ function Add({ back }: AddProps) {
               Cancel
             </M.Button>
             <M.Button
-              className={classes.btn}
               onClick={handleSubmit}
               color="primary"
               disabled={submitting || (submitFailed && hasValidationErrors)}
-              variant="outlined"
+              variant="contained"
             >
               Add
             </M.Button>
-          </div>
+          </FormActions>
         </>
       )}
     </RF.Form>
@@ -1107,6 +1160,9 @@ function Edit({ bucket, close }: EditProps) {
     browsable: bucket.browsable ?? false,
   }
 
+  const formRef = React.useRef<HTMLFormElement>(null)
+  const { height } = useResizeObserver({ ref: formRef })
+
   return (
     <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
       {({
@@ -1125,7 +1181,7 @@ function Edit({ bucket, close }: EditProps) {
             Edit the &quot;{bucket.name}&quot; bucket
           </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields
                 className={classes.fields}
                 bucket={bucket}
@@ -1144,7 +1200,7 @@ function Edit({ bucket, close }: EditProps) {
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
-          <M.DialogActions>
+          <FormActions siblingHeight={height}>
             {submitting && (
               <Delay>
                 {() => (
@@ -1172,10 +1228,11 @@ function Edit({ bucket, close }: EditProps) {
               onClick={handleSubmit}
               color="primary"
               disabled={pristine || submitting || (submitFailed && hasValidationErrors)}
+              variant="contained"
             >
               Save
             </M.Button>
-          </M.DialogActions>
+          </FormActions>
         </>
       )}
     </RF.Form>
