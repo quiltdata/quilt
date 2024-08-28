@@ -41,6 +41,48 @@ import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.gener
 
 // FIXME: add FormActions component
 //        that become fixed M.AppBar when scrolled out of view
+const useSubPageHeaderStyles = M.makeStyles({
+  root: {
+    '& li::before': {
+      content: 'none',
+    },
+  },
+})
+
+interface SubPageHeaderProps {
+  back: () => void
+  children: React.ReactNode
+  danger?: boolean
+  submit: () => void
+}
+
+function SubPageHeader({ back, children, danger, submit }: SubPageHeaderProps) {
+  const classes = useSubPageHeaderStyles()
+  const confirm = Dialog.useConfirm({
+    cancelTitle: 'Discard',
+    onSubmit: (confirmed) => (confirmed ? submit() : back()),
+    submitTitle: 'Save',
+    title: 'You have unsaved changes',
+  })
+  return (
+    <>
+      {confirm.render(<></>)}
+      <M.Breadcrumbs className={classes.root}>
+        <M.Button
+          onClick={() => (danger ? confirm.open() : back())}
+          variant="outlined"
+          startIcon={<M.Icon>arrow_back</M.Icon>}
+          size="small"
+        >
+          Back to buckets
+        </M.Button>
+        <M.Typography variant="h6" color="textPrimary">
+          {children}
+        </M.Typography>
+      </M.Breadcrumbs>
+    </>
+  )
+}
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
@@ -794,9 +836,9 @@ function Add({ back }: AddProps) {
         hasValidationErrors,
       }) => (
         <>
-          <M.Typography variant="h6" color="textPrimary">
+          <SubPageHeader danger back={back} submit={handleSubmit}>
             Add a bucket
-          </M.Typography>
+          </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
             <form onSubmit={handleSubmit}>
               <BucketFields className={classes.fields} />
@@ -1079,27 +1121,9 @@ function Edit({ bucket, close }: EditProps) {
       }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <M.Breadcrumbs className={classes.breadcrumbs}>
-            <M.Button
-              onClick={() => {
-                if (pristine) return close()
-                const confirmed = window.confirm(
-                  'You have unsaved changes. Discard changes?',
-                )
-                if (confirmed) {
-                  close()
-                }
-              }}
-              variant="outlined"
-              startIcon={<M.Icon>arrow_back</M.Icon>}
-              size="small"
-            >
-              Back to buckets
-            </M.Button>
-            <M.Typography variant="h6" color="textPrimary">
-              Edit the &quot;{bucket.name}&quot; bucket
-            </M.Typography>
-          </M.Breadcrumbs>
+          <SubPageHeader danger={!pristine} back={close} submit={handleSubmit}>
+            Edit the &quot;{bucket.name}&quot; bucket
+          </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
             <form onSubmit={handleSubmit}>
               <BucketFields
