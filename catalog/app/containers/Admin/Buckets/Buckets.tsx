@@ -7,6 +7,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
 import useResizeObserver from 'use-resize-observer'
+import { useDebounce } from 'use-debounce'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -41,13 +42,8 @@ import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfi
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 
 const useFormActionsStyles = M.makeStyles((t) => ({
-  sticky: {
-    position: 'fixed',
-    left: '50%',
-    bottom: 0,
-    transform: `translateX(-50%)`,
-  },
   actions: {
+    animation: `$show 150ms ease-out`,
     padding: t.spacing(2, 1),
     display: 'flex',
     justifyContent: 'flex-end',
@@ -57,6 +53,29 @@ const useFormActionsStyles = M.makeStyles((t) => ({
   },
   placeholder: {
     height: 64,
+  },
+  sticky: {
+    position: 'fixed',
+    left: '50%',
+    bottom: 0,
+    transform: `translateX(-50%)`,
+    animation: `$sticking 150ms ease-out`,
+  },
+  '@keyframes show': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: '1',
+    },
+  },
+  '@keyframes sticking': {
+    '0%': {
+      transform: 'translate(-50%, 10%)',
+    },
+    '100%': {
+      transform: 'translate(-50%, 0)',
+    },
   },
 }))
 
@@ -68,19 +87,18 @@ interface FormActionsProps {
 function FormActions({ children, siblingHeight }: FormActionsProps) {
   const classes = useFormActionsStyles()
   const ref = React.useRef<HTMLDivElement>(null)
-  const [sticky, setSticky] = React.useState(false)
+  const [bottom, setBottom] = React.useState(0)
   const handleScroll = React.useCallback(() => {
     const rect = ref.current?.getBoundingClientRect()
     if (!rect || !rect.width) return
-    const shouldStick =
-      rect.bottom >= (window.innerHeight || document.documentElement.clientHeight)
-    if (shouldStick && !sticky) {
-      setSticky(true)
-    }
-    if (sticky && !shouldStick) {
-      setSticky(false)
-    }
-  }, [sticky])
+    setBottom(rect.bottom)
+  }, [])
+  const [debouncedBottom] = useDebounce(bottom, 150)
+  const sticky = React.useMemo(
+    () =>
+      debouncedBottom >= (window.innerHeight || document.documentElement.clientHeight),
+    [debouncedBottom],
+  )
   React.useEffect(() => {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
