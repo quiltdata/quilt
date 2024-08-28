@@ -722,10 +722,10 @@ const useAddStyles = M.makeStyles((t) => ({
 }))
 
 interface AddProps {
-  close: (reason?: string) => void
+  back: (reason?: string) => void
 }
 
-function Add({ close }: AddProps) {
+function Add({ back }: AddProps) {
   const { push } = Notifications.use()
   const t = useTracker()
   const add = GQL.useMutation(ADD_MUTATION)
@@ -743,7 +743,7 @@ function Add({ close }: AddProps) {
               action: 'bucket add',
               bucket: r.bucketConfig.name,
             })
-            close()
+            back()
             return undefined
           case 'BucketAlreadyAdded':
             return { name: 'conflict' }
@@ -780,7 +780,7 @@ function Add({ close }: AddProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [add, push, close, t],
+    [add, push, back, t],
   )
 
   return (
@@ -826,7 +826,7 @@ function Add({ close }: AddProps) {
             )}
             <M.Button
               className={classes.btn}
-              onClick={() => close('cancel')}
+              onClick={() => back('cancel')}
               color="primary"
               disabled={submitting}
             >
@@ -1308,11 +1308,7 @@ const columns: Table.Column<BucketConfig>[] = [
   },
 ]
 
-interface CRUDProps {
-  bucketName?: string
-}
-
-function CRUD({ bucketName }: CRUDProps) {
+function List() {
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
   const filtering = Table.useFiltering({
     rows,
@@ -1331,20 +1327,23 @@ function CRUD({ bucketName }: CRUDProps) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
-  // TODO: use route /admin/buckets/new
-  const [addingBucket, setAddingBucket] = React.useState(false)
+  const location = RRDom.useLocation()
+  const params = parseSearch(location.search)
+  const bucketName = Array.isArray(params.bucket) ? params.bucket[0] : params.bucket
+  if (bucketName) {
+    return <RRDom.Redirect to={urls.adminBucketEdit(bucketName)} />
+  }
 
   const toolbarActions = [
     {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
-      fn: React.useCallback(() => setAddingBucket(true), []),
+      fn: () => history.push(urls.adminBucketAdd()),
     },
   ]
 
-  const edit = (bucket: BucketConfig) => () => {
-    history.push(urls.adminBuckets(bucket.name))
-  }
+  const edit = (bucket: BucketConfig) => () =>
+    history.push(urls.adminBucketEdit(bucket.name))
 
   const inlineActions = (bucket: BucketConfig) => [
     {
@@ -1361,30 +1360,6 @@ function CRUD({ bucketName }: CRUDProps) {
     },
   ]
 
-  // FIXME: use route /admin/buckets/:bucketName
-  //        and redirect old routes
-  const editingBucket = React.useMemo(
-    () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
-    [bucketName, rows],
-  )
-
-  const onBucketClose = React.useCallback(() => {
-    history.push(urls.adminBuckets())
-  }, [history, urls])
-
-  if (bucketName && !editingBucket) {
-    // Bucket name set in URL, but it was not found in buckets list
-    return <RRDom.Redirect to={urls.adminBuckets()} />
-  }
-
-  if (editingBucket) {
-    return <Edit bucket={editingBucket} close={onBucketClose} />
-  }
-
-  if (addingBucket) {
-    return <Add close={() => setAddingBucket(false)} />
-  }
-
   return (
     <M.Paper>
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
@@ -1396,16 +1371,16 @@ function CRUD({ bucketName }: CRUDProps) {
         <M.Table size="small">
           <Table.Head columns={columns} ordering={ordering} withInlineActions />
           <M.TableBody>
-            {pagination.paginated.map((i: BucketConfig) => (
+            {pagination.paginated.map((bucket: BucketConfig) => (
               <M.TableRow
                 hover
-                key={i.name}
-                onClick={edit(i)}
+                key={bucket.name}
+                onClick={edit(bucket)}
                 style={{ cursor: 'pointer' }}
               >
                 {columns.map((col) => (
                   <M.TableCell key={col.id} align={col.align} {...col.props}>
-                    {(col.getDisplay || R.identity)(col.getValue(i), i)}
+                    {(col.getDisplay || R.identity)(col.getValue(bucket), bucket)}
                   </M.TableCell>
                 ))}
                 <M.TableCell
@@ -1413,7 +1388,7 @@ function CRUD({ bucketName }: CRUDProps) {
                   padding="none"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Table.InlineActions actions={inlineActions(i)} />
+                  <Table.InlineActions actions={inlineActions(bucket)} />
                 </M.TableCell>
               </M.TableRow>
             ))}
@@ -1425,23 +1400,53 @@ function CRUD({ bucketName }: CRUDProps) {
   )
 }
 
+interface EditRouteParams {
+  bucketName: string
+}
+
+function EditWrapper() {
+  const { bucketName } = RRDom.useParams<EditRouteParams>()
+  const history = RRDom.useHistory()
+  const { urls } = NamedRoutes.use()
+  const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
+  const editingBucket = React.useMemo(
+    () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
+    [bucketName, rows],
+  )
+  if (!bucketName || !editingBucket) {
+    return <RRDom.Redirect to={urls.adminBuckets()} />
+  }
+  return <Edit bucket={editingBucket} close={() => history.push(urls.adminBuckets())} />
+}
+
 export default function Buckets() {
-  const location = RRDom.useLocation()
-  const { bucket } = parseSearch(location.search)
-  const bucketName = Array.isArray(bucket) ? bucket[0] : bucket
+  const history = RRDom.useHistory()
+  const { paths, urls } = NamedRoutes.use()
   return (
     <M.Box mt={2} mb={2}>
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
-      <React.Suspense
-        fallback={
-          <M.Paper>
-            <Table.Toolbar heading="Buckets" />
-            <Table.Progress />
-          </M.Paper>
-        }
-      >
-        <CRUD bucketName={bucketName} />
-      </React.Suspense>
+      <RRDom.Switch>
+        <RRDom.Route path={paths.adminBucketAdd} exact strict>
+          <Add back={() => history.push(urls.adminBuckets())} />
+        </RRDom.Route>
+        <RRDom.Route path={paths.adminBucketEdit} exact strict>
+          <React.Suspense fallback={<M.CircularProgress />}>
+            <EditWrapper />
+          </React.Suspense>
+        </RRDom.Route>
+        <RRDom.Route>
+          <React.Suspense
+            fallback={
+              <M.Paper>
+                <Table.Toolbar heading="Buckets" />
+                <Table.Progress />
+              </M.Paper>
+            }
+          >
+            <List />
+          </React.Suspense>
+        </RRDom.Route>
+      </RRDom.Switch>
     </M.Box>
   )
 }

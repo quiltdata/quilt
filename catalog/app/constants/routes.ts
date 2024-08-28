@@ -262,11 +262,23 @@ export const admin: Route = {
 
 export const adminUsers = admin
 
-export type AdminBucketsArgs = [bucket: string]
+export type AdminBucketLegacyArgs = [bucket: string]
 
-export const adminBuckets: Route<AdminBucketsArgs> = {
+export const adminBuckets: Route<AdminBucketLegacyArgs> = {
   path: '/admin/buckets',
-  url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
+  url: (legacyBucketParam) => `/admin/buckets${mkSearch({ bucket: legacyBucketParam })}`,
+}
+
+export type AdminBucketEditArgs = [bucket: string]
+
+export const adminBucketEdit: Route<AdminBucketEditArgs> = {
+  path: '/admin/buckets/edit/:bucketName',
+  url: (bucketName) => `/admin/buckets/edit/${bucketName}`,
+}
+
+export const adminBucketAdd: Route = {
+  path: '/admin/buckets/add',
+  url: () => `/admin/buckets/add`,
 }
 
 export const adminSettings: Route = {
