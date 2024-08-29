@@ -11,8 +11,6 @@ Entries inside each section should be ordered by type:
 ## Python API
 
 ## CLI
-
-## Catalog, Lambdas
 !-->
 
 # 6.0.0 - 2024-08-19
