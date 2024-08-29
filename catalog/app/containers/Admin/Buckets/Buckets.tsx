@@ -923,7 +923,7 @@ function Add({ back }: AddProps) {
         hasValidationErrors,
       }) => (
         <>
-          <SubPageHeader dirty={dirty} back={back} submit={handleSubmit}>
+          <SubPageHeader back={back} dirty={dirty} submit={handleSubmit}>
             Add a bucket
           </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
@@ -1113,10 +1113,10 @@ const useEditStyles = M.makeStyles((t) => ({
 
 interface EditProps {
   bucket: BucketConfig
-  close: (reason?: string) => void
+  back: (reason?: string) => void
 }
 
-function Edit({ bucket, close }: EditProps) {
+function Edit({ bucket, back }: EditProps) {
   const update = GQL.useMutation(UPDATE_MUTATION)
 
   const [reindexOpen, setReindexOpen] = React.useState(false)
@@ -1132,7 +1132,7 @@ function Edit({ bucket, close }: EditProps) {
         const { bucketUpdate: r } = await update({ name: bucket.name, input })
         switch (r.__typename) {
           case 'BucketUpdateSuccess':
-            close()
+            back()
             return undefined
           case 'SnsInvalid':
             // shouldnt happen since we're validating it
@@ -1163,7 +1163,7 @@ function Edit({ bucket, close }: EditProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [update, close, bucket.name],
+    [update, back, bucket.name],
   )
 
   const initialValues = {
@@ -1203,7 +1203,7 @@ function Edit({ bucket, close }: EditProps) {
       }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <SubPageHeader dirty={!pristine} back={close} submit={handleSubmit}>
+          <SubPageHeader back={back} dirty={!pristine} submit={handleSubmit}>
             Edit the &quot;{bucket.name}&quot; bucket
           </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
@@ -1244,7 +1244,7 @@ function Edit({ bucket, close }: EditProps) {
               Reset
             </M.Button>
             <M.Button
-              onClick={() => close('cancel')}
+              onClick={() => back('cancel')}
               color="primary"
               disabled={submitting}
             >
@@ -1422,6 +1422,7 @@ const columns: Table.Column<BucketConfig>[] = [
 ]
 
 function List() {
+  throw Promise.resolve(null)
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
   const filtering = Table.useFiltering({
     rows,
@@ -1530,7 +1531,7 @@ function EditWrapper() {
   if (!bucketName || !editingBucket) {
     return <RRDom.Redirect to={urls.adminBuckets()} />
   }
-  return <Edit bucket={editingBucket} close={() => history.push(urls.adminBuckets())} />
+  return <Edit bucket={editingBucket} back={() => history.push(urls.adminBuckets())} />
 }
 
 export default function Buckets() {
