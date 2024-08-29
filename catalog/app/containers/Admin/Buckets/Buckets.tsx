@@ -41,6 +41,8 @@ import REMOVE_MUTATION from './gql/BucketsRemove.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 
+const noop = () => {}
+
 const useFormActionsStyles = M.makeStyles((t) => ({
   actions: {
     animation: `$show 150ms ease-out`,
@@ -828,16 +830,39 @@ function BucketFields({ bucket, className, reindex }: BucketFieldsProps) {
   )
 }
 
-function BucketFieldsPlaceholder() {
+interface BucketFieldsPlaceholderProps {
+  className: string
+}
+
+function BucketFieldsPlaceholder({ className }: BucketFieldsPlaceholderProps) {
   return (
-    <>
-      {R.times(
-        (i) => (
-          <Skeleton key={i} height={48} mt={i ? 3 : 0} />
-        ),
-        5,
-      )}
-    </>
+    <div className={className}>
+      <M.Paper>
+        <M.Box p={2}>
+          <Skeleton height={54} />
+          <Skeleton height={54} mt={4} />
+          <Skeleton height={54} mt={4} />
+          <Skeleton height={54} mt={4} />
+        </M.Box>
+      </M.Paper>
+      <M.Box mt={2}>
+        <M.Accordion>
+          <M.AccordionSummary>
+            <Skeleton height={32} width={100} />
+          </M.AccordionSummary>
+        </M.Accordion>
+        <M.Accordion>
+          <M.AccordionSummary>
+            <Skeleton height={32} width={240} />
+          </M.AccordionSummary>
+        </M.Accordion>
+        <M.Accordion>
+          <M.AccordionSummary>
+            <Skeleton height={32} width={180} />
+          </M.AccordionSummary>
+        </M.Accordion>
+      </M.Box>
+    </div>
   )
 }
 
@@ -926,7 +951,9 @@ function Add({ back }: AddProps) {
           <SubPageHeader back={back} dirty={dirty} submit={handleSubmit}>
             Add a bucket
           </SubPageHeader>
-          <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+          <React.Suspense
+            fallback={<BucketFieldsPlaceholder className={classes.fields} />}
+          >
             <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields className={classes.fields} />
               {submitFailed && (
@@ -1105,6 +1132,8 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
+const EDIT_TITLE = (bucketName: string) => `Edit the "${bucketName}" bucket`
+
 const useEditStyles = M.makeStyles((t) => ({
   fields: {
     marginTop: t.spacing(2),
@@ -1204,9 +1233,11 @@ function Edit({ bucket, back }: EditProps) {
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
           <SubPageHeader back={back} dirty={!pristine} submit={handleSubmit}>
-            Edit the &quot;{bucket.name}&quot; bucket
+            {EDIT_TITLE(bucket.name)}
           </SubPageHeader>
-          <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+          <React.Suspense
+            fallback={<BucketFieldsPlaceholder className={classes.fields} />}
+          >
             <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields
                 bucket={bucket}
@@ -1262,6 +1293,23 @@ function Edit({ bucket, back }: EditProps) {
         </>
       )}
     </RF.Form>
+  )
+}
+
+interface EditPageSkeletonProps {
+  back: () => void
+}
+
+function EditPageSkeleton({ back }: EditPageSkeletonProps) {
+  const { bucketName } = RRDom.useParams<EditRouteParams>()
+  const classes = useEditStyles()
+  return (
+    <>
+      <SubPageHeader back={back} submit={noop}>
+        {EDIT_TITLE(bucketName)}
+      </SubPageHeader>
+      <BucketFieldsPlaceholder className={classes.fields} />
+    </>
   )
 }
 
@@ -1422,7 +1470,6 @@ const columns: Table.Column<BucketConfig>[] = [
 ]
 
 function List() {
-  throw Promise.resolve(null)
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
   const filtering = Table.useFiltering({
     rows,
@@ -1519,34 +1566,36 @@ interface EditRouteParams {
   bucketName: string
 }
 
-function EditWrapper() {
+interface EditWrapperProps {
+  back: () => void
+}
+
+function EditWrapper({ back }: EditWrapperProps) {
   const { bucketName } = RRDom.useParams<EditRouteParams>()
-  const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
   const editingBucket = React.useMemo(
     () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
     [bucketName, rows],
   )
-  if (!bucketName || !editingBucket) {
-    return <RRDom.Redirect to={urls.adminBuckets()} />
-  }
-  return <Edit bucket={editingBucket} back={() => history.push(urls.adminBuckets())} />
+  if (!editingBucket) return <RRDom.Redirect to={urls.adminBuckets()} />
+  return <Edit bucket={editingBucket} back={back} />
 }
 
 export default function Buckets() {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use()
+  const back = React.useCallback(() => history.push(urls.adminBuckets()), [history, urls])
   return (
     <M.Box mt={2} mb={2}>
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
       <RRDom.Switch>
         <RRDom.Route path={paths.adminBucketAdd} exact strict>
-          <Add back={() => history.push(urls.adminBuckets())} />
+          <Add back={back} />
         </RRDom.Route>
         <RRDom.Route path={paths.adminBucketEdit} exact strict>
-          <React.Suspense fallback={<M.CircularProgress />}>
-            <EditWrapper />
+          <React.Suspense fallback={<EditPageSkeleton back={back} />}>
+            <EditWrapper back={back} />
           </React.Suspense>
         </RRDom.Route>
         <RRDom.Route>
