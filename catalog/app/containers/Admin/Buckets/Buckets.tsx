@@ -145,10 +145,11 @@ interface SubPageHeaderProps {
   back: () => void
   children: React.ReactNode
   dirty?: boolean
+  disabled?: boolean
   submit: () => void
 }
 
-function SubPageHeader({ back, children, dirty, submit }: SubPageHeaderProps) {
+function SubPageHeader({ disabled, back, children, dirty, submit }: SubPageHeaderProps) {
   const classes = useSubPageHeaderStyles()
   const handleConfirm = React.useCallback(
     (confirmed: boolean) => (confirmed ? submit() : back()),
@@ -172,6 +173,7 @@ function SubPageHeader({ back, children, dirty, submit }: SubPageHeaderProps) {
       </M.Typography>
       <M.Button
         className={classes.back}
+        disabled={disabled}
         onClick={handleBack}
         size="small"
         startIcon={<M.Icon>arrow_back</M.Icon>}
@@ -870,6 +872,9 @@ const useAddStyles = M.makeStyles((t) => ({
   fields: {
     marginTop: t.spacing(2),
   },
+  error: {
+    flexGrow: 1,
+  },
 }))
 
 interface AddProps {
@@ -948,7 +953,12 @@ function Add({ back }: AddProps) {
         hasValidationErrors,
       }) => (
         <>
-          <SubPageHeader back={back} dirty={dirty} submit={handleSubmit}>
+          <SubPageHeader
+            back={back}
+            dirty={dirty}
+            disabled={submitting}
+            submit={handleSubmit}
+          >
             Add a bucket
           </SubPageHeader>
           <React.Suspense
@@ -956,21 +966,23 @@ function Add({ back }: AddProps) {
           >
             <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields className={classes.fields} />
-              {submitFailed && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    notificationConfigurationError: 'Notification configuration error',
-                    insufficientPermissions: 'Insufficient permissions',
-                    subscriptionInvalid: 'Subscription invalid',
-                  }}
-                />
-              )}
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
           <FormActions siblingRef={formRef}>
+            {submitFailed && (
+              <Form.FormError
+                className={classes.error}
+                error={error || submitError}
+                errors={{
+                  unexpected: 'Something went wrong',
+                  notificationConfigurationError: 'Notification configuration error',
+                  insufficientPermissions: 'Insufficient permissions',
+                  subscriptionInvalid: 'Subscription invalid',
+                }}
+                margin="none"
+              />
+            )}
             {submitting && (
               <Delay>
                 {() => (
@@ -1138,6 +1150,9 @@ const useEditStyles = M.makeStyles((t) => ({
   fields: {
     marginTop: t.spacing(2),
   },
+  error: {
+    flexGrow: 1,
+  },
 }))
 
 interface EditProps {
@@ -1232,7 +1247,12 @@ function Edit({ bucket, back }: EditProps) {
       }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <SubPageHeader back={back} dirty={!pristine} submit={handleSubmit}>
+          <SubPageHeader
+            back={back}
+            dirty={!pristine}
+            disabled={submitting}
+            submit={handleSubmit}
+          >
             {EDIT_TITLE(bucket.name)}
           </SubPageHeader>
           <React.Suspense
@@ -1244,20 +1264,22 @@ function Edit({ bucket, back }: EditProps) {
                 className={classes.fields}
                 reindex={openReindex}
               />
-              {submitFailed && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    notificationConfigurationError: 'Notification configuration error',
-                    bucketNotFound: 'Bucket not found',
-                  }}
-                />
-              )}
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
           <FormActions siblingRef={formRef}>
+            {submitFailed && (
+              <Form.FormError
+                className={classes.error}
+                error={error || submitError}
+                errors={{
+                  unexpected: 'Something went wrong',
+                  notificationConfigurationError: 'Notification configuration error',
+                  bucketNotFound: 'Bucket not found',
+                }}
+                margin="none"
+              />
+            )}
             {submitting && (
               <Delay>
                 {() => (
