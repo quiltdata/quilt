@@ -52,7 +52,7 @@ const useFormActionsStyles = M.makeStyles((t) => ({
     },
   },
   placeholder: {
-    height: 64,
+    height: t.spacing(8),
   },
   sticky: {
     animation: `$sticking 150ms ease-out`,
@@ -94,7 +94,7 @@ function FormActions({ children, siblingRef }: FormActionsProps) {
   const ref = React.useRef<HTMLDivElement>(null)
   const handleScroll = React.useCallback(() => {
     const rect = ref.current?.getBoundingClientRect()
-    if (!rect || !rect.width) return
+    if (!rect || !rect.height) return
     setBottom(rect.bottom)
   }, [])
   React.useEffect(() => {
@@ -142,18 +142,26 @@ const useSubPageHeaderStyles = M.makeStyles({
 interface SubPageHeaderProps {
   back: () => void
   children: React.ReactNode
-  danger?: boolean
+  dirty?: boolean
   submit: () => void
 }
 
-function SubPageHeader({ back, children, danger, submit }: SubPageHeaderProps) {
+function SubPageHeader({ back, children, dirty, submit }: SubPageHeaderProps) {
   const classes = useSubPageHeaderStyles()
+  const handleConfirm = React.useCallback(
+    (confirmed: boolean) => (confirmed ? submit() : back()),
+    [back, submit],
+  )
   const confirm = Dialog.useConfirm({
     cancelTitle: 'Discard',
-    onSubmit: (confirmed) => (confirmed ? submit() : back()),
+    onSubmit: handleConfirm,
     submitTitle: 'Save',
     title: 'You have unsaved changes',
   })
+  const handleBack = React.useCallback(
+    () => (dirty ? confirm.open() : back()),
+    [back, confirm, dirty],
+  )
   return (
     <div className={classes.root}>
       {confirm.render(<></>)}
@@ -162,7 +170,7 @@ function SubPageHeader({ back, children, danger, submit }: SubPageHeaderProps) {
       </M.Typography>
       <M.Button
         className={classes.back}
-        onClick={() => (danger ? confirm.open() : back())}
+        onClick={handleBack}
         size="small"
         startIcon={<M.Icon>arrow_back</M.Icon>}
       >
@@ -906,16 +914,16 @@ function Add({ back }: AddProps) {
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
+        dirty,
         handleSubmit,
         submitting,
         submitFailed,
         error,
         submitError,
         hasValidationErrors,
-        pristine,
       }) => (
         <>
-          <SubPageHeader danger={!pristine} back={back} submit={handleSubmit}>
+          <SubPageHeader dirty={dirty} back={back} submit={handleSubmit}>
             Add a bucket
           </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
@@ -1098,11 +1106,6 @@ function Reindex({ bucket, open, close }: ReindexProps) {
 }
 
 const useEditStyles = M.makeStyles((t) => ({
-  breadcrumbs: {
-    '& li::before': {
-      content: 'none',
-    },
-  },
   fields: {
     marginTop: t.spacing(2),
   },
@@ -1200,14 +1203,14 @@ function Edit({ bucket, close }: EditProps) {
       }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <SubPageHeader danger={!pristine} back={close} submit={handleSubmit}>
+          <SubPageHeader dirty={!pristine} back={close} submit={handleSubmit}>
             Edit the &quot;{bucket.name}&quot; bucket
           </SubPageHeader>
           <React.Suspense fallback={<BucketFieldsPlaceholder />}>
             <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields
-                className={classes.fields}
                 bucket={bucket}
+                className={classes.fields}
                 reindex={openReindex}
               />
               {submitFailed && (
@@ -1314,6 +1317,12 @@ function Delete({ bucket, close }: DeleteProps) {
       </M.DialogActions>
     </>
   )
+}
+
+function useLegacyBucketNameParam() {
+  const location = RRDom.useLocation()
+  const params = parseSearch(location.search)
+  return Array.isArray(params.bucket) ? params.bucket[0] : params.bucket
 }
 
 const useCustomBucketIconStyles = M.makeStyles({
@@ -1431,23 +1440,24 @@ function List() {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
-  const location = RRDom.useLocation()
-  const params = parseSearch(location.search)
-  const bucketName = Array.isArray(params.bucket) ? params.bucket[0] : params.bucket
-  if (bucketName) {
-    return <RRDom.Redirect to={urls.adminBucketEdit(bucketName)} />
-  }
-
   const toolbarActions = [
     {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
-      fn: () => history.push(urls.adminBucketAdd()),
+      fn: React.useCallback(() => {
+        history.push(urls.adminBucketAdd())
+      }, [history, urls]),
     },
   ]
 
-  const edit = (bucket: BucketConfig) => () =>
+  const bucketName = useLegacyBucketNameParam()
+  if (bucketName) {
+    return <RRDom.Redirect to={urls.adminBucketEdit(bucketName)} />
+  }
+
+  const edit = (bucket: BucketConfig) => () => {
     history.push(urls.adminBucketEdit(bucket.name))
+  }
 
   const inlineActions = (bucket: BucketConfig) => [
     {
