@@ -44,9 +44,9 @@ import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.gener
 const useFormActionsStyles = M.makeStyles((t) => ({
   actions: {
     animation: `$show 150ms ease-out`,
-    padding: t.spacing(2, 1),
     display: 'flex',
     justifyContent: 'flex-end',
+    padding: t.spacing(2, 1),
     '& > * + *': {
       marginLeft: t.spacing(2),
     },
@@ -55,11 +55,11 @@ const useFormActionsStyles = M.makeStyles((t) => ({
     height: 64,
   },
   sticky: {
-    position: 'fixed',
-    left: '50%',
-    bottom: 0,
-    transform: `translateX(-50%)`,
     animation: `$sticking 150ms ease-out`,
+    bottom: 0,
+    left: '50%',
+    position: 'fixed',
+    transform: `translateX(-50%)`,
   },
   '@keyframes show': {
     '0%': {
@@ -81,11 +81,15 @@ const useFormActionsStyles = M.makeStyles((t) => ({
 
 interface FormActionsProps {
   children: React.ReactNode
-  siblingHeight?: number
+  siblingRef: React.RefObject<HTMLElement>
 }
 
-function FormActions({ children, siblingHeight }: FormActionsProps) {
+// 1. Listen scroll and sibling element resize
+// 2. Get the bottom of this element and debounce the value
+// 3. If the bottom is below the viewport, make the element `position: "fixed"`
+function FormActions({ children, siblingRef }: FormActionsProps) {
   const classes = useFormActionsStyles()
+  const { height: siblingHeight } = useResizeObserver({ ref: siblingRef })
   const ref = React.useRef<HTMLDivElement>(null)
   const [bottom, setBottom] = React.useState(0)
   const handleScroll = React.useCallback(() => {
@@ -93,7 +97,8 @@ function FormActions({ children, siblingHeight }: FormActionsProps) {
     if (!rect || !rect.width) return
     setBottom(rect.bottom)
   }, [])
-  const [debouncedBottom] = useDebounce(bottom, 150)
+  const DEBOUNCE_TIMEOUT = 150
+  const [debouncedBottom] = useDebounce(bottom, DEBOUNCE_TIMEOUT)
   const sticky = React.useMemo(
     () =>
       debouncedBottom >= (window.innerHeight || document.documentElement.clientHeight),
@@ -895,7 +900,6 @@ function Add({ back }: AddProps) {
   )
 
   const formRef = React.useRef<HTMLFormElement>(null)
-  const { height } = useResizeObserver({ ref: formRef })
 
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
@@ -929,7 +933,7 @@ function Add({ back }: AddProps) {
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
-          <FormActions siblingHeight={height}>
+          <FormActions siblingRef={formRef}>
             {submitting && (
               <Delay>
                 {() => (
@@ -1179,7 +1183,6 @@ function Edit({ bucket, close }: EditProps) {
   }
 
   const formRef = React.useRef<HTMLFormElement>(null)
-  const { height } = useResizeObserver({ ref: formRef })
 
   return (
     <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
@@ -1218,7 +1221,7 @@ function Edit({ bucket, close }: EditProps) {
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
-          <FormActions siblingHeight={height}>
+          <FormActions siblingRef={formRef}>
             {submitting && (
               <Delay>
                 {() => (
