@@ -89,14 +89,21 @@ interface FormActionsProps {
 // 3. If the bottom is below the viewport, make the element `position: "fixed"`
 function FormActions({ children, siblingRef }: FormActionsProps) {
   const classes = useFormActionsStyles()
-  const { height: siblingHeight } = useResizeObserver({ ref: siblingRef })
-  const ref = React.useRef<HTMLDivElement>(null)
+
   const [bottom, setBottom] = React.useState(0)
+  const ref = React.useRef<HTMLDivElement>(null)
   const handleScroll = React.useCallback(() => {
     const rect = ref.current?.getBoundingClientRect()
     if (!rect || !rect.width) return
     setBottom(rect.bottom)
   }, [])
+  React.useEffect(() => {
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
+  const { height: siblingHeight } = useResizeObserver({ ref: siblingRef })
+  React.useEffect(() => handleScroll(), [handleScroll, siblingHeight])
+
   const DEBOUNCE_TIMEOUT = 150
   const [debouncedBottom] = useDebounce(bottom, DEBOUNCE_TIMEOUT)
   const sticky = React.useMemo(
@@ -104,11 +111,7 @@ function FormActions({ children, siblingRef }: FormActionsProps) {
       debouncedBottom >= (window.innerHeight || document.documentElement.clientHeight),
     [debouncedBottom],
   )
-  React.useEffect(() => {
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [handleScroll])
-  React.useEffect(() => handleScroll(), [handleScroll, siblingHeight])
+
   return (
     <div ref={ref}>
       {sticky ? (
@@ -129,9 +132,10 @@ function FormActions({ children, siblingRef }: FormActionsProps) {
 
 const useSubPageHeaderStyles = M.makeStyles({
   root: {
-    '& li::before': {
-      content: 'none',
-    },
+    display: 'flex',
+  },
+  back: {
+    marginLeft: 'auto',
   },
 })
 
@@ -151,22 +155,20 @@ function SubPageHeader({ back, children, danger, submit }: SubPageHeaderProps) {
     title: 'You have unsaved changes',
   })
   return (
-    <>
+    <div className={classes.root}>
       {confirm.render(<></>)}
-      <M.Breadcrumbs className={classes.root}>
-        <M.Button
-          onClick={() => (danger ? confirm.open() : back())}
-          variant="outlined"
-          startIcon={<M.Icon>arrow_back</M.Icon>}
-          size="small"
-        >
-          Back to buckets
-        </M.Button>
-        <M.Typography variant="h6" color="textPrimary">
-          {children}
-        </M.Typography>
-      </M.Breadcrumbs>
-    </>
+      <M.Typography variant="h6" color="textPrimary">
+        {children}
+      </M.Typography>
+      <M.Button
+        className={classes.back}
+        onClick={() => (danger ? confirm.open() : back())}
+        size="small"
+        startIcon={<M.Icon>arrow_back</M.Icon>}
+      >
+        Back to buckets
+      </M.Button>
+    </div>
   )
 }
 
