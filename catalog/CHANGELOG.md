@@ -22,3 +22,6 @@ and "Packages" respectively
 ([#4111](https://github.com/quiltdata/quilt/pull/4111))
 - [Added] Bootstrap the change log
 ([#4112](https://github.com/quiltdata/quilt/pull/4112))
+- [Changed] Make catalog name always visible and simplify setting execution
+context for Athena
+([#4123](https://github.com/quiltdata/quilt/pull/4123))
