@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
@@ -480,6 +481,175 @@ function Hint({ children }: HintProps) {
   )
 }
 
+function useBack() {
+  const history = RRDom.useHistory()
+  const { urls } = NamedRoutes.use()
+  return React.useCallback(() => history.push(urls.adminBuckets()), [history, urls])
+}
+
+const usePrimaryFields = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(0, 2),
+  },
+  actions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: t.spacing(2, 0),
+    '& > * + *': {
+      // Spacing between direct children
+      marginLeft: t.spacing(2),
+    },
+  },
+  error: {
+    flexGrow: 1,
+  },
+}))
+
+interface PrimaryFieldsProps {
+  className?: string
+  bucket?: BucketConfig
+  form: FF.FormApi
+}
+
+function PrimaryFields({ className, bucket, form }: PrimaryFieldsProps) {
+  const cancel = useBack()
+  const classes = usePrimaryFields()
+  const state = form.getState()
+  const [editing, setEditing] = React.useState(!!bucket)
+  if (editing && bucket) {
+    return (
+      <M.Card className={className}>
+        <M.CardHeader
+          action={
+            <M.IconButton onClick={() => setEditing(false)}>
+              <M.Icon>edit</M.Icon>
+            </M.IconButton>
+          }
+          avatar={bucket.iconUrl && <M.Avatar src={bucket.iconUrl} />}
+          subheader={`s3://${bucket.name}`}
+          title={bucket.title}
+        />
+        {bucket.description && <M.CardContent>{bucket.description}</M.CardContent>}
+      </M.Card>
+    )
+  }
+  return (
+    <M.Paper className={cx(classes.root, className)}>
+      {bucket ? (
+        <M.TextField
+          label="Name"
+          value={bucket.name}
+          fullWidth
+          margin="normal"
+          disabled
+        />
+      ) : (
+        <RF.Field
+          component={Form.Field}
+          name="name"
+          label="Name"
+          placeholder="Enter an S3 bucket name"
+          parse={R.pipe(
+            R.toLower,
+            R.replace(/[^a-z0-9-.]/g, ''),
+            R.take(63) as (s: string) => string,
+          )}
+          validate={validators.required as FF.FieldValidator<any>}
+          errors={{
+            required: 'Enter a bucket name',
+            conflict: 'Bucket already added',
+            noSuchBucket: 'No such bucket',
+          }}
+          fullWidth
+          margin="normal"
+        />
+      )}
+      <RF.Field
+        component={Form.Field}
+        name="title"
+        label="Title"
+        placeholder='e.g. "Production analytics data"'
+        parse={R.pipe(R.replace(/^\s+/g, ''), R.take(256) as (s: string) => string)}
+        validate={validators.required as FF.FieldValidator<any>}
+        errors={{
+          required: 'Enter a bucket title',
+        }}
+        fullWidth
+        margin="normal"
+      />
+      <RF.Field
+        component={Form.Field}
+        name="iconUrl"
+        label="Icon URL (optional)"
+        placeholder="e.g. https://some-cdn.com/icon.png"
+        helperText="Recommended size: 80x80px"
+        parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
+        fullWidth
+        margin="normal"
+      />
+      <RF.Field
+        component={Form.Field}
+        name="description"
+        label="Description (optional)"
+        placeholder="Enter description if required"
+        parse={R.pipe(R.replace(/^\s+/g, ''), R.take(1024) as (s: string) => string)}
+        multiline
+        rows={1}
+        rowsMax={3}
+        fullWidth
+        margin="normal"
+      />
+      {bucket && (
+        <div className={classes.actions}>
+          {state.submitFailed && (
+            <Form.FormError
+              className={classes.error}
+              error={state.error || state.submitError}
+              errors={{
+                unexpected: 'Something went wrong',
+                notificationConfigurationError: 'Notification configuration error',
+                bucketNotFound: 'Bucket not found',
+              }}
+              margin="none"
+            />
+          )}
+          {state.submitting && (
+            <Delay>
+              {() => (
+                <M.Box flexGrow={1} display="flex" pl={2}>
+                  <M.CircularProgress size={24} />
+                </M.Box>
+              )}
+            </Delay>
+          )}
+          <M.Button
+            onClick={() => form.reset()}
+            color="primary"
+            disabled={state.pristine || state.submitting}
+          >
+            Reset
+          </M.Button>
+          <M.Button onClick={cancel} color="primary" disabled={state.submitting}>
+            Cancel
+          </M.Button>
+          <M.Button
+            onClick={form.submit}
+            color="primary"
+            disabled={
+              state.pristine ||
+              state.submitting ||
+              (state.submitFailed && state.hasValidationErrors)
+            }
+            variant="contained"
+          >
+            Save
+          </M.Button>
+        </div>
+      )}
+    </M.Paper>
+  )
+}
+
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   primary: {
     padding: t.spacing(2),
@@ -504,9 +674,10 @@ interface BucketFieldsProps {
   bucket?: BucketConfig
   className: string
   reindex?: () => void
+  form: FF.FormApi
 }
 
-function BucketFields({ bucket, className, reindex }: BucketFieldsProps) {
+function BucketFields({ bucket, className, form, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
 
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
@@ -514,72 +685,7 @@ function BucketFields({ bucket, className, reindex }: BucketFieldsProps) {
 
   return (
     <div className={className}>
-      <M.Paper className={classes.primary}>
-        {bucket ? (
-          <M.TextField
-            label="Name"
-            value={bucket.name}
-            fullWidth
-            margin="normal"
-            disabled
-          />
-        ) : (
-          <RF.Field
-            component={Form.Field}
-            name="name"
-            label="Name"
-            placeholder="Enter an S3 bucket name"
-            parse={R.pipe(
-              R.toLower,
-              R.replace(/[^a-z0-9-.]/g, ''),
-              R.take(63) as (s: string) => string,
-            )}
-            validate={validators.required as FF.FieldValidator<any>}
-            errors={{
-              required: 'Enter a bucket name',
-              conflict: 'Bucket already added',
-              noSuchBucket: 'No such bucket',
-            }}
-            fullWidth
-            margin="normal"
-          />
-        )}
-        <RF.Field
-          component={Form.Field}
-          name="title"
-          label="Title"
-          placeholder='e.g. "Production analytics data"'
-          parse={R.pipe(R.replace(/^\s+/g, ''), R.take(256) as (s: string) => string)}
-          validate={validators.required as FF.FieldValidator<any>}
-          errors={{
-            required: 'Enter a bucket title',
-          }}
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="iconUrl"
-          label="Icon URL (optional)"
-          placeholder="e.g. https://some-cdn.com/icon.png"
-          helperText="Recommended size: 80x80px"
-          parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="description"
-          label="Description (optional)"
-          placeholder="Enter description if required"
-          parse={R.pipe(R.replace(/^\s+/g, ''), R.take(1024) as (s: string) => string)}
-          multiline
-          rows={1}
-          rowsMax={3}
-          fullWidth
-          margin="normal"
-        />
-      </M.Paper>
+      <PrimaryFields bucket={bucket} form={form} />
       <div className={classes.secondary}>
         <M.Accordion>
           <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
@@ -952,6 +1058,7 @@ function Add({ back }: AddProps) {
         error,
         submitError,
         hasValidationErrors,
+        form,
       }) => (
         <>
           <SubPageHeader
@@ -966,7 +1073,7 @@ function Add({ back }: AddProps) {
             fallback={<BucketFieldsPlaceholder className={classes.fields} />}
           >
             <form onSubmit={handleSubmit} ref={formRef}>
-              <BucketFields className={classes.fields} />
+              <BucketFields form={form} className={classes.fields} />
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
@@ -1261,6 +1368,7 @@ function Edit({ bucket, back }: EditProps) {
           >
             <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields
+                form={form}
                 bucket={bucket}
                 className={classes.fields}
                 reindex={openReindex}
