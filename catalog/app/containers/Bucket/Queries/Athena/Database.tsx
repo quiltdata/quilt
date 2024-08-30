@@ -4,18 +4,35 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
+import * as Dialogs from 'utils/GlobalDialogs'
 
 import * as requests from '../requests'
 
 interface SelectErrorProps {
+  className?: string
   error: Error
 }
 
-function SelectError({ error }: SelectErrorProps) {
+function SelectError({ className, error }: SelectErrorProps) {
+  const openDialog = Dialogs.use()
+  const handleClick = React.useCallback(() => {
+    openDialog(() => (
+      <M.Box p={2}>
+        <M.Typography>{error.message}</M.Typography>
+      </M.Box>
+    ))
+  }, [error.message, openDialog])
   return (
-    <Lab.Alert severity="error">
-      <Lab.AlertTitle>{error.name}</Lab.AlertTitle>
-      {error.message}
+    <Lab.Alert
+      action={
+        <M.Button onClick={handleClick} size="small" color="inherit">
+          Show more
+        </M.Button>
+      }
+      className={className}
+      severity="error"
+    >
+      {error.name}
     </Lab.Alert>
   )
 }
@@ -38,14 +55,24 @@ const useSelectStyles = M.makeStyles({
 })
 
 interface SelectProps {
+  className?: string
   data: Response
   label: string
   onChange: (value: string) => void
   onLoadMore: (prev: Response) => void
   value: string | null
+  disabled?: boolean
 }
 
-function Select({ data, label, onChange, onLoadMore, value }: SelectProps) {
+function Select({
+  className,
+  data,
+  disabled,
+  label,
+  onChange,
+  onLoadMore,
+  value,
+}: SelectProps) {
   const classes = useSelectStyles()
   const handleChange = React.useCallback(
     (event) => {
@@ -59,7 +86,7 @@ function Select({ data, label, onChange, onLoadMore, value }: SelectProps) {
   )
 
   return (
-    <M.FormControl className={classes.root}>
+    <M.FormControl className={cx(classes.root, className)} disabled={disabled}>
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select onChange={handleChange} value={value?.toLowerCase()}>
         {data.list.map((item) => (
@@ -74,11 +101,12 @@ function Select({ data, label, onChange, onLoadMore, value }: SelectProps) {
 }
 
 interface SelectCatalogNameProps {
+  className?: string
   value: requests.athena.CatalogName | null
   onChange: (catalogName: requests.athena.CatalogName) => void
 }
 
-function SelectCatalogName({ value, onChange }: SelectCatalogNameProps) {
+function SelectCatalogName({ className, value, onChange }: SelectCatalogNameProps) {
   const [prev, setPrev] = React.useState<requests.athena.CatalogNamesResponse | null>(
     null,
   )
@@ -86,6 +114,7 @@ function SelectCatalogName({ value, onChange }: SelectCatalogNameProps) {
   return data.case({
     Ok: (response) => (
       <Select
+        className={className}
         data={response}
         label="Data catalog"
         onChange={onChange}
@@ -93,106 +122,45 @@ function SelectCatalogName({ value, onChange }: SelectCatalogNameProps) {
         value={value}
       />
     ),
-    Err: (error) => <SelectError error={error} />,
+    Err: (error) => <SelectError className={className} error={error} />,
     _: () => <SelectSkeleton />,
   })
 }
 
-interface SelectDatabaseProps {
+interface SelectDatabaseProps
+  extends Omit<SelectProps, 'data' | 'label' | 'onChange' | 'onLoadMore'> {
   catalogName: requests.athena.CatalogName | null
   onChange: (database: requests.athena.Database) => void
   value: requests.athena.Database | null
 }
 
-function SelectDatabase({ catalogName, onChange, value }: SelectDatabaseProps) {
+function SelectDatabase({ catalogName, onChange, ...rest }: SelectDatabaseProps) {
   const [prev, setPrev] = React.useState<requests.athena.DatabasesResponse | null>(null)
   const data = requests.athena.useDatabases(catalogName, prev)
   return data.case({
     Ok: (response) => (
       <Select
+        {...rest}
         data={response}
         label="Database"
         onChange={onChange}
         onLoadMore={setPrev}
-        value={value}
       />
     ),
-    Err: (error) => <SelectError error={error} />,
+    Err: (error) => <SelectError className={rest.className} error={error} />,
     _: () => <SelectSkeleton />,
   })
 }
 
-const useDialogStyles = M.makeStyles((t) => ({
-  select: {
-    width: '100%',
-    '& + &': {
-      marginTop: t.spacing(2),
-    },
-  },
-}))
-
-interface DialogProps {
-  initialValue: requests.athena.ExecutionContext | null
-  onChange: (value: requests.athena.ExecutionContext) => void
-  onClose: () => void
-  open: boolean
-}
-
-function Dialog({ initialValue, open, onChange, onClose }: DialogProps) {
-  const classes = useDialogStyles()
-  const [catalogName, setCatalogName] =
-    React.useState<requests.athena.CatalogName | null>(initialValue?.catalogName || null)
-  const [database, setDatabase] = React.useState<requests.athena.Database | null>(
-    initialValue?.database || null,
-  )
-  const handleSubmit = React.useCallback(() => {
-    if (!catalogName || !database) return
-    onChange({ catalogName, database })
-    onClose()
-  }, [catalogName, database, onChange, onClose])
-  return (
-    <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <M.DialogTitle>Select data catalog and database</M.DialogTitle>
-      <M.DialogContent>
-        <div className={classes.select}>
-          <SelectCatalogName onChange={setCatalogName} value={catalogName} />
-        </div>
-        {catalogName && (
-          <div className={classes.select}>
-            <SelectDatabase
-              catalogName={catalogName}
-              onChange={setDatabase}
-              value={database}
-            />
-          </div>
-        )}
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button color="primary" variant="outlined" onClick={onClose}>
-          Cancel
-        </M.Button>
-        <M.Button
-          color="primary"
-          disabled={!catalogName || !database}
-          onClick={handleSubmit}
-          variant="contained"
-        >
-          Submit
-        </M.Button>
-      </M.DialogActions>
-    </M.Dialog>
-  )
-}
-
-const useChangeButtonStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
   },
   field: {
     cursor: 'pointer',
-    flexGrow: 1,
     marginRight: t.spacing(2),
+    width: '50%',
     '& input': {
       cursor: 'pointer',
     },
@@ -205,76 +173,44 @@ const useChangeButtonStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ChangeButtonProps {
-  className?: string
-  executionContext: requests.athena.ExecutionContext | null
-  onClick: () => void
-}
-
-function ChangeButton({ className, executionContext, onClick }: ChangeButtonProps) {
-  const classes = useChangeButtonStyles()
-  const handleClick = React.useCallback(
-    (event) => {
-      event.target.blur()
-      onClick()
-    },
-    [onClick],
-  )
-  return (
-    <div className={cx(classes.root, className)}>
-      {executionContext ? (
-        <>
-          <M.TextField
-            className={classes.field}
-            defaultValue={executionContext.catalogName}
-            label="Data catalog"
-            onClick={handleClick}
-            size="small"
-          />
-          <M.TextField
-            className={classes.field}
-            defaultValue={executionContext.database}
-            label="Database"
-            onClick={handleClick}
-            size="small"
-          />
-        </>
-      ) : (
-        <M.Button
-          className={classes.button}
-          color="primary"
-          onClick={onClick}
-          size="small"
-          variant="outlined"
-        >
-          Set database and data catalog
-        </M.Button>
-      )}
-    </div>
-  )
-}
-
 interface DatabaseProps {
   className?: string
   value: requests.athena.ExecutionContext | null
-  onChange: (value: requests.athena.ExecutionContext) => void
+  onChange: (value: requests.athena.ExecutionContext | null) => void
 }
 
 export default function Database({ className, value, onChange }: DatabaseProps) {
-  const [open, setOpen] = React.useState(false)
+  const classes = useStyles()
+  const [catalogName, setCatalogName] =
+    React.useState<requests.athena.CatalogName | null>(value?.catalogName || null)
+  const handleCatalogName = React.useCallback(
+    (name) => {
+      setCatalogName(name)
+      onChange(null)
+    },
+    [onChange],
+  )
+  const handleDatabase = React.useCallback(
+    (database) => {
+      if (!catalogName) return
+      onChange({ catalogName, database })
+    },
+    [catalogName, onChange],
+  )
   return (
-    <>
-      <Dialog
-        initialValue={value}
-        onChange={onChange}
-        onClose={() => setOpen(false)}
-        open={open}
+    <div className={cx(classes.root, className)}>
+      <SelectCatalogName
+        className={classes.field}
+        onChange={handleCatalogName}
+        value={catalogName}
       />
-      <ChangeButton
-        className={className}
-        executionContext={value}
-        onClick={() => setOpen(true)}
+      <SelectDatabase
+        className={classes.field}
+        catalogName={catalogName}
+        onChange={handleDatabase}
+        value={value?.database || null}
+        disabled={!catalogName}
       />
-    </>
+    </div>
   )
 }

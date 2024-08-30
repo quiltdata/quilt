@@ -212,6 +212,7 @@ interface FormProps {
 export function Form({ bucket, className, onChange, value, workgroup }: FormProps) {
   const classes = useFormStyles()
 
+  // TODO: Confirm if no catalogName or database
   const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
     () =>
       value?.catalog && value?.db
@@ -227,6 +228,17 @@ export function Form({ bucket, className, onChange, value, workgroup }: FormProp
     if (!value?.query) return
     onSubmit(value?.query, executionContext)
   }, [executionContext, onSubmit, value])
+  const handleExecutionContext = React.useCallback(
+    (exeContext) => {
+      if (!exeContext) {
+        onChange({ ...value, catalog: undefined, db: undefined })
+        return
+      }
+      const { catalogName, database } = exeContext
+      onChange({ ...value, catalog: catalogName, db: database })
+    },
+    [onChange, value],
+  )
 
   return (
     <div className={className}>
@@ -244,9 +256,7 @@ export function Form({ bucket, className, onChange, value, workgroup }: FormProp
       <div className={classes.actions}>
         <Database
           className={classes.database}
-          onChange={({ catalogName, database }) =>
-            onChange({ ...value, catalog: catalogName, db: database })
-          }
+          onChange={handleExecutionContext}
           value={executionContext}
         />
         <M.Button
