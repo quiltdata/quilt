@@ -37,10 +37,6 @@ function SelectError({ className, error }: SelectErrorProps) {
   )
 }
 
-function SelectSkeleton() {
-  return <Skeleton height={32} animate />
-}
-
 const LOAD_MORE = '__load-more__'
 
 interface Response {
@@ -123,7 +119,7 @@ function SelectCatalogName({ className, value, onChange }: SelectCatalogNameProp
       />
     ),
     Err: (error) => <SelectError className={className} error={error} />,
-    _: () => <SelectSkeleton />,
+    _: () => <Skeleton className={className} height={32} animate />,
   })
 }
 
@@ -148,7 +144,7 @@ function SelectDatabase({ catalogName, onChange, ...rest }: SelectDatabaseProps)
       />
     ),
     Err: (error) => <SelectError className={rest.className} error={error} />,
-    _: () => <SelectSkeleton />,
+    _: () => <Skeleton className={rest.className} height={32} animate />,
   })
 }
 
