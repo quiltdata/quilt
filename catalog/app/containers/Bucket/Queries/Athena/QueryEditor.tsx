@@ -178,10 +178,23 @@ export { FormSkeleton as Skeleton }
 
 const useFormStyles = M.makeStyles((t) => ({
   actions: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
     display: 'flex',
+    justifyContent: 'space-between',
     margin: t.spacing(2, 0),
+    [t.breakpoints.up('sm')]: {
+      alignItems: 'center',
+    },
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
+  },
+  database: {
+    [t.breakpoints.up('sm')]: {
+      width: '50%',
+    },
+    [t.breakpoints.down('sm')]: {
+      marginBottom: t.spacing(2),
+    },
   },
   error: {
     margin: t.spacing(1, 0, 0),
@@ -230,6 +243,7 @@ export function Form({ bucket, className, onChange, value, workgroup }: FormProp
 
       <div className={classes.actions}>
         <Database
+          className={classes.database}
           onChange={({ catalogName, database }) =>
             onChange({ ...value, catalog: catalogName, db: database })
           }

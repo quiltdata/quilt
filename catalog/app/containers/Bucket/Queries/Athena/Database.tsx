@@ -189,6 +189,10 @@ const useChangeButtonStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
   },
+  field: {
+    flexGrow: 1,
+    marginRight: t.spacing(2),
+  },
   button: {
     marginLeft: t.spacing(1),
   },
@@ -196,25 +200,50 @@ const useChangeButtonStyles = M.makeStyles((t) => ({
 
 interface ChangeButtonProps {
   className?: string
-  database?: requests.athena.Database
+  executionContext: requests.athena.ExecutionContext | null
   onClick: () => void
 }
 
-function ChangeButton({ className, database, onClick }: ChangeButtonProps) {
+function ChangeButton({ className, executionContext, onClick }: ChangeButtonProps) {
   const classes = useChangeButtonStyles()
+  const handleClick = React.useCallback(
+    (event) => {
+      event.target.blur()
+      onClick()
+    },
+    [onClick],
+  )
   return (
-    <M.Typography className={cx(classes.root, className)} variant="body2">
-      Use {database ? <strong>{database}</strong> : 'default'} database or
-      <M.Button
-        className={classes.button}
-        color="primary"
-        onClick={onClick}
-        size="small"
-        variant="outlined"
-      >
-        {database ? 'change' : 'set'} database
-      </M.Button>
-    </M.Typography>
+    <div className={cx(classes.root, className)}>
+      {executionContext ? (
+        <>
+          <M.TextField
+            className={classes.field}
+            defaultValue={executionContext.catalogName}
+            label="Data catalog"
+            onClick={handleClick}
+            size="small"
+          />
+          <M.TextField
+            className={classes.field}
+            defaultValue={executionContext.database}
+            label="Database"
+            onClick={handleClick}
+            size="small"
+          />
+        </>
+      ) : (
+        <M.Button
+          className={classes.button}
+          color="primary"
+          onClick={onClick}
+          size="small"
+          variant="outlined"
+        >
+          Set database and data catalog
+        </M.Button>
+      )}
+    </div>
   )
 }
 
@@ -236,7 +265,7 @@ export default function Database({ className, value, onChange }: DatabaseProps) 
       />
       <ChangeButton
         className={className}
-        database={value?.database}
+        executionContext={value}
         onClick={() => setOpen(true)}
       />
     </>
