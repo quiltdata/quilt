@@ -50,6 +50,7 @@ const useFormActionsStyles = M.makeStyles((t) => ({
     justifyContent: 'flex-end',
     padding: t.spacing(2, 1),
     '& > * + *': {
+      // Spacing between direct children
       marginLeft: t.spacing(2),
     },
   },
@@ -87,7 +88,7 @@ interface FormActionsProps {
 }
 
 // 1. Listen scroll and sibling element resize
-// 2. Get the bottom of this element and debounce the value
+// 2. Get the bottom of `<FormActions />` and debounce the value
 // 3. If the bottom is below the viewport, make the element `position: "fixed"`
 function FormActions({ children, siblingRef }: FormActionsProps) {
   const classes = useFormActionsStyles()
@@ -501,8 +502,8 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
 
 interface BucketFieldsProps {
   bucket?: BucketConfig
-  reindex?: () => void
   className: string
+  reindex?: () => void
 }
 
 function BucketFields({ bucket, className, reindex }: BucketFieldsProps) {
