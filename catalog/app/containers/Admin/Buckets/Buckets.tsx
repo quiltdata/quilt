@@ -234,6 +234,7 @@ const usePFSCheckboxStyles = M.makeStyles({
     marginTop: -9,
   },
 })
+
 function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
   const classes = usePFSCheckboxStyles()
   const confirm = React.useCallback((checked) => input?.onChange(checked), [input])
@@ -487,6 +488,78 @@ function useBack() {
   return React.useCallback(() => history.push(urls.adminBuckets()), [history, urls])
 }
 
+const useInlineActionsStyles = M.makeStyles((t) => ({
+  actions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: t.spacing(2, 0),
+    '& > * + *': {
+      // Spacing between direct children
+      marginLeft: t.spacing(2),
+    },
+  },
+  error: {
+    flexGrow: 1,
+  },
+}))
+
+interface InlineActionsProps {
+  form: FF.FormApi
+}
+
+function InlineActions({ form }: InlineActionsProps) {
+  const cancel = useBack()
+  const classes = useInlineActionsStyles()
+  const state = form.getState()
+  return (
+    <div className={classes.actions}>
+      {state.submitFailed && (
+        <Form.FormError
+          className={classes.error}
+          error={state.error || state.submitError}
+          errors={{
+            unexpected: 'Something went wrong',
+            notificationConfigurationError: 'Notification configuration error',
+            bucketNotFound: 'Bucket not found',
+          }}
+          margin="none"
+        />
+      )}
+      {state.submitting && (
+        <Delay>
+          {() => (
+            <M.Box flexGrow={1} display="flex" pl={2}>
+              <M.CircularProgress size={24} />
+            </M.Box>
+          )}
+        </Delay>
+      )}
+      <M.Button
+        onClick={() => form.reset()}
+        color="primary"
+        disabled={state.pristine || state.submitting}
+      >
+        Reset
+      </M.Button>
+      <M.Button onClick={cancel} color="primary" disabled={state.submitting}>
+        Cancel
+      </M.Button>
+      <M.Button
+        onClick={form.submit}
+        color="primary"
+        disabled={
+          state.pristine ||
+          state.submitting ||
+          (state.submitFailed && state.hasValidationErrors)
+        }
+        variant="contained"
+      >
+        Save
+      </M.Button>
+    </div>
+  )
+}
+
 const usePrimaryFields = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(0, 2),
@@ -506,17 +579,16 @@ const usePrimaryFields = M.makeStyles((t) => ({
 }))
 
 interface PrimaryFieldsProps {
-  className?: string
   bucket?: BucketConfig
+  className?: string
   form: FF.FormApi
+  initialEditing: boolean
 }
 
-function PrimaryFields({ className, bucket, form }: PrimaryFieldsProps) {
-  const cancel = useBack()
+function PrimaryFields({ className, bucket, initialEditing, form }: PrimaryFieldsProps) {
   const classes = usePrimaryFields()
-  const state = form.getState()
-  const [editing, setEditing] = React.useState(!!bucket)
-  if (editing && bucket) {
+  const [editing, setEditing] = React.useState(initialEditing)
+  if (!editing && bucket) {
     return (
       <M.Card className={className}>
         <M.CardHeader
@@ -599,58 +671,58 @@ function PrimaryFields({ className, bucket, form }: PrimaryFieldsProps) {
         fullWidth
         margin="normal"
       />
-      {bucket && (
-        <div className={classes.actions}>
-          {state.submitFailed && (
-            <Form.FormError
-              className={classes.error}
-              error={state.error || state.submitError}
-              errors={{
-                unexpected: 'Something went wrong',
-                notificationConfigurationError: 'Notification configuration error',
-                bucketNotFound: 'Bucket not found',
-              }}
-              margin="none"
-            />
-          )}
-          {state.submitting && (
-            <Delay>
-              {() => (
-                <M.Box flexGrow={1} display="flex" pl={2}>
-                  <M.CircularProgress size={24} />
-                </M.Box>
-              )}
-            </Delay>
-          )}
-          <M.Button
-            onClick={() => form.reset()}
-            color="primary"
-            disabled={state.pristine || state.submitting}
-          >
-            Reset
-          </M.Button>
-          <M.Button onClick={cancel} color="primary" disabled={state.submitting}>
-            Cancel
-          </M.Button>
-          <M.Button
-            onClick={form.submit}
-            color="primary"
-            disabled={
-              state.pristine ||
-              state.submitting ||
-              (state.submitFailed && state.hasValidationErrors)
-            }
-            variant="contained"
-          >
-            Save
-          </M.Button>
-        </div>
-      )}
+      {bucket && <InlineActions form={form} />}
+    </M.Paper>
+  )
+}
+
+interface PreviewOptionsProps {
+  className?: string
+  bucket?: BucketConfig
+  form: FF.FormApi
+  initialEditing: boolean
+}
+
+function PreviewOptions({
+  bucket,
+  className,
+  form,
+  initialEditing,
+}: PreviewOptionsProps) {
+  const [editing, setEditing] = React.useState(initialEditing)
+  if (!editing && bucket) {
+    return (
+      <M.Card className={className}>
+        <M.CardHeader
+          avatar={<M.Icon>code</M.Icon>}
+          action={
+            <M.IconButton onClick={() => setEditing(true)}>
+              <M.Icon>edit</M.Icon>
+            </M.IconButton>
+          }
+          title={`Permissive HTML rendering is ${
+            bucket.browsable ? 'enabled' : 'disabled'
+          }`}
+        />
+      </M.Card>
+    )
+  }
+  return (
+    <M.Paper className={className}>
+      <M.Box p={2} pb={0}>
+        <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
+        {bucket && <InlineActions form={form} />}
+      </M.Box>
     </M.Paper>
   )
 }
 
 const useBucketFieldsStyles = M.makeStyles((t) => ({
+  card: {
+    '& + &': {
+      marginTop: t.spacing(2),
+    },
+  },
   primary: {
     padding: t.spacing(2),
   },
@@ -673,11 +745,18 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
 interface BucketFieldsProps {
   bucket?: BucketConfig
   className: string
-  reindex?: () => void
   form: FF.FormApi
+  initialEditing?: boolean
+  reindex?: () => void
 }
 
-function BucketFields({ bucket, className, form, reindex }: BucketFieldsProps) {
+function BucketFields({
+  bucket,
+  className,
+  form,
+  initialEditing,
+  reindex,
+}: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
 
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
@@ -685,7 +764,12 @@ function BucketFields({ bucket, className, form, reindex }: BucketFieldsProps) {
 
   return (
     <div className={className}>
-      <PrimaryFields bucket={bucket} form={form} />
+      <PrimaryFields
+        bucket={bucket}
+        className={classes.card}
+        form={form}
+        initialEditing={!!initialEditing}
+      />
       <div className={classes.secondary}>
         <M.Accordion>
           <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
@@ -926,14 +1010,12 @@ function BucketFields({ bucket, className, form, reindex }: BucketFieldsProps) {
             )}
           </M.AccordionDetails>
         </M.Accordion>
-        <M.Accordion>
-          <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
-            <M.Typography variant="h6">File preview options</M.Typography>
-          </M.AccordionSummary>
-          <M.AccordionDetails className={classes.section}>
-            <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
-          </M.AccordionDetails>
-        </M.Accordion>
+        <PreviewOptions
+          className={classes.card}
+          bucket={bucket}
+          form={form}
+          initialEditing={!!initialEditing}
+        />
       </div>
     </div>
   )
@@ -1073,7 +1155,7 @@ function Add({ back }: AddProps) {
             fallback={<BucketFieldsPlaceholder className={classes.fields} />}
           >
             <form onSubmit={handleSubmit} ref={formRef}>
-              <BucketFields form={form} className={classes.fields} />
+              <BucketFields initialEditing form={form} className={classes.fields} />
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
@@ -1368,9 +1450,9 @@ function Edit({ bucket, back }: EditProps) {
           >
             <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields
-                form={form}
                 bucket={bucket}
                 className={classes.fields}
+                form={form}
                 reindex={openReindex}
               />
               <input type="submit" style={{ display: 'none' }} />
