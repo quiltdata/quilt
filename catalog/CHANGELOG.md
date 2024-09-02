@@ -16,11 +16,11 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Athena: always show catalog name, simplify setting execution context
+([#4123](https://github.com/quiltdata/quilt/pull/4123))
 - [Added] Support `ui.actions.downloadObject` and `ui.actions.downloadPackage`
 options for configuring visibility of download buttons under "Bucket"
 and "Packages" respectively
 ([#4111](https://github.com/quiltdata/quilt/pull/4111))
 - [Added] Bootstrap the change log
 ([#4112](https://github.com/quiltdata/quilt/pull/4112))
-- [Changed] Athena: always show catalog name, simplify setting execution context
-([#4123](https://github.com/quiltdata/quilt/pull/4123))
