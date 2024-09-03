@@ -773,6 +773,19 @@ function PrimaryOptions({
   )
 }
 
+const useMetadataOptionsStyles = M.makeStyles((t) => ({
+  tagsList: {
+    marginBottoM: t.spacing(-1),
+  },
+  tag: {
+    marginBottom: t.spacing(1),
+    verticalAlign: 'baseline',
+    '& + &': {
+      marginLeft: t.spacing(0.5),
+    },
+  },
+}))
+
 interface MetadataOptionsProps {
   bucket?: BucketConfig
   className: string
@@ -786,6 +799,7 @@ function MetadataOptions({
   form,
   initialEditing,
 }: MetadataOptionsProps) {
+  const classes = useMetadataOptionsStyles()
   const [editing, setEditing] = React.useState(initialEditing)
   if (!editing && bucket) {
     return (
@@ -803,10 +817,16 @@ function MetadataOptions({
           Relevance score: {bucket.relevanceScore.toString()}
         </M.Typography>
         {bucket.tags && (
-          <M.Typography variant="body2">
+          <M.Typography variant="body2" className={classes.tagsList}>
             Tags:{' '}
             {bucket.tags.map((tag) => (
-              <M.Chip label={tag} key={tag} component="span" />
+              <M.Chip
+                className={classes.tag}
+                label={tag}
+                key={tag}
+                component="span"
+                size="small"
+              />
             ))}
           </M.Typography>
         )}
