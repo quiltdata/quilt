@@ -68,6 +68,56 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
   browsable: bucket.browsable ?? false,
 })
 
+interface CardAvatarProps {
+  src: string
+}
+
+function CardAvatar({ src }: CardAvatarProps) {
+  if (src.startsWith('http')) return <M.Avatar src={src} />
+  return <M.Icon>{src}</M.Icon>
+}
+
+const useCardStyles = M.makeStyles((t) => ({
+  header: {
+    paddingBottom: t.spacing(1),
+  },
+  content: {
+    paddingTop: 0,
+    '& > * + *': {
+      marginTop: t.spacing(1),
+    },
+  },
+}))
+
+interface CardProps {
+  children?: React.ReactNode
+  className?: string
+  icon?: string | null
+  onEdit: () => void
+  subTitle?: string
+  title: string
+}
+
+function Card({ children, className, icon, onEdit, subTitle, title }: CardProps) {
+  const classes = useCardStyles()
+  return (
+    <M.Card className={className}>
+      <M.CardHeader
+        action={
+          <M.IconButton onClick={onEdit}>
+            <M.Icon>edit</M.Icon>
+          </M.IconButton>
+        }
+        avatar={icon && <CardAvatar src={icon} />}
+        className={classes.header}
+        subheader={subTitle}
+        title={title}
+      />
+      {children && <M.CardContent className={classes.content}>{children}</M.CardContent>}
+    </M.Card>
+  )
+}
+
 const useFormActionsStyles = M.makeStyles((t) => ({
   actions: {
     animation: `$show 150ms ease-out`,
@@ -588,16 +638,29 @@ const useInlineFormStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2),
   },
+  title: {
+    marginBottom: t.spacing(1),
+  },
 }))
 
 interface InlineFormProps {
   className?: string
+  title?: string
   children: React.ReactNode
 }
 
-function InlineForm({ className, children }: InlineFormProps) {
+function InlineForm({ className, children, title }: InlineFormProps) {
   const classes = useInlineFormStyles()
-  return <M.Paper className={cx(classes.root, className)}>{children}</M.Paper>
+  return (
+    <M.Paper className={cx(classes.root, className)}>
+      {title && (
+        <M.Typography className={classes.title} variant="h6">
+          {title}
+        </M.Typography>
+      )}
+      {children}
+    </M.Paper>
+  )
 }
 
 interface PrimaryOptionsProps {
@@ -616,19 +679,17 @@ function PrimaryOptions({
   const [editing, setEditing] = React.useState(initialEditing)
   if (!editing && bucket) {
     return (
-      <M.Card className={className}>
-        <M.CardHeader
-          action={
-            <M.IconButton onClick={() => setEditing(true)}>
-              <M.Icon>edit</M.Icon>
-            </M.IconButton>
-          }
-          avatar={bucket.iconUrl && <M.Avatar src={bucket.iconUrl} />}
-          subheader={`s3://${bucket.name}`}
-          title={bucket.title}
-        />
-        {bucket.description && <M.CardContent>{bucket.description}</M.CardContent>}
-      </M.Card>
+      <Card
+        className={className}
+        icon={bucket.iconUrl || undefined}
+        onEdit={() => setEditing(true)}
+        subTitle={`s3://${bucket.name}`}
+        title={bucket.title}
+      >
+        {bucket.description && (
+          <M.Typography variant="body2">{bucket.description}</M.Typography>
+        )}
+      </Card>
     )
   }
   return (
@@ -718,58 +779,47 @@ function MetadataOptions({
   const [editing, setEditing] = React.useState(initialEditing)
   if (!editing && bucket) {
     return (
-      <M.Card className={className}>
-        <M.CardHeader
-          action={
-            <M.IconButton onClick={() => setEditing(true)}>
-              <M.Icon>edit</M.Icon>
-            </M.IconButton>
-          }
-          avatar={<M.Icon>toc</M.Icon>}
-          title="Metadata"
-        />
-        <M.CardContent>
-          {bucket.description && (
-            <M.Typography variant="body2" gutterBottom>
-              {bucket.description}
-            </M.Typography>
-          )}
-          <M.Typography variant="body2" gutterBottom>
-            Relevance score: {bucket.relevanceScore.toString()}
+      <Card
+        className={className}
+        icon="toc"
+        onEdit={() => setEditing(true)}
+        title="Metadata"
+      >
+        {bucket.description && (
+          <M.Typography variant="body2">{bucket.description}</M.Typography>
+        )}
+        <M.Typography variant="body2">
+          Relevance score: {bucket.relevanceScore.toString()}
+        </M.Typography>
+        {bucket.tags && (
+          <M.Typography variant="body2">
+            Tags:{' '}
+            {bucket.tags.map((tag) => (
+              <M.Chip label={tag} key={tag} component="span" />
+            ))}
           </M.Typography>
-          {bucket.tags && (
-            <M.Typography variant="body2" gutterBottom>
-              Tags:{' '}
-              {bucket.tags.map((tag) => (
-                <M.Chip label={tag} key={tag} component="span" />
-              ))}
-            </M.Typography>
-          )}
-          {bucket.overviewUrl && (
-            <M.Typography variant="body2" gutterBottom>
-              Overview URL:{' '}
-              <StyledLink href={bucket.overviewUrl} target="_blank">
-                {bucket.overviewUrl}
-              </StyledLink>
-            </M.Typography>
-          )}
-          {bucket.linkedData && (
-            // @ts-expect-error
-            <JsonDisplay
-              name="Structured data (JSON-LD)"
-              topLevel
-              value={bucket.linkedData}
-            />
-          )}
-        </M.CardContent>
-      </M.Card>
+        )}
+        {bucket.overviewUrl && (
+          <M.Typography variant="body2">
+            Overview URL:{' '}
+            <StyledLink href={bucket.overviewUrl} target="_blank">
+              {bucket.overviewUrl}
+            </StyledLink>
+          </M.Typography>
+        )}
+        {bucket.linkedData && (
+          // @ts-expect-error
+          <JsonDisplay
+            name="Structured data (JSON-LD)"
+            topLevel
+            value={bucket.linkedData}
+          />
+        )}
+      </Card>
     )
   }
   return (
-    <InlineForm className={className}>
-      <M.Typography variant="h6" gutterBottom>
-        Metadata
-      </M.Typography>
+    <InlineForm className={className} title="Metadata">
       <RF.Field
         component={Form.Field}
         name="relevanceScore"
@@ -860,73 +910,64 @@ function IndexingAndNotifications({
   if (!editing && bucket) {
     const { enableDeepIndexing } = bucketToFormValues(bucket)
     return (
-      <M.Card className={className}>
-        <M.CardHeader
-          avatar={<M.Icon>find_in_page</M.Icon>}
-          action={
-            <M.IconButton onClick={() => setEditing(true)}>
-              <M.Icon>edit</M.Icon>
-            </M.IconButton>
-          }
-          title="Indexing and notifications"
-        />
-        <M.CardContent>
-          {enableDeepIndexing ? (
-            <>
-              {bucket.fileExtensionsToIndex ? (
-                <M.Typography variant="body2">
-                  File extensions to deep index:
-                  {bucket.fileExtensionsToIndex.join(', ')}
-                </M.Typography>
-              ) : (
-                <M.Typography variant="body2">
-                  Default file extensions to deep index:
-                  {settings.extensions.join(', ')}
-                </M.Typography>
-              )}
-              {bucket.indexContentBytes ? (
-                <M.Typography variant="body2">
-                  Content bytes to deep index is{' '}
-                  {formatQuantity(bucket.indexContentBytes)} bytes
-                </M.Typography>
-              ) : (
-                <M.Typography variant="body2">
-                  Default content bytes to deep index is{' '}
-                  {formatQuantity(settings.bytesDefault)} bytes
-                </M.Typography>
-              )}
-            </>
-          ) : (
-            <M.Typography variant="body2">Deep indexing is disabled</M.Typography>
-          )}
-          {bucket.scannerParallelShardsDepth && (
-            <M.Typography variant="body2">
-              Scanner parallel shards depth: {bucket.scannerParallelShardsDepth}
-            </M.Typography>
-          )}
-          {bucket.skipMetaDataIndexing && (
-            <M.Typography variant="body2">Metadata indexing skiped</M.Typography>
-          )}
-          {bucket.snsNotificationArn && (
-            <M.Typography variant="body2">
-              SNS Topic ARN:{' '}
-              <StyledLink
-                href={`https://console.aws.amazon.com/sns/v3/home?#/topic/${bucket.snsNotificationArn}`}
-                target="_blank"
-              >
-                {bucket.snsNotificationArn}
-              </StyledLink>
-            </M.Typography>
-          )}
-        </M.CardContent>
-      </M.Card>
+      <Card
+        className={className}
+        onEdit={() => setEditing(true)}
+        icon="find_in_page"
+        title="Indexing and notifications"
+      >
+        {enableDeepIndexing ? (
+          <>
+            {bucket.fileExtensionsToIndex ? (
+              <M.Typography variant="body2">
+                File extensions to deep index:
+                {bucket.fileExtensionsToIndex.join(', ')}
+              </M.Typography>
+            ) : (
+              <M.Typography variant="body2">
+                Default file extensions to deep index:
+                {settings.extensions.join(', ')}
+              </M.Typography>
+            )}
+            {bucket.indexContentBytes ? (
+              <M.Typography variant="body2">
+                Content bytes to deep index is {formatQuantity(bucket.indexContentBytes)}{' '}
+                bytes
+              </M.Typography>
+            ) : (
+              <M.Typography variant="body2">
+                Default content bytes to deep index is{' '}
+                {formatQuantity(settings.bytesDefault)} bytes
+              </M.Typography>
+            )}
+          </>
+        ) : (
+          <M.Typography variant="body2">Deep indexing is disabled</M.Typography>
+        )}
+        {bucket.scannerParallelShardsDepth && (
+          <M.Typography variant="body2">
+            Scanner parallel shards depth: {bucket.scannerParallelShardsDepth}
+          </M.Typography>
+        )}
+        {bucket.skipMetaDataIndexing && (
+          <M.Typography variant="body2">Metadata indexing skiped</M.Typography>
+        )}
+        {bucket.snsNotificationArn && (
+          <M.Typography variant="body2">
+            SNS Topic ARN:{' '}
+            <StyledLink
+              href={`https://console.aws.amazon.com/sns/v3/home?#/topic/${bucket.snsNotificationArn}`}
+              target="_blank"
+            >
+              {bucket.snsNotificationArn}
+            </StyledLink>
+          </M.Typography>
+        )}
+      </Card>
     )
   }
   return (
-    <InlineForm className={className}>
-      <M.Typography variant="h6" gutterBottom>
-        Indexing and notifications
-      </M.Typography>
+    <InlineForm className={className} title="Indexing and notifications">
       {!!reindex && (
         <M.Box pb={2.5}>
           <M.Button variant="outlined" fullWidth onClick={reindex}>
@@ -1112,19 +1153,14 @@ function PreviewOptions({
   const [editing, setEditing] = React.useState(initialEditing)
   if (!editing && bucket) {
     return (
-      <M.Card className={className}>
-        <M.CardHeader
-          avatar={<M.Icon>code</M.Icon>}
-          action={
-            <M.IconButton onClick={() => setEditing(true)}>
-              <M.Icon>edit</M.Icon>
-            </M.IconButton>
-          }
-          title={`Permissive HTML rendering is ${
-            bucket.browsable ? 'enabled' : 'disabled'
-          }`}
-        />
-      </M.Card>
+      <Card
+        className={className}
+        onEdit={() => setEditing(true)}
+        icon="code"
+        title={`Permissive HTML rendering is ${
+          bucket.browsable ? 'enabled' : 'disabled'
+        }`}
+      />
     )
   }
   return (
