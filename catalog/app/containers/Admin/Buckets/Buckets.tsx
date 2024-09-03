@@ -908,7 +908,7 @@ function IndexingAndNotifications({
   const settings = data.config.contentIndexingSettings
 
   if (!editing && bucket) {
-    const { enableDeepIndexing } = bucketToFormValues(bucket)
+    const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
     return (
       <Card
         className={className}
@@ -950,9 +950,9 @@ function IndexingAndNotifications({
           </M.Typography>
         )}
         {bucket.skipMetaDataIndexing && (
-          <M.Typography variant="body2">Metadata indexing skiped</M.Typography>
+          <M.Typography variant="body2">Metadata indexing is disabled</M.Typography>
         )}
-        {bucket.snsNotificationArn && (
+        {typeof snsNotificationArn === 'string' && (
           <M.Typography variant="body2">
             SNS Topic ARN:{' '}
             <StyledLink
