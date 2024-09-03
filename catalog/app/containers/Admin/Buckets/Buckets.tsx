@@ -916,6 +916,11 @@ function IndexingAndNotifications({
         icon="find_in_page"
         title="Indexing and notifications"
       >
+        {!!reindex && (
+          <M.Button variant="outlined" onClick={reindex} size="small">
+            Re-index and repair
+          </M.Button>
+        )}
         {enableDeepIndexing ? (
           <>
             {bucket.fileExtensionsToIndex ? (
