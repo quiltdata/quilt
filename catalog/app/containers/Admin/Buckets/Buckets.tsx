@@ -92,19 +92,28 @@ const useCardStyles = M.makeStyles((t) => ({
 interface CardProps {
   children?: React.ReactNode
   className?: string
+  disabled?: boolean
   icon?: string | null
   onEdit: () => void
   subTitle?: string
   title: string
 }
 
-function Card({ children, className, icon, onEdit, subTitle, title }: CardProps) {
+function Card({
+  children,
+  className,
+  disabled,
+  icon,
+  onEdit,
+  subTitle,
+  title,
+}: CardProps) {
   const classes = useCardStyles()
   return (
     <M.Card className={className}>
       <M.CardHeader
         action={
-          <M.IconButton onClick={onEdit}>
+          <M.IconButton onClick={onEdit} disabled={disabled}>
             <M.Icon>edit</M.Icon>
           </M.IconButton>
         }
@@ -681,6 +690,7 @@ function PrimaryOptions({
     return (
       <Card
         className={className}
+        disabled={form.getState().submitting}
         icon={bucket.iconUrl || undefined}
         onEdit={() => setEditing(true)}
         subTitle={`s3://${bucket.name}`}
@@ -781,6 +791,7 @@ function MetadataOptions({
     return (
       <Card
         className={className}
+        disabled={form.getState().submitting}
         icon="toc"
         onEdit={() => setEditing(true)}
         title="Metadata"
@@ -912,12 +923,18 @@ function IndexingAndNotifications({
     return (
       <Card
         className={className}
+        disabled={form.getState().submitting}
         onEdit={() => setEditing(true)}
         icon="find_in_page"
         title="Indexing and notifications"
       >
         {!!reindex && (
-          <M.Button variant="outlined" onClick={reindex} size="small">
+          <M.Button
+            variant="outlined"
+            onClick={reindex}
+            size="small"
+            disabled={form.getState().submitting}
+          >
             Re-index and repair
           </M.Button>
         )}
@@ -1160,6 +1177,7 @@ function PreviewOptions({
     return (
       <Card
         className={className}
+        disabled={form.getState().submitting}
         onEdit={() => setEditing(true)}
         icon="code"
         title={`Permissive HTML rendering is ${
