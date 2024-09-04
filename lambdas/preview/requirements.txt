@@ -47,4 +47,4 @@ typing_extensions==4.5.0
 urllib3==1.26.19
 webencodings==0.5.1
 xlrd==2.0.1
-zipp==3.15.0
+zipp==3.19.1
