@@ -37,6 +37,7 @@ import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
 import * as Table from '../Table'
+import LongQueryConfigForm from './LongQueryConfig'
 
 import BUCKET_CONFIGS_QUERY from './gql/BucketConfigs.generated'
 import ADD_MUTATION from './gql/BucketsAdd.generated'
@@ -1183,6 +1184,75 @@ function IndexingAndNotifications({
   )
 }
 
+function useLongQueryDataSync(fullfilled: boolean) {
+  if (!fullfilled) {
+    throw Promise.resolve(null)
+  }
+  return { configOne: '' }
+}
+
+interface LongQueryConfigProps {
+  bucket?: BucketConfig
+  className?: string
+  form: FF.FormApi
+  initialEditing: boolean
+}
+
+function LongQueryConfigSuspended(props: LongQueryConfigProps) {
+  const [fullfilled, setFullfilled] = React.useState(false)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setFullfilled(true)
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [])
+  return (
+    <React.Suspense
+      fallback={
+        <M.Box mt={2} mb={2}>
+          <M.Paper>
+            <M.Box p={2} pb={1}>
+              <Skeleton height={32} width={100} />
+            </M.Box>
+          </M.Paper>
+        </M.Box>
+      }
+    >
+      <LongQueryConfig fullfilled={fullfilled} {...props} />
+    </React.Suspense>
+  )
+}
+
+function LongQueryConfig({
+  bucket,
+  className,
+  form,
+  initialEditing,
+  fullfilled,
+}: LongQueryConfigProps & { fullfilled: boolean }) {
+  const data = useLongQueryDataSync(fullfilled)
+  const [editing, setEditing] = React.useState(initialEditing)
+  if (!editing) {
+    return (
+      <Card
+        className={className}
+        disabled={form.getState().submitting}
+        icon="query_builder"
+        onEdit={() => setEditing(true)}
+        title="Longitudinal Query Configuration"
+      >
+        {data.configOne}
+      </Card>
+    )
+  }
+  return (
+    <InlineForm className={className} title="Longitudinal Query Configuration">
+      <LongQueryConfigForm data={data} />
+      {bucket && <InlineActions form={form} onCancel={() => setEditing(false)} />}
+    </InlineForm>
+  )
+}
+
 interface PreviewOptionsProps {
   className?: string
   bucket?: BucketConfig
@@ -1281,6 +1351,12 @@ function BucketFields({
         initialEditing={!!initialEditing}
         reindex={reindex}
       />
+      <LongQueryConfigSuspended
+        bucket={bucket}
+        className={classes.card}
+        form={form}
+        initialEditing={!!initialEditing}
+      />
       <PreviewOptions
         bucket={bucket}
         className={classes.card}
@@ -1307,21 +1383,19 @@ function BucketFieldsPlaceholder({ className }: BucketFieldsPlaceholderProps) {
         </M.Box>
       </M.Paper>
       <M.Box mt={2}>
-        <M.Accordion>
-          <M.AccordionSummary>
-            <Skeleton height={32} width={100} />
-          </M.AccordionSummary>
-        </M.Accordion>
-        <M.Accordion>
-          <M.AccordionSummary>
-            <Skeleton height={32} width={240} />
-          </M.AccordionSummary>
-        </M.Accordion>
-        <M.Accordion>
-          <M.AccordionSummary>
-            <Skeleton height={32} width={180} />
-          </M.AccordionSummary>
-        </M.Accordion>
+        <M.Paper>
+          <Skeleton height={32} width={100} />
+        </M.Paper>
+      </M.Box>
+      <M.Box mt={2}>
+        <M.Paper>
+          <Skeleton height={32} width={240} />
+        </M.Paper>
+      </M.Box>
+      <M.Box mt={2}>
+        <M.Paper>
+          <Skeleton height={32} width={180} />
+        </M.Paper>
       </M.Box>
     </div>
   )
