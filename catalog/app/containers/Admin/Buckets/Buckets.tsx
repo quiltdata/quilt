@@ -674,36 +674,13 @@ function InlineForm({ className, children, title }: InlineFormProps) {
   )
 }
 
-interface PrimaryOptionsProps {
+interface PrimaryFormProps {
   bucket?: BucketConfig
   className?: string
-  form: FF.FormApi
-  initialEditing: boolean
+  children?: React.ReactNode
 }
 
-function PrimaryOptions({
-  className,
-  bucket,
-  initialEditing,
-  form,
-}: PrimaryOptionsProps) {
-  const [editing, setEditing] = React.useState(initialEditing)
-  if (!editing && bucket) {
-    return (
-      <Card
-        className={className}
-        disabled={form.getState().submitting}
-        icon={bucket.iconUrl || undefined}
-        onEdit={() => setEditing(true)}
-        subTitle={`s3://${bucket.name}`}
-        title={bucket.title}
-      >
-        {bucket.description && (
-          <M.Typography variant="body2">{bucket.description}</M.Typography>
-        )}
-      </Card>
-    )
-  }
+function PrimaryForm({ bucket, children, className }: PrimaryFormProps) {
   return (
     <InlineForm className={className}>
       {bucket ? (
@@ -770,87 +747,48 @@ function PrimaryOptions({
         fullWidth
         margin="normal"
       />
-      {bucket && <InlineActions form={form} onCancel={() => setEditing(false)} />}
+      {children}
     </InlineForm>
   )
 }
 
-const useMetadataOptionsStyles = M.makeStyles((t) => ({
-  tagsList: {
-    marginBottoM: t.spacing(-1),
-  },
-  tag: {
-    marginBottom: t.spacing(1),
-    verticalAlign: 'baseline',
-    '& + &': {
-      marginLeft: t.spacing(0.5),
-    },
-  },
-}))
-
-interface MetadataOptionsProps {
-  bucket?: BucketConfig
+interface PrimaryCardProps {
+  bucket: BucketConfig
   className: string
   form: FF.FormApi
-  initialEditing: boolean
 }
 
-function MetadataOptions({
-  bucket,
-  className,
-  form,
-  initialEditing,
-}: MetadataOptionsProps) {
-  const classes = useMetadataOptionsStyles()
-  const [editing, setEditing] = React.useState(initialEditing)
-  if (!editing && bucket) {
+function PrimaryCard({ className, bucket, form }: PrimaryCardProps) {
+  const [editing, setEditing] = React.useState(false)
+  if (editing) {
     return (
-      <Card
-        className={className}
-        disabled={form.getState().submitting}
-        icon="toc"
-        onEdit={() => setEditing(true)}
-        title="Metadata"
-      >
-        {bucket.description && (
-          <M.Typography variant="body2">{bucket.description}</M.Typography>
-        )}
-        <M.Typography variant="body2">
-          Relevance score: {bucket.relevanceScore.toString()}
-        </M.Typography>
-        {bucket.tags && (
-          <M.Typography variant="body2" className={classes.tagsList}>
-            Tags:{' '}
-            {bucket.tags.map((tag) => (
-              <M.Chip
-                className={classes.tag}
-                label={tag}
-                key={tag}
-                component="span"
-                size="small"
-              />
-            ))}
-          </M.Typography>
-        )}
-        {bucket.overviewUrl && (
-          <M.Typography variant="body2">
-            Overview URL:{' '}
-            <StyledLink href={bucket.overviewUrl} target="_blank">
-              {bucket.overviewUrl}
-            </StyledLink>
-          </M.Typography>
-        )}
-        {bucket.linkedData && (
-          // @ts-expect-error
-          <JsonDisplay
-            name="Structured data (JSON-LD)"
-            topLevel
-            value={bucket.linkedData}
-          />
-        )}
-      </Card>
+      <PrimaryForm className={className} bucket={bucket}>
+        <InlineActions form={form} onCancel={() => setEditing(false)} />
+      </PrimaryForm>
     )
   }
+  return (
+    <Card
+      className={className}
+      disabled={form.getState().submitting}
+      icon={bucket.iconUrl || undefined}
+      onEdit={() => setEditing(true)}
+      subTitle={`s3://${bucket.name}`}
+      title={bucket.title}
+    >
+      {bucket.description && (
+        <M.Typography variant="body2">{bucket.description}</M.Typography>
+      )}
+    </Card>
+  )
+}
+
+interface MetadataFormProps {
+  children?: React.ReactNode
+  className: string
+}
+
+function MetadataForm({ children, className }: MetadataFormProps) {
   return (
     <InlineForm className={className} title="Metadata">
       <RF.Field
@@ -903,113 +841,104 @@ function MetadataOptions({
         rowsMax={10}
         margin="normal"
       />
-      {bucket && <InlineActions form={form} onCancel={() => setEditing(false)} />}
+      {children}
     </InlineForm>
   )
 }
 
-const useIndexingAndNotificationsStyles = M.makeStyles((t) => ({
-  warning: {
-    background: t.palette.warning.main,
-    marginBottom: t.spacing(1),
-    marginTop: t.spacing(2),
+const useMetadataCardStyles = M.makeStyles((t) => ({
+  tagsList: {
+    marginBottoM: t.spacing(-1),
   },
-  warningIcon: {
-    color: t.palette.warning.dark,
+  tag: {
+    marginBottom: t.spacing(1),
+    verticalAlign: 'baseline',
+    '& + &': {
+      marginLeft: t.spacing(0.5),
+    },
   },
 }))
 
-interface IndexingAndNotificationsProps {
-  bucket?: BucketConfig
-  className?: string
+interface MetadataCardProps {
+  bucket: BucketConfig
+  className: string
   form: FF.FormApi
-  initialEditing: boolean
-  reindex?: () => void
 }
 
-function IndexingAndNotifications({
-  bucket,
-  className,
-  form,
-  initialEditing,
-  reindex,
-}: IndexingAndNotificationsProps) {
-  const classes = useIndexingAndNotificationsStyles()
-  const [editing, setEditing] = React.useState(initialEditing)
-
-  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
-  const settings = data.config.contentIndexingSettings
-
-  if (!editing && bucket) {
-    const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
+function MetadataCard({ bucket, className, form }: MetadataCardProps) {
+  const classes = useMetadataCardStyles()
+  const [editing, setEditing] = React.useState(false)
+  if (editing) {
     return (
-      <Card
-        className={className}
-        disabled={form.getState().submitting}
-        onEdit={() => setEditing(true)}
-        icon="find_in_page"
-        title="Indexing and notifications"
-      >
-        {!!reindex && (
-          <M.Button
-            variant="outlined"
-            onClick={reindex}
-            size="small"
-            disabled={form.getState().submitting}
-          >
-            Re-index and repair
-          </M.Button>
-        )}
-        {enableDeepIndexing ? (
-          <>
-            {bucket.fileExtensionsToIndex ? (
-              <M.Typography variant="body2">
-                File extensions to deep index:
-                {bucket.fileExtensionsToIndex.join(', ')}
-              </M.Typography>
-            ) : (
-              <M.Typography variant="body2">
-                Default file extensions to deep index:
-                {settings.extensions.join(', ')}
-              </M.Typography>
-            )}
-            {bucket.indexContentBytes ? (
-              <M.Typography variant="body2">
-                Content bytes to deep index is {formatQuantity(bucket.indexContentBytes)}{' '}
-                bytes
-              </M.Typography>
-            ) : (
-              <M.Typography variant="body2">
-                Default content bytes to deep index is{' '}
-                {formatQuantity(settings.bytesDefault)} bytes
-              </M.Typography>
-            )}
-          </>
-        ) : (
-          <M.Typography variant="body2">Deep indexing is disabled</M.Typography>
-        )}
-        {bucket.scannerParallelShardsDepth && (
-          <M.Typography variant="body2">
-            Scanner parallel shards depth: {bucket.scannerParallelShardsDepth}
-          </M.Typography>
-        )}
-        {bucket.skipMetaDataIndexing && (
-          <M.Typography variant="body2">Metadata indexing is disabled</M.Typography>
-        )}
-        {typeof snsNotificationArn === 'string' && (
-          <M.Typography variant="body2">
-            SNS Topic ARN:{' '}
-            <StyledLink
-              href={`https://console.aws.amazon.com/sns/v3/home?#/topic/${bucket.snsNotificationArn}`}
-              target="_blank"
-            >
-              {bucket.snsNotificationArn}
-            </StyledLink>
-          </M.Typography>
-        )}
-      </Card>
+      <MetadataForm className={className}>
+        <InlineActions form={form} onCancel={() => setEditing(false)} />
+      </MetadataForm>
     )
   }
+  return (
+    <Card
+      className={className}
+      disabled={form.getState().submitting}
+      icon="toc"
+      onEdit={() => setEditing(true)}
+      title="Metadata"
+    >
+      {bucket.description && (
+        <M.Typography variant="body2">{bucket.description}</M.Typography>
+      )}
+      <M.Typography variant="body2">
+        Relevance score: {bucket.relevanceScore.toString()}
+      </M.Typography>
+      {bucket.tags && (
+        <M.Typography variant="body2" className={classes.tagsList}>
+          Tags:{' '}
+          {bucket.tags.map((tag) => (
+            <M.Chip
+              className={classes.tag}
+              label={tag}
+              key={tag}
+              component="span"
+              size="small"
+            />
+          ))}
+        </M.Typography>
+      )}
+      {bucket.overviewUrl && (
+        <M.Typography variant="body2">
+          Overview URL:{' '}
+          <StyledLink href={bucket.overviewUrl} target="_blank">
+            {bucket.overviewUrl}
+          </StyledLink>
+        </M.Typography>
+      )}
+      {bucket.linkedData && (
+        // @ts-expect-error
+        <JsonDisplay
+          name="Structured data (JSON-LD)"
+          topLevel
+          value={bucket.linkedData}
+        />
+      )}
+    </Card>
+  )
+}
+
+interface IndexingAndNotificationsFormProps {
+  bucket?: BucketConfig
+  children?: React.ReactNode
+  className: string
+  reindex?: () => void
+  settings: Model.GQLTypes.ContentIndexingSettings
+}
+
+function IndexingAndNotificationsForm({
+  bucket,
+  children,
+  className,
+  reindex,
+  settings,
+}: IndexingAndNotificationsFormProps) {
+  const classes = useIndexingAndNotificationsFormStyles()
   return (
     <InlineForm className={className} title="Indexing and notifications">
       {!!reindex && (
@@ -1176,99 +1105,160 @@ function IndexingAndNotifications({
           />
         </M.Box>
       )}
-      {bucket && <InlineActions form={form} onCancel={() => setEditing(false)} />}
+      {children}
     </InlineForm>
   )
 }
 
-interface PreviewOptionsProps {
-  className?: string
-  bucket?: BucketConfig
-  form: FF.FormApi
-  initialEditing: boolean
-}
-
-function PreviewOptions({
-  bucket,
-  className,
-  form,
-  initialEditing,
-}: PreviewOptionsProps) {
-  const [editing, setEditing] = React.useState(initialEditing)
-  if (!editing && bucket) {
-    return (
-      <Card
-        className={className}
-        disabled={form.getState().submitting}
-        onEdit={() => setEditing(true)}
-        icon="code"
-        title={`Permissive HTML rendering is ${
-          bucket.browsable ? 'enabled' : 'disabled'
-        }`}
-      />
-    )
-  }
-  return (
-    <InlineForm className={className}>
-      <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
-      {bucket && <InlineActions form={form} onCancel={() => setEditing(false)} />}
-    </InlineForm>
-  )
-}
-
-const useBucketFieldsStyles = M.makeStyles((t) => ({
-  card: {
-    '& + &': {
-      marginTop: t.spacing(2),
-    },
+const useIndexingAndNotificationsFormStyles = M.makeStyles((t) => ({
+  warning: {
+    background: t.palette.warning.main,
+    marginBottom: t.spacing(1),
+    marginTop: t.spacing(2),
+  },
+  warningIcon: {
+    color: t.palette.warning.dark,
   },
 }))
 
-interface BucketFieldsProps {
-  bucket?: BucketConfig
+interface IndexingAndNotificationsCardProps {
+  bucket: BucketConfig
   className: string
   form: FF.FormApi
-  initialEditing?: boolean
   reindex?: () => void
 }
 
-function BucketFields({
+function IndexingAndNotificationsCard({
   bucket,
   className,
   form,
-  initialEditing,
   reindex,
-}: BucketFieldsProps) {
-  const classes = useBucketFieldsStyles()
+}: IndexingAndNotificationsCardProps) {
+  const [editing, setEditing] = React.useState(false)
 
-  return (
-    <div className={className}>
-      <PrimaryOptions
+  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
+  const settings = data.config.contentIndexingSettings
+
+  if (editing) {
+    return (
+      <IndexingAndNotificationsForm
         bucket={bucket}
-        className={classes.card}
-        form={form}
-        initialEditing={!!initialEditing}
-      />
-      <MetadataOptions
-        bucket={bucket}
-        className={classes.card}
-        form={form}
-        initialEditing={!!initialEditing}
-      />
-      <IndexingAndNotifications
-        bucket={bucket}
-        className={classes.card}
-        form={form}
-        initialEditing={!!initialEditing}
+        className={className}
         reindex={reindex}
-      />
-      <PreviewOptions
-        bucket={bucket}
-        className={classes.card}
-        form={form}
-        initialEditing={!!initialEditing}
-      />
-    </div>
+        settings={settings}
+      >
+        <InlineActions form={form} onCancel={() => setEditing(false)} />
+      </IndexingAndNotificationsForm>
+    )
+  }
+
+  const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
+  return (
+    <Card
+      className={className}
+      disabled={form.getState().submitting}
+      onEdit={() => setEditing(true)}
+      icon="find_in_page"
+      title="Indexing and notifications"
+    >
+      {!!reindex && (
+        <M.Button
+          variant="outlined"
+          onClick={reindex}
+          size="small"
+          disabled={form.getState().submitting}
+        >
+          Re-index and repair
+        </M.Button>
+      )}
+      {enableDeepIndexing ? (
+        <>
+          {bucket.fileExtensionsToIndex ? (
+            <M.Typography variant="body2">
+              File extensions to deep index:
+              {bucket.fileExtensionsToIndex.join(', ')}
+            </M.Typography>
+          ) : (
+            <M.Typography variant="body2">
+              Default file extensions to deep index:
+              {settings.extensions.join(', ')}
+            </M.Typography>
+          )}
+          {bucket.indexContentBytes ? (
+            <M.Typography variant="body2">
+              Content bytes to deep index is {formatQuantity(bucket.indexContentBytes)}{' '}
+              bytes
+            </M.Typography>
+          ) : (
+            <M.Typography variant="body2">
+              Default content bytes to deep index is{' '}
+              {formatQuantity(settings.bytesDefault)} bytes
+            </M.Typography>
+          )}
+        </>
+      ) : (
+        <M.Typography variant="body2">Deep indexing is disabled</M.Typography>
+      )}
+      {bucket.scannerParallelShardsDepth && (
+        <M.Typography variant="body2">
+          Scanner parallel shards depth: {bucket.scannerParallelShardsDepth}
+        </M.Typography>
+      )}
+      {bucket.skipMetaDataIndexing && (
+        <M.Typography variant="body2">Metadata indexing is disabled</M.Typography>
+      )}
+      {typeof snsNotificationArn === 'string' && (
+        <M.Typography variant="body2">
+          SNS Topic ARN:{' '}
+          <StyledLink
+            href={`https://console.aws.amazon.com/sns/v3/home?#/topic/${bucket.snsNotificationArn}`}
+            target="_blank"
+          >
+            {bucket.snsNotificationArn}
+          </StyledLink>
+        </M.Typography>
+      )}
+    </Card>
+  )
+}
+
+interface PreviewFormProps {
+  children?: React.ReactNode
+  className: string
+}
+
+function PreviewForm({ children, className }: PreviewFormProps) {
+  return (
+    <InlineForm className={className}>
+      <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
+      {children}
+    </InlineForm>
+  )
+}
+
+interface PreviewCardProps {
+  className: string
+  bucket: BucketConfig
+  form: FF.FormApi
+}
+
+function PreviewCard({ bucket, className, form }: PreviewCardProps) {
+  const [editing, setEditing] = React.useState(false)
+  if (editing) {
+    return (
+      <PreviewForm className={className}>
+        <InlineActions form={form} onCancel={() => setEditing(false)} />
+      </PreviewForm>
+    )
+  }
+  return (
+    <Card
+      className={className}
+      disabled={form.getState().submitting}
+      onEdit={() => setEditing(true)}
+      icon="code"
+      title={`Permissive HTML rendering is ${bucket.browsable ? 'enabled' : 'disabled'}`}
+    />
   )
 }
 
@@ -1286,7 +1276,7 @@ interface CardsPlaceholderProps {
 }
 
 function CardsPlaceholder({ className }: CardsPlaceholderProps) {
-  const classes = useBucketFieldsStyles()
+  const classes = useStyles()
   return (
     <div className={className}>
       <BucketFieldSkeleton className={classes.card} width={300} />
@@ -1302,15 +1292,14 @@ interface AddPageSkeletonProps {
 }
 
 function AddPageSkeleton({ back }: AddPageSkeletonProps) {
-  const pageClasses = useAddStyles()
-  const classes = useBucketFieldsStyles()
+  const classes = useStyles()
   const formRef = React.useRef<HTMLDivElement>(null)
   return (
     <>
       <SubPageHeader back={back} submit={noop}>
         Add a bucket
       </SubPageHeader>
-      <div className={pageClasses.fields} ref={formRef}>
+      <div className={classes.fields} ref={formRef}>
         <InlineForm className={classes.card}>
           <Skeleton height={54} />
           <Skeleton height={54} mt={4} />
@@ -1338,12 +1327,17 @@ function AddPageSkeleton({ back }: AddPageSkeletonProps) {
   )
 }
 
-const useAddStyles = M.makeStyles((t) => ({
-  fields: {
-    marginTop: t.spacing(2),
+const useStyles = M.makeStyles((t) => ({
+  card: {
+    '& + &': {
+      marginTop: t.spacing(2),
+    },
   },
   error: {
     flexGrow: 1,
+  },
+  fields: {
+    marginTop: t.spacing(2),
   },
 }))
 
@@ -1355,7 +1349,7 @@ function Add({ back }: AddProps) {
   const { push } = Notifications.use()
   const { track } = useTracker()
   const add = GQL.useMutation(ADD_MUTATION)
-  const classes = useAddStyles()
+  const classes = useStyles()
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -1409,6 +1403,9 @@ function Add({ back }: AddProps) {
     [add, push, back, track],
   )
 
+  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
+  const settings = data.config.contentIndexingSettings
+
   const formRef = React.useRef<HTMLFormElement>(null)
 
   return (
@@ -1421,7 +1418,6 @@ function Add({ back }: AddProps) {
         error,
         submitError,
         hasValidationErrors,
-        form,
       }) => (
         <>
           <SubPageHeader
@@ -1432,8 +1428,11 @@ function Add({ back }: AddProps) {
           >
             Add a bucket
           </SubPageHeader>
-          <form onSubmit={handleSubmit} ref={formRef}>
-            <BucketFields initialEditing form={form} className={classes.fields} />
+          <form onSubmit={handleSubmit} ref={formRef} className={classes.fields}>
+            <PrimaryForm className={classes.card} />
+            <MetadataForm className={classes.card} />
+            <IndexingAndNotificationsForm className={classes.card} settings={settings} />
+            <PreviewForm className={classes.card} />
             <input type="submit" style={{ display: 'none' }} />
           </form>
           <FormActions siblingRef={formRef}>
@@ -1611,15 +1610,6 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
-const useEditStyles = M.makeStyles((t) => ({
-  fields: {
-    marginTop: t.spacing(2),
-  },
-  error: {
-    flexGrow: 1,
-  },
-}))
-
 interface EditProps {
   bucket: BucketConfig
   back: (reason?: string) => void
@@ -1632,7 +1622,7 @@ function Edit({ bucket, back }: EditProps) {
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
   const closeReindex = React.useCallback(() => setReindexOpen(false), [])
 
-  const classes = useEditStyles()
+  const classes = useStyles()
 
   const onSubmit = React.useCallback(
     async (values) => {
@@ -1700,13 +1690,16 @@ function Edit({ bucket, back }: EditProps) {
             submit={handleSubmit}
           />
           <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
-            <form onSubmit={handleSubmit} ref={formRef}>
-              <BucketFields
+            <form className={classes.fields} onSubmit={handleSubmit} ref={formRef}>
+              <PrimaryCard bucket={bucket} className={classes.card} form={form} />
+              <MetadataCard bucket={bucket} className={classes.card} form={form} />
+              <IndexingAndNotificationsCard
                 bucket={bucket}
-                className={classes.fields}
+                className={classes.card}
                 form={form}
                 reindex={openReindex}
               />
+              <PreviewCard bucket={bucket} className={classes.card} form={form} />
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
@@ -1768,7 +1761,7 @@ interface EditPageSkeletonProps {
 }
 
 function EditPageSkeleton({ back }: EditPageSkeletonProps) {
-  const classes = useEditStyles()
+  const classes = useStyles()
   return (
     <>
       <SubPageHeader back={back} submit={noop} />
