@@ -69,15 +69,19 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
 })
 
 interface CardAvatarProps {
+  className?: string
   src: string
 }
 
-function CardAvatar({ src }: CardAvatarProps) {
-  if (src.startsWith('http')) return <M.Avatar src={src} />
-  return <M.Icon>{src}</M.Icon>
+function CardAvatar({ className, src }: CardAvatarProps) {
+  if (src.startsWith('http')) return <M.Avatar className={className} src={src} />
+  return <M.Icon className={className}>{src}</M.Icon>
 }
 
 const useCardStyles = M.makeStyles((t) => ({
+  avatar: {
+    display: 'block',
+  },
   header: {
     paddingBottom: t.spacing(1),
   },
@@ -117,7 +121,7 @@ function Card({
             <M.Icon>edit</M.Icon>
           </M.IconButton>
         }
-        avatar={icon && <CardAvatar src={icon} />}
+        avatar={icon && <CardAvatar className={classes.avatar} src={icon} />}
         className={classes.header}
         subheader={subTitle}
         title={title}
