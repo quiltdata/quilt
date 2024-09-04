@@ -13,6 +13,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import BucketIcon from 'components/BucketIcon'
+import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
 import * as Pagination from 'components/Pagination'
@@ -98,9 +99,9 @@ interface CardProps {
   className?: string
   disabled?: boolean
   icon?: string | null
-  onEdit: () => void
+  onEdit?: () => void
   subTitle?: string
-  title: string
+  title: React.ReactNode
 }
 
 function Card({
@@ -117,9 +118,11 @@ function Card({
     <M.Card className={className}>
       <M.CardHeader
         action={
-          <M.IconButton onClick={onEdit} disabled={disabled}>
-            <M.Icon>edit</M.Icon>
-          </M.IconButton>
+          onEdit && (
+            <M.IconButton onClick={onEdit} disabled={disabled}>
+              <M.Icon>edit</M.Icon>
+            </M.IconButton>
+          )
         }
         avatar={icon && <CardAvatar className={classes.avatar} src={icon} />}
         className={classes.header}
@@ -1224,23 +1227,6 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(2),
     },
   },
-  primary: {
-    padding: t.spacing(2),
-  },
-  secondary: {
-    marginTop: t.spacing(2),
-  },
-  section: {
-    flexDirection: 'column',
-  },
-  warning: {
-    background: t.palette.warning.main,
-    marginBottom: t.spacing(1),
-    marginTop: t.spacing(2),
-  },
-  warningIcon: {
-    color: t.palette.warning.dark,
-  },
 }))
 
 interface BucketFieldsProps {
@@ -1291,39 +1277,69 @@ function BucketFields({
   )
 }
 
-interface BucketFieldsPlaceholderProps {
+interface BucketFieldSkeletonProps {
+  className: string
+  width: number
+}
+
+function BucketFieldSkeleton({ className, width }: BucketFieldSkeletonProps) {
+  return <Card className={className} title={<Skeleton height={32} width={width} />} />
+}
+
+interface CardsPlaceholderProps {
   className: string
 }
 
-function BucketFieldsPlaceholder({ className }: BucketFieldsPlaceholderProps) {
+function CardsPlaceholder({ className }: CardsPlaceholderProps) {
+  const classes = useBucketFieldsStyles()
   return (
     <div className={className}>
-      <M.Paper>
-        <M.Box p={2}>
+      <BucketFieldSkeleton className={classes.card} width={300} />
+      <BucketFieldSkeleton className={classes.card} width={100} />
+      <BucketFieldSkeleton className={classes.card} width={240} />
+      <BucketFieldSkeleton className={classes.card} width={180} />
+    </div>
+  )
+}
+
+interface AddPageSkeletonProps {
+  back: () => void
+}
+
+function AddPageSkeleton({ back }: AddPageSkeletonProps) {
+  const pageClasses = useAddStyles()
+  const classes = useBucketFieldsStyles()
+  const formRef = React.useRef<HTMLDivElement>(null)
+  return (
+    <>
+      <SubPageHeader back={back} submit={noop}>
+        Add a bucket
+      </SubPageHeader>
+      <div className={pageClasses.fields} ref={formRef}>
+        <InlineForm className={classes.card}>
           <Skeleton height={54} />
           <Skeleton height={54} mt={4} />
           <Skeleton height={54} mt={4} />
+        </InlineForm>
+        <InlineForm className={classes.card}>
+          <Skeleton height={54} />
           <Skeleton height={54} mt={4} />
-        </M.Box>
-      </M.Paper>
-      <M.Box mt={2}>
-        <M.Accordion>
-          <M.AccordionSummary>
-            <Skeleton height={32} width={100} />
-          </M.AccordionSummary>
-        </M.Accordion>
-        <M.Accordion>
-          <M.AccordionSummary>
-            <Skeleton height={32} width={240} />
-          </M.AccordionSummary>
-        </M.Accordion>
-        <M.Accordion>
-          <M.AccordionSummary>
-            <Skeleton height={32} width={180} />
-          </M.AccordionSummary>
-        </M.Accordion>
-      </M.Box>
-    </div>
+          <Skeleton height={54} mt={4} />
+        </InlineForm>
+        <InlineForm className={classes.card}>
+          <Skeleton height={54} />
+          <Skeleton height={54} mt={4} />
+          <Skeleton height={54} mt={4} />
+        </InlineForm>
+        <InlineForm className={classes.card}>
+          <Skeleton height={54} />
+        </InlineForm>
+        <FormActions siblingRef={formRef}>
+          <Buttons.Skeleton />
+          <Buttons.Skeleton />
+        </FormActions>
+      </div>
+    </>
   )
 }
 
@@ -1342,7 +1358,7 @@ interface AddProps {
 
 function Add({ back }: AddProps) {
   const { push } = Notifications.use()
-  const t = useTracker()
+  const { track } = useTracker()
   const add = GQL.useMutation(ADD_MUTATION)
   const classes = useAddStyles()
   const onSubmit = React.useCallback(
@@ -1353,7 +1369,7 @@ function Add({ back }: AddProps) {
         switch (r.__typename) {
           case 'BucketAddSuccess':
             push(`Bucket "${r.bucketConfig.name}" added`)
-            t.track('WEB', {
+            track('WEB', {
               type: 'admin',
               action: 'bucket add',
               bucket: r.bucketConfig.name,
@@ -1395,7 +1411,7 @@ function Add({ back }: AddProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [add, push, back, t],
+    [add, push, back, track],
   )
 
   const formRef = React.useRef<HTMLFormElement>(null)
@@ -1421,14 +1437,10 @@ function Add({ back }: AddProps) {
           >
             Add a bucket
           </SubPageHeader>
-          <React.Suspense
-            fallback={<BucketFieldsPlaceholder className={classes.fields} />}
-          >
-            <form onSubmit={handleSubmit} ref={formRef}>
-              <BucketFields initialEditing form={form} className={classes.fields} />
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
-          </React.Suspense>
+          <form onSubmit={handleSubmit} ref={formRef}>
+            <BucketFields initialEditing form={form} className={classes.fields} />
+            <input type="submit" style={{ display: 'none' }} />
+          </form>
           <FormActions siblingRef={formRef}>
             {submitFailed && (
               <Form.FormError
@@ -1692,9 +1704,7 @@ function Edit({ bucket, back }: EditProps) {
             disabled={submitting}
             submit={handleSubmit}
           />
-          <React.Suspense
-            fallback={<BucketFieldsPlaceholder className={classes.fields} />}
-          >
+          <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
             <form onSubmit={handleSubmit} ref={formRef}>
               <BucketFields
                 bucket={bucket}
@@ -1767,7 +1777,7 @@ function EditPageSkeleton({ back }: EditPageSkeletonProps) {
   return (
     <>
       <SubPageHeader back={back} submit={noop} />
-      <BucketFieldsPlaceholder className={classes.fields} />
+      <CardsPlaceholder className={classes.fields} />
     </>
   )
 }
@@ -1779,7 +1789,7 @@ interface DeleteProps {
 
 function Delete({ bucket, close }: DeleteProps) {
   const { push } = Notifications.use()
-  const t = useTracker()
+  const { track } = useTracker()
   const rm = GQL.useMutation(REMOVE_MUTATION)
   const doDelete = React.useCallback(async () => {
     close()
@@ -1787,7 +1797,7 @@ function Delete({ bucket, close }: DeleteProps) {
       const { bucketRemove: r } = await rm({ name: bucket.name })
       switch (r.__typename) {
         case 'BucketRemoveSuccess':
-          t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
+          track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
           return
         case 'IndexingInProgress':
           push(`Can't delete bucket "${bucket.name}" while it's being indexed`)
@@ -1805,7 +1815,7 @@ function Delete({ bucket, close }: DeleteProps) {
       // eslint-disable-next-line no-console
       console.error(e)
     }
-  }, [bucket, close, rm, push, t])
+  }, [bucket, close, rm, push, track])
 
   return (
     <>
@@ -2029,7 +2039,7 @@ interface EditWrapperProps {
   back: () => void
 }
 
-function EditWrapper({ back }: EditWrapperProps) {
+function EditPage({ back }: EditWrapperProps) {
   const { bucketName } = RRDom.useParams<EditRouteParams>()
   const { urls } = NamedRoutes.use()
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
@@ -2050,11 +2060,13 @@ export default function Buckets() {
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
       <RRDom.Switch>
         <RRDom.Route path={paths.adminBucketAdd} exact strict>
-          <Add back={back} />
+          <React.Suspense fallback={<AddPageSkeleton back={back} />}>
+            <Add back={back} />
+          </React.Suspense>
         </RRDom.Route>
         <RRDom.Route path={paths.adminBucketEdit} exact strict>
           <React.Suspense fallback={<EditPageSkeleton back={back} />}>
-            <EditWrapper back={back} />
+            <EditPage back={back} />
           </React.Suspense>
         </RRDom.Route>
         <RRDom.Route>
