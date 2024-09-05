@@ -33,13 +33,15 @@ import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
 
-import List, { ListSkeleton } from './List'
+import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
 
 import BUCKET_CONFIGS_QUERY from './gql/BucketConfigs.generated'
 import ADD_MUTATION from './gql/BucketsAdd.generated'
 import UPDATE_MUTATION from './gql/BucketsUpdate.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
+
+// TODO: organize skeletons
 
 const noop = () => {}
 
@@ -1262,30 +1264,19 @@ function PreviewCard({ bucket, className, form }: PreviewCardProps) {
   )
 }
 
-interface BucketFieldSkeletonProps {
-  className: string
-  width: number
-}
-
-function BucketFieldSkeleton({ className, width }: BucketFieldSkeletonProps) {
-  return <Card className={className} title={<Skeleton height={32} width={width} />} />
-}
-
-interface CardsPlaceholderProps {
-  className: string
-}
-
-function CardsPlaceholder({ className }: CardsPlaceholderProps) {
-  const classes = useStyles()
-  return (
-    <div className={className}>
-      <BucketFieldSkeleton className={classes.card} width={300} />
-      <BucketFieldSkeleton className={classes.card} width={100} />
-      <BucketFieldSkeleton className={classes.card} width={240} />
-      <BucketFieldSkeleton className={classes.card} width={180} />
-    </div>
-  )
-}
+const useStyles = M.makeStyles((t) => ({
+  card: {
+    '& + &': {
+      marginTop: t.spacing(2),
+    },
+  },
+  error: {
+    flexGrow: 1,
+  },
+  fields: {
+    marginTop: t.spacing(2),
+  },
+}))
 
 interface AddPageSkeletonProps {
   back: () => void
@@ -1327,71 +1318,65 @@ function AddPageSkeleton({ back }: AddPageSkeletonProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
-  card: {
-    '& + &': {
-      marginTop: t.spacing(2),
-    },
-  },
-  error: {
-    flexGrow: 1,
-  },
-  fields: {
-    marginTop: t.spacing(2),
-  },
-}))
+function parseResponseError(
+  r:
+    | Exclude<Model.GQLTypes.BucketAddResult, Model.GQLTypes.BucketAddSuccess>
+    | Exclude<Model.GQLTypes.BucketUpdateResult, Model.GQLTypes.BucketUpdateSuccess>,
+): FF.SubmissionErrors | undefined {
+  switch (r.__typename) {
+    case 'BucketAlreadyAdded':
+      return { name: 'conflict' }
+    case 'BucketDoesNotExist':
+      return { name: 'noSuchBucket' }
+    case 'SnsInvalid':
+      // shouldnt happen since we're validating it
+      return { snsNotificationArn: 'invalidArn' }
+    case 'NotificationTopicNotFound':
+      return { snsNotificationArn: 'topicNotFound' }
+    case 'NotificationConfigurationError':
+      return {
+        snsNotificationArn: 'configurationError',
+        [FF.FORM_ERROR]: 'notificationConfigurationError',
+      }
+    case 'InsufficientPermissions':
+      return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+    case 'SubscriptionInvalid':
+      return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
+    case 'BucketIndexContentBytesInvalid':
+      // shouldnt happen since we valide input
+      return { indexContentBytes: 'integerInRange' }
+    case 'BucketFileExtensionsToIndexInvalid':
+      // shouldnt happen since we valide input
+      return { fileExtensionsToIndex: 'validExtensions' }
+    case 'BucketNotFound':
+      return { [FF.FORM_ERROR]: 'bucketNotFound' }
+    default:
+      return assertNever(r)
+  }
+}
 
 interface AddProps {
   back: (reason?: string) => void
+  settings: Model.GQLTypes.ContentIndexingSettings
+  submit: (
+    input: Model.GQLTypes.BucketAddInput,
+  ) => Promise<
+    | Exclude<Model.GQLTypes.BucketAddResult, Model.GQLTypes.BucketAddSuccess>
+    | Error
+    | undefined
+  >
 }
 
-function Add({ back }: AddProps) {
-  const { push } = Notifications.use()
-  const { track } = useTracker()
-  const add = GQL.useMutation(ADD_MUTATION)
+function Add({ back, settings, submit }: AddProps) {
   const classes = useStyles()
   const onSubmit = React.useCallback(
     async (values) => {
       try {
         const input = R.applySpec(addFormSpec)(values)
-        const { bucketAdd: r } = await add({ input })
-        switch (r.__typename) {
-          case 'BucketAddSuccess':
-            push(`Bucket "${r.bucketConfig.name}" added`)
-            track('WEB', {
-              type: 'admin',
-              action: 'bucket add',
-              bucket: r.bucketConfig.name,
-            })
-            back()
-            return undefined
-          case 'BucketAlreadyAdded':
-            return { name: 'conflict' }
-          case 'BucketDoesNotExist':
-            return { name: 'noSuchBucket' }
-          case 'SnsInvalid':
-            // shouldnt happen since we're validating it
-            return { snsNotificationArn: 'invalidArn' }
-          case 'NotificationTopicNotFound':
-            return { snsNotificationArn: 'topicNotFound' }
-          case 'NotificationConfigurationError':
-            return {
-              snsNotificationArn: 'configurationError',
-              [FF.FORM_ERROR]: 'notificationConfigurationError',
-            }
-          case 'InsufficientPermissions':
-            return { [FF.FORM_ERROR]: 'insufficientPermissions' }
-          case 'SubscriptionInvalid':
-            return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
-          case 'BucketIndexContentBytesInvalid':
-            // shouldnt happen since we valide input
-            return { indexContentBytes: 'integerInRange' }
-          case 'BucketFileExtensionsToIndexInvalid':
-            // shouldnt happen since we valide input
-            return { fileExtensionsToIndex: 'validExtensions' }
-          default:
-            return assertNever(r)
-        }
+        const error = await submit(input)
+        if (!error) return
+        if (error instanceof Error) throw error
+        return parseResponseError(error)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
@@ -1400,14 +1385,9 @@ function Add({ back }: AddProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [add, push, back, track],
+    [submit],
   )
-
-  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
-  const settings = data.config.contentIndexingSettings
-
   const formRef = React.useRef<HTMLFormElement>(null)
-
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
@@ -1610,14 +1590,58 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
+interface BucketFieldSkeletonProps {
+  className: string
+  width: number
+}
+
+function BucketFieldSkeleton({ className, width }: BucketFieldSkeletonProps) {
+  return <Card className={className} title={<Skeleton height={32} width={width} />} />
+}
+
+interface CardsPlaceholderProps {
+  className: string
+}
+
+function CardsPlaceholder({ className }: CardsPlaceholderProps) {
+  const classes = useStyles()
+  return (
+    <div className={className}>
+      <BucketFieldSkeleton className={classes.card} width={300} />
+      <BucketFieldSkeleton className={classes.card} width={100} />
+      <BucketFieldSkeleton className={classes.card} width={240} />
+      <BucketFieldSkeleton className={classes.card} width={180} />
+    </div>
+  )
+}
+
+interface EditPageSkeletonProps {
+  back: () => void
+}
+
+function EditPageSkeleton({ back }: EditPageSkeletonProps) {
+  const classes = useStyles()
+  return (
+    <>
+      <SubPageHeader back={back} submit={noop} />
+      <CardsPlaceholder className={classes.fields} />
+    </>
+  )
+}
+
 interface EditProps {
   bucket: BucketConfig
   back: (reason?: string) => void
+  submit: (
+    input: Model.GQLTypes.BucketUpdateInput,
+  ) => Promise<
+    | Exclude<Model.GQLTypes.BucketUpdateResult, Model.GQLTypes.BucketUpdateSuccess>
+    | Error
+    | undefined
+  >
 }
 
-function Edit({ bucket, back }: EditProps) {
-  const update = GQL.useMutation(UPDATE_MUTATION)
-
+function Edit({ bucket, back, submit }: EditProps) {
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
   const closeReindex = React.useCallback(() => setReindexOpen(false), [])
@@ -1628,32 +1652,10 @@ function Edit({ bucket, back }: EditProps) {
     async (values) => {
       try {
         const input = R.applySpec(editFormSpec)(values)
-        const { bucketUpdate: r } = await update({ name: bucket.name, input })
-        switch (r.__typename) {
-          case 'BucketUpdateSuccess':
-            back()
-            return undefined
-          case 'SnsInvalid':
-            // shouldnt happen since we're validating it
-            return { snsNotificationArn: 'invalidArn' }
-          case 'NotificationTopicNotFound':
-            return { snsNotificationArn: 'topicNotFound' }
-          case 'NotificationConfigurationError':
-            return {
-              snsNotificationArn: 'configurationError',
-              [FF.FORM_ERROR]: 'notificationConfigurationError',
-            }
-          case 'BucketNotFound':
-            return { [FF.FORM_ERROR]: 'bucketNotFound' }
-          case 'BucketIndexContentBytesInvalid':
-            // shouldnt happen since we valide input
-            return { indexContentBytes: 'integerInRange' }
-          case 'BucketFileExtensionsToIndexInvalid':
-            // shouldnt happen since we valide input
-            return { fileExtensionsToIndex: 'validExtensions' }
-          default:
-            return assertNever(r)
-        }
+        const error = await submit(input)
+        if (!error) return
+        if (error instanceof Error) throw error
+        return parseResponseError(error)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error updating bucket')
@@ -1662,7 +1664,7 @@ function Edit({ bucket, back }: EditProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [update, back, bucket.name],
+    [submit],
   )
 
   const initialValues = bucketToFormValues(bucket)
@@ -1756,38 +1758,80 @@ function Edit({ bucket, back }: EditProps) {
   )
 }
 
-interface EditPageSkeletonProps {
-  back: () => void
-}
-
-function EditPageSkeleton({ back }: EditPageSkeletonProps) {
-  const classes = useStyles()
-  return (
-    <>
-      <SubPageHeader back={back} submit={noop} />
-      <CardsPlaceholder className={classes.fields} />
-    </>
-  )
-}
-
 interface EditRouteParams {
   bucketName: string
 }
 
-interface EditWrapperProps {
+interface EditPageProps {
   back: () => void
 }
 
-function EditPage({ back }: EditWrapperProps) {
+function EditPage({ back }: EditPageProps) {
   const { bucketName } = RRDom.useParams<EditRouteParams>()
   const { urls } = NamedRoutes.use()
+  const update = GQL.useMutation(UPDATE_MUTATION)
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
-  const editingBucket = React.useMemo(
+  const bucket = React.useMemo(
     () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
     [bucketName, rows],
   )
-  if (!editingBucket) return <RRDom.Redirect to={urls.adminBuckets()} />
-  return <Edit bucket={editingBucket} back={back} />
+  const submit = React.useCallback(
+    async (input: Model.GQLTypes.BucketUpdateInput) => {
+      if (!bucket) return new Error('Submit form without bucket')
+      try {
+        const { bucketUpdate: r } = await update({ name: bucket.name, input })
+        if (r.__typename !== 'BucketUpdateSuccess') {
+          // TS infered shape but not the actual type
+          return r as Exclude<
+            Model.GQLTypes.BucketUpdateResult,
+            Model.GQLTypes.BucketUpdateSuccess
+          >
+        }
+        back()
+      } catch (e) {
+        return e instanceof Error ? e : new Error('Error updating bucket')
+      }
+    },
+    [back, bucket, update],
+  )
+  if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
+  return <Edit bucket={bucket} back={back} submit={submit} />
+}
+
+interface AddPageProps {
+  back: () => void
+}
+
+function AddPage({ back }: AddPageProps) {
+  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
+  const settings = data.config.contentIndexingSettings
+  const add = GQL.useMutation(ADD_MUTATION)
+  const { push } = Notifications.use()
+  const { track } = useTracker()
+  const submit = React.useCallback(
+    async (input: Model.GQLTypes.BucketAddInput) => {
+      try {
+        const { bucketAdd: r } = await add({ input })
+        if (r.__typename !== 'BucketAddSuccess')
+          // TS infered shape but not the actual type
+          return r as Exclude<
+            Model.GQLTypes.BucketAddResult,
+            Model.GQLTypes.BucketAddSuccess
+          >
+        push(`Bucket "${r.bucketConfig.name}" added`)
+        track('WEB', {
+          type: 'admin',
+          action: 'bucket add',
+          bucket: r.bucketConfig.name,
+        })
+        back()
+      } catch (e) {
+        return e instanceof Error ? e : new Error('Error adding bucket')
+      }
+    },
+    [add, back, push, track],
+  )
+  return <Add settings={settings} back={back} submit={submit} />
 }
 
 export default function Buckets() {
@@ -1800,7 +1844,7 @@ export default function Buckets() {
       <RRDom.Switch>
         <RRDom.Route path={paths.adminBucketAdd} exact strict>
           <React.Suspense fallback={<AddPageSkeleton back={back} />}>
-            <Add back={back} />
+            <AddPage back={back} />
           </React.Suspense>
         </RRDom.Route>
         <RRDom.Route path={paths.adminBucketEdit} exact strict>
@@ -1809,8 +1853,8 @@ export default function Buckets() {
           </React.Suspense>
         </RRDom.Route>
         <RRDom.Route>
-          <React.Suspense fallback={<ListSkeleton />}>
-            <List />
+          <React.Suspense fallback={<ListPageSkeleton />}>
+            <ListPage />
           </React.Suspense>
         </RRDom.Route>
       </RRDom.Switch>
