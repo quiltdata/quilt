@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
+import * as M from '@material-ui/core'
 
 import * as SearchUIModel from 'containers/Search/model'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -26,10 +27,16 @@ function useSearchUIModel() {
   return React.useContext(SearchUIModel.Context)
 }
 
+interface InputState extends M.InputBaseProps {
+  expanded: boolean
+  focusTrigger: number
+  helpOpen: boolean
+}
+
 interface SearchState {
-  // input: SearchInputProps
-  input: $TSFixMe
+  input: InputState
   onClickAway: () => void
+  focus: () => void
   reset: () => void
   suggestions: ReturnType<typeof Suggestions.use>
 }
@@ -125,13 +132,17 @@ function useSearchState(bucket?: string): SearchState {
     if (expanded || helpOpen) handleCollapse()
   }, [expanded, helpOpen, handleCollapse])
 
-  const reset = React.useCallback(() => {
-    change('')
+  const focus = React.useCallback(() => {
     // NOTE: wait for location change (making help closed),
     //       then focus
     // FIXME: find out better solution
     nextTick(() => setFocusTrigger((n) => n + 1))
-  }, [])
+  }, [setFocusTrigger])
+
+  const reset = React.useCallback(() => {
+    change('')
+    focus()
+  }, [focus])
 
   const isExpanded = expanded || !!searchUIModel
   const focusTriggeredCount = isExpanded ? focusTrigger : 0
@@ -145,6 +156,7 @@ function useSearchState(bucket?: string): SearchState {
       onKeyDown,
       value: value === null ? query : value,
     },
+    focus,
     reset,
     onClickAway,
     suggestions,

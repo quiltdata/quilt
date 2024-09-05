@@ -15,14 +15,82 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 6.0.0 - 2024-08-19
 ## Python API
+
+* [Added] New `quilt3.admin.sso_config` sub-module for management of SSO configuration ([#4065](https://github.com/quiltdata/quilt/pull/4065), [#4098](https://github.com/quiltdata/quilt/pull/4098))
 
 ## CLI
 
 ## Catalog, Lambdas
+* [Fixed] **SECURITY**: Remove `polyfill.io` references ([#4038](https://github.com/quiltdata/quilt/pull/4038))
+* [Fixed] Don't show negative number as search result count, in particular don't show `-1` when `secure_search: True` ([#4101](https://github.com/quiltdata/quilt/pull/4101))
+* [Changed] Renamed "Admin settings" to "Admin" ([#4045](https://github.com/quiltdata/quilt/pull/4045))
+* [Changed] Hide "Add bucket" button for non-admin users from main landing page ([#4106](https://github.com/quiltdata/quilt/pull/4106))
+* [Added] Admin: Support SSO permissions mapping (SSO config editor, disable role assignment for SSO-mapped users) ([#4070](https://github.com/quiltdata/quilt/pull/4070), [#4097](https://github.com/quiltdata/quilt/pull/4097), [#4099](https://github.com/quiltdata/quilt/pull/4099))
+
+# 6.0.0a5 - 2024-06-25
+## Python API
+
+* [Fixed] Fix PhysicalKey to URI conversion in Python 3.12 on Windows ([#4027](https://github.com/quiltdata/quilt/pull/4027))
+
+## Catalog, Lambdas
+* [Removed] Drop MARKETING mode support, delete associated dead code ([#4009](https://github.com/quiltdata/quilt/pull/4009))
+* [Removed] Delete Google Tag Manager script integration ([#4039](https://github.com/quiltdata/quilt/pull/4039))
+* [Added] Support multiple roles per user ([#3982](https://github.com/quiltdata/quilt/pull/3982))
+* [Added] Add `ui.actions = False` and `ui.actions.writeFile` for configuring visibility of buttons ([#4001](https://github.com/quiltdata/quilt/pull/4001))
+* [Added] Support creating folders and rearranging entries with drag and drop in package creation dialog ([#3999](https://github.com/quiltdata/quilt/pull/3999))
+* [Added] Qurator AI Assistant for summarizing file contents using Bedrock API ([#3989](https://github.com/quiltdata/quilt/pull/3989))
+
+# 6.0.0a4 - 2024-06-18
+## Python API
+
+* [Added] New `quilt3.admin` API with more features (requires 1.53+ stack) ([#3990](https://github.com/quiltdata/quilt/pull/3990))
+* [Removed] `quilt3.admin` API ([#3990](https://github.com/quiltdata/quilt/pull/3990))
+* [Removed] Drop Python 3.8 support ([#3993](https://github.com/quiltdata/quilt/pull/3993))
+* [Fixed] If upload optimization during `push()` succeeds the checksum is calculated from local file instead of remote file ([#3968](https://github.com/quiltdata/quilt/pull/3968))
+* [Changed] Upload optimization check now tries to use S3 SHA-256 checksum and falls back to ETag ([#3968](https://github.com/quiltdata/quilt/pull/3968))
+
+## Catalog, Lambdas
+* [Changed] Use promises for URLs in IGV to have fresh signing each time they used ([#3979](https://github.com/quiltdata/quilt/pull/3979))
+
+# 6.0.0a3 - 2024-04-25
+## Python API
+* [Added] `quilt3.search()` and `quilt3.Bucket.search()` now accepts custom Elasticsearch queries ([#3448](https://github.com/quiltdata/quilt/pull/3448))
+* [Fixed] `quilt3.search()` and `quilt3.Bucket.search()` now work with 2022+ Quilt stacks ([#3448](https://github.com/quiltdata/quilt/pull/3448))
+
+## Catalog, Lambdas
+* [Added] Added "text" as a file type for quilt_summarize.json ([#3946](https://github.com/quiltdata/quilt/pull/3946))
+* [Added] Sign URL in undocumented `compressedIndexURL` IGV property ([#3947](https://github.com/quiltdata/quilt/pull/3947))
+* [Fixed] Robust handling of PFS cookies ([#3962](https://github.com/quiltdata/quilt/pull/3962))
+* [Changed] Pre-select first catalog and database for Athena ([#3949](https://github.com/quiltdata/quilt/pull/3949))
+* [Changed] Move pagination to the bottom ([#3950](https://github.com/quiltdata/quilt/pull/3950))
+* [Changed] Search UI QoL improvements ([#3960](https://github.com/quiltdata/quilt/pull/3960), [#3967](https://github.com/quiltdata/quilt/pull/3967))
+
+# 6.0.0a2 - 2024-04-15
+## Python API
+* [Added] New 'unversioned' parameter to `Package.set_dir()` and `Package.set()` for use with S3 URIs, such as HealthOmics, that do not support `ListBucketVersions` and/or `GetObjectVersion` ([#3927](https://github.com/quiltdata/quilt/pull/3927))
+
+# 6.0.0a1 - 2024-02-26
+## Python API
+* [Removed] Drop Python 3.7 support ([#3841](https://github.com/quiltdata/quilt/pull/3841))
+* [Changed] Set S3 client `max_pool_connections` to `QUILT_TRANSFER_MAX_CONCURRENCY` ([#3867](https://github.com/quiltdata/quilt/pull/3867))
+* [Changed] **BREAKING:** Switch from a regular SHA256 checksum to a hash list (`sha2-256-chunked`) to match S3's built-in checksums ([#2782](https://github.com/quiltdata/quilt/pull/2782))
+* [Changed] **BREAKING:** Delay object hashing until package push to take advantage of S3's hashing; as a result, `dest` functions no longer receive a `top_hash` ([#2782](https://github.com/quiltdata/quilt/pull/2782))
+
+## CLI
+
+## Catalog, Lambdas
+* [Added] Support chunked checksums ([#3403](https://github.com/quiltdata/quilt/pull/3403), [#3887](https://github.com/quiltdata/quilt/pull/3887))
+* [Added] Search: Help link to ElasticSearch docs ([#3861](https://github.com/quiltdata/quilt/pull/3861))
+* [Added] Support MP PAYGO: track subscription state, handle related errors ([#3906](https://github.com/quiltdata/quilt/pull/3906))
+* [Fixed] Faceted Search: show helpful message in case of search query syntax errors ([#3821](https://github.com/quiltdata/quilt/pull/3821))
+* [Fixed] JsonEditor: fix changing collections items, that have `.additionalProperties` or `.items` JSON Schema ([#3860](https://github.com/quiltdata/quilt/pull/3860))
+* [Fixed] Restore Catalog name / Database for Athena query execution ([#3902](https://github.com/quiltdata/quilt/pull/3902))
 * [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
 * [Changed] Faceted Search: reliably find metadata facets ([#3809](https://github.com/quiltdata/quilt/pull/3809))
+* [Changed] Athena: add docs link for empty state, remove "Queries" tab for guests ([#3885](https://github.com/quiltdata/quilt/pull/3885))
+* [Changed] Updated supported node/npm version to v20 and v10 ([#3873](https://github.com/quiltdata/quilt/pull/3873))
 
 # 5.4.0 - 2023-11-29
 ## Python API
@@ -52,6 +120,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Unify per-bucket and global search ([#3613](https://github.com/quiltdata/quilt/pull/3613))
 * [Changed] Allow use of <br /> in Markdown ([#3720](https://github.com/quiltdata/quilt/pull/3720))
 * [Changed] Faceted search ([#3712](https://github.com/quiltdata/quilt/pull/3712))
+* [Changed] Specify condition for rendering Quilt manifests, allowing to render other types of files in `.quilt/packages/` ([#3816](https://github.com/quiltdata/quilt/pull/3816))
 
 # 5.3.1 - 2023-05-02
 ## Python API

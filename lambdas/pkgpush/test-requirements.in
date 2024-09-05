@@ -1,0 +1,4 @@
+-c requirements.txt
+pytest ~= 8.0
+pytest-mock ~= 3.14
+pytest-subtests ~= 0.11

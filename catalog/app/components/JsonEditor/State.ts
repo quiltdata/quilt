@@ -8,9 +8,12 @@ import { JsonSchema } from 'utils/json-schema'
 import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 import { Json, JsonRecord } from 'utils/types'
 
-import { COLUMN_IDS, EMPTY_VALUE, ValidationErrors } from './constants'
-
-const JSON_POINTER_PLACEHOLDER = '__*'
+import {
+  COLUMN_IDS,
+  EMPTY_VALUE,
+  JSON_POINTER_PLACEHOLDER,
+  ValidationErrors,
+} from './constants'
 
 const getAddressPath = (key: ObjectKey, parentPath: JSONPointer.Path) =>
   key === '' ? parentPath : (parentPath || []).concat(key)

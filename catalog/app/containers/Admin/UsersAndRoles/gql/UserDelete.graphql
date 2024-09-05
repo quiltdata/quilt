@@ -1,0 +1,24 @@
+mutation ($name: String!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        delete {
+          __typename
+          ... on InvalidInput {
+            errors {
+              path
+              message
+              name
+              context
+            }
+          }
+          ... on OperationError {
+            message
+            name
+            context
+          }
+        }
+      }
+    }
+  }
+}

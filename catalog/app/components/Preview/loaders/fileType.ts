@@ -14,7 +14,7 @@ enum FileType {
   Markdown = 'markdown',
   Ngl = 'ngl',
   Tabular = 'perspective',
-  Text = 'txt',
+  Text = 'text',
   Vega = 'vega',
   Voila = 'voila',
 }

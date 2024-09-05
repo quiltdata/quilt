@@ -48,11 +48,18 @@ export type Collaborators = ReadonlyArray<
 // Note that the actual user-defined meta is in the `user_meta` field
 export type EntryMeta = (Types.JsonRecord & { user_meta?: Types.JsonRecord }) | null
 
+export const CHECKSUM_TYPE_SHA256 = 'SHA256' as const
+export const CHECKSUM_TYPE_SHA256_CHUNKED = 'sha2-256-chunked' as const
+export interface Checksum {
+  type: typeof CHECKSUM_TYPE_SHA256 | typeof CHECKSUM_TYPE_SHA256_CHUNKED
+  value: string
+}
+
 export interface PackageEntry {
   // TODO: replace with { address: { physicalKey: string }}
   //       so, you can merge PackageEntry and S3File
   physicalKey: string
-  hash: string
+  hash: Checksum
   meta?: EntryMeta
   size: number
 }

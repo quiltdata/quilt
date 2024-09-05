@@ -21,6 +21,7 @@ connect with other users
 * [Email Quilt](mailto:contact@quiltdata.io)
 
 ## Architecture
+
 Each instance consists of a CloudFormation stack that is privately hosted in your 
 AWS account. The stack includes backend services for the web catalog, single sign-on,
 user identification and access, an ElasticSearch cluster, and more.
@@ -28,39 +29,56 @@ user identification and access, an ElasticSearch cluster, and more.
 Quilt uses subnets and security groups to isolate network services and runs key
 services within the VPC.
 
+A private stack with an inward load balancer is shown below.
+
 ![Architecture (private ELBv2)](imgs/network_private.png)
 
-A private stack with an inward load balancer is shown above.
 For an internet-facing load balancer the data plane remains the same, as shown below.
 
 ![Architecture (public ELBv2)](imgs/network_public.png)
 
-> You can use a combination of interface endpoints and gateway endpoints to
-> restrict the data plane traffic shown above to your VPC.
-> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
-
 ### Network
-
 
 You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
 create its own network.
 
-> If you provide the VPC you are free to reuse subnets across parameters. For example
-> you can use the same subnets for "Private subnets (services)" as "Private intra
-> subnets (no Internet)" at the cost of a weaker security posture.
+> If you provide the subnets you may choose to reuse subnets across parameters.
+> For example you can use the same subnets for the Private and User subnet parameters.
 
 You may optionally provide your own VPC CIDR block
-with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
-peered VPC services.
+if the default block of 10.0.0.0/16 conflicts with shared or
+peered VPC services. We recommend a CIDR block no smaller than /24 (256 addresses)
+for production, multi-AZ deployments. Larger CIDR blocks are easier to upgrade to
+new Quilt versions with expanded services.
 
-> Run Quilt in a VPC with at least 1024 addresses (/22) to ensure sufficient
-> IPs for concurrent Lambdas and other services. If you wish to conserve
-> routable IP addresses you can place the Quilt load balancer in custom "UserSubnets"
-> of your choosing.
+> For cost-sensitive deployments, Quilt ECS services can be configured to use
+> a single AZ.
+
+> You may use a combination of interface endpoints and gateway endpoints to
+> restrict the data plane traffic shown above to your VPC.
+> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
+
+#### Production, multi-AZ subnet division for private ELBv2 (you provide the network)
+
+| Type       | AZ | Description            | Services | IPs needed† |
+|------------|----|------------------------|----------|--------------|
+| Private    | a  | Routes to Internet     | ECS, Lambda | 32 |
+| Private    | b  | " | " | 32 |
+| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 32 |
+| Intra      | b  | " | " | 32 |
+| User       | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 16 |
+| User       | b  | " | " | 16 |
+
+> \* One IP per master node, one IP per data node
+
+> †  Includes 5 IPs for AWS (network, routing, DNS, reserved, broadcast) plus room
+> for new services in future updates.
 
 Below are the subnet configurations and sizes for Quilt version 2.0 networks,
 new as of June 2023. The configuration is similar to the
 [AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
+
+#### Subnet division when Quilt creates the VPC
 
 - 2 public subnets for NAT gateways and an internet-facing application load balancer
 (1/4 the VPC CIDR)
@@ -71,12 +89,6 @@ application load balancer
 OpenSearch domain
 (1/8 of the VPC CIDR)
 - Unused (1/8 of the VPC CIDR)
-
-> For cost-sensitive deployments, Quilt ECS services can be configured to use
-> a single AZ.
-
-For further details on private IPs and Quilt see
-[Private endpoints](advanced-features/private-endpoint-access.md).
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
@@ -133,11 +145,11 @@ You will need the following:
         ```
 1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
-    1. We recommend that you use a
+    1. You may choose to use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     for stack creation and updates.
-    1. See this [example service role](./cfn-service-role.yml) for minimal permissions
-    to install a Quilt stack.
+    1. Refer to this [example service role](./cfn-service-role.yaml)
+    and modify as needed to fit your use case.
 
     > Ensure that your service role is up-to-date with the example before every stack
     update so as to prevent installation failures.
@@ -244,7 +256,7 @@ Create.
 
     ![](./imgs/finish.png)
 
-1. CloudFormation may take bewteen 30 and 90 minutes to create your stack.
+1. CloudFormation may take between 30 and 90 minutes to create your stack.
 You can monitor progress under Events. On completion you will see `CREATE_COMPLETE`.
 
     ![](./imgs/events.png)
@@ -253,9 +265,11 @@ You can monitor progress under Events. On completion you will see `CREATE_COMPLE
 
     ![](./imgs/outputs.png)
 
-In a separate browser window, open the DNS settings for your domain.
-Create the following `CNAME` records. **Replace italics** with the
-corresponding stack Outputs.
+### CNAMEs
+
+In order for your users to reach the Quilt catalog you must set three CNAMEs
+that point to the `LoadBalancerDNSName` as shown below and in the Outputs
+of your stack.
 
 | CNAME | Value |
 | ------ | ------- |
@@ -266,11 +280,20 @@ corresponding stack Outputs.
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
+### Terraform
+
+Refer to the [`quilt` module](https://github.com/quiltdata/iac) for guidance.
+
 ## Routine Maintenance and Upgrades
 
-Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
+Releases are sent to customers over email. We recommend that you apply new releases
+as soon as possible to benefit from the latest security updates and features.
+
+### CloudFormation updates
 
 To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console as follows.
+
+> By default, previous parameter values carry over.
 
 1. Navigate to AWS Console > CloudFormation > Stacks
 1. Select your Quilt stack
@@ -279,19 +302,30 @@ To update your Quilt stack, apply the latest CloudFormation template in the Clou
 1. Enter the Amazon S3 URL for your template
 1. Click Next (several times) and proceed to apply the update
 
-Your previous settings should carry over.
+### Terraform updates
+
+> See above.
+
+## Upgrading from network 1.0 to network 2.0
+
+Upgrading to the Quilt 2.0 network configuration provides improved security by means
+of isolated subnets and a preference for private routing.
+
+An upgrade the 2.0 network, unlike routine Quilt upgrades, requires you to create
+a new stack with a new load balancer. You must therefore also update your
+[CNAMEs](#cnames) to point to the new load balancer.
 
 ## Create a new stack with an existing configuration
 
-You can create a new Quilt stack with the same configuration as an existing
-stack.
-> _Configuration_ here refers to the Quilt stack buckets, roles, policies,
-> and other administrative settings, all of which are stored in an RDS instance.
+Terraform users can create a new Quilt stack with the same configuration as an existing
+stack. This is typically useful when upgrading to the 2.0 network.
 
-Perform the following steps.
+> _Configuration_ refers to the Quilt stack buckets, roles, policies,
+> and other administrative settings, all of which are stored in RDS.
 
-1. Contact your Quilt account manager for a template that supports the "existing
-database", "existing search", and "existing vpc" options.
+Perform the following steps:
+
+1. Contact your Quilt account manager for a template that supports Terraform.
 
 1. Take a manual snapshot of the current Quilt database instance. For an existing
 Quilt stack this resource has the logical ID "DB". Note the snapshot identifier

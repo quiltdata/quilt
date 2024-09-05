@@ -10,6 +10,7 @@ import { useIsInStack } from 'utils/BucketConfig'
 import * as GQL from 'utils/GraphQL'
 import log from 'utils/Logging'
 import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import { useEnsurePFSCookie } from 'utils/PFSCookieManager'
 import * as PackageUri from 'utils/PackageUri'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import assertNever from 'utils/assertNever'
@@ -34,67 +35,101 @@ const SESSION_TTL = 60 * 3
 const REFRESH_INTERVAL = SESSION_TTL * 0.2 * 1000
 
 type SessionId = Model.GQLTypes.BrowsingSession['id']
+type CreateData = GQL.DataForDoc<typeof CREATE_BROWSING_SESSION>['browsingSessionCreate']
+type GQLErrorData = Extract<CreateData, { __typename: 'OperationError' | 'InvalidInput' }>
 
-interface ErrorLike {
-  name: string
-  message: string
+class GQLError extends Error {
+  op: 'create' | 'refresh'
+
+  data: GQLErrorData
+
+  constructor(op: 'create' | 'refresh', data: GQLErrorData) {
+    super()
+    this.op = op
+    this.data = data
+  }
 }
 
-function mapPreviewError(retry: () => void, e?: ErrorLike) {
-  switch (e?.name) {
-    case 'BucketNotBrowsable':
-      return PreviewError.Forbidden()
-    case 'BucketNotFound':
-      return PreviewError.DoesNotExist()
-    case 'SessionNotFound':
-      return PreviewError.Expired({ retry })
-    case 'OwnerMismatch':
-      return PreviewError.Forbidden()
+function mapPreviewError(retry: () => void, e: any) {
+  if (!(e instanceof GQLError)) {
+    return PreviewError.Unexpected({ retry, message: e.message })
+  }
+
+  switch (e.data.__typename) {
+    case 'OperationError':
+      switch (e.data.name) {
+        case 'BucketNotBrowsable':
+          return PreviewError.Forbidden()
+        case 'BucketNotFound':
+          return PreviewError.DoesNotExist()
+        case 'SessionNotFound':
+          return PreviewError.Expired({ retry })
+        case 'OwnerMismatch':
+          return PreviewError.Forbidden()
+        default:
+          const message = (
+            <>
+              Could not {e.op} browsing session: {e.data.__typename}(${e.data.name})
+              <br />${e.data.message}`
+            </>
+          )
+          return PreviewError.Unexpected({ retry, message })
+      }
+    case 'InvalidInput':
+      const message = (
+        <>
+          Could not {e.op} browsing session: {e.data.__typename}
+          {e.data.errors.map((ie) => (
+            <React.Fragment key={`${ie.path}:${ie.name}`}>
+              <br />
+              {ie.name}
+              {!!ie.path && ` at ${ie.path}`}: {ie.message}
+            </React.Fragment>
+          ))}
+        </>
+      )
+      return PreviewError.Unexpected({ retry, message })
     default:
-      return PreviewError.Unexpected({ retry })
+      assertNever(e.data)
   }
 }
 
 function useCreateSession() {
   const createSession = GQL.useMutation(CREATE_BROWSING_SESSION)
+  const ensureCookie = useEnsurePFSCookie()
   return React.useCallback(
-    async (scope: string, ttl) => {
-      const { browsingSessionCreate: r } = await createSession({ scope, ttl })
+    async (scope: string) => {
+      const { browsingSessionCreate: r } = await createSession({
+        scope,
+        ttl: SESSION_TTL,
+      })
       switch (r.__typename) {
         case 'BrowsingSession':
+          await ensureCookie()
           return r
         case 'OperationError':
-          throw r
         case 'InvalidInput':
-          throw new Error(
-            r.errors
-              .map(({ message, path }) => `{ message: ${message}, path: ${path} }`)
-              .join('\n'),
-          )
+          throw new GQLError('create', r)
         default:
           assertNever(r)
       }
     },
-    [createSession],
+    [createSession, ensureCookie],
   )
 }
 
 function useRefreshSession() {
   const refreshSession = GQL.useMutation(REFRESH_BROWSING_SESSION)
   return React.useCallback(
-    async (id: string, ttl: number) => {
-      const { browsingSessionRefresh: r } = await refreshSession({ id, ttl })
+    async (id: SessionId | null) => {
+      if (!id) return
+      const { browsingSessionRefresh: r } = await refreshSession({ id, ttl: SESSION_TTL })
       switch (r.__typename) {
         case 'BrowsingSession':
-          return r
+          return
         case 'OperationError':
-          throw r
         case 'InvalidInput':
-          throw new Error(
-            r.errors
-              .map(({ message, path }) => `{ message: ${message}, path: ${path} }`)
-              .join('\n'),
-          )
+          throw new GQLError('refresh', r)
         default:
           assertNever(r)
       }
@@ -106,7 +141,9 @@ function useRefreshSession() {
 function useDisposeSession() {
   const disposeSession = GQL.useMutation(DISPOSE_BROWSING_SESSION)
   return React.useCallback(
-    (id?: string) => (id ? disposeSession({ id }) : null),
+    (id: SessionId | null) => {
+      if (id) disposeSession({ id })
+    },
     [disposeSession],
   )
 }
@@ -127,45 +164,30 @@ function useSession(handle: FileHandle) {
   const scope = PackageUri.stringify(handle.packageHandle)
 
   React.useEffect(() => {
-    let ignore = false
-    let sessionId: SessionId = ''
+    let disposed = false
+    let sessionId: SessionId | null = null
     let timer: NodeJS.Timer
 
-    async function initSession() {
-      try {
-        setResult(AsyncResult.Pending())
-        const session = await createSession(scope, SESSION_TTL)
-        if (ignore) return
-        sessionId = session.id
-        setResult(AsyncResult.Ok(sessionId))
-
-        timer = setInterval(async () => {
-          try {
-            if (!sessionId) return
-            await refreshSession(sessionId, SESSION_TTL)
-          } catch (e) {
-            clearInterval(timer)
-            log.error(e)
-            Sentry.captureException(e)
-            if (!ignore) {
-              setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
-            }
-          }
-        }, REFRESH_INTERVAL)
-      } catch (e) {
-        clearInterval(timer)
-        Sentry.captureException(e)
-        log.error(e)
-        if (!ignore) {
-          setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
-        }
-      }
+    const handleError = (e: unknown) => {
+      if (disposed) return
+      log.error(e)
+      Sentry.captureException(e)
+      clearInterval(timer)
+      setResult(AsyncResult.Err(mapPreviewError(retry, e)))
     }
 
-    initSession()
+    createSession(scope).then(({ id }) => {
+      if (disposed) return
+      sessionId = id
+      setResult(AsyncResult.Ok(sessionId))
+      timer = setInterval(
+        () => refreshSession(sessionId).catch(handleError),
+        REFRESH_INTERVAL,
+      )
+    }, handleError)
 
     return () => {
-      ignore = true
+      disposed = true
       clearInterval(timer)
       disposeSession(sessionId)
     }

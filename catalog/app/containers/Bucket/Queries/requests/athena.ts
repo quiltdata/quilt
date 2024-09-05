@@ -464,7 +464,7 @@ export interface DatabasesResponse {
 interface DatabasesArgs {
   athena: Athena
   catalogName: CatalogName
-  prev: DatabasesResponse
+  prev?: DatabasesResponse
 }
 
 async function fetchDatabases({
@@ -493,6 +493,33 @@ export function useDatabases(
     { athena, catalogName, prev },
     { noAutoFetch: !catalogName },
   )
+}
+
+interface DefaultDatabaseArgs {
+  athena: Athena
+}
+
+async function fetchDefaultQueryExecution({
+  athena,
+}: DefaultDatabaseArgs): Promise<QueryExecution | null> {
+  const catalogNames = await fetchCatalogNames({ athena })
+  if (!catalogNames.list.length) {
+    return null
+  }
+  const catalogName = catalogNames.list[0]
+  const databases = await fetchDatabases({ athena, catalogName })
+  if (!databases.list.length) {
+    return null
+  }
+  return {
+    catalog: catalogName,
+    db: databases.list[0],
+  }
+}
+
+export function useDefaultQueryExecution(): AsyncData<QueryExecution> {
+  const athena = AWS.Athena.use()
+  return useData(fetchDefaultQueryExecution, { athena })
 }
 
 export interface ExecutionContext {

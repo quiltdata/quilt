@@ -11,6 +11,7 @@ export type TypeShorthand =
   | typeof FileType.Tabular
   | typeof FileType.Vega
   | typeof FileType.Voila
+  | typeof FileType.Text
 
 export type FileShortcut = string
 

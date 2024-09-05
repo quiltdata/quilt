@@ -34,9 +34,9 @@ to deep index can be customized per Bucket in the Catalog Admin settings.
 
 ![Example of Admin Bucket indexing options](../imgs/elastic-search-indexing-options.png)
 
-### Navigation Bar
+### Search Bar
 
-The navigation bar on every page in the catalog provides a convenient
+The search bar on every page in the catalog provides a convenient
 shortcut for searching objects and packages in an Amazon S3
 bucket.
 
@@ -47,38 +47,41 @@ The following are all valid search parameters:
 
 **Fields**
 
-- `comment`: Package comment. `comment: TODO`
-- `content`: Object content. `content:Hello`
-- `ext`: Object extension. `ext:*.fastq.gz`
-- `handle`: Package name. `handle:examples\/metadata`
-- `hash`: Package hash. `hash:3192ac1*`
-- `key`: Object key. `key:phase*`
-- `key_text`: Analyzed object key. `key:"phase"`
-- `last_modified`: Last modified date. `last_modified:[2022-02-04 TO
-  2022-02-20]`
-- `metadata`: Package metadata. `metadata:dapi`
-- `size`: Object size in bytes. `size:>=4096`
-- `version_id`: Object version id. `version_id:t.LVVCx*`
-- `pointer_file`: Package revision tag in S3; either "latest" or a top hash. `pointer_file: latest`
-- `package_stats.total_files`: Package total files.
-  `package_stats.total_files:>100`
-- `package_stats.total_bytes`: Package total bytes.
-  `package_stats.total_bytes:<100`
+| Syntax | Description | Example |
+|- | - | - |
+| `comment`| Package comment | `comment:TODO` |
+| `content`| Object content | `content:Hello` |
+| `ext`| Object extension | `ext:*.fastq.gz` |
+| `handle`| Package name | `handle:examples\/metadata` |
+| `hash`| Package hash | `hash:3192ac1*` |
+| `key`| Object key | `key:phase*` |
+| `key_text`| Analyzed object key | `key:"phase"` |
+| `last_modified`| Last modified date | `last_modified:[2022-02-04 TO 2022-02-20]`|
+| `metadata` | Package metadata | `metadata:dapi` |
+| `size` | Object size in bytes | `size:>=4096` |
+| `version_id` | Object version id | `version_id:t.LVVCx*` |
+| `pointer_file` | Package revision tag in S3; either "latest" or a timestamp | `pointer_file:latest` |
+| `package_stats.total_files` | Package total files | `package_stats.total_files:>100` |
+| `package_stats.total_bytes` | Package total bytes | `package_stats.total_bytes:<100` |
+| `workflow.id` | Package workflow ID | `workflow.id:verify-metadata` |
 
 **Logical operators and grouping**
 
-- `AND`: Conjunction. `a AND b`
-- `OR`: Disjunction. `a OR b`
-- `NOT`: Negation. `NOT a`
-- `_exists_`: Matches any non-null value for the given field. `_exists_: content`
-- `()`: Group terms. `(a AND b) NOT c`
+| Syntax | Description | Example |
+|- | - | - |
+| `AND` | Conjunction | `a AND b` |
+| `OR` | Disjunction | `a OR b` |
+| `NOT` | Negation | `NOT a` |
+| `_exists_` | Matches any non-null value for the given field | `_exists_: content` |
+| `()` | Group terms | `(a AND b) NOT c` |
 
 **Wildcard and regular expressions**
 
-- `*`: Zero or more characters, avoid leading `*` (slows performance).
-  `ext:config.y*ml`
-- `?`: Exactly one character. `ext:React.?sx`
-- `//`: Regular expression (slows performance). `content:/lmnb[12]/`
+| Syntax | Description | Example |
+|- | - | - |
+| `*` | Zero or more characters, avoid leading `*` (slows performance) | `ext:config.y*ml` |
+| `?` | Exactly one character | `ext:React.?sx` |
+| `//` | Regular expression (slows performance) | `content:/lmnb[12]/` |
 
 ### QUERIES > ELASTICSEARCH tab
 

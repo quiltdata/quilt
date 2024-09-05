@@ -32,6 +32,7 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import FileCodeSamples from './CodeSamples/File'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
+import QuratorSection from './Qurator/Section'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
@@ -359,7 +360,17 @@ export default function File() {
         downloadable: false,
       }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        downloadable: !cfg.noDownload && !deleted && !archived,
+        downloadable:
+          !cfg.noDownload &&
+          !deleted &&
+          !archived &&
+          BucketPreferences.Result.match(
+            {
+              Ok: ({ ui }) => ui.actions.downloadObject,
+              _: R.F,
+            },
+            prefs,
+          ),
         fileVersionId: versionId,
       }),
     }),
@@ -452,12 +463,20 @@ export default function File() {
               onChange={onViewModeChange}
             />
           )}
-          {FileEditor.isSupportedFileType(handle.key) && (
-            <FileEditor.Controls
-              {...editorState}
-              className={classes.button}
-              onSave={handleEditorSave}
-            />
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) =>
+                actions.writeFile &&
+                FileEditor.isSupportedFileType(handle.key) && (
+                  <FileEditor.Controls
+                    {...editorState}
+                    className={classes.button}
+                    onSave={handleEditorSave}
+                  />
+                ),
+              _: () => null,
+            },
+            prefs,
           )}
           {bookmarks && (
             <Buttons.Iconized
@@ -495,6 +514,9 @@ export default function File() {
                       {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
+                      )}
+                      {cfg.qurator && blocks.qurator && (
+                        <QuratorSection handle={handle} />
                       )}
                       {blocks.meta && (
                         <>
@@ -535,7 +557,16 @@ export default function File() {
             ) : (
               <>
                 <Message headline="No Such Object">
-                  <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                  {BucketPreferences.Result.match(
+                    {
+                      Ok: ({ ui: { actions } }) =>
+                        actions.writeFile && (
+                          <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                        ),
+                      _: () => null,
+                    },
+                    prefs,
+                  )}
                 </Message>
               </>
             ),

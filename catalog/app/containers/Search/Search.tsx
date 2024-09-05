@@ -16,7 +16,7 @@ import * as Format from 'utils/format'
 import * as SearchUIModel from './model'
 import BucketSelector from './Buckets'
 import ResultTypeSelector from './ResultType'
-import { EmptyResults, ResultsSkeleton } from './Results'
+import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
 
 function useMobileView() {
@@ -1073,26 +1073,20 @@ function NextPage({ after, className, resultType }: NextPageProps) {
           case 'fetching':
             return <LoadNextPage className={className} loading />
           case 'error':
-            return (
-              <EmptyResults
-                className={className}
-                description={r.error.message}
-                image="error"
-                title="GQL error"
-              />
-            )
+            return <SearchError className={className} details={r.error.message} />
           case 'data':
             switch (r.data.__typename) {
               case 'InvalidInput':
                 // should not happen
-                return (
-                  <EmptyResults
-                    className={className}
-                    description={r.data.errors[0].message}
-                    image="error"
-                    title="Invalid input"
-                  />
+                const [err] = r.data.errors
+                const details = (
+                  <>
+                    Invalid input at <code>{err.path}</code>: {err.name}
+                    <br />
+                    {err.message}
+                  </>
                 )
+                return <SearchError className={className} details={details} />
               case 'PackagesSearchResultSetPage':
               case 'ObjectsSearchResultSetPage':
                 return (
@@ -1126,27 +1120,25 @@ function ResultsInner({ className }: ResultsInnerProps) {
     case 'fetching':
       return <ResultsSkeleton className={className} />
     case 'error':
-      return (
-        <EmptyResults
-          className={className}
-          description={r.error.message}
-          image="error"
-          title="GraphQL Error"
-        />
-      )
+      return <SearchError className={className} details={r.error.message} />
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
           return <EmptyResults className={className} />
         case 'InvalidInput':
-          return (
-            <EmptyResults
-              className={className}
-              description={r.data.errors[0].message}
-              image="error"
-              title="Invalid input"
-            />
-          )
+          const [err] = r.data.errors
+          const kind = err.name === 'QuerySyntaxError' ? 'syntax' : 'unexpected'
+          const details =
+            err.name === 'QuerySyntaxError' ? (
+              err.message
+            ) : (
+              <>
+                Invalid input at <code>{err.path}</code>: {err.name}
+                <br />
+                {err.message}
+              </>
+            )
+          return <SearchError className={className} kind={kind} details={details} />
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           return (

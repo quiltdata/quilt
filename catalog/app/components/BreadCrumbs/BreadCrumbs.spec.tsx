@@ -80,7 +80,7 @@ describe('components/BreadCrumbs', () => {
       expect(tree).toMatchSnapshot()
     })
   })
-  test('copyWithoutSpaces', () => {
+  it('copyWithoutSpaces', () => {
     const input = `ROOT / aa a
       / bb-b / c / <EMPTY> / d_d`
     expect(BreadCrumbs.trimSeparatorSpaces(input)).toBe('/aa a/bb-b/c//d_d')
