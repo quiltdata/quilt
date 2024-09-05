@@ -815,11 +815,9 @@ function Add({ close }: AddProps) {
           <M.DialogActions>
             {submitting && (
               <Delay>
-                {() => (
-                  <M.Box flexGrow={1} display="flex" pl={2}>
-                    <M.CircularProgress size={24} />
-                  </M.Box>
-                )}
+                <M.Box flexGrow={1} display="flex" pl={2}>
+                  <M.CircularProgress size={24} />
+                </M.Box>
               </Delay>
             )}
             <M.Button
@@ -934,11 +932,9 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       <M.DialogActions>
         {submitting && (
           <Delay>
-            {() => (
-              <M.Box flexGrow={1} display="flex" pl={2}>
-                <M.CircularProgress size={24} />
-              </M.Box>
-            )}
+            <M.Box flexGrow={1} display="flex" pl={2}>
+              <M.CircularProgress size={24} />
+            </M.Box>
           </Delay>
         )}
         {!submitting && !!error && (
@@ -1083,11 +1079,9 @@ function Edit({ bucket, close }: EditProps) {
           <M.DialogActions>
             {submitting && (
               <Delay>
-                {() => (
-                  <M.Box flexGrow={1} display="flex" pl={2}>
-                    <M.CircularProgress size={24} />
-                  </M.Box>
-                )}
+                <M.Box flexGrow={1} display="flex" pl={2}>
+                  <M.CircularProgress size={24} />
+                </M.Box>
               </Delay>
             )}
             <M.Button

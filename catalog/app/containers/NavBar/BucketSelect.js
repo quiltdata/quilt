@@ -221,7 +221,13 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
 
 export default React.forwardRef(function BucketSelectSuspended(props, ref) {
   return (
-    <React.Suspense fallback={<Delay>{() => <M.CircularProgress />}</Delay>}>
+    <React.Suspense
+      fallback={
+        <Delay>
+          <M.CircularProgress />
+        </Delay>
+      }
+    >
       <BucketSelect {...props} forwardedRef={ref} />
     </React.Suspense>
   )

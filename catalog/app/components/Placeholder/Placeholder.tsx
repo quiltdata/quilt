@@ -17,7 +17,9 @@ export default function Placeholder({ delay, ...props }: PlaceholderProps) {
       color="common.white"
       {...props}
     >
-      <Delay ms={delay}>{() => <M.CircularProgress size={120} color="inherit" />}</Delay>
+      <Delay ms={delay}>
+        <M.CircularProgress size={120} color="inherit" />
+      </Delay>
     </M.Box>
   )
 }
