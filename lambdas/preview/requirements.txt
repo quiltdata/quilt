@@ -1,7 +1,7 @@
 attrs==19.1.0
 beautifulsoup4==4.12.2
 bleach==3.3.0
-certifi==2023.7.22
+certifi==2024.7.4
 chardet==3.0.4
 charset-normalizer==2.0.12
 decorator==4.4.0
@@ -47,4 +47,4 @@ typing_extensions==4.5.0
 urllib3==1.26.19
 webencodings==0.5.1
 xlrd==2.0.1
-zipp==3.15.0
+zipp==3.19.1
