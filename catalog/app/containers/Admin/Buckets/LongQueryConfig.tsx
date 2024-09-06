@@ -26,12 +26,14 @@ function YamlEditorField({ errors, input, meta }: YamlEditorFieldProps) {
   )
 }
 
-interface LongQueryConfigProps {}
+interface LongQueryConfigProps {
+  className?: string
+}
 
-export default function LongQueryConfig({}: LongQueryConfigProps) {
+export default function LongQueryConfig({ className }: LongQueryConfigProps) {
   loadMode('yaml')
   return (
-    <>
+    <div className={className}>
       <M.Typography variant="subtitle1" gutterBottom>
         First
       </M.Typography>
@@ -51,6 +53,6 @@ export default function LongQueryConfig({}: LongQueryConfigProps) {
         label="FIXME"
         validate={validators.required as FF.FieldValidator<any>}
       />
-    </>
+    </div>
   )
 }
