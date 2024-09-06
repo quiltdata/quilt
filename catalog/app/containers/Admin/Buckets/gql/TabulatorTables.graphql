@@ -1,7 +1,0 @@
-query {
-  tabulatorTables {
-    name
-    config
-  }
-}
-
