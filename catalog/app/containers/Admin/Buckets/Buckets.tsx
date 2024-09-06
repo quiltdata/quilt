@@ -67,6 +67,7 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
       : bucket.snsNotificationArn,
   skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
   browsable: bucket.browsable ?? false,
+  tabulatorTables: bucket.tabulatorTables,
 })
 
 interface CardAvatarProps {
@@ -1184,13 +1185,6 @@ function IndexingAndNotifications({
   )
 }
 
-function useLongQueryDataSync(fullfilled: boolean) {
-  if (!fullfilled) {
-    throw Promise.resolve(null)
-  }
-  return { configOne: '' }
-}
-
 interface LongQueryConfigProps {
   bucket?: BucketConfig
   className?: string
@@ -1198,39 +1192,12 @@ interface LongQueryConfigProps {
   initialEditing: boolean
 }
 
-function LongQueryConfigSuspended(props: LongQueryConfigProps) {
-  const [fullfilled, setFullfilled] = React.useState(false)
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setFullfilled(true)
-    }, 5000)
-    return () => clearTimeout(timer)
-  }, [])
-  return (
-    <React.Suspense
-      fallback={
-        <M.Box mt={2} mb={2}>
-          <M.Paper>
-            <M.Box p={2} pb={1}>
-              <Skeleton height={32} width={100} />
-            </M.Box>
-          </M.Paper>
-        </M.Box>
-      }
-    >
-      <LongQueryConfig fullfilled={fullfilled} {...props} />
-    </React.Suspense>
-  )
-}
-
 function LongQueryConfig({
   bucket,
   className,
   form,
   initialEditing,
-  fullfilled,
-}: LongQueryConfigProps & { fullfilled: boolean }) {
-  const data = useLongQueryDataSync(fullfilled)
+}: LongQueryConfigProps) {
   const [editing, setEditing] = React.useState(initialEditing)
   if (!editing) {
     return (
@@ -1241,7 +1208,9 @@ function LongQueryConfig({
         onEdit={() => setEditing(true)}
         title="Longitudinal Query Configuration"
       >
-        {data.configOne}
+        {bucket.tabulatorTables.map(({ name }) => (
+          <M.Typography key={name}>{name}</M.Typography>
+        ))}
       </Card>
     )
   }
@@ -1351,7 +1320,7 @@ function BucketFields({
         initialEditing={!!initialEditing}
         reindex={reindex}
       />
-      <LongQueryConfigSuspended
+      <LongQueryConfig
         bucket={bucket}
         className={classes.card}
         form={form}
