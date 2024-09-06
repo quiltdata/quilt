@@ -40,9 +40,16 @@ export interface AdminMutations {
   readonly __typename: 'AdminMutations'
   readonly user: UserAdminMutations
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
+  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
 }
 
 export interface AdminMutationssetSsoConfigArgs {
+  config: Maybe<Scalars['String']>
+}
+
+export interface AdminMutationsbucketSetTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
   config: Maybe<Scalars['String']>
 }
 
@@ -135,6 +142,7 @@ export interface BucketConfig {
   readonly associatedPolicies: ReadonlyArray<PolicyBucketPermission>
   readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
   readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
+  readonly tabulatorTables: ReadonlyArray<TabulatorTable>
 }
 
 export interface BucketDoesNotExist {
@@ -173,6 +181,8 @@ export interface BucketRemoveSuccess {
   readonly __typename: 'BucketRemoveSuccess'
   readonly _: Maybe<Scalars['Boolean']>
 }
+
+export type BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
 
 export interface BucketUpdateInput {
   readonly title: Scalars['String']
@@ -1119,6 +1129,12 @@ export interface SubscriptionState {
 }
 
 export type SwitchRoleResult = Me | InvalidInput | OperationError
+
+export interface TabulatorTable {
+  readonly __typename: 'TabulatorTable'
+  readonly name: Scalars['String']
+  readonly config: Scalars['String']
+}
 
 export interface TestStats {
   readonly __typename: 'TestStats'
