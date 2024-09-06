@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as FF from 'final-form'
+import arrayMutators from 'final-form-arrays'
 import * as FP from 'fp-ts'
 import * as IO from 'io-ts'
 import * as R from 'ramda'
@@ -41,12 +42,16 @@ import ADD_MUTATION from './gql/BucketsAdd.generated'
 import UPDATE_MUTATION from './gql/BucketsUpdate.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
+import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
 
 // TODO: organize skeletons
 
 const noop = () => {}
 
-const bucketToFormValues = (bucket: BucketConfig) => ({
+const bucketToFormValues = (
+  bucket: BucketConfig,
+  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables'],
+) => ({
   title: bucket.title,
   iconUrl: bucket.iconUrl || '',
   description: bucket.description || '',
@@ -65,6 +70,7 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
       : bucket.snsNotificationArn,
   skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
   browsable: bucket.browsable ?? false,
+  tabulatorTables,
 })
 
 interface CardAvatarProps {
@@ -1155,7 +1161,7 @@ function IndexingAndNotificationsCard({
     )
   }
 
-  const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
+  const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket, [])
   return (
     <Card
       className={className}
@@ -1262,6 +1268,43 @@ function PreviewCard({ bucket, className, form }: PreviewCardProps) {
       icon="code"
       title={`Permissive HTML rendering is ${bucket.browsable ? 'enabled' : 'disabled'}`}
     />
+  )
+}
+
+interface LongQueryConfigCardProps {
+  className: string
+  form: FF.FormApi
+  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
+}
+
+function LongQueryConfigCard({
+  className,
+  form,
+  tabulatorTables,
+}: LongQueryConfigCardProps) {
+  const [editing, setEditing] = React.useState(false)
+  if (editing) {
+    return (
+      <InlineForm className={className}>
+        <LongQueryConfigForm>
+          <InlineActions form={form} onCancel={() => setEditing(false)} />
+        </LongQueryConfigForm>
+      </InlineForm>
+    )
+  }
+  // TODO: convert yaml to json and show with JsonDisplay
+  return (
+    <Card
+      className={className}
+      disabled={form.getState().submitting}
+      onEdit={() => setEditing(true)}
+      icon="query_builder"
+      title="Longitudinal Query Configuration"
+    >
+      {tabulatorTables.map(({ name }) => (
+        <M.Typography key={name}>{name}</M.Typography>
+      ))}
+    </Card>
   )
 }
 
@@ -1390,7 +1433,11 @@ function Add({ back, settings, submit }: AddProps) {
   )
   const formRef = React.useRef<HTMLFormElement>(null)
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
+    <RF.Form
+      onSubmit={onSubmit}
+      initialValues={{ enableDeepIndexing: true }}
+      mutators={{ ...arrayMutators }}
+    >
       {({
         dirty,
         handleSubmit,
@@ -1641,9 +1688,10 @@ interface EditProps {
     | Error
     | undefined
   >
+  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
-function Edit({ bucket, back, submit }: EditProps) {
+function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
   const closeReindex = React.useCallback(() => setReindexOpen(false), [])
@@ -1669,12 +1717,16 @@ function Edit({ bucket, back, submit }: EditProps) {
     [submit],
   )
 
-  const initialValues = bucketToFormValues(bucket)
+  const initialValues = bucketToFormValues(bucket, tabulatorTables)
 
   const formRef = React.useRef<HTMLFormElement>(null)
 
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
+    <RF.Form
+      onSubmit={onSubmit}
+      initialValues={initialValues}
+      mutators={{ ...arrayMutators }}
+    >
       {({
         handleSubmit,
         submitting,
@@ -1704,6 +1756,11 @@ function Edit({ bucket, back, submit }: EditProps) {
                 reindex={openReindex}
               />
               <PreviewCard bucket={bucket} className={classes.card} form={form} />
+              <LongQueryConfigCard
+                className={classes.card}
+                form={form}
+                tabulatorTables={tabulatorTables}
+              />
               <input type="submit" style={{ display: 'none' }} />
             </form>
           </React.Suspense>
@@ -1777,6 +1834,22 @@ function EditPage({ back }: EditPageProps) {
     () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
     [bucketName, rows],
   )
+  const tabulatorTables =
+    GQL.useQueryS(TABULATOR_TABLES_QUERY).bucketConfig?.tabulatorTables || []
+  // FIXME: remove
+  // const tabulatorTables = [
+  //   {
+  //     __typename: 'TabulatorTable' as const,
+  //     name: 'foo',
+  //     config: 'bar',
+  //   },
+  //   {
+  //     __typename: 'TabulatorTable' as const,
+  //     name: 'Lorem',
+  //     config: 'Ipsum',
+  //   },
+  // ]
+
   const submit = React.useCallback(
     async (input: Model.GQLTypes.BucketUpdateInput) => {
       if (!bucket) return new Error('Submit form without bucket')
@@ -1797,7 +1870,9 @@ function EditPage({ back }: EditPageProps) {
     [back, bucket, update],
   )
   if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
-  return <Edit bucket={bucket} back={back} submit={submit} />
+  return (
+    <Edit bucket={bucket} back={back} submit={submit} tabulatorTables={tabulatorTables} />
+  )
 }
 
 interface AddPageProps {
