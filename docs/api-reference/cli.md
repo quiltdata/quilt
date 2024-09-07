@@ -138,7 +138,7 @@ optional arguments:
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force] [--dedupe] [--no-copy]
+                   [--force] [--dedupe] [--no-copy] [--detailed_help]
                    name
 
 Pushes the new package to the remote registry
@@ -167,7 +167,21 @@ optional arguments:
                        remote hash.
   --no-copy            Do not copy data. Package manifest entries will
                        reference the data at the original location.
+  --detailed_help      Display detailed information about this command and
+                       then exit
 ```
+
+### push Example
+
+<!--pytest.mark.skip-->
+```bash
+# Copy all files from local directory to quilt+s3://my-bucket#package=myuser/my_package
+quilt3 push myuser/my_package --dir ./my_package/ --registry s3://my-bucket
+
+# Reference files from s3://your-bucket/data in the package at quilt+s3://my-bucket#package=myuser/my_alias
+quilt3 push myuser/my_alias --no-copy --dir s3://your-bucket/data --registry s3://my-bucket
+```
+
 ## `verify`
 ```
 usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR
