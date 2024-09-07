@@ -219,6 +219,9 @@ class PackageEntry:
     def set_meta(self, meta):
         """
         Sets the user_meta for this PackageEntry.
+
+        Args:
+            meta(dict): object-level metadata
         """
         self._meta['user_meta'] = meta
 
@@ -867,6 +870,9 @@ class Package:
         Raises:
             PackageException: When `path` doesn't exist.
             ValueError: When `update_policy` is invalid.
+
+        Warnings:
+            Calling this function with a logical key of "." or "/" overwrites any existing package-level metadata
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
             raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
