@@ -1,13 +1,11 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import Delay from 'utils/Delay'
-
 interface PlaceholderProps extends M.BoxProps {
   delay?: number
 }
 
-export default function Placeholder({ delay, ...props }: PlaceholderProps) {
+export default function Placeholder({ delay = 1000, ...props }: PlaceholderProps) {
   return (
     <M.Box
       alignItems="center"
@@ -17,9 +15,9 @@ export default function Placeholder({ delay, ...props }: PlaceholderProps) {
       color="common.white"
       {...props}
     >
-      <Delay ms={delay}>
+      <M.Fade in style={{ transitionDelay: `${delay}ms` }}>
         <M.CircularProgress size={120} color="inherit" />
-      </Delay>
+      </M.Fade>
     </M.Box>
   )
 }

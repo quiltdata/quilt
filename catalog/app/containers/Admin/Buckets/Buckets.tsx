@@ -16,7 +16,6 @@ import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
-import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import * as GQL from 'utils/GraphQL'
@@ -814,11 +813,11 @@ function Add({ close }: AddProps) {
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
-              <Delay>
+              <M.Fade in style={{ transitionDelay: '1000ms' }}>
                 <M.Box flexGrow={1} display="flex" pl={2}>
                   <M.CircularProgress size={24} />
                 </M.Box>
-              </Delay>
+              </M.Fade>
             )}
             <M.Button
               onClick={() => close('cancel')}
@@ -931,11 +930,11 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       )}
       <M.DialogActions>
         {submitting && (
-          <Delay>
+          <M.Fade in style={{ transitionDelay: '1000ms' }}>
             <M.Box flexGrow={1} display="flex" pl={2}>
               <M.CircularProgress size={24} />
             </M.Box>
-          </Delay>
+          </M.Fade>
         )}
         {!submitting && !!error && (
           <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
@@ -1078,11 +1077,11 @@ function Edit({ bucket, close }: EditProps) {
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
-              <Delay>
+              <M.Fade in style={{ transitionDelay: '1000ms' }}>
                 <M.Box flexGrow={1} display="flex" pl={2}>
                   <M.CircularProgress size={24} />
                 </M.Box>
-              </Delay>
+              </M.Fade>
             )}
             <M.Button
               onClick={() => form.reset()}

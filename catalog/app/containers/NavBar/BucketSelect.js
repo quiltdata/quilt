@@ -10,7 +10,6 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import BucketIcon from 'components/BucketIcon'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const normalizeBucket = R.pipe(
@@ -223,9 +222,9 @@ export default React.forwardRef(function BucketSelectSuspended(props, ref) {
   return (
     <React.Suspense
       fallback={
-        <Delay>
+        <M.Fade in style={{ transitionDelay: '1000ms' }}>
           <M.CircularProgress />
-        </Delay>
+        </M.Fade>
       }
     >
       <BucketSelect {...props} forwardedRef={ref} />
