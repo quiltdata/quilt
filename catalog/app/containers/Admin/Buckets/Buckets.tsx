@@ -31,6 +31,7 @@ import { formatQuantity } from 'utils/string'
 import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
+import * as yaml from 'utils/yaml'
 
 import * as Form from '../Form'
 import LongQueryConfigForm from './LongQueryConfig'
@@ -43,8 +44,6 @@ import UPDATE_MUTATION from './gql/BucketsUpdate.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
-
-// TODO: organize skeletons
 
 const noop = () => {}
 
@@ -1271,6 +1270,14 @@ function PreviewCard({ bucket, className, form }: PreviewCardProps) {
   )
 }
 
+interface LongQueryConfigSingleProps extends Model.GQLTypes.TabulatorTable {}
+
+function LongQueryConfigSingle({ name, config }: LongQueryConfigSingleProps) {
+  const json = React.useMemo(() => yaml.parse(config), [config])
+  // @ts-expect-error
+  return <JsonDisplay name={name} topLevel value={json} />
+}
+
 interface LongQueryConfigCardProps {
   className: string
   form: FF.FormApi
@@ -1292,7 +1299,6 @@ function LongQueryConfigCard({
       </InlineForm>
     )
   }
-  // TODO: convert yaml to json and show with JsonDisplay
   return (
     <Card
       className={className}
@@ -1301,8 +1307,8 @@ function LongQueryConfigCard({
       icon="query_builder"
       title="Longitudinal Query Configuration"
     >
-      {tabulatorTables.map(({ name }) => (
-        <M.Typography key={name}>{name}</M.Typography>
+      {tabulatorTables.map((table, i) => (
+        <LongQueryConfigSingle {...table} key={`${table.name}_${i}`} />
       ))}
     </Card>
   )
@@ -1836,19 +1842,6 @@ function EditPage({ back }: EditPageProps) {
   )
   const tabulatorTables =
     GQL.useQueryS(TABULATOR_TABLES_QUERY).bucketConfig?.tabulatorTables || []
-  // FIXME: remove
-  // const tabulatorTables = [
-  //   {
-  //     __typename: 'TabulatorTable' as const,
-  //     name: 'foo',
-  //     config: 'bar',
-  //   },
-  //   {
-  //     __typename: 'TabulatorTable' as const,
-  //     name: 'Lorem',
-  //     config: 'Ipsum',
-  //   },
-  // ]
 
   const submit = React.useCallback(
     async (input: Model.GQLTypes.BucketUpdateInput) => {
