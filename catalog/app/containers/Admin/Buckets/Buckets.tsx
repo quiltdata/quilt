@@ -26,6 +26,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
+import parseSearch from 'utils/parseSearch'
 import { formatQuantity } from 'utils/string'
 import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
@@ -1834,28 +1835,48 @@ function AddPage({ back }: AddPageProps) {
   return <Add settings={settings} back={back} submit={submit} />
 }
 
-export default function Buckets() {
+function useIsAddPage() {
+  const location = RRDom.useLocation()
+  const params = parseSearch(location.search)
+  return !!params.add
+}
+
+interface BucketsProps {
+  back: () => void
+}
+
+function Buckets({ back }: BucketsProps) {
+  const isAddPage = useIsAddPage()
+  if (isAddPage) {
+    return (
+      <React.Suspense fallback={<AddPageSkeleton back={back} />}>
+        <AddPage back={back} />
+      </React.Suspense>
+    )
+  }
+  return (
+    <React.Suspense fallback={<ListPageSkeleton />}>
+      <ListPage />
+    </React.Suspense>
+  )
+}
+
+export default function BucketsRouter() {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use()
   const back = React.useCallback(() => history.push(urls.adminBuckets()), [history, urls])
+
   return (
     <M.Box mt={2} mb={2}>
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
       <RRDom.Switch>
-        <RRDom.Route path={paths.adminBucketAdd} exact strict>
-          <React.Suspense fallback={<AddPageSkeleton back={back} />}>
-            <AddPage back={back} />
-          </React.Suspense>
-        </RRDom.Route>
         <RRDom.Route path={paths.adminBucketEdit} exact strict>
           <React.Suspense fallback={<EditPageSkeleton back={back} />}>
             <EditPage back={back} />
           </React.Suspense>
         </RRDom.Route>
         <RRDom.Route>
-          <React.Suspense fallback={<ListPageSkeleton />}>
-            <ListPage />
-          </React.Suspense>
+          <Buckets back={back} />
         </RRDom.Route>
       </RRDom.Switch>
     </M.Box>
