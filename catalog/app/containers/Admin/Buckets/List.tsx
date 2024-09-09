@@ -209,7 +209,7 @@ export default function List() {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        history.push(urls.adminBucketAdd())
+        history.push(urls.adminBuckets({ add: true }))
       }, [history, urls]),
     },
   ]
