@@ -226,19 +226,8 @@ mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $con
   admin {
     bucketSetTabulatorTable(bucketName: $bucketName, tableName: $tableName, config: $config) {
       __typename
-      ... on InvalidInput {
-        errors {
-          context
-          message
-          name
-          path
-        }
-      }
-      ... on OperationError {
-        message
-        name
-        context
-      }
+      ...InvalidInputSelection
+      ...OperationErrorSelection
     }
   }
 }

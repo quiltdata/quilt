@@ -7,7 +7,6 @@ from .bucket_tabulator_table_set import (
     BucketTabulatorTableSetAdmin,
     BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig,
     BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput,
-    BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInputErrors,
     BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError,
 )
 from .bucket_tabulator_tables_list import (
@@ -139,7 +138,6 @@ __all__ = [
     "BucketTabulatorTableSetAdmin",
     "BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig",
     "BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput",
-    "BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInputErrors",
     "BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError",
     "BucketTabulatorTablesList",
     "BucketTabulatorTablesListBucketConfig",

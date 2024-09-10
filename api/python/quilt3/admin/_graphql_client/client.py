@@ -1066,21 +1066,25 @@ class Client(BaseClient):
                   config: $config
                 ) {
                   __typename
-                  ... on InvalidInput {
-                    errors {
-                      context
-                      message
-                      name
-                      path
-                    }
-                  }
-                  ... on OperationError {
-                    message
-                    name
-                    context
-                  }
+                  ...InvalidInputSelection
+                  ...OperationErrorSelection
                 }
               }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
             }
             """
         )
