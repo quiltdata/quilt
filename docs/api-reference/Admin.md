@@ -14,6 +14,9 @@
 ## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}
 
 
+## TabulatorTable(name: str, config: str) -> None  {#TabulatorTable}
+
+
 # quilt3.admin.roles
 
 

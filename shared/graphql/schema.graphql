@@ -122,6 +122,11 @@ type CollaboratorBucketConnection {
   permissionLevel: BucketPermissionLevel!
 }
 
+type TabulatorTable {
+  name: String!
+  config: String!
+}
+
 type BucketConfig {
   name: String!
   title: String!
@@ -141,6 +146,7 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   collaborators: [CollaboratorBucketConnection!]!
+  tabulatorTables: [TabulatorTable!]! @admin
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
@@ -882,9 +888,12 @@ type UserAdminMutations {
 
 union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 
+union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
+
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
 }
 
 type Mutation {

@@ -212,3 +212,33 @@ mutation ssoConfigSet($config: String) {
     }
   }
 }
+
+query bucketTabulatorTablesList($name: String!) {
+  bucketConfig(name: $name) {
+    tabulatorTables {
+      name
+      config
+    }
+  }
+}
+
+mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $config: String) {
+  admin {
+    bucketSetTabulatorTable(bucketName: $bucketName, tableName: $tableName, config: $config) {
+      __typename
+      ... on InvalidInput {
+        errors {
+          context
+          message
+          name
+          path
+        }
+      }
+      ... on OperationError {
+        message
+        name
+        context
+      }
+    }
+  }
+}
