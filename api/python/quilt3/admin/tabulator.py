@@ -3,7 +3,7 @@ import typing as T
 from . import exceptions, types, util
 
 
-def list(bucket_name: str) -> list[types.TabulatorTable]:
+def list(bucket_name: str) -> T.List[types.TabulatorTable]:
     """
     List all tabulator tables in a bucket.
     """
