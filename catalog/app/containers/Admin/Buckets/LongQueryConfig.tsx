@@ -5,40 +5,48 @@ import * as RFA from 'react-final-form-arrays'
 import * as M from '@material-ui/core'
 
 import { loadMode } from 'components/FileEditor/loader'
-import * as Model from 'model'
 import * as validators from 'utils/validators'
+
+import * as Form from '../Form'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
 
-type YamlEditorFieldProps = RF.FieldRenderProps<Model.GQLTypes.TabulatorTable> &
-  M.TextFieldProps
+type YamlEditorFieldProps = RF.FieldRenderProps<string> & M.TextFieldProps
 
-function YamlEditorField({ className, errors, input, meta }: YamlEditorFieldProps) {
+function YamlEditorField({ errors, input, meta }: YamlEditorFieldProps) {
   // TODO: convert yaml to json and validate with JSON Schema
   const error = meta.error || meta.submitError
   const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
+
+  const [key, setKey] = React.useState(0)
+  const reset = React.useCallback(() => setKey((k) => k + 1), [])
+  React.useEffect(() => {
+    if (meta.pristine) reset()
+  }, [meta.pristine, reset])
+
   return (
-    <div className={className}>
-      <M.Typography variant="subtitle1" gutterBottom>
-        {meta.initial?.name}
-      </M.Typography>
-      <TextEditor
-        error={errorMessage ? new Error(errorMessage) : null}
-        onChange={input.onChange}
-        type={TEXT_EDITOR_TYPE}
-        value={meta.initial?.config}
-      />
-    </div>
+    <TextEditor
+      disabled={meta.submitting || meta.submitSucceeded}
+      error={errorMessage ? new Error(errorMessage) : null}
+      key={key}
+      leadingChange={false}
+      onChange={input.onChange}
+      type={TEXT_EDITOR_TYPE}
+      value={meta.initial}
+    />
   )
 }
 
 const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
-  field: {
+  item: {
     '& + &': {
       marginTop: t.spacing(2),
     },
+  },
+  name: {
+    marginBottom: t.spacing(1),
   },
 }))
 
@@ -58,13 +66,21 @@ export default function LongQueryConfigForm({
       <RFA.FieldArray name="tabulatorTables">
         {({ fields }) =>
           fields.map((name) => (
-            <RF.Field
-              className={classes.field}
-              component={YamlEditorField}
-              key={name}
-              name={`${name}`}
-              validate={validators.required as FF.FieldValidator<any>}
-            />
+            <div className={classes.item} key={name}>
+              <RF.Field
+                className={classes.name}
+                component={Form.Field}
+                fullWidth
+                label="Config name"
+                name={`${name}.name`}
+                validate={validators.required as FF.FieldValidator<any>}
+              />
+              <RF.Field
+                component={YamlEditorField}
+                name={`${name}.config`}
+                validate={validators.required as FF.FieldValidator<any>}
+              />
+            </div>
           ))
         }
       </RFA.FieldArray>

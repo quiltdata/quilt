@@ -26,18 +26,20 @@ const useEditorTextStyles = M.makeStyles((t) => ({
 
 interface TextEditorProps {
   disabled?: boolean
+  error: Error | null
+  leadingChange?: boolean
   onChange: (value: string) => void
   type: EditorInputType
-  value?: string
-  error: Error | null
+  value?: string // FIXME: initialValue
 }
 
 export default function TextEditor({
-  error,
   disabled,
+  error,
+  leadingChange = true,
+  onChange,
   type,
   value = '',
-  onChange,
 }: TextEditorProps) {
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
@@ -54,14 +56,16 @@ export default function TextEditor({
     editor.getSession().setMode(`ace/mode/${type.brace}`)
     editor.setTheme('ace/theme/eclipse')
     editor.setValue(value, -1)
-    onChange(editor.getValue()) // initially fill the value
+    if (leadingChange) {
+      onChange(editor.getValue()) // initially fill the value
+    }
     editor.on('change', () => onChange(editor.getValue()))
 
     return () => {
       resizeObserver.unobserve(wrapper)
       editor.destroy()
     }
-  }, [onChange, ref, type.brace, value])
+  }, [leadingChange, onChange, ref, type.brace, value])
 
   return (
     <div className={classes.root}>

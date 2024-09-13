@@ -47,10 +47,7 @@ import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
 
 const noop = () => {}
 
-const bucketToFormValues = (
-  bucket: BucketConfig,
-  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables'],
-) => ({
+const bucketToFormValues = (bucket: BucketConfig) => ({
   title: bucket.title,
   iconUrl: bucket.iconUrl || '',
   description: bucket.description || '',
@@ -69,7 +66,6 @@ const bucketToFormValues = (
       : bucket.snsNotificationArn,
   skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
   browsable: bucket.browsable ?? false,
-  tabulatorTables,
 })
 
 interface CardAvatarProps {
@@ -1160,7 +1156,7 @@ function IndexingAndNotificationsCard({
     )
   }
 
-  const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket, [])
+  const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
   return (
     <Card
       className={className}
@@ -1280,29 +1276,48 @@ function LongQueryConfigSingle({ name, config }: LongQueryConfigSingleProps) {
 
 interface LongQueryConfigCardProps {
   className: string
-  form: FF.FormApi
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
+  disabled: boolean
 }
 
 function LongQueryConfigCard({
   className,
-  form,
+  disabled,
   tabulatorTables,
 }: LongQueryConfigCardProps) {
   const [editing, setEditing] = React.useState(false)
+  const onSubmit = React.useCallback(
+    () =>
+      new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(undefined)
+        }, 10000)
+      }),
+    [],
+  )
   if (editing) {
     return (
       <InlineForm className={className}>
-        <LongQueryConfigForm>
-          <InlineActions form={form} onCancel={() => setEditing(false)} />
-        </LongQueryConfigForm>
+        <RF.Form
+          onSubmit={onSubmit}
+          initialValues={{ tabulatorTables }}
+          mutators={{ ...arrayMutators }}
+        >
+          {({ form, handleSubmit }) => (
+            <form onSubmit={handleSubmit}>
+              <LongQueryConfigForm>
+                <InlineActions form={form} onCancel={() => setEditing(false)} />
+              </LongQueryConfigForm>
+            </form>
+          )}
+        </RF.Form>
       </InlineForm>
     )
   }
   return (
     <Card
       className={className}
-      disabled={form.getState().submitting}
+      disabled={disabled}
       onEdit={() => setEditing(true)}
       icon="query_builder"
       title="Longitudinal Query Configuration"
@@ -1437,13 +1452,9 @@ function Add({ back, settings, submit }: AddProps) {
     },
     [submit],
   )
-  const formRef = React.useRef<HTMLFormElement>(null)
+  const scrollingRef = React.useRef<HTMLDivElement>(null)
   return (
-    <RF.Form
-      onSubmit={onSubmit}
-      initialValues={{ enableDeepIndexing: true }}
-      mutators={{ ...arrayMutators }}
-    >
+    <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
         dirty,
         handleSubmit,
@@ -1462,15 +1473,20 @@ function Add({ back, settings, submit }: AddProps) {
           >
             Add a bucket
           </SubPageHeader>
-          <form onSubmit={handleSubmit} ref={formRef} className={classes.fields}>
-            <PrimaryForm className={classes.card} />
-            <MetadataForm className={classes.card} />
-            <IndexingAndNotificationsForm className={classes.card} settings={settings} />
-            <PreviewForm className={classes.card} />
+          <div className={classes.fields} ref={scrollingRef}>
+            <form className={classes.card} onSubmit={handleSubmit}>
+              <PrimaryForm className={classes.card} />
+              <MetadataForm className={classes.card} />
+              <IndexingAndNotificationsForm
+                className={classes.card}
+                settings={settings}
+              />
+              <PreviewForm className={classes.card} />
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
             <LongQueryConfigForm className={classes.card} />
-            <input type="submit" style={{ display: 'none' }} />
-          </form>
-          <FormActions siblingRef={formRef}>
+          </div>
+          <FormActions siblingRef={scrollingRef}>
             {submitFailed && (
               <Form.FormError
                 className={classes.error}
@@ -1723,26 +1739,15 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
     [submit],
   )
 
-  const initialValues = bucketToFormValues(bucket, tabulatorTables)
+  // const [editing, setEditing] = React.useState<'primary'|'metadata'|'indexing'|'preview'| 'longquery'|null>(null)
 
-  const formRef = React.useRef<HTMLFormElement>(null)
+  const initialValues = bucketToFormValues(bucket)
+
+  const scrollingRef = React.useRef<HTMLDivElement>(null)
 
   return (
-    <RF.Form
-      onSubmit={onSubmit}
-      initialValues={initialValues}
-      mutators={{ ...arrayMutators }}
-    >
-      {({
-        handleSubmit,
-        submitting,
-        submitFailed,
-        error,
-        submitError,
-        hasValidationErrors,
-        pristine,
-        form,
-      }) => (
+    <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
+      {({ handleSubmit, submitting, pristine, form }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
           <SubPageHeader
@@ -1752,71 +1757,26 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
             submit={handleSubmit}
           />
           <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
-            <form className={classes.fields} onSubmit={handleSubmit} ref={formRef}>
-              <PrimaryCard bucket={bucket} className={classes.card} form={form} />
-              <MetadataCard bucket={bucket} className={classes.card} form={form} />
-              <IndexingAndNotificationsCard
-                bucket={bucket}
-                className={classes.card}
-                form={form}
-                reindex={openReindex}
-              />
-              <PreviewCard bucket={bucket} className={classes.card} form={form} />
+            <div className={classes.fields} ref={scrollingRef}>
+              <form className={classes.card} onSubmit={handleSubmit}>
+                <PrimaryCard bucket={bucket} className={classes.card} form={form} />
+                <MetadataCard bucket={bucket} className={classes.card} form={form} />
+                <IndexingAndNotificationsCard
+                  bucket={bucket}
+                  className={classes.card}
+                  form={form}
+                  reindex={openReindex}
+                />
+                <PreviewCard bucket={bucket} className={classes.card} form={form} />
+                <input type="submit" style={{ display: 'none' }} />
+              </form>
               <LongQueryConfigCard
                 className={classes.card}
-                form={form}
                 tabulatorTables={tabulatorTables}
-              />
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
-          </React.Suspense>
-          {!bucket && (
-            <FormActions siblingRef={formRef}>
-              {submitFailed && (
-                <Form.FormError
-                  className={classes.error}
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    notificationConfigurationError: 'Notification configuration error',
-                    bucketNotFound: 'Bucket not found',
-                  }}
-                  margin="none"
-                />
-              )}
-              {submitting && (
-                <Delay>
-                  {() => (
-                    <M.Box flexGrow={1} display="flex" pl={2}>
-                      <M.CircularProgress size={24} />
-                    </M.Box>
-                  )}
-                </Delay>
-              )}
-              <M.Button
-                onClick={() => form.reset()}
-                color="primary"
-                disabled={pristine || submitting}
-              >
-                Reset
-              </M.Button>
-              <M.Button
-                onClick={() => back('cancel')}
-                color="primary"
                 disabled={submitting}
-              >
-                Cancel
-              </M.Button>
-              <M.Button
-                onClick={handleSubmit}
-                color="primary"
-                disabled={pristine || submitting || (submitFailed && hasValidationErrors)}
-                variant="contained"
-              >
-                Save
-              </M.Button>
-            </FormActions>
-          )}
+              />
+            </div>
+          </React.Suspense>
         </>
       )}
     </RF.Form>
@@ -1842,6 +1802,18 @@ function EditPage({ back }: EditPageProps) {
   )
   const tabulatorTables =
     GQL.useQueryS(TABULATOR_TABLES_QUERY).bucketConfig?.tabulatorTables || []
+  // const tabulatorTables = [
+  //   {
+  //     __typename: 'TabulatorTable' as const,
+  //     name: 'one',
+  //     config: `lorem: ipsum`,
+  //   },
+  //   {
+  //     __typename: 'TabulatorTable' as const,
+  //     name: 'two',
+  //     config: `foo: bar`,
+  //   },
+  // ]
 
   const submit = React.useCallback(
     async (input: Model.GQLTypes.BucketUpdateInput) => {
