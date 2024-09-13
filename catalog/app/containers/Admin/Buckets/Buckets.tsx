@@ -1,6 +1,5 @@
 import cx from 'classnames'
 import * as FF from 'final-form'
-import arrayMutators from 'final-form-arrays'
 import * as FP from 'fp-ts'
 import * as IO from 'io-ts'
 import * as R from 'ramda'
@@ -27,7 +26,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
-import { mkFormError, mapInputErrors } from 'utils/formTools'
 import { formatQuantity } from 'utils/string'
 import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
@@ -45,7 +43,6 @@ import UPDATE_MUTATION from './gql/BucketsUpdate.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
-import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesAdd.generated'
 
 const noop = () => {}
 
@@ -1276,11 +1273,6 @@ function LongQueryConfigSingle({ name, config }: LongQueryConfigSingleProps) {
   return <JsonDisplay name={name} topLevel value={json} />
 }
 
-type FormValues = Record<
-  'tabulatorTables',
-  Model.GQLTypes.BucketConfig['tabulatorTables']
->
-
 interface LongQueryConfigCardProps {
   bucket: string
   className: string
@@ -1295,59 +1287,14 @@ function LongQueryConfigCard({
   tabulatorTables,
 }: LongQueryConfigCardProps) {
   const [editing, setEditing] = React.useState(false)
-  const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
-  const onSubmit = React.useCallback(
-    async (values: FormValues) => {
-      try {
-        await Promise.all(
-          values.tabulatorTables.map(async ({ name, config }) => {
-            const {
-              admin: { bucketSetTabulatorTable: r },
-            } = await setTabulatorTable({ bucketName: bucket, tableName: name, config })
-            if (!r) return assertNever(r as never)
-            if (r.__typename === 'BucketConfig') return undefined
-            throw r
-          }),
-        )
-        setEditing(false)
-      } catch (e) {
-        if (e instanceof Error) {
-          // eslint-disable-next-line no-console
-          console.error('Error setting tabulator table')
-          // eslint-disable-next-line no-console
-          console.error(e)
-          return mkFormError(e.message)
-        }
-        const r = e as Model.GQLTypes.OperationError | Model.GQLTypes.InvalidInput
-        switch (r.__typename) {
-          case 'InvalidInput':
-            return mapInputErrors(r.errors)
-          case 'OperationError':
-            return mkFormError(r.message)
-          default:
-            return assertNever(r)
-        }
-      }
-    },
-    [bucket, setTabulatorTable],
-  )
   if (editing) {
     return (
-      <InlineForm className={className}>
-        <RF.Form
-          onSubmit={onSubmit}
-          initialValues={{ tabulatorTables }}
-          mutators={{ ...arrayMutators }}
-        >
-          {({ form, handleSubmit }: RF.FormRenderProps<FormValues>) => (
-            <form onSubmit={handleSubmit}>
-              <LongQueryConfigForm>
-                {/* @ts-expect-error TODO: specify FormValues type for the form */}
-                <InlineActions form={form} onCancel={() => setEditing(false)} />
-              </LongQueryConfigForm>
-            </form>
-          )}
-        </RF.Form>
+      <InlineForm className={className} title="Longitudinal Query Configurations">
+        <LongQueryConfigForm
+          bucket={bucket}
+          onClose={() => setEditing(false)}
+          tabulatorTables={tabulatorTables}
+        />
       </InlineForm>
     )
   }
@@ -1359,8 +1306,8 @@ function LongQueryConfigCard({
       icon="query_builder"
       title={
         tabulatorTables.length
-          ? 'No longitudinal query configs'
-          : 'Longitudinal Query Configuration'
+          ? 'Longitudinal Query Configuration'
+          : 'No longitudinal query configs'
       }
     >
       {tabulatorTables.map((table, i) => (
@@ -1525,7 +1472,9 @@ function Add({ back, settings, submit }: AddProps) {
               <PreviewForm className={classes.card} />
               <input type="submit" style={{ display: 'none' }} />
             </form>
-            <LongQueryConfigForm className={classes.card} />
+            <M.Typography>
+              Longitudal query configs will be available after creating the bucket
+            </M.Typography>
           </div>
           <FormActions siblingRef={scrollingRef}>
             {submitFailed && (
