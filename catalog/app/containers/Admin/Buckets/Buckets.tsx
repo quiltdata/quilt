@@ -1320,7 +1320,11 @@ function LongQueryConfigCard({
       disabled={disabled}
       onEdit={() => setEditing(true)}
       icon="query_builder"
-      title="Longitudinal Query Configuration"
+      title={
+        tabulatorTables.length
+          ? 'No longitudinal query configs'
+          : 'Longitudinal Query Configuration'
+      }
     >
       {tabulatorTables.map((table, i) => (
         <LongQueryConfigSingle {...table} key={`${table.name}_${i}`} />

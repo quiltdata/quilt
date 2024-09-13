@@ -49,6 +49,7 @@ const validateYaml: FF.FieldValidator<string> = (inputStr?: string) => {
 
 const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
   item: {
+    marginBottom: t.spacing(2),
     '& + &': {
       marginTop: t.spacing(2),
     },
@@ -69,38 +70,50 @@ export default function LongQueryConfigForm({
 }: LongQueryConfigFormProps) {
   const classes = useLongQueryConfigFormStyles()
   loadMode('yaml')
+  // TODO:
+  // useEffect -> if tabulatorTables is empty, add one
   return (
     <div className={className}>
       <RFA.FieldArray name="tabulatorTables">
-        {({ fields }) =>
-          fields.map((name) => (
-            <div className={classes.item} key={name}>
-              <RF.Field
-                className={classes.name}
-                component={Form.Field}
-                fullWidth
-                label="Config name"
-                name={`${name}.name`}
-                errors={{
-                  required: 'Enter a config name',
-                }}
-                validate={validators.required as FF.FieldValidator<any>}
-              />
-              <RF.Field
-                component={YamlEditorField}
-                name={`${name}.config`}
-                errors={{
-                  required: 'Enter config content',
-                  invalid: 'YAML is invalid',
-                }}
-                validate={validators.composeAnd([
-                  validators.required as FF.FieldValidator<any>,
-                  validateYaml,
-                ])}
-              />
-            </div>
-          ))
-        }
+        {({ fields }) => (
+          <>
+            {fields.map((name) => (
+              <div className={classes.item} key={name}>
+                <RF.Field
+                  className={classes.name}
+                  component={Form.Field}
+                  fullWidth
+                  label="Config name"
+                  name={`${name}.name`}
+                  errors={{
+                    required: 'Enter a config name',
+                  }}
+                  validate={validators.required as FF.FieldValidator<any>}
+                />
+                <RF.Field
+                  component={YamlEditorField}
+                  name={`${name}.config`}
+                  errors={{
+                    required: 'Enter config content',
+                    invalid: 'YAML is invalid',
+                  }}
+                  validate={validators.composeAnd(
+                    validators.required as FF.FieldValidator<any>,
+                    validateYaml,
+                  )}
+                />
+              </div>
+            ))}
+            <M.Button
+              type="button"
+              onClick={() => fields.push({ name: '', config: '' })}
+              startIcon={<M.Icon>add_circle</M.Icon>}
+              variant="outlined"
+            >
+              Add
+            </M.Button>
+          </>
+        )}
       </RFA.FieldArray>
       {children}
     </div>
