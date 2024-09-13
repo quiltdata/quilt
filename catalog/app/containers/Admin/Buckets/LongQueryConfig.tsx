@@ -5,6 +5,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
@@ -130,7 +131,7 @@ interface LongQueryConfigFormProps {
   bucketName: string
   className?: string
   tabulatorTable: FormValues
-  onClose?: () => void
+  onClose: () => void
 }
 
 function LongQueryConfigForm({
@@ -149,6 +150,7 @@ function LongQueryConfigForm({
         } = await setTabulatorTable({ bucketName, tableName: name, config })
         switch (r.__typename) {
           case 'BucketConfig':
+            onClose()
             return undefined
           case 'InvalidInput':
             return mapInputErrors(r.errors)
@@ -165,36 +167,41 @@ function LongQueryConfigForm({
         return mkFormError('unexpected')
       }
     },
-    [bucketName, setTabulatorTable],
+    [bucketName, onClose, setTabulatorTable],
   )
-  const onRemove = React.useCallback(
-    async (name: string) => {
-      // FIXME: show confirmation dialog
-      // FIXME: re-use same algorithm as in SSOConfig to handle deletion with RF.Form
-      try {
-        const {
-          admin: { bucketSetTabulatorTable: r },
-        } = await setTabulatorTable({ bucketName, tableName: name, config: null })
-        switch (r.__typename) {
-          case 'BucketConfig':
-            return undefined
-          case 'InvalidInput':
-            return mapInputErrors(r.errors)
-          case 'OperationError':
-            return mkFormError(r.message)
-          default:
-            return assertNever(r)
-        }
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('Error updating SSO config')
-        // eslint-disable-next-line no-console
-        console.error(e)
-        return mkFormError('unexpected')
+  const onDelete = React.useCallback(async () => {
+    // FIXME: re-use same algorithm as in SSOConfig to handle deletion with RF.Form
+    try {
+      const {
+        admin: { bucketSetTabulatorTable: r },
+      } = await setTabulatorTable({
+        bucketName,
+        tableName: tabulatorTable.name,
+        config: null,
+      })
+      switch (r.__typename) {
+        case 'BucketConfig':
+          return undefined
+        case 'InvalidInput':
+          return mapInputErrors(r.errors)
+        case 'OperationError':
+          return mkFormError(r.message)
+        default:
+          return assertNever(r)
       }
-    },
-    [bucketName, setTabulatorTable],
-  )
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Error updating SSO config')
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return mkFormError('unexpected')
+    }
+  }, [bucketName, tabulatorTable.name, setTabulatorTable])
+  const confirm = useConfirm({
+    title: 'You are about to delete Longitudinal query config',
+    submitTitle: 'Delete',
+    onSubmit: (confirmed) => confirmed && onDelete(),
+  })
   return (
     <RF.Form onSubmit={onSubmit} initialValues={tabulatorTable}>
       {({
@@ -208,6 +215,7 @@ function LongQueryConfigForm({
         submitError,
       }) => (
         <form className={cx(classes.root, className)} onSubmit={handleSubmit}>
+          {confirm.render(<></>)}
           <div className={classes.main}>
             <RF.Field
               className={classes.editor}
@@ -251,7 +259,7 @@ function LongQueryConfigForm({
           </div>
           <div className={classes.actions}>
             <M.Button
-              onClick={() => (onClose ? onClose() : onRemove(tabulatorTable.name))}
+              onClick={tabulatorTable.name ? confirm.open : onClose}
               type="button"
               className={cx(classes.delete, classes.button)}
               disabled={submitting}
@@ -337,6 +345,7 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
           className={classes.item}
           key={tabulatorTable.name}
           tabulatorTable={tabulatorTable}
+          onClose={() => setToAdd(false)}
         />
       ))}
       {toAdd && (
