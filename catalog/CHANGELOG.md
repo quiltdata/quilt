@@ -5,7 +5,7 @@ Changes are listed in reverse chronological order (newer entries at the top).
 The entry format is
 
 ```markdown
-- [Verb] Change description ([#<PR-number>](https://github.com/quiltdata/quilt/pull/<PR-number>))
+- [Verb] Tag: Change description ([#<PR-number>](https://github.com/quiltdata/quilt/pull/<PR-number>))
 ```
 
 where verb is one of
@@ -14,6 +14,8 @@ where verb is one of
 - Added
 - Fixed
 - Changed
+
+and tag is one of: Athena, Admin, PackageDialog etc.
 
 ## Changes
 
