@@ -30,16 +30,18 @@ const FORM_ERRORS = {
   unexpected: 'Unable to update SSO config: something went wrong',
 }
 
-type TextFieldProps = RF.FieldRenderProps<string> & M.TextFieldProps
+type TextFieldProps = RF.FieldRenderProps<string> &
+  M.TextFieldProps & { className: string }
 
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
 
-function TextField({ errors, input, meta }: TextFieldProps) {
+function TextField({ className, errors, input, meta }: TextFieldProps) {
   // TODO: lint yaml
   const error = meta.error || meta.submitError
   const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
   return (
     <TextEditor
+      className={className}
       error={errorMessage ? new Error(errorMessage) : null}
       onChange={input.onChange}
       type={TEXT_EDITOR_TYPE}
@@ -56,6 +58,9 @@ const useStyles = M.makeStyles((t) => ({
     '&:hover': {
       background: t.palette.error.main,
     },
+  },
+  editor: {
+    height: t.spacing(30),
   },
   error: {
     marginTop: t.spacing(2),
@@ -109,6 +114,7 @@ function Form({
           label="SSO config"
           name="config"
           validate={validators.required as FF.FieldValidator<any>}
+          className={classes.editor}
         />
         {submitFailed && (
           <>

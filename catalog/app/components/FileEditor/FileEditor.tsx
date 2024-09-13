@@ -15,18 +15,20 @@ import { EditorInputType } from './types'
 export { detect, isSupportedFileType } from './loader'
 
 interface EditorProps extends EditorState {
+  className: string
   editing: EditorInputType
   empty?: boolean
   handle: Model.S3.S3ObjectLocation
 }
 
 function EditorSuspended({
-  saving,
+  className,
+  editing,
   empty,
   error,
   handle,
   onChange,
-  editing,
+  saving,
 }: EditorProps) {
   const disabled = saving
   if (editing.brace !== '__quiltConfig') {
@@ -37,14 +39,21 @@ function EditorSuspended({
   if (empty)
     return editing.brace === '__quiltConfig' ? (
       <QuiltConfigEditor
-        handle={handle}
+        className={className}
         disabled={disabled}
         error={error}
-        onChange={onChange}
+        handle={handle}
         initialValue=""
+        onChange={onChange}
       />
     ) : (
-      <TextEditor error={error} type={editing} value="" onChange={onChange} />
+      <TextEditor
+        className={className}
+        error={error}
+        type={editing}
+        value=""
+        onChange={onChange}
+      />
     )
   return data.case({
     _: () => <Skeleton />,
@@ -61,16 +70,18 @@ function EditorSuspended({
       if (editing.brace === '__quiltConfig') {
         return (
           <QuiltConfigEditor
-            handle={handle}
+            className={className}
             disabled={disabled}
             error={error}
-            onChange={onChange}
+            handle={handle}
             initialValue={value}
+            onChange={onChange}
           />
         )
       }
       return (
         <TextEditor
+          className={className}
           disabled={disabled}
           error={error}
           onChange={onChange}
