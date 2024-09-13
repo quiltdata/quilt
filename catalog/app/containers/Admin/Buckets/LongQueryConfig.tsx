@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 
 import { loadMode } from 'components/FileEditor/loader'
 import * as validators from 'utils/validators'
+import * as yaml from 'utils/yaml'
 
 import * as Form from '../Form'
 
@@ -37,6 +38,13 @@ function YamlEditorField({ errors, input, meta }: YamlEditorFieldProps) {
       value={meta.initial}
     />
   )
+}
+
+const validateYaml: FF.FieldValidator<string> = (inputStr?: string) => {
+  const error = yaml.validate(inputStr)
+  if (error) {
+    return 'invalid'
+  }
 }
 
 const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
@@ -73,12 +81,22 @@ export default function LongQueryConfigForm({
                 fullWidth
                 label="Config name"
                 name={`${name}.name`}
+                errors={{
+                  required: 'Enter a config name',
+                }}
                 validate={validators.required as FF.FieldValidator<any>}
               />
               <RF.Field
                 component={YamlEditorField}
                 name={`${name}.config`}
-                validate={validators.required as FF.FieldValidator<any>}
+                errors={{
+                  required: 'Enter config content',
+                  invalid: 'YAML is invalid',
+                }}
+                validate={validators.composeAnd([
+                  validators.required as FF.FieldValidator<any>,
+                  validateYaml,
+                ])}
               />
             </div>
           ))
