@@ -1801,19 +1801,8 @@ function EditPage({ back }: EditPageProps) {
     [bucketName, rows],
   )
   const tabulatorTables =
-    GQL.useQueryS(TABULATOR_TABLES_QUERY).bucketConfig?.tabulatorTables || []
-  // const tabulatorTables = [
-  //   {
-  //     __typename: 'TabulatorTable' as const,
-  //     name: 'one',
-  //     config: `lorem: ipsum`,
-  //   },
-  //   {
-  //     __typename: 'TabulatorTable' as const,
-  //     name: 'two',
-  //     config: `foo: bar`,
-  //   },
-  // ]
+    GQL.useQueryS(TABULATOR_TABLES_QUERY, { bucket: bucketName }).bucketConfig
+      ?.tabulatorTables || []
 
   const submit = React.useCallback(
     async (input: Model.GQLTypes.BucketUpdateInput) => {
