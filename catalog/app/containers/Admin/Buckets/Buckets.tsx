@@ -27,6 +27,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
+import { mkFormError, mapInputErrors } from 'utils/formTools'
 import { formatQuantity } from 'utils/string'
 import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
@@ -44,6 +45,7 @@ import UPDATE_MUTATION from './gql/BucketsUpdate.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
+import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesAdd.generated'
 
 const noop = () => {}
 
@@ -1274,26 +1276,60 @@ function LongQueryConfigSingle({ name, config }: LongQueryConfigSingleProps) {
   return <JsonDisplay name={name} topLevel value={json} />
 }
 
+type FormValues = Record<
+  'tabulatorTables',
+  Model.GQLTypes.BucketConfig['tabulatorTables']
+>
+
 interface LongQueryConfigCardProps {
+  bucket: string
   className: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
   disabled: boolean
 }
 
 function LongQueryConfigCard({
+  bucket,
   className,
   disabled,
   tabulatorTables,
 }: LongQueryConfigCardProps) {
   const [editing, setEditing] = React.useState(false)
+  const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const onSubmit = React.useCallback(
-    () =>
-      new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(undefined)
-        }, 10000)
-      }),
-    [],
+    async (values: FormValues) => {
+      try {
+        await Promise.all(
+          values.tabulatorTables.map(async ({ name, config }) => {
+            const {
+              admin: { bucketSetTabulatorTable: r },
+            } = await setTabulatorTable({ bucketName: bucket, tableName: name, config })
+            if (!r) return assertNever(r as never)
+            if (r.__typename === 'BucketConfig') return undefined
+            throw r
+          }),
+        )
+        setEditing(false)
+      } catch (e) {
+        if (e instanceof Error) {
+          // eslint-disable-next-line no-console
+          console.error('Error setting tabulator table')
+          // eslint-disable-next-line no-console
+          console.error(e)
+          return mkFormError(e.message)
+        }
+        const r = e as Model.GQLTypes.OperationError | Model.GQLTypes.InvalidInput
+        switch (r.__typename) {
+          case 'InvalidInput':
+            return mapInputErrors(r.errors)
+          case 'OperationError':
+            return mkFormError(r.message)
+          default:
+            return assertNever(r)
+        }
+      }
+    },
+    [bucket, setTabulatorTable],
   )
   if (editing) {
     return (
@@ -1303,9 +1339,10 @@ function LongQueryConfigCard({
           initialValues={{ tabulatorTables }}
           mutators={{ ...arrayMutators }}
         >
-          {({ form, handleSubmit }) => (
+          {({ form, handleSubmit }: RF.FormRenderProps<FormValues>) => (
             <form onSubmit={handleSubmit}>
               <LongQueryConfigForm>
+                {/* @ts-expect-error TODO: specify FormValues type for the form */}
                 <InlineActions form={form} onCancel={() => setEditing(false)} />
               </LongQueryConfigForm>
             </form>
@@ -1775,6 +1812,7 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
                 <input type="submit" style={{ display: 'none' }} />
               </form>
               <LongQueryConfigCard
+                bucket={bucket.name}
                 className={classes.card}
                 tabulatorTables={tabulatorTables}
                 disabled={submitting}
