@@ -94,6 +94,7 @@ const useCardStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(1),
   },
   content: {
+    cursor: 'default',
     paddingTop: 0,
     '& > *': {
       marginTop: t.spacing(1),
@@ -641,7 +642,7 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
           margin="none"
         />
       )}
-      {true && (
+      {state.submitting && (
         <Delay>
           {() => (
             <div className={classes.helper}>
