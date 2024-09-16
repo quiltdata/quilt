@@ -130,7 +130,7 @@ type FormValues = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 interface LongQueryConfigFormProps {
   bucketName: string
   className?: string
-  tabulatorTable: FormValues
+  tabulatorTable?: FormValues
   onClose: () => void
 }
 
@@ -142,12 +142,17 @@ function LongQueryConfigForm({
 }: LongQueryConfigFormProps) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useLongQueryConfigFormStyles()
-  const onSubmit = React.useCallback(
-    async ({ name, config }: FormValues) => {
+
+  const submitConfig = React.useCallback(
+    async (tableName: string, config: string | null = null) => {
       try {
         const {
           admin: { bucketSetTabulatorTable: r },
-        } = await setTabulatorTable({ bucketName, tableName: name, config })
+        } = await setTabulatorTable({
+          bucketName,
+          tableName,
+          config,
+        })
         switch (r.__typename) {
           case 'BucketConfig':
             onClose()
@@ -169,34 +174,23 @@ function LongQueryConfigForm({
     },
     [bucketName, onClose, setTabulatorTable],
   )
+
+  const onSubmit = React.useCallback(
+    (values: FormValues) => submitConfig(values.name, values.config),
+    [submitConfig],
+  )
+  const [deleting, setDeleting] = React.useState<
+    FF.SubmissionErrors | boolean | undefined
+  >()
   const onDelete = React.useCallback(async () => {
-    // FIXME: re-use same algorithm as in SSOConfig to handle deletion with RF.Form
-    try {
-      const {
-        admin: { bucketSetTabulatorTable: r },
-      } = await setTabulatorTable({
-        bucketName,
-        tableName: tabulatorTable.name,
-        config: null,
-      })
-      switch (r.__typename) {
-        case 'BucketConfig':
-          return undefined
-        case 'InvalidInput':
-          return mapInputErrors(r.errors)
-        case 'OperationError':
-          return mkFormError(r.message)
-        default:
-          return assertNever(r)
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Error updating SSO config')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return mkFormError('unexpected')
+    if (!tabulatorTable) {
+      // Should have called onClose instead
+      throw new Error('No tabulator Table to delete')
     }
-  }, [bucketName, tabulatorTable.name, setTabulatorTable])
+    setDeleting(true)
+    const errors = await submitConfig(tabulatorTable.name)
+    setDeleting(errors)
+  }, [submitConfig, tabulatorTable])
   const confirm = useConfirm({
     title: 'You are about to delete Longitudinal query config',
     submitTitle: 'Delete',
@@ -229,7 +223,7 @@ function LongQueryConfigForm({
                 validators.required as FF.FieldValidator<any>,
                 validateYaml,
               )}
-              disabled={submitting}
+              disabled={submitting || deleting}
             />
             <RF.Field
               className={classes.name}
@@ -243,15 +237,19 @@ function LongQueryConfigForm({
               validate={validators.required as FF.FieldValidator<any>}
               variant="outlined"
               size="small"
-              disabled={!!tabulatorTable.name || submitting}
+              disabled={!!tabulatorTable || submitting || deleting}
             />
-            {submitFailed && (
+            {(submitFailed || typeof deleting === 'object') && (
               <Form.FormError
-                error={error || submitError}
+                error={
+                  error ||
+                  submitError ||
+                  (typeof deleting === 'object' && deleting[FF.FORM_ERROR])
+                }
                 errors={{ unexpected: 'Something went wrong' }}
               />
             )}
-            {submitting && (
+            {(submitting || deleting) && (
               <div className={classes.lock}>
                 <M.CircularProgress size={24} />
               </div>
@@ -259,10 +257,10 @@ function LongQueryConfigForm({
           </div>
           <div className={classes.actions}>
             <M.Button
-              onClick={tabulatorTable.name ? confirm.open : onClose}
+              onClick={tabulatorTable ? confirm.open : onClose}
               type="button"
               className={cx(classes.delete, classes.button)}
-              disabled={submitting}
+              disabled={submitting || deleting === true}
               variant="outlined"
             >
               Delete
@@ -271,7 +269,7 @@ function LongQueryConfigForm({
               onClick={() => form.reset()}
               className={classes.button}
               color="primary"
-              disabled={pristine || submitting}
+              disabled={pristine || submitting || deleting === true}
               variant="outlined"
             >
               Reset
@@ -280,7 +278,12 @@ function LongQueryConfigForm({
               className={classes.button}
               onClick={form.submit}
               color="primary"
-              disabled={pristine || submitting || (submitFailed && hasValidationErrors)}
+              disabled={
+                pristine ||
+                submitting ||
+                deleting === true ||
+                (submitFailed && hasValidationErrors)
+              }
               variant="contained"
             >
               Save
@@ -350,7 +353,6 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
           bucketName={bucket}
           className={classes.item}
           onClose={() => setToAdd(false)}
-          tabulatorTable={{ name: '', config: '' }}
         />
       )}
       <div className={classes.actions}>
