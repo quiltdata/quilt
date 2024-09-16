@@ -51,7 +51,7 @@ function YamlEditorField({
       leadingChange={false}
       onChange={input.onChange}
       type={TEXT_EDITOR_TYPE}
-      value={meta.initial}
+      initialValue={meta.initial}
     />
   )
 }

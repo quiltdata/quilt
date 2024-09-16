@@ -45,7 +45,7 @@ function TextField({ className, errors, input, meta }: TextFieldProps) {
       error={errorMessage ? new Error(errorMessage) : null}
       onChange={input.onChange}
       type={TEXT_EDITOR_TYPE}
-      value={meta.initial}
+      initialValue={meta.initial}
     />
   )
 }

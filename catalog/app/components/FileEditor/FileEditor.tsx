@@ -51,7 +51,7 @@ function EditorSuspended({
         className={className}
         error={error}
         type={editing}
-        value=""
+        initialValue=""
         onChange={onChange}
       />
     )
@@ -86,7 +86,7 @@ function EditorSuspended({
           error={error}
           onChange={onChange}
           type={editing}
-          value={value}
+          initialValue={value}
         />
       )
     },

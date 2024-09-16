@@ -32,7 +32,7 @@ interface TextEditorProps {
   leadingChange?: boolean
   onChange: (value: string) => void
   type: EditorInputType
-  value?: string // FIXME: initialValue
+  initialValue?: string
 }
 
 export default function TextEditor({
@@ -42,7 +42,7 @@ export default function TextEditor({
   leadingChange = true,
   onChange,
   type,
-  value = '',
+  initialValue = '',
 }: TextEditorProps) {
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
@@ -60,7 +60,7 @@ export default function TextEditor({
     editor.setTheme('ace/theme/eclipse')
 
     editor.$blockScrolling = Infinity
-    editor.setValue(value, -1)
+    editor.setValue(initialValue, -1)
     if (leadingChange) {
       // Initially fill the value in the parent component.
       // TODO: Re-design fetching data, so leading onChange wan't be necessary
@@ -74,7 +74,7 @@ export default function TextEditor({
       resizeObserver.unobserve(wrapper)
       editor.destroy()
     }
-  }, [leadingChange, onChange, ref, type.brace, value])
+  }, [leadingChange, onChange, ref, type.brace, initialValue])
 
   return (
     <div className={cx(classes.root, className)}>
