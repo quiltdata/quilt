@@ -319,7 +319,7 @@ const useConfigsStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(3),
   },
   actions: {
-    marginTop: t.spacing(2),
+    margin: t.spacing(2, -5, 0),
     display: 'flex',
     justifyContent: 'flex-end',
     padding: t.spacing(2, 0, 0),
@@ -342,7 +342,7 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(tabulatorTables.length === 0)
   return (
-    <div style={{ marginTop: '16px' }}>
+    <>
       {tabulatorTables.map((tabulatorTable) => (
         <LongQueryConfigForm
           bucketName={bucket}
@@ -372,6 +372,6 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
           Add config
         </M.Button>
       </div>
-    </div>
+    </>
   )
 }
