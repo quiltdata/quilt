@@ -323,8 +323,9 @@ const useConfigsStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'flex-end',
     padding: t.spacing(2, 0, 0),
-    '& > * + *': {
-      // Spacing between direct children
+  },
+  button: {
+    '& + &': {
       marginLeft: t.spacing(2),
     },
   },
@@ -358,11 +359,12 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
         />
       )}
       <div className={classes.actions}>
-        <M.Button type="button" onClick={onClose}>
+        <M.Button type="button" onClick={onClose} className={classes.button}>
           Close
         </M.Button>
         <M.Button
           type="button"
+          className={classes.button}
           onClick={() => setToAdd(true)}
           startIcon={<M.Icon>post_add</M.Icon>}
           disabled={toAdd}
