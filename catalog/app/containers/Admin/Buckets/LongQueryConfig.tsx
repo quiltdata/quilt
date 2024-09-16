@@ -243,7 +243,7 @@ function LongQueryConfigForm({
               validate={validators.required as FF.FieldValidator<any>}
               variant="outlined"
               size="small"
-              disabled={tabulatorTable.name || submitting}
+              disabled={!!tabulatorTable.name || submitting}
             />
             {submitFailed && (
               <Form.FormError
