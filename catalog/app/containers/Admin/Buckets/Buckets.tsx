@@ -608,11 +608,12 @@ function Hint({ children }: HintProps) {
   )
 }
 
-const useInlineActionsStyles = M.makeStyles({
-  error: {
+const useInlineActionsStyles = M.makeStyles((t) => ({
+  helper: {
     flexGrow: 1,
+    marginLeft: t.spacing(6),
   },
-})
+}))
 
 interface InlineActionsProps {
   form: FF.FormApi
@@ -630,7 +631,7 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
     <>
       {state.submitFailed && (
         <Form.FormError
-          className={classes.error}
+          className={classes.helper}
           error={state.error || state.submitError}
           errors={{
             unexpected: 'Something went wrong',
@@ -640,12 +641,12 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
           margin="none"
         />
       )}
-      {state.submitting && (
+      {true && (
         <Delay>
           {() => (
-            <M.Box flexGrow={1} display="flex" pl={2}>
+            <div className={classes.helper}>
               <M.CircularProgress size={24} />
-            </M.Box>
+            </div>
           )}
         </Delay>
       )}
