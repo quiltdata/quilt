@@ -131,7 +131,7 @@ interface LongQueryConfigFormProps {
   bucketName: string
   className?: string
   tabulatorTable?: FormValues
-  onClose: () => void
+  onClose?: () => void
 }
 
 function LongQueryConfigForm({
@@ -144,18 +144,19 @@ function LongQueryConfigForm({
   const classes = useLongQueryConfigFormStyles()
 
   const submitConfig = React.useCallback(
-    async (tableName: string, config: string | null = null) => {
+    async (
+      tableName: string,
+      config: string | null = null,
+    ): Promise<FF.SubmissionErrors | boolean | undefined> => {
       try {
         const {
           admin: { bucketSetTabulatorTable: r },
-        } = await setTabulatorTable({
-          bucketName,
-          tableName,
-          config,
-        })
+        } = await setTabulatorTable({ bucketName, tableName, config })
         switch (r.__typename) {
           case 'BucketConfig':
-            onClose()
+            if (onClose) {
+              onClose()
+            }
             return undefined
           case 'InvalidInput':
             return mapInputErrors(r.errors)
@@ -256,15 +257,17 @@ function LongQueryConfigForm({
             )}
           </div>
           <div className={classes.actions}>
-            <M.Button
-              onClick={tabulatorTable ? confirm.open : onClose}
-              type="button"
-              className={cx(classes.delete, classes.button)}
-              disabled={submitting || deleting === true}
-              variant="outlined"
-            >
-              Delete
-            </M.Button>
+            {(tabulatorTable || onClose) && (
+              <M.Button
+                onClick={tabulatorTable ? confirm.open : onClose}
+                type="button"
+                className={cx(classes.delete, classes.button)}
+                disabled={submitting || deleting === true}
+                variant="outlined"
+              >
+                Delete
+              </M.Button>
+            )}
             <M.Button
               onClick={() => form.reset()}
               className={classes.button}
@@ -330,7 +333,7 @@ const useConfigsStyles = M.makeStyles((t) => ({
 interface ConfigsProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
-  onClose?: () => void
+  onClose?: () => void // confirm if there are unsaved changes
 }
 
 export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsProps) {
@@ -345,29 +348,27 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
           className={classes.item}
           key={tabulatorTable.name}
           tabulatorTable={tabulatorTable}
-          onClose={() => setToAdd(false)}
         />
       ))}
       {toAdd && (
         <LongQueryConfigForm
           bucketName={bucket}
           className={classes.item}
-          onClose={() => setToAdd(false)}
+          onClose={tabulatorTables.length ? () => setToAdd(false) : undefined}
         />
       )}
       <div className={classes.actions}>
         <M.Button type="button" onClick={onClose}>
           Close
         </M.Button>
-        {!toAdd && (
-          <M.Button
-            type="button"
-            onClick={() => setToAdd(true)}
-            startIcon={<M.Icon>post_add</M.Icon>}
-          >
-            Add config
-          </M.Button>
-        )}
+        <M.Button
+          type="button"
+          onClick={() => setToAdd(true)}
+          startIcon={<M.Icon>post_add</M.Icon>}
+          disabled={toAdd}
+        >
+          Add config
+        </M.Button>
       </div>
     </div>
   )
