@@ -63,7 +63,7 @@ export default function TextEditor({
     editor.setValue(initialValue, -1)
     if (leadingChange) {
       // Initially fill the value in the parent component.
-      // TODO: Re-design fetching data, so leading onChange wan't be necessary
+      // TODO: Re-design fetching data, so leading onChange won't be necessary
       //       probably, by putting data fetch into FileEditor/State
       onChange(editor.getValue())
       editor.focus()
