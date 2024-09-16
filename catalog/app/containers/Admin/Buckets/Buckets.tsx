@@ -1310,9 +1310,10 @@ function LongQueryConfigCard({
           : 'No longitudinal query configs'
       }
     >
-      {tabulatorTables.map((table, i) => (
-        <LongQueryConfigSingle {...table} key={`${table.name}_${i}`} />
-      ))}
+      {!!tabulatorTables.length &&
+        tabulatorTables.map((table, i) => (
+          <LongQueryConfigSingle {...table} key={`${table.name}_${i}`} />
+        ))}
     </Card>
   )
 }

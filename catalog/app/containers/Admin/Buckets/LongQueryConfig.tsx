@@ -333,9 +333,7 @@ interface ConfigsProps {
 export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsProps) {
   const classes = useConfigsStyles()
   loadMode('yaml')
-  const [toAdd, setToAdd] = React.useState(false)
-  // TODO:
-  // useEffect -> if tabulatorTables is empty, add one
+  const [toAdd, setToAdd] = React.useState(tabulatorTables.length === 0)
   return (
     <div style={{ marginTop: '16px' }}>
       {tabulatorTables.map((tabulatorTable) => (
