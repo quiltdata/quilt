@@ -58,9 +58,15 @@ export default function TextEditor({
 
     editor.getSession().setMode(`ace/mode/${type.brace}`)
     editor.setTheme('ace/theme/eclipse')
+
+    editor.$blockScrolling = Infinity
     editor.setValue(value, -1)
     if (leadingChange) {
-      onChange(editor.getValue()) // initially fill the value
+      // Initially fill the value in the parent component.
+      // TODO: Re-design fetching data, so leading onChange wan't be necessary
+      //       probably, by putting data fetch into FileEditor/State
+      onChange(editor.getValue())
+      editor.focus()
     }
     editor.on('change', () => onChange(editor.getValue()))
 
