@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://quiltdata.com/federator/config/1",
+  "type": "object"
+}
+

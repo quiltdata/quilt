@@ -40,3 +40,22 @@ export class ErrorDisplay extends BaseError {
     super(headline, { headline, detail, object })
   }
 }
+
+export interface JsonInvalidAgainstSchemaProps {
+  errors: { instancePath?: string; message?: string }[]
+}
+
+export class JsonInvalidAgainstSchema extends BaseError {
+  static displayName = 'JsonInvalidAgainstSchema'
+
+  constructor(props: JsonInvalidAgainstSchemaProps) {
+    super(
+      props.errors
+        .map(({ instancePath, message }) =>
+          instancePath ? `${instancePath} ${message}` : message,
+        )
+        .join(', '),
+      props,
+    )
+  }
+}
