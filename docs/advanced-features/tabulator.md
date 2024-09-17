@@ -1,34 +1,34 @@
+Here is the revised version with the API call information moved into the **Overview** section, and the **Configuration** section focused solely on the YAML file:
+
+---
+
 # Tabulator Configuration for Quilt
 
 > This feature requires Quilt stack version 1.55.0 or higher
 
 ## Overview
 
-Tabulator allows Quilt Admins to configure tables for querying tabular data
+Tabulator allows Quilt admins to configure tables for querying tabular data
 objects across multiple packages using AWS Athena. Admins can define schemas
 and data sources for CSV, TSV, Parquet, and other formats, enabling users to
 run SQL queries directly on Quilt packages.
 
-The configuration is written in YAML and can be managed using the
+The configuration can be written in YAML and managed using the
 `quilt3.admin.tabulator_config.set()` function or via the Quilt Admin UI.
+
+The API call for setting up the Tabulator configuration accepts three parameters:
+
+1. `bucket_name: str`: The name of the S3 bucket to be searched, e.g., "udp-spec".
+2. `table_name: str`: The name of the table to be created, e.g., "ccle-tsv".
+3. `config: str`: The configuration for the table as a YAML string.
 
 ![Admin UI for setting Tabulator configuration](../imgs/admin-tabulator-config.png)
 
-> Note: Tables defined by the configuration must match the format and schema
-> of the data stored in the corresponding Quilt packages.
-
-> Note: The configuration must be explicitly set by an Admin, but end-users
-> will be able to query the tables without needing to know the underlying
-> configuration details.
 
 ## Configuration
 
-Each tabulator is written in YAML, following the structure outlined
-below. The configuration can be set using the `quilt3.admin.tabulator_config.set()`, which takes three parameters:
-
-1. `bucket_name`: The name of the S3 bucket to be searched, e.g. "udp-spec".
-2. `table_name`: The name of the table to be create, e.g. "ccle-tsv".
-3. `config`: The configuration for the table as a YAML string (or object?).
+Each Tabulator configuration is written in YAML, following the structure
+outlined below:
 
 ### Example
 
@@ -53,14 +53,17 @@ parser:
   delimiter: "\t"
 ```
 
-1. The `ccle-tsv` table is defined with a schema containing
-   five columns: `Name`, `Length`, `EffectiveLength`, `TPM`, and `NumReads`.
-2. The table is sourced from Quilt packages whose names match the regular expression
-   `ccle/.*` and only those files whose logical keys match the regular expression
-   `quant.genes.sf$`.
-   Currently the only supported source type is `quilt`.
-3. The parser is configured to read the data as CSV with tab-delimited fields. Other
-   supported formats include `parquet`.
+1. The `ccle-tsv` table is defined with a schema containing five columns:
+   `Name`, `Length`, `EffectiveLength`, `TPM`, and `NumReads`.
+2. The table is sourced from Quilt packages whose names match the regular
+   expression `ccle/.*`, using those files whose logical keys match the
+   regular expression `quant.genes.sf$`. Currently, the only supported source
+   type is `quilt`.
+3. The parser is configured to read the data as CSV with tab-delimited fields.
+   Other supported formats include `parquet`.
+
+> Note: All files in the package that match the logical key must have the same
+> schema as defined in the configuration.
 
 ## Usage
 
@@ -68,23 +71,24 @@ Once the configuration is set, users can query the tables using the Athena tab
 from the Quilt Catalog. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console.
 
-For example, to query the `ccle-tsv` table, from the appropriate Workgroup in the
-'quilt-tf-dev-federator' stack:
+For example, to query the `ccle-tsv` table from the appropriate workgroup in
+the 'quilt-tf-dev-federator' stack:
 
 ```sql
 SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
 ```
 
-You can join this with any other Athena table, including the package and object
-tables automatically created by Quilt. For example, this is the package table:
+You can join this with any other Athena table, including the package and
+object tables automatically created by Quilt. For example, this is the package
+table:
 
 ```sql
 SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-WHERE PKG_NAME is NOT NULL
+WHERE PKG_NAME IS NOT NULL
 ```
 
-We can then join on PKG_NAME to add the `user_meta` field from the package metadata
-to the tabulated results:
+We can then join on PKG_NAME to add the `user_meta` field from the package
+metadata to the tabulated results:
 
 ```sql
 SELECT
