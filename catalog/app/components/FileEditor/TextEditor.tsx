@@ -2,7 +2,6 @@ import * as brace from 'brace'
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 
@@ -12,16 +11,26 @@ import 'brace/theme/eclipse'
 
 const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
-    border: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    flexDirection: 'column',
     position: 'relative',
     width: '100%',
   },
   editor: {
-    height: '100%',
+    border: `1px solid ${t.palette.divider}`,
+    flexGrow: 1,
     resize: 'vertical',
   },
   error: {
-    marginTop: t.spacing(1),
+    '& $editor': {
+      borderColor: t.palette.error.main,
+    },
+    '& $helperText': {
+      color: t.palette.error.main,
+    },
+  },
+  helperText: {
+    marginTop: t.spacing(0.5),
   },
 }))
 
@@ -77,12 +86,12 @@ export default function TextEditor({
   }, [leadingChange, onChange, ref, type.brace, initialValue])
 
   return (
-    <div className={cx(classes.root, className)}>
+    <div className={cx(classes.root, className, { [classes.error]: !!error })}>
       <div className={classes.editor} ref={ref} />
       {error && (
-        <Lab.Alert severity="error" className={classes.error} variant="outlined">
+        <M.Typography className={classes.helperText} variant="body2">
           {error.message}
-        </Lab.Alert>
+        </M.Typography>
       )}
       {disabled && <Lock />}
     </div>

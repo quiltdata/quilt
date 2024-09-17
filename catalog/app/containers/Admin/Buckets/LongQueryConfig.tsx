@@ -5,12 +5,16 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import federatorConfigSchema from 'schemas/federatorConfig.yml.json'
+
 import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
+import { JsonInvalidAgainstSchema } from 'utils/error'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
+import { makeSchemaValidator } from 'utils/json-schema'
 import * as validators from 'utils/validators'
 import * as yaml from 'utils/yaml'
 
@@ -32,7 +36,6 @@ function YamlEditorField({
   input,
   meta,
 }: YamlEditorFieldProps) {
-  // TODO: convert yaml to json and validate with JSON Schema
   const error = meta.error || meta.submitError
   const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
 
@@ -61,6 +64,17 @@ const validateYaml: FF.FieldValidator<string> = (inputStr?: string) => {
   if (error) {
     return 'invalid'
   }
+  return undefined
+}
+
+const validateConfig: FF.FieldValidator<string> = (inputStr?: string) => {
+  const data = yaml.parse(inputStr)
+  const validator = makeSchemaValidator(federatorConfigSchema)
+  const errors = validator(data)
+  if (errors.length) {
+    return new JsonInvalidAgainstSchema({ errors }).message
+  }
+  return undefined
 }
 
 const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
@@ -73,7 +87,7 @@ const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
     },
   },
   editor: {
-    height: t.spacing(20),
+    height: t.spacing(25),
   },
   header: {
     alignItems: 'center',
@@ -223,6 +237,7 @@ function LongQueryConfigForm({
               validate={validators.composeAnd(
                 validators.required as FF.FieldValidator<any>,
                 validateYaml,
+                validateConfig,
               )}
               disabled={submitting || deleting}
             />
@@ -334,7 +349,7 @@ const useConfigsStyles = M.makeStyles((t) => ({
 interface ConfigsProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
-  onClose?: () => void // confirm if there are unsaved changes
+  onClose?: () => void // TODO: confirm if there are unsaved changes
 }
 
 export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsProps) {
