@@ -23,52 +23,74 @@ The configuration is written in YAML and can be managed using the
 
 ## Configuration
 
-The per-bucket configuration is written in YAML, following the structure outlined
-below.
+Each tabulator is written in YAML, following the structure outlined
+below. The configuration can be set using the `quilt3.admin.tabulator_config.set()`, which takes three parameters:
+
+1. `bucket_name`: The name of the S3 bucket to be searched, e.g. "udp-spec".
+2. `table_name`: The name of the table to be create, e.g. "ccle-tsv".
+3. `config`: The configuration for the table as a YAML string (or object?).
 
 ### Example
 
 ```yaml
-version: "1.0"
-tables:
-  test_csv:
-    schema:  
-      - name: col1  
-        type: Utf8  
-      - name: col2  
-        type: Float16  
-    source:  
-      type: quilt  
-      package_name: "pre1/.*"  
-      logical_key: ".*\.csv"  
-    parser:  
-      format: csv  
-      delimiter: "\t"
+schema:
+  - name: Name
+    type: Utf8
+  - name: Length
+    type: Int32
+  - name: EffectiveLength
+    type: Float64
+  - name: TPM
+    type: Float64
+  - name: NumReads
+    type: Float64
+source:
+  type: quilt
+  package_name: "^ccle/"
+  logical_key: "quant\\.genes\\.sf$"
+parser:
+  format: csv
+  delimiter: "\t"
 ```
 
-1. The `test_csv` table is defined with a schema containing two columns: `col1`
-   of type `Utf8` and `col2` of type `Float16`.
-1. The table is sourced from Quilt packages with names matching the regular expression
-   `pre1/.*` and containing files with names matching the regular expression `.*\.csv`.
+1. The `ccle-tsv` table is defined with a schema containing
+   five columns: `Name`, `Length`, `EffectiveLength`, `TPM`, and `NumReads`.
+2. The table is sourced from Quilt packages whose names match the regular expression
+   `ccle/.*` and only those files whose logical keys match the regular expression
+   `quant.genes.sf$`.
    Currently the only supported source type is `quilt`.
-1. The parser is configured to read the data as CSV with tab-delimited fields. Other
+3. The parser is configured to read the data as CSV with tab-delimited fields. Other
    supported formats include `parquet`.
 
 ## Usage
 
-Once the configuration is set, users can query the tables using Athena from the
-Quilt Catalog:
+Once the configuration is set, users can query the tables using the Athena tab
+from the Quilt Catalog. Note that because Tabulator runs with elevated
+permissions, it cannot be accessed from the AWS Console.
+
+For example, to query the `ccle-tsv` table, from the appropriate Workgroup in the
+'quilt-tf-dev-federator' stack:
 
 ```sql
-SELECT * FROM per_bucket_database.test_csv
+SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
 ```
 
 You can join this with any other Athena table, including the package and object
-tables automatically created by Quilt. For example, to join that table with the
-`bucket_package_view` using the `package_name` field:
+tables automatically created by Quilt. For example, this is the package table:
 
 ```sql
-SELECT * FROM per_bucket_database.test_csv
-JOIN per_bucket_database.bucket_package_view
-ON test_csv.package_name = bucket_package_view.package
+SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
+WHERE PKG_NAME is NOT NULL
+```
+
+We can then join on PKG_NAME to add the `user_meta` field from the package metadata
+to the tabulated results:
+
+```sql
+SELECT
+  "ccle-tsv".*,
+  "udp-spec_packages-view".user_meta
+FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
+JOIN "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
+ON "ccle-tsv".PKG_NAME = "udp-spec_packages-view".PKG_NAME
 ```
