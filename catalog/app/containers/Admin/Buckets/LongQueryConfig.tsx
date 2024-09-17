@@ -9,6 +9,7 @@ import federatorConfigSchema from 'schemas/federatorConfig.yml.json'
 
 import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
+import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
@@ -157,6 +158,8 @@ function LongQueryConfigForm({
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useLongQueryConfigFormStyles()
 
+  const { push: notify } = Notifications.use()
+
   const submitConfig = React.useCallback(
     async (
       tableName: string,
@@ -168,6 +171,7 @@ function LongQueryConfigForm({
         } = await setTabulatorTable({ bucketName, tableName, config })
         switch (r.__typename) {
           case 'BucketConfig':
+            notify(`Successfully updated ${tableName} config`)
             if (onClose) {
               onClose()
             }
@@ -187,11 +191,15 @@ function LongQueryConfigForm({
         return mkFormError('unexpected')
       }
     },
-    [bucketName, onClose, setTabulatorTable],
+    [bucketName, notify, onClose, setTabulatorTable],
   )
 
   const onSubmit = React.useCallback(
-    (values: FormValues) => submitConfig(values.name, values.config),
+    async (values: FormValues, form: FF.FormApi<FormValues, FormValues>) => {
+      const result = await submitConfig(values.name, values.config)
+      form.reset(values)
+      return result
+    },
     [submitConfig],
   )
   const [deleting, setDeleting] = React.useState<
