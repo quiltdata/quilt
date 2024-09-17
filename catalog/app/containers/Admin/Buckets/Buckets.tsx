@@ -11,6 +11,7 @@ import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import bucketIcon from 'components/BucketIcon/bucket.svg'
 import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
 import JsonDisplay from 'components/JsonDisplay'
@@ -73,62 +74,98 @@ interface CardAvatarProps {
 }
 
 function CardAvatar({ className, src }: CardAvatarProps) {
-  if (src.startsWith('http')) return <M.Avatar className={className} src={src} />
+  if (src.startsWith('http') || src.startsWith('data')) {
+    return (
+      <M.Avatar
+        className={className}
+        src={src}
+        style={{ width: '24px', height: '24px' }}
+      />
+    )
+  }
   return <M.Icon className={className}>{src}</M.Icon>
 }
 
 const useCardStyles = M.makeStyles((t) => ({
-  avatar: {
-    display: 'block',
+  icon: {
+    marginRight: t.spacing(2),
   },
   header: {
     paddingBottom: t.spacing(1),
   },
   content: {
+    cursor: 'default',
     paddingTop: 0,
-    '& > * + *': {
+    '& > *': {
       marginTop: t.spacing(1),
     },
+  },
+  form: {
+    padding: t.spacing(0, 5),
+    flexGrow: 1,
+  },
+  summaryInner: {
+    flexGrow: 1,
+    '&:empty': {
+      display: 'none',
+    },
+  },
+  summary: {
+    alignItems: 'flex-start',
+    cursor: 'default',
   },
 }))
 
 interface CardProps {
+  actions?: React.ReactNode
   children?: React.ReactNode
   className?: string
   disabled?: boolean
+  editing: boolean
+  form: React.ReactNode
   icon?: string | null
-  onEdit?: () => void
-  subTitle?: string
-  title: React.ReactNode
+  onEdit: (ex: boolean) => void
+  title: string
 }
 
 function Card({
+  actions,
   children,
   className,
   disabled,
+  editing,
+  form,
   icon,
   onEdit,
-  subTitle,
   title,
 }: CardProps) {
   const classes = useCardStyles()
   return (
-    <M.Card className={className}>
-      <M.CardHeader
-        action={
-          onEdit && (
-            <M.IconButton onClick={onEdit} disabled={disabled}>
-              <M.Icon>edit</M.Icon>
-            </M.IconButton>
-          )
-        }
-        avatar={icon && <CardAvatar className={classes.avatar} src={icon} />}
-        className={classes.header}
-        subheader={subTitle}
-        title={title}
-      />
-      {children && <M.CardContent className={classes.content}>{children}</M.CardContent>}
-    </M.Card>
+    <M.Accordion
+      expanded={editing}
+      className={className}
+      onChange={(event, ex) => onEdit(ex)}
+      disabled={disabled}
+    >
+      <M.AccordionSummary
+        className={classes.summary}
+        expandIcon={<M.Icon>{editing ? 'close' : 'edit'}</M.Icon>}
+      >
+        {icon && <CardAvatar className={classes.icon} src={icon} />}
+        <div className={classes.summaryInner}>
+          <M.Typography variant="subtitle1">{title}</M.Typography>
+          {!editing && !!children && (
+            <div className={classes.content} onClick={(event) => event.stopPropagation()}>
+              {children}
+            </div>
+          )}
+        </div>
+      </M.AccordionSummary>
+      <M.AccordionDetails>
+        <div className={classes.form}>{form}</div>
+      </M.AccordionDetails>
+      {actions && <M.AccordionActions>{actions}</M.AccordionActions>}
+    </M.Accordion>
   )
 }
 
@@ -573,17 +610,9 @@ function Hint({ children }: HintProps) {
 }
 
 const useInlineActionsStyles = M.makeStyles((t) => ({
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    padding: t.spacing(2, 0, 0),
-    '& > * + *': {
-      // Spacing between direct children
-      marginLeft: t.spacing(2),
-    },
-  },
-  error: {
+  helper: {
     flexGrow: 1,
+    marginLeft: t.spacing(6),
   },
 }))
 
@@ -600,10 +629,10 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
     onCancel()
   }, [form, onCancel])
   return (
-    <div className={classes.actions}>
+    <>
       {state.submitFailed && (
         <Form.FormError
-          className={classes.error}
+          className={classes.helper}
           error={state.error || state.submitError}
           errors={{
             unexpected: 'Something went wrong',
@@ -616,9 +645,9 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
       {state.submitting && (
         <Delay>
           {() => (
-            <M.Box flexGrow={1} display="flex" pl={2}>
+            <div className={classes.helper}>
               <M.CircularProgress size={24} />
-            </M.Box>
+            </div>
           )}
         </Delay>
       )}
@@ -644,7 +673,7 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
       >
         Save
       </M.Button>
-    </div>
+    </>
   )
 }
 
@@ -680,21 +709,12 @@ function InlineForm({ className, children, title }: InlineFormProps) {
 interface PrimaryFormProps {
   bucket?: BucketConfig
   className?: string
-  children?: React.ReactNode
 }
 
-function PrimaryForm({ bucket, children, className }: PrimaryFormProps) {
+function PrimaryForm({ bucket, className }: PrimaryFormProps) {
   return (
-    <InlineForm className={className}>
-      {bucket ? (
-        <M.TextField
-          label="Name"
-          value={bucket.name}
-          fullWidth
-          margin="normal"
-          disabled
-        />
-      ) : (
+    <div className={className}>
+      {!bucket && (
         <RF.Field
           component={Form.Field}
           name="name"
@@ -726,7 +746,7 @@ function PrimaryForm({ bucket, children, className }: PrimaryFormProps) {
           required: 'Enter a bucket title',
         }}
         fullWidth
-        margin="normal"
+        margin={bucket ? 'none' : 'normal'}
       />
       <RF.Field
         component={Form.Field}
@@ -750,8 +770,7 @@ function PrimaryForm({ bucket, children, className }: PrimaryFormProps) {
         fullWidth
         margin="normal"
       />
-      {children}
-    </InlineForm>
+    </div>
   )
 }
 
@@ -763,22 +782,18 @@ interface PrimaryCardProps {
 
 function PrimaryCard({ className, bucket, form }: PrimaryCardProps) {
   const [editing, setEditing] = React.useState(false)
-  if (editing) {
-    return (
-      <PrimaryForm className={className} bucket={bucket}>
-        <InlineActions form={form} onCancel={() => setEditing(false)} />
-      </PrimaryForm>
-    )
-  }
   return (
     <Card
+      form={<PrimaryForm bucket={bucket} />}
+      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
       className={className}
       disabled={form.getState().submitting}
-      icon={bucket.iconUrl || undefined}
-      onEdit={() => setEditing(true)}
-      subTitle={`s3://${bucket.name}`}
-      title={bucket.title}
+      icon={bucket.iconUrl || bucketIcon}
+      onEdit={setEditing}
+      title={editing ? `s3://${bucket.name}` : bucket.title}
+      editing={editing}
     >
+      <M.Typography variant="subtitle2">{`s3://${bucket.name}`}</M.Typography>
       {bucket.description && (
         <M.Typography variant="body2">{bucket.description}</M.Typography>
       )}
@@ -787,13 +802,12 @@ function PrimaryCard({ className, bucket, form }: PrimaryCardProps) {
 }
 
 interface MetadataFormProps {
-  children?: React.ReactNode
-  className: string
+  className?: string
 }
 
-function MetadataForm({ children, className }: MetadataFormProps) {
+function MetadataForm({ className }: MetadataFormProps) {
   return (
-    <InlineForm className={className} title="Metadata">
+    <div className={className}>
       <RF.Field
         component={Form.Field}
         name="relevanceScore"
@@ -809,7 +823,6 @@ function MetadataForm({ children, className }: MetadataFormProps) {
           integer: 'Enter a valid integer',
         }}
         fullWidth
-        margin="normal"
       />
       <RF.Field
         component={Form.Field}
@@ -844,8 +857,7 @@ function MetadataForm({ children, className }: MetadataFormProps) {
         rowsMax={10}
         margin="normal"
       />
-      {children}
-    </InlineForm>
+    </div>
   )
 }
 
@@ -860,6 +872,16 @@ const useMetadataCardStyles = M.makeStyles((t) => ({
       marginLeft: t.spacing(0.5),
     },
   },
+  content: {
+    flexDirection: 'column',
+  },
+  form: {
+    flexGrow: 1,
+  },
+  actions: {
+    padding: 0,
+    display: 'block',
+  },
 }))
 
 interface MetadataCardProps {
@@ -871,20 +893,16 @@ interface MetadataCardProps {
 function MetadataCard({ bucket, className, form }: MetadataCardProps) {
   const classes = useMetadataCardStyles()
   const [editing, setEditing] = React.useState(false)
-  if (editing) {
-    return (
-      <MetadataForm className={className}>
-        <InlineActions form={form} onCancel={() => setEditing(false)} />
-      </MetadataForm>
-    )
-  }
   return (
     <Card
+      editing={editing}
       className={className}
       disabled={form.getState().submitting}
       icon="toc"
-      onEdit={() => setEditing(true)}
+      onEdit={setEditing}
       title="Metadata"
+      form={<MetadataForm className={classes.form} />}
+      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
     >
       {bucket.description && (
         <M.Typography variant="body2">{bucket.description}</M.Typography>
@@ -928,22 +946,20 @@ function MetadataCard({ bucket, className, form }: MetadataCardProps) {
 
 interface IndexingAndNotificationsFormProps {
   bucket?: BucketConfig
-  children?: React.ReactNode
-  className: string
+  className?: string
   reindex?: () => void
   settings: Model.GQLTypes.ContentIndexingSettings
 }
 
 function IndexingAndNotificationsForm({
   bucket,
-  children,
   className,
   reindex,
   settings,
 }: IndexingAndNotificationsFormProps) {
   const classes = useIndexingAndNotificationsFormStyles()
   return (
-    <InlineForm className={className} title="Indexing and notifications">
+    <div className={className}>
       {!!reindex && (
         <M.Box pb={2.5}>
           <M.Button variant="outlined" fullWidth onClick={reindex}>
@@ -1108,8 +1124,7 @@ function IndexingAndNotificationsForm({
           />
         </M.Box>
       )}
-      {children}
-    </InlineForm>
+    </div>
   )
 }
 
@@ -1142,25 +1157,22 @@ function IndexingAndNotificationsCard({
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
   const settings = data.config.contentIndexingSettings
 
-  if (editing) {
-    return (
-      <IndexingAndNotificationsForm
-        bucket={bucket}
-        className={className}
-        reindex={reindex}
-        settings={settings}
-      >
-        <InlineActions form={form} onCancel={() => setEditing(false)} />
-      </IndexingAndNotificationsForm>
-    )
-  }
-
   const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
   return (
     <Card
+      form={
+        <IndexingAndNotificationsForm
+          bucket={bucket}
+          className={className}
+          reindex={reindex}
+          settings={settings}
+        />
+      }
+      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
+      editing={editing}
       className={className}
       disabled={form.getState().submitting}
-      onEdit={() => setEditing(true)}
+      onEdit={setEditing}
       icon="find_in_page"
       title="Indexing and notifications"
     >
@@ -1226,16 +1238,14 @@ function IndexingAndNotificationsCard({
 }
 
 interface PreviewFormProps {
-  children?: React.ReactNode
-  className: string
+  className?: string
 }
 
-function PreviewForm({ children, className }: PreviewFormProps) {
+function PreviewForm({ className }: PreviewFormProps) {
   return (
-    <InlineForm className={className}>
+    <div className={className}>
       <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
-      {children}
-    </InlineForm>
+    </div>
   )
 }
 
@@ -1247,20 +1257,18 @@ interface PreviewCardProps {
 
 function PreviewCard({ bucket, className, form }: PreviewCardProps) {
   const [editing, setEditing] = React.useState(false)
-  if (editing) {
-    return (
-      <PreviewForm className={className}>
-        <InlineActions form={form} onCancel={() => setEditing(false)} />
-      </PreviewForm>
-    )
-  }
   return (
     <Card
+      form={<PreviewForm className={className} />}
+      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
+      editing={editing}
       className={className}
       disabled={form.getState().submitting}
-      onEdit={() => setEditing(true)}
+      onEdit={setEditing}
       icon="code"
-      title={`Permissive HTML rendering is ${bucket.browsable ? 'enabled' : 'disabled'}`}
+      title={`Permissive HTML rendering${
+        editing ? '' : ` is ${bucket.browsable ? 'enabled' : 'disabled'}`
+      }`}
     />
   )
 }
@@ -1287,22 +1295,19 @@ function LongQueryConfigCard({
   tabulatorTables,
 }: LongQueryConfigCardProps) {
   const [editing, setEditing] = React.useState(false)
-  if (editing) {
-    return (
-      <InlineForm className={className} title="Longitudinal Query Configurations">
+  return (
+    <Card
+      form={
         <LongQueryConfigForm
           bucket={bucket}
           onClose={() => setEditing(false)}
           tabulatorTables={tabulatorTables}
         />
-      </InlineForm>
-    )
-  }
-  return (
-    <Card
+      }
+      editing={editing}
       className={className}
       disabled={disabled}
-      onEdit={() => setEditing(true)}
+      onEdit={setEditing}
       icon="query_builder"
       title={
         tabulatorTables.length
@@ -1320,6 +1325,17 @@ function LongQueryConfigCard({
 
 const useStyles = M.makeStyles((t) => ({
   card: {
+    marginTop: t.spacing(1),
+    '&:first-child': {
+      marginTop: 0,
+    },
+  },
+  formTitle: {
+    ...t.typography.h6,
+    marginBottom: t.spacing(2),
+  },
+  form: {
+    padding: t.spacing(2),
     '& + &': {
       marginTop: t.spacing(2),
     },
@@ -1463,19 +1479,30 @@ function Add({ back, settings, submit }: AddProps) {
             Add a bucket
           </SubPageHeader>
           <div className={classes.fields} ref={scrollingRef}>
-            <form className={classes.card} onSubmit={handleSubmit}>
-              <PrimaryForm className={classes.card} />
-              <MetadataForm className={classes.card} />
-              <IndexingAndNotificationsForm
-                className={classes.card}
-                settings={settings}
-              />
-              <PreviewForm className={classes.card} />
+            <form onSubmit={handleSubmit}>
+              <M.Paper className={classes.form}>
+                <PrimaryForm />
+              </M.Paper>
+              <M.Paper className={classes.form}>
+                <M.Typography className={classes.formTitle}>Metadata</M.Typography>
+                <MetadataForm />
+              </M.Paper>
+              <M.Paper className={classes.form}>
+                <M.Typography className={classes.formTitle}>
+                  Indexing and notifications
+                </M.Typography>
+                <IndexingAndNotificationsForm settings={settings} />
+              </M.Paper>
+              <M.Paper className={classes.form}>
+                <PreviewForm />
+              </M.Paper>
+              <M.Paper className={classes.form}>
+                <M.Typography>
+                  Longitudal query configs will be available after creating the bucket
+                </M.Typography>
+              </M.Paper>
               <input type="submit" style={{ display: 'none' }} />
             </form>
-            <M.Typography>
-              Longitudal query configs will be available after creating the bucket
-            </M.Typography>
           </div>
           <FormActions siblingRef={scrollingRef}>
             {submitFailed && (
@@ -1658,7 +1685,13 @@ interface BucketFieldSkeletonProps {
 }
 
 function BucketFieldSkeleton({ className, width }: BucketFieldSkeletonProps) {
-  return <Card className={className} title={<Skeleton height={32} width={width} />} />
+  return (
+    <M.Accordion className={className}>
+      <M.AccordionSummary>
+        <Skeleton height={32} width={width} />
+      </M.AccordionSummary>
+    </M.Accordion>
+  )
 }
 
 interface CardsPlaceholderProps {

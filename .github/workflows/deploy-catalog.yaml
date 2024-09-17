@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - admin-bucket-page-long-query-config
+      - admin-bucket-page-long-query-config-redesign
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
