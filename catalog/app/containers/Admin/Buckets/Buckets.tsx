@@ -27,6 +27,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
+import parseSearch from 'utils/parseSearch'
 import { formatQuantity } from 'utils/string'
 import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
@@ -144,7 +145,7 @@ function Card({
     <M.Accordion
       expanded={editing}
       className={className}
-      onChange={(event, ex) => onEdit(ex)}
+      onChange={(_e, expanded) => onEdit(expanded)}
       disabled={disabled}
     >
       <M.AccordionSummary
@@ -1457,7 +1458,7 @@ function Add({ back, settings, submit }: AddProps) {
     },
     [submit],
   )
-  const scrollingRef = React.useRef<HTMLDivElement>(null)
+  const scrollingRef = React.useRef<HTMLFormElement>(null)
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
@@ -1478,32 +1479,30 @@ function Add({ back, settings, submit }: AddProps) {
           >
             Add a bucket
           </SubPageHeader>
-          <div className={classes.fields} ref={scrollingRef}>
-            <form onSubmit={handleSubmit}>
-              <M.Paper className={classes.form}>
-                <PrimaryForm />
-              </M.Paper>
-              <M.Paper className={classes.form}>
-                <M.Typography className={classes.formTitle}>Metadata</M.Typography>
-                <MetadataForm />
-              </M.Paper>
-              <M.Paper className={classes.form}>
-                <M.Typography className={classes.formTitle}>
-                  Indexing and notifications
-                </M.Typography>
-                <IndexingAndNotificationsForm settings={settings} />
-              </M.Paper>
-              <M.Paper className={classes.form}>
-                <PreviewForm />
-              </M.Paper>
-              <M.Paper className={classes.form}>
-                <M.Typography>
-                  Longitudal query configs will be available after creating the bucket
-                </M.Typography>
-              </M.Paper>
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
-          </div>
+          <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
+            <M.Paper className={classes.form}>
+              <PrimaryForm />
+            </M.Paper>
+            <M.Paper className={classes.form}>
+              <M.Typography className={classes.formTitle}>Metadata</M.Typography>
+              <MetadataForm />
+            </M.Paper>
+            <M.Paper className={classes.form}>
+              <M.Typography className={classes.formTitle}>
+                Indexing and notifications
+              </M.Typography>
+              <IndexingAndNotificationsForm settings={settings} />
+            </M.Paper>
+            <M.Paper className={classes.form}>
+              <PreviewForm />
+            </M.Paper>
+            <M.Paper className={classes.form}>
+              <M.Typography>
+                Longitudal query configs will be available after creating the bucket
+              </M.Typography>
+            </M.Paper>
+            <input type="submit" style={{ display: 'none' }} />
+          </form>
           <FormActions siblingRef={scrollingRef}>
             {submitFailed && (
               <Form.FormError
@@ -1763,8 +1762,6 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
     [submit],
   )
 
-  // const [editing, setEditing] = React.useState<'primary'|'metadata'|'indexing'|'preview'| 'longquery'|null>(null)
-
   const initialValues = bucketToFormValues(bucket)
 
   const scrollingRef = React.useRef<HTMLDivElement>(null)
@@ -1828,7 +1825,6 @@ function EditPage({ back }: EditPageProps) {
   const tabulatorTables =
     GQL.useQueryS(TABULATOR_TABLES_QUERY, { bucket: bucketName }).bucketConfig
       ?.tabulatorTables || []
-
   const submit = React.useCallback(
     async (input: Model.GQLTypes.BucketUpdateInput) => {
       if (!bucket) return new Error('Submit form without bucket')
@@ -1890,28 +1886,48 @@ function AddPage({ back }: AddPageProps) {
   return <Add settings={settings} back={back} submit={submit} />
 }
 
-export default function Buckets() {
+function useIsAddPage() {
+  const location = RRDom.useLocation()
+  const params = parseSearch(location.search)
+  return !!params.add
+}
+
+interface BucketsProps {
+  back: () => void
+}
+
+function Buckets({ back }: BucketsProps) {
+  const isAddPage = useIsAddPage()
+  if (isAddPage) {
+    return (
+      <React.Suspense fallback={<AddPageSkeleton back={back} />}>
+        <AddPage back={back} />
+      </React.Suspense>
+    )
+  }
+  return (
+    <React.Suspense fallback={<ListPageSkeleton />}>
+      <ListPage />
+    </React.Suspense>
+  )
+}
+
+export default function BucketsRouter() {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use()
   const back = React.useCallback(() => history.push(urls.adminBuckets()), [history, urls])
+
   return (
     <M.Box mt={2} mb={2}>
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
       <RRDom.Switch>
-        <RRDom.Route path={paths.adminBucketAdd} exact strict>
-          <React.Suspense fallback={<AddPageSkeleton back={back} />}>
-            <AddPage back={back} />
-          </React.Suspense>
-        </RRDom.Route>
         <RRDom.Route path={paths.adminBucketEdit} exact strict>
           <React.Suspense fallback={<EditPageSkeleton back={back} />}>
             <EditPage back={back} />
           </React.Suspense>
         </RRDom.Route>
         <RRDom.Route>
-          <React.Suspense fallback={<ListPageSkeleton />}>
-            <ListPage />
-          </React.Suspense>
+          <Buckets back={back} />
         </RRDom.Route>
       </RRDom.Switch>
     </M.Box>
