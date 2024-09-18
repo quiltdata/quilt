@@ -210,7 +210,7 @@ function IFrameLoaderBrowsable({ handle, children }: IFrameLoaderBrowsableProps)
           PreviewData.IFrame({
             src: `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`,
             modes: [FileType.Html, FileType.Text],
-            sandbox: 'allow-scripts allow-same-origin',
+            sandbox: 'allow-scripts allow-popups allow-same-origin',
           }),
       },
       sessionData,
@@ -236,7 +236,9 @@ function IFrameLoaderSigned({ handle, browsable, children }: IFrameLoaderSignedP
       PreviewData.IFrame({
         src,
         modes: [FileType.Html, FileType.Text],
-        sandbox: browsable ? 'allow-scripts allow-same-origin' : 'allow-scripts',
+        sandbox: browsable
+          ? 'allow-scripts allow-popups allow-same-origin'
+          : 'allow-scripts',
       }),
     ),
   )
