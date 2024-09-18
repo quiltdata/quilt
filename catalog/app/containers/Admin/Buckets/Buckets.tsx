@@ -46,16 +46,20 @@ import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfi
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
 
-const noop = () => {}
-
-const bucketToFormValues = (bucket: BucketConfig) => ({
+const bucketToPrimaryValues = (bucket: BucketConfig) => ({
   title: bucket.title,
   iconUrl: bucket.iconUrl || '',
   description: bucket.description || '',
+})
+
+const bucketToMetadataValues = (bucket: BucketConfig) => ({
   relevanceScore: bucket.relevanceScore.toString(),
   overviewUrl: bucket.overviewUrl || '',
   tags: (bucket.tags || []).join(', '),
   linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
+})
+
+const bucketToIndexingAndNotificationsValues = (bucket: BucketConfig) => ({
   enableDeepIndexing:
     !R.equals(bucket.fileExtensionsToIndex, []) && bucket.indexContentBytes !== 0,
   fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
@@ -66,7 +70,17 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
       ? DO_NOT_SUBSCRIBE_SYM
       : bucket.snsNotificationArn,
   skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
+})
+
+const bucketToPreviewValues = (bucket: BucketConfig) => ({
   browsable: bucket.browsable ?? false,
+})
+
+const bucketToFormValues = (bucket: BucketConfig) => ({
+  ...bucketToPrimaryValues(bucket),
+  ...bucketToMetadataValues(bucket),
+  ...bucketToIndexingAndNotificationsValues(bucket),
+  ...bucketToPreviewValues(bucket),
 })
 
 interface CardAvatarProps {
@@ -115,6 +129,9 @@ const useCardStyles = M.makeStyles((t) => ({
     alignItems: 'flex-start',
     cursor: 'default',
   },
+  error: {
+    outline: `1px solid ${t.palette.error.main}`,
+  },
 }))
 
 interface CardProps {
@@ -127,9 +144,11 @@ interface CardProps {
   icon?: string | null
   onEdit: (ex: boolean) => void
   title: string
+  hasError?: boolean
 }
 
 function Card({
+  hasError,
   actions,
   children,
   className,
@@ -141,21 +160,23 @@ function Card({
   title,
 }: CardProps) {
   const classes = useCardStyles()
+  const expanded = editing || hasError
   return (
     <M.Accordion
-      expanded={editing}
-      className={className}
-      onChange={(_e, expanded) => onEdit(expanded)}
+      expanded={expanded}
+      className={cx(className, { [classes.error]: !!hasError })}
+      onChange={(_e, x) => onEdit(x)}
       disabled={disabled}
     >
       <M.AccordionSummary
         className={classes.summary}
-        expandIcon={<M.Icon>{editing ? 'close' : 'edit'}</M.Icon>}
+        expandIcon={<M.Icon>{expanded ? 'close' : 'edit'}</M.Icon>}
+        disabled={hasError}
       >
         {icon && <CardAvatar className={classes.icon} src={icon} />}
         <div className={classes.summaryInner}>
           <M.Typography variant="subtitle1">{title}</M.Typography>
-          {!editing && !!children && (
+          {!expanded && !!children && (
             <div className={classes.content} onClick={(event) => event.stopPropagation()}>
               {children}
             </div>
@@ -272,30 +293,13 @@ const useSubPageHeaderStyles = M.makeStyles({
 interface SubPageHeaderProps {
   back: () => void
   children?: React.ReactNode
-  dirty?: boolean
   disabled?: boolean
-  submit: () => void
 }
 
-function SubPageHeader({ disabled, back, children, dirty, submit }: SubPageHeaderProps) {
+function SubPageHeader({ disabled, back, children }: SubPageHeaderProps) {
   const classes = useSubPageHeaderStyles()
-  const handleConfirm = React.useCallback(
-    (confirmed: boolean) => (confirmed ? submit() : back()),
-    [back, submit],
-  )
-  const confirm = Dialog.useConfirm({
-    cancelTitle: 'Discard',
-    onSubmit: handleConfirm,
-    submitTitle: 'Save',
-    title: 'You have unsaved changes',
-  })
-  const handleBack = React.useCallback(
-    () => (dirty ? confirm.open() : back()),
-    [back, confirm, dirty],
-  )
   return (
     <div className={classes.root}>
-      {confirm.render(<></>)}
       {children && (
         <M.Typography variant="h6" color="textPrimary">
           {children}
@@ -304,7 +308,7 @@ function SubPageHeader({ disabled, back, children, dirty, submit }: SubPageHeade
       <M.Button
         className={classes.back}
         disabled={disabled}
-        onClick={handleBack}
+        onClick={back}
         size="small"
         startIcon={<M.Icon>arrow_back</M.Icon>}
       >
@@ -373,7 +377,7 @@ function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
     onSubmit: confirm,
   })
   const handleCheckbox = React.useCallback(
-    (event, checked: boolean) => {
+    (_event, checked: boolean) => {
       if (checked) {
         dialog.open()
       } else {
@@ -617,20 +621,27 @@ const useInlineActionsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface InlineActionsProps {
-  form: FF.FormApi
+interface InlineActionsProps<T> {
+  form: FF.FormApi<T>
   onCancel: () => void
+  onDirty: (dirty: boolean) => void
 }
 
-function InlineActions({ form, onCancel }: InlineActionsProps) {
+// TODO: disabled (when another form is submitting)
+function InlineActions<T>({ form, onDirty, onCancel }: InlineActionsProps<T>) {
   const classes = useInlineActionsStyles()
   const state = form.getState()
+  const { reset, submit } = form
   const handleCancel = React.useCallback(() => {
-    form.reset()
+    reset()
     onCancel()
-  }, [form, onCancel])
+  }, [reset, onCancel])
   return (
     <>
+      <RF.FormSpy
+        subscription={{ dirty: true }}
+        onChange={({ dirty }) => onDirty(dirty)}
+      />
       {state.submitFailed && (
         <Form.FormError
           className={classes.helper}
@@ -653,7 +664,7 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
         </Delay>
       )}
       <M.Button
-        onClick={() => form.reset()}
+        onClick={() => reset()}
         color="primary"
         disabled={state.pristine || state.submitting}
       >
@@ -663,7 +674,7 @@ function InlineActions({ form, onCancel }: InlineActionsProps) {
         Cancel
       </M.Button>
       <M.Button
-        onClick={form.submit}
+        onClick={() => submit()}
         color="primary"
         disabled={
           state.pristine ||
@@ -771,34 +782,63 @@ function PrimaryForm({ bucket, className }: PrimaryFormProps) {
         fullWidth
         margin="normal"
       />
+      <input type="submit" style={{ display: 'none' }} />
     </div>
   )
 }
 
+type PrimaryFormValues = ReturnType<typeof bucketToPrimaryValues>
+
 interface PrimaryCardProps {
+  disabled: boolean
   bucket: BucketConfig
   className: string
-  form: FF.FormApi
+  onSubmit: FF.Config<PrimaryFormValues>['onSubmit']
+  onDirty: (dirty: boolean) => void
 }
 
-function PrimaryCard({ className, bucket, form }: PrimaryCardProps) {
+function PrimaryCard({
+  className,
+  bucket,
+  disabled,
+  onDirty,
+  onSubmit,
+}: PrimaryCardProps) {
   const [editing, setEditing] = React.useState(false)
+
+  const initialValues = bucketToPrimaryValues(bucket)
+
   return (
-    <Card
-      form={<PrimaryForm bucket={bucket} />}
-      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
-      className={className}
-      disabled={form.getState().submitting}
-      icon={bucket.iconUrl || bucketIcon}
-      onEdit={setEditing}
-      title={editing ? `s3://${bucket.name}` : bucket.title}
-      editing={editing}
-    >
-      <M.Typography variant="subtitle2">{`s3://${bucket.name}`}</M.Typography>
-      {bucket.description && (
-        <M.Typography variant="body2">{bucket.description}</M.Typography>
+    <RF.Form<PrimaryFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+      {({ handleSubmit, submitting, form, submitFailed }) => (
+        <Card
+          actions={
+            <InlineActions<PrimaryFormValues>
+              form={form}
+              onCancel={() => setEditing(false)}
+              onDirty={onDirty}
+            />
+          }
+          form={
+            <form onSubmit={handleSubmit}>
+              <PrimaryForm bucket={bucket} />
+            </form>
+          }
+          className={className}
+          disabled={submitting || disabled}
+          icon={bucket.iconUrl || bucketIcon}
+          onEdit={setEditing}
+          title={editing ? `s3://${bucket.name}` : bucket.title}
+          editing={editing}
+          hasError={submitFailed}
+        >
+          <M.Typography variant="subtitle2">{`s3://${bucket.name}`}</M.Typography>
+          {bucket.description && (
+            <M.Typography variant="body2">{bucket.description}</M.Typography>
+          )}
+        </Card>
       )}
-    </Card>
+    </RF.Form>
   )
 }
 
@@ -885,63 +925,91 @@ const useMetadataCardStyles = M.makeStyles((t) => ({
   },
 }))
 
+type MetadataFormValues = ReturnType<typeof bucketToMetadataValues>
+
 interface MetadataCardProps {
+  disabled: boolean
   bucket: BucketConfig
   className: string
-  form: FF.FormApi
+  onSubmit: FF.Config<MetadataFormValues>['onSubmit']
+  onDirty: (dirty: boolean) => void
 }
 
-function MetadataCard({ bucket, className, form }: MetadataCardProps) {
+function MetadataCard({
+  bucket,
+  className,
+  disabled,
+  onDirty,
+  onSubmit,
+}: MetadataCardProps) {
   const classes = useMetadataCardStyles()
   const [editing, setEditing] = React.useState(false)
+
+  const initialValues = bucketToMetadataValues(bucket)
+
   return (
-    <Card
-      editing={editing}
-      className={className}
-      disabled={form.getState().submitting}
-      icon="toc"
-      onEdit={setEditing}
-      title="Metadata"
-      form={<MetadataForm className={classes.form} />}
-      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
-    >
-      {bucket.description && (
-        <M.Typography variant="body2">{bucket.description}</M.Typography>
-      )}
-      <M.Typography variant="body2">
-        Relevance score: {bucket.relevanceScore.toString()}
-      </M.Typography>
-      {bucket.tags && (
-        <M.Typography variant="body2" className={classes.tagsList}>
-          Tags:{' '}
-          {bucket.tags.map((tag) => (
-            <M.Chip
-              className={classes.tag}
-              label={tag}
-              key={tag}
-              component="span"
-              size="small"
+    <RF.Form<MetadataFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+      {({ handleSubmit, submitting, form, submitFailed }) => (
+        <Card
+          actions={
+            <InlineActions
+              form={form}
+              onCancel={() => setEditing(false)}
+              onDirty={onDirty}
             />
-          ))}
-        </M.Typography>
+          }
+          hasError={submitFailed}
+          editing={editing}
+          className={className}
+          disabled={submitting || disabled}
+          icon="toc"
+          onEdit={setEditing}
+          title="Metadata"
+          form={
+            <form onSubmit={handleSubmit}>
+              <MetadataForm className={classes.form} />
+            </form>
+          }
+        >
+          {bucket.description && (
+            <M.Typography variant="body2">{bucket.description}</M.Typography>
+          )}
+          <M.Typography variant="body2">
+            Relevance score: {bucket.relevanceScore}
+          </M.Typography>
+          {bucket.tags && (
+            <M.Typography variant="body2" className={classes.tagsList}>
+              Tags:{' '}
+              {bucket.tags.map((tag) => (
+                <M.Chip
+                  className={classes.tag}
+                  label={tag}
+                  key={tag}
+                  component="span"
+                  size="small"
+                />
+              ))}
+            </M.Typography>
+          )}
+          {bucket.overviewUrl && (
+            <M.Typography variant="body2">
+              Overview URL:{' '}
+              <StyledLink href={bucket.overviewUrl} target="_blank">
+                {bucket.overviewUrl}
+              </StyledLink>
+            </M.Typography>
+          )}
+          {bucket.linkedData && (
+            // @ts-expect-error
+            <JsonDisplay
+              name="Structured data (JSON-LD)"
+              topLevel
+              value={bucket.linkedData}
+            />
+          )}
+        </Card>
       )}
-      {bucket.overviewUrl && (
-        <M.Typography variant="body2">
-          Overview URL:{' '}
-          <StyledLink href={bucket.overviewUrl} target="_blank">
-            {bucket.overviewUrl}
-          </StyledLink>
-        </M.Typography>
-      )}
-      {bucket.linkedData && (
-        // @ts-expect-error
-        <JsonDisplay
-          name="Structured data (JSON-LD)"
-          topLevel
-          value={bucket.linkedData}
-        />
-      )}
-    </Card>
+    </RF.Form>
   )
 }
 
@@ -1140,17 +1208,25 @@ const useIndexingAndNotificationsFormStyles = M.makeStyles((t) => ({
   },
 }))
 
+type IndexingAndNotificationsFormValues = ReturnType<
+  typeof bucketToIndexingAndNotificationsValues
+>
+
 interface IndexingAndNotificationsCardProps {
+  disabled: boolean
   bucket: BucketConfig
   className: string
-  form: FF.FormApi
+  onSubmit: FF.Config<IndexingAndNotificationsFormValues>['onSubmit']
   reindex?: () => void
+  onDirty: (dirty: boolean) => void
 }
 
 function IndexingAndNotificationsCard({
   bucket,
   className,
-  form,
+  disabled,
+  onDirty,
+  onSubmit,
   reindex,
 }: IndexingAndNotificationsCardProps) {
   const [editing, setEditing] = React.useState(false)
@@ -1159,82 +1235,101 @@ function IndexingAndNotificationsCard({
   const settings = data.config.contentIndexingSettings
 
   const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
+
+  const initialValues = bucketToIndexingAndNotificationsValues(bucket)
+
   return (
-    <Card
-      form={
-        <IndexingAndNotificationsForm
-          bucket={bucket}
-          className={className}
-          reindex={reindex}
-          settings={settings}
-        />
-      }
-      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
-      editing={editing}
-      className={className}
-      disabled={form.getState().submitting}
-      onEdit={setEditing}
-      icon="find_in_page"
-      title="Indexing and notifications"
+    <RF.Form<IndexingAndNotificationsFormValues>
+      onSubmit={onSubmit}
+      initialValues={initialValues}
     >
-      {!!reindex && (
-        <M.Button
-          variant="outlined"
-          onClick={reindex}
-          size="small"
-          disabled={form.getState().submitting}
+      {({ handleSubmit, submitting, form, submitFailed }) => (
+        <Card
+          actions={
+            <InlineActions<IndexingAndNotificationsFormValues>
+              form={form}
+              onCancel={() => setEditing(false)}
+              onDirty={onDirty}
+            />
+          }
+          hasError={submitFailed}
+          form={
+            <form onSubmit={handleSubmit}>
+              <IndexingAndNotificationsForm
+                bucket={bucket}
+                className={className}
+                reindex={reindex}
+                settings={settings}
+              />
+            </form>
+          }
+          editing={editing}
+          className={className}
+          disabled={submitting || disabled}
+          onEdit={setEditing}
+          icon="find_in_page"
+          title="Indexing and notifications"
         >
-          Re-index and repair
-        </M.Button>
-      )}
-      {enableDeepIndexing ? (
-        <>
-          {bucket.fileExtensionsToIndex ? (
-            <M.Typography variant="body2">
-              File extensions to deep index:
-              {bucket.fileExtensionsToIndex.join(', ')}
-            </M.Typography>
+          {!!reindex && (
+            <M.Button
+              variant="outlined"
+              onClick={reindex}
+              size="small"
+              disabled={submitting}
+            >
+              Re-index and repair
+            </M.Button>
+          )}
+          {enableDeepIndexing ? (
+            <>
+              {bucket.fileExtensionsToIndex ? (
+                <M.Typography variant="body2">
+                  File extensions to deep index:
+                  {bucket.fileExtensionsToIndex.join(', ')}
+                </M.Typography>
+              ) : (
+                <M.Typography variant="body2">
+                  Default file extensions to deep index:
+                  {settings.extensions.join(', ')}
+                </M.Typography>
+              )}
+              {bucket.indexContentBytes ? (
+                <M.Typography variant="body2">
+                  Content bytes to deep index is{' '}
+                  {formatQuantity(bucket.indexContentBytes)} bytes
+                </M.Typography>
+              ) : (
+                <M.Typography variant="body2">
+                  Default content bytes to deep index is{' '}
+                  {formatQuantity(settings.bytesDefault)} bytes
+                </M.Typography>
+              )}
+            </>
           ) : (
+            <M.Typography variant="body2">Deep indexing is disabled</M.Typography>
+          )}
+          {bucket.scannerParallelShardsDepth && (
             <M.Typography variant="body2">
-              Default file extensions to deep index:
-              {settings.extensions.join(', ')}
+              Scanner parallel shards depth: {bucket.scannerParallelShardsDepth}
             </M.Typography>
           )}
-          {bucket.indexContentBytes ? (
+          {bucket.skipMetaDataIndexing && (
+            <M.Typography variant="body2">Metadata indexing is disabled</M.Typography>
+          )}
+          {typeof snsNotificationArn === 'string' && (
             <M.Typography variant="body2">
-              Content bytes to deep index is {formatQuantity(bucket.indexContentBytes)}{' '}
-              bytes
-            </M.Typography>
-          ) : (
-            <M.Typography variant="body2">
-              Default content bytes to deep index is{' '}
-              {formatQuantity(settings.bytesDefault)} bytes
+              SNS Topic ARN:{' '}
+              <StyledLink
+                href={`https://console.aws.amazon.com/sns/v3/home?#/topic/${bucket.snsNotificationArn}`}
+                target="_blank"
+              >
+                {bucket.snsNotificationArn}
+              </StyledLink>
             </M.Typography>
           )}
-        </>
-      ) : (
-        <M.Typography variant="body2">Deep indexing is disabled</M.Typography>
+        </Card>
       )}
-      {bucket.scannerParallelShardsDepth && (
-        <M.Typography variant="body2">
-          Scanner parallel shards depth: {bucket.scannerParallelShardsDepth}
-        </M.Typography>
-      )}
-      {bucket.skipMetaDataIndexing && (
-        <M.Typography variant="body2">Metadata indexing is disabled</M.Typography>
-      )}
-      {typeof snsNotificationArn === 'string' && (
-        <M.Typography variant="body2">
-          SNS Topic ARN:{' '}
-          <StyledLink
-            href={`https://console.aws.amazon.com/sns/v3/home?#/topic/${bucket.snsNotificationArn}`}
-            target="_blank"
-          >
-            {bucket.snsNotificationArn}
-          </StyledLink>
-        </M.Typography>
-      )}
-    </Card>
+    </RF.Form>
   )
 }
 
@@ -1250,27 +1345,55 @@ function PreviewForm({ className }: PreviewFormProps) {
   )
 }
 
+type PreviewFormValues = ReturnType<typeof bucketToPreviewValues>
+
 interface PreviewCardProps {
+  disabled: boolean
   className: string
   bucket: BucketConfig
-  form: FF.FormApi
+  onSubmit: FF.Config<PreviewFormValues>['onSubmit']
+  onDirty: (dirty: boolean) => void
 }
 
-function PreviewCard({ bucket, className, form }: PreviewCardProps) {
+function PreviewCard({
+  bucket,
+  className,
+  disabled,
+  onDirty,
+  onSubmit,
+}: PreviewCardProps) {
   const [editing, setEditing] = React.useState(false)
+
+  const initialValues = bucketToPreviewValues(bucket)
+
   return (
-    <Card
-      form={<PreviewForm className={className} />}
-      actions={<InlineActions form={form} onCancel={() => setEditing(false)} />}
-      editing={editing}
-      className={className}
-      disabled={form.getState().submitting}
-      onEdit={setEditing}
-      icon="code"
-      title={`Permissive HTML rendering${
-        editing ? '' : ` is ${bucket.browsable ? 'enabled' : 'disabled'}`
-      }`}
-    />
+    <RF.Form<PreviewFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+      {({ handleSubmit, submitting, form, submitFailed }) => (
+        <Card
+          actions={
+            <InlineActions<PreviewFormValues>
+              form={form}
+              onCancel={() => setEditing(false)}
+              onDirty={onDirty}
+            />
+          }
+          hasError={submitFailed}
+          form={
+            <form onSubmit={handleSubmit}>
+              <PreviewForm className={className} />
+            </form>
+          }
+          editing={editing}
+          className={className}
+          disabled={submitting || disabled}
+          onEdit={setEditing}
+          icon="code"
+          title={`Permissive HTML rendering${
+            editing ? '' : ` is ${bucket.browsable ? 'enabled' : 'disabled'}`
+          }`}
+        />
+      )}
+    </RF.Form>
   )
 }
 
@@ -1358,9 +1481,7 @@ function AddPageSkeleton({ back }: AddPageSkeletonProps) {
   const formRef = React.useRef<HTMLDivElement>(null)
   return (
     <>
-      <SubPageHeader back={back} submit={noop}>
-        Add a bucket
-      </SubPageHeader>
+      <SubPageHeader back={back}>Add a bucket</SubPageHeader>
       <div className={classes.fields} ref={formRef}>
         <InlineForm className={classes.card}>
           <Skeleton height={54} />
@@ -1441,11 +1562,14 @@ interface AddProps {
 function Add({ back, settings, submit }: AddProps) {
   const classes = useStyles()
   const onSubmit = React.useCallback(
-    async (values) => {
+    async (values, form) => {
       try {
         const input = R.applySpec(addFormSpec)(values)
         const error = await submit(input)
-        if (!error) return
+        if (!error) {
+          form.reset(values)
+          return
+        }
         if (error instanceof Error) throw error
         return parseResponseError(error)
       } catch (e) {
@@ -1459,6 +1583,10 @@ function Add({ back, settings, submit }: AddProps) {
     [submit],
   )
   const scrollingRef = React.useRef<HTMLFormElement>(null)
+  const guardNavigation = React.useCallback(
+    () => 'You have unsaved changes. Discard changes and leave the page?',
+    [],
+  )
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
@@ -1471,12 +1599,8 @@ function Add({ back, settings, submit }: AddProps) {
         hasValidationErrors,
       }) => (
         <>
-          <SubPageHeader
-            back={back}
-            dirty={dirty}
-            disabled={submitting}
-            submit={handleSubmit}
-          >
+          <RRDom.Prompt when={dirty} message={guardNavigation} />
+          <SubPageHeader back={back} disabled={submitting}>
             Add a bucket
           </SubPageHeader>
           <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
@@ -1717,7 +1841,7 @@ function EditPageSkeleton({ back }: EditPageSkeletonProps) {
   const classes = useStyles()
   return (
     <>
-      <SubPageHeader back={back} submit={noop} />
+      <SubPageHeader back={back} />
       <CardsPlaceholder className={classes.fields} />
     </>
   )
@@ -1740,68 +1864,122 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
   const closeReindex = React.useCallback(() => setReindexOpen(false), [])
+  const { push: notify } = Notifications.use()
 
   const classes = useStyles()
+  const [disabled, setDisabled] = React.useState(false)
+  const [dirty, setDirty] = React.useState(0)
+  const calcDirty = React.useCallback(
+    (formDirty) =>
+      setDirty((dirtyCounter) =>
+        formDirty ? dirtyCounter + 1 : Math.max(dirtyCounter - 1, 0),
+      ),
+    [],
+  )
 
-  const onSubmit = React.useCallback(
-    async (values) => {
+  interface OnSubmit {
+    (
+      values: PrimaryFormValues,
+      form: FF.FormApi<PrimaryFormValues>,
+    ): Promise<FF.SubmissionErrors | undefined>
+    (
+      values: MetadataFormValues,
+      form: FF.FormApi<MetadataFormValues>,
+    ): Promise<FF.SubmissionErrors | undefined>
+    (
+      values: IndexingAndNotificationsFormValues,
+      form: FF.FormApi<IndexingAndNotificationsFormValues>,
+    ): Promise<FF.SubmissionErrors | undefined>
+    (
+      values: PreviewFormValues,
+      form: FF.FormApi<PreviewFormValues>,
+    ): Promise<FF.SubmissionErrors | undefined>
+  }
+
+  const onSubmit: OnSubmit = React.useCallback(
+    async (values, form) => {
       try {
-        const input = R.applySpec(editFormSpec)(values)
+        setDisabled(true)
+        const input = R.applySpec(editFormSpec)({
+          ...bucketToFormValues(bucket),
+          ...values,
+        })
         const error = await submit(input)
-        if (!error) return
+        if (!error) {
+          notify(`Successfully updated ${bucket.name} bucket`)
+          form.reset(values)
+          setDisabled(false)
+          return
+        }
         if (error instanceof Error) throw error
+        setDisabled(false)
         return parseResponseError(error)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error updating bucket')
         // eslint-disable-next-line no-console
         console.error(e)
+        setDisabled(false)
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [submit],
+    [bucket, notify, submit],
   )
-
-  const initialValues = bucketToFormValues(bucket)
 
   const scrollingRef = React.useRef<HTMLDivElement>(null)
 
+  const guardNavigation = React.useCallback(
+    () => 'You have unsaved changes. Discard changes and leave the page?',
+    [],
+  )
+
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
-      {({ handleSubmit, submitting, pristine, form }) => (
-        <>
-          <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <SubPageHeader
-            back={back}
-            dirty={!pristine}
-            disabled={submitting}
-            submit={handleSubmit}
+    <>
+      <RRDom.Prompt when={!!dirty} message={guardNavigation} />
+      <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
+      <SubPageHeader back={back} disabled={disabled} />
+      <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
+        <div className={classes.fields} ref={scrollingRef}>
+          <div className={classes.card}>
+            <PrimaryCard
+              disabled={disabled}
+              bucket={bucket}
+              className={classes.card}
+              onSubmit={onSubmit}
+              onDirty={calcDirty}
+            />
+            <MetadataCard
+              disabled={disabled}
+              bucket={bucket}
+              className={classes.card}
+              onSubmit={onSubmit}
+              onDirty={calcDirty}
+            />
+            <IndexingAndNotificationsCard
+              disabled={disabled}
+              bucket={bucket}
+              className={classes.card}
+              onSubmit={onSubmit}
+              reindex={openReindex}
+              onDirty={calcDirty}
+            />
+            <PreviewCard
+              disabled={disabled}
+              bucket={bucket}
+              className={classes.card}
+              onSubmit={onSubmit}
+              onDirty={calcDirty}
+            />
+          </div>
+          <LongQueryConfigCard
+            disabled={disabled}
+            bucket={bucket.name}
+            className={classes.card}
+            tabulatorTables={tabulatorTables}
           />
-          <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
-            <div className={classes.fields} ref={scrollingRef}>
-              <form className={classes.card} onSubmit={handleSubmit}>
-                <PrimaryCard bucket={bucket} className={classes.card} form={form} />
-                <MetadataCard bucket={bucket} className={classes.card} form={form} />
-                <IndexingAndNotificationsCard
-                  bucket={bucket}
-                  className={classes.card}
-                  form={form}
-                  reindex={openReindex}
-                />
-                <PreviewCard bucket={bucket} className={classes.card} form={form} />
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-              <LongQueryConfigCard
-                bucket={bucket.name}
-                className={classes.card}
-                tabulatorTables={tabulatorTables}
-                disabled={submitting}
-              />
-            </div>
-          </React.Suspense>
-        </>
-      )}
-    </RF.Form>
+        </div>
+      </React.Suspense>
+    </>
   )
 }
 
