@@ -171,7 +171,7 @@ function Card({
       <M.AccordionSummary
         className={classes.summary}
         expandIcon={<M.Icon>{expanded ? 'close' : 'edit'}</M.Icon>}
-        disabled={hasError}
+        disabled={disabled}
       >
         {icon && <CardAvatar className={classes.icon} src={icon} />}
         <div className={classes.summaryInner}>
@@ -625,10 +625,10 @@ interface InlineActionsProps<T> {
   form: FF.FormApi<T>
   onCancel: () => void
   onDirty: (dirty: boolean) => void
+  disabled: boolean
 }
 
-// TODO: disabled (when another form is submitting)
-function InlineActions<T>({ form, onDirty, onCancel }: InlineActionsProps<T>) {
+function InlineActions<T>({ form, disabled, onDirty, onCancel }: InlineActionsProps<T>) {
   const classes = useInlineActionsStyles()
   const state = form.getState()
   const { reset, submit } = form
@@ -636,6 +636,12 @@ function InlineActions<T>({ form, onDirty, onCancel }: InlineActionsProps<T>) {
     reset()
     onCancel()
   }, [reset, onCancel])
+  const error = React.useMemo(() => {
+    if (!state.submitFailed) return
+    if (state.error || state.submitError) return state.error || state.submitError
+    // This could happen only if we forgot to handle an error in fields
+    return `Unhandled error: ${JSON.stringify(state.submitErrors)}`
+  }, [state])
   return (
     <>
       <RF.FormSpy
@@ -645,7 +651,7 @@ function InlineActions<T>({ form, onDirty, onCancel }: InlineActionsProps<T>) {
       {state.submitFailed && (
         <Form.FormError
           className={classes.helper}
-          error={state.error || state.submitError}
+          error={error}
           errors={{
             unexpected: 'Something went wrong',
             notificationConfigurationError: 'Notification configuration error',
@@ -666,11 +672,15 @@ function InlineActions<T>({ form, onDirty, onCancel }: InlineActionsProps<T>) {
       <M.Button
         onClick={() => reset()}
         color="primary"
-        disabled={state.pristine || state.submitting}
+        disabled={state.pristine || state.submitting || disabled}
       >
         Reset
       </M.Button>
-      <M.Button onClick={handleCancel} color="primary" disabled={state.submitting}>
+      <M.Button
+        onClick={handleCancel}
+        color="primary"
+        disabled={state.submitting || disabled}
+      >
         Cancel
       </M.Button>
       <M.Button
@@ -679,7 +689,8 @@ function InlineActions<T>({ form, onDirty, onCancel }: InlineActionsProps<T>) {
         disabled={
           state.pristine ||
           state.submitting ||
-          (state.submitFailed && state.hasValidationErrors)
+          (state.submitFailed && state.hasValidationErrors) ||
+          disabled
         }
         variant="contained"
       >
@@ -814,6 +825,7 @@ function PrimaryCard({
         <Card
           actions={
             <InlineActions<PrimaryFormValues>
+              disabled={disabled}
               form={form}
               onCancel={() => setEditing(false)}
               onDirty={onDirty}
@@ -953,6 +965,7 @@ function MetadataCard({
         <Card
           actions={
             <InlineActions
+              disabled={disabled}
               form={form}
               onCancel={() => setEditing(false)}
               onDirty={onDirty}
@@ -1247,6 +1260,7 @@ function IndexingAndNotificationsCard({
         <Card
           actions={
             <InlineActions<IndexingAndNotificationsFormValues>
+              disabled={disabled}
               form={form}
               onCancel={() => setEditing(false)}
               onDirty={onDirty}
@@ -1372,6 +1386,7 @@ function PreviewCard({
         <Card
           actions={
             <InlineActions<PreviewFormValues>
+              disabled={disabled}
               form={form}
               onCancel={() => setEditing(false)}
               onDirty={onDirty}
@@ -1568,6 +1583,7 @@ function Add({ back, settings, submit }: AddProps) {
         const error = await submit(input)
         if (!error) {
           form.reset(values)
+          back()
           return
         }
         if (error instanceof Error) throw error
@@ -1580,7 +1596,7 @@ function Add({ back, settings, submit }: AddProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [submit],
+    [back, submit],
   )
   const scrollingRef = React.useRef<HTMLFormElement>(null)
   const guardNavigation = React.useCallback(
@@ -1877,24 +1893,10 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
     [],
   )
 
-  interface OnSubmit {
-    (
-      values: PrimaryFormValues,
-      form: FF.FormApi<PrimaryFormValues>,
-    ): Promise<FF.SubmissionErrors | undefined>
-    (
-      values: MetadataFormValues,
-      form: FF.FormApi<MetadataFormValues>,
-    ): Promise<FF.SubmissionErrors | undefined>
-    (
-      values: IndexingAndNotificationsFormValues,
-      form: FF.FormApi<IndexingAndNotificationsFormValues>,
-    ): Promise<FF.SubmissionErrors | undefined>
-    (
-      values: PreviewFormValues,
-      form: FF.FormApi<PreviewFormValues>,
-    ): Promise<FF.SubmissionErrors | undefined>
-  }
+  type OnSubmit = FF.Config<PrimaryFormValues>['onSubmit'] &
+    FF.Config<MetadataFormValues>['onSubmit'] &
+    FF.Config<IndexingAndNotificationsFormValues>['onSubmit'] &
+    FF.Config<PreviewFormValues>['onSubmit']
 
   const onSubmit: OnSubmit = React.useCallback(
     async (values, form) => {
@@ -2015,12 +2017,11 @@ function EditPage({ back }: EditPageProps) {
             Model.GQLTypes.BucketUpdateSuccess
           >
         }
-        back()
       } catch (e) {
         return e instanceof Error ? e : new Error('Error updating bucket')
       }
     },
-    [back, bucket, update],
+    [bucket, update],
   )
   if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
   return (
@@ -2042,24 +2043,24 @@ function AddPage({ back }: AddPageProps) {
     async (input: Model.GQLTypes.BucketAddInput) => {
       try {
         const { bucketAdd: r } = await add({ input })
-        if (r.__typename !== 'BucketAddSuccess')
+        if (r.__typename !== 'BucketAddSuccess') {
           // TS infered shape but not the actual type
           return r as Exclude<
             Model.GQLTypes.BucketAddResult,
             Model.GQLTypes.BucketAddSuccess
           >
+        }
         push(`Bucket "${r.bucketConfig.name}" added`)
         track('WEB', {
           type: 'admin',
           action: 'bucket add',
           bucket: r.bucketConfig.name,
         })
-        back()
       } catch (e) {
         return e instanceof Error ? e : new Error('Error adding bucket')
       }
     },
-    [add, back, push, track],
+    [add, push, track],
   )
   return <Add settings={settings} back={back} submit={submit} />
 }
