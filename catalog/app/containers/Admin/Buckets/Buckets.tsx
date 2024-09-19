@@ -119,6 +119,20 @@ const useCardStyles = M.makeStyles((t) => ({
     padding: t.spacing(0, 5),
     flexGrow: 1,
   },
+  formDisabled: {
+    position: 'relative',
+    opacity: 0.3,
+    '&::after': {
+      content: '""',
+      bottom: 0,
+      cursor: 'not-allowed',
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      zIndex: 1,
+    },
+  },
   summaryInner: {
     flexGrow: 1,
     '&:empty': {
@@ -184,7 +198,9 @@ function Card({
         </div>
       </M.AccordionSummary>
       <M.AccordionDetails>
-        <div className={classes.form}>{form}</div>
+        <div className={cx(classes.form, { [classes.formDisabled]: disabled })}>
+          {form}
+        </div>
       </M.AccordionDetails>
       {actions && <M.AccordionActions>{actions}</M.AccordionActions>}
     </M.Accordion>
@@ -1886,7 +1902,7 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   const { push: notify } = Notifications.use()
 
   const classes = useStyles()
-  const [disabled, setDisabled] = React.useState(false)
+  const [disabled, setDisabled] = React.useState(true)
   const [dirty, setDirty] = React.useState(0)
   const calcDirty = React.useCallback(
     (formDirty) =>
