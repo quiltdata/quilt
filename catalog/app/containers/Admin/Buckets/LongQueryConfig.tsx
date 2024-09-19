@@ -146,6 +146,7 @@ interface LongQueryConfigFormProps {
   bucketName: string
   className: string
   onDirty: (dirty: boolean) => void
+  onEdited?: () => void
 }
 
 interface AddFirst extends LongQueryConfigFormProps {
@@ -166,9 +167,10 @@ interface EditExisting extends LongQueryConfigFormProps {
 function LongQueryConfigForm({
   bucketName,
   className,
-  tabulatorTable,
   onClose,
+  onEdited,
   onDirty,
+  tabulatorTable,
 }: AddFirst | AddNew | EditExisting) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useLongQueryConfigFormStyles()
@@ -187,9 +189,6 @@ function LongQueryConfigForm({
         switch (r.__typename) {
           case 'BucketConfig':
             notify(`Successfully updated ${tableName} config`)
-            if (onClose) {
-              onClose()
-            }
             return undefined
           case 'InvalidInput':
             return mapInputErrors(r.errors)
@@ -206,16 +205,19 @@ function LongQueryConfigForm({
         return mkFormError('unexpected')
       }
     },
-    [bucketName, notify, onClose, setTabulatorTable],
+    [bucketName, notify, setTabulatorTable],
   )
 
   const onSubmit = React.useCallback(
     async (values: FormValues, form: FF.FormApi<FormValues, FormValues>) => {
       const result = await submitConfig(values.name, values.config)
       form.reset(values)
+      if (onEdited) {
+        onEdited()
+      }
       return result
     },
-    [submitConfig],
+    [onEdited, submitConfig],
   )
   const [deleting, setDeleting] = React.useState<
     FF.SubmissionErrors | boolean | undefined
@@ -228,7 +230,10 @@ function LongQueryConfigForm({
     setDeleting(true)
     const errors = await submitConfig(tabulatorTable.name)
     setDeleting(errors)
-  }, [submitConfig, tabulatorTable])
+    if (onEdited) {
+      onEdited()
+    }
+  }, [onEdited, submitConfig, tabulatorTable])
 
   const confirm = useConfirm({
     title: tabulatorTable
@@ -411,6 +416,13 @@ export default function Configs({
     },
     [dirty, onDirty],
   )
+  const handleClose = React.useCallback(() => {
+    if (dirty) {
+      confirm.open()
+    } else {
+      onClose()
+    }
+  }, [dirty, confirm, onClose])
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
@@ -418,29 +430,31 @@ export default function Configs({
           bucketName={bucket}
           className={classes.item}
           key={tabulatorTable.name}
-          tabulatorTable={tabulatorTable}
           onDirty={handleDirty}
+          tabulatorTable={tabulatorTable}
         />
       ))}
-      {toAdd &&
-        (tabulatorTables.length ? (
-          <LongQueryConfigForm
-            bucketName={bucket}
-            className={classes.item}
-            key="new-config"
-            onClose={() => setToAdd(false)}
-            onDirty={handleDirty}
-          />
-        ) : (
-          <LongQueryConfigForm
-            bucketName={bucket}
-            className={classes.item}
-            key="first-config"
-            onDirty={handleDirty}
-          />
-        ))}
+      {!!tabulatorTables.length && toAdd && (
+        <LongQueryConfigForm
+          bucketName={bucket}
+          className={classes.item}
+          key={'new-config'}
+          onDirty={handleDirty}
+          onEdited={() => setToAdd(false)}
+          onClose={() => setToAdd(false)}
+        />
+      )}
+      {!tabulatorTables.length && (
+        <LongQueryConfigForm
+          bucketName={bucket}
+          className={classes.item}
+          key={'first-config'}
+          onDirty={handleDirty}
+          onEdited={() => setToAdd(false)}
+        />
+      )}
       <div className={classes.actions}>
-        <M.Button type="button" onClick={confirm.open} className={classes.button}>
+        <M.Button type="button" onClick={handleClose} className={classes.button}>
           Close
         </M.Button>
         <M.Button
