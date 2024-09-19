@@ -142,16 +142,22 @@ const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
 
 type FormValues = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 
-type LongQueryConfigAddFormProps = {
+interface LongQueryConfigFormProps {
   bucketName: string
   className: string
-  onClose?: () => void // Don't close if no other configs
+}
+
+interface AddFirst extends LongQueryConfigFormProps {
+  onClose?: never // Don't close if no other configs
   tabulatorTable?: never // We create new config, so we don't have one
 }
 
-type LongQueryConfigEditFormProps = {
-  bucketName: string
-  className: string
+interface AddNew extends LongQueryConfigFormProps {
+  onClose: () => void
+  tabulatorTable?: never // We create new config, so we don't have one
+}
+
+interface EditExisting extends LongQueryConfigFormProps {
   onClose?: never // Don't close editing config
   tabulatorTable: FormValues
 }
@@ -161,7 +167,7 @@ function LongQueryConfigForm({
   className,
   tabulatorTable,
   onClose,
-}: LongQueryConfigAddFormProps | LongQueryConfigEditFormProps) {
+}: AddFirst | AddNew | EditExisting) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useLongQueryConfigFormStyles()
 
@@ -223,9 +229,18 @@ function LongQueryConfigForm({
   }, [submitConfig, tabulatorTable])
 
   const confirm = useConfirm({
-    title: 'You are about to delete Longitudinal query config',
+    title: tabulatorTable
+      ? `You are about to delete "${tabulatorTable.name}" longitudinal query config`
+      : 'You have unsaved changes. Delete anyway?',
     submitTitle: 'Delete',
-    onSubmit: (confirmed) => confirmed && deleteExistingConfig(),
+    onSubmit: React.useCallback(
+      (confirmed) => {
+        if (!confirmed) return
+        if (tabulatorTable) deleteExistingConfig()
+        if (onClose) onClose()
+      },
+      [tabulatorTable, deleteExistingConfig, onClose],
+    ),
   })
   return (
     <RF.Form onSubmit={onSubmit} initialValues={tabulatorTable}>
@@ -288,17 +303,15 @@ function LongQueryConfigForm({
             )}
           </div>
           <div className={classes.actions}>
-            {(tabulatorTable || onClose) && (
-              <M.Button
-                onClick={tabulatorTable ? confirm.open : onClose}
-                type="button"
-                className={cx(classes.delete, classes.button)}
-                disabled={submitting || deleting === true || (onClose && !pristine)}
-                variant="outlined"
-              >
-                Delete
-              </M.Button>
-            )}
+            <M.Button
+              onClick={onClose && pristine ? onClose : confirm.open}
+              type="button"
+              className={cx(classes.delete, classes.button)}
+              disabled={submitting || deleting === true || (!tabulatorTable && !onClose)}
+              variant="outlined"
+            >
+              Delete
+            </M.Button>
             <M.Button
               onClick={() => form.reset()}
               className={classes.button}
@@ -372,6 +385,15 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
   const classes = useConfigsStyles()
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(tabulatorTables.length === 0)
+  // const closeAddForm = React.useCallback(() => {})
+  // const [dirty, setDirty] = React.useState(0)
+  // const calcDirty = React.useCallback(
+  //   (formDirty) =>
+  //     setDirty((dirtyCounter) =>
+  //       formDirty ? dirtyCounter + 1 : Math.max(dirtyCounter - 1, 0),
+  //     ),
+  //   [],
+  // )
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
@@ -382,13 +404,16 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
           tabulatorTable={tabulatorTable}
         />
       ))}
-      {toAdd && (
-        <LongQueryConfigForm
-          bucketName={bucket}
-          className={classes.item}
-          onClose={tabulatorTables.length ? () => setToAdd(false) : undefined}
-        />
-      )}
+      {toAdd &&
+        (tabulatorTables.length ? (
+          <LongQueryConfigForm
+            bucketName={bucket}
+            className={classes.item}
+            onClose={() => setToAdd(false)}
+          />
+        ) : (
+          <LongQueryConfigForm bucketName={bucket} className={classes.item} />
+        ))}
       <div className={classes.actions}>
         <M.Button type="button" onClick={onClose} className={classes.button}>
           Close
