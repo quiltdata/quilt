@@ -149,19 +149,16 @@ interface LongQueryConfigFormProps {
   onEdited?: () => void
 }
 
-interface AddFirst extends LongQueryConfigFormProps {
-  onClose?: never // Don't close if no other configs
-  tabulatorTable?: never // We create new config, so we don't have one
-}
-
 interface AddNew extends LongQueryConfigFormProps {
   onClose: () => void
   tabulatorTable?: never // We create new config, so we don't have one
+  isLast: boolean
 }
 
 interface EditExisting extends LongQueryConfigFormProps {
   onClose?: never // Don't close editing config
   tabulatorTable: FormValues
+  isLast?: never
 }
 
 function LongQueryConfigForm({
@@ -171,7 +168,8 @@ function LongQueryConfigForm({
   onEdited,
   onDirty,
   tabulatorTable,
-}: AddFirst | AddNew | EditExisting) {
+  isLast,
+}: AddNew | EditExisting) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useLongQueryConfigFormStyles()
 
@@ -318,7 +316,7 @@ function LongQueryConfigForm({
               onClick={onClose && pristine ? onClose : confirm.open}
               type="button"
               className={cx(classes.delete, classes.button)}
-              disabled={submitting || deleting === true || (!tabulatorTable && !onClose)}
+              disabled={submitting || deleting === true || isLast}
               variant="outlined"
             >
               Delete
@@ -401,7 +399,7 @@ export default function Configs({
 }: ConfigsProps) {
   const classes = useConfigsStyles()
   loadMode('yaml')
-  const [toAdd, setToAdd] = React.useState(tabulatorTables.length === 0)
+  const [toAdd, setToAdd] = React.useState(false)
   const [dirty, setDirty] = React.useState(0)
   const confirm = useConfirm({
     title: 'You have unsaved changes. Close anyway?',
@@ -434,21 +432,13 @@ export default function Configs({
           tabulatorTable={tabulatorTable}
         />
       ))}
-      {!!tabulatorTables.length && toAdd && (
+      {((!!tabulatorTables.length && toAdd) || !tabulatorTables.length) && (
         <LongQueryConfigForm
           bucketName={bucket}
           className={classes.item}
-          key={'new-config'}
-          onDirty={handleDirty}
-          onEdited={() => setToAdd(false)}
+          isLast={!tabulatorTables.length}
+          key={tabulatorTables.length ? 'new-config' : 'first-config'}
           onClose={() => setToAdd(false)}
-        />
-      )}
-      {!tabulatorTables.length && (
-        <LongQueryConfigForm
-          bucketName={bucket}
-          className={classes.item}
-          key={'first-config'}
           onDirty={handleDirty}
           onEdited={() => setToAdd(false)}
         />
