@@ -1425,6 +1425,7 @@ interface LongQueryConfigCardProps {
   className: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
   disabled: boolean
+  onDirty: (dirty: boolean) => void
 }
 
 function LongQueryConfigCard({
@@ -1432,6 +1433,7 @@ function LongQueryConfigCard({
   className,
   disabled,
   tabulatorTables,
+  onDirty,
 }: LongQueryConfigCardProps) {
   const [editing, setEditing] = React.useState(false)
   return (
@@ -1440,6 +1442,7 @@ function LongQueryConfigCard({
         <LongQueryConfigForm
           bucket={bucket}
           onClose={() => setEditing(false)}
+          onDirty={onDirty}
           tabulatorTables={tabulatorTables}
         />
       }
@@ -1974,9 +1977,10 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
             />
           </div>
           <LongQueryConfigCard
-            disabled={disabled}
             bucket={bucket.name}
             className={classes.card}
+            disabled={disabled}
+            onDirty={calcDirty}
             tabulatorTables={tabulatorTables}
           />
         </div>

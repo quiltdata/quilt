@@ -145,6 +145,7 @@ type FormValues = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 interface LongQueryConfigFormProps {
   bucketName: string
   className: string
+  onDirty: (dirty: boolean) => void
 }
 
 interface AddFirst extends LongQueryConfigFormProps {
@@ -167,6 +168,7 @@ function LongQueryConfigForm({
   className,
   tabulatorTable,
   onClose,
+  onDirty,
 }: AddFirst | AddNew | EditExisting) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useLongQueryConfigFormStyles()
@@ -256,6 +258,10 @@ function LongQueryConfigForm({
       }) => (
         <form className={cx(classes.root, className)} onSubmit={handleSubmit}>
           {confirm.render(<></>)}
+          <RF.FormSpy
+            subscription={{ dirty: true }}
+            onChange={({ dirty }) => onDirty(dirty)}
+          />
           <div className={classes.main}>
             <RF.Field
               className={classes.editor}
@@ -378,22 +384,33 @@ const useConfigsStyles = M.makeStyles((t) => ({
 interface ConfigsProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
-  onClose?: () => void // TODO: confirm if there are unsaved changes
+  onClose: () => void
+  onDirty: (dirty: boolean) => void
 }
 
-export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsProps) {
+export default function Configs({
+  bucket,
+  onClose,
+  onDirty,
+  tabulatorTables,
+}: ConfigsProps) {
   const classes = useConfigsStyles()
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(tabulatorTables.length === 0)
-  // const closeAddForm = React.useCallback(() => {})
-  // const [dirty, setDirty] = React.useState(0)
-  // const calcDirty = React.useCallback(
-  //   (formDirty) =>
-  //     setDirty((dirtyCounter) =>
-  //       formDirty ? dirtyCounter + 1 : Math.max(dirtyCounter - 1, 0),
-  //     ),
-  //   [],
-  // )
+  const [dirty, setDirty] = React.useState(0)
+  const confirm = useConfirm({
+    title: 'You have unsaved changes. Close anyway?',
+    submitTitle: 'Discard changes and close',
+    onSubmit: (confirmed) => confirmed && onClose(),
+  })
+  const handleDirty = React.useCallback(
+    (formDirty) => {
+      const dirtyCounter = formDirty ? dirty + 1 : Math.max(dirty - 1, 0)
+      setDirty(dirtyCounter)
+      onDirty(!!dirtyCounter)
+    },
+    [dirty, onDirty],
+  )
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
@@ -402,6 +419,7 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
           className={classes.item}
           key={tabulatorTable.name}
           tabulatorTable={tabulatorTable}
+          onDirty={handleDirty}
         />
       ))}
       {toAdd &&
@@ -410,12 +428,17 @@ export default function Configs({ bucket, tabulatorTables, onClose }: ConfigsPro
             bucketName={bucket}
             className={classes.item}
             onClose={() => setToAdd(false)}
+            onDirty={handleDirty}
           />
         ) : (
-          <LongQueryConfigForm bucketName={bucket} className={classes.item} />
+          <LongQueryConfigForm
+            bucketName={bucket}
+            className={classes.item}
+            onDirty={handleDirty}
+          />
         ))}
       <div className={classes.actions}>
-        <M.Button type="button" onClick={onClose} className={classes.button}>
+        <M.Button type="button" onClick={confirm.open} className={classes.button}>
           Close
         </M.Button>
         <M.Button
