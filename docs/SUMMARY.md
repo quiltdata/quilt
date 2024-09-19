@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 # Quilt Documentation
 
 * [Introduction](README.md)
@@ -17,21 +16,21 @@
 
 ## Quilt Platform Administration
 
- * [Admin UI](Catalog/Admin.md)  
- * [Configuration](Catalog/Preferences.md)
- * [Enterprise Install](technical-reference.md)
- * [quilt3.admin API Access](api-reference/Admin.md)
- * [Workflows](advanced-features/workflows.md)
- * **Configuration**  
-   * [Cross-Account Access](CrossAccount.md)  
-   * [Package Events](advanced-features/package-events.md)  
-   * [Private Endpoints](advanced-features/private-endpoint-access.md)  
-   * [Restrict Access to Bucket Prefixes](advanced-features/s3-prefix-permissions.md)  
-   * [S3 Events, EventBridge](EventBridge.md)  
-   * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
+* [Admin UI](Catalog/Admin.md)  
+* [Configuration](Catalog/Preferences.md)
+* [Enterprise Install](technical-reference.md)
+* [quilt3.admin API Access](api-reference/Admin.md)
+* [Workflows](advanced-features/workflows.md)
+* **Configuration**  
+  * [Cross-Account Access](CrossAccount.md)  
+  * [Package Events](advanced-features/package-events.md)  
+  * [Private Endpoints](advanced-features/private-endpoint-access.md)  
+  * [Restrict Access to Bucket Prefixes](advanced-features/s3-prefix-permissions.md)  
+  * [S3 Events, EventBridge](EventBridge.md)  
+  * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
 * **Best Practices**  
-   * [S3 Buckets Organization](advanced-features/s3-bucket-organization.md)  
-   * [GxP & Quilt Security & Compliance](advanced-features/good-practice.md)
+  * [S3 Buckets Organization](advanced-features/s3-bucket-organization.md)  
+  * [GxP & Quilt Security & Compliance](advanced-features/good-practice.md)
 
 ## Ecosystem Integrations
 
