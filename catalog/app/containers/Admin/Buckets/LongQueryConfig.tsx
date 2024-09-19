@@ -142,19 +142,26 @@ const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
 
 type FormValues = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 
-interface LongQueryConfigFormProps {
+type LongQueryConfigAddFormProps = {
   bucketName: string
-  className?: string
-  tabulatorTable?: FormValues
-  onClose?: () => void
+  className: string
+  onClose?: () => void // Don't close if no other configs
+  tabulatorTable?: never // We create new config, so we don't have one
+}
+
+type LongQueryConfigEditFormProps = {
+  bucketName: string
+  className: string
+  onClose?: never // Don't close editing config
+  tabulatorTable: FormValues
 }
 
 function LongQueryConfigForm({
   bucketName,
-  tabulatorTable,
   className,
+  tabulatorTable,
   onClose,
-}: LongQueryConfigFormProps) {
+}: LongQueryConfigAddFormProps | LongQueryConfigEditFormProps) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useLongQueryConfigFormStyles()
 
@@ -205,7 +212,7 @@ function LongQueryConfigForm({
   const [deleting, setDeleting] = React.useState<
     FF.SubmissionErrors | boolean | undefined
   >()
-  const onDelete = React.useCallback(async () => {
+  const deleteExistingConfig = React.useCallback(async () => {
     if (!tabulatorTable) {
       // Should have called onClose instead
       throw new Error('No tabulator Table to delete')
@@ -214,10 +221,11 @@ function LongQueryConfigForm({
     const errors = await submitConfig(tabulatorTable.name)
     setDeleting(errors)
   }, [submitConfig, tabulatorTable])
+
   const confirm = useConfirm({
     title: 'You are about to delete Longitudinal query config',
     submitTitle: 'Delete',
-    onSubmit: (confirmed) => confirmed && onDelete(),
+    onSubmit: (confirmed) => confirmed && deleteExistingConfig(),
   })
   return (
     <RF.Form onSubmit={onSubmit} initialValues={tabulatorTable}>
@@ -285,7 +293,7 @@ function LongQueryConfigForm({
                 onClick={tabulatorTable ? confirm.open : onClose}
                 type="button"
                 className={cx(classes.delete, classes.button)}
-                disabled={submitting || deleting === true}
+                disabled={submitting || deleting === true || (onClose && !pristine)}
                 variant="outlined"
               >
                 Delete
