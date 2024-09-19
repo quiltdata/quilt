@@ -1902,7 +1902,7 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   const { push: notify } = Notifications.use()
 
   const classes = useStyles()
-  const [disabled, setDisabled] = React.useState(true)
+  const [disabled, setDisabled] = React.useState(false)
   const [dirty, setDirty] = React.useState(0)
   const calcDirty = React.useCallback(
     (formDirty) =>
