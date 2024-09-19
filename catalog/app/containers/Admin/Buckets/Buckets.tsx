@@ -160,7 +160,7 @@ function Card({
   title,
 }: CardProps) {
   const classes = useCardStyles()
-  const expanded = editing || hasError
+  const expanded = editing || !!hasError
   return (
     <M.Accordion
       expanded={expanded}
@@ -1638,7 +1638,7 @@ function Add({ back, settings, submit }: AddProps) {
             </M.Paper>
             <M.Paper className={classes.form}>
               <M.Typography>
-                Longitudal query configs will be available after creating the bucket
+                Longitudinal query configs will be available after creating the bucket
               </M.Typography>
             </M.Paper>
             <input type="submit" style={{ display: 'none' }} />
