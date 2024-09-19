@@ -1,29 +1,17 @@
-Here is the revised version with the API call information moved into the **Overview** section, and the **Configuration** section focused solely on the YAML file:
-
----
-
 # Tabulator Configuration for Quilt
 
 > This feature requires Quilt stack version 1.55.0 or higher
 
 ## Overview
 
-Tabulator allows Quilt admins to configure tables for querying tabular data
-objects across multiple packages using AWS Athena. Admins can define schemas
-and data sources for CSV, TSV, Parquet, and other formats, enabling users to
-run SQL queries directly on Quilt packages.
+Tabulator aggregates tabular data objects across multiple packages using AWS Athena.
+Admins define schemas and data sources for CSV, TSV, Parquet, and other formats,
+enabling users to run SQL queries directly on the contents of Quilt packages.
 
 The configuration can be written in YAML and managed using the
 `quilt3.admin.tabulator_config.set()` function or via the Quilt Admin UI.
 
-The API call for setting up the Tabulator configuration accepts three parameters:
-
-1. `bucket_name: str`: The name of the S3 bucket to be searched, e.g., "udp-spec".
-2. `table_name: str`: The name of the table to be created, e.g., "ccle-tsv".
-3. `config: str`: The configuration for the table as a YAML string.
-
 ![Admin UI for setting Tabulator configuration](../imgs/admin-tabulator-config.png)
-
 
 ## Configuration
 
@@ -84,7 +72,7 @@ table:
 
 ```sql
 SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-WHERE PKG_NAME IS NOT NULL
+WHERE pkg_name IS NOT NULL
 ```
 
 We can then join on PKG_NAME to add the `user_meta` field from the package
@@ -96,5 +84,5 @@ SELECT
   "udp-spec_packages-view".user_meta
 FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
 JOIN "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-ON "ccle-tsv".PKG_NAME = "udp-spec_packages-view".PKG_NAME
+ON "ccle-tsv".pkg_name = "udp-spec_packages-view".pkg_name
 ```
