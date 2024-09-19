@@ -1,42 +1,45 @@
 # Quilt Documentation
 
-* [Introduction](README.md)
-* [Mental Model](MentalModel.md)
+* [About Quilt](README.md)
 * [Architecture](Architecture.md)  
+* [Mental Model](MentalModel.md)
+* [Metadata Management](Catalog/Metadata.md)  
+* [Metadata Workflows](advanced-features/workflows.md)
 
 ## Quilt Platform Usage (Catalog UI)
 
 * [About the Catalog](walkthrough/working-with-the-catalog.md)  
-* [Browsing Files](Catalog/FileBrowser.md)  
-* [Embeddings](Catalog/Embed.md)  
-* [Metadata for Teams](Catalog/Metadata.md)  
-* [Preview](Catalog/Preview.md)  
+* [Bucket Browsing](Catalog/FileBrowser.md)  
+* [Document Previews](Catalog/Preview.md)  
+* [Embeddable iFrames](Catalog/Embed.md)  
 * [Search & Query](Catalog/SearchQuery.md)  
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
+* **Advanced**
+  * [Athena](advanced-features/athena.md)
+  * [Elasticsearch](walkthrough/working-with-elasticsearch.md)  
 
 ## Quilt Platform Administration
 
-* [Admin UI](Catalog/Admin.md)  
-* [Configuration](Catalog/Preferences.md)
-* [Enterprise Install](technical-reference.md)
-* [quilt3.admin API Access](api-reference/Admin.md)
-* [Workflows](advanced-features/workflows.md)
-* **Configuration**  
-  * [Cross-Account Access](CrossAccount.md)  
+* [Admin Settings UI](Catalog/Admin.md)  
+* [Catalog Configuration](Catalog/Preferences.md)
+* [Cross-Account Access](CrossAccount.md)  
+* [Enterprise Installs](technical-reference.md)
+* [quilt3.admin Python API](api-reference/Admin.md)
+* **Advanced**  
   * [Package Events](advanced-features/package-events.md)  
   * [Private Endpoints](advanced-features/private-endpoint-access.md)  
-  * [Restrict Access to Bucket Prefixes](advanced-features/s3-prefix-permissions.md)  
-  * [S3 Events, EventBridge](EventBridge.md)  
+  * [Restrict Access by Bucket Prefix](advanced-features/s3-prefix-permissions.md)  
+  * [S3 Events via EventBridge](EventBridge.md)  
   * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
 * **Best Practices**  
-  * [S3 Buckets Organization](advanced-features/s3-bucket-organization.md)  
-  * [GxP & Quilt Security & Compliance](advanced-features/good-practice.md)
+  * [GxP for Security & Compliance](advanced-features/good-practice.md)
+  * [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)  
 
 ## Ecosystem Integrations
 
-* [Nextflow Plugin](examples/nextflow.md)  
-* [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Benchling Packager](https://open.quiltdata.com/b/quilt-example/packages/examples/benchling-packager)
+* [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
+* [Nextflow Plugin](examples/nextflow.md)  
 
 ## Quilt Python SDK
 
@@ -51,21 +54,19 @@
   * [quilt3](api-reference/api.md)  
   * [quilt3.Package](api-reference/Package.md)  
   * [quilt3.Bucket](api-reference/Bucket.md)  
-  * [Local Development Mode](Catalog/LocalMode.md)  
+  * [Local Catalog](Catalog/LocalMode.md)  
   * [CLI, Environment](api-reference/cli)  
   * [Known Limitations](api-reference/limitations)
   * [Custom SSL Certificates](api-reference/custom-ssl-certificates)
 * **Advanced**  
-  * [Athena](advanced-features/athena.md)
-  * [Buckets](walkthrough/working-with-a-bucket.md)  
-  * [Elasticsearch](walkthrough/working-with-elasticsearch.md)  
+  * [Browsing Buckets](walkthrough/working-with-a-bucket.md)  
   * [Filtering a Package](advanced-features/filtering-a-package.md)  
   * [.quiltignore](advanced-features/.quiltignore.md)  
+  * [Manipulating Manifests](advanced-features/working-with-manifests.md)  
   * [Materialization](advanced-features/materialization.md)
-  * [Working with Manifests](advanced-features/working-with-manifests.md)  
   * [S3 Select](advanced-features/s3-select.md)  
-  * [Troubleshooting](Troubleshooting.md)
 * **More**  
-  * [Frequently Asked Questions](FAQ.md)  
-  * [Contributing](CONTRIBUTING.md)  
   * [Changelog](CHANGELOG.md)
+  * [Contributing](CONTRIBUTING.md)  
+  * [Frequently Asked Questions](FAQ.md)  
+  * [Troubleshooting](Troubleshooting.md)
