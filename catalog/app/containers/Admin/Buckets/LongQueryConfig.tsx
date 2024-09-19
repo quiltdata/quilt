@@ -427,6 +427,7 @@ export default function Configs({
           <LongQueryConfigForm
             bucketName={bucket}
             className={classes.item}
+            key="new-config"
             onClose={() => setToAdd(false)}
             onDirty={handleDirty}
           />
@@ -434,6 +435,7 @@ export default function Configs({
           <LongQueryConfigForm
             bucketName={bucket}
             className={classes.item}
+            key="first-config"
             onDirty={handleDirty}
           />
         ))}
