@@ -146,6 +146,7 @@ interface LongQueryConfigFormProps {
   bucketName: string
   className: string
   onEdited?: () => void
+  onFormSpy: (state: FF.FormState<FormValues>) => void
 }
 
 interface AddNew extends LongQueryConfigFormProps {
@@ -164,6 +165,7 @@ function LongQueryConfigForm({
   bucketName,
   className,
   onClose,
+  onFormSpy,
   onEdited,
   tabulatorTable,
   isLast,
@@ -258,6 +260,10 @@ function LongQueryConfigForm({
         submitError,
       }) => (
         <form className={cx(classes.root, className)} onSubmit={handleSubmit}>
+          <RF.FormSpy
+            subscription={{ modified: true, dirty: true }}
+            onChange={onFormSpy}
+          />
           {confirm.render(<></>)}
           <div className={classes.main}>
             <RF.Field
@@ -382,9 +388,15 @@ interface ConfigsProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
   onClose: () => void
+  onFormSpy: (state: FF.FormState<FormValues>) => void
 }
 
-export default function Configs({ bucket, onClose, tabulatorTables }: ConfigsProps) {
+export default function Configs({
+  bucket,
+  onClose,
+  onFormSpy,
+  tabulatorTables,
+}: ConfigsProps) {
   const classes = useConfigsStyles()
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(false)
@@ -396,6 +408,7 @@ export default function Configs({ bucket, onClose, tabulatorTables }: ConfigsPro
           className={classes.item}
           key={tabulatorTable.name}
           tabulatorTable={tabulatorTable}
+          onFormSpy={onFormSpy}
         />
       ))}
       {((!!tabulatorTables.length && toAdd) || !tabulatorTables.length) && (
@@ -406,6 +419,7 @@ export default function Configs({ bucket, onClose, tabulatorTables }: ConfigsPro
           key={tabulatorTables.length ? 'new-config' : 'first-config'}
           onClose={() => setToAdd(false)}
           onEdited={() => setToAdd(false)}
+          onFormSpy={onFormSpy}
         />
       )}
       <div className={classes.actions}>

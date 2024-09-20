@@ -1446,19 +1446,37 @@ function LongQueryConfigCard({
   onEdit,
   tabulatorTables,
 }: LongQueryConfigCardProps) {
+  const [dirtyCounter, setDirtyCounter] = React.useState(0)
+  const onFormSpy = React.useCallback(({ dirty, modified }) => {
+    setDirtyCounter((c) => {
+      if (Object.values(modified).every((v) => !v)) return c
+      return dirty ? c + 1 : Math.max(c - 1, 0)
+    })
+  }, [])
+  const handleEdit = React.useCallback(
+    (e) => {
+      if (!e && !!dirtyCounter) {
+        // eslint-disable-next-line no-alert
+        if (!window.confirm('You have unsaved changes. Discard them?')) return
+      }
+      onEdit(e)
+    },
+    [dirtyCounter, onEdit],
+  )
   return (
     <Card
       form={
         <LongQueryConfigForm
           bucket={bucket}
-          onClose={() => onEdit(false)}
+          onClose={() => handleEdit(false)}
           tabulatorTables={tabulatorTables}
+          onFormSpy={onFormSpy}
         />
       }
       editing={editing}
       className={className}
       disabled={disabled}
-      onEdit={onEdit}
+      onEdit={handleEdit}
       icon="query_builder"
       title={
         tabulatorTables.length
