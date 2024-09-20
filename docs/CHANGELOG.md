@@ -15,6 +15,11 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+
+* [Added] New `quilt3.admin.tabulator` sub-module for management of Tabulator tables ([#4136](https://github.com/quiltdata/quilt/pull/4136))
+
 # 6.0.0 - 2024-08-19
 ## Python API
 
