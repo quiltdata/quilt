@@ -10,4 +10,4 @@ from .exceptions import (
     Quilt3AdminError,
     UserNotFoundError,
 )
-from .types import ManagedRole, SSOConfig, UnmanagedRole, User
+from .types import ManagedRole, SSOConfig, TabulatorTable, UnmanagedRole, User
