@@ -21,6 +21,8 @@ import * as yaml from 'utils/yaml'
 
 import * as Form from '../Form'
 
+import * as OnDirty from './OnDirty'
+
 import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesAdd.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
@@ -146,7 +148,6 @@ interface LongQueryConfigFormProps {
   bucketName: string
   className: string
   onEdited?: () => void
-  onFormSpy: (state: FF.FormState<FormValues>) => void
 }
 
 interface AddNew extends LongQueryConfigFormProps {
@@ -165,7 +166,6 @@ function LongQueryConfigForm({
   bucketName,
   className,
   onClose,
-  onFormSpy,
   onEdited,
   tabulatorTable,
   isLast,
@@ -247,6 +247,7 @@ function LongQueryConfigForm({
       [tabulatorTable, deleteExistingConfig, onClose],
     ),
   })
+  const { onChange: onFormSpy } = OnDirty.use()
   return (
     <RF.Form onSubmit={onSubmit} initialValues={tabulatorTable}>
       {({
@@ -388,15 +389,9 @@ interface ConfigsProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
   onClose: () => void
-  onFormSpy: (state: FF.FormState<FormValues>) => void
 }
 
-export default function Configs({
-  bucket,
-  onClose,
-  onFormSpy,
-  tabulatorTables,
-}: ConfigsProps) {
+export default function Configs({ bucket, onClose, tabulatorTables }: ConfigsProps) {
   const classes = useConfigsStyles()
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(false)
@@ -408,7 +403,6 @@ export default function Configs({
           className={classes.item}
           key={tabulatorTable.name}
           tabulatorTable={tabulatorTable}
-          onFormSpy={onFormSpy}
         />
       ))}
       {((!!tabulatorTables.length && toAdd) || !tabulatorTables.length) && (
@@ -419,7 +413,6 @@ export default function Configs({
           key={tabulatorTables.length ? 'new-config' : 'first-config'}
           onClose={() => setToAdd(false)}
           onEdited={() => setToAdd(false)}
-          onFormSpy={onFormSpy}
         />
       )}
       <div className={classes.actions}>

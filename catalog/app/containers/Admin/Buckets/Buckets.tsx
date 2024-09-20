@@ -36,6 +36,7 @@ import * as yaml from 'utils/yaml'
 
 import * as Form from '../Form'
 import LongQueryConfigForm from './LongQueryConfig'
+import * as OnDirty from './OnDirty'
 
 import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
 
@@ -641,15 +642,10 @@ interface InlineActionsProps<T> {
   form: FF.FormApi<T>
   onCancel: () => void
   disabled: boolean
-  onFormSpy: (state: FF.FormState<T>) => void
 }
 
-function InlineActions<T>({
-  form,
-  disabled,
-  onCancel,
-  onFormSpy,
-}: InlineActionsProps<T>) {
+function InlineActions<T>({ form, disabled, onCancel }: InlineActionsProps<T>) {
+  const { onChange } = OnDirty.use()
   const classes = useInlineActionsStyles()
   const state = form.getState()
   const { reset, submit } = form
@@ -665,7 +661,7 @@ function InlineActions<T>({
   }, [state])
   return (
     <>
-      <RF.FormSpy subscription={{ modified: true, dirty: true }} onChange={onFormSpy} />
+      <RF.FormSpy subscription={{ modified: true, dirty: true }} onChange={onChange} />
       {state.submitFailed && (
         <Form.FormError
           className={classes.helper}
@@ -824,7 +820,6 @@ interface PrimaryCardProps {
   disabled: boolean
   editing: boolean
   onEdit: (ex: boolean) => void
-  onFormSpy: (state: FF.FormState<PrimaryFormValues>) => void
   onSubmit: FF.Config<PrimaryFormValues>['onSubmit']
 }
 
@@ -834,7 +829,6 @@ function PrimaryCard({
   disabled,
   editing,
   onEdit,
-  onFormSpy,
   onSubmit,
 }: PrimaryCardProps) {
   return (
@@ -849,7 +843,6 @@ function PrimaryCard({
               disabled={disabled}
               form={form}
               onCancel={() => onEdit(false)}
-              onFormSpy={onFormSpy}
             />
           }
           form={
@@ -966,7 +959,6 @@ interface MetadataCardProps {
   disabled: boolean
   editing: boolean
   onEdit: (ex: boolean) => void
-  onFormSpy: (state: FF.FormState<MetadataFormValues>) => void
   onSubmit: FF.Config<MetadataFormValues>['onSubmit']
 }
 
@@ -976,7 +968,6 @@ function MetadataCard({
   disabled,
   editing,
   onEdit,
-  onFormSpy,
   onSubmit,
 }: MetadataCardProps) {
   const classes = useMetadataCardStyles()
@@ -992,7 +983,6 @@ function MetadataCard({
               disabled={disabled}
               form={form}
               onCancel={() => onEdit(false)}
-              onFormSpy={onFormSpy}
             />
           }
           hasError={submitFailed}
@@ -1255,7 +1245,6 @@ interface IndexingAndNotificationsCardProps {
   disabled: boolean
   editing: boolean
   onEdit: (ex: boolean) => void
-  onFormSpy: (state: FF.FormState<IndexingAndNotificationsFormValues>) => void
   onSubmit: FF.Config<IndexingAndNotificationsFormValues>['onSubmit']
   reindex?: () => void
 }
@@ -1266,7 +1255,6 @@ function IndexingAndNotificationsCard({
   disabled,
   editing,
   onEdit,
-  onFormSpy,
   onSubmit,
   reindex,
 }: IndexingAndNotificationsCardProps) {
@@ -1288,7 +1276,6 @@ function IndexingAndNotificationsCard({
               disabled={disabled}
               form={form}
               onCancel={() => onEdit(false)}
-              onFormSpy={onFormSpy}
             />
           }
           hasError={submitFailed}
@@ -1392,7 +1379,6 @@ interface PreviewCardProps {
   disabled: boolean
   editing: boolean
   onEdit: (ex: boolean) => void
-  onFormSpy: (state: FF.FormState<PreviewFormValues>) => void
   onSubmit: FF.Config<PreviewFormValues>['onSubmit']
 }
 
@@ -1402,7 +1388,6 @@ function PreviewCard({
   disabled,
   editing,
   onEdit,
-  onFormSpy,
   onSubmit,
 }: PreviewCardProps) {
   return (
@@ -1417,7 +1402,6 @@ function PreviewCard({
               disabled={disabled}
               form={form}
               onCancel={() => onEdit(false)}
-              onFormSpy={onFormSpy}
             />
           }
           hasError={submitFailed}
@@ -1454,8 +1438,8 @@ interface LongQueryConfigCardProps {
   disabled: boolean
   editing: boolean
   onEdit: (ex: boolean) => void
+  onDirty: (dirty: boolean) => void
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
-  onFormSpy: (state: { modified: { tabulator: boolean }; dirty: boolean }) => void
 }
 
 function LongQueryConfigCard({
@@ -1464,27 +1448,23 @@ function LongQueryConfigCard({
   disabled,
   editing,
   onEdit,
-  onFormSpy,
+  onDirty,
   tabulatorTables,
 }: LongQueryConfigCardProps) {
-  const [dirtyCounter, setDirtyCounter] = React.useState(0)
-  const handleFormSpy = React.useCallback(
-    ({ dirty, modified }) => {
-      if (Object.values(modified).every((v) => !v)) return
-      setDirtyCounter((c) => (dirty ? c + 1 : Math.max(c - 1, 0)))
-      onFormSpy({ modified: { tabulator: true }, dirty })
-    },
-    [onFormSpy],
-  )
+  const { dirty } = OnDirty.use()
+  React.useEffect(() => {
+    onDirty(dirty)
+  }, [dirty, onDirty])
   const handleEdit = React.useCallback(
     (e) => {
-      if (!e && !!dirtyCounter) {
+      if (!e && dirty) {
         // eslint-disable-next-line no-alert
-        if (!window.confirm('You have unsaved changes. Discard them?')) return
+        if (!window.confirm('You have unsaved changes. Ignore them?')) return
+        onDirty(false)
       }
       onEdit(e)
     },
-    [dirtyCounter, onEdit],
+    [dirty, onDirty, onEdit],
   )
   return (
     <Card
@@ -1493,7 +1473,6 @@ function LongQueryConfigCard({
           bucket={bucket}
           onClose={() => handleEdit(false)}
           tabulatorTables={tabulatorTables}
-          onFormSpy={handleFormSpy}
         />
       }
       editing={editing}
@@ -1987,17 +1966,17 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   const handleEditing = (cardName: keyof typeof editing) => (expanded: boolean) => {
     setEditing((x) => ({ ...x, [cardName]: expanded }))
   }
-  const [dirtyCounter, setDirtyCounter] = React.useState(0)
-  const onFormSpy = React.useCallback(({ dirty, modified }) => {
-    if (Object.values(modified).every((v) => !v)) return
-    setDirtyCounter((c) => (dirty ? c + 1 : Math.max(c - 1, 0)))
-  }, [])
   const guardNavigation = () =>
     'Some forms are opened and ready for modification. Leave the page anyway?'
+  const { dirty, onChange } = OnDirty.use()
 
+  const onTabulatorDirty = React.useCallback(
+    (d) => onChange({ modified: { tabulator: true }, dirty: d }),
+    [onChange],
+  )
   return (
     <>
-      <RRDom.Prompt when={!!dirtyCounter} message={guardNavigation} />
+      <RRDom.Prompt when={dirty} message={guardNavigation} />
       <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
       <SubPageHeader back={back} disabled={disabled} />
       <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
@@ -2009,7 +1988,6 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
               disabled={disabled}
               editing={editing.primary}
               onEdit={handleEditing('primary')}
-              onFormSpy={onFormSpy}
               onSubmit={onSubmit}
             />
             <MetadataCard
@@ -2018,7 +1996,6 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
               disabled={disabled}
               editing={editing.metadata}
               onEdit={handleEditing('metadata')}
-              onFormSpy={onFormSpy}
               onSubmit={onSubmit}
             />
             <IndexingAndNotificationsCard
@@ -2027,7 +2004,6 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
               disabled={disabled}
               editing={editing.indexing}
               onEdit={handleEditing('indexing')}
-              onFormSpy={onFormSpy}
               onSubmit={onSubmit}
               reindex={openReindex}
             />
@@ -2037,19 +2013,20 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
               disabled={disabled}
               editing={editing.preview}
               onEdit={handleEditing('preview')}
-              onFormSpy={onFormSpy}
               onSubmit={onSubmit}
             />
           </div>
-          <LongQueryConfigCard
-            bucket={bucket.name}
-            className={classes.card}
-            disabled={disabled}
-            editing={editing.tabulator}
-            onEdit={handleEditing('tabulator')}
-            tabulatorTables={tabulatorTables}
-            onFormSpy={onFormSpy}
-          />
+          <OnDirty.Provider>
+            <LongQueryConfigCard
+              bucket={bucket.name}
+              className={classes.card}
+              disabled={disabled}
+              editing={editing.tabulator}
+              onEdit={handleEditing('tabulator')}
+              tabulatorTables={tabulatorTables}
+              onDirty={onTabulatorDirty}
+            />
+          </OnDirty.Provider>
         </div>
       </React.Suspense>
     </>
@@ -2096,7 +2073,14 @@ function EditPage({ back }: EditPageProps) {
   )
   if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
   return (
-    <Edit bucket={bucket} back={back} submit={submit} tabulatorTables={tabulatorTables} />
+    <OnDirty.Provider>
+      <Edit
+        bucket={bucket}
+        back={back}
+        submit={submit}
+        tabulatorTables={tabulatorTables}
+      />
+    </OnDirty.Provider>
   )
 }
 
