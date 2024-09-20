@@ -1438,10 +1438,12 @@ interface LongQueryConfigCardProps {
   disabled: boolean
   editing: boolean
   onEdit: (ex: boolean) => void
+  /** Have to be memoized */
   onDirty: (dirty: boolean) => void
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
+// TODO: use dialog confirm
 function LongQueryConfigCard({
   bucket,
   className,
@@ -1452,9 +1454,7 @@ function LongQueryConfigCard({
   tabulatorTables,
 }: LongQueryConfigCardProps) {
   const { dirty } = OnDirty.use()
-  React.useEffect(() => {
-    onDirty(dirty)
-  }, [dirty, onDirty])
+  React.useEffect(() => onDirty(dirty), [dirty, onDirty])
   const handleEdit = React.useCallback(
     (e) => {
       if (!e && dirty) {
