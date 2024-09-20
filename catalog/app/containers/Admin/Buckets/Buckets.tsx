@@ -640,11 +640,10 @@ const useInlineActionsStyles = M.makeStyles((t) => ({
 interface InlineActionsProps<T> {
   form: FF.FormApi<T>
   onCancel: () => void
-  onDirty: (dirty: boolean) => void
   disabled: boolean
 }
 
-function InlineActions<T>({ form, disabled, onDirty, onCancel }: InlineActionsProps<T>) {
+function InlineActions<T>({ form, disabled, onCancel }: InlineActionsProps<T>) {
   const classes = useInlineActionsStyles()
   const state = form.getState()
   const { reset, submit } = form
@@ -660,10 +659,6 @@ function InlineActions<T>({ form, disabled, onDirty, onCancel }: InlineActionsPr
   }, [state])
   return (
     <>
-      <RF.FormSpy
-        subscription={{ dirty: true }}
-        onChange={({ dirty }) => onDirty(dirty)}
-      />
       {state.submitFailed && (
         <Form.FormError
           className={classes.helper}
@@ -817,34 +812,34 @@ function PrimaryForm({ bucket, className }: PrimaryFormProps) {
 type PrimaryFormValues = ReturnType<typeof bucketToPrimaryValues>
 
 interface PrimaryCardProps {
-  disabled: boolean
   bucket: BucketConfig
   className: string
+  disabled: boolean
+  editing: boolean
+  onEdit: (ex: boolean) => void
   onSubmit: FF.Config<PrimaryFormValues>['onSubmit']
-  onDirty: (dirty: boolean) => void
 }
 
 function PrimaryCard({
-  className,
   bucket,
+  className,
   disabled,
-  onDirty,
+  editing,
+  onEdit,
   onSubmit,
 }: PrimaryCardProps) {
-  const [editing, setEditing] = React.useState(false)
-
-  const initialValues = bucketToPrimaryValues(bucket)
-
   return (
-    <RF.Form<PrimaryFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+    <RF.Form<PrimaryFormValues>
+      onSubmit={onSubmit}
+      initialValues={bucketToPrimaryValues(bucket)}
+    >
       {({ handleSubmit, submitting, form, submitFailed }) => (
         <Card
           actions={
             <InlineActions<PrimaryFormValues>
               disabled={disabled}
               form={form}
-              onCancel={() => setEditing(false)}
-              onDirty={onDirty}
+              onCancel={() => onEdit(false)}
             />
           }
           form={
@@ -855,7 +850,7 @@ function PrimaryCard({
           className={className}
           disabled={submitting || disabled}
           icon={bucket.iconUrl || bucketIcon}
-          onEdit={setEditing}
+          onEdit={onEdit}
           title={editing ? `s3://${bucket.name}` : bucket.title}
           editing={editing}
           hasError={submitFailed}
@@ -956,35 +951,35 @@ const useMetadataCardStyles = M.makeStyles((t) => ({
 type MetadataFormValues = ReturnType<typeof bucketToMetadataValues>
 
 interface MetadataCardProps {
-  disabled: boolean
   bucket: BucketConfig
   className: string
+  disabled: boolean
+  editing: boolean
+  onEdit: (ex: boolean) => void
   onSubmit: FF.Config<MetadataFormValues>['onSubmit']
-  onDirty: (dirty: boolean) => void
 }
 
 function MetadataCard({
   bucket,
   className,
   disabled,
-  onDirty,
+  editing,
+  onEdit,
   onSubmit,
 }: MetadataCardProps) {
   const classes = useMetadataCardStyles()
-  const [editing, setEditing] = React.useState(false)
-
-  const initialValues = bucketToMetadataValues(bucket)
-
   return (
-    <RF.Form<MetadataFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+    <RF.Form<MetadataFormValues>
+      onSubmit={onSubmit}
+      initialValues={bucketToMetadataValues(bucket)}
+    >
       {({ handleSubmit, submitting, form, submitFailed }) => (
         <Card
           actions={
             <InlineActions
               disabled={disabled}
               form={form}
-              onCancel={() => setEditing(false)}
-              onDirty={onDirty}
+              onCancel={() => onEdit(false)}
             />
           }
           hasError={submitFailed}
@@ -992,7 +987,7 @@ function MetadataCard({
           className={className}
           disabled={submitting || disabled}
           icon="toc"
-          onEdit={setEditing}
+          onEdit={onEdit}
           title="Metadata"
           form={
             <form onSubmit={handleSubmit}>
@@ -1242,30 +1237,29 @@ type IndexingAndNotificationsFormValues = ReturnType<
 >
 
 interface IndexingAndNotificationsCardProps {
+  editing: boolean
+  onEdit: (ex: boolean) => void
   disabled: boolean
   bucket: BucketConfig
   className: string
   onSubmit: FF.Config<IndexingAndNotificationsFormValues>['onSubmit']
   reindex?: () => void
-  onDirty: (dirty: boolean) => void
 }
 
 function IndexingAndNotificationsCard({
   bucket,
   className,
   disabled,
-  onDirty,
   onSubmit,
+  onEdit,
+  editing,
   reindex,
 }: IndexingAndNotificationsCardProps) {
-  const [editing, setEditing] = React.useState(false)
-
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
   const settings = data.config.contentIndexingSettings
 
-  const { enableDeepIndexing, snsNotificationArn } = bucketToFormValues(bucket)
-
   const initialValues = bucketToIndexingAndNotificationsValues(bucket)
+  const { enableDeepIndexing, snsNotificationArn } = initialValues
 
   return (
     <RF.Form<IndexingAndNotificationsFormValues>
@@ -1278,8 +1272,7 @@ function IndexingAndNotificationsCard({
             <InlineActions<IndexingAndNotificationsFormValues>
               disabled={disabled}
               form={form}
-              onCancel={() => setEditing(false)}
-              onDirty={onDirty}
+              onCancel={() => onEdit(false)}
             />
           }
           hasError={submitFailed}
@@ -1293,11 +1286,11 @@ function IndexingAndNotificationsCard({
               />
             </form>
           }
-          editing={editing}
           className={className}
           disabled={submitting || disabled}
-          onEdit={setEditing}
+          editing={editing}
           icon="find_in_page"
+          onEdit={onEdit}
           title="Indexing and notifications"
         >
           {!!reindex && (
@@ -1378,34 +1371,34 @@ function PreviewForm({ className }: PreviewFormProps) {
 type PreviewFormValues = ReturnType<typeof bucketToPreviewValues>
 
 interface PreviewCardProps {
-  disabled: boolean
-  className: string
   bucket: BucketConfig
+  className: string
+  disabled: boolean
+  editing: boolean
+  onEdit: (ex: boolean) => void
   onSubmit: FF.Config<PreviewFormValues>['onSubmit']
-  onDirty: (dirty: boolean) => void
 }
 
 function PreviewCard({
   bucket,
   className,
   disabled,
-  onDirty,
+  editing,
+  onEdit,
   onSubmit,
 }: PreviewCardProps) {
-  const [editing, setEditing] = React.useState(false)
-
-  const initialValues = bucketToPreviewValues(bucket)
-
   return (
-    <RF.Form<PreviewFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+    <RF.Form<PreviewFormValues>
+      onSubmit={onSubmit}
+      initialValues={bucketToPreviewValues(bucket)}
+    >
       {({ handleSubmit, submitting, form, submitFailed }) => (
         <Card
           actions={
             <InlineActions<PreviewFormValues>
               disabled={disabled}
               form={form}
-              onCancel={() => setEditing(false)}
-              onDirty={onDirty}
+              onCancel={() => onEdit(false)}
             />
           }
           hasError={submitFailed}
@@ -1417,7 +1410,7 @@ function PreviewCard({
           editing={editing}
           className={className}
           disabled={submitting || disabled}
-          onEdit={setEditing}
+          onEdit={onEdit}
           icon="code"
           title={`Permissive HTML rendering${
             editing ? '' : ` is ${bucket.browsable ? 'enabled' : 'disabled'}`
@@ -1439,33 +1432,33 @@ function LongQueryConfigSingle({ name, config }: LongQueryConfigSingleProps) {
 interface LongQueryConfigCardProps {
   bucket: string
   className: string
-  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
   disabled: boolean
-  onDirty: (dirty: boolean) => void
+  editing: boolean
+  onEdit: (ex: boolean) => void
+  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
 function LongQueryConfigCard({
   bucket,
   className,
   disabled,
+  editing,
+  onEdit,
   tabulatorTables,
-  onDirty,
 }: LongQueryConfigCardProps) {
-  const [editing, setEditing] = React.useState(false)
   return (
     <Card
       form={
         <LongQueryConfigForm
           bucket={bucket}
-          onClose={() => setEditing(false)}
-          onDirty={onDirty}
+          onClose={() => onEdit(false)}
           tabulatorTables={tabulatorTables}
         />
       }
       editing={editing}
       className={className}
       disabled={disabled}
-      onEdit={setEditing}
+      onEdit={onEdit}
       icon="query_builder"
       title={
         tabulatorTables.length
@@ -1634,7 +1627,7 @@ function Add({ back, settings, submit }: AddProps) {
         hasValidationErrors,
       }) => (
         <>
-          <RRDom.Prompt when={dirty} message={guardNavigation} />
+          <RRDom.Prompt when={!!dirty} message={guardNavigation} />
           <SubPageHeader back={back} disabled={submitting}>
             Add a bucket
           </SubPageHeader>
@@ -1903,14 +1896,6 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
 
   const classes = useStyles()
   const [disabled, setDisabled] = React.useState(false)
-  const [dirty, setDirty] = React.useState(0)
-  const calcDirty = React.useCallback(
-    (formDirty) =>
-      setDirty((dirtyCounter) =>
-        formDirty ? dirtyCounter + 1 : Math.max(dirtyCounter - 1, 0),
-      ),
-    [],
-  )
 
   type OnSubmit = FF.Config<PrimaryFormValues>['onSubmit'] &
     FF.Config<MetadataFormValues>['onSubmit'] &
@@ -1949,54 +1934,72 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
 
   const scrollingRef = React.useRef<HTMLDivElement>(null)
 
-  const guardNavigation = React.useCallback(
-    () => 'You have unsaved changes. Discard changes and leave the page?',
-    [],
-  )
+  const [editing, setEditing] = React.useState<
+    Record<'primary' | 'metadata' | 'indexing' | 'preview' | 'tabulator', boolean>
+  >({
+    primary: false,
+    metadata: false,
+    indexing: false,
+    preview: false,
+    tabulator: false,
+  })
+  const handleEditing = (cardName: keyof typeof editing) => (expanded: boolean) => {
+    setEditing((x) => ({ ...x, [cardName]: expanded }))
+  }
+  const guardNavigation = () =>
+    'Some forms are opened and ready for modification. Leave the page anyway?'
 
   return (
     <>
-      <RRDom.Prompt when={!!dirty} message={guardNavigation} />
+      <RRDom.Prompt
+        when={!!Object.values(editing).some((n) => n)}
+        message={guardNavigation}
+      />
       <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
       <SubPageHeader back={back} disabled={disabled} />
       <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
         <div className={classes.fields} ref={scrollingRef}>
           <div className={classes.card}>
             <PrimaryCard
-              disabled={disabled}
               bucket={bucket}
               className={classes.card}
+              disabled={disabled}
+              editing={editing.primary}
+              onEdit={handleEditing('primary')}
               onSubmit={onSubmit}
-              onDirty={calcDirty}
             />
             <MetadataCard
-              disabled={disabled}
               bucket={bucket}
               className={classes.card}
+              disabled={disabled}
+              editing={editing.metadata}
+              onEdit={handleEditing('metadata')}
               onSubmit={onSubmit}
-              onDirty={calcDirty}
             />
             <IndexingAndNotificationsCard
-              disabled={disabled}
               bucket={bucket}
               className={classes.card}
+              disabled={disabled}
+              editing={editing.indexing}
+              onEdit={handleEditing('indexing')}
               onSubmit={onSubmit}
               reindex={openReindex}
-              onDirty={calcDirty}
             />
             <PreviewCard
-              disabled={disabled}
               bucket={bucket}
               className={classes.card}
+              disabled={disabled}
+              editing={editing.preview}
+              onEdit={handleEditing('preview')}
               onSubmit={onSubmit}
-              onDirty={calcDirty}
             />
           </div>
           <LongQueryConfigCard
             bucket={bucket.name}
             className={classes.card}
             disabled={disabled}
-            onDirty={calcDirty}
+            editing={editing.tabulator}
+            onEdit={handleEditing('tabulator')}
             tabulatorTables={tabulatorTables}
           />
         </div>

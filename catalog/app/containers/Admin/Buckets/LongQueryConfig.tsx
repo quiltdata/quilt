@@ -145,7 +145,6 @@ type FormValues = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 interface LongQueryConfigFormProps {
   bucketName: string
   className: string
-  onDirty: (dirty: boolean) => void
   onEdited?: () => void
 }
 
@@ -166,7 +165,6 @@ function LongQueryConfigForm({
   className,
   onClose,
   onEdited,
-  onDirty,
   tabulatorTable,
   isLast,
 }: AddNew | EditExisting) {
@@ -261,10 +259,6 @@ function LongQueryConfigForm({
       }) => (
         <form className={cx(classes.root, className)} onSubmit={handleSubmit}>
           {confirm.render(<></>)}
-          <RF.FormSpy
-            subscription={{ dirty: true }}
-            onChange={({ dirty }) => onDirty(dirty)}
-          />
           <div className={classes.main}>
             <RF.Field
               className={classes.editor}
@@ -388,39 +382,12 @@ interface ConfigsProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
   onClose: () => void
-  onDirty: (dirty: boolean) => void
 }
 
-export default function Configs({
-  bucket,
-  onClose,
-  onDirty,
-  tabulatorTables,
-}: ConfigsProps) {
+export default function Configs({ bucket, onClose, tabulatorTables }: ConfigsProps) {
   const classes = useConfigsStyles()
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(false)
-  const [dirty, setDirty] = React.useState(0)
-  const confirm = useConfirm({
-    title: 'You have unsaved changes. Close anyway?',
-    submitTitle: 'Discard changes and close',
-    onSubmit: (confirmed) => confirmed && onClose(),
-  })
-  const handleDirty = React.useCallback(
-    (formDirty) => {
-      const dirtyCounter = formDirty ? dirty + 1 : Math.max(dirty - 1, 0)
-      setDirty(dirtyCounter)
-      onDirty(!!dirtyCounter)
-    },
-    [dirty, onDirty],
-  )
-  const handleClose = React.useCallback(() => {
-    if (dirty) {
-      confirm.open()
-    } else {
-      onClose()
-    }
-  }, [dirty, confirm, onClose])
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
@@ -428,7 +395,6 @@ export default function Configs({
           bucketName={bucket}
           className={classes.item}
           key={tabulatorTable.name}
-          onDirty={handleDirty}
           tabulatorTable={tabulatorTable}
         />
       ))}
@@ -439,12 +405,11 @@ export default function Configs({
           isLast={!tabulatorTables.length}
           key={tabulatorTables.length ? 'new-config' : 'first-config'}
           onClose={() => setToAdd(false)}
-          onDirty={handleDirty}
           onEdited={() => setToAdd(false)}
         />
       )}
       <div className={classes.actions}>
-        <M.Button type="button" onClick={handleClose} className={classes.button}>
+        <M.Button type="button" onClick={onClose} className={classes.button}>
           Close
         </M.Button>
         <M.Button
