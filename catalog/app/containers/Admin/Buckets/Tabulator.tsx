@@ -151,24 +151,24 @@ interface TabulatorTableProps {
 }
 
 interface AddNew extends TabulatorTableProps {
+  disableDeletion: boolean
   onClose: () => void
   tabulatorTable?: never // We create new config, so we don't have one
-  isLast: boolean
 }
 
 interface EditExisting extends TabulatorTableProps {
+  disableDeletion?: never
   onClose?: never // Don't close editing config
   tabulatorTable: FormValues
-  isLast?: never
 }
 
 function TabulatorTable({
   bucketName,
   className,
+  disableDeletion,
   onClose,
   onEdited,
   tabulatorTable,
-  isLast,
 }: AddNew | EditExisting) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useTabulatorTableStyles()
@@ -314,7 +314,7 @@ function TabulatorTable({
               onClick={onClose && pristine ? onClose : confirm.open}
               type="button"
               className={cx(classes.delete, classes.button)}
-              disabled={submitting || deleting === true || isLast}
+              disabled={submitting || deleting === true || disableDeletion}
               variant="outlined"
             >
               Delete
@@ -350,6 +350,17 @@ function TabulatorTable({
 }
 
 const useStyles = M.makeStyles((t) => ({
+  actions: {
+    margin: t.spacing(2, -5, 0),
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: t.spacing(2, 0, 0),
+  },
+  button: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
+  },
   item: {
     position: 'relative',
     '& + &': {
@@ -366,20 +377,6 @@ const useStyles = M.makeStyles((t) => ({
       },
     },
   },
-  title: {
-    marginBottom: t.spacing(3),
-  },
-  actions: {
-    margin: t.spacing(2, -5, 0),
-    display: 'flex',
-    justifyContent: 'flex-end',
-    padding: t.spacing(2, 0, 0),
-  },
-  button: {
-    '& + &': {
-      marginLeft: t.spacing(2),
-    },
-  },
 }))
 
 interface TabulatorProps {
@@ -388,26 +385,34 @@ interface TabulatorProps {
   onClose: () => void
 }
 
+/** Have to be suspended because of `<TextEditor />` */
 export default function Tabulator({ bucket, onClose, tabulatorTables }: TabulatorProps) {
   const classes = useStyles()
   loadMode('yaml')
+
   const [toAdd, setToAdd] = React.useState(false)
+  const addNew = React.useMemo(() => {
+    if (!tabulatorTables.length) return 'first-config'
+    if (toAdd) return 'new-config'
+    return null
+  }, [tabulatorTables, toAdd])
+
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
         <TabulatorTable
+          key={tabulatorTable.name}
           bucketName={bucket}
           className={classes.item}
-          key={tabulatorTable.name}
           tabulatorTable={tabulatorTable}
         />
       ))}
-      {((!!tabulatorTables.length && toAdd) || !tabulatorTables.length) && (
+      {addNew && (
         <TabulatorTable
+          key={addNew}
           bucketName={bucket}
           className={classes.item}
-          isLast={!tabulatorTables.length}
-          key={tabulatorTables.length ? 'new-config' : 'first-config'}
+          disableDeletion={addNew === 'first-config'}
           onClose={() => setToAdd(false)}
           onEdited={() => setToAdd(false)}
         />
@@ -417,11 +422,11 @@ export default function Tabulator({ bucket, onClose, tabulatorTables }: Tabulato
           Close
         </M.Button>
         <M.Button
-          type="button"
           className={classes.button}
+          disabled={toAdd}
           onClick={() => setToAdd(true)}
           startIcon={<M.Icon>post_add</M.Icon>}
-          disabled={toAdd}
+          type="button"
         >
           Add config
         </M.Button>
