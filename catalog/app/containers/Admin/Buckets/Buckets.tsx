@@ -661,7 +661,7 @@ function InlineActions<T>({ form, disabled, onCancel }: InlineActionsProps<T>) {
   }, [state])
   return (
     <>
-      <RF.FormSpy subscription={{ modified: true, dirty: true }} onChange={onChange} />
+      <OnDirty.Spy onChange={onChange} />
       {state.submitFailed && (
         <Form.FormError
           className={classes.helper}

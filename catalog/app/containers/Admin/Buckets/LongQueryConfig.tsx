@@ -261,10 +261,7 @@ function LongQueryConfigForm({
         submitError,
       }) => (
         <form className={cx(classes.root, className)} onSubmit={handleSubmit}>
-          <RF.FormSpy
-            subscription={{ modified: true, dirty: true }}
-            onChange={onFormSpy}
-          />
+          <OnDirty.Spy onChange={onFormSpy} />
           {confirm.render(<></>)}
           <div className={classes.main}>
             <RF.Field

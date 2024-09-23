@@ -1,13 +1,18 @@
 import * as React from 'react'
+import * as RF from 'react-final-form'
 
 export interface SpyState {
   dirty: boolean
   modified?: Record<string, boolean>
 }
 
+interface SpyCallback {
+  (state: SpyState): void
+}
+
 interface DirtyState {
   dirty: boolean
-  onChange: (state: SpyState) => void
+  onChange: SpyCallback
 }
 
 const Ctx = React.createContext<DirtyState>({
@@ -33,3 +38,11 @@ export function Provider({ children }: ProviderProps) {
 export const useOnDirty = () => React.useContext(Ctx)
 
 export const use = useOnDirty
+
+interface SpyProps {
+  onChange: SpyCallback
+}
+
+export function Spy({ onChange }: SpyProps) {
+  return <RF.FormSpy subscription={{ modified: true, dirty: true }} onChange={onChange} />
+}
