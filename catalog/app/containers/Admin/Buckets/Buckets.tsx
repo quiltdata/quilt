@@ -35,8 +35,8 @@ import * as validators from 'utils/validators'
 import * as yaml from 'utils/yaml'
 
 import * as Form from '../Form'
-import TabulatorForm from './Tabulator'
 import * as OnDirty from './OnDirty'
+import TabulatorForm from './Tabulator'
 
 import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
 
@@ -84,37 +84,16 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
   ...bucketToPreviewValues(bucket),
 })
 
-interface CardAvatarProps {
-  className?: string
-  src: string
-}
-
-function CardAvatar({ className, src }: CardAvatarProps) {
-  if (src.startsWith('http') || src.startsWith('data')) {
-    return (
-      <M.Avatar
-        className={className}
-        src={src}
-        style={{ width: '24px', height: '24px' }}
-      />
-    )
-  }
-  return <M.Icon className={className}>{src}</M.Icon>
-}
-
 const useCardStyles = M.makeStyles((t) => ({
-  icon: {
-    marginRight: t.spacing(2),
-  },
-  header: {
-    paddingBottom: t.spacing(1),
-  },
   content: {
     cursor: 'default',
     paddingTop: 0,
     '& > *': {
       marginTop: t.spacing(1),
     },
+  },
+  error: {
+    outline: `1px solid ${t.palette.error.main}`,
   },
   form: {
     padding: t.spacing(0, 5),
@@ -134,6 +113,14 @@ const useCardStyles = M.makeStyles((t) => ({
       zIndex: 1,
     },
   },
+  header: {
+    paddingBottom: t.spacing(1),
+  },
+  icon: {
+    marginRight: t.spacing(2),
+    width: t.spacing(3),
+    height: t.spacing(3),
+  },
   summaryInner: {
     flexGrow: 1,
     '&:empty': {
@@ -144,9 +131,6 @@ const useCardStyles = M.makeStyles((t) => ({
     alignItems: 'flex-start',
     cursor: 'default',
   },
-  error: {
-    outline: `1px solid ${t.palette.error.main}`,
-  },
 }))
 
 interface CardProps {
@@ -156,10 +140,10 @@ interface CardProps {
   disabled?: boolean
   editing: boolean
   form: React.ReactNode
+  hasError?: boolean
   icon?: string | null
   onEdit: (ex: boolean) => void
   title: string
-  hasError?: boolean
 }
 
 function Card({
@@ -188,7 +172,12 @@ function Card({
         expandIcon={<M.Icon>{expanded ? 'close' : 'edit'}</M.Icon>}
         disabled={disabled}
       >
-        {icon && <CardAvatar className={classes.icon} src={icon} />}
+        {icon &&
+          (icon.startsWith('http') || icon.startsWith('data') ? (
+            <M.Avatar className={classes.icon} src={icon} />
+          ) : (
+            <M.Icon className={classes.icon}>{icon}</M.Icon>
+          ))}
         <div className={classes.summaryInner}>
           <M.Typography variant="subtitle1">{title}</M.Typography>
           {!expanded && !!children && (
@@ -1443,7 +1432,6 @@ interface TabulatorCardProps {
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
-// TODO: use dialog confirm
 function TabulatorCard({
   bucket,
   className,
@@ -1455,25 +1443,41 @@ function TabulatorCard({
 }: TabulatorCardProps) {
   const { dirty } = OnDirty.use()
   React.useEffect(() => onDirty(dirty), [dirty, onDirty])
-  const handleEdit = React.useCallback(
-    (e) => {
-      if (!e && dirty) {
-        // eslint-disable-next-line no-alert
-        if (!window.confirm('You have unsaved changes. Ignore them?')) return
+
+  const confirm = Dialog.useConfirm({
+    submitTitle: 'Ignore',
+    title: 'You have unsaved changes',
+    onSubmit: React.useCallback(
+      (confirmed) => {
+        if (!confirmed) return
         onDirty(false)
+        onEdit(false)
+      },
+      [onDirty, onEdit],
+    ),
+  })
+  const handleEdit = React.useCallback(
+    (expanding) => {
+      if (!expanding && dirty) {
+        confirm.open()
+      } else {
+        onEdit(expanding)
       }
-      onEdit(e)
     },
-    [dirty, onDirty, onEdit],
+    [confirm, dirty, onEdit],
   )
+
   return (
     <Card
       form={
-        <TabulatorForm
-          bucket={bucket}
-          onClose={() => handleEdit(false)}
-          tabulatorTables={tabulatorTables}
-        />
+        <>
+          {confirm.render(<></>)}
+          <TabulatorForm
+            bucket={bucket}
+            onClose={() => handleEdit(false)}
+            tabulatorTables={tabulatorTables}
+          />
+        </>
       }
       editing={editing}
       className={className}
