@@ -205,7 +205,7 @@
                 "items": {
                   "type": "string",
                   "description": "JSONPath to string or array of strings inside user_meta",
-                  "examples": ["$.key", "$.metaKeyParent.metaKeyChild"]
+                  "examples": ["$.key", "$.metaKeyParent.metaKeyChild", "$[key with a space]", "$..*"]
                 }
               }
             }
