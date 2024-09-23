@@ -24,7 +24,7 @@ export const loadMode = (mode: Mode) => {
 const isQuiltConfig = (path: string) =>
   quiltConfigs.all.some((quiltConfig) => quiltConfig.includes(path))
 const typeQuiltConfig: EditorInputType = {
-  title: 'Quilt config helper',
+  title: 'Edit with config helper',
   brace: '__quiltConfig',
 }
 
@@ -44,13 +44,11 @@ const typeMarkdown: EditorInputType = {
 
 const isText = PreviewUtils.extIn(['.txt', ''])
 const typeText: EditorInputType = {
-  title: 'Plain text',
   brace: 'plain_text',
 }
 
 const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
 const typeYaml: EditorInputType = {
-  title: 'YAML',
   brace: 'yaml',
 }
 
