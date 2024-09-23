@@ -80,7 +80,7 @@ const validateConfig: FF.FieldValidator<string> = (inputStr?: string) => {
   return undefined
 }
 
-const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
+const useTabulatorTableStyles = M.makeStyles((t) => ({
   delete: {
     color: t.palette.error.main,
     marginBottom: 'auto',
@@ -144,25 +144,25 @@ const useLongQueryConfigFormStyles = M.makeStyles((t) => ({
 
 type FormValues = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 
-interface LongQueryConfigFormProps {
+interface TabulatorTableProps {
   bucketName: string
   className: string
   onEdited?: () => void
 }
 
-interface AddNew extends LongQueryConfigFormProps {
+interface AddNew extends TabulatorTableProps {
   onClose: () => void
   tabulatorTable?: never // We create new config, so we don't have one
   isLast: boolean
 }
 
-interface EditExisting extends LongQueryConfigFormProps {
+interface EditExisting extends TabulatorTableProps {
   onClose?: never // Don't close editing config
   tabulatorTable: FormValues
   isLast?: never
 }
 
-function LongQueryConfigForm({
+function TabulatorTable({
   bucketName,
   className,
   onClose,
@@ -171,7 +171,7 @@ function LongQueryConfigForm({
   isLast,
 }: AddNew | EditExisting) {
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
-  const classes = useLongQueryConfigFormStyles()
+  const classes = useTabulatorTableStyles()
 
   const { push: notify } = Notifications.use()
 
@@ -349,7 +349,7 @@ function LongQueryConfigForm({
   )
 }
 
-const useConfigsStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   item: {
     position: 'relative',
     '& + &': {
@@ -382,20 +382,20 @@ const useConfigsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ConfigsProps {
+interface TabulatorProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
   onClose: () => void
 }
 
-export default function Configs({ bucket, onClose, tabulatorTables }: ConfigsProps) {
-  const classes = useConfigsStyles()
+export default function Tabulator({ bucket, onClose, tabulatorTables }: TabulatorProps) {
+  const classes = useStyles()
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(false)
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
-        <LongQueryConfigForm
+        <TabulatorTable
           bucketName={bucket}
           className={classes.item}
           key={tabulatorTable.name}
@@ -403,7 +403,7 @@ export default function Configs({ bucket, onClose, tabulatorTables }: ConfigsPro
         />
       ))}
       {((!!tabulatorTables.length && toAdd) || !tabulatorTables.length) && (
-        <LongQueryConfigForm
+        <TabulatorTable
           bucketName={bucket}
           className={classes.item}
           isLast={!tabulatorTables.length}

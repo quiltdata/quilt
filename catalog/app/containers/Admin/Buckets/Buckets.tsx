@@ -1424,15 +1424,15 @@ function PreviewCard({
   )
 }
 
-interface LongQueryConfigSingleProps extends Model.GQLTypes.TabulatorTable {}
+interface TabulatorTableProps extends Model.GQLTypes.TabulatorTable {}
 
-function LongQueryConfigSingle({ name, config }: LongQueryConfigSingleProps) {
+function TabulatorTable({ name, config }: TabulatorTableProps) {
   const json = React.useMemo(() => yaml.parse(config), [config])
   // @ts-expect-error
   return <JsonDisplay name={name} topLevel value={json} />
 }
 
-interface LongQueryConfigCardProps {
+interface TabulatorCardProps {
   bucket: string
   className: string
   disabled: boolean
@@ -1444,7 +1444,7 @@ interface LongQueryConfigCardProps {
 }
 
 // TODO: use dialog confirm
-function LongQueryConfigCard({
+function TabulatorCard({
   bucket,
   className,
   disabled,
@@ -1452,7 +1452,7 @@ function LongQueryConfigCard({
   onEdit,
   onDirty,
   tabulatorTables,
-}: LongQueryConfigCardProps) {
+}: TabulatorCardProps) {
   const { dirty } = OnDirty.use()
   React.useEffect(() => onDirty(dirty), [dirty, onDirty])
   const handleEdit = React.useCallback(
@@ -1488,7 +1488,7 @@ function LongQueryConfigCard({
     >
       {!!tabulatorTables.length &&
         tabulatorTables.map((table, i) => (
-          <LongQueryConfigSingle {...table} key={`${table.name}_${i}`} />
+          <TabulatorTable {...table} key={`${table.name}_${i}`} />
         ))}
     </Card>
   )
@@ -2017,7 +2017,7 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
             />
           </div>
           <OnDirty.Provider>
-            <LongQueryConfigCard
+            <TabulatorCard
               bucket={bucket.name}
               className={classes.card}
               disabled={disabled}
