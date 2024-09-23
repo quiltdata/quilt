@@ -5,7 +5,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import federatorConfigSchema from 'schemas/federatorConfig.yml.json'
+import tabulatorConfigSchema from 'schemas/tabulatorConfig.yml.json'
 
 import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
@@ -72,7 +72,7 @@ const validateYaml: FF.FieldValidator<string> = (inputStr?: string) => {
 
 const validateConfig: FF.FieldValidator<string> = (inputStr?: string) => {
   const data = yaml.parse(inputStr)
-  const validator = makeSchemaValidator(federatorConfigSchema)
+  const validator = makeSchemaValidator(tabulatorConfigSchema)
   const errors = validator(data)
   if (errors.length) {
     return new JsonInvalidAgainstSchema({ errors }).message
