@@ -35,7 +35,7 @@ import * as validators from 'utils/validators'
 import * as yaml from 'utils/yaml'
 
 import * as Form from '../Form'
-import LongQueryConfigForm from './LongQueryConfig'
+import TabulatorForm from './Tabulator'
 import * as OnDirty from './OnDirty'
 
 import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
@@ -1469,7 +1469,7 @@ function LongQueryConfigCard({
   return (
     <Card
       form={
-        <LongQueryConfigForm
+        <TabulatorForm
           bucket={bucket}
           onClose={() => handleEdit(false)}
           tabulatorTables={tabulatorTables}
