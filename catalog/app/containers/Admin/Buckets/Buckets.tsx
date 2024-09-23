@@ -197,7 +197,7 @@ function Card({
   )
 }
 
-const useFormActionsStyles = M.makeStyles((t) => ({
+const useStickyActionsStyles = M.makeStyles((t) => ({
   actions: {
     animation: `$show 150ms ease-out`,
     display: 'flex',
@@ -236,16 +236,16 @@ const useFormActionsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface FormActionsProps {
+interface StickyActionsProps {
   children: React.ReactNode
   siblingRef: React.RefObject<HTMLElement>
 }
 
 // 1. Listen scroll and sibling element resize
-// 2. Get the bottom of `<FormActions />` and debounce the value
+// 2. Get the bottom of `<StickyActions />` and debounce the value
 // 3. If the bottom is below the viewport, make the element `position: "fixed"`
-function FormActions({ children, siblingRef }: FormActionsProps) {
-  const classes = useFormActionsStyles()
+function StickyActions({ children, siblingRef }: StickyActionsProps) {
+  const classes = useStickyActionsStyles()
 
   const [bottom, setBottom] = React.useState(0)
   const ref = React.useRef<HTMLDivElement>(null)
@@ -620,22 +620,22 @@ function Hint({ children }: HintProps) {
   )
 }
 
-const useInlineActionsStyles = M.makeStyles((t) => ({
+const useCardActionsStyles = M.makeStyles((t) => ({
   helper: {
     flexGrow: 1,
     marginLeft: t.spacing(6),
   },
 }))
 
-interface InlineActionsProps<T> {
+interface CardActionsProps<T> {
   form: FF.FormApi<T>
   onCancel: () => void
   disabled: boolean
 }
 
-function InlineActions<T>({ form, disabled, onCancel }: InlineActionsProps<T>) {
+function CardActions<T>({ form, disabled, onCancel }: CardActionsProps<T>) {
   const { onChange } = OnDirty.use()
-  const classes = useInlineActionsStyles()
+  const classes = useCardActionsStyles()
   const state = form.getState()
   const { reset, submit } = form
   const handleCancel = React.useCallback(() => {
@@ -828,7 +828,7 @@ function PrimaryCard({
       {({ handleSubmit, submitting, form, submitFailed }) => (
         <Card
           actions={
-            <InlineActions<PrimaryFormValues>
+            <CardActions<PrimaryFormValues>
               disabled={disabled}
               form={form}
               onCancel={() => onEdit(false)}
@@ -968,11 +968,7 @@ function MetadataCard({
       {({ handleSubmit, submitting, form, submitFailed }) => (
         <Card
           actions={
-            <InlineActions
-              disabled={disabled}
-              form={form}
-              onCancel={() => onEdit(false)}
-            />
+            <CardActions disabled={disabled} form={form} onCancel={() => onEdit(false)} />
           }
           hasError={submitFailed}
           editing={editing}
@@ -1261,7 +1257,7 @@ function IndexingAndNotificationsCard({
       {({ handleSubmit, submitting, form, submitFailed }) => (
         <Card
           actions={
-            <InlineActions<IndexingAndNotificationsFormValues>
+            <CardActions<IndexingAndNotificationsFormValues>
               disabled={disabled}
               form={form}
               onCancel={() => onEdit(false)}
@@ -1387,7 +1383,7 @@ function PreviewCard({
       {({ handleSubmit, submitting, form, submitFailed }) => (
         <Card
           actions={
-            <InlineActions<PreviewFormValues>
+            <CardActions<PreviewFormValues>
               disabled={disabled}
               form={form}
               onCancel={() => onEdit(false)}
@@ -1552,10 +1548,10 @@ function AddPageSkeleton({ back }: AddPageSkeletonProps) {
         <InlineForm className={classes.card}>
           <Skeleton height={54} />
         </InlineForm>
-        <FormActions siblingRef={formRef}>
+        <StickyActions siblingRef={formRef}>
           <Buttons.Skeleton />
           <Buttons.Skeleton />
-        </FormActions>
+        </StickyActions>
       </div>
     </>
   )
@@ -1679,7 +1675,7 @@ function Add({ back, settings, submit }: AddProps) {
             </M.Paper>
             <input type="submit" style={{ display: 'none' }} />
           </form>
-          <FormActions siblingRef={scrollingRef}>
+          <StickyActions siblingRef={scrollingRef}>
             {submitFailed && (
               <Form.FormError
                 className={classes.error}
@@ -1717,7 +1713,7 @@ function Add({ back, settings, submit }: AddProps) {
             >
               Add
             </M.Button>
-          </FormActions>
+          </StickyActions>
         </>
       )}
     </RF.Form>
