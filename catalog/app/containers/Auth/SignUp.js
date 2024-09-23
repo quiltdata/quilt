@@ -45,9 +45,9 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   const [email, setEmail] = React.useState('')
   const [username, setName] = React.useState('')
   const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
-      if (modified.email && email !== values.email) setEmail(values.email)
-      if (modified.username && username !== values.username) setName(values.username)
+    async ({ values }) => {
+      if (email !== values.email) setEmail(values.email)
+      if (username !== values.username) setName(values.username)
     },
     [email, username],
   )
@@ -135,10 +135,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
         submitting,
       }) => (
         <form onSubmit={handleSubmit}>
-          <RF.FormSpy
-            subscription={{ values: true, modified: true }}
-            onChange={onFormChange}
-          />
+          <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
           <RF.Field
             component={Layout.Field}
             name="username"
