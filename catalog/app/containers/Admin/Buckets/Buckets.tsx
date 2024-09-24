@@ -843,10 +843,11 @@ function PrimaryCard({
           disabled={submitting || disabled}
           icon={bucket.iconUrl || bucketIcon}
           onEdit={onEdit}
-          title={editing ? `s3://${bucket.name}` : bucket.title}
+          title="Display settings"
           editing={editing}
           hasError={submitFailed}
         >
+          <M.Typography variant="subtitle1">{bucket.title}</M.Typography>
           <M.Typography variant="subtitle2">{`s3://${bucket.name}`}</M.Typography>
           {bucket.description && (
             <M.Typography variant="body2">{bucket.description}</M.Typography>
