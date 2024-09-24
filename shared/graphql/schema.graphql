@@ -146,7 +146,7 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   collaborators: [CollaboratorBucketConnection!]!
-  tabulatorTables: [TabulatorTable!]! @admin
+  tabulatorTables: [TabulatorTable!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
