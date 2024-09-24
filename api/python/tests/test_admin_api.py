@@ -380,9 +380,9 @@ def test_tabulator_list(data, result):
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.tabulator.list("test")
+                admin.tabulator.list_tables("test")
         else:
-            assert admin.tabulator.list("test") == result
+            assert admin.tabulator.list_tables("test") == result
 
 
 @pytest.mark.parametrize(
@@ -400,6 +400,6 @@ def test_tabulator_set(data, result):
     ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
-                admin.tabulator.set("test", "table", "")
+                admin.tabulator.set_table("test", "table", "")
         else:
-            assert admin.tabulator.set("test", "table", "") == result
+            assert admin.tabulator.set_table("test", "table", "") == result

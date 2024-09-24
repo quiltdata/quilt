@@ -3,7 +3,7 @@ import typing as T
 from . import exceptions, types, util
 
 
-def list(bucket_name: str) -> T.List[types.TabulatorTable]:
+def list_tables(bucket_name: str) -> T.List[types.TabulatorTable]:
     """
     List all tabulator tables in a bucket.
     """
@@ -13,7 +13,7 @@ def list(bucket_name: str) -> T.List[types.TabulatorTable]:
     return [types.TabulatorTable(**x.model_dump()) for x in result.tabulator_tables]
 
 
-def set(bucket_name: str, table_name: str, config: T.Optional[str]) -> None:
+def set_table(bucket_name: str, table_name: str, config: T.Optional[str]) -> None:
     """
     Set the tabulator table configuration. Pass `None` to remove the table.
     """
