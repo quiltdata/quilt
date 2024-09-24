@@ -1,5 +1,8 @@
+import cx from 'classnames'
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
+import Markdown from 'components/Markdown'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
 import type * as Model from 'model'
@@ -82,10 +85,26 @@ function EditorSuspended({
   })
 }
 
+const useStyles = M.makeStyles({
+  tab: {
+    display: 'none',
+    width: '100%',
+  },
+  active: {
+    display: 'block',
+  },
+})
+
 export function Editor(props: EditorProps) {
+  const classes = useStyles()
   return (
     <React.Suspense fallback={<Skeleton />}>
-      <EditorSuspended {...props} />
+      <div className={cx(classes.tab, { [classes.active]: !props.preview })}>
+        <EditorSuspended {...props} />
+      </div>
+      <div className={cx(classes.tab, { [classes.active]: props.preview })}>
+        <Markdown data={props.value} />
+      </div>
     </React.Suspense>
   )
 }

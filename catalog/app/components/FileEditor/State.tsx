@@ -32,7 +32,9 @@ export interface EditorState {
   onCancel: () => void
   onChange: (value: string) => void
   onEdit: (type: EditorInputType | null) => void
+  onPreview: ((p: boolean) => void) | null
   onSave: () => Promise<Model.S3File | void>
+  preview: boolean
   saving: boolean
   types: EditorInputType[]
   value?: string
@@ -48,6 +50,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   const [editing, setEditing] = React.useState<EditorInputType | null>(
     edit ? types[0] : null,
   )
+  const [preview, setPreview] = React.useState<boolean>(false)
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
   const redirect = useRedirect()
@@ -80,11 +83,13 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       onCancel,
       onChange: setValue,
       onEdit: setEditing,
+      onPreview: editing?.brace === 'markdown' ? setPreview : null,
       onSave,
+      preview,
       saving,
       types,
       value,
     }),
-    [editing, error, onCancel, onSave, saving, types, value],
+    [editing, error, onCancel, onSave, preview, saving, types, value],
   )
 }
