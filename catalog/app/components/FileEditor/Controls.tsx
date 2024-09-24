@@ -52,7 +52,7 @@ export function PreviewButton({ className, preview, onPreview }: PreviewButtonPr
       className={className}
       color="default"
       size="small"
-      startIcon={<M.Icon fontSize="inherit">check_box_outline_blank</M.Icon>}
+      startIcon={<M.Icon fontSize="inherit">visibility</M.Icon>}
       variant="outlined"
       onClick={handleClick}
     >
