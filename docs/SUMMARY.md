@@ -55,9 +55,9 @@
   * [quilt3.Package](api-reference/Package.md)
   * [quilt3.Bucket](api-reference/Bucket.md)
   * [Local Catalog](Catalog/LocalMode.md)
-  * [CLI, Environment](api-reference/cli)
-  * [Known Limitations](api-reference/limitations)
-  * [Custom SSL Certificates](api-reference/custom-ssl-certificates)
+  * [CLI, Environment](api-reference/cli.md)
+  * [Known Limitations](api-reference/limitations.md)
+  * [Custom SSL Certificates](api-reference/custom-ssl-certificates.md)
 * **Advanced**
   * [Browsing Buckets](walkthrough/working-with-a-bucket.md)
   * [Filtering a Package](advanced-features/filtering-a-package.md)
