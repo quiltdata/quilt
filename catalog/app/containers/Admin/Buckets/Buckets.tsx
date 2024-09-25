@@ -132,37 +132,41 @@ function StickyActions({ children, parentRef }: StickyActionsProps) {
   const classes = useStickyActionsStyles()
 
   const [size, setSize] = React.useState<DOMRect | null>(null)
-  const [scrollY, setScrollY] = React.useState(0)
+  const [parentSize, setParentSize] = React.useState<DOMRect | null>(null)
   const ref = React.useRef<HTMLDivElement>(null)
   const handleScroll = React.useCallback(() => {
     const rect = ref.current?.getBoundingClientRect()
     if (!rect || !rect.height) return
     setSize(rect)
-    setScrollY(window.scrollY)
-  }, [])
+    const parent = parentRef.current?.getBoundingClientRect()
+    if (!parent || !parent.height) return
+    setParentSize(parent)
+  }, [parentRef])
   React.useEffect(() => {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
-  const { height: siblingHeight } = useResizeObserver({ ref: parentRef })
-  React.useEffect(() => handleScroll(), [handleScroll, siblingHeight])
+  const { height: parentHeight } = useResizeObserver({ ref: parentRef })
+  React.useEffect(() => handleScroll(), [handleScroll, parentHeight])
 
   const DEBOUNCE_TIMEOUT = 150
   const [debouncedSize] = useDebounce(size, DEBOUNCE_TIMEOUT)
-  const [debouncedScrollY] = useDebounce(scrollY, DEBOUNCE_TIMEOUT)
+  const [debouncedParentSize] = useDebounce(parentSize, DEBOUNCE_TIMEOUT)
   const sticky = React.useMemo(() => {
-    const parent = parentRef.current?.getBoundingClientRect()
     const winHeight = window.innerHeight || document.documentElement.clientHeight
-    const viewportBottom = debouncedScrollY + winHeight
-    const viewportTop = debouncedScrollY
+
+    const containerBottom = debouncedSize?.bottom || 0
+    const containerHeight = debouncedSize?.height || 0
+    const parentTop = debouncedParentSize?.top || 0
+
     return (
-      // Container's bottom is below the viewport's bottom
-      (debouncedSize?.bottom || 0) >= viewportBottom &&
+      // Container's bottom (relative to viewport) is below the viewport's bottom
+      containerBottom >= winHeight + containerHeight &&
       // Parent's top is inside the viewport
-      (parent?.top || 0) <= viewportBottom - (debouncedSize?.height || 0) &&
-      (parent?.top || 0) >= viewportTop
+      parentTop >= 0 &&
+      parentTop <= winHeight - containerHeight
     )
-  }, [debouncedSize, debouncedScrollY, parentRef])
+  }, [debouncedSize, debouncedParentSize])
 
   return (
     <div ref={ref}>
@@ -173,7 +177,10 @@ function StickyActions({ children, parentRef }: StickyActionsProps) {
               {children}
             </M.Paper>
           </M.Container>
-          <div className={classes.placeholder} />
+          <div
+            className={classes.placeholder}
+            style={{ height: debouncedSize?.height }}
+          />
         </>
       ) : (
         <div className={classes.actions}>{children}</div>
@@ -1476,7 +1483,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
     try {
       // TODO: use graphql mutation
       await req({
-        endpoint: `/admin/reindex/${bucket}`,
+        endpoint: `/ admin / reindex / ${bucket}`,
         method: 'POST',
         body: { repair: repair || undefined },
       })
