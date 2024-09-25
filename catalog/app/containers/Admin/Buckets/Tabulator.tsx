@@ -116,7 +116,7 @@ const useTabulatorTableStyles = M.makeStyles((t) => ({
   },
   button: {
     '& + &': {
-      marginTop: t.spacing(1),
+      marginTop: t.spacing(2),
     },
   },
   lock: {
@@ -351,10 +351,10 @@ function TabulatorTable({
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
-    margin: t.spacing(2, -5, 0),
+    margin: t.spacing(2, 0, 0),
     display: 'flex',
     justifyContent: 'flex-end',
-    padding: t.spacing(2, 0, 0),
+    padding: t.spacing(2, 0),
   },
   button: {
     '& + &': {
@@ -382,7 +382,7 @@ const useStyles = M.makeStyles((t) => ({
 interface TabulatorProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
-  onClose: () => void
+  onClose?: () => void
 }
 
 /** Have to be suspended because of `<TextEditor />` */
@@ -418,9 +418,11 @@ export default function Tabulator({ bucket, onClose, tabulatorTables }: Tabulato
         />
       )}
       <div className={classes.actions}>
-        <M.Button type="button" onClick={onClose} className={classes.button}>
-          Close
-        </M.Button>
+        {onClose && (
+          <M.Button type="button" onClick={onClose} className={classes.button}>
+            Close
+          </M.Button>
+        )}
         <M.Button
           className={classes.button}
           disabled={toAdd}
