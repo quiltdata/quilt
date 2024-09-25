@@ -269,7 +269,7 @@ interface PFSCheckboxProps extends Form.CheckboxProps, M.CheckboxProps {
   onToggle?: () => void
 }
 
-function PFSCheckbox({ input, meta, onToggle }: PFSCheckboxProps) {
+function PFSCheckbox({ input, meta, onToggle, ...props }: PFSCheckboxProps) {
   const classes = usePFSCheckboxStyles()
   const confirm = React.useCallback(
     (checked) => {
@@ -311,6 +311,7 @@ function PFSCheckbox({ input, meta, onToggle }: PFSCheckboxProps) {
               disabled={meta.submitting || meta.submitSucceeded}
               checked={!!input?.checked}
               onChange={handleCheckbox}
+              {...props}
             />
           ) : (
             <M.Checkbox
@@ -318,6 +319,7 @@ function PFSCheckbox({ input, meta, onToggle }: PFSCheckboxProps) {
               disabled={meta.submitting || meta.submitSucceeded}
               checked={!!input?.checked}
               onChange={handleCheckbox}
+              {...props}
             />
           )
         }
