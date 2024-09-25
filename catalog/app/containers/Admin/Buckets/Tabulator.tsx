@@ -354,7 +354,7 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(2, 0, 0),
     display: 'flex',
     justifyContent: 'flex-end',
-    padding: t.spacing(2, 0),
+    padding: t.spacing(2, 0, 0),
   },
   button: {
     '& + &': {

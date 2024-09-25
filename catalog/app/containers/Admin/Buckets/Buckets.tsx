@@ -84,14 +84,11 @@ const useStickyActionsStyles = M.makeStyles((t) => ({
     animation: `$show 150ms ease-out`,
     display: 'flex',
     justifyContent: 'flex-end',
-    padding: t.spacing(2, 1),
+    padding: t.spacing(2, 0, 0),
     '& > * + *': {
       // Spacing between direct children
       marginLeft: t.spacing(2),
     },
-  },
-  placeholder: {
-    height: t.spacing(8),
   },
   sticky: {
     animation: `$sticking 150ms ease-out`,
@@ -99,6 +96,9 @@ const useStickyActionsStyles = M.makeStyles((t) => ({
     left: '50%',
     position: 'fixed',
     transform: `translateX(-50%)`,
+    '& $actions': {
+      padding: t.spacing(2),
+    },
   },
   '@keyframes show': {
     '0%': {
@@ -118,16 +118,11 @@ const useStickyActionsStyles = M.makeStyles((t) => ({
   },
 }))
 
-// TODO: don't listen resize
-//       listen and save scroll position
 interface StickyActionsProps {
   children: React.ReactNode
   parentRef: React.RefObject<HTMLElement>
 }
 
-// 1. Listen scroll and sibling element resize
-// 2. Get the bottom of `<StickyActions />` and debounce the value
-// 3. If the bottom is below the viewport, make the element `position: "fixed"`
 function StickyActions({ children, parentRef }: StickyActionsProps) {
   const classes = useStickyActionsStyles()
 
@@ -149,7 +144,7 @@ function StickyActions({ children, parentRef }: StickyActionsProps) {
   const { height: parentHeight } = useResizeObserver({ ref: parentRef })
   React.useEffect(() => handleScroll(), [handleScroll, parentHeight])
 
-  const DEBOUNCE_TIMEOUT = 150
+  const DEBOUNCE_TIMEOUT = 50
   const [debouncedSize] = useDebounce(size, DEBOUNCE_TIMEOUT)
   const [debouncedParentSize] = useDebounce(parentSize, DEBOUNCE_TIMEOUT)
   const sticky = React.useMemo(() => {
@@ -177,10 +172,7 @@ function StickyActions({ children, parentRef }: StickyActionsProps) {
               {children}
             </M.Paper>
           </M.Container>
-          <div
-            className={classes.placeholder}
-            style={{ height: debouncedSize?.height }}
-          />
+          <div style={{ height: debouncedSize?.height }}>{/* height placeholder */}</div>
         </>
       ) : (
         <div className={classes.actions}>{children}</div>
@@ -189,18 +181,19 @@ function StickyActions({ children, parentRef }: StickyActionsProps) {
   )
 }
 
-const useSubPageHeaderStyles = M.makeStyles({
+const useSubPageHeaderStyles = M.makeStyles((t) => ({
   root: {
+    alignItems: 'center',
     display: 'flex',
   },
   back: {
-    marginLeft: 'auto',
+    marginRight: t.spacing(2),
   },
-})
+}))
 
 interface SubPageHeaderProps {
   back: () => void
-  children?: React.ReactNode
+  children: React.ReactNode
   disabled?: boolean
 }
 
@@ -208,20 +201,17 @@ function SubPageHeader({ disabled, back, children }: SubPageHeaderProps) {
   const classes = useSubPageHeaderStyles()
   return (
     <div className={classes.root}>
-      {children && (
-        <M.Typography variant="h6" color="textPrimary">
-          {children}
-        </M.Typography>
-      )}
-      <M.Button
+      <M.IconButton
         className={classes.back}
         disabled={disabled}
         onClick={back}
         size="small"
-        startIcon={<M.Icon>arrow_back</M.Icon>}
       >
-        Back to buckets
-      </M.Button>
+        <M.Icon>arrow_back</M.Icon>
+      </M.IconButton>
+      <M.Typography variant="h6" color="textPrimary">
+        {children}
+      </M.Typography>
     </div>
   )
 }
@@ -616,35 +606,6 @@ function CardActions<T>({ form, disabled }: CardActionsProps<T>) {
   )
 }
 
-const useInlineFormStyles = M.makeStyles((t) => ({
-  root: {
-    padding: t.spacing(2),
-  },
-  title: {
-    marginBottom: t.spacing(1),
-  },
-}))
-
-interface InlineFormProps {
-  className?: string
-  title?: string
-  children: React.ReactNode
-}
-
-function InlineForm({ className, children, title }: InlineFormProps) {
-  const classes = useInlineFormStyles()
-  return (
-    <M.Paper className={cx(classes.root, className)}>
-      {title && (
-        <M.Typography className={classes.title} variant="h6">
-          {title}
-        </M.Typography>
-      )}
-      {children}
-    </M.Paper>
-  )
-}
-
 interface PrimaryFormProps {
   bucket?: BucketConfig
   className?: string
@@ -671,7 +632,6 @@ function PrimaryForm({ bucket, className }: PrimaryFormProps) {
             noSuchBucket: 'No such bucket',
           }}
           fullWidth
-          margin="normal"
         />
       )}
       <RF.Field
@@ -716,7 +676,7 @@ function PrimaryForm({ bucket, className }: PrimaryFormProps) {
 
 const useCardStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(2, 3, 0),
+    padding: t.spacing(2, 3),
     position: 'relative',
   },
   disabled: {
@@ -733,13 +693,52 @@ const useCardStyles = M.makeStyles((t) => ({
       zIndex: 1,
     },
   },
+  icon: {},
   error: {
     outline: `1px solid ${t.palette.error.main}`,
   },
   title: {
+    alignItems: 'center',
+    display: 'flex',
     marginBottom: t.spacing(2),
   },
+  content: {},
 }))
+
+interface CardProps {
+  children: React.ReactNode
+  className: string
+  disabled?: boolean
+  error?: boolean
+  title?: React.ReactNode
+}
+
+const Card = React.forwardRef<HTMLElement, CardProps>(function Card(
+  { children, className, disabled, error, title },
+  ref,
+) {
+  const classes = useCardStyles()
+  return (
+    <M.Paper
+      className={cx(
+        classes.root,
+        {
+          [classes.disabled]: disabled,
+          [classes.error]: error,
+        },
+        className,
+      )}
+      ref={ref}
+    >
+      {title && (
+        <div className={classes.title}>
+          <M.Typography variant="subtitle2">{title}</M.Typography>
+        </div>
+      )}
+      <div className={classes.content}>{children}</div>
+    </M.Paper>
+  )
+})
 
 type PrimaryFormValues = ReturnType<typeof bucketToPrimaryValues>
 
@@ -752,32 +751,24 @@ interface PrimaryCardProps {
 
 function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps) {
   const initialValues = bucketToPrimaryValues(bucket)
-  const scrollingRef = React.useRef<HTMLFormElement>(null)
-  const classes = useCardStyles()
+  const ref = React.useRef<HTMLElement>(null)
   return (
     <RF.Form<PrimaryFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, form, submitFailed }) => (
-        <M.Paper
-          className={cx(
-            classes.root,
-            {
-              [classes.disabled]: disabled,
-              [classes.error]: submitFailed,
-            },
-            className,
-          )}
-          ref={scrollingRef}
+        <Card
+          className={className}
+          disabled={disabled}
+          error={submitFailed}
+          ref={ref}
+          title="Display settings"
         >
-          <M.Typography variant="subtitle2" className={classes.title}>
-            Display settings
-          </M.Typography>
           <form onSubmit={handleSubmit}>
             <PrimaryForm bucket={bucket} />
           </form>
-          <StickyActions parentRef={scrollingRef}>
+          <StickyActions parentRef={ref}>
             <CardActions<PrimaryFormValues> disabled={disabled} form={form} />
           </StickyActions>
-        </M.Paper>
+        </Card>
       )}
     </RF.Form>
   )
@@ -853,34 +844,25 @@ interface MetadataCardProps {
 }
 
 function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardProps) {
-  // const classes = useMetadataCardStyles()
   const initialValues = bucketToMetadataValues(bucket)
-  const scrollingRef = React.useRef<HTMLFormElement>(null)
-  const classes = useCardStyles()
+  const ref = React.useRef<HTMLElement>(null)
   return (
     <RF.Form<MetadataFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, form, submitFailed }) => (
-        <M.Paper
-          className={cx(
-            classes.root,
-            {
-              [classes.disabled]: disabled,
-              [classes.error]: submitFailed,
-            },
-            className,
-          )}
-          ref={scrollingRef}
+        <Card
+          className={className}
+          disabled={disabled}
+          error={submitFailed}
+          ref={ref}
+          title="Metadata"
         >
-          <M.Typography variant="subtitle2" className={classes.title}>
-            Metadata
-          </M.Typography>
           <form onSubmit={handleSubmit}>
             <MetadataForm />
           </form>
-          <StickyActions parentRef={scrollingRef}>
+          <StickyActions parentRef={ref}>
             <CardActions<MetadataFormValues> disabled={disabled} form={form} />
           </StickyActions>
-        </M.Paper>
+        </Card>
       )}
     </RF.Form>
   )
@@ -1104,29 +1086,21 @@ function IndexingAndNotificationsCard({
   const settings = data.config.contentIndexingSettings
 
   const initialValues = bucketToIndexingAndNotificationsValues(bucket)
-  const scrollingRef = React.useRef<HTMLFormElement>(null)
+  const ref = React.useRef<HTMLFormElement>(null)
 
-  const classes = useCardStyles()
   return (
     <RF.Form<IndexingAndNotificationsFormValues>
       onSubmit={onSubmit}
       initialValues={initialValues}
     >
       {({ handleSubmit, form, submitFailed }) => (
-        <M.Paper
-          className={cx(
-            classes.root,
-            {
-              [classes.disabled]: disabled,
-              [classes.error]: submitFailed,
-            },
-            className,
-          )}
-          ref={scrollingRef}
+        <Card
+          className={className}
+          disabled={disabled}
+          error={submitFailed}
+          ref={ref}
+          title="Indexing and notifications"
         >
-          <M.Typography variant="subtitle2" className={classes.title}>
-            Indexing and notifications
-          </M.Typography>
           <form onSubmit={handleSubmit}>
             <IndexingAndNotificationsForm
               bucket={bucket}
@@ -1135,13 +1109,13 @@ function IndexingAndNotificationsCard({
               settings={settings}
             />
           </form>
-          <StickyActions parentRef={scrollingRef}>
+          <StickyActions parentRef={ref}>
             <CardActions<IndexingAndNotificationsFormValues>
               disabled={disabled}
               form={form}
             />
           </StickyActions>
-        </M.Paper>
+        </Card>
       )}
     </RF.Form>
   )
@@ -1214,14 +1188,14 @@ function TabulatorCard({
 }: TabulatorCardProps) {
   const { dirty } = OnDirty.use()
   React.useEffect(() => onDirty(dirty), [dirty, onDirty])
-  const classes = useCardStyles()
   return (
-    <M.Paper className={cx(classes.root, disabled && classes.disabled, className)}>
-      <M.Typography variant="subtitle2" className={classes.title}>
-        Longitudinal Query Configuration
-      </M.Typography>
+    <Card
+      className={className}
+      disabled={disabled}
+      title="Longitudinal Query Configuration"
+    >
       <TabulatorForm bucket={bucket} tabulatorTables={tabulatorTables} />
-    </M.Paper>
+    </Card>
   )
 }
 
@@ -1233,14 +1207,8 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   formTitle: {
-    ...t.typography.h6,
+    ...t.typography.subtitle2,
     marginBottom: t.spacing(2),
-  },
-  form: {
-    padding: t.spacing(2),
-    '& + &': {
-      marginTop: t.spacing(2),
-    },
   },
   error: {
     flexGrow: 1,
@@ -1258,33 +1226,14 @@ function AddPageSkeleton({ back }: AddPageSkeletonProps) {
   const classes = useStyles()
   const formRef = React.useRef<HTMLDivElement>(null)
   return (
-    <>
+    <div ref={formRef}>
       <SubPageHeader back={back}>Add a bucket</SubPageHeader>
-      <div className={classes.fields} ref={formRef}>
-        <InlineForm className={classes.card}>
-          <Skeleton height={54} />
-          <Skeleton height={54} mt={4} />
-          <Skeleton height={54} mt={4} />
-        </InlineForm>
-        <InlineForm className={classes.card}>
-          <Skeleton height={54} />
-          <Skeleton height={54} mt={4} />
-          <Skeleton height={54} mt={4} />
-        </InlineForm>
-        <InlineForm className={classes.card}>
-          <Skeleton height={54} />
-          <Skeleton height={54} mt={4} />
-          <Skeleton height={54} mt={4} />
-        </InlineForm>
-        <InlineForm className={classes.card}>
-          <Skeleton height={54} />
-        </InlineForm>
-        <StickyActions parentRef={formRef}>
-          <Buttons.Skeleton />
-          <Buttons.Skeleton />
-        </StickyActions>
-      </div>
-    </>
+      <CardsPlaceholder className={classes.fields} />
+      <StickyActions parentRef={formRef}>
+        <Buttons.Skeleton />
+        <Buttons.Skeleton />
+      </StickyActions>
+    </div>
   )
 }
 
@@ -1383,27 +1332,23 @@ function Add({ back, settings, submit }: AddProps) {
             Add a bucket
           </SubPageHeader>
           <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
-            <M.Paper className={classes.form}>
+            <Card className={classes.card} title="Display settings">
               <PrimaryForm />
-            </M.Paper>
-            <M.Paper className={classes.form}>
-              <M.Typography className={classes.formTitle}>Metadata</M.Typography>
+            </Card>
+            <Card className={classes.card} title="Metadata">
               <MetadataForm />
-            </M.Paper>
-            <M.Paper className={classes.form}>
-              <M.Typography className={classes.formTitle}>
-                Indexing and notifications
-              </M.Typography>
+            </Card>
+            <Card className={classes.card} title="Indexing and notifications">
               <IndexingAndNotificationsForm settings={settings} />
-            </M.Paper>
-            <M.Paper className={classes.form}>
+            </Card>
+            <Card className={classes.card}>
               <PreviewForm />
-            </M.Paper>
-            <M.Paper className={classes.form}>
+            </Card>
+            <Card className={classes.card}>
               <M.Typography>
                 Longitudinal query configs will be available after creating the bucket
               </M.Typography>
-            </M.Paper>
+            </Card>
             <input type="submit" style={{ display: 'none' }} />
           </form>
           <StickyActions parentRef={scrollingRef}>
@@ -1583,16 +1528,14 @@ function Reindex({ bucket, open, close }: ReindexProps) {
 
 interface BucketFieldSkeletonProps {
   className: string
-  width: number
 }
 
-function BucketFieldSkeleton({ className, width }: BucketFieldSkeletonProps) {
+function BucketFieldSkeleton({ className }: BucketFieldSkeletonProps) {
   return (
-    <M.Accordion className={className}>
-      <M.AccordionSummary>
-        <Skeleton height={32} width={width} />
-      </M.AccordionSummary>
-    </M.Accordion>
+    <Card className={className} title={<Skeleton height={16} width={240} />}>
+      <Skeleton height={48} />
+      <Skeleton height={48} mt={2} />
+    </Card>
   )
 }
 
@@ -1604,10 +1547,10 @@ function CardsPlaceholder({ className }: CardsPlaceholderProps) {
   const classes = useStyles()
   return (
     <div className={className}>
-      <BucketFieldSkeleton className={classes.card} width={300} />
-      <BucketFieldSkeleton className={classes.card} width={100} />
-      <BucketFieldSkeleton className={classes.card} width={240} />
-      <BucketFieldSkeleton className={classes.card} width={180} />
+      <BucketFieldSkeleton className={classes.card} />
+      <BucketFieldSkeleton className={classes.card} />
+      <BucketFieldSkeleton className={classes.card} />
+      <BucketFieldSkeleton className={classes.card} />
     </div>
   )
 }
@@ -1620,7 +1563,9 @@ function EditPageSkeleton({ back }: EditPageSkeletonProps) {
   const classes = useStyles()
   return (
     <>
-      <SubPageHeader back={back} />
+      <SubPageHeader back={back}>
+        <Skeleton height={32} width={240} />
+      </SubPageHeader>
       <CardsPlaceholder className={classes.fields} />
     </>
   )
@@ -1697,7 +1642,9 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
     <>
       <RRDom.Prompt when={dirty} message={guardNavigation} />
       <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-      <SubPageHeader back={back} disabled={disabled} />
+      <SubPageHeader back={back} disabled={disabled}>
+        {`s3://${bucket.name}`.toUpperCase()}
+      </SubPageHeader>
       <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
         <div className={classes.fields} ref={scrollingRef}>
           <div className={classes.card}>
@@ -1859,7 +1806,6 @@ export default function BucketsRouter() {
   const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use()
   const back = React.useCallback(() => history.push(urls.adminBuckets()), [history, urls])
-
   return (
     <M.Box mt={2} mb={2}>
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
