@@ -337,6 +337,9 @@ function PFSCheckbox({ input, meta, onToggle }: PFSCheckboxProps) {
           </>
         }
       />
+      {meta.submitFailed && !!(meta.error || meta.submitError) && (
+        <M.FormHelperText error>{meta.error || meta.submitError}</M.FormHelperText>
+      )}
     </>
   )
 }
@@ -1158,12 +1161,11 @@ interface PreviewCardProps {
   onSubmit: FF.Config<PreviewFormValues>['onSubmit']
 }
 
-// FIXME: show error
 function PreviewCard({ bucket, className, disabled, onSubmit }: PreviewCardProps) {
   const initialValues = bucketToPreviewValues(bucket)
   return (
     <RF.Form<PreviewFormValues> onSubmit={onSubmit} initialValues={initialValues}>
-      {({ handleSubmit, submitting, form }) => (
+      {({ handleSubmit, submitting, form, error, submitError }) => (
         <M.Box py={1} className={className}>
           <form onSubmit={handleSubmit}>
             <RF.Field
@@ -1172,6 +1174,13 @@ function PreviewCard({ bucket, className, disabled, onSubmit }: PreviewCardProps
               name="browsable"
               type="checkbox"
               onToggle={() => form.submit()}
+            />
+            <Form.FormError
+              error={error || submitError}
+              errors={{
+                unexpected: 'Something went wrong',
+              }}
+              margin="none"
             />
           </form>
         </M.Box>
