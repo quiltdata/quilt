@@ -209,9 +209,11 @@ function TabulatorTable({
   const onSubmit = React.useCallback(
     async (values: FormValues, form: FF.FormApi<FormValues, FormValues>) => {
       const result = await submitConfig(values.name, values.config)
-      form.reset(values)
-      if (onEdited) {
-        onEdited()
+      if (!result) {
+        form.reset(values)
+        if (onEdited) {
+          onEdited()
+        }
       }
       return result
     },
@@ -228,7 +230,7 @@ function TabulatorTable({
     setDeleting(true)
     const errors = await submitConfig(tabulatorTable.name)
     setDeleting(errors)
-    if (onEdited) {
+    if (onEdited && !errors) {
       onEdited()
     }
   }, [onEdited, submitConfig, tabulatorTable])
