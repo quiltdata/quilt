@@ -6,7 +6,7 @@
 * [Metadata Management](Catalog/Metadata.md)
 * [Metadata Workflows](advanced-features/workflows.md)
 
-## Quilt Platform Usage (Catalog UI)
+## Quilt Platform Catalog User
 
 * [About the Catalog](walkthrough/working-with-the-catalog.md)
 * [Bucket Browsing](Catalog/FileBrowser.md)
@@ -18,7 +18,7 @@
   * [Athena](advanced-features/athena.md)
   * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
 
-## Quilt Platform Administration
+## Quilt Platform Administrator
 
 * [Admin Settings UI](Catalog/Admin.md)
 * [Catalog Configuration](Catalog/Preferences.md)
@@ -35,13 +35,13 @@
   * [GxP for Security & Compliance](advanced-features/good-practice.md)
   * [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)
 
-## Ecosystem Integrations
+## Quilt Ecosystem Integrations
 
 * [Benchling Packager](https://open.quiltdata.com/b/quilt-example/packages/examples/benchling-packager)
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
 
-## Quilt Python SDK
+## Quilt Python SDK Developers
 
 * [Installation](Installation.md)
 * [Quick Start](Quickstart.md)
