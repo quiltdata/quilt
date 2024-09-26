@@ -75,9 +75,11 @@ export default function TextEditor({
       // TODO: Re-design fetching data, so leading onChange won't be necessary
       //       probably, by putting data fetch into FileEditor/State
       onChange(editor.getValue())
-      editor.focus()
     }
     editor.on('change', () => onChange(editor.getValue()))
+
+    editor.focus()
+    wrapper.scrollIntoView()
 
     return () => {
       resizeObserver.unobserve(wrapper)

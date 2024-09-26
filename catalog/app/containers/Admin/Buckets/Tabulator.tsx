@@ -147,13 +147,11 @@ interface TabulatorTableProps {
 }
 
 interface AddNew extends TabulatorTableProps {
-  disableDeletion: boolean
   onClose: () => void
   tabulatorTable?: never // We create new table, so we don't have one
 }
 
 interface EditExisting extends TabulatorTableProps {
-  disableDeletion?: never
   onClose?: never // Don't close editing table
   tabulatorTable: FormValues
 }
@@ -161,7 +159,6 @@ interface EditExisting extends TabulatorTableProps {
 function TabulatorTable({
   bucketName,
   className,
-  disableDeletion,
   onClose,
   onEdited,
   tabulatorTable,
@@ -312,7 +309,7 @@ function TabulatorTable({
               onClick={onClose && pristine ? onClose : confirm.open}
               type="button"
               className={cx(classes.delete, classes.button)}
-              disabled={submitting || deleting === true || disableDeletion}
+              disabled={submitting || deleting === true}
               variant="outlined"
             >
               Delete
@@ -347,6 +344,37 @@ function TabulatorTable({
   )
 }
 
+const useEmptyStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    marginBottom: t.spacing(2),
+  },
+}))
+
+interface EmptyProps {
+  className: string
+  onClick: () => void
+}
+
+function Empty({ className, onClick }: EmptyProps) {
+  const classes = useEmptyStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="subtitle1" className={classes.title}>
+        No tabulator tables configured
+      </M.Typography>
+      <M.Button variant="contained" color="primary" size="small" onClick={onClick}>
+        Create table
+      </M.Button>
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   actions: {
     margin: t.spacing(2, 0, 0),
@@ -358,6 +386,9 @@ const useStyles = M.makeStyles((t) => ({
     '& + &': {
       marginLeft: t.spacing(2),
     },
+  },
+  empty: {
+    paddingBottom: t.spacing(2),
   },
   item: {
     position: 'relative',
@@ -380,21 +411,15 @@ const useStyles = M.makeStyles((t) => ({
 interface TabulatorProps {
   bucket: string
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
-  onClose?: () => void
 }
 
 /** Have to be suspended because of `<TextEditor />` */
-export default function Tabulator({ bucket, onClose, tabulatorTables }: TabulatorProps) {
+export default function Tabulator({ bucket, tabulatorTables }: TabulatorProps) {
   const classes = useStyles()
   loadMode('yaml')
-
   const [toAdd, setToAdd] = React.useState(false)
-  const addNew = React.useMemo(() => {
-    if (!tabulatorTables.length) return 'first'
-    if (toAdd) return 'new'
-    return null
-  }, [tabulatorTables, toAdd])
-
+  if (!tabulatorTables.length && !toAdd)
+    return <Empty className={classes.empty} onClick={() => setToAdd(true)} />
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
@@ -405,22 +430,15 @@ export default function Tabulator({ bucket, onClose, tabulatorTables }: Tabulato
           tabulatorTable={tabulatorTable}
         />
       ))}
-      {addNew && (
+      {toAdd && (
         <TabulatorTable
-          key={addNew}
           bucketName={bucket}
           className={classes.item}
-          disableDeletion={addNew === 'first'}
           onClose={() => setToAdd(false)}
           onEdited={() => setToAdd(false)}
         />
       )}
       <div className={classes.actions}>
-        {onClose && (
-          <M.Button type="button" onClick={onClose} className={classes.button}>
-            Close
-          </M.Button>
-        )}
         <M.Button
           className={classes.button}
           disabled={toAdd}
