@@ -84,10 +84,6 @@ const useTabulatorTableStyles = M.makeStyles((t) => ({
   delete: {
     color: t.palette.error.main,
     marginBottom: 'auto',
-    opacity: 0.3,
-    '&:hover': {
-      opacity: 1,
-    },
   },
   editor: {
     minHeight: t.spacing(25),
