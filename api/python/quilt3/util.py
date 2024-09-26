@@ -83,6 +83,25 @@ default_registry_version: 1
 
 """.format(BASE_PATH.as_uri() + '/packages')
 
+CONFIG_EXTRA = """
+# AWS Region
+region:
+
+# Buckets
+analyticsBucket:
+serviceBucket:
+
+# Feature Flags
+alwaysRequiresAuth:
+chunkedChecksums:
+noDownload:
+qurator:
+
+# Configuration Flags
+mode:
+passwordAuth:
+ssoAuth:
+"""
 
 def get_pos_int_from_env(var_name):
     val = os.getenv(var_name)
