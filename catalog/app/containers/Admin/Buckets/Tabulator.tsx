@@ -153,12 +153,12 @@ interface TabulatorTableProps {
 interface AddNew extends TabulatorTableProps {
   disableDeletion: boolean
   onClose: () => void
-  tabulatorTable?: never // We create new config, so we don't have one
+  tabulatorTable?: never // We create new table, so we don't have one
 }
 
 interface EditExisting extends TabulatorTableProps {
   disableDeletion?: never
-  onClose?: never // Don't close editing config
+  onClose?: never // Don't close editing table
   tabulatorTable: FormValues
 }
 
@@ -285,10 +285,10 @@ function TabulatorTable({
               className={classes.name}
               component={Form.Field}
               errors={{
-                required: 'Enter a config name',
+                required: 'Enter a table name',
               }}
               fullWidth
-              label="Config name"
+              label="Table name"
               name="name"
               validate={validators.required as FF.FieldValidator<any>}
               variant="outlined"
@@ -394,8 +394,8 @@ export default function Tabulator({ bucket, onClose, tabulatorTables }: Tabulato
 
   const [toAdd, setToAdd] = React.useState(false)
   const addNew = React.useMemo(() => {
-    if (!tabulatorTables.length) return 'first-config'
-    if (toAdd) return 'new-config'
+    if (!tabulatorTables.length) return 'first'
+    if (toAdd) return 'new'
     return null
   }, [tabulatorTables, toAdd])
 
@@ -414,7 +414,7 @@ export default function Tabulator({ bucket, onClose, tabulatorTables }: Tabulato
           key={addNew}
           bucketName={bucket}
           className={classes.item}
-          disableDeletion={addNew === 'first-config'}
+          disableDeletion={addNew === 'first'}
           onClose={() => setToAdd(false)}
           onEdited={() => setToAdd(false)}
         />
@@ -432,7 +432,7 @@ export default function Tabulator({ bucket, onClose, tabulatorTables }: Tabulato
           startIcon={<M.Icon>post_add</M.Icon>}
           type="button"
         >
-          Add config
+          Add table
         </M.Button>
       </div>
     </>
