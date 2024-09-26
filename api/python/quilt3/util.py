@@ -81,9 +81,6 @@ binaryApiGatewayEndpoint:
 
 default_registry_version: 1
 
-""".format(BASE_PATH.as_uri() + '/packages')
-
-CONFIG_EXTRA = """
 # AWS Region
 region:
 
@@ -101,7 +98,8 @@ qurator:
 mode:
 passwordAuth:
 ssoAuth:
-"""
+
+""".format(BASE_PATH.as_uri() + '/packages')
 
 def get_pos_int_from_env(var_name):
     val = os.getenv(var_name)
