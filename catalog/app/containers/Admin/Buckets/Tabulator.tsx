@@ -94,8 +94,7 @@ const useTabulatorTableStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1),
   },
   name: {
-    flexGrow: 1,
-    marginTop: t.spacing(2),
+    marginBottom: t.spacing(2),
   },
   root: {
     alignItems: 'stretch',
@@ -260,6 +259,20 @@ function TabulatorTable({
           {confirm.render(<></>)}
           <div className={classes.main}>
             <RF.Field
+              className={classes.name}
+              component={Form.Field}
+              errors={{
+                required: 'Enter a table name',
+              }}
+              fullWidth
+              label="Table name"
+              name="name"
+              validate={validators.required as FF.FieldValidator<any>}
+              variant="outlined"
+              size="small"
+              disabled={!!tabulatorTable || submitting || deleting}
+            />
+            <RF.Field
               className={classes.editor}
               component={YamlEditorField}
               errors={{
@@ -273,20 +286,6 @@ function TabulatorTable({
                 validateTable,
               )}
               disabled={submitting || deleting}
-            />
-            <RF.Field
-              className={classes.name}
-              component={Form.Field}
-              errors={{
-                required: 'Enter a table name',
-              }}
-              fullWidth
-              label="Table name"
-              name="name"
-              validate={validators.required as FF.FieldValidator<any>}
-              variant="outlined"
-              size="small"
-              disabled={!!tabulatorTable || submitting || deleting}
             />
             {(submitFailed || typeof deleting === 'object') && (
               <Form.FormError
