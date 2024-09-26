@@ -873,27 +873,17 @@ function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardPro
 interface IndexingAndNotificationsFormProps {
   bucket?: BucketConfig
   className?: string
-  reindex?: () => void
   settings: Model.GQLTypes.ContentIndexingSettings
 }
 
 function IndexingAndNotificationsForm({
   bucket,
   className,
-  reindex,
   settings,
 }: IndexingAndNotificationsFormProps) {
   const classes = useIndexingAndNotificationsFormStyles()
   return (
     <div className={className}>
-      {!!reindex && (
-        <M.Box pb={2.5}>
-          <M.Button variant="outlined" fullWidth onClick={reindex}>
-            Re-index and repair
-          </M.Button>
-        </M.Box>
-      )}
-
       <RF.Field
         component={Form.Checkbox}
         type="checkbox"
@@ -1074,7 +1064,6 @@ interface IndexingAndNotificationsCardProps {
   className: string
   disabled: boolean
   onSubmit: FF.Config<IndexingAndNotificationsFormValues>['onSubmit']
-  reindex?: () => void
 }
 
 function IndexingAndNotificationsCard({
@@ -1082,7 +1071,6 @@ function IndexingAndNotificationsCard({
   className,
   disabled,
   onSubmit,
-  reindex,
 }: IndexingAndNotificationsCardProps) {
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
   const settings = data.config.contentIndexingSettings
@@ -1107,7 +1095,6 @@ function IndexingAndNotificationsCard({
             <IndexingAndNotificationsForm
               bucket={bucket}
               className={className}
-              reindex={reindex}
               settings={settings}
             />
           </form>
@@ -1135,6 +1122,37 @@ function PreviewForm({ className }: PreviewFormProps) {
   )
 }
 
+const useInterstitialStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(1, 0),
+  },
+  button: {
+    backgroundColor: t.palette.background.paper,
+  },
+}))
+
+interface ReIndexCardProps {
+  className: string
+  disabled: boolean
+  onClick: () => void
+}
+
+function ReIndexCard({ className, disabled, onClick }: ReIndexCardProps) {
+  const classes = useInterstitialStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Button
+        className={classes.button}
+        disabled={disabled}
+        onClick={onClick}
+        variant="contained"
+      >
+        Re-index and repair
+      </M.Button>
+    </div>
+  )
+}
+
 type PreviewFormValues = ReturnType<typeof bucketToPreviewValues>
 
 interface PreviewCardProps {
@@ -1146,27 +1164,26 @@ interface PreviewCardProps {
 
 function PreviewCard({ bucket, className, disabled, onSubmit }: PreviewCardProps) {
   const initialValues = bucketToPreviewValues(bucket)
+  const classes = useInterstitialStyles()
   return (
     <RF.Form<PreviewFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, submitting, form, error, submitError }) => (
-        <M.Box py={1} className={className}>
-          <form onSubmit={handleSubmit}>
-            <RF.Field
-              component={PFSCheckbox}
-              disabled={submitting || disabled}
-              name="browsable"
-              type="checkbox"
-              onToggle={() => form.submit()}
-            />
-            <Form.FormError
-              error={error || submitError}
-              errors={{
-                unexpected: 'Something went wrong',
-              }}
-              margin="none"
-            />
-          </form>
-        </M.Box>
+        <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
+          <RF.Field
+            component={PFSCheckbox}
+            disabled={submitting || disabled}
+            name="browsable"
+            type="checkbox"
+            onToggle={() => form.submit()}
+          />
+          <Form.FormError
+            error={error || submitError}
+            errors={{
+              unexpected: 'Something went wrong',
+            }}
+            margin="none"
+          />
+        </form>
       )}
     </RF.Form>
   )
@@ -1662,12 +1679,16 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
               disabled={disabled}
               onSubmit={onSubmit}
             />
+            <ReIndexCard
+              className={classes.card}
+              disabled={disabled}
+              onClick={openReindex}
+            />
             <IndexingAndNotificationsCard
               bucket={bucket}
               className={classes.card}
               disabled={disabled}
               onSubmit={onSubmit}
-              reindex={openReindex}
             />
             <PreviewCard
               bucket={bucket}
