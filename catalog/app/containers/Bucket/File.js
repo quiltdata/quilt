@@ -305,7 +305,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   editor: {
-    height: t.spacing(50),
+    minHeight: t.spacing(50),
   },
   topBar: {
     alignItems: 'flex-end',

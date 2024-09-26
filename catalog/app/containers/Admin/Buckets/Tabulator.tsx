@@ -90,7 +90,7 @@ const useTabulatorTableStyles = M.makeStyles((t) => ({
     },
   },
   editor: {
-    height: t.spacing(25),
+    minHeight: t.spacing(25),
   },
   header: {
     alignItems: 'center',

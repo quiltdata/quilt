@@ -60,7 +60,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   editor: {
-    height: t.spacing(30),
+    minHeight: t.spacing(30),
   },
   error: {
     marginTop: t.spacing(2),
