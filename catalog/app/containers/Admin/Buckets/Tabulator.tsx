@@ -5,7 +5,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import tabulatorConfigSchema from 'schemas/tabulatorConfig.yml.json'
+import tabulatorTableSchema from 'schemas/tabulatorTable.yml.json'
 
 import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
@@ -70,9 +70,9 @@ const validateYaml: FF.FieldValidator<string> = (inputStr?: string) => {
   return undefined
 }
 
-const validateConfig: FF.FieldValidator<string> = (inputStr?: string) => {
+const validateTable: FF.FieldValidator<string> = (inputStr?: string) => {
   const data = yaml.parse(inputStr)
-  const validator = makeSchemaValidator(tabulatorConfigSchema)
+  const validator = makeSchemaValidator(tabulatorTableSchema)
   const errors = validator(data)
   if (errors.length) {
     return new JsonInvalidAgainstSchema({ errors }).message
@@ -175,7 +175,7 @@ function TabulatorTable({
 
   const { push: notify } = Notifications.use()
 
-  const submitConfig = React.useCallback(
+  const submitTable = React.useCallback(
     async (
       tableName: string,
       config: string | null = null,
@@ -186,7 +186,7 @@ function TabulatorTable({
         } = await setTabulatorTable({ bucketName, tableName, config })
         switch (r.__typename) {
           case 'BucketConfig':
-            notify(`Successfully updated ${tableName} config`)
+            notify(`Successfully updated ${tableName} table`)
             return undefined
           case 'InvalidInput':
             return mapInputErrors(r.errors)
@@ -197,7 +197,7 @@ function TabulatorTable({
         }
       } catch (e) {
         // eslint-disable-next-line no-console
-        console.error('Error updating SSO config')
+        console.error('Error updating tabulator table')
         // eslint-disable-next-line no-console
         console.error(e)
         return mkFormError('unexpected')
@@ -208,7 +208,7 @@ function TabulatorTable({
 
   const onSubmit = React.useCallback(
     async (values: FormValues, form: FF.FormApi<FormValues, FormValues>) => {
-      const result = await submitConfig(values.name, values.config)
+      const result = await submitTable(values.name, values.config)
       if (!result) {
         form.reset(values)
         if (onEdited) {
@@ -217,36 +217,36 @@ function TabulatorTable({
       }
       return result
     },
-    [onEdited, submitConfig],
+    [onEdited, submitTable],
   )
   const [deleting, setDeleting] = React.useState<
     FF.SubmissionErrors | boolean | undefined
   >()
-  const deleteExistingConfig = React.useCallback(async () => {
+  const deleteExistingTable = React.useCallback(async () => {
     if (!tabulatorTable) {
       // Should have called onClose instead
       throw new Error('No tabulator Table to delete')
     }
     setDeleting(true)
-    const errors = await submitConfig(tabulatorTable.name)
+    const errors = await submitTable(tabulatorTable.name)
     setDeleting(errors)
     if (onEdited && !errors) {
       onEdited()
     }
-  }, [onEdited, submitConfig, tabulatorTable])
+  }, [onEdited, submitTable, tabulatorTable])
 
   const confirm = useConfirm({
     title: tabulatorTable
-      ? `You are about to delete "${tabulatorTable.name}" longitudinal query config`
+      ? `You are about to delete "${tabulatorTable.name}" table`
       : 'You have unsaved changes. Delete anyway?',
     submitTitle: 'Delete',
     onSubmit: React.useCallback(
       (confirmed) => {
         if (!confirmed) return
-        if (tabulatorTable) deleteExistingConfig()
+        if (tabulatorTable) deleteExistingTable()
         if (onClose) onClose()
       },
-      [tabulatorTable, deleteExistingConfig, onClose],
+      [tabulatorTable, deleteExistingTable, onClose],
     ),
   })
   const { onChange: onFormSpy } = OnDirty.use()
@@ -277,7 +277,7 @@ function TabulatorTable({
               validate={validators.composeAnd(
                 validators.required as FF.FieldValidator<any>,
                 validateYaml,
-                validateConfig,
+                validateTable,
               )}
               disabled={submitting || deleting}
             />
