@@ -537,12 +537,11 @@ function Hint({ children }: HintProps) {
   )
 }
 
-const useCardActionsStyles = M.makeStyles((t) => ({
+const useCardActionsStyles = M.makeStyles({
   helper: {
     flexGrow: 1,
-    marginLeft: t.spacing(6),
   },
-}))
+})
 
 interface CardActionsProps<T> {
   form: FF.FormApi<T>
@@ -610,12 +609,11 @@ function CardActions<T>({ form, disabled }: CardActionsProps<T>) {
 
 interface PrimaryFormProps {
   bucket?: BucketConfig
-  className?: string
 }
 
-function PrimaryForm({ bucket, className }: PrimaryFormProps) {
+function PrimaryForm({ bucket }: PrimaryFormProps) {
   return (
-    <div className={className}>
+    <>
       {!bucket && (
         <RF.Field
           component={Form.Field}
@@ -672,7 +670,7 @@ function PrimaryForm({ bucket, className }: PrimaryFormProps) {
         margin="normal"
       />
       <input type="submit" style={{ display: 'none' }} />
-    </div>
+    </>
   )
 }
 
@@ -704,7 +702,12 @@ const useCardStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginBottom: t.spacing(2),
   },
-  content: {},
+  content: {
+    // XXX: Fixed in some future MUI versions https://github.com/mui/material-ui/issues/10464
+    '& textarea[rows]': {
+      minHeight: '19px',
+    },
+  },
 }))
 
 interface CardProps {
@@ -776,13 +779,9 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
   )
 }
 
-interface MetadataFormProps {
-  className?: string
-}
-
-function MetadataForm({ className }: MetadataFormProps) {
+function MetadataForm() {
   return (
-    <div className={className}>
+    <>
       <RF.Field
         component={Form.Field}
         name="relevanceScore"
@@ -832,7 +831,7 @@ function MetadataForm({ className }: MetadataFormProps) {
         rowsMax={10}
         margin="normal"
       />
-    </div>
+    </>
   )
 }
 
@@ -872,18 +871,16 @@ function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardPro
 
 interface IndexingAndNotificationsFormProps {
   bucket?: BucketConfig
-  className?: string
   settings: Model.GQLTypes.ContentIndexingSettings
 }
 
 function IndexingAndNotificationsForm({
   bucket,
-  className,
   settings,
 }: IndexingAndNotificationsFormProps) {
   const classes = useIndexingAndNotificationsFormStyles()
   return (
-    <div className={className}>
+    <>
       <RF.Field
         component={Form.Checkbox}
         type="checkbox"
@@ -1040,7 +1037,7 @@ function IndexingAndNotificationsForm({
           />
         </M.Box>
       )}
-    </div>
+    </>
   )
 }
 
@@ -1092,11 +1089,7 @@ function IndexingAndNotificationsCard({
           title="Indexing and notifications"
         >
           <form onSubmit={handleSubmit}>
-            <IndexingAndNotificationsForm
-              bucket={bucket}
-              className={className}
-              settings={settings}
-            />
+            <IndexingAndNotificationsForm bucket={bucket} settings={settings} />
           </form>
           <StickyActions parentRef={ref}>
             <CardActions<IndexingAndNotificationsFormValues>
@@ -1110,16 +1103,8 @@ function IndexingAndNotificationsCard({
   )
 }
 
-interface PreviewFormProps {
-  className?: string
-}
-
-function PreviewForm({ className }: PreviewFormProps) {
-  return (
-    <div className={className}>
-      <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
-    </div>
-  )
+function PreviewForm() {
+  return <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
 }
 
 const useInterstitialStyles = M.makeStyles((t) => ({
