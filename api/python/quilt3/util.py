@@ -101,6 +101,7 @@ ssoAuth:
 
 """.format(BASE_PATH.as_uri() + '/packages')
 
+
 def get_pos_int_from_env(var_name):
     val = os.getenv(var_name)
     if val:
