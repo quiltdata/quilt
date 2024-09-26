@@ -417,8 +417,9 @@ export default function Tabulator({ bucket, tabulatorTables }: TabulatorProps) {
   const classes = useStyles()
   loadMode('yaml')
   const [toAdd, setToAdd] = React.useState(false)
-  if (!tabulatorTables.length && !toAdd)
+  if (!tabulatorTables.length && !toAdd) {
     return <Empty className={classes.empty} onClick={() => setToAdd(true)} />
+  }
   return (
     <>
       {tabulatorTables.map((tabulatorTable) => (
