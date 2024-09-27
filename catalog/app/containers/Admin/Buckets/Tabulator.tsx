@@ -24,7 +24,7 @@ import * as Form from '../Form'
 import * as OnDirty from './OnDirty'
 
 import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesSet.generated'
-// import RENAME_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesRename.generated'
+import RENAME_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesRename.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
@@ -143,7 +143,6 @@ type FormValues = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 interface TabulatorTableProps {
   bucketName: string
   className: string
-  onEdited?: () => void
 }
 
 interface AddNew extends TabulatorTableProps {
@@ -160,15 +159,46 @@ function TabulatorTable({
   bucketName,
   className,
   onClose,
-  onEdited,
   tabulatorTable,
 }: AddNew | EditExisting) {
+  const renameTabulatorTable = GQL.useMutation(RENAME_TABULATOR_TABLE_MUTATION)
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const classes = useTabulatorTableStyles()
 
   const { push: notify } = Notifications.use()
 
-  const submitTable = React.useCallback(
+  const renameTable = React.useCallback(
+    async (
+      tableName: string,
+      newTableName: string,
+    ): Promise<FF.SubmissionErrors | boolean | undefined> => {
+      try {
+        const {
+          admin: { bucketRenameTabulatorTable: r },
+        } = await renameTabulatorTable({ bucketName, tableName, newTableName })
+        switch (r.__typename) {
+          case 'BucketConfig':
+            notify(`Successfully updated ${tableName} table`)
+            return undefined
+          case 'InvalidInput':
+            return mapInputErrors(r.errors)
+          case 'OperationError':
+            return mkFormError(r.message)
+          default:
+            return assertNever(r)
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Error updating tabulator table')
+        // eslint-disable-next-line no-console
+        console.error(e)
+        return mkFormError('unexpected')
+      }
+    },
+    [bucketName, notify, renameTabulatorTable],
+  )
+
+  const setTable = React.useCallback(
     async (
       tableName: string,
       config: string | null = null,
@@ -201,16 +231,32 @@ function TabulatorTable({
 
   const onSubmit = React.useCallback(
     async (values: FormValues, form: FF.FormApi<FormValues, FormValues>) => {
-      const result = await submitTable(values.name, values.config)
-      if (!result) {
-        form.reset(values)
-        if (onEdited) {
-          onEdited()
+      // Rename
+      // if theres is a table to rename
+      // and the name was changed
+      if (tabulatorTable && values.name !== tabulatorTable.name) {
+        const renameResult = await renameTable(tabulatorTable.name, values.name)
+        if (renameResult) {
+          return renameResult
         }
       }
-      return result
+
+      // Create table if no one,
+      // or update the config if it was changed
+      // NOTE: table name could be new, just updated above
+      if (!tabulatorTable || values.config !== tabulatorTable.config) {
+        const result = await setTable(values.name, values.config)
+        if (result) {
+          return result
+        }
+      }
+
+      form.reset(values)
+      if (onClose) {
+        onClose()
+      }
     },
-    [onEdited, submitTable],
+    [onClose, renameTable, setTable, tabulatorTable],
   )
   const [deleting, setDeleting] = React.useState<
     FF.SubmissionErrors | boolean | undefined
@@ -221,12 +267,9 @@ function TabulatorTable({
       throw new Error('No tabulator Table to delete')
     }
     setDeleting(true)
-    const errors = await submitTable(tabulatorTable.name)
+    const errors = await setTable(tabulatorTable.name)
     setDeleting(errors)
-    if (onEdited && !errors) {
-      onEdited()
-    }
-  }, [onEdited, submitTable, tabulatorTable])
+  }, [setTable, tabulatorTable])
 
   const confirm = useConfirm({
     title: tabulatorTable
@@ -271,7 +314,7 @@ function TabulatorTable({
               validate={validators.required as FF.FieldValidator<any>}
               variant="outlined"
               size="small"
-              disabled={!!tabulatorTable || submitting || deleting}
+              disabled={submitting || deleting}
             />
             <RF.Field
               className={classes.editor}
@@ -349,7 +392,7 @@ const useEmptyStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   title: {
     marginBottom: t.spacing(2),
@@ -436,7 +479,6 @@ export default function Tabulator({ bucket, tabulatorTables }: TabulatorProps) {
           bucketName={bucket}
           className={classes.item}
           onClose={() => setToAdd(false)}
-          onEdited={() => setToAdd(false)}
         />
       )}
       <div className={classes.actions}>
