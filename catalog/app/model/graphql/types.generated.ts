@@ -41,6 +41,7 @@ export interface AdminMutations {
   readonly user: UserAdminMutations
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -51,6 +52,12 @@ export interface AdminMutationsbucketSetTabulatorTableArgs {
   bucketName: Scalars['String']
   tableName: Scalars['String']
   config: Maybe<Scalars['String']>
+}
+
+export interface AdminMutationsbucketRenameTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
+  newTableName: Scalars['String']
 }
 
 export interface AdminQueries {

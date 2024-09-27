@@ -23,7 +23,8 @@ import * as Form from '../Form'
 
 import * as OnDirty from './OnDirty'
 
-import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesAdd.generated'
+import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesSet.generated'
+// import RENAME_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesRename.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 

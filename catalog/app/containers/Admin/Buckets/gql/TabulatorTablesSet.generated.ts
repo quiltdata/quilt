@@ -2,14 +2,14 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Buckets_gql_TabulatorTablesAddMutationVariables =
+export type containers_Admin_Buckets_gql_TabulatorTablesSetMutationVariables =
   Types.Exact<{
     bucketName: Types.Scalars['String']
     tableName: Types.Scalars['String']
     config: Types.Maybe<Types.Scalars['String']>
   }>
 
-export type containers_Admin_Buckets_gql_TabulatorTablesAddMutation = {
+export type containers_Admin_Buckets_gql_TabulatorTablesSetMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
@@ -37,13 +37,13 @@ export type containers_Admin_Buckets_gql_TabulatorTablesAddMutation = {
   }
 }
 
-export const containers_Admin_Buckets_gql_TabulatorTablesAddDocument = {
+export const containers_Admin_Buckets_gql_TabulatorTablesSetDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Buckets_gql_TabulatorTablesAdd' },
+      name: { kind: 'Name', value: 'containers_Admin_Buckets_gql_TabulatorTablesSet' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -192,8 +192,8 @@ export const containers_Admin_Buckets_gql_TabulatorTablesAddDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Buckets_gql_TabulatorTablesAddMutation,
-  containers_Admin_Buckets_gql_TabulatorTablesAddMutationVariables
+  containers_Admin_Buckets_gql_TabulatorTablesSetMutation,
+  containers_Admin_Buckets_gql_TabulatorTablesSetMutationVariables
 >
 
-export { containers_Admin_Buckets_gql_TabulatorTablesAddDocument as default }
+export { containers_Admin_Buckets_gql_TabulatorTablesSetDocument as default }
