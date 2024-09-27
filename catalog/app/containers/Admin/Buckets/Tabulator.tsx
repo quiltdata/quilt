@@ -264,7 +264,7 @@ function TabulatorTable({
   const deleteExistingTable = React.useCallback(async () => {
     if (!tabulatorTable) {
       // Should have called onClose instead
-      throw new Error('No tabulator Table to delete')
+      throw new Error('No tables to delete')
     }
     setDeleting(true)
     const errors = await setTable(tabulatorTable.name)
@@ -409,10 +409,10 @@ function Empty({ className, onClick }: EmptyProps) {
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography variant="subtitle1" className={classes.title}>
-        No tabulator tables configured
+        No tables configured
       </M.Typography>
       <M.Button variant="contained" color="primary" size="small" onClick={onClick}>
-        Create table
+        Add table
       </M.Button>
     </div>
   )
