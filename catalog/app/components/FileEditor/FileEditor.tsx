@@ -53,6 +53,7 @@ function EditorSuspended({
         type={editing}
         initialValue=""
         onChange={onChange}
+        autoFocus
       />
     )
   return data.case({
@@ -87,6 +88,7 @@ function EditorSuspended({
           onChange={onChange}
           type={editing}
           initialValue={value}
+          autoFocus
         />
       )
     },

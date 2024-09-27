@@ -33,13 +33,7 @@ const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
 type YamlEditorFieldProps = RF.FieldRenderProps<string> &
   M.TextFieldProps & { className: string }
 
-function YamlEditorField({
-  className,
-  disabled,
-  errors,
-  input,
-  meta,
-}: YamlEditorFieldProps) {
+function YamlEditorField({ errors, input, meta, ...props }: YamlEditorFieldProps) {
   const error = meta.error || meta.submitError
   const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
 
@@ -51,14 +45,13 @@ function YamlEditorField({
 
   return (
     <TextEditor
-      className={className}
-      disabled={disabled}
+      {...props}
       error={errorMessage ? new Error(errorMessage) : null}
+      initialValue={meta.initial}
       key={key}
       leadingChange={false}
       onChange={input.onChange}
       type={TEXT_EDITOR_TYPE}
-      initialValue={meta.initial}
     />
   )
 }
@@ -333,6 +326,7 @@ function TabulatorTable({
                 validateTable,
               )}
               disabled={submitting || deleting}
+              autoFocus={!tabulatorTable}
             />
             {(submitFailed || typeof deleting === 'object') && (
               <Form.FormError

@@ -35,6 +35,7 @@ const useEditorTextStyles = M.makeStyles((t) => ({
 }))
 
 interface TextEditorProps {
+  autoFocus?: boolean
   className: string
   disabled?: boolean
   error: Error | null
@@ -46,6 +47,7 @@ interface TextEditorProps {
 
 export default function TextEditor({
   className,
+  autoFocus,
   disabled,
   error,
   leadingChange = true,
@@ -78,14 +80,16 @@ export default function TextEditor({
     }
     editor.on('change', () => onChange(editor.getValue()))
 
-    editor.focus()
-    wrapper.scrollIntoView()
+    if (autoFocus) {
+      editor.focus()
+      wrapper.scrollIntoView()
+    }
 
     return () => {
       resizeObserver.unobserve(wrapper)
       editor.destroy()
     }
-  }, [leadingChange, onChange, ref, type.brace, initialValue])
+  }, [autoFocus, leadingChange, onChange, ref, type.brace, initialValue])
 
   return (
     <div className={cx(classes.root, className, { [classes.error]: !!error })}>
