@@ -82,9 +82,10 @@ const bucketToFormValues = (bucket: BucketConfig) => ({
 const useStickyActionsStyles = M.makeStyles((t) => ({
   actions: {
     animation: `$show 150ms ease-out`,
+    padding: t.spacing(3, 0, 0),
+    alignItems: 'center',
     display: 'flex',
     justifyContent: 'flex-end',
-    padding: t.spacing(2, 0, 0),
     '& > * + *': {
       // Spacing between direct children
       marginLeft: t.spacing(2),
@@ -537,18 +538,27 @@ function Hint({ children }: HintProps) {
   )
 }
 
-const useCardActionsStyles = M.makeStyles({
+const useCardActionsStyles = M.makeStyles((t) => ({
+  actions: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  button: {
+    marginLeft: t.spacing(1),
+  },
   helper: {
     flexGrow: 1,
   },
-})
+}))
 
 interface CardActionsProps<T> {
-  form: FF.FormApi<T>
+  action?: React.ReactNode
   disabled: boolean
+  form: FF.FormApi<T>
 }
 
-function CardActions<T>({ form, disabled }: CardActionsProps<T>) {
+function CardActions<T>({ action, disabled, form }: CardActionsProps<T>) {
   const { onChange } = OnDirty.use()
   const classes = useCardActionsStyles()
   const state = form.getState()
@@ -562,28 +572,23 @@ function CardActions<T>({ form, disabled }: CardActionsProps<T>) {
   return (
     <>
       <OnDirty.Spy onChange={onChange} />
-      {state.submitFailed && (
-        <Form.FormError
-          className={classes.helper}
-          error={error}
-          errors={{
-            unexpected: 'Something went wrong',
-            notificationConfigurationError: 'Notification configuration error',
-            bucketNotFound: 'Bucket not found',
-          }}
-          margin="none"
-        />
-      )}
-      {state.submitting && (
-        <Delay>
-          {() => (
-            <div className={classes.helper}>
-              <M.CircularProgress size={24} />
-            </div>
-          )}
-        </Delay>
-      )}
+      {action}
+      <div className={classes.helper}>
+        {error && (
+          <Form.FormError
+            error={error}
+            errors={{
+              unexpected: 'Something went wrong',
+              notificationConfigurationError: 'Notification configuration error',
+              bucketNotFound: 'Bucket not found',
+            }}
+            margin="none"
+          />
+        )}
+      </div>
+      {state.submitting && <Delay>{() => <M.CircularProgress size={24} />}</Delay>}
       <M.Button
+        className={classes.button}
         onClick={() => reset()}
         color="primary"
         disabled={state.pristine || state.submitting || disabled}
@@ -591,6 +596,7 @@ function CardActions<T>({ form, disabled }: CardActionsProps<T>) {
         Reset
       </M.Button>
       <M.Button
+        className={classes.button}
         onClick={() => submit()}
         color="primary"
         disabled={
@@ -1061,6 +1067,7 @@ interface IndexingAndNotificationsCardProps {
   className: string
   disabled: boolean
   onSubmit: FF.Config<IndexingAndNotificationsFormValues>['onSubmit']
+  onReindex: () => void
 }
 
 function IndexingAndNotificationsCard({
@@ -1068,6 +1075,7 @@ function IndexingAndNotificationsCard({
   className,
   disabled,
   onSubmit,
+  onReindex,
 }: IndexingAndNotificationsCardProps) {
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
   const settings = data.config.contentIndexingSettings
@@ -1093,6 +1101,16 @@ function IndexingAndNotificationsCard({
           </form>
           <StickyActions parentRef={ref}>
             <CardActions<IndexingAndNotificationsFormValues>
+              action={
+                <M.Button
+                  disabled={disabled}
+                  onClick={onReindex}
+                  variant="outlined"
+                  size="small"
+                >
+                  Re-index and repair
+                </M.Button>
+              }
               disabled={disabled}
               form={form}
             />
@@ -1107,37 +1125,6 @@ function PreviewForm() {
   return <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
 }
 
-const useInterstitialStyles = M.makeStyles((t) => ({
-  root: {
-    padding: t.spacing(1, 0),
-  },
-  button: {
-    backgroundColor: t.palette.background.paper,
-  },
-}))
-
-interface ReIndexCardProps {
-  className: string
-  disabled: boolean
-  onClick: () => void
-}
-
-function ReIndexCard({ className, disabled, onClick }: ReIndexCardProps) {
-  const classes = useInterstitialStyles()
-  return (
-    <div className={cx(classes.root, className)}>
-      <M.Button
-        className={classes.button}
-        disabled={disabled}
-        onClick={onClick}
-        variant="contained"
-      >
-        Re-index and repair
-      </M.Button>
-    </div>
-  )
-}
-
 type PreviewFormValues = ReturnType<typeof bucketToPreviewValues>
 
 interface PreviewCardProps {
@@ -1149,26 +1136,27 @@ interface PreviewCardProps {
 
 function PreviewCard({ bucket, className, disabled, onSubmit }: PreviewCardProps) {
   const initialValues = bucketToPreviewValues(bucket)
-  const classes = useInterstitialStyles()
   return (
     <RF.Form<PreviewFormValues> onSubmit={onSubmit} initialValues={initialValues}>
-      {({ handleSubmit, submitting, form, error, submitError }) => (
-        <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
-          <RF.Field
-            component={PFSCheckbox}
-            disabled={submitting || disabled}
-            name="browsable"
-            type="checkbox"
-            onToggle={() => form.submit()}
-          />
-          <Form.FormError
-            error={error || submitError}
-            errors={{
-              unexpected: 'Something went wrong',
-            }}
-            margin="none"
-          />
-        </form>
+      {({ handleSubmit, submitting, form, error, submitError, submitFailed }) => (
+        <Card className={className} disabled={disabled} error={submitFailed}>
+          <form onSubmit={handleSubmit}>
+            <RF.Field
+              component={PFSCheckbox}
+              disabled={submitting || disabled}
+              name="browsable"
+              type="checkbox"
+              onToggle={() => form.submit()}
+            />
+            <Form.FormError
+              error={error || submitError}
+              errors={{
+                unexpected: 'Something went wrong',
+              }}
+              margin="none"
+            />
+          </form>
+        </Card>
       )}
     </RF.Form>
   )
@@ -1664,16 +1652,12 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
               disabled={disabled}
               onSubmit={onSubmit}
             />
-            <ReIndexCard
-              className={classes.card}
-              disabled={disabled}
-              onClick={openReindex}
-            />
             <IndexingAndNotificationsCard
               bucket={bucket}
               className={classes.card}
               disabled={disabled}
               onSubmit={onSubmit}
+              onReindex={openReindex}
             />
             <PreviewCard
               bucket={bucket}
