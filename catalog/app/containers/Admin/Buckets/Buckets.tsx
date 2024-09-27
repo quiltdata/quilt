@@ -209,7 +209,7 @@ function SubPageHeader({ disabled, back, children }: SubPageHeaderProps) {
       >
         <M.Icon>arrow_back</M.Icon>
       </M.IconButton>
-      <M.Typography variant="h6" color="textPrimary">
+      <M.Typography variant="h5" color="textPrimary">
         {children}
       </M.Typography>
     </div>
@@ -737,7 +737,7 @@ const Card = React.forwardRef<HTMLElement, CardProps>(function Card(
     >
       {title && (
         <div className={classes.title}>
-          <M.Typography variant="subtitle2">{title}</M.Typography>
+          <M.Typography variant="h6">{title}</M.Typography>
         </div>
       )}
       <div className={classes.content}>{children}</div>
@@ -1647,7 +1647,7 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
       <RRDom.Prompt when={dirty} message={guardNavigation} />
       <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
       <SubPageHeader back={back} disabled={disabled}>
-        {`s3://${bucket.name}`.toUpperCase()}
+        {`s3://${bucket.name}`}
       </SubPageHeader>
       <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
         <div className={classes.fields} ref={scrollingRef}>
