@@ -1707,7 +1707,7 @@ function EditPage({ back }: EditPageProps) {
       try {
         const { bucketUpdate: r } = await update({ name: bucket.name, input })
         if (r.__typename !== 'BucketUpdateSuccess') {
-          // TS infered shape but not the actual type
+          // Generated `InputError` lacks optional properties and not infered correctly
           return r as Exclude<
             Model.GQLTypes.BucketUpdateResult,
             Model.GQLTypes.BucketUpdateSuccess
