@@ -2,6 +2,13 @@
 
 from .base_client import BaseClient
 from .base_model import BaseModel, Upload
+from .bucket_tabulator_table_rename import (
+    BucketTabulatorTableRename,
+    BucketTabulatorTableRenameAdmin,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError,
+)
 from .bucket_tabulator_table_set import (
     BucketTabulatorTableSet,
     BucketTabulatorTableSetAdmin,
@@ -134,6 +141,11 @@ from .users_set_role import (
 __all__ = [
     "BaseClient",
     "BaseModel",
+    "BucketTabulatorTableRename",
+    "BucketTabulatorTableRenameAdmin",
+    "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig",
+    "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput",
+    "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError",
     "BucketTabulatorTableSet",
     "BucketTabulatorTableSetAdmin",
     "BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig",

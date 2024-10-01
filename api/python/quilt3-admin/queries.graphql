@@ -231,3 +231,13 @@ mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $con
     }
   }
 }
+
+mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $newTableName: String!)  {
+  admin {
+    bucketRenameTabulatorTable(bucketName: $bucketName, tableName: $tableName, newTableName: $newTableName) {
+      __typename
+      ...InvalidInputSelection
+      ...OperationErrorSelection
+    }
+  }
+}
