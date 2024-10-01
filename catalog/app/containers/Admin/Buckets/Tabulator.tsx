@@ -27,6 +27,39 @@ import RENAME_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesRename.generat
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
+function anyIn(obj: FF.ValidationErrors, keys: string[]) {
+  if (!obj) return false
+  const entries = Object.entries(obj)
+  if (!entries.length) return false
+  return entries.find(([key, value]) => keys.includes(key) && !!value)
+}
+
+interface InlineErrorProps {
+  keys: string[]
+  errors?: Record<string, string>
+}
+
+function InlineError({ keys, errors: errorsDict = {} }: InlineErrorProps) {
+  const state = RF.useFormState()
+  const error = React.useMemo(
+    () =>
+      state.error ||
+      state.submitError ||
+      anyIn(state.errors, keys) ||
+      anyIn(state.submitErrors, keys),
+    [keys, state],
+  )
+  return (
+    <Form.FormError
+      /* @ts-expect-error */
+      component="span"
+      errors={errorsDict}
+      error={error}
+      margin="none"
+    />
+  )
+}
+
 const isEmpty = (obj: Record<string, any>) => {
   const values = Object.values(obj)
   if (values.length === 0) return true
@@ -165,7 +198,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
             margin="normal"
             name="name"
             size="small"
-            validate={validators.required as FF.FieldValidator<any>}
+            validate={validators.required as FF.FieldValidator<string>}
             variant="outlined"
           />
           <RF.Field
@@ -177,7 +210,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
             }}
             name="config"
             validate={validators.composeAnd(
-              validators.required as FF.FieldValidator<any>,
+              validators.required as FF.FieldValidator<string>,
               validateYaml,
               validateTable,
             )}
@@ -303,7 +336,7 @@ function TabulatorRow({
         </M.ListItemIcon>
         {editName && isEmpty(deleteError) ? (
           <RF.Form initialValues={tabulatorTable} onSubmit={onRename}>
-            {({ handleSubmit, error, submitError, errors, submitErrors }) => (
+            {({ handleSubmit }) => (
               <form onSubmit={handleSubmit} className={classes.nameForm}>
                 <OnDirty.Spy onChange={onFormSpy} />
                 <RF.Field
@@ -317,15 +350,7 @@ function TabulatorRow({
                   errors={{
                     required: 'Enter a table name',
                   }}
-                  helperText={
-                    <Form.FormError
-                      /* @ts-expect-error */
-                      component="span"
-                      errors={{}}
-                      error={error || submitError || errors?.name || submitErrors?.name}
-                      margin="none"
-                    />
-                  }
+                  helperText={<InlineError keys={['name']} />}
                   disabled={disabled}
                 />
                 <M.Button
@@ -407,14 +432,7 @@ function TabulatorRow({
             initialValues={tabulatorTable}
             onSubmit={(values) => onSubmit({ ...tabulatorTable, ...values })}
           >
-            {({
-              handleSubmit,
-              error,
-              errors,
-              submitErrors,
-              submitError,
-              submitFailed,
-            }) => (
+            {({ handleSubmit, submitFailed }) => (
               <form onSubmit={handleSubmit} className={classes.config}>
                 <OnDirty.Spy onChange={onFormSpy} />
                 <RF.Field
@@ -426,20 +444,14 @@ function TabulatorRow({
                   }}
                   name="config"
                   validate={validators.composeAnd(
-                    validators.required as FF.FieldValidator<any>,
+                    validators.required as FF.FieldValidator<string>,
                     validateYaml,
                     validateTable,
                   )}
                   disabled={disabled}
                 />
                 <div className={classes.formBottom}>
-                  {submitFailed && (
-                    <Form.FormError
-                      errors={{}}
-                      error={error || submitError || errors?.name || submitErrors?.name}
-                      margin="none"
-                    />
-                  )}
+                  {submitFailed && <InlineError keys={['name']} />}
                   <M.Button
                     className={classes.button}
                     color="primary"
