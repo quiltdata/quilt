@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 
 import tabulatorTableSchema from 'schemas/tabulatorTable.yml.json'
 
-// import { useConfirm } from 'components/Dialog'
+import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
@@ -21,7 +21,7 @@ import * as yaml from 'utils/yaml'
 
 import * as Form from '../Form'
 
-// import * as OnDirty from './OnDirty'
+import * as OnDirty from './OnDirty'
 
 import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesSet.generated'
 import RENAME_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesRename.generated'
@@ -459,10 +459,12 @@ interface AddTableProps {
 
 function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
   const classes = useAddTableStyles()
+  const { onChange: onFormSpy } = OnDirty.use()
   return (
     <RF.Form onSubmit={onSubmit}>
       {({ handleSubmit, error, submitError, submitFailed }) => (
         <form onSubmit={handleSubmit} className={classes.root}>
+          <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field
             component={Form.Field}
             disabled={disabled}
@@ -593,9 +595,19 @@ function TabulatorRow({
     const error = await onDelete(tabulatorTable)
     setDeleteError(error || {})
   }, [onDelete, tabulatorTable])
+  const { onChange: onFormSpy } = OnDirty.use()
+  const confirm = useConfirm({
+    title: `You are about to delete "${tabulatorTable.name}" table`,
+    submitTitle: 'Delete',
+    onSubmit: React.useCallback(
+      (confirmed) => confirmed && handleDelete(),
+      [handleDelete],
+    ),
+  })
 
   return (
     <>
+      {confirm.render(<></>)}
       <M.ListItem button onClick={() => setOpen((x) => !x)} disabled={disabled}>
         <M.ListItemIcon>
           <M.Icon>{open ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</M.Icon>
@@ -604,6 +616,7 @@ function TabulatorRow({
           <RF.Form initialValues={tabulatorTable} onSubmit={onRename}>
             {({ handleSubmit, error, submitError, errors, submitErrors }) => (
               <form onSubmit={handleSubmit} className={classes.nameForm}>
+                <OnDirty.Spy onChange={onFormSpy} />
                 <RF.Field
                   component={Form.Field}
                   className={classes.name}
@@ -690,7 +703,7 @@ function TabulatorRow({
             <M.MenuItem
               onClick={() => {
                 setAnchorEl(null)
-                handleDelete()
+                confirm.open()
               }}
               disabled={disabled}
             >
@@ -714,6 +727,7 @@ function TabulatorRow({
               submitFailed,
             }) => (
               <form onSubmit={handleSubmit} className={classes.config}>
+                <OnDirty.Spy onChange={onFormSpy} />
                 <RF.Field
                   className={classes.editor}
                   component={YamlEditorField}
