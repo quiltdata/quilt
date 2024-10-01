@@ -28,6 +28,12 @@ import RENAME_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesRename.generat
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
 
+const isEmpty = (obj: Record<string, any>) => {
+  const values = Object.values(obj)
+  if (values.length === 0) return true
+  return values.every((x) => !x)
+}
+
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
 
 type FormValuesSetTable = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
@@ -428,13 +434,20 @@ const useAddTableStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
-    alignItems: 'flex-end',
   },
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: 'auto',
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   editor: {
     marginBottom: t.spacing(1),
+  },
+  formBottom: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
   },
 }))
 
@@ -448,7 +461,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
   const classes = useAddTableStyles()
   return (
     <RF.Form onSubmit={onSubmit}>
-      {({ handleSubmit }) => (
+      {({ handleSubmit, error, submitError, submitFailed }) => (
         <form onSubmit={handleSubmit} className={classes.root}>
           <RF.Field
             component={Form.Field}
@@ -479,7 +492,14 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
             )}
             disabled={disabled}
           />
-          <div>
+          <div className={classes.formBottom}>
+            {submitFailed && (
+              <Form.FormError
+                error={error || submitError}
+                errors={{ unexpected: 'Something went wrong' }}
+                margin="none"
+              />
+            )}
             <M.Button
               className={classes.button}
               color="primary"
@@ -510,10 +530,13 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
 const useTabulatorRowStyles = M.makeStyles((t) => ({
   root: {},
   name: {
-    marginTop: '3px',
+    marginRight: t.spacing(2),
   },
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: 'auto',
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   actions: {
     display: 'flex',
@@ -525,10 +548,10 @@ const useTabulatorRowStyles = M.makeStyles((t) => ({
     color: t.palette.error.main,
   },
   config: {
-    alignItems: 'flex-end',
     display: 'flex',
     flexDirection: 'column',
-    width: '100%',
+    flexGrow: 1,
+    paddingBottom: t.spacing(2),
   },
   nameForm: {
     display: 'flex',
@@ -537,6 +560,11 @@ const useTabulatorRowStyles = M.makeStyles((t) => ({
   },
   submit: {
     marginTop: t.spacing(1),
+  },
+  formBottom: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
   },
 }))
 
@@ -561,7 +589,6 @@ function TabulatorRow({
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
   const [deleteError, setDeleteError] = React.useState<Record<string, string>>({})
-  // TODO: add FormError component
   const handleDelete = React.useCallback(async () => {
     const error = await onDelete(tabulatorTable)
     setDeleteError(error || {})
@@ -569,18 +596,13 @@ function TabulatorRow({
 
   return (
     <>
-      <M.ListItem
-        disableGutters
-        button
-        onClick={() => setOpen((x) => !x)}
-        disabled={disabled}
-      >
+      <M.ListItem button onClick={() => setOpen((x) => !x)} disabled={disabled}>
         <M.ListItemIcon>
           <M.Icon>{open ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</M.Icon>
         </M.ListItemIcon>
-        {editName ? (
+        {editName && isEmpty(deleteError) ? (
           <RF.Form initialValues={tabulatorTable} onSubmit={onRename}>
-            {({ handleSubmit }) => (
+            {({ handleSubmit, error, submitError, errors, submitErrors }) => (
               <form onSubmit={handleSubmit} className={classes.nameForm}>
                 <RF.Field
                   component={Form.Field}
@@ -593,6 +615,16 @@ function TabulatorRow({
                   errors={{
                     required: 'Enter a table name',
                   }}
+                  helperText={
+                    <Form.FormError
+                      /* @ts-expect-error */
+                      component="span"
+                      errors={{}}
+                      error={error || submitError || errors?.name || submitErrors?.name}
+                      margin="none"
+                    />
+                  }
+                  disabled={disabled}
                 />
                 <M.Button
                   className={classes.button}
@@ -603,6 +635,7 @@ function TabulatorRow({
                   }}
                   variant="contained"
                   color="primary"
+                  disabled={disabled}
                 >
                   Rename
                 </M.Button>
@@ -614,6 +647,7 @@ function TabulatorRow({
                     setEditName(false)
                   }}
                   color="primary"
+                  disabled={disabled}
                 >
                   Cancel
                 </M.Button>
@@ -622,10 +656,25 @@ function TabulatorRow({
             )}
           </RF.Form>
         ) : (
-          <M.ListItemText primary={tabulatorTable.name} secondary={deleteError.name} />
+          <M.ListItemText
+            primary={tabulatorTable.name}
+            secondary={
+              <Form.FormError
+                /* @ts-expect-error */
+                component="span"
+                errors={{}}
+                error={deleteError.name || deleteError[FF.FORM_ERROR]}
+                margin="none"
+              />
+            }
+          />
         )}
         <M.ListItemSecondaryAction>
-          <M.IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small">
+          <M.IconButton
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            size="small"
+            disabled={disabled}
+          >
             <M.Icon>more_vert</M.Icon>
           </M.IconButton>
           <M.Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
@@ -634,6 +683,7 @@ function TabulatorRow({
                 setAnchorEl(null)
                 setEditName(true)
               }}
+              disabled={disabled}
             >
               Rename
             </M.MenuItem>
@@ -642,6 +692,7 @@ function TabulatorRow({
                 setAnchorEl(null)
                 handleDelete()
               }}
+              disabled={disabled}
             >
               Delete
             </M.MenuItem>
@@ -649,12 +700,19 @@ function TabulatorRow({
         </M.ListItemSecondaryAction>
       </M.ListItem>
       <M.Collapse in={open || !!deleteError.config}>
-        <M.ListItem disableGutters disabled={editName}>
+        <M.ListItem disabled={editName}>
           <RF.Form
             initialValues={tabulatorTable}
             onSubmit={(values) => onSubmit({ ...tabulatorTable, ...values })}
           >
-            {({ handleSubmit }) => (
+            {({
+              handleSubmit,
+              error,
+              errors,
+              submitErrors,
+              submitError,
+              submitFailed,
+            }) => (
               <form onSubmit={handleSubmit} className={classes.config}>
                 <RF.Field
                   className={classes.editor}
@@ -667,25 +725,35 @@ function TabulatorRow({
                   validate={validators.composeAnd(
                     validators.required as FF.FieldValidator<any>,
                     validateYaml,
-                    // validateTable,
+                    validateTable,
                   )}
                   disabled={disabled}
                 />
-                <M.Button
-                  className={classes.button}
-                  color="primary"
-                  disabled={disabled}
-                  onClick={handleSubmit}
-                  size="small"
-                  type="submit"
-                  variant="contained"
-                >
-                  Save
-                </M.Button>
+                <div className={classes.formBottom}>
+                  {submitFailed && (
+                    <Form.FormError
+                      errors={{}}
+                      error={error || submitError || errors?.name || submitErrors?.name}
+                      margin="none"
+                    />
+                  )}
+                  <M.Button
+                    className={classes.button}
+                    color="primary"
+                    disabled={disabled}
+                    onClick={handleSubmit}
+                    size="small"
+                    type="submit"
+                    variant="contained"
+                  >
+                    Save
+                  </M.Button>
+                </div>
               </form>
             )}
           </RF.Form>
         </M.ListItem>
+        <M.Divider />
       </M.Collapse>
     </>
   )
@@ -709,32 +777,11 @@ function parseResponseError(
 }
 
 const useStyles = M.makeStyles((t) => ({
-  actions: {
-    margin: t.spacing(2, 0, 0),
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
-  button: {
-    marginLeft: 'auto',
-  },
   empty: {
     paddingBottom: t.spacing(2),
   },
-  item: {
-    position: 'relative',
-    '& + &': {
-      marginTop: t.spacing(3),
-      paddingTop: t.spacing(3),
-      '&::before': {
-        background: t.palette.divider,
-        content: '""',
-        height: '1px',
-        left: t.spacing(2),
-        position: 'absolute',
-        right: t.spacing(2),
-        top: 0,
-      },
-    },
+  textPlaceholder: {
+    height: t.spacing(3),
   },
 }))
 
@@ -843,6 +890,17 @@ export default function Tabulator({
     [bucketName, notify, setTabulatorTable],
   )
 
+  const onSubmitNew = React.useCallback(
+    async (values: FormValuesSetTable): Promise<FF.SubmissionErrors | undefined> => {
+      const error = await onSubmit(values)
+      if (!error) {
+        setToAdd(false)
+      }
+      return error
+    },
+    [onSubmit],
+  )
+
   const classes = useStyles()
 
   if (!tabulatorTables.length && !toAdd) {
@@ -850,34 +908,40 @@ export default function Tabulator({
   }
   return (
     <>
-      <M.List disablePadding>
+      <M.List>
         {tabulatorTables.map((tabulatorTable) => (
           <TabulatorRow
-            disabled={submitting}
             key={tabulatorTable.name}
+            disabled={submitting}
             onDelete={onDelete}
             onRename={onRename}
             onSubmit={onSubmit}
             tabulatorTable={tabulatorTable}
           />
         ))}
-        <M.ListItem disableGutters>
+      </M.List>
+      <M.Divider />
+      <M.List>
+        <M.ListItem>
           {toAdd ? (
             <AddTable
               disabled={submitting}
               onCancel={() => setToAdd(false)}
-              onSubmit={onSubmit}
+              onSubmit={onSubmitNew}
             />
           ) : (
-            <M.Button
-              className={classes.button}
-              disabled={toAdd}
-              size="small"
-              onClick={() => setToAdd(true)}
-              type="button"
-            >
-              Add table
-            </M.Button>
+            <>
+              <M.ListItemText primary={<div className={classes.textPlaceholder}></div>} />
+              <M.ListItemSecondaryAction>
+                <M.Button
+                  disabled={submitting}
+                  onClick={() => setToAdd(true)}
+                  type="button"
+                >
+                  Add table
+                </M.Button>
+              </M.ListItemSecondaryAction>
+            </>
           )}
         </M.ListItem>
       </M.List>
