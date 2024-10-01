@@ -8,6 +8,7 @@ import tabulatorTableSchema from 'schemas/tabulatorTable.yml.json'
 
 import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
+import TextEditorSkeleton from 'components/FileEditor/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
@@ -64,6 +65,200 @@ const isEmpty = (obj: Record<string, any>) => {
   const values = Object.values(obj)
   if (values.length === 0) return true
   return values.every((x) => !x)
+}
+
+const useRenameStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  button: {
+    marginLeft: t.spacing(2),
+  },
+}))
+
+interface NameFormProps {
+  className: string
+  disabled?: boolean
+  onCancel: () => void
+  onSubmit: (values: FormValuesRenameTable) => void
+  tabulatorTable: Model.GQLTypes.TabulatorTable
+}
+
+const nameErrorsKeys = ['name']
+
+function NameForm({
+  className,
+  disabled,
+  onCancel,
+  onSubmit,
+  tabulatorTable,
+}: NameFormProps) {
+  const classes = useRenameStyles()
+  const { onChange: onFormSpy } = OnDirty.use()
+  return (
+    <RF.Form initialValues={tabulatorTable} onSubmit={onSubmit}>
+      {({ handleSubmit, submitFailed }) => (
+        <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
+          <OnDirty.Spy onChange={onFormSpy} />
+          <RF.Field
+            component={Form.Field}
+            name="newTableName"
+            size="small"
+            onClick={(event: Event) => event.stopPropagation()}
+            fullWidth
+            initialValue={tabulatorTable.name}
+            errors={{
+              required: 'Enter a table name',
+            }}
+            helperText={submitFailed && <InlineError keys={nameErrorsKeys} />}
+            disabled={disabled}
+          />
+          <M.Button
+            className={classes.button}
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation()
+              handleSubmit()
+            }}
+            variant="contained"
+            color="primary"
+            disabled={disabled}
+          >
+            Rename
+          </M.Button>
+          <M.Button
+            className={classes.button}
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation()
+              onCancel()
+            }}
+            color="primary"
+            disabled={disabled}
+          >
+            Cancel
+          </M.Button>
+          <RF.Field component="input" type="hidden" name="name" />
+        </form>
+      )}
+    </RF.Form>
+  )
+}
+
+const useConfigFormStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    paddingBottom: t.spacing(2),
+  },
+  button: {
+    marginLeft: 'auto',
+  },
+  bottom: {
+    marginTop: t.spacing(1),
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+}))
+
+interface ConfigFormProps {
+  className: string
+  disabled?: boolean
+  onSubmit: (values: FormValuesSetTable) => void
+  tabulatorTable: Model.GQLTypes.TabulatorTable
+}
+
+const configErrorsKeys = ['name']
+
+function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFormProps) {
+  const classes = useConfigFormStyles()
+  const { onChange: onFormSpy } = OnDirty.use()
+  const submit = React.useCallback(
+    (values: { name: string }) => onSubmit({ ...tabulatorTable, ...values }),
+    [onSubmit, tabulatorTable],
+  )
+  return (
+    <RF.Form initialValues={tabulatorTable} onSubmit={submit}>
+      {({ handleSubmit, submitFailed }) => (
+        <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
+          <OnDirty.Spy onChange={onFormSpy} />
+          <RF.Field
+            component={YamlEditorField}
+            errors={{
+              required: 'Enter config content',
+              invalid: 'YAML is invalid',
+            }}
+            name="config"
+            validate={validators.composeAnd(
+              validators.required as FF.FieldValidator<string>,
+              validateYaml,
+              validateTable,
+            )}
+            disabled={disabled}
+            autoFocus
+          />
+          <div className={classes.bottom}>
+            {submitFailed && <InlineError keys={configErrorsKeys} />}
+            <M.Button
+              className={classes.button}
+              color="primary"
+              disabled={disabled}
+              onClick={handleSubmit}
+              size="small"
+              type="submit"
+              variant="contained"
+            >
+              Save
+            </M.Button>
+          </div>
+        </form>
+      )}
+    </RF.Form>
+  )
+}
+
+interface TableMenuProps {
+  disabled?: boolean
+  onDelete: () => void
+  onRename: () => void
+}
+
+function TableMenu({ disabled, onRename, onDelete }: TableMenuProps) {
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
+  return (
+    <>
+      <M.IconButton
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        size="small"
+        disabled={disabled}
+      >
+        <M.Icon>more_vert</M.Icon>
+      </M.IconButton>
+      <M.Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
+        <M.MenuItem
+          onClick={() => {
+            setAnchorEl(null)
+            onRename()
+          }}
+          disabled={disabled}
+        >
+          Rename
+        </M.MenuItem>
+        <M.MenuItem
+          onClick={() => {
+            setAnchorEl(null)
+            onDelete()
+          }}
+          disabled={disabled}
+        >
+          Delete
+        </M.MenuItem>
+      </M.Menu>
+    </>
+  )
 }
 
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
@@ -251,46 +446,18 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
   )
 }
 
-const useTabulatorRowStyles = M.makeStyles((t) => ({
-  root: {},
-  name: {
-    marginRight: t.spacing(2),
-  },
-  button: {
-    marginLeft: 'auto',
-    '& + &': {
-      marginLeft: t.spacing(2),
-    },
-  },
-  actions: {
-    display: 'flex',
-  },
-  editor: {
-    marginBottom: t.spacing(1),
-  },
-  delete: {
-    color: t.palette.error.main,
-  },
+const useTabulatorRowStyles = M.makeStyles({
   config: {
-    display: 'flex',
-    flexDirection: 'column',
     flexGrow: 1,
-    paddingBottom: t.spacing(2),
   },
-  nameForm: {
-    display: 'flex',
+  name: {
     flexGrow: 1,
-    alignItems: 'center',
+    marginTop: '5px',
   },
-  submit: {
-    marginTop: t.spacing(1),
+  configPlaceholder: {
+    minHeight: '150px',
   },
-  formBottom: {
-    alignItems: 'center',
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
-}))
+})
 
 interface TabulatorRowProps {
   disabled?: boolean
@@ -310,20 +477,17 @@ function TabulatorRow({
   const classes = useTabulatorRowStyles()
   const [open, setOpen] = React.useState(false)
   const [editName, setEditName] = React.useState(false)
-
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
   const [deleteError, setDeleteError] = React.useState<Record<string, string>>({})
-  const handleDelete = React.useCallback(async () => {
-    const error = await onDelete(tabulatorTable)
-    setDeleteError(error || {})
-  }, [onDelete, tabulatorTable])
-  const { onChange: onFormSpy } = OnDirty.use()
   const confirm = useConfirm({
     title: `You are about to delete "${tabulatorTable.name}" table`,
     submitTitle: 'Delete',
     onSubmit: React.useCallback(
-      (confirmed) => confirmed && handleDelete(),
-      [handleDelete],
+      async (confirmed) => {
+        if (!confirmed) return
+        const error = await onDelete(tabulatorTable)
+        setDeleteError(error || {})
+      },
+      [onDelete, tabulatorTable],
     ),
   })
 
@@ -335,53 +499,13 @@ function TabulatorRow({
           <M.Icon>{open ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</M.Icon>
         </M.ListItemIcon>
         {editName && isEmpty(deleteError) ? (
-          <RF.Form initialValues={tabulatorTable} onSubmit={onRename}>
-            {({ handleSubmit }) => (
-              <form onSubmit={handleSubmit} className={classes.nameForm}>
-                <OnDirty.Spy onChange={onFormSpy} />
-                <RF.Field
-                  component={Form.Field}
-                  className={classes.name}
-                  name="newTableName"
-                  size="small"
-                  onClick={(event: Event) => event.stopPropagation()}
-                  fullWidth
-                  initialValue={tabulatorTable.name}
-                  errors={{
-                    required: 'Enter a table name',
-                  }}
-                  helperText={<InlineError keys={['name']} />}
-                  disabled={disabled}
-                />
-                <M.Button
-                  className={classes.button}
-                  size="small"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    handleSubmit()
-                  }}
-                  variant="contained"
-                  color="primary"
-                  disabled={disabled}
-                >
-                  Rename
-                </M.Button>
-                <M.Button
-                  className={classes.button}
-                  size="small"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setEditName(false)
-                  }}
-                  color="primary"
-                  disabled={disabled}
-                >
-                  Cancel
-                </M.Button>
-                <RF.Field component="input" type="hidden" name="name" />
-              </form>
-            )}
-          </RF.Form>
+          <NameForm
+            className={classes.name}
+            onSubmit={onRename}
+            onCancel={() => setEditName(false)}
+            disabled={disabled}
+            tabulatorTable={tabulatorTable}
+          />
         ) : (
           <M.ListItemText
             primary={tabulatorTable.name}
@@ -397,78 +521,26 @@ function TabulatorRow({
           />
         )}
         <M.ListItemSecondaryAction>
-          <M.IconButton
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-            size="small"
+          <TableMenu
             disabled={disabled}
-          >
-            <M.Icon>more_vert</M.Icon>
-          </M.IconButton>
-          <M.Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-            <M.MenuItem
-              onClick={() => {
-                setAnchorEl(null)
-                setEditName(true)
-              }}
-              disabled={disabled}
-            >
-              Rename
-            </M.MenuItem>
-            <M.MenuItem
-              onClick={() => {
-                setAnchorEl(null)
-                confirm.open()
-              }}
-              disabled={disabled}
-            >
-              Delete
-            </M.MenuItem>
-          </M.Menu>
+            onDelete={confirm.open}
+            onRename={() => setEditName(true)}
+          />
         </M.ListItemSecondaryAction>
       </M.ListItem>
-      <M.Collapse in={open || !!deleteError.config}>
+      <M.Collapse in={open}>
         <M.ListItem disabled={editName}>
-          <RF.Form
-            initialValues={tabulatorTable}
-            onSubmit={(values) => onSubmit({ ...tabulatorTable, ...values })}
-          >
-            {({ handleSubmit, submitFailed }) => (
-              <form onSubmit={handleSubmit} className={classes.config}>
-                <OnDirty.Spy onChange={onFormSpy} />
-                <RF.Field
-                  className={classes.editor}
-                  component={YamlEditorField}
-                  errors={{
-                    required: 'Enter config content',
-                    invalid: 'YAML is invalid',
-                  }}
-                  name="config"
-                  validate={validators.composeAnd(
-                    validators.required as FF.FieldValidator<string>,
-                    validateYaml,
-                    validateTable,
-                  )}
-                  disabled={disabled}
-                />
-                <div className={classes.formBottom}>
-                  {submitFailed && <InlineError keys={['name']} />}
-                  <M.Button
-                    className={classes.button}
-                    color="primary"
-                    disabled={disabled}
-                    onClick={handleSubmit}
-                    size="small"
-                    type="submit"
-                    variant="contained"
-                  >
-                    Save
-                  </M.Button>
-                </div>
-              </form>
-            )}
-          </RF.Form>
+          {open && (
+            <React.Suspense fallback={<TextEditorSkeleton />}>
+              <ConfigForm
+                className={classes.config}
+                disabled={disabled || editName}
+                onSubmit={onSubmit}
+                tabulatorTable={tabulatorTable}
+              />
+            </React.Suspense>
+          )}
         </M.ListItem>
-        <M.Divider />
       </M.Collapse>
     </>
   )
@@ -476,14 +548,11 @@ function TabulatorRow({
 
 function parseResponseError(
   r: Exclude<Model.GQLTypes.BucketSetTabulatorTableResult, Model.GQLTypes.BucketConfig>,
+  mappings?: Record<string, string>,
 ): FF.SubmissionErrors | undefined {
   switch (r.__typename) {
     case 'InvalidInput':
-      return mapInputErrors(r.errors, {
-        config: 'config',
-        newTableName: 'newTableName',
-        tableName: 'newTableName',
-      })
+      return mapInputErrors(r.errors, mappings)
     case 'OperationError':
       return mkFormError(r.message)
     default:
@@ -510,6 +579,7 @@ export default function Tabulator({
   bucket: bucketName,
   tabulatorTables,
 }: TabulatorProps) {
+  // FIXME: Move to ConfigForm and AddTable
   loadMode('yaml')
 
   const renameTabulatorTable = GQL.useMutation(RENAME_TABULATOR_TABLE_MUTATION)
@@ -534,7 +604,9 @@ export default function Tabulator({
           notify(`Successfully deleted ${tableName} table`)
           return undefined
         }
-        return parseResponseError(r)
+        return parseResponseError(r, {
+          tableName: 'name',
+        })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error deleting table')
@@ -564,7 +636,11 @@ export default function Tabulator({
           notify(`Successfully updated ${tableName} table`)
           return undefined
         }
-        return parseResponseError(r)
+        return parseResponseError(r, {
+          config: 'config',
+          newTableName: 'newTableName',
+          tableName: 'newTableName',
+        })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error updating table')
@@ -589,10 +665,13 @@ export default function Tabulator({
           .bucketSetTabulatorTable as Model.GQLTypes.BucketSetTabulatorTableResult
         setSubmitting(false)
         if (r.__typename === 'BucketConfig') {
-          notify(`Successfully created ${tableName} table`)
+          notify(`Successfully updated ${tableName} table`)
           return undefined
         }
-        return parseResponseError(r)
+        return parseResponseError(r, {
+          config: 'config',
+          tableName: 'name',
+        })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error creating table')
@@ -635,7 +714,6 @@ export default function Tabulator({
           />
         ))}
       </M.List>
-      <M.Divider />
       <M.List>
         <M.ListItem>
           {toAdd ? (
