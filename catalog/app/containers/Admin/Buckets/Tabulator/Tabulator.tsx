@@ -102,7 +102,7 @@ function NameForm({
   )
   return (
     <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
-      {({ handleSubmit, submitFailed }) => (
+      {({ handleSubmit, pristine, submitFailed }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
@@ -124,25 +124,25 @@ function NameForm({
             size="small"
             onClick={(event) => {
               event.stopPropagation()
-              handleSubmit()
-            }}
-            variant="contained"
-            color="primary"
-            disabled={disabled}
-          >
-            Rename
-          </M.Button>
-          <M.Button
-            className={classes.button}
-            size="small"
-            onClick={(event) => {
-              event.stopPropagation()
               onCancel()
             }}
             color="primary"
             disabled={disabled}
           >
             Cancel
+          </M.Button>
+          <M.Button
+            className={classes.button}
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation()
+              handleSubmit()
+            }}
+            variant="contained"
+            color="primary"
+            disabled={disabled || pristine}
+          >
+            Rename
           </M.Button>
         </form>
       )}
@@ -191,7 +191,7 @@ function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFor
   )
   return (
     <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
-      {({ handleSubmit, submitFailed, form }) => (
+      {({ handleSubmit, submitFailed, form, pristine }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
@@ -214,7 +214,7 @@ function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFor
             <M.Button
               className={classes.button}
               color="primary"
-              disabled={disabled}
+              disabled={disabled || pristine}
               onClick={() => form.restart()}
               size="small"
             >
@@ -223,7 +223,7 @@ function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFor
             <M.Button
               className={classes.button}
               color="primary"
-              disabled={disabled}
+              disabled={disabled || pristine}
               onClick={handleSubmit}
               size="small"
               type="submit"
@@ -391,7 +391,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
   const { onChange: onFormSpy } = OnDirty.use()
   return (
     <RF.Form onSubmit={onSubmit}>
-      {({ handleSubmit, error, submitError, submitFailed }) => (
+      {({ handleSubmit, error, pristine, submitError, submitFailed }) => (
         <form onSubmit={handleSubmit} className={classes.root}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field
@@ -442,7 +442,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
             <M.Button
               className={classes.button}
               color="primary"
-              disabled={disabled}
+              disabled={disabled || pristine}
               onClick={handleSubmit}
               size="small"
               type="submit"
