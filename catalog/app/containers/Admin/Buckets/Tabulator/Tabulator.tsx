@@ -88,7 +88,7 @@ interface NameFormProps {
   tabulatorTable: Model.GQLTypes.TabulatorTable
 }
 
-const nameErrorsKeys = ['name']
+const nameErrorsKeys = ['tableName']
 
 function NameForm({
   className,
@@ -104,6 +104,7 @@ function NameForm({
       {({ handleSubmit, submitFailed }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
+          <RF.Field component="input" type="hidden" name="tableName" />
           <RF.Field
             component={Form.Field}
             name="newTableName"
@@ -142,7 +143,6 @@ function NameForm({
           >
             Cancel
           </M.Button>
-          <RF.Field component="input" type="hidden" name="name" />
         </form>
       )}
     </RF.Form>
@@ -173,20 +173,17 @@ interface ConfigFormProps {
   tabulatorTable: Model.GQLTypes.TabulatorTable
 }
 
-const configErrorsKeys = ['name']
+const configErrorsKeys = ['tableName']
 
 function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFormProps) {
   const classes = useConfigFormStyles()
   const { onChange: onFormSpy } = OnDirty.use()
-  const submit = React.useCallback(
-    (values: { name: string }) => onSubmit({ ...tabulatorTable, ...values }),
-    [onSubmit, tabulatorTable],
-  )
   return (
-    <RF.Form initialValues={tabulatorTable} onSubmit={submit}>
+    <RF.Form initialValues={tabulatorTable} onSubmit={onSubmit}>
       {({ handleSubmit, submitFailed }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
+          <RF.Field component="input" type="hidden" name="tableName" />
           <RF.Field
             component={ConfigEditor}
             errors={{
@@ -262,13 +259,19 @@ function TableMenu({ disabled, onRename, onDelete }: TableMenuProps) {
   )
 }
 
-type FormValuesSetTable = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
-
-type FormValuesRenameTable = Pick<Model.GQLTypes.TabulatorTable, 'name'> & {
-  newTableName: string
+interface FormValuesSetTable {
+  tableName: Model.GQLTypes.TabulatorTable['name']
+  config: Model.GQLTypes.TabulatorTable['config']
 }
 
-type FormValuesDeleteTable = Pick<Model.GQLTypes.TabulatorTable, 'name'>
+interface FormValuesRenameTable {
+  tableName: Model.GQLTypes.TabulatorTable['name']
+  newTableName: Model.GQLTypes.TabulatorTable['name']
+}
+
+interface FormValuesDeleteTable {
+  tableName: Model.GQLTypes.TabulatorTable['name']
+}
 
 const useEmptyStyles = M.makeStyles((t) => ({
   root: {
@@ -380,7 +383,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
             fullWidth
             label="Table name"
             margin="normal"
-            name="name"
+            name="tableName"
             size="small"
             validate={validators.required as FF.FieldValidator<string>}
             variant="outlined"
@@ -467,7 +470,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, tabulatorTable }: Table
     onSubmit: React.useCallback(
       async (confirmed) => {
         if (!confirmed) return
-        const error = await onDelete(tabulatorTable)
+        const error = await onDelete({ tableName: tabulatorTable.name })
         setDeleteError(error || {})
       },
       [onDelete, tabulatorTable],
@@ -568,7 +571,7 @@ function Tables({ adding, bucketName, onAdding, tabulatorTables }: TablesProps) 
 
   const onDelete = React.useCallback(
     async ({
-      name: tableName,
+      tableName,
     }: FormValuesDeleteTable): Promise<FF.SubmissionErrors | undefined> => {
       try {
         setSubmitting(true)
@@ -582,7 +585,7 @@ function Tables({ adding, bucketName, onAdding, tabulatorTables }: TablesProps) 
           return undefined
         }
         return parseResponseError(r, {
-          tableName: 'name',
+          tableName: 'tableName',
         })
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -598,19 +601,17 @@ function Tables({ adding, bucketName, onAdding, tabulatorTables }: TablesProps) 
 
   const onRename = React.useCallback(
     async (values: FormValuesRenameTable): Promise<FF.SubmissionErrors | undefined> => {
-      const { name: tableName, newTableName } = values
       try {
         setSubmitting(true)
         const response = await renameTabulatorTable({
           bucketName,
-          tableName,
-          newTableName,
+          ...values,
         })
         const r = response.admin
           .bucketRenameTabulatorTable as Model.GQLTypes.BucketSetTabulatorTableResult
         setSubmitting(false)
         if (r.__typename === 'BucketConfig') {
-          notify(`Successfully updated ${tableName} table`)
+          notify(`Successfully updated ${values.tableName} table`)
           return undefined
         }
         return parseResponseError(r, {
@@ -631,23 +632,20 @@ function Tables({ adding, bucketName, onAdding, tabulatorTables }: TablesProps) 
   )
 
   const onSubmit = React.useCallback(
-    async ({
-      name: tableName,
-      config,
-    }: FormValuesSetTable): Promise<FF.SubmissionErrors | undefined> => {
+    async (values: FormValuesSetTable): Promise<FF.SubmissionErrors | undefined> => {
       try {
         setSubmitting(true)
-        const response = await setTabulatorTable({ bucketName, tableName, config })
+        const response = await setTabulatorTable({ bucketName, ...values })
         const r = response.admin
           .bucketSetTabulatorTable as Model.GQLTypes.BucketSetTabulatorTableResult
         setSubmitting(false)
         if (r.__typename === 'BucketConfig') {
-          notify(`Successfully updated ${tableName} table`)
+          notify(`Successfully updated ${values.tableName} table`)
           return undefined
         }
         return parseResponseError(r, {
           config: 'config',
-          tableName: 'name',
+          tableName: 'tableName',
         })
       } catch (e) {
         // eslint-disable-next-line no-console
