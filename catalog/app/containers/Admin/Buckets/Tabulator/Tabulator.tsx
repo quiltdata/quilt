@@ -4,8 +4,6 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-import tabulatorTableSchema from 'schemas/tabulatorTable.yml.json'
-
 import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
 import TextEditorSkeleton from 'components/FileEditor/Skeleton'
@@ -14,20 +12,23 @@ import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
-import { JsonInvalidAgainstSchema } from 'utils/error'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
-import { makeSchemaValidator } from 'utils/json-schema'
 import * as validators from 'utils/validators'
-import * as yaml from 'utils/yaml'
 
-import * as Form from '../Form'
+import * as Form from '../../Form'
 
-import * as OnDirty from './OnDirty'
+import * as OnDirty from '../OnDirty'
 
-import SET_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesSet.generated'
-import RENAME_TABULATOR_TABLE_MUTATION from './gql/TabulatorTablesRename.generated'
+import SET_TABULATOR_TABLE_MUTATION from '../gql/TabulatorTablesSet.generated'
+import RENAME_TABULATOR_TABLE_MUTATION from '../gql/TabulatorTablesRename.generated'
 
 const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
+const validateTableModule = () => import('./validate')
+
+const validateTable: FF.FieldValidator<string> = async (...args) => {
+  const module = await validateTableModule()
+  return module.default(...args)
+}
 
 function anyIn(obj: FF.ValidationErrors, keys: string[]) {
   if (!obj) return false
@@ -195,9 +196,8 @@ function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFor
               invalid: 'YAML is invalid',
             }}
             name="config"
-            validate={validators.composeAnd(
+            validate={validators.composeAsync(
               validators.required as FF.FieldValidator<string>,
-              validateYaml,
               validateTable,
             )}
             disabled={disabled}
@@ -298,24 +298,6 @@ function YamlEditorField({ errors, input, meta, ...props }: YamlEditorFieldProps
       type={TEXT_EDITOR_TYPE}
     />
   )
-}
-
-const validateYaml: FF.FieldValidator<string> = (inputStr?: string) => {
-  const error = yaml.validate(inputStr)
-  if (error) {
-    return 'invalid'
-  }
-  return undefined
-}
-
-const validateTable: FF.FieldValidator<string> = (inputStr?: string) => {
-  const data = yaml.parse(inputStr)
-  const validator = makeSchemaValidator(tabulatorTableSchema)
-  const errors = validator(data)
-  if (errors.length) {
-    return new JsonInvalidAgainstSchema({ errors }).message
-  }
-  return undefined
 }
 
 const useEmptyStyles = M.makeStyles((t) => ({
@@ -421,9 +403,8 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
               invalid: 'YAML is invalid',
             }}
             name="config"
-            validate={validators.composeAnd(
+            validate={validators.composeAsync(
               validators.required as FF.FieldValidator<string>,
-              validateYaml,
               validateTable,
             )}
             disabled={disabled}
