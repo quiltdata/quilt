@@ -21,13 +21,14 @@ import * as OnDirty from '../OnDirty'
 import RENAME_TABULATOR_TABLE_MUTATION from '../gql/TabulatorTablesRename.generated'
 import SET_TABULATOR_TABLE_MUTATION from '../gql/TabulatorTablesSet.generated'
 
-const ConfigEditor = React.lazy(() => import('./ConfigEditor'))
-const validateTableModule = () => import('./validate')
+const ConfigEditorModule = () => import('./ConfigEditor')
 
-const validateTable: FF.FieldValidator<string> = async (...args) => {
-  const module = await validateTableModule()
-  return module.default(...args)
-}
+const ConfigEditor = React.lazy(() =>
+  ConfigEditorModule().then((m) => ({ default: m.ConfigEditor })),
+)
+
+const validateTable: FF.FieldValidator<string> = (...args) =>
+  ConfigEditorModule().then((m) => m.validateTable(...args))
 
 function anyIn(obj: FF.ValidationErrors, keys: string[]) {
   if (!obj) return false
