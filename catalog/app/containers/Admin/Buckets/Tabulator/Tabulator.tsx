@@ -107,6 +107,7 @@ function NameForm({
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
           <RF.Field
+            autoFocus
             component={Form.Field}
             name="newTableName"
             size="small"
@@ -395,6 +396,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
         <form onSubmit={handleSubmit} className={classes.root}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field
+            autoFocus
             component={Form.Field}
             disabled={disabled}
             errors={{
