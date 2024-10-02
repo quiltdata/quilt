@@ -463,18 +463,19 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
   )
 }
 
-const useTabulatorRowStyles = M.makeStyles({
+const useTabulatorRowStyles = M.makeStyles((t) => ({
   config: {
     flexGrow: 1,
   },
   name: {
     flexGrow: 1,
-    marginTop: '5px',
+    marginRight: t.spacing(2),
+    marginTop: '5px', // to make a visual substitute for the ListItemText
   },
   configPlaceholder: {
-    minHeight: '150px',
+    minHeight: t.spacing(18),
   },
-})
+}))
 
 interface TabulatorRowProps {
   disabled?: boolean
@@ -559,6 +560,7 @@ function TabulatorRow({
           )}
         </M.ListItem>
       </M.Collapse>
+      <M.Divider />
     </>
   )
 }
@@ -582,7 +584,7 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(2),
   },
   textPlaceholder: {
-    height: t.spacing(3),
+    height: t.spacing(3.5),
   },
 }))
 
@@ -591,7 +593,7 @@ interface TabulatorProps {
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
-/** Have to be suspended because of `<TextEditor />` */
+/** Have to be suspended because of `<TextEditor />` and `loadMode(...)` */
 export default function Tabulator({
   bucket: bucketName,
   tabulatorTables,
@@ -715,46 +717,37 @@ export default function Tabulator({
     return <Empty className={classes.empty} onClick={() => setToAdd(true)} />
   }
   return (
-    <>
-      <M.List>
-        {tabulatorTables.map((tabulatorTable) => (
-          <TabulatorRow
-            key={tabulatorTable.name}
-            disabled={submitting}
-            onDelete={onDelete}
-            onRename={onRename}
-            onSubmit={onSubmit}
-            tabulatorTable={tabulatorTable}
-          />
-        ))}
-      </M.List>
-      <M.Divider />
-      <M.List>
+    <M.List>
+      {tabulatorTables.map((tabulatorTable) => (
+        <TabulatorRow
+          key={tabulatorTable.name}
+          disabled={submitting}
+          onDelete={onDelete}
+          onRename={onRename}
+          onSubmit={onSubmit}
+          tabulatorTable={tabulatorTable}
+        />
+      ))}
+      {toAdd ? (
         <M.ListItem>
-          {toAdd ? (
-            <React.Suspense fallback={<AddTableSkeleton />}>
-              <AddTable
-                disabled={submitting}
-                onCancel={() => setToAdd(false)}
-                onSubmit={onSubmitNew}
-              />
-            </React.Suspense>
-          ) : (
-            <>
-              <M.ListItemText primary={<div className={classes.textPlaceholder}></div>} />
-              <M.ListItemSecondaryAction>
-                <M.Button
-                  disabled={submitting}
-                  onClick={() => setToAdd(true)}
-                  type="button"
-                >
-                  Add table
-                </M.Button>
-              </M.ListItemSecondaryAction>
-            </>
-          )}
+          <React.Suspense fallback={<AddTableSkeleton />}>
+            <AddTable
+              disabled={submitting}
+              onCancel={() => setToAdd(false)}
+              onSubmit={onSubmitNew}
+            />
+          </React.Suspense>
         </M.ListItem>
-      </M.List>
-    </>
+      ) : (
+        <M.ListItem>
+          <M.ListItemText primary={<div className={classes.textPlaceholder}></div>} />
+          <M.ListItemSecondaryAction>
+            <M.Button disabled={submitting} onClick={() => setToAdd(true)} type="button">
+              Add table
+            </M.Button>
+          </M.ListItemSecondaryAction>
+        </M.ListItem>
+      )}
+    </M.List>
   )
 }
