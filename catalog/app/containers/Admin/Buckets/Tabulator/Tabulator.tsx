@@ -62,15 +62,7 @@ function NameForm({ className, disabled, onCancel, onSubmit, table }: NameFormPr
   const initialValues = React.useMemo(() => tableToRenameFormData(table), [table])
   return (
     <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
-      {({
-        error,
-        errors,
-        handleSubmit,
-        pristine,
-        submitError,
-        submitErrors,
-        submitFailed,
-      }) => (
+      {({ error, handleSubmit, pristine, submitError, submitFailed }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
@@ -91,9 +83,7 @@ function NameForm({ className, disabled, onCancel, onSubmit, table }: NameFormPr
                   /* @ts-expect-error */
                   component="span"
                   errors={{}}
-                  error={
-                    error || submitError || errors?.tableName || submitErrors?.tableName
-                  }
+                  error={error || submitError}
                   margin="none"
                 />
               )
@@ -172,7 +162,16 @@ function ConfigForm({ className, disabled, onSubmit, table }: ConfigFormProps) {
   const initialValues = React.useMemo(() => tableToSetFormData(table), [table])
   return (
     <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
-      {({ error, form, handleSubmit, pristine, submitError, submitFailed }) => (
+      {({
+        error,
+        errors,
+        form,
+        handleSubmit,
+        pristine,
+        submitError,
+        submitErrors,
+        submitFailed,
+      }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
@@ -192,7 +191,13 @@ function ConfigForm({ className, disabled, onSubmit, table }: ConfigFormProps) {
           />
           <div className={classes.bottom}>
             {submitFailed && (
-              <Form.FormError errors={{}} error={error || submitError} margin="none" />
+              <Form.FormError
+                errors={{}}
+                error={
+                  error || submitError || errors?.tableName || submitErrors?.tableName
+                }
+                margin="none"
+              />
             )}
             <M.Button
               className={classes.button}
@@ -467,7 +472,6 @@ function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
   const classes = useTableStyles()
   const [open, setOpen] = React.useState<boolean | null>(null)
   const [editName, setEditName] = React.useState(false)
-  const [deleteError, setDeleteError] = React.useState<string | undefined>()
   const confirm = useConfirm({
     title: `You are about to delete "${table.name}" table`,
     submitTitle: 'Delete',
@@ -475,7 +479,10 @@ function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
       async (confirmed) => {
         if (!confirmed) return
         const error = await onDelete({ tableName: table.name })
-        setDeleteError(error?.[FF.FORM_ERROR])
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.error(error[FF.FORM_ERROR])
+        }
       },
       [onDelete, table],
     ),
@@ -488,7 +495,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
         <M.ListItemIcon>
           <M.Icon>{open ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</M.Icon>
         </M.ListItemIcon>
-        {editName && !deleteError ? (
+        {editName ? (
           <NameForm
             className={classes.name}
             onSubmit={onRename}
@@ -497,18 +504,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
             table={table}
           />
         ) : (
-          <M.ListItemText
-            primary={table.name}
-            secondary={
-              <Form.FormError
-                /* @ts-expect-error */
-                component="span"
-                errors={{}}
-                error={deleteError}
-                margin="none"
-              />
-            }
-          />
+          <M.ListItemText primary={table.name} />
         )}
         <M.ListItemSecondaryAction>
           <TableMenu
@@ -537,6 +533,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
   )
 }
 
+// TODO: a way to "redirect" FINAL_FORM error to named field
 function parseResponseError(
   r: Exclude<Model.GQLTypes.BucketSetTabulatorTableResult, Model.GQLTypes.BucketConfig>,
   mappings?: Record<string, string>,
@@ -588,6 +585,8 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
           notify(`Successfully deleted ${tableName} table`)
           return undefined
         }
+        // @ts-expect-error
+        notify(`Failed to remove ${tableName} table`, { ttl: null })
         return parseResponseError(r)
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -595,6 +594,8 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
         // eslint-disable-next-line no-console
         console.error(e)
         setSubmitting(false)
+        // @ts-expect-error
+        notify(`Failed to remove ${tableName} table`, { ttl: null })
         return mkFormError('unexpected')
       }
     },
@@ -617,7 +618,6 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
           return undefined
         }
         return parseResponseError(r, {
-          config: 'config',
           newTableName: 'newTableName',
           tableName: 'newTableName',
         })
