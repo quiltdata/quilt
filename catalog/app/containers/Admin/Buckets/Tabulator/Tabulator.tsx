@@ -63,12 +63,6 @@ function InlineError({ keys, errors: errorsDict = {} }: InlineErrorProps) {
   )
 }
 
-const isEmpty = (obj: Record<string, any>) => {
-  const values = Object.values(obj)
-  if (values.length === 0) return true
-  return values.every((x) => !x)
-}
-
 const useRenameStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -463,7 +457,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, tabulatorTable }: Table
   const classes = useTableStyles()
   const [open, setOpen] = React.useState<boolean | null>(null)
   const [editName, setEditName] = React.useState(false)
-  const [deleteError, setDeleteError] = React.useState<Record<string, string>>({})
+  const [deleteError, setDeleteError] = React.useState<string | undefined>()
   const confirm = useConfirm({
     title: `You are about to delete "${tabulatorTable.name}" table`,
     submitTitle: 'Delete',
@@ -471,7 +465,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, tabulatorTable }: Table
       async (confirmed) => {
         if (!confirmed) return
         const error = await onDelete({ tableName: tabulatorTable.name })
-        setDeleteError(error || {})
+        setDeleteError(error?.[FF.FORM_ERROR])
       },
       [onDelete, tabulatorTable],
     ),
@@ -484,7 +478,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, tabulatorTable }: Table
         <M.ListItemIcon>
           <M.Icon>{open ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</M.Icon>
         </M.ListItemIcon>
-        {editName && isEmpty(deleteError) ? (
+        {editName && !deleteError ? (
           <NameForm
             className={classes.name}
             onSubmit={onRename}
@@ -500,7 +494,7 @@ function Table({ disabled, onDelete, onRename, onSubmit, tabulatorTable }: Table
                 /* @ts-expect-error */
                 component="span"
                 errors={{}}
-                error={deleteError.name || deleteError[FF.FORM_ERROR]}
+                error={deleteError}
                 margin="none"
               />
             }
@@ -584,9 +578,7 @@ function Tables({ adding, bucketName, onAdding, tabulatorTables }: TablesProps) 
           notify(`Successfully deleted ${tableName} table`)
           return undefined
         }
-        return parseResponseError(r, {
-          tableName: 'tableName',
-        })
+        return parseResponseError(r)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error deleting table')
