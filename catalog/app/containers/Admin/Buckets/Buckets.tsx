@@ -1186,7 +1186,7 @@ function TabulatorCard({
       disabled={disabled}
       title="Tabulation (Longitudinal Querying)"
     >
-      <TabulatorForm bucket={bucket} tabulatorTables={tabulatorTables} />
+      <TabulatorForm bucket={bucket} tables={tabulatorTables} />
     </Card>
   )
 }
