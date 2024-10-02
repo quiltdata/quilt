@@ -25,8 +25,8 @@ export function ConfigEditor({ errors, input, meta, ...props }: ConfigEditorFiel
   const [key, setKey] = React.useState(0)
   const reset = React.useCallback(() => setKey((k) => k + 1), [])
   React.useEffect(() => {
-    if (meta.pristine) reset()
-  }, [meta.pristine, reset])
+    if (!meta.modified) reset()
+  }, [meta.modified, reset])
 
   return (
     <TextEditor
