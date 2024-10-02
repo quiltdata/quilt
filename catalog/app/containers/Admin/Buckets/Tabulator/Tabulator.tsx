@@ -93,8 +93,15 @@ function NameForm({
 }: NameFormProps) {
   const classes = useRenameStyles()
   const { onChange: onFormSpy } = OnDirty.use()
+  const initialValues: FormValuesRenameTable = React.useMemo(
+    () => ({
+      tableName: tabulatorTable.name,
+      newTableName: tabulatorTable.name,
+    }),
+    [tabulatorTable],
+  )
   return (
-    <RF.Form initialValues={tabulatorTable} onSubmit={onSubmit}>
+    <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
       {({ handleSubmit, submitFailed }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
@@ -151,6 +158,9 @@ const useConfigFormStyles = M.makeStyles((t) => ({
   },
   button: {
     marginLeft: 'auto',
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   bottom: {
     marginTop: t.spacing(1),
@@ -172,9 +182,16 @@ const configErrorsKeys = ['tableName']
 function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFormProps) {
   const classes = useConfigFormStyles()
   const { onChange: onFormSpy } = OnDirty.use()
+  const initialValues: FormValuesSetTable = React.useMemo(
+    () => ({
+      tableName: tabulatorTable.name,
+      config: tabulatorTable.config,
+    }),
+    [tabulatorTable],
+  )
   return (
-    <RF.Form initialValues={tabulatorTable} onSubmit={onSubmit}>
-      {({ handleSubmit, submitFailed }) => (
+    <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
+      {({ handleSubmit, submitFailed, form }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
@@ -194,6 +211,15 @@ function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFor
           />
           <div className={classes.bottom}>
             {submitFailed && <InlineError keys={configErrorsKeys} />}
+            <M.Button
+              className={classes.button}
+              color="primary"
+              disabled={disabled}
+              onClick={() => form.restart()}
+              size="small"
+            >
+              Reset
+            </M.Button>
             <M.Button
               className={classes.button}
               color="primary"
