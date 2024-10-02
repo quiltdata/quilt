@@ -492,7 +492,7 @@ function TabulatorRow({
   tabulatorTable,
 }: TabulatorRowProps) {
   const classes = useTabulatorRowStyles()
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState<boolean | null>(null)
   const [editName, setEditName] = React.useState(false)
   const [deleteError, setDeleteError] = React.useState<Record<string, string>>({})
   const confirm = useConfirm({
@@ -545,9 +545,9 @@ function TabulatorRow({
           />
         </M.ListItemSecondaryAction>
       </M.ListItem>
-      <M.Collapse in={open}>
+      <M.Collapse in={!!open}>
         <M.ListItem disabled={editName}>
-          {open && (
+          {open !== null && (
             <React.Suspense fallback={<TextEditorSkeleton height={18} />}>
               <ConfigForm
                 className={classes.config}
