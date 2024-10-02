@@ -8,10 +8,11 @@ summarize data instead of having click through the GUI.
 
 ## What is Qurator Omni?
 
-Qurator Omni is designed to streamline interaction with Quilt data by offering
-a conversational interface. Instead of navigating through various tabs and
-menus, users can opt into the Qurator feature to ask complex questions in plain
-language and receive structured, actionable responses.
+Qurator Omni is designed to streamline interaction with Quilt data by offering a
+conversational interface. Instead of navigating through various tabs and menus,
+or learning complicated search syntax, users can opt into the Qurator feature to
+ask complex questions in plain language and receive structured, actionable
+responses.
 
 For example, users can ask for summaries of research on topics like "melanoma"
 or request key insights from a specific dataset.
@@ -20,13 +21,17 @@ or request key insights from a specific dataset.
 
 - **Natural Language Queries**: Ask complex questions like _“What’s known about
   BRCA1 research?”_ or _“Show the latest asthma treatment data”_ to interact
-  with information stored in private or public S3 buckets.
+  with information stored in private or public S3 buckets, such as [PubMed
+  PMC](https://open.quiltdata.com/b/pmc-oa-opendata) or other [Open Data on
+  AWS](https://registry.opendata.aws/).
 - **Data Summarization**: Qurator Omni can summarize the key points of research
   papers, presentations, or datasets, offering concise, digestible insights
   without needing to review the full content.
 - **Opt-in Integration**: Your data is always your own. Administrators must
   explicitly enable the Qurator Omni feature, and configure the appropriate
   Claude model in AWS Bedrock, before users can access the AI assistant.
+  Everything runs in your own private cloud environment; nothing is shared with
+  Quilt or accessible to third parties.
 
 ## Getting Started
 
@@ -40,7 +45,9 @@ To enable Qurator Omni:
 2. **Configure Claude Model**:  
    - Login to the AWS Bedrock console.
    - Ensure that the Claude 3.5 Sonnet model is available in the same region as
-     your Quilt deployment.
+     your Quilt deployment. Check [Model support by AWS
+     Region](https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html)
+     for details.
    - Enable the model by configuring it within your Bedrock environment.
    - Carefully monitor the model’s cost implications. The Claude model is
      charged based on usage, so ensure that you have the necessary budget
@@ -49,8 +56,8 @@ To enable Qurator Omni:
 3. **Start Using Qurator**:  
    - Once activated, the Qurator chatbot will appear in the Quilt web catalog
      interface.
-   - Click the Qurator icon on the right side of the screen to open the chat
-     interface.
+   - Click the Qurator icon on the
+     bottom right of the screen to open the chat interface. ![qurator icon](../imgs/qurator-icon.png)
    - You can begin by typing questions into the chat interface. For example,
      queries like _“What are the key findings on small molecule delivery?”_ will
      prompt Qurator to retrieve relevant packages and present a summarized
