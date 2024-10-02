@@ -9,6 +9,7 @@ import tabulatorTableSchema from 'schemas/tabulatorTable.yml.json'
 import { useConfirm } from 'components/Dialog'
 import { loadMode } from 'components/FileEditor/loader'
 import TextEditorSkeleton from 'components/FileEditor/Skeleton'
+import Skel from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
@@ -174,6 +175,8 @@ interface ConfigFormProps {
 const configErrorsKeys = ['name']
 
 function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFormProps) {
+  loadMode('yaml')
+
   const classes = useConfigFormStyles()
   const { onChange: onFormSpy } = OnDirty.use()
   const submit = React.useCallback(
@@ -346,6 +349,18 @@ function Empty({ className, onClick }: EmptyProps) {
   )
 }
 
+function AddTableSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+      <Skel mb={2} height={24} />
+      <TextEditorSkeleton height={18} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Skel mt={2} height={32} width={120} />
+      </div>
+    </div>
+  )
+}
+
 const useAddTableStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -375,6 +390,8 @@ interface AddTableProps {
 }
 
 function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
+  loadMode('yaml')
+
   const classes = useAddTableStyles()
   const { onChange: onFormSpy } = OnDirty.use()
   return (
@@ -531,7 +548,7 @@ function TabulatorRow({
       <M.Collapse in={open}>
         <M.ListItem disabled={editName}>
           {open && (
-            <React.Suspense fallback={<TextEditorSkeleton />}>
+            <React.Suspense fallback={<TextEditorSkeleton height={18} />}>
               <ConfigForm
                 className={classes.config}
                 disabled={disabled || editName}
@@ -579,9 +596,6 @@ export default function Tabulator({
   bucket: bucketName,
   tabulatorTables,
 }: TabulatorProps) {
-  // FIXME: Move to ConfigForm and AddTable
-  loadMode('yaml')
-
   const renameTabulatorTable = GQL.useMutation(RENAME_TABULATOR_TABLE_MUTATION)
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const { push: notify } = Notifications.use()
@@ -714,14 +728,17 @@ export default function Tabulator({
           />
         ))}
       </M.List>
+      <M.Divider />
       <M.List>
         <M.ListItem>
           {toAdd ? (
-            <AddTable
-              disabled={submitting}
-              onCancel={() => setToAdd(false)}
-              onSubmit={onSubmitNew}
-            />
+            <React.Suspense fallback={<AddTableSkeleton />}>
+              <AddTable
+                disabled={submitting}
+                onCancel={() => setToAdd(false)}
+                onSubmit={onSubmitNew}
+              />
+            </React.Suspense>
           ) : (
             <>
               <M.ListItemText primary={<div className={classes.textPlaceholder}></div>} />
