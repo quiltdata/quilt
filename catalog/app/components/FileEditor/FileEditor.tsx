@@ -23,12 +23,12 @@ interface EditorProps extends EditorState {
 
 function EditorSuspended({
   className,
-  editing,
+  saving,
   empty,
   error,
   handle,
   onChange,
-  saving,
+  editing,
 }: EditorProps) {
   const disabled = saving
   if (editing.brace !== '__quiltConfig') {
@@ -40,20 +40,20 @@ function EditorSuspended({
     return editing.brace === '__quiltConfig' ? (
       <QuiltConfigEditor
         className={className}
+        handle={handle}
         disabled={disabled}
         error={error}
-        handle={handle}
-        initialValue=""
         onChange={onChange}
+        initialValue=""
       />
     ) : (
       <TextEditor
+        autoFocus
         className={className}
         error={error}
-        type={editing}
         initialValue=""
         onChange={onChange}
-        autoFocus
+        type={editing}
       />
     )
   return data.case({
@@ -72,23 +72,23 @@ function EditorSuspended({
         return (
           <QuiltConfigEditor
             className={className}
+            handle={handle}
             disabled={disabled}
             error={error}
-            handle={handle}
-            initialValue={value}
             onChange={onChange}
+            initialValue={value}
           />
         )
       }
       return (
         <TextEditor
+          autoFocus
           className={className}
           disabled={disabled}
           error={error}
           onChange={onChange}
           type={editing}
           initialValue={value}
-          autoFocus
         />
       )
     },
