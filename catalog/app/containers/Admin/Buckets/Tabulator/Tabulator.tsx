@@ -5,7 +5,6 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import { useConfirm } from 'components/Dialog'
-import { loadMode } from 'components/FileEditor/loader'
 import TextEditorSkeleton from 'components/FileEditor/Skeleton'
 import Skel from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
@@ -19,10 +18,10 @@ import * as Form from '../../Form'
 
 import * as OnDirty from '../OnDirty'
 
-import SET_TABULATOR_TABLE_MUTATION from '../gql/TabulatorTablesSet.generated'
 import RENAME_TABULATOR_TABLE_MUTATION from '../gql/TabulatorTablesRename.generated'
+import SET_TABULATOR_TABLE_MUTATION from '../gql/TabulatorTablesSet.generated'
 
-const TextEditor = React.lazy(() => import('components/FileEditor/TextEditor'))
+const ConfigEditor = React.lazy(() => import('./ConfigEditor'))
 const validateTableModule = () => import('./validate')
 
 const validateTable: FF.FieldValidator<string> = async (...args) => {
@@ -176,8 +175,6 @@ interface ConfigFormProps {
 const configErrorsKeys = ['name']
 
 function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFormProps) {
-  loadMode('yaml')
-
   const classes = useConfigFormStyles()
   const { onChange: onFormSpy } = OnDirty.use()
   const submit = React.useCallback(
@@ -190,7 +187,7 @@ function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFor
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field
-            component={YamlEditorField}
+            component={ConfigEditor}
             errors={{
               required: 'Enter config content',
               invalid: 'YAML is invalid',
@@ -264,8 +261,6 @@ function TableMenu({ disabled, onRename, onDelete }: TableMenuProps) {
   )
 }
 
-const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }
-
 type FormValuesSetTable = Pick<Model.GQLTypes.TabulatorTable, 'name' | 'config'>
 
 type FormValuesRenameTable = Pick<Model.GQLTypes.TabulatorTable, 'name'> & {
@@ -273,32 +268,6 @@ type FormValuesRenameTable = Pick<Model.GQLTypes.TabulatorTable, 'name'> & {
 }
 
 type FormValuesDeleteTable = Pick<Model.GQLTypes.TabulatorTable, 'name'>
-
-type YamlEditorFieldProps = RF.FieldRenderProps<string> &
-  M.TextFieldProps & { className: string }
-
-function YamlEditorField({ errors, input, meta, ...props }: YamlEditorFieldProps) {
-  const error = meta.error || meta.submitError
-  const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
-
-  const [key, setKey] = React.useState(0)
-  const reset = React.useCallback(() => setKey((k) => k + 1), [])
-  React.useEffect(() => {
-    if (meta.pristine) reset()
-  }, [meta.pristine, reset])
-
-  return (
-    <TextEditor
-      {...props}
-      error={errorMessage ? new Error(errorMessage) : null}
-      initialValue={meta.initial}
-      key={key}
-      leadingChange={false}
-      onChange={input.onChange}
-      type={TEXT_EDITOR_TYPE}
-    />
-  )
-}
 
 const useEmptyStyles = M.makeStyles((t) => ({
   root: {
@@ -372,8 +341,6 @@ interface AddTableProps {
 }
 
 function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
-  loadMode('yaml')
-
   const classes = useAddTableStyles()
   const { onChange: onFormSpy } = OnDirty.use()
   return (
@@ -397,7 +364,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
           />
           <RF.Field
             className={classes.editor}
-            component={YamlEditorField}
+            component={ConfigEditor}
             errors={{
               required: 'Enter config content',
               invalid: 'YAML is invalid',
