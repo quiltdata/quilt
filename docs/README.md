@@ -98,7 +98,7 @@ administrator, Quilt helps streamline your data management workflows.
 ## How to Get Started
 
 To dive deeper into the capabilities of Quilt, start with our [Quick Start
-Guide](https://docs.quiltdata.com/Quickstart) or explore the [Installation
+Guide](Quickstart.md) or explore the [Installation
 Instructions](Installation.md) for setting up your environment.
 
 If you have any questions or need help, join our [Slack
