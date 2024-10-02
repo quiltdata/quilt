@@ -301,13 +301,35 @@ function Empty({ className, onClick }: EmptyProps) {
   )
 }
 
+const useAddTableSkeletonStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+  },
+  name: {
+    marginBottom: t.spacing(1),
+    height: t.spacing(3),
+  },
+  buttons: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  button: {
+    marginTop: t.spacing(2),
+    height: t.spacing(4),
+    width: t.spacing(15),
+  },
+}))
+
 function AddTableSkeleton() {
+  const classes = useAddTableSkeletonStyles()
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-      <Skel mb={2} height={24} />
+    <div className={classes.root}>
+      <Skel className={classes.name} />
       <TextEditorSkeleton height={18} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Skel mt={2} height={32} width={120} />
+      <div className={classes.buttons}>
+        <Skel className={classes.button} />
       </div>
     </div>
   )
@@ -412,7 +434,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
   )
 }
 
-const useTabulatorRowStyles = M.makeStyles((t) => ({
+const useTableStyles = M.makeStyles((t) => ({
   config: {
     flexGrow: 1,
   },
@@ -426,7 +448,7 @@ const useTabulatorRowStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TabulatorRowProps {
+interface TableProps {
   disabled?: boolean
   onDelete: (values: FormValuesDeleteTable) => Promise<FF.SubmissionErrors | undefined>
   onRename: (values: FormValuesRenameTable) => Promise<FF.SubmissionErrors | undefined>
@@ -434,14 +456,8 @@ interface TabulatorRowProps {
   tabulatorTable: Model.GQLTypes.TabulatorTable
 }
 
-function TabulatorRow({
-  disabled,
-  onDelete,
-  onRename,
-  onSubmit,
-  tabulatorTable,
-}: TabulatorRowProps) {
-  const classes = useTabulatorRowStyles()
+function Table({ disabled, onDelete, onRename, onSubmit, tabulatorTable }: TableProps) {
+  const classes = useTableStyles()
   const [open, setOpen] = React.useState<boolean | null>(null)
   const [editName, setEditName] = React.useState(false)
   const [deleteError, setDeleteError] = React.useState<Record<string, string>>({})
@@ -528,30 +544,26 @@ function parseResponseError(
   }
 }
 
-const useStyles = M.makeStyles((t) => ({
-  empty: {
-    paddingBottom: t.spacing(2),
-  },
+const useTablesStyles = M.makeStyles((t) => ({
   textPlaceholder: {
     height: t.spacing(3.5),
   },
 }))
 
-interface TabulatorProps {
-  bucket: string
+interface TablesProps {
+  adding: boolean
+  bucketName: string
+  onAdding: (v: boolean) => void
   tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
-/** Have to be suspended because of `<TextEditor />` and `loadMode(...)` */
-export default function Tabulator({
-  bucket: bucketName,
-  tabulatorTables,
-}: TabulatorProps) {
+function Tables({ adding, bucketName, onAdding, tabulatorTables }: TablesProps) {
+  const classes = useTablesStyles()
+
   const renameTabulatorTable = GQL.useMutation(RENAME_TABULATOR_TABLE_MUTATION)
   const setTabulatorTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
   const { push: notify } = Notifications.use()
 
-  const [toAdd, setToAdd] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
 
   const onDelete = React.useCallback(
@@ -653,22 +665,17 @@ export default function Tabulator({
     async (values: FormValuesSetTable): Promise<FF.SubmissionErrors | undefined> => {
       const error = await onSubmit(values)
       if (!error) {
-        setToAdd(false)
+        onAdding(false)
       }
       return error
     },
-    [onSubmit],
+    [onSubmit, onAdding],
   )
 
-  const classes = useStyles()
-
-  if (!tabulatorTables.length && !toAdd) {
-    return <Empty className={classes.empty} onClick={() => setToAdd(true)} />
-  }
   return (
     <M.List>
       {tabulatorTables.map((tabulatorTable) => (
-        <TabulatorRow
+        <Table
           key={tabulatorTable.name}
           disabled={submitting}
           onDelete={onDelete}
@@ -677,12 +684,12 @@ export default function Tabulator({
           tabulatorTable={tabulatorTable}
         />
       ))}
-      {toAdd ? (
+      {adding ? (
         <M.ListItem>
           <React.Suspense fallback={<AddTableSkeleton />}>
             <AddTable
               disabled={submitting}
-              onCancel={() => setToAdd(false)}
+              onCancel={() => onAdding(false)}
               onSubmit={onSubmitNew}
             />
           </React.Suspense>
@@ -691,12 +698,45 @@ export default function Tabulator({
         <M.ListItem>
           <M.ListItemText primary={<div className={classes.textPlaceholder}></div>} />
           <M.ListItemSecondaryAction>
-            <M.Button disabled={submitting} onClick={() => setToAdd(true)} type="button">
+            <M.Button disabled={submitting} onClick={() => onAdding(true)} type="button">
               Add table
             </M.Button>
           </M.ListItemSecondaryAction>
         </M.ListItem>
       )}
     </M.List>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
+  empty: {
+    paddingBottom: t.spacing(2),
+  },
+}))
+
+interface TabulatorProps {
+  bucket: string
+  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
+}
+
+/** Have to be suspended because of `<TextEditor />` and `loadMode(...)` */
+export default function Tabulator({
+  bucket: bucketName,
+  tabulatorTables,
+}: TabulatorProps) {
+  const classes = useStyles()
+  const [adding, setAdding] = React.useState(false)
+
+  if (!tabulatorTables.length && !adding) {
+    return <Empty className={classes.empty} onClick={() => setAdding(true)} />
+  }
+
+  return (
+    <Tables
+      adding={adding}
+      bucketName={bucketName}
+      onAdding={setAdding}
+      tabulatorTables={tabulatorTables}
+    />
   )
 }
