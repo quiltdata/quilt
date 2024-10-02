@@ -17,23 +17,23 @@ type ConfigEditorFieldProps = RF.FieldRenderProps<string> &
   M.TextFieldProps & { className: string }
 
 export function ConfigEditor({ errors, input, meta, ...props }: ConfigEditorFieldProps) {
-  loadMode('yaml')
+  loadMode(TEXT_EDITOR_TYPE.brace)
 
   const error = meta.error || meta.submitError
   const errorMessage = meta.submitFailed && error ? errors[error] || error : undefined
 
   const [key, setKey] = React.useState(0)
-  const reset = React.useCallback(() => setKey((k) => k + 1), [])
   React.useEffect(() => {
-    if (!meta.modified) reset()
-  }, [meta.modified, reset])
+    // Reset the editor state when the state is reset outside
+    if (!meta.modified) setKey((k) => k + 1)
+  }, [meta.modified])
 
   return (
     <TextEditor
       {...props}
+      key={key}
       error={errorMessage ? new Error(errorMessage) : null}
       initialValue={meta.initial}
-      key={key}
       leadingChange={false}
       onChange={input.onChange}
       type={TEXT_EDITOR_TYPE}

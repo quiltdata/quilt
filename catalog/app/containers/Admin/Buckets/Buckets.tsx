@@ -1620,16 +1620,15 @@ function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
     [bucket, notify, submit],
   )
 
-  const scrollingRef = React.useRef<HTMLDivElement>(null)
-
   const guardNavigation = () =>
-    'Some forms are opened and ready for modification. Leave the page anyway?'
+    'You have unsaved changes. Discard changes and leave the page?'
   const { dirty, onChange } = OnDirty.use()
-
   const onTabulatorDirty = React.useCallback(
     (d) => onChange({ modified: { tabulator: true }, dirty: d }),
     [onChange],
   )
+
+  const scrollingRef = React.useRef<HTMLDivElement>(null)
   return (
     <>
       <RRDom.Prompt when={dirty} message={guardNavigation} />

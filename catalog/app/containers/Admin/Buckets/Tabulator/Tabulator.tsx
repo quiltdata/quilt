@@ -30,39 +30,6 @@ const ConfigEditor = React.lazy(() =>
 const validateTable: FF.FieldValidator<string> = (...args) =>
   ConfigEditorModule().then((m) => m.validateTable(...args))
 
-function anyIn(obj: FF.ValidationErrors, keys: string[]) {
-  if (!obj) return false
-  const entries = Object.entries(obj)
-  if (!entries.length) return false
-  return entries.find(([key, value]) => keys.includes(key) && !!value)
-}
-
-interface InlineErrorProps {
-  keys: string[]
-  errors?: Record<string, string>
-}
-
-function InlineError({ keys, errors: errorsDict = {} }: InlineErrorProps) {
-  const state = RF.useFormState()
-  const error = React.useMemo(
-    () =>
-      state.error ||
-      state.submitError ||
-      anyIn(state.errors, keys) ||
-      anyIn(state.submitErrors, keys),
-    [keys, state],
-  )
-  return (
-    <Form.FormError
-      /* @ts-expect-error */
-      component="span"
-      errors={errorsDict}
-      error={error}
-      margin="none"
-    />
-  )
-}
-
 const useRenameStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -82,7 +49,12 @@ interface NameFormProps {
   tabulatorTable: Model.GQLTypes.TabulatorTable
 }
 
-const nameErrorsKeys = ['tableName']
+const tableToRenameFormData = ({
+  name,
+}: Model.GQLTypes.TabulatorTable): FormValuesRenameTable => ({
+  tableName: name,
+  newTableName: name,
+})
 
 function NameForm({
   className,
@@ -93,16 +65,21 @@ function NameForm({
 }: NameFormProps) {
   const classes = useRenameStyles()
   const { onChange: onFormSpy } = OnDirty.use()
-  const initialValues: FormValuesRenameTable = React.useMemo(
-    () => ({
-      tableName: tabulatorTable.name,
-      newTableName: tabulatorTable.name,
-    }),
+  const initialValues = React.useMemo(
+    () => tableToRenameFormData(tabulatorTable),
     [tabulatorTable],
   )
   return (
     <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
-      {({ handleSubmit, pristine, submitFailed }) => (
+      {({
+        error,
+        errors,
+        handleSubmit,
+        pristine,
+        submitError,
+        submitErrors,
+        submitFailed,
+      }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
@@ -117,7 +94,19 @@ function NameForm({
             errors={{
               required: 'Enter a table name',
             }}
-            helperText={submitFailed && <InlineError keys={nameErrorsKeys} />}
+            helperText={
+              submitFailed && (
+                <Form.FormError
+                  /* @ts-expect-error */
+                  component="span"
+                  errors={{}}
+                  error={
+                    error || submitError || errors?.tableName || submitErrors?.tableName
+                  }
+                  margin="none"
+                />
+              )
+            }
             disabled={disabled}
           />
           <M.Button
@@ -178,21 +167,24 @@ interface ConfigFormProps {
   tabulatorTable: Model.GQLTypes.TabulatorTable
 }
 
-const configErrorsKeys = ['tableName']
+const tableToSetFormData = ({
+  name,
+  config,
+}: Model.GQLTypes.TabulatorTable): FormValuesSetTable => ({
+  tableName: name,
+  config,
+})
 
 function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFormProps) {
   const classes = useConfigFormStyles()
   const { onChange: onFormSpy } = OnDirty.use()
-  const initialValues: FormValuesSetTable = React.useMemo(
-    () => ({
-      tableName: tabulatorTable.name,
-      config: tabulatorTable.config,
-    }),
+  const initialValues = React.useMemo(
+    () => tableToSetFormData(tabulatorTable),
     [tabulatorTable],
   )
   return (
     <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
-      {({ handleSubmit, submitFailed, form, pristine }) => (
+      {({ error, form, handleSubmit, pristine, submitError, submitFailed }) => (
         <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
           <OnDirty.Spy onChange={onFormSpy} />
           <RF.Field component="input" type="hidden" name="tableName" />
@@ -211,7 +203,9 @@ function ConfigForm({ className, disabled, onSubmit, tabulatorTable }: ConfigFor
             autoFocus
           />
           <div className={classes.bottom}>
-            {submitFailed && <InlineError keys={configErrorsKeys} />}
+            {submitFailed && (
+              <Form.FormError errors={{}} error={error || submitError} margin="none" />
+            )}
             <M.Button
               className={classes.button}
               color="primary"
