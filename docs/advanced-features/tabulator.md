@@ -52,12 +52,19 @@ parser:
 5. The parser is configured to read the data as CSV with tab-delimited fields.
    Other supported formats include `parquet`.
 
-### Warnings
+### Caveats
 
-1. All files in the package that match the logical key must have the same
-   schema as defined in the configuration.
-2. Querying very large datasets can be expensive (~dollars per terabyte).
-   Be sure to set up appropriate cost controls and monitoring.
+1. **Schema Consistency**: All files in the package that match the logical key
+   must have the same schema as defined in the configuration.
+2. **Memory Usage**: Tabulator currently reads each file into memory, which may
+   cause issues with very large files. Additionally, Athena has a 16MB limit per
+   row.
+3. **Cost Management**: Querying very large datasets can be expensive
+   (approximately dollars per terabyte). Be sure to set up appropriate cost
+   controls and monitoring.
+4. **Access Restrictions**: Due to the way permissions are configured, Tabulator
+   cannot be accessed from the AWS Console or views. You must use the Quilt
+   Catalog to directly query the tables.
 
 ## Usage
 
