@@ -103,7 +103,7 @@ ui:
   
 ```yaml
 ui:
-  packages:
+  package_description:
     # match all packages
     .*:
       # show the message
