@@ -36,6 +36,9 @@ const useRenameStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     alignItems: 'center',
   },
+  name: {
+    margin: '4px 0 -1px', // to make a visual substitute for the ListItemText
+  },
   button: {
     marginLeft: t.spacing(2),
   },
@@ -68,6 +71,7 @@ function NameForm({ className, disabled, onCancel, onSubmit, table }: NameFormPr
           <RF.Field component="input" type="hidden" name="tableName" />
           <RF.Field
             autoFocus
+            className={classes.name}
             component={Form.Field}
             name="newTableName"
             size="small"
@@ -453,7 +457,6 @@ const useTableStyles = M.makeStyles((t) => ({
   name: {
     flexGrow: 1,
     marginRight: t.spacing(2),
-    marginTop: '5px', // to make a visual substitute for the ListItemText
   },
   configPlaceholder: {
     minHeight: t.spacing(18),
