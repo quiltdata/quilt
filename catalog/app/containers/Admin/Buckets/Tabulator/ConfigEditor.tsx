@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 import * as FF from 'final-form'
 import * as RF from 'react-final-form'
@@ -47,7 +48,8 @@ export const validateTable: FF.FieldValidator<string> = (inputStr?: string) => {
     const validator = makeSchemaValidator(tabulatorTableSchema)
     const errors = validator(data)
     if (errors.length) {
-      return new JsonInvalidAgainstSchema({ errors }).message
+      if (errors[0] instanceof Error) return errors[0].message
+      return new JsonInvalidAgainstSchema({ errors: errors as ErrorObject[] }).message
     }
     return undefined
   } catch (error) {

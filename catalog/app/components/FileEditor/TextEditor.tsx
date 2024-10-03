@@ -31,6 +31,7 @@ const useEditorTextStyles = M.makeStyles((t) => ({
   },
   helperText: {
     marginTop: t.spacing(0.5),
+    whiteSpace: 'pre-wrap', // TODO: use JsonValidationErrors
   },
 }))
 
