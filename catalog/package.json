@@ -55,7 +55,7 @@
     "@material-ui/data-grid": "^4.0.0-alpha.27",
     "@material-ui/lab": "^4.0.0-alpha.58",
     "@rehooks/component-size": "^1.0.3",
-    "@sentry/react": "^7.118.0",
+    "@sentry/react": "^8.33.1",
     "@urql/devtools": "^2.0.3",
     "@urql/exchange-graphcache": "^4.4.3",
     "ace-builds": "^1.23.4",
