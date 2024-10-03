@@ -83,22 +83,6 @@ default_registry_version: 1
 
 # AWS Region
 region:
-
-# Buckets
-analyticsBucket:
-serviceBucket:
-
-# Feature Flags
-alwaysRequiresAuth:
-chunkedChecksums:
-noDownload:
-qurator:
-
-# Configuration Flags
-mode:
-passwordAuth:
-ssoAuth:
-
 """.format(BASE_PATH.as_uri() + '/packages')
 
 

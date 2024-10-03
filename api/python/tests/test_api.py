@@ -33,18 +33,6 @@ class TestAPI(QuiltTestCase):
         content['default_registry_version'] = 1
         content['registryUrl'] = None
         content['region'] = None
-        # Buckets
-        content['analyticsBucket'] = None
-        content['serviceBucket'] = None
-        # Feature Flags
-        content['alwaysRequiresAuth'] = None
-        content['chunkedChecksums'] = None
-        content['noDownload'] = None
-        content['qurator'] = None
-        # Configuration Flags
-        content['mode'] = None
-        content['passwordAuth'] = None
-        content['ssoAuth'] = None
 
         assert config == content
 
