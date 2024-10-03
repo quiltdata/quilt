@@ -37,7 +37,6 @@
       },
       "required": ["type", "package_name", "logical_key"]
     },
-    "parser": {},
     "schema": {
       "type": "object",
       "properties": {
@@ -90,5 +89,6 @@
         }
       ]
     }
-  }
+  },
+  "required": ["schema", "source", "parser"]
 }
