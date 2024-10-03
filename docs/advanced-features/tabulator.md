@@ -35,7 +35,7 @@ schema:
 source:
   type: quilt
   package_name: "^ccle/"
-  logical_key: "quant\\.genes\\.sf$"
+  logical_key: "salmon/(?P<sample_id>[^/]+)/quant*\\.genes\\.sf$"
 parser:
   format: csv
   delimiter: "\t"
@@ -43,15 +43,21 @@ parser:
 
 1. The `ccle-tsv` table is defined with a schema containing five columns:
    `Name`, `Length`, `EffectiveLength`, `TPM`, and `NumReads`.
-2. The table is sourced from Quilt packages whose names match the regular
+2. Currently, the only supported source type is `quilt`.
+3. The table is sourced from Quilt packages whose names match the regular
    expression `ccle/.*`, using those files whose logical keys match the
-   regular expression `quant.genes.sf$`. Currently, the only supported source
-   type is `quilt`.
-3. The parser is configured to read the data as CSV with tab-delimited fields.
+   regular expression `salmon/([^/]+)/quant.genes.sf$`.
+4. The named group `sample_id` is extracted from the logical key and used as an
+   additional column of type `Utf8` in the table.
+5. The parser is configured to read the data as CSV with tab-delimited fields.
    Other supported formats include `parquet`.
 
-> Note: All files in the package that match the logical key must have the same
-> schema as defined in the configuration.
+### Warnings
+
+1. All files in the package that match the logical key must have the same
+   schema as defined in the configuration.
+2. Querying very large datasets can be expensive (~dollars per terabyte).
+   Be sure to set up appropriate cost controls and monitoring.
 
 ## Usage
 
