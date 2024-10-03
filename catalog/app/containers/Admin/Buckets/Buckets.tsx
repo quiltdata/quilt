@@ -1420,7 +1420,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
     try {
       // TODO: use graphql mutation
       await req({
-        endpoint: `/ admin / reindex / ${bucket}`,
+        endpoint: `/admin/reindex/${bucket}`,
         method: 'POST',
         body: { repair: repair || undefined },
       })
