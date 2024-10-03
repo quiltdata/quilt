@@ -676,7 +676,7 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
   )
 
   return (
-    <M.List>
+    <M.List disablePadding>
       {tables.map((table) => (
         <Table
           key={table.name}
