@@ -8,8 +8,7 @@ import * as LLM from './LLM'
 
 const MODULE = 'Bedrock'
 
-const MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0'
-// const MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+const MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
 
 const mapContent = (contentBlocks: BedrockRuntime.ContentBlocks | undefined) =>
   Eff.pipe(
