@@ -169,6 +169,23 @@ function useSearchContextModel(): MaybeEitherSearchContext {
   )
 }
 
+const MAX_CONTENT_LENGTH = 10_000
+
+function truncateIndexedContent(hit: FirstPageHits[number]) {
+  switch (hit.__typename) {
+    case 'SearchHitObject':
+      return (hit.indexedContent?.length ?? 0) > MAX_CONTENT_LENGTH
+        ? {
+            ...hit,
+            indexedContent: hit.indexedContent?.slice(0, MAX_CONTENT_LENGTH),
+            indexedContentTruncated: true,
+          }
+        : hit
+    default:
+      return hit
+  }
+}
+
 function useSearchContext() {
   const ctxO = useSearchContextModel()
 
@@ -219,7 +236,11 @@ function useSearchContext() {
             'page',
             { number: 1 },
             ...ctx.firstPage.map((hit, index) =>
-              XML.tag('search-result', { index }, JSON.stringify(hit, null, 2)),
+              XML.tag(
+                'search-result',
+                { index },
+                JSON.stringify(truncateIndexedContent(hit), null, 2),
+              ),
             ),
           )
         : 'Search request returned no results',
