@@ -15,7 +15,6 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   heading: {
-    alignItems: 'center',
     display: 'flex',
     flexGrow: 1,
   },

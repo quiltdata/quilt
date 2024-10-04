@@ -311,13 +311,12 @@ const useStyles = M.makeStyles((t) => ({
     flexWrap: 'wrap',
   },
   editTitle: {
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
     flexGrow: 1,
   },
   editButton: {
-    marginLeft: 'auto',
-    marginRight: '8px',
+    margin: t.spacing(-1, 1, -1, 'auto'),
   },
   preview: {
     width: '100%',
