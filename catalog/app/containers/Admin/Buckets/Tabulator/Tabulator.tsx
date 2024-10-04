@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as FF from 'final-form'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
@@ -564,8 +565,13 @@ interface TablesProps {
   tables: Model.GQLTypes.BucketConfig['tabulatorTables']
 }
 
-function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
+function Tables({ adding, bucketName, onAdding, tables: unsortedTables }: TablesProps) {
   const classes = useTablesStyles()
+
+  const tables = React.useMemo(
+    () => R.sortBy(R.prop('name'), unsortedTables),
+    [unsortedTables],
+  )
 
   const renameTable = GQL.useMutation(RENAME_TABULATOR_TABLE_MUTATION)
   const setTable = GQL.useMutation(SET_TABULATOR_TABLE_MUTATION)
