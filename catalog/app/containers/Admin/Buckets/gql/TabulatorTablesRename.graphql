@@ -1,0 +1,27 @@
+mutation ($bucketName: String!, $tableName: String!, $newTableName: String!) {
+  admin {
+    bucketRenameTabulatorTable(
+      bucketName: $bucketName
+      tableName: $tableName
+      newTableName: $newTableName
+    ) {
+      __typename
+      ... on BucketConfig {
+        name
+        tabulatorTables {
+          name
+          config
+        }
+      }
+      ... on InvalidInput {
+        errors {
+          path
+          message
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}

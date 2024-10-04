@@ -142,6 +142,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           AdminMutations: () => null,
           UserAdminMutations: () => null,
           MutateUserAdminMutations: () => null,
+          TabulatorTable: (t) => t.name as string,
         },
         updates: {
           Mutation: {

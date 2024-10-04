@@ -76,7 +76,8 @@ export function Checkbox({
 
 const useFormErrorStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(3),
+    marginTop: ({ margin }: { margin: 'normal' | 'none' }) =>
+      t.spacing(margin === 'normal' ? 3 : 0),
 
     '& a': {
       textDecoration: 'underline',
@@ -87,10 +88,11 @@ const useFormErrorStyles = M.makeStyles((t) => ({
 interface FormErrorProps extends M.TypographyProps {
   error?: string
   errors: ErrorMessageMap
+  margin?: 'normal' | 'none'
 }
 
-export function FormError({ error, errors, ...rest }: FormErrorProps) {
-  const classes = useFormErrorStyles()
+export function FormError({ error, errors, margin = 'normal', ...rest }: FormErrorProps) {
+  const classes = useFormErrorStyles({ margin })
   if (!error) return null
   return (
     <M.Typography color="error" classes={classes} {...rest}>
