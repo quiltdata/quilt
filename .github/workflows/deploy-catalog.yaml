@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - admin-bucket-page-long-query-config
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
