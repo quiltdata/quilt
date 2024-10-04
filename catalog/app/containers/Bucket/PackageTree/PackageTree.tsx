@@ -339,6 +339,21 @@ function DirDisplay({
                   {
                     Ok: ({ ui: { actions } }) => (
                       <>
+                        <M.Badge
+                          badgeContent={Object.values(selection).reduce(
+                            (memo, ids) => memo + ids.length,
+                            0,
+                          )}
+                          classes={{}}
+                          className={''}
+                          color="primary"
+                          max={999}
+                          showZero
+                        >
+                          <M.Button onClick={() => {}} size="small">
+                            Selected items
+                          </M.Button>
+                        </M.Badge>
                         {actions.revisePackage && (
                           <M.Button
                             className={classes.button}
@@ -835,6 +850,7 @@ function PackageTree({
     (ids) => setSelection(Selection.merge(ids, bucket, path)),
     [bucket, path],
   )
+  // TODO: guard for leaving this exact package
 
   return (
     <FileView.Root>
