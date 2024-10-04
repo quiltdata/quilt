@@ -83,6 +83,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       onCancel,
       onChange: setValue,
       onEdit: setEditing,
+      // TODO: use thin module from Preview/text
       onPreview: editing?.brace === 'markdown' ? setPreview : null,
       onSave,
       preview,
