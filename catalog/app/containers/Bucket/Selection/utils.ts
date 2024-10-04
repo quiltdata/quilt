@@ -49,7 +49,12 @@ const mergeWithFiltered =
     return R.equals(newIds, allIds) ? allIds : newIds // avoids cyclic update
   }
 
-export function merge(ids: string[], bucket: string, path: string, filter?: string) {
+export function merge(
+  ids: string[],
+  bucket: string,
+  path: string,
+  filter?: string,
+): React.SetStateAction<PrefixedKeysMap> {
   const prefixUrl = `s3://${bucket}/${path}`
   const lens = R.lensProp<Record<string, string[]>>(prefixUrl)
   return filter ? R.over(lens, mergeWithFiltered(filter, ids)) : R.set(lens, ids)

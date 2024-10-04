@@ -39,6 +39,7 @@ import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import QuratorSection from '../Qurator/Section'
 import Section from '../Section'
+import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
 import WithPackagesSupport from '../WithPackagesSupport'
@@ -46,6 +47,7 @@ import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
+
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -115,6 +117,8 @@ interface DirDisplayProps {
   path: string
   crumbs: BreadCrumbs.Crumb[]
   size?: number
+  selection: string[]
+  onSelection: (ids: string[]) => void
 }
 
 function DirDisplay({
@@ -125,6 +129,8 @@ function DirDisplay({
   path,
   crumbs,
   size,
+  selection,
+  onSelection,
 }: DirDisplayProps) {
   const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
@@ -398,7 +404,14 @@ function DirDisplay({
                         />
                       )}
                       <M.Box mt={2}>
-                        {blocks.browser && <Listing.Listing items={items} key={hash} />}
+                        {blocks.browser && (
+                          <Listing.Listing
+                            onSelectionChange={onSelection}
+                            selection={selection}
+                            items={items}
+                            key={hash}
+                          />
+                        )}
                         <Summary
                           path={path}
                           files={summaryHandles}
@@ -815,6 +828,14 @@ function PackageTree({
     tailSeparator: path.endsWith('/'),
   })
 
+  const [selection, setSelection] = React.useState<Record<string, string[]>>(
+    Selection.EMPTY_MAP,
+  )
+  const handleSelection = React.useCallback(
+    (ids) => setSelection(Selection.merge(ids, bucket, path)),
+    [bucket, path],
+  )
+
   return (
     <FileView.Root>
       {/* TODO: bring back linked data after re-implementing it using graphql
@@ -855,6 +876,11 @@ function PackageTree({
           </Lab.Alert>
         </M.Box>
       )}
+      <Selection.Dashboard
+        onSelection={setSelection}
+        onDone={() => {}}
+        selection={selection}
+      />
       <M.Typography variant="body1">
         <PackageLink {...{ bucket, name }} />
         {' @ '}
@@ -872,6 +898,8 @@ function PackageTree({
                 hashOrTag,
                 crumbs,
                 size,
+                selection: Selection.getDirectorySelection(selection, bucket, path),
+                onSelection: handleSelection,
               }}
             />
           ) : (
