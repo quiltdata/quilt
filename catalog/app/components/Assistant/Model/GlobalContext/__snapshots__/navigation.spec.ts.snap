@@ -21,7 +21,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
       "additionalProperties": false,
       "properties": {
         "type": {
-          "const": "Boolean",
+          "enum": [
+            "Boolean",
+          ],
         },
         "value": {
           "$ref": "#/$defs/BooleanPredicateState",
@@ -55,7 +57,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
       "additionalProperties": false,
       "properties": {
         "type": {
-          "const": "Datetime",
+          "enum": [
+            "Datetime",
+          ],
         },
         "value": {
           "$ref": "#/$defs/DatetimePredicateState",
@@ -85,7 +89,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
       "additionalProperties": false,
       "properties": {
         "type": {
-          "const": "KeywordEnum",
+          "enum": [
+            "KeywordEnum",
+          ],
         },
         "value": {
           "$ref": "#/$defs/KeywordEnumPredicateState",
@@ -112,7 +118,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
       "additionalProperties": false,
       "properties": {
         "type": {
-          "const": "KeywordWildcard",
+          "enum": [
+            "KeywordWildcard",
+          ],
         },
         "value": {
           "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -142,7 +150,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
       "additionalProperties": false,
       "properties": {
         "type": {
-          "const": "Number",
+          "enum": [
+            "Number",
+          ],
         },
         "value": {
           "$ref": "#/$defs/NumberPredicateState",
@@ -169,7 +179,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
       "additionalProperties": false,
       "properties": {
         "type": {
-          "const": "Text",
+          "enum": [
+            "Text",
+          ],
         },
         "value": {
           "$ref": "#/$defs/TextPredicateState",
@@ -193,11 +205,13 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "description": "Home page",
           "properties": {
             "name": {
-              "const": "home",
+              "enum": [
+                "home",
+              ],
             },
             "params": {
               "$id": "/schemas/{}",
-              "oneOf": [
+              "anyOf": [
                 {
                   "type": "object",
                 },
@@ -218,11 +232,13 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "description": "Installation page",
           "properties": {
             "name": {
-              "const": "install",
+              "enum": [
+                "install",
+              ],
             },
             "params": {
               "$id": "/schemas/{}",
-              "oneOf": [
+              "anyOf": [
                 {
                   "type": "object",
                 },
@@ -243,7 +259,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "description": "Search page",
           "properties": {
             "name": {
-              "const": "search",
+              "enum": [
+                "search",
+              ],
             },
             "params": {
               "additionalProperties": false,
@@ -258,21 +276,27 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                 },
                 "order": {
                   "$comment": "/schemas/enums",
-                  "description": "order of search results",
-                  "oneOf": [
+                  "anyOf": [
                     {
-                      "const": "BEST_MATCH",
+                      "enum": [
+                        "BEST_MATCH",
+                      ],
                       "title": "BEST_MATCH",
                     },
                     {
-                      "const": "NEWEST",
+                      "enum": [
+                        "NEWEST",
+                      ],
                       "title": "NEWEST",
                     },
                     {
-                      "const": "OLDEST",
+                      "enum": [
+                        "OLDEST",
+                      ],
                       "title": "OLDEST",
                     },
                   ],
+                  "description": "order of search results",
                   "title": "search order",
                 },
                 "params": {
@@ -287,7 +311,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "modified",
+                                    "enum": [
+                                      "modified",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/DatetimePredicateState",
@@ -304,7 +330,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "size",
+                                    "enum": [
+                                      "size",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/NumberPredicateState",
@@ -321,7 +349,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "name",
+                                    "enum": [
+                                      "name",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -338,7 +368,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "hash",
+                                    "enum": [
+                                      "hash",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -355,7 +387,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "entries",
+                                    "enum": [
+                                      "entries",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/NumberPredicateState",
@@ -372,7 +406,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "comment",
+                                    "enum": [
+                                      "comment",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/TextPredicateState",
@@ -389,7 +425,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "workflow",
+                                    "enum": [
+                                      "workflow",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordEnumPredicateState",
@@ -408,7 +446,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                           "type": "array",
                         },
                         "resultType": {
-                          "const": "p",
+                          "enum": [
+                            "p",
+                          ],
                           "title": "result type: Quilt Package",
                         },
                         "userMetaFilters": {
@@ -468,7 +508,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "modified",
+                                    "enum": [
+                                      "modified",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/DatetimePredicateState",
@@ -485,7 +527,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "size",
+                                    "enum": [
+                                      "size",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/NumberPredicateState",
@@ -502,7 +546,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "ext",
+                                    "enum": [
+                                      "ext",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordEnumPredicateState",
@@ -519,7 +565,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "key",
+                                    "enum": [
+                                      "key",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -536,7 +584,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "content",
+                                    "enum": [
+                                      "content",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/TextPredicateState",
@@ -553,7 +603,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                 "additionalProperties": false,
                                 "properties": {
                                   "key": {
-                                    "const": "deleted",
+                                    "enum": [
+                                      "deleted",
+                                    ],
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/BooleanPredicateState",
@@ -572,7 +624,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                           "type": "array",
                         },
                         "resultType": {
-                          "const": "o",
+                          "enum": [
+                            "o",
+                          ],
                           "title": "result type: S3 Object",
                         },
                       },
@@ -608,11 +662,13 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "description": "TBD",
           "properties": {
             "name": {
-              "const": "activate",
+              "enum": [
+                "activate",
+              ],
             },
             "params": {
               "$id": "/schemas/{}",
-              "oneOf": [
+              "anyOf": [
                 {
                   "type": "object",
                 },
@@ -633,7 +689,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "description": "S3 Object (aka File) page",
           "properties": {
             "name": {
-              "const": "bucket.object",
+              "enum": [
+                "bucket.object",
+              ],
             },
             "params": {
               "additionalProperties": false,
@@ -675,7 +733,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "description": "S3 Prefix (aka Directory) page",
           "properties": {
             "name": {
-              "const": "bucket.prefix",
+              "enum": [
+                "bucket.prefix",
+              ],
             },
             "params": {
               "additionalProperties": false,
@@ -707,7 +767,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "description": "Bucket overview page",
           "properties": {
             "name": {
-              "const": "bucket.overview",
+              "enum": [
+                "bucket.overview",
+              ],
             },
             "params": {
               "additionalProperties": false,
