@@ -4600,6 +4600,15 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'indexedContent',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },

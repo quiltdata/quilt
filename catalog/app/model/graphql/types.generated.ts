@@ -997,6 +997,7 @@ export interface SearchHitObject {
   readonly key: Scalars['String']
   readonly version: Scalars['String']
   readonly deleted: Scalars['Boolean']
+  readonly indexedContent: Maybe<Scalars['String']>
 }
 
 export interface SearchHitPackage {

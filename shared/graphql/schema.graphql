@@ -467,6 +467,7 @@ type SearchHitObject {
   deleted: Boolean!
   # meta: JsonRecord! # String?
   # tags
+  indexedContent: String
 }
 
 # TODO: reuse package types?

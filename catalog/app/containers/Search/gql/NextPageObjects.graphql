@@ -13,6 +13,7 @@ query ($after: String!) {
         key
         version
         deleted
+        indexedContent
       }
     }
     ... on InvalidInput {
