@@ -10,6 +10,7 @@ import Skel from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
+import * as Dialogs from 'utils/GlobalDialogs'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as validators from 'utils/validators'
@@ -31,24 +32,14 @@ const validateTable: FF.FieldValidator<string> = (...args) =>
   ConfigEditorModule().then((m) => m.validateTable(...args))
 
 const useRenameStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    flexGrow: 1,
-    alignItems: 'center',
-  },
-  name: {
-    margin: '4px 0 -1px', // to make a visual substitute for the ListItemText
-  },
   button: {
     marginLeft: t.spacing(2),
   },
 }))
 
 interface NameFormProps {
-  className: string
-  disabled?: boolean
-  onCancel: () => void
-  onSubmit: (values: FormValuesRenameTable) => void
+  close: () => void
+  submit: (values: FormValuesRenameTable) => Promise<FF.SubmissionErrors | undefined>
   table: Model.GQLTypes.TabulatorTable
 }
 
@@ -59,69 +50,76 @@ const tableToRenameFormData = ({
   newTableName: name,
 })
 
-function NameForm({ className, disabled, onCancel, onSubmit, table }: NameFormProps) {
+function NameForm({ close, submit, table }: NameFormProps) {
   const classes = useRenameStyles()
-  const { onChange: onFormSpy } = OnDirty.use()
   const initialValues = React.useMemo(() => tableToRenameFormData(table), [table])
+  const onSubmit = React.useCallback(
+    async (values: FormValuesRenameTable) => {
+      const res = await submit(values)
+      if (!res) close()
+      return res
+    },
+    [close, submit],
+  )
   return (
-    <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
-      {({ error, handleSubmit, pristine, submitError, submitFailed }) => (
-        <form onSubmit={handleSubmit} className={cx(classes.root, className)}>
-          <OnDirty.Spy onChange={onFormSpy} />
-          <RF.Field component="input" type="hidden" name="tableName" />
-          <RF.Field
-            autoFocus
-            className={classes.name}
-            component={Form.Field}
-            name="newTableName"
-            size="small"
-            onClick={(event: Event) => event.stopPropagation()}
-            fullWidth
-            initialValue={table.name}
-            errors={{
-              required: 'Enter a table name',
-            }}
-            helperText={
-              submitFailed && (
-                <Form.FormError
-                  /* @ts-expect-error */
-                  component="span"
-                  errors={{}}
-                  error={error || submitError}
-                  margin="none"
-                />
-              )
-            }
-            disabled={disabled}
-          />
-          <M.Button
-            className={classes.button}
-            size="small"
-            onClick={(event) => {
-              event.stopPropagation()
-              onCancel()
-            }}
-            color="primary"
-            disabled={disabled}
-          >
-            Cancel
-          </M.Button>
-          <M.Button
-            className={classes.button}
-            size="small"
-            onClick={(event) => {
-              event.stopPropagation()
-              handleSubmit()
-            }}
-            variant="contained"
-            color="primary"
-            disabled={disabled || pristine}
-          >
-            Rename
-          </M.Button>
-        </form>
-      )}
-    </RF.Form>
+    <>
+      <M.DialogTitle>Edit name of the "{table.name}" table</M.DialogTitle>
+      <RF.Form initialValues={initialValues} onSubmit={onSubmit}>
+        {({
+          handleSubmit,
+          hasSubmitErrors,
+          hasValidationErrors,
+          modifiedSinceLastSubmit,
+          pristine,
+          submitFailed,
+          submitting,
+        }) => (
+          <form onSubmit={handleSubmit}>
+            <M.DialogContent>
+              <RF.Field component="input" type="hidden" name="tableName" />
+              <RF.Field
+                autoFocus
+                component={Form.Field}
+                name="newTableName"
+                size="small"
+                fullWidth
+                initialValue={table.name}
+                errors={{
+                  required: 'Enter a table name',
+                }}
+              />
+              <Form.FormErrorAuto>{{}}</Form.FormErrorAuto>
+            </M.DialogContent>
+            <M.DialogActions>
+              <M.Button
+                className={classes.button}
+                size="small"
+                onClick={close}
+                color="primary"
+              >
+                Cancel
+              </M.Button>
+              <M.Button
+                className={classes.button}
+                size="small"
+                onClick={handleSubmit}
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={
+                  pristine ||
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
+              >
+                Rename
+              </M.Button>
+            </M.DialogActions>
+          </form>
+        )}
+      </RF.Form>
+    </>
   )
 }
 
@@ -474,7 +472,10 @@ interface TableProps {
 function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
   const classes = useTableStyles()
   const [open, setOpen] = React.useState<boolean | null>(null)
-  const [editName, setEditName] = React.useState(false)
+  const openDialog = Dialogs.use()
+  const editName = React.useCallback(() => {
+    openDialog(({ close }) => <NameForm {...{ submit: onRename, close, table }} />)
+  }, [onRename, openDialog, table])
   const confirm = useConfirm({
     title: `You are about to delete "${table.name}" table`,
     submitTitle: 'Delete',
@@ -498,32 +499,18 @@ function Table({ disabled, onDelete, onRename, onSubmit, table }: TableProps) {
         <M.ListItemIcon>
           <M.Icon>{open ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</M.Icon>
         </M.ListItemIcon>
-        {editName ? (
-          <NameForm
-            className={classes.name}
-            onSubmit={onRename}
-            onCancel={() => setEditName(false)}
-            disabled={disabled}
-            table={table}
-          />
-        ) : (
-          <M.ListItemText primary={table.name} />
-        )}
+        <M.ListItemText primary={table.name} />
         <M.ListItemSecondaryAction>
-          <TableMenu
-            disabled={disabled}
-            onDelete={confirm.open}
-            onRename={() => setEditName(true)}
-          />
+          <TableMenu disabled={disabled} onDelete={confirm.open} onRename={editName} />
         </M.ListItemSecondaryAction>
       </M.ListItem>
       <M.Collapse in={!!open}>
-        <M.ListItem disabled={editName}>
+        <M.ListItem>
           {open !== null && (
             <React.Suspense fallback={<TextEditorSkeleton height={18} />}>
               <ConfigForm
                 className={classes.config}
-                disabled={disabled || editName}
+                disabled={disabled}
                 onSubmit={onSubmit}
                 table={table}
               />
