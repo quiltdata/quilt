@@ -28,6 +28,17 @@ const ConfigEditor = React.lazy(() =>
   ConfigEditorModule().then((m) => ({ default: m.ConfigEditor })),
 )
 
+const defaultConfig = `schema:
+    - name: column1 # specify the schema
+      type: Utf8
+source:
+    type: quilt-packages
+    package_name: "" # specify a RegEx for matching packages
+    logical_key: ".*\\\\.csv$" # specify a RegEx for matching logical keys
+parser:
+    format: csv # or parquet
+`
+
 const validateTable: FF.FieldValidator<string> = (...args) =>
   ConfigEditorModule().then((m) => m.validateTable(...args))
 
@@ -412,6 +423,7 @@ function AddTable({ disabled, onCancel, onSubmit }: AddTableProps) {
               validateTable,
             )}
             disabled={disabled}
+            initialValue={defaultConfig}
           />
           <div className={classes.formBottom}>
             {submitFailed && (
