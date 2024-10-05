@@ -458,6 +458,11 @@ def get_install_location():
     return loc
 
 
+def get_boto_session():
+    from quilt3.data_transfer import S3ClientProvider
+    s3_client_provider = S3ClientProvider()
+    return s3_client_provider.get_boto_session()
+
 def set_config_value(key, value):
     # Use local configuration (or defaults)
     local_config = load_config()

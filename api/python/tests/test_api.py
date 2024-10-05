@@ -53,3 +53,11 @@ class TestAPI(QuiltTestCase):
         assert features['noDownload'] == False
         assert features['qurator'] == False
         assert 'notAFlag' not in features
+
+    def test_config_get_boto_session(self):
+        boto_session = util.get_boto_session()
+        assert boto_session is not None
+        assert boto_session.region_name is not None
+        assert boto_session.get_credentials().access_key is not None
+        assert boto_session.get_credentials().secret_key is not None
+        assert boto_session.get_credentials().token is None
