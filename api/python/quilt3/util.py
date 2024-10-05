@@ -85,6 +85,12 @@ default_registry_version: 1
 region:
 """.format(BASE_PATH.as_uri() + '/packages')
 
+FEATURE_TEMPLATE = """
+alwaysRequiresAuth: false
+chunkedChecksums: false
+noDownload: false
+qurator: false
+"""
 
 def get_pos_int_from_env(var_name):
     val = os.getenv(var_name)
@@ -440,6 +446,9 @@ def load_config():
 
 def get_from_config(key):
     return load_config().get(key)
+
+def get_feature_flags():
+    return read_yaml(FEATURE_TEMPLATE)
 
 
 def get_install_location():
