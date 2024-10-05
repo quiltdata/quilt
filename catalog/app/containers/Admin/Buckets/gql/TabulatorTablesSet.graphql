@@ -1,0 +1,27 @@
+mutation ($bucketName: String!, $tableName: String!, $config: String) {
+  admin {
+    bucketSetTabulatorTable(
+      bucketName: $bucketName
+      tableName: $tableName
+      config: $config
+    ) {
+      __typename
+      ... on BucketConfig {
+        name
+        tabulatorTables {
+          name
+          config
+        }
+      }
+      ... on InvalidInput {
+        errors {
+          path
+          message
+        }
+      }
+      ... on OperationError {
+        message
+      }
+    }
+  }
+}
