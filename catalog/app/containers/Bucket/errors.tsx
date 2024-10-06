@@ -33,6 +33,7 @@ export interface BucketPreferencesInvalidProps {
   errors: { instancePath?: string; message?: string }[]
 }
 
+// TODO: re-use JsonInvalidAgainstSchema
 export class BucketPreferencesInvalid extends BucketError {
   static displayName = 'BucketPreferencesInvalid'
 
@@ -46,6 +47,7 @@ export class BucketPreferencesInvalid extends BucketError {
   }
 }
 
+// TODO: re-use JsonInvalidAgainstSchema
 export interface WorkflowsConfigInvalidProps {
   errors: { instancePath?: string; message?: string }[]
 }

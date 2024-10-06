@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://quiltdata.com/tabulator/config/1",
+  "type": "object",
+  "definitions": {
+    "CsvParser": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": "csv"
+        },
+        "header": { "type": "boolean" },
+        "delimiter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        }
+      },
+      "required": ["format"]
+    },
+    "ParquetParser": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": "parquet"
+        }
+      }
+    },
+    "package_source": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "quilt-packages"
+        },
+        "package_name": { "type": "string" },
+        "logical_key": { "type": "string" }
+      },
+      "required": ["type", "package_name", "logical_key"]
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Utf8",
+            "Int8",
+            "Int16",
+            "Int32",
+            "Int64",
+            "UInt8",
+            "UInt16",
+            "UInt32",
+            "UInt64",
+            "Float16",
+            "Float32",
+            "Float64",
+            "Boolean",
+            "Date32",
+            "Date64",
+            "Timestamp(Second)",
+            "Timestamp(Millisecond)",
+            "Timestamp(Microsecond)",
+            "Timestamp(Nanosecond)"
+          ]
+        }
+      },
+      "required": ["name", "type"]
+    }
+  },
+  "properties": {
+    "schema": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/schema"
+      }
+    },
+    "source": {
+      "$ref": "#/definitions/package_source"
+    },
+    "parser": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/CsvParser"
+        },
+        {
+          "$ref": "#/definitions/ParquetParser"
+        }
+      ]
+    }
+  },
+  "required": ["schema", "source", "parser"]
+}

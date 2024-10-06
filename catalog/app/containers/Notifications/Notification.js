@@ -43,7 +43,7 @@ export default function Notification({ id, ttl, message, action, dismiss }) {
 
 Notification.propTypes = {
   id: PT.string.isRequired,
-  ttl: PT.number.isRequired,
+  ttl: PT.oneOf([null, PT.number.isRequired]),
   message: PT.node.isRequired,
   action: PT.shape({
     label: PT.string.isRequired,
