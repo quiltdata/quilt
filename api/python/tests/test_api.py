@@ -48,10 +48,10 @@ class TestAPI(QuiltTestCase):
         features = util.get_feature_flags()
         print(features)
         # These come from CONFIG_FEATURES
-        assert features['alwaysRequiresAuth'] == False
-        assert features['chunkedChecksums'] == False
-        assert features['noDownload'] == False
-        assert features['qurator'] == False
+        assert features['alwaysRequiresAuth'] is False
+        assert features['chunkedChecksums'] is False
+        assert features['noDownload'] is False
+        assert features['qurator'] is False
         assert 'notAFlag' not in features
 
     def test_config_get_boto_session(self):
