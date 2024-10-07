@@ -215,7 +215,7 @@ export function makeSchemaValidator(
   optSchema?: JsonSchema,
   optSchemas?: JsonSchema[],
   ajvOptions?: Options,
-): (obj?: any) => (Error | ErrorObject)[] {
+): (obj?: any) => [Error] | ErrorObject[] {
   let mainSchema = R.clone(optSchema || EMPTY_SCHEMA)
   if (!mainSchema.$id) {
     // Make further code more universal by using one format: `id` → `$id`
@@ -246,7 +246,7 @@ export function makeSchemaValidator(
     // TODO: fail early, return Error instead of callback
     if (!$id) return () => [new Error('$id is not provided')]
 
-    return (obj: any): (Error | ErrorObject)[] => {
+    return (obj: any): [Error] | ErrorObject[] => {
       try {
         ajv.validate($id, R.clone(obj))
       } catch (e) {
@@ -258,7 +258,7 @@ export function makeSchemaValidator(
   } catch (e) {
     // TODO: fail early if Ajv options are incorrect, return Error instead of callback
     // TODO: add custom errors
-    return () => (e instanceof Error ? [e] : []) as Error[]
+    return () => (e instanceof Error ? [e] : [])
   }
 }
 
