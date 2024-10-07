@@ -11,17 +11,18 @@ import * as UserMetaFilters from './UserMetaFilters'
 
 const PackageSearchParamsSchema = S.Struct({
   resultType: S.tag(SearchModel.ResultType.QuiltPackage).annotations({
-    title: 'result type: Quilt Package',
+    title: 'Result type: Quilt Package',
   }),
   filter: S.optional(Filter.PackageFilter.state).annotations({
-    title: 'result filters (system)',
+    title: 'Result filters (system metadata)',
+    description: 'Filter results by system metadata',
   }),
   userMetaFilters: S.optional(UserMetaFilters.UserMetaFiltersSchema).annotations({
-    title: 'result filters (user metadata)',
-    description: 'filter results by user metadata',
+    title: 'Result filters (user metadata)',
+    description: 'Filter results by user metadata',
   }),
 }).annotations({
-  title: 'package-specific search parameters',
+  title: 'Package-specific search parameters',
 })
 
 const PackageSearchParamsFromSearchParams = S.transform(
@@ -44,13 +45,13 @@ const PackageSearchParamsFromSearchParams = S.transform(
 
 const ObjectSearchParamsSchema = S.Struct({
   resultType: S.tag(SearchModel.ResultType.S3Object).annotations({
-    title: 'result type: S3 Object',
+    title: 'Result type: S3 Object',
   }),
   filter: S.optional(Filter.ObjectFilter.state).annotations({
-    title: 'result filters',
+    title: 'Result filters',
   }),
 }).annotations({
-  title: 'object-specific search parameters',
+  title: 'Object-specific search parameters',
 })
 
 const ObjectSearchParamsFromSearchParams = S.transform(
@@ -72,19 +73,20 @@ const ObjectSearchParamsFromSearchParams = S.transform(
 
 const SearchParamsSchema = S.Struct({
   searchString: S.optional(S.String).annotations({
-    title: 'search string',
-    description: 'string to search for, ElasticSearch syntax supported',
+    title: 'Search string',
+    description:
+      'A String to search for. ElasticSearch syntax supported. For packages, searches in package name, comment (commit message), and metadata. For objects, searches in object key and indexed content.',
   }),
   buckets: S.optional(S.Array(S.String)).annotations({
-    title: 'search buckets',
-    description: 'a list of buckets to search in (keep empty to search in all buckets)',
+    title: 'Search buckets',
+    description: 'A list of buckets to search in (keep empty to search in all buckets)',
   }),
   order: S.optional(S.Enums(Model.GQLTypes.SearchResultOrder)).annotations({
-    title: 'search order',
-    description: 'order of search results',
+    title: 'Search result order',
+    description: 'Order of search results',
   }),
   params: S.Union(PackageSearchParamsSchema, ObjectSearchParamsSchema).annotations({
-    title: 'result type-specific parameters',
+    title: 'Result type-specific parameters',
   }),
 })
 

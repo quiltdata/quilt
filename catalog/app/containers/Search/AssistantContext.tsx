@@ -226,6 +226,7 @@ function useSearchContext() {
       `Total **${resultTypeDisplay(
         ctx.otherType,
       )}** found matching the same criteria before applying filters: ${ctx.totalOther}`,
+      "Navigate to a specific result's page for more details.",
     )
 
     const hits = XML.tag(

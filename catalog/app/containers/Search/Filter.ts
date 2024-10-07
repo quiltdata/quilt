@@ -84,57 +84,57 @@ function Filter<const PM extends PredicateMap>(
 export const PackageFilter = Filter('Package', {
   modified: {
     type: Predicates.Datetime,
-    title: 'last modified date',
+    title: 'Last modified date',
   },
   size: {
     type: Predicates.Number,
-    title: 'file size in bytes',
+    title: 'File size in bytes',
   },
   name: {
     type: Predicates.KeywordWildcard,
-    title: 'package name (aka namespace)',
+    title: 'Package name (aka namespace or handle)',
   },
   hash: {
     type: Predicates.KeywordWildcard,
-    title: 'package revision hash',
+    title: 'Package revision hash',
   },
   entries: {
     type: Predicates.Number,
-    title: 'number of package entries',
+    title: 'Number of package entries',
   },
   comment: {
     type: Predicates.Text,
-    title: 'package revision comment (aka commit message)',
+    title: 'Package revision comment (aka commit message)',
   },
   workflow: {
     type: Predicates.KeywordEnum,
-    title: 'package workflow',
+    title: 'Package workflow',
   },
 })
 
 export const ObjectFilter = Filter('Object', {
   modified: {
     type: Predicates.Datetime,
-    title: 'last modified date',
+    title: 'Last modified date',
   },
   size: {
     type: Predicates.Number,
-    title: 'file size in bytes',
+    title: 'File size in bytes',
   },
   ext: {
     type: Predicates.KeywordEnum,
-    title: 'file extensions (with a leading dot)',
+    title: 'File extensions (with a leading dot)',
   },
   key: {
     type: Predicates.KeywordWildcard,
-    title: 'file name (aka S3 Object Key)',
+    title: 'File name (aka S3 Object Key)',
   },
   content: {
     type: Predicates.Text,
-    title: 'indexed text contents',
+    title: 'Indexed text contents',
   },
   deleted: {
     type: Predicates.Boolean,
-    title: 'whether a file is a delete marker',
+    title: 'Whether a file is a delete marker',
   },
 })
