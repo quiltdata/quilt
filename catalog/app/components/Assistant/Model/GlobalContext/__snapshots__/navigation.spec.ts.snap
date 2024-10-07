@@ -267,11 +267,11 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "additionalProperties": false,
               "properties": {
                 "buckets": {
-                  "description": "a list of buckets to search in (keep empty to search in all buckets)",
+                  "description": "A list of buckets to search in (keep empty to search in all buckets)",
                   "items": {
                     "type": "string",
                   },
-                  "title": "search buckets",
+                  "title": "Search buckets",
                   "type": "array",
                 },
                 "order": {
@@ -296,8 +296,8 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                       "title": "OLDEST",
                     },
                   ],
-                  "description": "order of search results",
-                  "title": "search order",
+                  "description": "Order of search results",
+                  "title": "Search result order",
                 },
                 "params": {
                   "anyOf": [
@@ -305,6 +305,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                       "additionalProperties": false,
                       "properties": {
                         "filter": {
+                          "description": "Filter results by system metadata",
                           "items": {
                             "anyOf": [
                               {
@@ -323,7 +324,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "last modified date",
+                                "title": "Last modified date",
                                 "type": "object",
                               },
                               {
@@ -342,7 +343,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "file size in bytes",
+                                "title": "File size in bytes",
                                 "type": "object",
                               },
                               {
@@ -361,7 +362,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "package name (aka namespace)",
+                                "title": "Package name (aka namespace or handle)",
                                 "type": "object",
                               },
                               {
@@ -380,7 +381,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "package revision hash",
+                                "title": "Package revision hash",
                                 "type": "object",
                               },
                               {
@@ -399,7 +400,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "number of package entries",
+                                "title": "Number of package entries",
                                 "type": "object",
                               },
                               {
@@ -418,7 +419,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "package revision comment (aka commit message)",
+                                "title": "Package revision comment (aka commit message)",
                                 "type": "object",
                               },
                               {
@@ -437,22 +438,22 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "package workflow",
+                                "title": "Package workflow",
                                 "type": "object",
                               },
                             ],
                           },
-                          "title": "result filters (system)",
+                          "title": "Result filters (system metadata)",
                           "type": "array",
                         },
                         "resultType": {
                           "enum": [
                             "p",
                           ],
-                          "title": "result type: Quilt Package",
+                          "title": "Result type: Quilt Package",
                         },
                         "userMetaFilters": {
-                          "description": "filter results by user metadata",
+                          "description": "Filter results by user metadata",
                           "items": {
                             "additionalProperties": false,
                             "properties": {
@@ -488,14 +489,14 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                             ],
                             "type": "object",
                           },
-                          "title": "result filters (user metadata)",
+                          "title": "Result filters (user metadata)",
                           "type": "array",
                         },
                       },
                       "required": [
                         "resultType",
                       ],
-                      "title": "package-specific search parameters",
+                      "title": "Package-specific search parameters",
                       "type": "object",
                     },
                     {
@@ -520,7 +521,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "last modified date",
+                                "title": "Last modified date",
                                 "type": "object",
                               },
                               {
@@ -539,7 +540,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "file size in bytes",
+                                "title": "File size in bytes",
                                 "type": "object",
                               },
                               {
@@ -558,7 +559,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "file extensions (with a leading dot)",
+                                "title": "File extensions (with a leading dot)",
                                 "type": "object",
                               },
                               {
@@ -577,7 +578,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "file name (aka S3 Object Key)",
+                                "title": "File name (aka S3 Object Key)",
                                 "type": "object",
                               },
                               {
@@ -596,7 +597,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "indexed text contents",
+                                "title": "Indexed text contents",
                                 "type": "object",
                               },
                               {
@@ -615,33 +616,33 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                   "key",
                                   "predicate",
                                 ],
-                                "title": "whether a file is a delete marker",
+                                "title": "Whether a file is a delete marker",
                                 "type": "object",
                               },
                             ],
                           },
-                          "title": "result filters",
+                          "title": "Result filters",
                           "type": "array",
                         },
                         "resultType": {
                           "enum": [
                             "o",
                           ],
-                          "title": "result type: S3 Object",
+                          "title": "Result type: S3 Object",
                         },
                       },
                       "required": [
                         "resultType",
                       ],
-                      "title": "object-specific search parameters",
+                      "title": "Object-specific search parameters",
                       "type": "object",
                     },
                   ],
-                  "title": "result type-specific parameters",
+                  "title": "Result type-specific parameters",
                 },
                 "searchString": {
-                  "description": "string to search for, ElasticSearch syntax supported",
-                  "title": "search string",
+                  "description": "A String to search for. ElasticSearch syntax supported. For packages, searches in package name, comment (commit message), and metadata. For objects, searches in object key and indexed content.",
+                  "title": "Search string",
                   "type": "string",
                 },
               },
