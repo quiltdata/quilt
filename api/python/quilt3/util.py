@@ -82,7 +82,7 @@ binaryApiGatewayEndpoint:
 default_registry_version: 1
 
 # AWS Region
-region:
+region: us-east-1
 """.format(BASE_PATH.as_uri() + '/packages')
 
 FEATURE_TEMPLATE = """
