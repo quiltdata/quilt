@@ -80,8 +80,19 @@ class UserSelectionExtraRolesManagedRole(ManagedRoleSelection):
     typename__: Literal["ManagedRole"] = Field(alias="__typename")
 
 
+class SsoConfigSelection(BaseModel):
+    text: str
+    timestamp: datetime
+    uploader: "SsoConfigSelectionUploader"
+
+
+class SsoConfigSelectionUploader(UserSelection):
+    pass
+
+
 InvalidInputSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
 UnmanagedRoleSelection.model_rebuild()
 UserSelection.model_rebuild()
+SsoConfigSelection.model_rebuild()

@@ -319,6 +319,9 @@ const useStyles = M.makeStyles((t) => ({
       maxWidth: 'calc(100% - 40px)',
     },
   },
+  editor: {
+    minHeight: t.spacing(50),
+  },
   topBar: {
     alignItems: 'flex-end',
     display: 'flex',
@@ -377,7 +380,17 @@ export default function File() {
         downloadable: false,
       }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        downloadable: !cfg.noDownload && !deleted && !archived,
+        downloadable:
+          !cfg.noDownload &&
+          !deleted &&
+          !archived &&
+          BucketPreferences.Result.match(
+            {
+              Ok: ({ ui }) => ui.actions.downloadObject,
+              _: R.F,
+            },
+            prefs,
+          ),
         fileVersionId: versionId,
       }),
     }),
@@ -545,7 +558,11 @@ export default function File() {
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                  <FileEditor.Editor {...editorState} handle={handle} />
+                  <FileEditor.Editor
+                    {...editorState}
+                    className={classes.editor}
+                    handle={handle}
+                  />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>

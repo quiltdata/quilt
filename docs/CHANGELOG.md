@@ -11,16 +11,30 @@ Entries inside each section should be ordered by type:
 ## Python API
 
 ## CLI
-
-## Catalog, Lambdas
 !-->
-# unreleased - YYYY-MM-DD
+
+# 6.0.0 - 2024-08-19
 ## Python API
+
+* [Added] New `quilt3.admin.sso_config` sub-module for management of SSO configuration ([#4065](https://github.com/quiltdata/quilt/pull/4065), [#4098](https://github.com/quiltdata/quilt/pull/4098))
 
 ## CLI
 
 ## Catalog, Lambdas
+* [Fixed] **SECURITY**: Remove `polyfill.io` references ([#4038](https://github.com/quiltdata/quilt/pull/4038))
+* [Fixed] Don't show negative number as search result count, in particular don't show `-1` when `secure_search: True` ([#4101](https://github.com/quiltdata/quilt/pull/4101))
+* [Changed] Renamed "Admin settings" to "Admin" ([#4045](https://github.com/quiltdata/quilt/pull/4045))
+* [Changed] Hide "Add bucket" button for non-admin users from main landing page ([#4106](https://github.com/quiltdata/quilt/pull/4106))
+* [Added] Admin: Support SSO permissions mapping (SSO config editor, disable role assignment for SSO-mapped users) ([#4070](https://github.com/quiltdata/quilt/pull/4070), [#4097](https://github.com/quiltdata/quilt/pull/4097), [#4099](https://github.com/quiltdata/quilt/pull/4099))
+
+# 6.0.0a5 - 2024-06-25
+## Python API
+
+* [Fixed] Fix PhysicalKey to URI conversion in Python 3.12 on Windows ([#4027](https://github.com/quiltdata/quilt/pull/4027))
+
+## Catalog, Lambdas
 * [Removed] Drop MARKETING mode support, delete associated dead code ([#4009](https://github.com/quiltdata/quilt/pull/4009))
+* [Removed] Delete Google Tag Manager script integration ([#4039](https://github.com/quiltdata/quilt/pull/4039))
 * [Added] Support multiple roles per user ([#3982](https://github.com/quiltdata/quilt/pull/3982))
 * [Added] Add `ui.actions = False` and `ui.actions.writeFile` for configuring visibility of buttons ([#4001](https://github.com/quiltdata/quilt/pull/4001))
 * [Added] Support creating folders and rearranging entries with drag and drop in package creation dialog ([#3999](https://github.com/quiltdata/quilt/pull/3999))

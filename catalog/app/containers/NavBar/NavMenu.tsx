@@ -286,10 +286,7 @@ function useGetAuthItems() {
 
     if (user.isAdmin) {
       items.push(
-        ItemDescriptor.To(
-          urls.admin(),
-          <ItemContents icon="security" primary="Admin settings" />,
-        ),
+        ItemDescriptor.To(urls.admin(), <ItemContents icon="security" primary="Admin" />),
       )
     }
 

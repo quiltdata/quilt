@@ -14,13 +14,16 @@ export type containers_Admin_UsersAndRoles_gql_UsersQueryVariables = Types.Exact
 export type containers_Admin_UsersAndRoles_gql_UsersQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly admin: { readonly __typename: 'AdminQueries' } & {
-    readonly user: { readonly __typename: 'UserAdminQueries' } & {
-      readonly list: ReadonlyArray<
-        { readonly __typename: 'User' } & UserSelectionFragment
-      >
+  readonly admin: { readonly __typename: 'AdminQueries' } & Pick<
+    Types.AdminQueries,
+    'isDefaultRoleSettingDisabled'
+  > & {
+      readonly user: { readonly __typename: 'UserAdminQueries' } & {
+        readonly list: ReadonlyArray<
+          { readonly __typename: 'User' } & UserSelectionFragment
+        >
+      }
     }
-  }
   readonly roles: ReadonlyArray<
     | ({ readonly __typename: 'UnmanagedRole' } & Pick<
         Types.UnmanagedRole,
@@ -74,6 +77,10 @@ export const containers_Admin_UsersAndRoles_gql_UsersDocument = {
                       },
                     ],
                   },
+                },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'isDefaultRoleSettingDisabled' },
                 },
               ],
             },

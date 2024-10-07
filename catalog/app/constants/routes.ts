@@ -194,7 +194,12 @@ export const adminUsers = admin
 
 export const adminBuckets = route(
   '/admin/buckets',
-  (bucket: string) => `/admin/buckets${mkSearch({ bucket })}`,
+  (opts?: { add?: boolean }) => `/admin/buckets${mkSearch({ add: opts?.add })}`,
+)
+
+export const adminBucketEdit = route(
+  '/admin/buckets/:bucketName',
+  (bucketName: string) => `/admin/buckets/${bucketName}`,
 )
 
 export const adminSettings = route('/admin/settings')

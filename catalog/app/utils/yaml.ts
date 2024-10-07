@@ -16,3 +16,13 @@ export function parse(inputStr?: string) {
     console.error(error)
   }
 }
+
+export function validate(inputStr?: string) {
+  if (!inputStr) return undefined
+  try {
+    yaml.load(inputStr)
+    return undefined
+  } catch (error) {
+    return error
+  }
+}

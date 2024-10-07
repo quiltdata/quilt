@@ -93,10 +93,6 @@
       "type": "string",
       "description": "Optional"
     },
-    "gtmId": {
-      "type": "string",
-      "description": "ID for Google TagManager/Analytics service"
-    },
     "qurator": {
       "type": "boolean",
       "description": "Enable Qurator AI Assistant (powered by AWS Bedrock)"

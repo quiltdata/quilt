@@ -12,6 +12,8 @@ export type UserSelectionFragment = { readonly __typename: 'User' } & Pick<
   | 'isAdmin'
   | 'isSsoOnly'
   | 'isService'
+  | 'isRoleAssignmentDisabled'
+  | 'isAdminAssignmentDisabled'
 > & {
     readonly role: Types.Maybe<
       | ({ readonly __typename: 'UnmanagedRole' } & Pick<
@@ -48,6 +50,8 @@ export const UserSelectionFragmentDoc = {
           { kind: 'Field', name: { kind: 'Name', value: 'isAdmin' } },
           { kind: 'Field', name: { kind: 'Name', value: 'isSsoOnly' } },
           { kind: 'Field', name: { kind: 'Name', value: 'isService' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'isRoleAssignmentDisabled' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'isAdminAssignmentDisabled' } },
           {
             kind: 'Field',
             name: { kind: 'Name', value: 'role' },

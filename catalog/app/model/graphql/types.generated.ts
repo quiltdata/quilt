@@ -39,11 +39,32 @@ export interface AccessCounts {
 export interface AdminMutations {
   readonly __typename: 'AdminMutations'
   readonly user: UserAdminMutations
+  readonly setSsoConfig: Maybe<SetSsoConfigResult>
+  readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
+  readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
+}
+
+export interface AdminMutationssetSsoConfigArgs {
+  config: Maybe<Scalars['String']>
+}
+
+export interface AdminMutationsbucketSetTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
+  config: Maybe<Scalars['String']>
+}
+
+export interface AdminMutationsbucketRenameTabulatorTableArgs {
+  bucketName: Scalars['String']
+  tableName: Scalars['String']
+  newTableName: Scalars['String']
 }
 
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
+  readonly ssoConfig: Maybe<SsoConfig>
+  readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -128,6 +149,7 @@ export interface BucketConfig {
   readonly associatedPolicies: ReadonlyArray<PolicyBucketPermission>
   readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
   readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
+  readonly tabulatorTables: ReadonlyArray<TabulatorTable>
 }
 
 export interface BucketDoesNotExist {
@@ -166,6 +188,8 @@ export interface BucketRemoveSuccess {
   readonly __typename: 'BucketRemoveSuccess'
   readonly _: Maybe<Scalars['Boolean']>
 }
+
+export type BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
 
 export interface BucketUpdateInput {
   readonly title: Scalars['String']
@@ -924,6 +948,7 @@ export type RoleDeleteResult =
   | RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
+  | RoleNameUsedBySsoConfig
   | RoleAssigned
 
 export interface RoleDeleteSuccess {
@@ -966,7 +991,15 @@ export interface RoleNameReserved {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
-export type RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+export interface RoleNameUsedBySsoConfig {
+  readonly __typename: 'RoleNameUsedBySsoConfig'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export type RoleSetDefaultResult =
+  | RoleSetDefaultSuccess
+  | RoleDoesNotExist
+  | SsoConfigConflict
 
 export interface RoleSetDefaultSuccess {
   readonly __typename: 'RoleSetDefaultSuccess'
@@ -978,6 +1011,7 @@ export type RoleUpdateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
@@ -1020,6 +1054,8 @@ export enum SearchResultOrder {
   OLDEST = 'OLDEST',
 }
 
+export type SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
+
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
   readonly _: Maybe<Scalars['Boolean']>
@@ -1028,6 +1064,18 @@ export interface SnsInvalid {
 export enum SortDirection {
   ASC = 'ASC',
   DESC = 'DESC',
+}
+
+export interface SsoConfig {
+  readonly __typename: 'SsoConfig'
+  readonly text: Scalars['String']
+  readonly timestamp: Scalars['Datetime']
+  readonly uploader: User
+}
+
+export interface SsoConfigConflict {
+  readonly __typename: 'SsoConfigConflict'
+  readonly _: Maybe<Scalars['Boolean']>
 }
 
 export interface Status {
@@ -1090,6 +1138,12 @@ export interface SubscriptionState {
 
 export type SwitchRoleResult = Me | InvalidInput | OperationError
 
+export interface TabulatorTable {
+  readonly __typename: 'TabulatorTable'
+  readonly name: Scalars['String']
+  readonly config: Scalars['String']
+}
+
 export interface TestStats {
   readonly __typename: 'TestStats'
   readonly passed: Scalars['Int']
@@ -1148,6 +1202,8 @@ export interface User {
   readonly isService: Scalars['Boolean']
   readonly role: Maybe<Role>
   readonly extraRoles: ReadonlyArray<Role>
+  readonly isRoleAssignmentDisabled: Scalars['Boolean']
+  readonly isAdminAssignmentDisabled: Scalars['Boolean']
 }
 
 export interface UserAdminMutations {

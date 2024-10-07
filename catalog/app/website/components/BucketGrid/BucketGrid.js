@@ -134,7 +134,7 @@ const useStyles = M.makeStyles((t) => ({
     gridColumnGap: t.spacing(4),
     gridRowGap: t.spacing(4),
     gridTemplateColumns: '1fr 1fr 1fr',
-    gridAutoRows: 'auto',
+    gridAutoRows: `minmax(${t.spacing(25)}px, auto)`,
     [t.breakpoints.down('sm')]: {
       gridTemplateColumns: '1fr 1fr',
     },
@@ -150,8 +150,6 @@ const useStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'center',
-    paddingBottom: 'calc(50% - 2rem - 2px)',
-    paddingTop: 'calc(50% - 2rem - 2px)',
     '&:hover': {
       background: fade(t.palette.tertiary.main, 0.04),
     },

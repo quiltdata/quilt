@@ -21,6 +21,7 @@ interface SingleErrorProps {
   error: Err
 }
 
+// TODO: use more humble layout similar to TextField#helperText
 function SingleError({ className, error }: SingleErrorProps) {
   const classes = useSingleErrorStyles()
 

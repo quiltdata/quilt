@@ -33,9 +33,6 @@ jobs:
           name: ${{ github.job }}
   lint-docs:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
@@ -43,4 +40,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: 'catalog/package.json'
-      - run: npx --package=markdownlint-cli markdownlint --ignore node_modules **/*.md
+      - run: npx --package=markdownlint-cli markdownlint .

@@ -31,7 +31,7 @@ export default function ChatInput({
         className={className}
         disabled={disabled}
         fullWidth
-        helperText="Qurator may make errors. Verify critical information yourself."
+        helperText="Qurator may make errors. Verify important information."
         label="Chat"
         onChange={(e) => onChange(e.target.value)}
         size="small"
