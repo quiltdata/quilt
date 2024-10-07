@@ -17,7 +17,6 @@ import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
-import Delay from 'utils/Delay'
 import type FormSpec from 'utils/FormSpec'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -586,7 +585,11 @@ function CardActions<T>({ action, disabled, form }: CardActionsProps<T>) {
           />
         )}
       </div>
-      {state.submitting && <Delay>{() => <M.CircularProgress size={24} />}</Delay>}
+      {state.submitting && (
+        <M.Fade in style={{ transitionDelay: '1000ms' }}>
+          <M.CircularProgress size={24} />
+        </M.Fade>
+      )}
       <M.Button
         className={classes.button}
         onClick={() => reset()}
@@ -1358,13 +1361,11 @@ function Add({ back, settings, submit }: AddProps) {
               />
             )}
             {submitting && (
-              <Delay>
-                {() => (
-                  <M.Box flexGrow={1} display="flex" pl={2}>
-                    <M.CircularProgress size={24} />
-                  </M.Box>
-                )}
-              </Delay>
+              <M.Fade in style={{ transitionDelay: '1000ms' }}>
+                <M.Box flexGrow={1} display="flex" pl={2}>
+                  <M.CircularProgress size={24} />
+                </M.Box>
+              </M.Fade>
             )}
             <M.Button
               onClick={() => back('cancel')}
@@ -1478,13 +1479,11 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       )}
       <M.DialogActions>
         {submitting && (
-          <Delay>
-            {() => (
-              <M.Box flexGrow={1} display="flex" pl={2}>
-                <M.CircularProgress size={24} />
-              </M.Box>
-            )}
-          </Delay>
+          <M.Fade in style={{ transitionDelay: '1000ms' }}>
+            <M.Box flexGrow={1} display="flex" pl={2}>
+              <M.CircularProgress size={24} />
+            </M.Box>
+          </M.Fade>
         )}
         {!submitting && !!error && (
           <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
