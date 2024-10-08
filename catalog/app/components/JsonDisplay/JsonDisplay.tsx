@@ -52,7 +52,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   more: {
-    color: t.palette.text.secondary,
+    opacity: 0.5,
   },
   flex: {
     display: 'flex',
@@ -73,7 +73,7 @@ const useStyles = M.makeStyles((t) => ({
     opacity: 0.7,
   },
   brace: {
-    color: t.palette.text.secondary,
+    opacity: 0.5,
   },
 }))
 
@@ -87,7 +87,7 @@ const IconCollapse = () => <M.Icon fontSize="small">expand_more</M.Icon>
 
 const useWaitingJsonRenderStyles = M.makeStyles((t) => ({
   root: {
-    color: t.palette.text.secondary,
+    opacity: 0.5,
     display: 'flex',
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
