@@ -18,42 +18,46 @@ const BG = {
 }
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
-  role_user: {},
-  role_assistant: {},
-  role_tool: {},
+  align_left: {},
+  align_right: {},
+  color_intense: {},
+  color_bright: {},
+  color_faint: {},
   messageContainer: {
     display: 'flex',
     gap: `${t.spacing(1)}px`,
-    '&$role_user': {
-      justifyContent: 'flex-end',
-    },
-    '&$role_assistant, &$role_tool': {
+    '&$align_left': {
       justifyContent: 'flex-start',
+    },
+    '&$align_right': {
+      justifyContent: 'flex-end',
     },
   },
   contentArea: {
     borderRadius: `${t.spacing(1)}px`,
     maxWidth: 'calc(50vw - 32px)',
-    '$role_user &': {
+    '&$color_intense': {
       background: BG.intense,
+      color: t.palette.common.white,
+    },
+    '&$color_bright': {
+      background: BG.bright,
+      color: t.palette.common.white,
+    },
+    '&$color_faint': {
+      background: BG.faint,
+      color: t.palette.text.primary,
+    },
+    '$align_right &': {
       borderBottomRightRadius: 0,
     },
-    '$role_assistant &': {
-      background: BG.faint,
-      borderBottomLeftRadius: 0,
-    },
-    '$role_tool &': {
-      background: BG.bright,
+    '$align_left &': {
       borderBottomLeftRadius: 0,
     },
   },
   contents: {
     ...t.typography.body2,
-    color: t.palette.text.primary,
     padding: `${t.spacing(2)}px`,
-    '$role_user &, $role_tool &': {
-      color: t.palette.common.white,
-    },
   },
   footer: {
     ...t.typography.caption,
@@ -73,17 +77,30 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
 }))
 
 interface MessageContainerProps {
-  role: 'user' | 'assistant' | 'tool'
+  color?: 'intense' | 'bright' | 'faint'
+  align?: 'left' | 'right'
   children: React.ReactNode
   actions?: React.ReactNode
   timestamp?: Date
 }
 
-function MessageContainer({ role, children, actions, timestamp }: MessageContainerProps) {
+function MessageContainer({
+  color = 'faint',
+  align = 'left',
+  children,
+  actions,
+  timestamp,
+}: MessageContainerProps) {
   const classes = useMessageContainerStyles()
   return (
-    <div className={cx(classes.messageContainer, classes[`role_${role}`])}>
-      <div className={classes.contentArea}>
+    <div
+      className={cx(
+        classes.messageContainer,
+        classes[`align_${align}`],
+        classes[`color_${color}`],
+      )}
+    >
+      <div className={cx(classes.contentArea, classes[`color_${color}`])}>
         <div className={classes.contents}>{children}</div>
         {!!(actions || timestamp) && (
           <div className={classes.footer}>
@@ -148,9 +165,15 @@ function MessageEvent({
       state === 'Idle' ? () => dispatch(Model.Conversation.Action.Discard({ id })) : null,
     [dispatch, id, state],
   )
+
+  const messageProps = {
+    color: role === 'user' ? 'intense' : 'faint',
+    align: role === 'user' ? 'right' : 'left',
+  } as const
+
   return (
     <MessageContainer
-      role={role}
+      {...messageProps}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
       timestamp={timestamp}
     >
@@ -188,7 +211,8 @@ function ToolUseEvent({
   )
   return (
     <MessageContainer
-      role="tool"
+      color="bright"
+      align="left"
       timestamp={timestamp}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
     >
@@ -222,7 +246,8 @@ function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
 
   return (
     <MessageContainer
-      role="tool"
+      color="bright"
+      align="left"
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
@@ -247,7 +272,8 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
   )
   return (
     <MessageContainer
-      role="assistant"
+      color="faint"
+      align="left"
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
@@ -330,7 +356,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
       </div>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
-          <MessageContainer role="assistant">
+          <MessageContainer color="faint" align="left">
             Hi! I'm Qurator, your AI assistant. How can I help you?
           </MessageContainer>
           {state.events
