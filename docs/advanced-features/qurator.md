@@ -23,15 +23,18 @@ or request key insights from a specific dataset.
   BRCA1 research?”_ or _“Show the latest asthma treatment data”_ to interact
   with information stored in private or public S3 buckets, such as [PubMed
   PMC](https://open.quiltdata.com/b/pmc-oa-opendata) or other [Open Data on
-  AWS](https://registry.opendata.aws/).
-- **Data Summarization**: Qurator Omni can summarize the key points of research
-  papers, presentations, or datasets, offering concise, digestible insights
-  without needing to review the full content.
-- **Opt-in Integration**: Your data is always your own. Administrators must
-  explicitly enable the Qurator Omni feature, and configure the appropriate
-  Claude model in AWS Bedrock, before users can access the AI assistant.
-  Everything runs in your own private cloud environment; nothing is shared with
-  Quilt or accessible to third parties.
+  AWS](https://registry.opendata.aws/). The AI assistant retrieves relevant
+  data and provides structured, concise answers.
+- **Data Summarization**: Qurator Omni can instantly generate summaries of
+  scientific papers, datasets, or reports, helping users grasp essential details
+  without combing through the entire content.
+- **Fine-Grained RAG Permissions**: Qurator Omni enforces user permissions set
+  by the data owner when performing Retrieval Augmented Generation, ensuring
+  that only authorized users can access specific datasets.
+- **Self Hosted LLM**:  Administrators retain full control of their data, and
+  all of their data is kept internal to their AWS cloud environment powered by
+  Anthropic Claude on Amazon Bedrock. This ensures that all interactions remain
+  secure and confined to private cloud environments.
 
 ## Getting Started
 
