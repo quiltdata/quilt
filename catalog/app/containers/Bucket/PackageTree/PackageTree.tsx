@@ -26,6 +26,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
+import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
@@ -115,11 +116,17 @@ const useSelectionWidgetStyles = M.makeStyles({
 
 interface SelectionWidgetProps {
   className: string
-  selection: Selection.ListingSelection
   onSelection: (changed: Selection.ListingSelection) => void
+  packageHandle: PackageHandle
+  selection: Selection.ListingSelection
 }
 
-function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
+function SelectionWidget({
+  className,
+  packageHandle,
+  selection,
+  onSelection,
+}: SelectionWidgetProps) {
   const classes = useSelectionWidgetStyles()
   const location = RRDom.useLocation()
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
@@ -156,7 +163,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
           <Selection.Dashboard
             onDone={close}
             onSelection={onSelection}
-            packages
+            packageHandle={packageHandle}
             selection={selection}
           />
         </M.DialogContent>
@@ -411,8 +418,9 @@ function DirDisplay({
                       <>
                         <SelectionWidget
                           className={classes.button}
-                          selection={selection}
                           onSelection={onSelection}
+                          packageHandle={packageHandle}
+                          selection={selection}
                         />
                         {actions.revisePackage && (
                           <M.Button

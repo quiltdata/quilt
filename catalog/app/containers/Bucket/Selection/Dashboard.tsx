@@ -5,13 +5,17 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
-import { EMPTY_MAP, ListingSelection, toHandlesMap } from './utils'
+import * as FileView from '../FileView'
+
+import { EMPTY_MAP, ListingSelection, toHandlesMap, toHandlesList } from './utils'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
@@ -100,10 +104,16 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
   },
+  buttons: {
+    display: 'flex',
+  },
   button: {
     '& + &': {
       marginLeft: t.spacing(1),
     },
+  },
+  divider: {
+    marginTop: t.spacing(2),
   },
   list: {
     background: t.palette.background.paper,
@@ -128,14 +138,16 @@ interface DashboardProps {
   onDone: () => void
   onSelection: (changed: ListingSelection) => void
   selection: ListingSelection
-  packages?: boolean
+  packageHandle?: PackageHandle
 }
+
+// TODO: BucketPreferences
 
 export default function Dashboard({
   onDone,
   onSelection,
   selection,
-  packages = false,
+  packageHandle,
 }: DashboardProps) {
   const classes = useStyles()
   const lists = React.useMemo(() => toHandlesMap(selection), [selection])
@@ -143,8 +155,8 @@ export default function Dashboard({
 
   const bookmarksCtx = Bookmarks.use()
   const bookmarks = React.useMemo(
-    () => !packages && bookmarksCtx,
-    [packages, bookmarksCtx],
+    () => !packageHandle && bookmarksCtx,
+    [packageHandle, bookmarksCtx],
   )
   const hasSomethingToBookmark = React.useMemo(
     () =>
@@ -182,7 +194,7 @@ export default function Dashboard({
 
   return (
     <div className={classes.root}>
-      <>
+      <div className={classes.buttons}>
         {bookmarks && (
           <M.Button
             className={classes.button}
@@ -195,6 +207,15 @@ export default function Dashboard({
             {hasSomethingToBookmark ? 'Add to bookmarks' : 'Remove from bookmarks'}
           </M.Button>
         )}
+        {!!packageHandle && (
+          <FileView.ZipDownloadForm
+            suffix={`package/${packageHandle.bucket}/${packageHandle.name}/${packageHandle.hash}`}
+            className={classes.button}
+            files={toHandlesList(selection).map(({ key }) => key)}
+          >
+            <Buttons.Iconized label="Download selected" icon="archive" type="submit" />
+          </FileView.ZipDownloadForm>
+        )}
         <M.Button
           className={classes.button}
           color="primary"
@@ -205,8 +226,8 @@ export default function Dashboard({
         >
           Clear selection
         </M.Button>
-        <M.Divider style={{ marginTop: '16px' }} />
-      </>
+      </div>
+      <M.Divider style={{ marginTop: '16px' }} />
       {hasSelection ? (
         <M.List dense disablePadding className={classes.list}>
           {Object.entries(lists).map(([prefixUrl, handles]) =>
