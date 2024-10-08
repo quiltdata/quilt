@@ -154,8 +154,9 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
         </M.DialogTitle>
         <M.DialogContent>
           <Selection.Dashboard
-            onSelection={onSelection}
             onDone={close}
+            onSelection={onSelection}
+            packages
             selection={selection}
           />
         </M.DialogContent>

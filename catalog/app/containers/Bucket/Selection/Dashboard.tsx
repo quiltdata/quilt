@@ -128,14 +128,24 @@ interface DashboardProps {
   onDone: () => void
   onSelection: (changed: ListingSelection) => void
   selection: ListingSelection
+  packages?: boolean
 }
 
-export default function Dashboard({ onDone, onSelection, selection }: DashboardProps) {
+export default function Dashboard({
+  onDone,
+  onSelection,
+  selection,
+  packages = false,
+}: DashboardProps) {
   const classes = useStyles()
   const lists = React.useMemo(() => toHandlesMap(selection), [selection])
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
 
-  const bookmarks = Bookmarks.use()
+  const bookmarksCtx = Bookmarks.use()
+  const bookmarks = React.useMemo(
+    () => !packages && bookmarksCtx,
+    [packages, bookmarksCtx],
+  )
   const hasSomethingToBookmark = React.useMemo(
     () =>
       bookmarks &&
