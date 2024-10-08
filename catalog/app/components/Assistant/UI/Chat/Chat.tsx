@@ -70,10 +70,10 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'flex-end',
-    padding: t.spacing(0.5, 2, 0, 2),
+    padding: t.spacing(1, 0, 0, 2),
   },
   actions: {
-    opacity: 0.5,
+    opacity: 0.7,
     '$messageContainer:hover &': {
       opacity: 1,
     },
@@ -122,7 +122,7 @@ function MessageContainer({
 const useMessageActionStyles = M.makeStyles({
   action: {
     cursor: 'pointer',
-    opacity: 0.5,
+    opacity: 0.7,
     '&:hover': {
       opacity: 1,
     },
