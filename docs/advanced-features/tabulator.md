@@ -35,7 +35,7 @@ schema:
 source:
   type: quilt
   package_name: "^ccle/"
-  logical_key: "salmon/(?P<sample_id>[^/]+)/quant*\\.genes\\.sf$"
+  logical_key: "salmon/(?<sample_id>[^/]+)/quant*\\.genes\\.sf$"
 parser:
   format: csv
   delimiter: "\t"
