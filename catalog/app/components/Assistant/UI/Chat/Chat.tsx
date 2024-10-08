@@ -13,6 +13,7 @@ import Input from './Input'
 
 const USER_BG = M.colors.cyan[100]
 const TOOL_BG = M.colors.amber[100]
+const ASSISTANT_BG = M.colors.grey[50]
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   role_user: {},
@@ -36,7 +37,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
       borderBottomRightRadius: 0,
     },
     '$role_assistant &': {
-      background: t.palette.background.paper,
+      background: ASSISTANT_BG,
       borderBottomLeftRadius: 0,
     },
     '$role_tool &': {
