@@ -1,6 +1,6 @@
 ARG FUNCTION_DIR="/function"
 
-FROM python:3.8-slim-bullseye@sha256:5c769978386f958886d1301435b77b9921859d0c2216d6b3beadeece51264c76 AS base-image
+FROM python:3.13-slim-bullseye@sha256:edc28282d81252d643f654a299af2605949fde2ffe72c7e8d682956e930a43a4 AS base-image
 
 FROM base-image as build-image
 
