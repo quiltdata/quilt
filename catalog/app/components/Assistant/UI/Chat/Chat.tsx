@@ -36,17 +36,11 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   },
   contentWrapper: {
     display: 'flex',
-    gap: `${t.spacing(1)}px`,
-    '&$align_left': {
-      justifyContent: 'flex-start',
-    },
-    '&$align_right': {
-      justifyContent: 'flex-end',
-    },
+    flexDirection: 'column',
+    maxWidth: 'calc(50vw - 32px)',
   },
   contentArea: {
     borderRadius: `${t.spacing(1)}px`,
-    maxWidth: 'calc(50vw - 32px)',
     '$color_intense &': {
       background: BG.intense,
       color: t.palette.common.white,
@@ -114,13 +108,13 @@ function MessageContainer({
         <div className={classes.contentArea}>
           <div className={classes.contents}>{children}</div>
         </div>
+        {!!(actions || timestamp) && (
+          <div className={classes.footer}>
+            {!!actions && <div className={classes.actions}>{actions}</div>}
+            {timestamp && <span>{timestamp.toLocaleTimeString()}</span>}
+          </div>
+        )}
       </div>
-      {!!(actions || timestamp) && (
-        <div className={classes.footer}>
-          {!!actions && <div className={classes.actions}>{actions}</div>}
-          {timestamp && <span>{timestamp.toLocaleTimeString()}</span>}
-        </div>
-      )}
     </div>
   )
 }
