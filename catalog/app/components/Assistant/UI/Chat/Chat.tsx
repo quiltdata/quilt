@@ -43,7 +43,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     borderRadius: `${t.spacing(1)}px`,
     '$color_intense &': {
       background: BG.intense,
-      color: t.palette.common.white,
+      color: M.fade(t.palette.common.white, 0.8),
     },
     '$color_bright &': {
       background: BG.bright,
