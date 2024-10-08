@@ -25,6 +25,17 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   color_faint: {},
   messageContainer: {
     display: 'flex',
+    flexDirection: 'column',
+    gap: `${t.spacing(0.5)}px`,
+    '&$align_left': {
+      alignItems: 'flex-start',
+    },
+    '&$align_right': {
+      alignItems: 'flex-end',
+    },
+  },
+  contentWrapper: {
+    display: 'flex',
     gap: `${t.spacing(1)}px`,
     '&$align_left': {
       justifyContent: 'flex-start',
@@ -65,8 +76,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'flex-end',
-    padding: t.spacing(0, 2, 1, 2),
-    marginTop: t.spacing(-1.5),
+    padding: t.spacing(0.5, 2, 0, 2),
   },
   actions: {
     opacity: 0.5,
@@ -100,15 +110,17 @@ function MessageContainer({
         classes[`color_${color}`],
       )}
     >
-      <div className={classes.contentArea}>
-        <div className={classes.contents}>{children}</div>
-        {!!(actions || timestamp) && (
-          <div className={classes.footer}>
-            {!!actions && <div className={classes.actions}>{actions}</div>}
-            {timestamp && <span>{timestamp.toLocaleTimeString()}</span>}
-          </div>
-        )}
+      <div className={classes.contentWrapper}>
+        <div className={classes.contentArea}>
+          <div className={classes.contents}>{children}</div>
+        </div>
       </div>
+      {!!(actions || timestamp) && (
+        <div className={classes.footer}>
+          {!!actions && <div className={classes.actions}>{actions}</div>}
+          {timestamp && <span>{timestamp.toLocaleTimeString()}</span>}
+        </div>
+      )}
     </div>
   )
 }
