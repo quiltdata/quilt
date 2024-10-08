@@ -11,9 +11,11 @@ import * as Model from '../../Model'
 
 import Input from './Input'
 
-const USER_BG = M.colors.cyan[100]
-const TOOL_BG = M.colors.amber[100]
-const ASSISTANT_BG = M.colors.grey[50]
+const BG = {
+  intense: M.colors.indigo[900],
+  bright: M.colors.indigo[500],
+  faint: M.colors.indigo[50],
+}
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
   role_user: {},
@@ -33,22 +35,25 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     borderRadius: `${t.spacing(1)}px`,
     maxWidth: 'calc(50vw - 32px)',
     '$role_user &': {
-      background: USER_BG,
+      background: BG.intense,
       borderBottomRightRadius: 0,
     },
     '$role_assistant &': {
-      background: ASSISTANT_BG,
+      background: BG.faint,
       borderBottomLeftRadius: 0,
     },
     '$role_tool &': {
-      background: TOOL_BG,
+      background: BG.bright,
       borderBottomLeftRadius: 0,
     },
   },
   contents: {
     ...t.typography.body2,
     color: t.palette.text.primary,
-    padding: `${t.spacing(1.5)}px`,
+    padding: `${t.spacing(2)}px`,
+    '$role_user &, $role_tool &': {
+      color: t.palette.common.white,
+    },
   },
   footer: {
     ...t.typography.caption,
@@ -56,7 +61,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'flex-end',
-    padding: t.spacing(0, 1.5, 1, 1.5),
+    padding: t.spacing(0, 2, 1, 2),
     marginTop: t.spacing(-1.5),
   },
   actions: {
