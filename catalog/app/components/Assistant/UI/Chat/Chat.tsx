@@ -19,33 +19,18 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   role_assistant: {},
   role_tool: {},
   messageContainer: {
-    alignItems: 'flex-end',
     display: 'flex',
     gap: `${t.spacing(1)}px`,
     '&$role_user': {
-      alignSelf: 'flex-end',
-      flexFlow: 'row-reverse',
+      justifyContent: 'flex-end',
     },
     '&$role_assistant, &$role_tool': {
-      alignSelf: 'flex-start',
-    },
-  },
-  avatar: {
-    color: t.palette.text.primary,
-    height: `${t.spacing(4)}px`,
-    width: `${t.spacing(4)}px`,
-    '$role_user &': {
-      background: USER_BG,
-    },
-    '$role_assistant &': {
-      background: t.palette.background.paper,
-    },
-    '$role_tool &': {
-      background: TOOL_BG,
+      justifyContent: 'flex-start',
     },
   },
   contentArea: {
     borderRadius: `${t.spacing(1)}px`,
+    maxWidth: 'calc(50vw - 32px)',
     '$role_user &': {
       background: USER_BG,
       borderBottomRightRadius: 0,
@@ -62,7 +47,6 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   contents: {
     ...t.typography.body2,
     color: t.palette.text.primary,
-    maxWidth: 'calc(50vw - 112px)',
     padding: `${t.spacing(1.5)}px`,
   },
   footer: {
@@ -80,17 +64,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
       opacity: 1,
     },
   },
-  spacer: {
-    flexShrink: 0,
-    width: `${t.spacing(4)}px`,
-  },
 }))
-
-const ICONS = {
-  user: 'person',
-  assistant: 'assistant',
-  tool: 'build',
-}
 
 interface MessageContainerProps {
   role: 'user' | 'assistant' | 'tool'
@@ -103,9 +77,6 @@ function MessageContainer({ role, children, actions, timestamp }: MessageContain
   const classes = useMessageContainerStyles()
   return (
     <div className={cx(classes.messageContainer, classes[`role_${role}`])}>
-      <M.Avatar className={classes.avatar}>
-        <M.Icon fontSize="small">{ICONS[role]}</M.Icon>
-      </M.Avatar>
       <div className={classes.contentArea}>
         <div className={classes.contents}>{children}</div>
         {!!(actions || timestamp) && (
@@ -115,7 +86,6 @@ function MessageContainer({ role, children, actions, timestamp }: MessageContain
           </div>
         )}
       </div>
-      <div className={classes.spacer} />
     </div>
   )
 }
