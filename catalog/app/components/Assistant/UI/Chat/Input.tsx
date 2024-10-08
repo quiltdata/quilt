@@ -6,8 +6,11 @@ const useStyles = M.makeStyles((t) => ({
   input: {
     alignItems: 'center',
     display: 'flex',
-    padding: `${t.spacing(2)}px`,
-    paddingRight: `${t.spacing(1)}px`,
+    paddingLeft: `${t.spacing(2)}px`,
+    paddingRight: `${t.spacing(2)}px`,
+  },
+  textField: {
+    marginTop: 0,
   },
 }))
 
@@ -32,24 +35,36 @@ export default function ChatInput({ className, disabled, onSubmit }: ChatInputPr
     [disabled, onSubmit, value],
   )
 
+  // TODO: customize colors
   return (
     <form className={cx(classes.input, className)} onSubmit={handleSubmit}>
-      <M.OutlinedInput
+      <M.TextField
+        className={classes.textField}
         onChange={(e) => setValue(e.target.value)}
         value={value}
+        variant="filled"
         autoFocus
         fullWidth
-        margin="dense"
-        placeholder="Type a message..."
+        margin="normal"
+        label="Ask Qurator"
+        helperText="Qurator may make errors. Verify important information."
+        InputProps={{
+          endAdornment: (
+            <M.InputAdornment position="end" variant="filled">
+              <M.IconButton
+                disabled={disabled || !value}
+                onClick={handleSubmit}
+                type="submit"
+                color="primary"
+                edge="end"
+              >
+                <M.Icon>send</M.Icon>
+              </M.IconButton>
+            </M.InputAdornment>
+          ),
+        }}
+        InputLabelProps={{}}
       />
-      <M.IconButton
-        disabled={disabled || !value}
-        onClick={handleSubmit}
-        type="submit"
-        color="primary"
-      >
-        <M.Icon>send</M.Icon>
-      </M.IconButton>
     </form>
   )
 }

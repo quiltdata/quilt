@@ -287,10 +287,6 @@ const useChatStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     overflow: 'hidden',
   },
-  header: {
-    padding: `${t.spacing(2)}px`,
-    paddingBottom: `${t.spacing(1)}px`,
-  },
   historyContainer: {
     flexGrow: 1,
     overflowY: 'auto',
@@ -309,7 +305,7 @@ const useChatStyles = M.makeStyles((t) => ({
     gap: `${t.spacing(2)}px`,
     justifyContent: 'flex-end',
     minHeight: '100%',
-    padding: `${t.spacing(2)}px`,
+    padding: `${t.spacing(3)}px`,
     paddingBottom: 0,
   },
   input: {},
@@ -346,12 +342,6 @@ export default function Chat({ state, dispatch }: ChatProps) {
 
   return (
     <div className={classes.chat}>
-      <div className={classes.header}>
-        <M.Typography variant="h4">Qurator</M.Typography>
-        <M.Typography variant="caption" color="textSecondary">
-          Qurator may make errors. Verify important information.
-        </M.Typography>
-      </div>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
