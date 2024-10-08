@@ -36,15 +36,15 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   contentArea: {
     borderRadius: `${t.spacing(1)}px`,
     maxWidth: 'calc(50vw - 32px)',
-    '&$color_intense': {
+    '$color_intense &': {
       background: BG.intense,
       color: t.palette.common.white,
     },
-    '&$color_bright': {
+    '$color_bright &': {
       background: BG.bright,
       color: t.palette.common.white,
     },
-    '&$color_faint': {
+    '$color_faint &': {
       background: BG.faint,
       color: t.palette.text.primary,
     },
@@ -100,7 +100,7 @@ function MessageContainer({
         classes[`color_${color}`],
       )}
     >
-      <div className={cx(classes.contentArea, classes[`color_${color}`])}>
+      <div className={classes.contentArea}>
         <div className={classes.contents}>{children}</div>
         {!!(actions || timestamp) && (
           <div className={classes.footer}>
@@ -166,14 +166,10 @@ function MessageEvent({
     [dispatch, id, state],
   )
 
-  const messageProps = {
-    color: role === 'user' ? 'intense' : 'faint',
-    align: role === 'user' ? 'right' : 'left',
-  } as const
-
   return (
     <MessageContainer
-      {...messageProps}
+      color={role === 'user' ? 'intense' : 'faint'}
+      align={role === 'user' ? 'right' : 'left'}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
       timestamp={timestamp}
     >
@@ -212,7 +208,6 @@ function ToolUseEvent({
   return (
     <MessageContainer
       color="bright"
-      align="left"
       timestamp={timestamp}
       actions={discard && <MessageAction onClick={discard}>discard</MessageAction>}
     >
@@ -247,7 +242,6 @@ function ToolUseState({ timestamp, dispatch, calls }: ToolUseStateProps) {
   return (
     <MessageContainer
       color="bright"
-      align="left"
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
@@ -272,8 +266,6 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
   )
   return (
     <MessageContainer
-      color="faint"
-      align="left"
       timestamp={timestamp}
       actions={<MessageAction onClick={abort}>abort</MessageAction>}
     >
@@ -356,7 +348,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
       </div>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
-          <MessageContainer color="faint" align="left">
+          <MessageContainer>
             Hi! I'm Qurator, your AI assistant. How can I help you?
           </MessageContainer>
           {state.events
@@ -385,7 +377,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
             Idle: (s) =>
               Eff.Option.match(s.error, {
                 onSome: (e) => (
-                  <MessageContainer role="assistant" timestamp={s.timestamp}>
+                  <MessageContainer timestamp={s.timestamp}>
                     Error occurred: {e.message}
                     <div>{e.details}</div>
                   </MessageContainer>
