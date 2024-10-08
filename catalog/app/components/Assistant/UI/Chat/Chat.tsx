@@ -10,7 +10,6 @@ import usePrevious from 'utils/usePrevious'
 import * as Model from '../../Model'
 
 import Input from './Input'
-import backgroundPattern from './bg.svg'
 
 const USER_BG = M.colors.cyan[100]
 const TOOL_BG = M.colors.amber[100]
@@ -305,7 +304,6 @@ const useChatStyles = M.makeStyles((t) => ({
     // },
   },
   history: {
-    background: `url("${backgroundPattern}") ${t.palette.grey[700]}`,
     display: 'flex',
     flexDirection: 'column',
     gap: `${t.spacing(2)}px`,
