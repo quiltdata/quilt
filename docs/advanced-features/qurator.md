@@ -28,9 +28,10 @@ or request key insights from a specific dataset.
 - **Data Summarization**: Qurator Omni can instantly generate summaries of
   scientific papers, datasets, or reports, helping users grasp essential details
   without combing through the entire content.
-- **Fine-Grained RAG Permissions**: Qurator Omni enforces user permissions set
-  by the data owner when performing Retrieval Augmented Generation, ensuring
-  that only authorized users can access specific datasets.
+- **RAG with Fine-Grained Permissions**: Qurator Omni ensures that users are
+  only able to query on data that they're authorized to access when performing
+  Retrieval Augmented Generation, ensuring strict compliance with organizational
+  data access policies.
 - **Self Hosted LLM**:  Administrators retain full control of their data, and
   all of their data is kept internal to their AWS cloud environment powered by
   Anthropic Claude on Amazon Bedrock. This ensures that all interactions remain
