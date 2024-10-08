@@ -11,7 +11,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 
-import { EMPTY_MAP, PrefixedKeysMap, toHandlesMap } from './utils'
+import { EMPTY_MAP, ListingSelection, toHandlesMap } from './utils'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
@@ -126,8 +126,8 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DashboardProps {
   onDone: () => void
-  onSelection: (changed: PrefixedKeysMap) => void
-  selection: PrefixedKeysMap
+  onSelection: (changed: ListingSelection) => void
+  selection: ListingSelection
 }
 
 export default function Dashboard({ onDone, onSelection, selection }: DashboardProps) {
@@ -161,7 +161,7 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
 
   const handleRemove = React.useCallback(
     (prefixUrl: string, index: number) => {
-      const newSelection = R.dissocPath<PrefixedKeysMap>([prefixUrl, index], selection)
+      const newSelection = R.dissocPath<ListingSelection>([prefixUrl, index], selection)
       onSelection(newSelection)
       if (!Object.values(newSelection).some((ids) => !!ids.length)) {
         onDone()

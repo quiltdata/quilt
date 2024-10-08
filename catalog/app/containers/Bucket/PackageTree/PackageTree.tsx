@@ -100,6 +100,75 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   )
 }
 
+const useSelectionWidgetStyles = M.makeStyles({
+  close: {
+    marginLeft: 'auto',
+  },
+  title: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  badge: {
+    right: '4px',
+  },
+})
+
+interface SelectionWidgetProps {
+  className: string
+  selection: Selection.ListingSelection
+  onSelection: (changed: Selection.ListingSelection) => void
+}
+
+function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
+  const classes = useSelectionWidgetStyles()
+  const location = RRDom.useLocation()
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+  const [opened, setOpened] = React.useState(false)
+  const open = React.useCallback(() => setOpened(true), [])
+  const close = React.useCallback(() => setOpened(false), [])
+  React.useEffect(() => close(), [close, location])
+  const badgeClasses = React.useMemo(() => ({ badge: classes.badge }), [classes])
+  return (
+    <>
+      <M.Badge
+        badgeContent={count}
+        classes={badgeClasses}
+        className={className}
+        color="primary"
+        max={999}
+        showZero
+      >
+        <M.Button onClick={open} size="small">
+          Selected items
+        </M.Button>
+      </M.Badge>
+
+      <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
+        <M.DialogTitle disableTypography>
+          <M.Typography className={classes.title} variant="h6">
+            {count} items selected
+            <M.IconButton size="small" className={classes.close} onClick={close}>
+              <M.Icon>close</M.Icon>
+            </M.IconButton>
+          </M.Typography>
+        </M.DialogTitle>
+        <M.DialogContent>
+          <Selection.Dashboard
+            onSelection={onSelection}
+            onDone={close}
+            selection={selection}
+          />
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={close} variant="contained" color="primary" size="small">
+            Close
+          </M.Button>
+        </M.DialogActions>
+      </M.Dialog>
+    </>
+  )
+}
+
 const useDirDisplayStyles = M.makeStyles((t) => ({
   button: {
     flexShrink: 0,
@@ -117,8 +186,8 @@ interface DirDisplayProps {
   path: string
   crumbs: BreadCrumbs.Crumb[]
   size?: number
-  selection: string[]
-  onSelection: (ids: string[]) => void
+  selection: Selection.ListingSelection
+  onSelection: (ids: Selection.ListingSelection) => void
 }
 
 function DirDisplay({
@@ -339,21 +408,11 @@ function DirDisplay({
                   {
                     Ok: ({ ui: { actions } }) => (
                       <>
-                        <M.Badge
-                          badgeContent={Object.values(selection).reduce(
-                            (memo, ids) => memo + ids.length,
-                            0,
-                          )}
-                          classes={{}}
-                          className={''}
-                          color="primary"
-                          max={999}
-                          showZero
-                        >
-                          <M.Button onClick={() => {}} size="small">
-                            Selected items
-                          </M.Button>
-                        </M.Badge>
+                        <SelectionWidget
+                          className={classes.button}
+                          selection={selection}
+                          onSelection={onSelection}
+                        />
                         {actions.revisePackage && (
                           <M.Button
                             className={classes.button}
@@ -421,8 +480,14 @@ function DirDisplay({
                       <M.Box mt={2}>
                         {blocks.browser && (
                           <Listing.Listing
-                            onSelectionChange={onSelection}
-                            selection={selection}
+                            onSelectionChange={(ids) =>
+                              onSelection(Selection.merge(ids, bucket, path)(selection))
+                            }
+                            selection={Selection.getDirectorySelection(
+                              selection,
+                              bucket,
+                              path,
+                            )}
                             items={items}
                             key={hash}
                           />
@@ -843,14 +908,10 @@ function PackageTree({
     tailSeparator: path.endsWith('/'),
   })
 
-  const [selection, setSelection] = React.useState<Record<string, string[]>>(
+  // TODO: guard for leaving this exact package
+  const [selection, setSelection] = React.useState<Selection.ListingSelection>(
     Selection.EMPTY_MAP,
   )
-  const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path)),
-    [bucket, path],
-  )
-  // TODO: guard for leaving this exact package
 
   return (
     <FileView.Root>
@@ -892,11 +953,6 @@ function PackageTree({
           </Lab.Alert>
         </M.Box>
       )}
-      <Selection.Dashboard
-        onSelection={setSelection}
-        onDone={() => {}}
-        selection={selection}
-      />
       <M.Typography variant="body1">
         <PackageLink {...{ bucket, name }} />
         {' @ '}
@@ -914,8 +970,8 @@ function PackageTree({
                 hashOrTag,
                 crumbs,
                 size,
-                selection: Selection.getDirectorySelection(selection, bucket, path),
-                onSelection: handleSelection,
+                selection,
+                onSelection: setSelection,
               }}
             />
           ) : (

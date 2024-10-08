@@ -40,8 +40,8 @@ const useSelectionWidgetStyles = M.makeStyles((t) => ({
 
 interface SelectionWidgetProps {
   className: string
-  selection: Selection.PrefixedKeysMap
-  onSelection: (changed: Selection.PrefixedKeysMap) => void
+  selection: Selection.ListingSelection
+  onSelection: (changed: Selection.ListingSelection) => void
 }
 
 function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
@@ -362,8 +362,8 @@ interface DirContentsProps {
   setPath: (path: string) => void
   setPrefix: (prefix: string) => void
   loadMore: () => void
-  selection: string[]
-  onSelectionChange: (ids: string[]) => void
+  selection: Selection.SelectionItem[]
+  onSelectionChange: (ids: Selection.SelectionItem[]) => void
 }
 
 function DirContents({
