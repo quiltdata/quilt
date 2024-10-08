@@ -1,0 +1,31 @@
+schema:
+    - name: $distinct_id
+      type: Utf8
+    - name: Company
+      type: Utf8
+    - name: name
+      type: Utf8
+    - name: Catalog host
+      type: Utf8
+    - name: Catalog buckets
+      type: Int32
+    - name: Total S3 bytes indexed
+      type: Int64
+    - name: Total package manifests
+      type: Int32
+    - name: Total packaged bytes
+      type: Int64
+    - name: $last_seen
+      type: Utf8 # Timestamps not yet supported 
+    - name: $country_code
+      type: Utf8
+    - name: $region
+      type: Utf8
+    - name: $city
+      type: Utf8
+source:
+    type: quilt-packages
+    package_name: "^metrics\/(?<pkg_date>.+)+$" # specify a Python RegEx for matching packages
+    logical_key: "^user-export-[^-]+-(?<date>.+)_[^.]+_[^.]+_[^.]+.csv$" # specify a Python RegEx for matching logical keys
+parser:
+    format: csv # or parquet
