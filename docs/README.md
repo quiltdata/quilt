@@ -11,11 +11,11 @@ data integrity at scale.
 
 Quilt consists of three main elements:
 
-- [Python SDK](#quilt-python-sdk) which provides the ability to create, push,
-  install and delete Quilt Packages.
 - [Quilt Platform](#quilt-platform-overview) which is a cloud platform for
   interacting with, visualizing, searching and querying Quilt Packages, which is
   hosted in an organization's AWS Account.
+- [Quilt Python SDK](#quilt-python-sdk) which provides the ability to create,
+  push, install and delete Quilt Packages.
 - [Quilt Ecosystem](#quilt-ecosystem-and-integrations) which provide extension
   of the core Quilt Capabilities to enable typical elements of life sciences
   workflows, such as incorporating orchestration data, and connecting packages
@@ -87,9 +87,8 @@ The **Quilt Ecosystem** extends the platform with integrations and plugins to
 fit your workflow. Whether you're managing scientific data or automating
 packaging tasks, Quilt can be tailored to your needs with these tools:
 
-- [Benchling
-  Packager](examples/benchling.md)
-  - Package biological data from Benchling.
+- [Benchling Packager](examples/benchling.md) - Package electronic lab notebooks
+  from Benchling.
 - [Nextflow Plugin](examples/nextflow.md) - Integrate with Nextflow pipelines
   for bioinformatics.
 
