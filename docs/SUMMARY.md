@@ -35,13 +35,7 @@
   * [GxP for Security & Compliance](advanced-features/good-practice.md)
   * [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)
 
-## Quilt Ecosystem Integrations
-
-* [Benchling Packager](https://open.quiltdata.com/b/quilt-example/packages/examples/benchling-packager)
-* [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
-* [Nextflow Plugin](examples/nextflow.md)
-
-## Quilt Python SDK Developers
+## Quilt Python SDK
 
 * [Installation](Installation.md)
 * [Quick Start](Quickstart.md)
@@ -70,3 +64,9 @@
   * [Contributing](CONTRIBUTING.md)
   * [Frequently Asked Questions](FAQ.md)
   * [Troubleshooting](Troubleshooting.md)
+
+## Quilt Ecosystem Integrations
+
+* [Benchling Packager](https://open.quiltdata.com/b/quilt-example/packages/examples/benchling-packager)
+* [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
+* [Nextflow Plugin](examples/nextflow.md)
