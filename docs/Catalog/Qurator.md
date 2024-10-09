@@ -4,7 +4,7 @@
 Quilt web catalog. It allows users to interact with Quilt packages and search
 functionality through natural language. Qurator Omni leverages advanced models
 like Claude, integrated via Amazon Bedrock, enabling users to query, retrieve, and
-summarize data instead of having click through the GUI.
+summarize data instead of having to click through the GUI.
 
 ## What is Qurator Omni?
 
