@@ -116,6 +116,95 @@ export default {
               },
             ],
           },
+          {
+            name: 'bucketSetTabulatorTable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketSetTabulatorTableResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucketName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'tableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'config',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketRenameTabulatorTable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketSetTabulatorTableResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucketName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'tableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'newTableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
       },
@@ -574,6 +663,24 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'tabulatorTables',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'TabulatorTable',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -714,6 +821,24 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'BucketSetTabulatorTableResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BucketConfig',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
       },
       {
         kind: 'UNION',
@@ -5150,6 +5275,37 @@ export default {
             name: 'OperationError',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'TabulatorTable',
+        fields: [
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'config',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',
