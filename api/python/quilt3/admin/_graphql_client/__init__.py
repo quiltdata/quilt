@@ -2,6 +2,25 @@
 
 from .base_client import BaseClient
 from .base_model import BaseModel, Upload
+from .bucket_tabulator_table_rename import (
+    BucketTabulatorTableRename,
+    BucketTabulatorTableRenameAdmin,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError,
+)
+from .bucket_tabulator_table_set import (
+    BucketTabulatorTableSet,
+    BucketTabulatorTableSetAdmin,
+    BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig,
+    BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput,
+    BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError,
+)
+from .bucket_tabulator_tables_list import (
+    BucketTabulatorTablesList,
+    BucketTabulatorTablesListBucketConfig,
+    BucketTabulatorTablesListBucketConfigTabulatorTables,
+)
 from .client import Client
 from .fragments import (
     InvalidInputSelection,
@@ -122,6 +141,19 @@ from .users_set_role import (
 __all__ = [
     "BaseClient",
     "BaseModel",
+    "BucketTabulatorTableRename",
+    "BucketTabulatorTableRenameAdmin",
+    "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig",
+    "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput",
+    "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError",
+    "BucketTabulatorTableSet",
+    "BucketTabulatorTableSetAdmin",
+    "BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig",
+    "BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput",
+    "BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError",
+    "BucketTabulatorTablesList",
+    "BucketTabulatorTablesListBucketConfig",
+    "BucketTabulatorTablesListBucketConfigTabulatorTables",
     "Client",
     "InvalidInputSelection",
     "InvalidInputSelectionErrors",
