@@ -19,23 +19,14 @@ or request key insights from a specific dataset.
 
 ### Key Features
 
-- **Natural Language Queries**: Ask complex questions like _“What’s known about
-  BRCA1 research?”_ or _“Show the latest asthma treatment data”_ to interact
-  with information stored in private or public S3 buckets, such as [PubMed
-  PMC](https://open.quiltdata.com/b/pmc-oa-opendata) or other [Open Data on
-  AWS](https://registry.opendata.aws/). The AI assistant retrieves relevant
-  data and provides structured, concise answers.
-- **Data Summarization**: Qurator Omni can instantly generate summaries of
-  scientific papers, datasets, or reports, helping users grasp essential details
-  without combing through the entire content.
-- **RAG with Fine-Grained Permissions**: Qurator Omni ensures that users are
-  only able to query on data that they're authorized to access when performing
-  Retrieval Augmented Generation, ensuring strict compliance with organizational
-  data access policies.
-- **Self Hosted LLM**:  Administrators retain full control of their data, and
-  all of their data is kept internal to their AWS cloud environment powered by
-  Anthropic Claude on Amazon Bedrock. This ensures that all interactions remain
-  secure and confined to private cloud environments.
+- **Natural Language Queries**: Ask complex questions like “What are the latest
+  asthma treatments?” or “Summarize research on BRCA1 mutations.”
+- **Instant Summaries**: Quickly digest scientific papers, datasets, or reports
+  without reading everything.
+- **Fine-Grained Permissions with RAG**: Query only the data you're authorized
+  to access, ensuring compliance with strict organizational policies
+- **Secure Cloud Environment**: Work within your private AWS cloud, ensuring
+  data stays secure while using state-of-the-art AI models.
 
 ## Getting Started
 
