@@ -68,7 +68,7 @@ To enable Qurator Omni:
   After selecting a specific document, Qurator will generate a clear, useful
   summary of the paper.
 
-- **Deep Dive**: _“Who are the top authors in breast cancer research?”_  
+- **Quick Scan**: _“List some of the authors doing breast cancer research?”_  
   Qurator Omni will list key authors and their contributions based on Quilt’s
   indexed datasets.
 
