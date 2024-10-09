@@ -3,7 +3,7 @@
 `Qurator Omni` is an always-available AI assistant embedded directly into the
 Quilt web catalog. It allows users to interact with Quilt packages and search
 functionality through natural language. Qurator Omni leverages advanced models
-like Claude, integrated via AWS Bedrock, enabling users to query, retrieve, and
+like Claude, integrated via Amazon Bedrock, enabling users to query, retrieve, and
 summarize data instead of having click through the GUI.
 
 ## What is Qurator Omni?
@@ -38,7 +38,7 @@ To enable Qurator Omni:
      enable the Qurator chatbot.
 
 2. **Configure Claude Model**:  
-   - Login to the AWS Bedrock console.
+   - Login to the Amazon Bedrock console.
    - Ensure that the Claude 3.5 Sonnet model is available in the same region as
      your Quilt deployment. Check [Model support by AWS
      Region](https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html)
