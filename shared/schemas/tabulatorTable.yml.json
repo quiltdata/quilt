@@ -17,13 +17,6 @@
     },
     "parser": {
       "title": "Parser",
-      "discriminator": {
-        "propertyName": "format",
-        "mapping": {
-          "csv": "#/definitions/CsvParser",
-          "parquet": "#/definitions/ParquetParser"
-        }
-      },
       "oneOf": [
         {
           "$ref": "#/definitions/CsvParser"
