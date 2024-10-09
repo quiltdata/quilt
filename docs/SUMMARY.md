@@ -13,7 +13,7 @@
 * [Document Previews](Catalog/Preview.md)
 * [Embeddable iFrames](Catalog/Embed.md)
 * [Search & Query](Catalog/SearchQuery.md)
-* [Qurator Omni](advanced-features/qurator.md) AI Assistant
+* [Qurator Omni](Catalog/Qurator.md) AI Assistant
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
 * **Advanced**
   * [Athena](advanced-features/athena.md)
