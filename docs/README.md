@@ -88,7 +88,7 @@ fit your workflow. Whether you're managing scientific data or automating
 packaging tasks, Quilt can be tailored to your needs with these tools:
 
 - [Benchling
-  Packager](https://open.quiltdata.com/b/quilt-example/packages/examples/benchling-packager)
+  Packager](examples/benchling.md)
   - Package biological data from Benchling.
 - [Nextflow Plugin](examples/nextflow.md) - Integrate with Nextflow pipelines
   for bioinformatics.

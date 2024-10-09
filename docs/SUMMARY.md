@@ -67,6 +67,6 @@
 
 ## Quilt Ecosystem Integrations
 
-* [Benchling Packager](https://open.quiltdata.com/b/quilt-example/packages/examples/benchling-packager)
+* [Benchling Packager](examples/benchling.md)
 * [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
 * [Nextflow Plugin](examples/nextflow.md)
