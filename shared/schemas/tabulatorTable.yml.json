@@ -1,4 +1,6 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://quiltdata.com/tabulator/config/1",
   "title": "Config",
   "type": "object",
   "properties": {
