@@ -14,7 +14,7 @@ import Input from './Input'
 const BG = {
   intense: M.colors.indigo[900],
   bright: M.colors.indigo[500],
-  faint: M.colors.indigo[50],
+  faint: M.colors.common.white,
 }
 
 const useMessageContainerStyles = M.makeStyles((t) => ({
@@ -37,7 +37,7 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
   contentWrapper: {
     display: 'flex',
     flexDirection: 'column',
-    maxWidth: 'calc(50vw - 32px)',
+    maxWidth: '100%',
   },
   contentArea: {
     borderRadius: `${t.spacing(1)}px`,
@@ -70,7 +70,8 @@ const useMessageContainerStyles = M.makeStyles((t) => ({
     display: 'flex',
     gap: t.spacing(1),
     justifyContent: 'flex-end',
-    padding: t.spacing(1, 0, 0, 2),
+    paddingLeft: t.spacing(4),
+    paddingTop: '6px',
   },
   actions: {
     opacity: 0.7,

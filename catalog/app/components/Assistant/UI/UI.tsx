@@ -8,8 +8,10 @@ import Chat from './Chat'
 
 const useSidebarStyles = M.makeStyles({
   sidebar: {
+    background: M.colors.indigo[50],
     display: 'flex',
     height: '100%',
+    maxWidth: '40rem',
     width: '50vw',
   },
 })
