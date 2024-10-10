@@ -12,7 +12,6 @@ import quilt3
 from .utils import QuiltTestCase
 
 
-
 class TestSession(QuiltTestCase):
     @patch('quilt3.session.open_url')
     @patch('quilt3.session.input', return_value='123456')

@@ -53,4 +53,3 @@ class TestAPI(QuiltTestCase):
         assert features['noDownload'] is False
         assert features['qurator'] is False
         assert 'notAFlag' not in features
-
