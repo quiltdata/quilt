@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv'
 /**
  * Extensible error class.
  */
@@ -38,5 +39,30 @@ export class ErrorDisplay extends BaseError {
    */
   constructor(headline: string, detail?: string, object?: {}) {
     super(headline, { headline, detail, object })
+  }
+}
+
+export interface JsonInvalidAgainstSchemaProps {
+  errors: ErrorObject[]
+}
+
+export class JsonInvalidAgainstSchema extends BaseError {
+  static displayName = 'JsonInvalidAgainstSchema'
+
+  constructor(props: JsonInvalidAgainstSchemaProps) {
+    super(
+      props.errors
+        .map(({ instancePath, message, params, keyword }) => {
+          switch (keyword) {
+            case 'const':
+              return `${instancePath}: ${message}: ${params.allowedValue}`
+            case 'enum':
+              return `${instancePath}: ${message}: ${params.allowedValues.join(', ')}`
+          }
+          return `${instancePath}: ${message}`
+        })
+        .join('.\n'),
+      props,
+    )
   }
 }

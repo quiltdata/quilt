@@ -303,6 +303,7 @@ __Arguments__
 * __name__:  name for package in registry
 * __dest__:  where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
     in the registry bucket, or a callable that takes logical_key and package_entry, and returns an S3 URI.
+    (Changed in 6.0.0a1) previously top_hash was passed to the callable dest as a third argument.
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
 * __selector_fn__:  An optional function that determines which package entries should be copied to S3.

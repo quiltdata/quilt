@@ -37,3 +37,16 @@ class User:
     is_service: bool
     role: Optional[AnnotatedRole]
     extra_roles: List[AnnotatedRole]
+
+
+@pydantic.dataclasses.dataclass
+class SSOConfig:
+    text: str
+    timestamp: datetime
+    uploader: User
+
+
+@pydantic.dataclasses.dataclass
+class TabulatorTable:
+    name: str
+    config: str

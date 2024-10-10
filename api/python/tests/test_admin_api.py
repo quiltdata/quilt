@@ -32,6 +32,16 @@ USER = {
     "role": UNMANAGED_ROLE,
     "extraRoles": [MANAGED_ROLE],
 }
+SSO_CONFIG = {
+    "__typename": "SsoConfig",
+    "text": "",
+    "timestamp": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
+    "uploader": USER,
+}
+TABULATOR_TABLE = {
+    "name": "table",
+    "config": "config",
+}
 MUTATION_ERRORS = (
     (
         {
@@ -324,3 +334,92 @@ def test_remove_roles(data, result):
                 admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole")
         else:
             assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole") == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (None, None),
+    ],
+)
+def test_sso_config_get(data, result):
+    with mock_client(_make_nested_dict("admin.sso_config", data), "ssoConfigGet"):
+        assert admin.sso_config.get() == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        (SSO_CONFIG, admin.SSOConfig(**_as_dataclass_kwargs(SSO_CONFIG))),
+        (None, None),
+        *MUTATION_ERRORS,
+    ],
+)
+def test_sso_config_set(data, result):
+    with mock_client(_make_nested_dict("admin.set_sso_config", data), "ssoConfigSet", variables={"config": ""}):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.sso_config.set("")
+        else:
+            assert admin.sso_config.set("") == result
+
+
+@pytest.mark.parametrize(
+    "data, result",
+    [
+        ({"tabulator_tables": [TABULATOR_TABLE]}, [admin.TabulatorTable(**TABULATOR_TABLE)]),
+        (None, admin.BucketNotFoundError),
+    ],
+)
+def test_tabulator_list(data, result):
+    with mock_client(
+        _make_nested_dict("bucket_config", data),
+        "bucketTabulatorTablesList",
+        variables={"name": "test"},
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.tabulator.list_tables("test")
+        else:
+            assert admin.tabulator.list_tables("test") == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        ({"__typename": "BucketConfig"}, None),
+        *MUTATION_ERRORS,
+    ],
+)
+def test_tabulator_set(data, result):
+    with mock_client(
+        _make_nested_dict("admin.bucket_set_tabulator_table", data),
+        "bucketTabulatorTableSet",
+        variables={"bucketName": "test", "tableName": "table", "config": ""},
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.tabulator.set_table("test", "table", "")
+        else:
+            assert admin.tabulator.set_table("test", "table", "") == result
+
+
+@pytest.mark.parametrize(
+    "data,result",
+    [
+        ({"__typename": "BucketConfig"}, None),
+        *MUTATION_ERRORS,
+    ],
+)
+def test_tabulator_rename(data, result):
+    with mock_client(
+        _make_nested_dict("admin.bucket_rename_tabulator_table", data),
+        "bucketTabulatorTableRename",
+        variables={"bucketName": "test", "tableName": "table", "newTableName": "new_table"},
+    ):
+        if isinstance(result, type) and issubclass(result, Exception):
+            with pytest.raises(result):
+                admin.tabulator.rename_table("test", "table", "new_table")
+        else:
+            assert admin.tabulator.rename_table("test", "table", "new_table") == result

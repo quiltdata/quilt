@@ -11,7 +11,7 @@ Resources:
               Service: cloudformation.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: root
+        - PolicyName: QuiltServiceRolePolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -19,23 +19,43 @@ Resources:
                 Action:
                   - apigateway:DELETE
                   - apigateway:GET
-                  - apigateway:GetResources
                   - apigateway:PATCH
                   - apigateway:POST
                   - apigateway:PUT
+                  - apigateway:SetWebACL
                   - apigateway:UpdateRestApiPolicy
+                  - appsync:SetWebACL
+                  - apprunner:AssociateWebAcl
+                  - apprunner:DescribeWebAclForService
+                  - apprunner:DisassociateWebAcl
+                  - athena:CreateWorkGroup
+                  - athena:DeleteWorkGroup
+                  - athena:GetWorkGroup
+                  - athena:TagResource
                   - autoscaling:CreateAutoScalingGroup
                   - autoscaling:DeleteAutoScalingGroup
                   - autoscaling:DescribeAutoScalingGroups
                   - autoscaling:DescribeAutoScalingInstances
+                  - autoscaling:DescribeLifecycleHooks
+                  - autoscaling:DescribeNotificationConfigurations
                   - autoscaling:DescribeScalingActivities
                   - autoscaling:UpdateAutoScalingGroup
+                  - cloudtrail:AddTags
                   - cloudtrail:CreateTrail
                   - cloudtrail:DeleteTrail
                   - cloudtrail:DescribeTrails
+                  - cloudtrail:GetEventSelectors
+                  - cloudtrail:GetInsightSelectors
+                  - cloudtrail:GetTrail
+                  - cloudtrail:GetTrailStatus
+                  - cloudtrail:ListTags
                   - cloudtrail:PutEventSelectors
                   - cloudtrail:StartLogging
+                  - cognito-idp:AssociateWebACL
+                  - cognito-idp:DisassociateWebACL
+                  - cognito-idp:GetWebACLForResource
                   - ec2:AssociateRouteTable
+                  - ec2:AssociateVerifiedAccessInstanceWebAcl
                   - ec2:AttachInternetGateway
                   - ec2:AuthorizeSecurityGroupEgress
                   - ec2:AuthorizeSecurityGroupIngress
@@ -49,6 +69,7 @@ Resources:
                   - ec2:CreateVpc
                   - ec2:DeleteInternetGateway
                   - ec2:DeleteLaunchTemplate
+                  - ec2:DeleteNetworkInterface
                   - ec2:DeleteRoute
                   - ec2:DeleteRouteTable
                   - ec2:DeleteSecurityGroup
@@ -62,13 +83,18 @@ Resources:
                   - ec2:DescribeLaunchTemplateVersions
                   - ec2:DescribeLaunchTemplates
                   - ec2:DescribeNetworkAcls
+                  - ec2:DescribeNetworkInterfaces
                   - ec2:DescribeRouteTables
+                  - ec2:DescribeSecurityGroupRules
                   - ec2:DescribeSecurityGroups
                   - ec2:DescribeSubnets
                   - ec2:DescribeVpcAttribute
                   - ec2:DescribeVpcs
                   - ec2:DetachInternetGateway
+                  - ec2:DetachNetworkInterface
                   - ec2:DisassociateRouteTable
+                  - ec2:DisassociateVerifiedAccessInstanceWebAcl
+                  - ec2:GetVerifiedAccessInstanceWebAcl
                   - ec2:ModifyVpcAttribute
                   - ec2:RevokeSecurityGroupEgress
                   - ec2:RunInstances
@@ -82,6 +108,9 @@ Resources:
                   - ecs:DescribeClusters
                   - ecs:DescribeServices
                   - ecs:RegisterTaskDefinition
+                  - ecs:TagResource
+                  - ecs:UpdateService
+                  - elasticloadbalancing:AddTags
                   - elasticloadbalancing:CreateListener
                   - elasticloadbalancing:CreateLoadBalancer
                   - elasticloadbalancing:CreateRule
@@ -91,28 +120,44 @@ Resources:
                   - elasticloadbalancing:DeleteRule
                   - elasticloadbalancing:DeleteTargetGroup
                   - elasticloadbalancing:DescribeListeners
+                  - elasticloadbalancing:DescribeLoadBalancerAttributes
                   - elasticloadbalancing:DescribeLoadBalancers
                   - elasticloadbalancing:DescribeRules
+                  - elasticloadbalancing:DescribeTags
+                  - elasticloadbalancing:DescribeTargetGroupAttributes
                   - elasticloadbalancing:DescribeTargetGroups
+                  - elasticloadbalancing:DescribeTargetHealth
                   - elasticloadbalancing:ModifyLoadBalancerAttributes
                   - elasticloadbalancing:ModifyTargetGroupAttributes
+                  - elasticloadbalancing:SetWebAcl
+                  - es:AddTags
                   - es:CreateElasticsearchDomain
                   - es:DeleteElasticsearchDomain
                   - es:DescribeElasticsearchDomain
+                  - es:UpdateElasticsearchDomainConfig
                   - events:DeleteRule
                   - events:DescribeRule
+                  - events:ListTargetsByRule
                   - events:PutRule
                   - events:PutTargets
                   - events:RemoveTargets
+                  - events:TagResource
+                  - firehose:CreateDeliveryStream
+                  - firehose:DeleteDeliveryStream
+                  - firehose:DescribeDeliveryStream
+                  - firehose:ListTagsForDeliveryStream
+                  - firehose:TagDeliveryStream 
                   - glue:CreateDatabase
                   - glue:CreateTable
                   - glue:DeleteDatabase
                   - glue:DeleteTable
+                  - glue:TagResource
                   - iam:AddRoleToInstanceProfile
                   - iam:AttachRolePolicy
                   - iam:CreateInstanceProfile
                   - iam:CreatePolicy
                   - iam:CreateRole
+                  - iam:CreateServiceLinkedRole
                   - iam:DeleteInstanceProfile
                   - iam:DeletePolicy
                   - iam:DeletePolicyVersion
@@ -127,6 +172,20 @@ Resources:
                   - iam:PassRole
                   - iam:PutRolePolicy
                   - iam:RemoveRoleFromInstanceProfile
+                  - iam:TagRole
+                  - iam:TagPolicy
+                  - kms:CreateGrant
+                  - kms:CreateKey
+                  - kms:Decrypt
+                  - kms:DescribeKey
+                  - kms:Encrypt
+                  - kms:GenerateDataKey
+                  - kms:GetKeyPolicy
+                  - kms:GetKeyRotationStatus
+                  - kms:ListResourceTags
+                  - kms:PutKeyPolicy
+                  - kms:ScheduleKeyDeletion
+                  - kms:TagResource
                   - lambda:AddPermission
                   - lambda:CreateEventSourceMapping
                   - lambda:CreateFunction
@@ -135,42 +194,86 @@ Resources:
                   - lambda:DeleteLayerVersion
                   - lambda:GetEventSourceMapping
                   - lambda:GetFunction
+                  - lambda:GetFunctionCodeSigningConfig
+                  - lambda:GetFunctionConfiguration
                   - lambda:GetLayerVersion
+                  - lambda:GetRuntimeManagementConfig
                   - lambda:InvokeFunction
                   - lambda:PublishLayerVersion
+                  - lambda:PublishVersion
                   - lambda:PutFunctionConcurrency
                   - lambda:RemovePermission
+                  - lambda:TagResource
                   - lambda:UpdateFunctionCode
                   - lambda:UpdateFunctionConfiguration
                   - logs:CreateLogGroup
+                  - logs:CreateLogStream
                   - logs:DeleteLogGroup
+                  - logs:DeleteLogStream
                   - logs:DeleteResourcePolicy
                   - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
                   - logs:DescribeResourcePolicies
                   - logs:PutResourcePolicy
                   - logs:PutRetentionPolicy
+                  - logs:TagResource
+                  - organizations:ListAWSServiceAccessForOrganization
                   - rds:AddTagsToResource
                   - rds:CreateDBInstance
                   - rds:CreateDBSubnetGroup
+                  - rds:CreateTenantDatabase
                   - rds:DeleteDBInstance
                   - rds:DeleteDBSubnetGroup
+                  - rds:DeleteTenantDatabase
                   - rds:DescribeDBInstances
                   - rds:DescribeDBSubnetGroups
+                  - rds:ListTagsForResource
                   - rds:ModifyDBInstance
-                  - s3:CreateBucket
-                  - s3:DeleteBucket
-                  - s3:DeleteBucketPolicy
-                  - s3:GetBucketPolicy
-                  - s3:GetObject
-                  - s3:PutBucketCORS
-                  - s3:PutBucketPolicy
-                  - s3:PutBucketVersioning
-                  - s3:PutLifecycleConfiguration
+                  - route53:CreateHostedZone
+                  - s3:*  # Stack has this anyway; Canary buckets get Access Denied even with GetObject
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:TagResource
+                  - servicediscovery:CreatePrivateDnsNamespace
+                  - servicediscovery:CreateService
+                  - servicediscovery:DeleteNamespace
+                  - servicediscovery:DeleteService
+                  - servicediscovery:GetOperation
+                  - servicediscovery:GetService
+                  - servicediscovery:TagResource
+                  - sns:CreateTopic*
+                  - sns:DeleteTopic
+                  - sns:Get*
                   - sns:Publish  # To publish to CFN notification topic.
+                  - sns:SetTopicAttributes 
+                  - sns:Subscribe
+                  - sns:TagResource
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
                   - sqs:GetQueueAttributes
+                  - sqs:TagQueue
+                  - ssm:AddTagsToResource 
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
+                  - synthetics:CreateCanary
+                  - synthetics:DeleteCanary
+                  - synthetics:GetCanary
+                  - synthetics:StartCanary
+                  - synthetics:StopCanary
+                  - synthetics:TagResource
+                  - wafv2:AssociateWebACL
+                  - wafv2:CreateRegexPatternSet
+                  - wafv2:CreateWebACL
+                  - wafv2:DeleteRegexPatternSet
+                  - wafv2:DeleteWebACL
+                  - wafv2:DisassociateWebACL
+                  - wafv2:GetRegexPatternSet
+                  - wafv2:GetWebACL
+                  - wafv2:GetWebACLForResource
+                  - wafv2:ListTagsForResource
+                  - wafv2:TagResource
                 Resource: '*'
+Outputs:
+  QuiltServiceRoleArn:
+    Description: "ARN of the Quilt Service IAM Role"
+    Value: !GetAtt QuiltCloudFormationServiceRole.Arn

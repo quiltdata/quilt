@@ -7,6 +7,7 @@ import { fade } from '@material-ui/core/styles'
 import Pagination from 'components/Pagination2'
 import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
@@ -15,7 +16,18 @@ import usePrevious from 'utils/usePrevious'
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
 
+import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
+
 const PER_PAGE = 9
+
+function useIsAdmin() {
+  const data = GQL.useQuery(IS_ADMIN_QUERY)
+  return GQL.fold(data, {
+    data: ({ me: { isAdmin } }) => isAdmin,
+    fetching: R.F,
+    error: R.F,
+  })
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -132,6 +144,8 @@ export default function Buckets() {
     filtering.set()
   }, [filtering])
 
+  const isAdmin = useIsAdmin()
+
   return (
     <div className={classes.root}>
       <Backlight className={classes.backlight} />
@@ -168,16 +182,16 @@ export default function Buckets() {
             buckets={paginated}
             onTagClick={filtering.set}
             tagIsMatching={tagIsMatching}
-            showAddLink={!filter && buckets.length <= PER_PAGE - 1}
+            showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
           />
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No buckets mathcing <b>&quot;{filter}&quot;</b>
+            No buckets matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>
           <M.Box mt={2}>
-            {buckets.length > 2 && (
+            {buckets.length > 2 && isAdmin && (
               <M.Box mt={2} mr={2} display="inline-block">
                 <M.Button
                   variant="contained"

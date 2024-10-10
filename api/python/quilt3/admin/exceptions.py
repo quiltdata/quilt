@@ -7,3 +7,8 @@ class Quilt3AdminError(Exception):
 class UserNotFoundError(Quilt3AdminError):
     def __init__(self):
         super().__init__(None)
+
+
+class BucketNotFoundError(Quilt3AdminError):
+    def __init__(self):
+        super().__init__(None)

@@ -11,7 +11,6 @@ import BucketIcon from 'components/BucketIcon'
 import * as Icon from 'components/Icon'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const normalizeBucket = R.pipe(
@@ -222,7 +221,13 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
 
 export default React.forwardRef(function BucketSelectSuspended(props, ref) {
   return (
-    <React.Suspense fallback={<Delay>{() => <M.CircularProgress />}</Delay>}>
+    <React.Suspense
+      fallback={
+        <M.Fade in style={{ transitionDelay: '1000ms' }}>
+          <M.CircularProgress />
+        </M.Fade>
+      }
+    >
       <BucketSelect {...props} forwardedRef={ref} />
     </React.Suspense>
   )

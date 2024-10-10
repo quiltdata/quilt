@@ -11,6 +11,7 @@ import * as DG from 'components/DataGrid'
 import * as Icon from 'components/Icon'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import type { Urls } from 'utils/NamedRoutes'
 import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
@@ -1059,6 +1060,7 @@ export function Listing({
   const classes = useStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const prefs = BucketPreferences.use()
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
@@ -1195,15 +1197,24 @@ export function Listing({
         params.id === '..' ? (
           <></>
         ) : (
-          <RowActions
-            archived={params.row.archived}
-            physicalKey={params.row.physicalKey}
-            to={params.row.to}
-          />
+          BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) => (
+                <RowActions
+                  archived={params.row.archived}
+                  physicalKey={params.row.physicalKey}
+                  prefs={actions}
+                  to={params.row.to}
+                />
+              ),
+              _: () => <></>,
+            },
+            prefs,
+          )
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, items, sm])
+  }, [classes, CellComponent, items, sm, prefs])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''

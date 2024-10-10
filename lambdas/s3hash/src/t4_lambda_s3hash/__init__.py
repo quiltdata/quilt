@@ -176,7 +176,9 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
     assert "Parts" in object_parts
     # Make sure we have _all_ parts.
     assert len(object_parts["Parts"]) == num_parts
-    if all(part.get("Size") == part_size for part in object_parts["Parts"][:-1]):
+    expected_num_parts, remainder = divmod(attrs["ObjectSize"], part_size)
+    expected_part_sizes = [part_size] * expected_num_parts + ([remainder] if remainder else [])
+    if [part.get("Size") for part in object_parts["Parts"]] == expected_part_sizes:
         return Checksum.sha256_chunked(base64.b64decode(checksum_value))
 
     return None

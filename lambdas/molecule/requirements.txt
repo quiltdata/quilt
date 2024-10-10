@@ -8,7 +8,7 @@ attrs==21.4.0
     # via jsonschema
 awslambdaric==2.0.4
     # via t4-lambda-shared (../shared/setup.py)
-certifi==2023.7.22
+certifi==2024.7.4
     # via requests
 charset-normalizer==2.0.12
     # via requests
@@ -24,7 +24,7 @@ requests==2.32.2
     # via t4_lambda_molecule (setup.py)
 simplejson==3.17.2
     # via awslambdaric
-urllib3==1.26.18
+urllib3==1.26.19
     # via requests
 zipp==3.19.1
     # via importlib-resources

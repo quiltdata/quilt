@@ -120,6 +120,28 @@ def test_no_sha256(obj_attrs):
             None,
             Checksum.sha256_chunked(base64.b64decode("bGeobZC1xyakKeDkOLWP9khl+vuOditELvPQhrT/R9M=")),
         ),
+        (
+            {
+                "Checksum": {"ChecksumSHA256": "il9Wb7Il94TeE+T+/QGErPTFP08ua1CpYEIG5p2pxz0="},
+                "ObjectParts": {
+                    "TotalPartsCount": 1,
+                    "PartNumberMarker": 0,
+                    "NextPartNumberMarker": 1,
+                    "MaxParts": 1000,
+                    "IsTruncated": False,
+                    "Parts": [
+                        {
+                            "PartNumber": 1,
+                            "Size": 8388609,
+                            "ChecksumSHA256": "RFn5V9AxqLeC3+4J0scHCktebDMTCo8grDU5P9l/xXo=",
+                        }
+                    ],
+                },
+                "ObjectSize": 8388609,
+            },
+            Checksum.sha256(base64.b64decode("RFn5V9AxqLeC3+4J0scHCktebDMTCo8grDU5P9l/xXo=")),
+            None,
+        )
     ],
 )
 def test_single_part(obj_attrs, plain, chunked):
