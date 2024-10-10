@@ -751,11 +751,6 @@ function FileDisplay({
                           <FileView.ObjectTags handle={handle} />
                         </>
                       )}
-                      {/*
-                      cfg.qurator && blocks.qurator && (
-                        <QuratorSection handle={handle} />
-                      )
-                      */}
                     </>
                   ),
                   _: () => null,
