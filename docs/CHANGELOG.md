@@ -13,6 +13,11 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+
+* [Added] `quilt3.admin.tabulator` sub-module for managing Tabulator configuration ([#4136](https://github.com/quiltdata/quilt/pull/4136))
+
 # 6.0.0 - 2024-08-19
 ## Python API
 
