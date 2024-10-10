@@ -1,7 +1,7 @@
 # Qurator Omni Beta
 
 `Qurator Omni` is an always-available AI assistant embedded directly into the
-Quilt web catalog. It allows users to interact with Quilt packages and search
+Quilt web catalog. It allows users to interact with S3 buckets and search
 functionality through natural language. Qurator Omni leverages advanced models
 like Claude, integrated via Amazon Bedrock, enabling users to query, retrieve, and
 summarize data instead of having to click through the GUI.
@@ -69,7 +69,7 @@ To enable Qurator Omni:
   summary of the paper.
 
 - **Quick Scan**: _“List some of the authors doing breast cancer research?”_  
-  Qurator Omni will list key authors and their contributions based on Quilt’s
+  Qurator Omni will list authors and their contributions based on Quilt’s
   indexed datasets.
 
 ### Key Benefits
@@ -78,5 +78,5 @@ To enable Qurator Omni:
   enabling faster access to critical information.
 - **Improved Insights**: Gain deeper insights from large datasets with automatic
   summaries.
-- **Streamlined Collaboration**: Easily share summarized findings and insights
-  with colleagues directly from the web catalog.
+- **Streamlined Collaboration**: Leveraging AI chat to provide background and
+  context when working across disciplines.
