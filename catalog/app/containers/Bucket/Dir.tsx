@@ -269,8 +269,6 @@ export default function Dir() {
     prev,
   })
 
-  AssistantContext.useListingContext(data)
-
   const loadMore = React.useCallback(() => {
     AsyncResult.case(
       {
@@ -336,6 +334,8 @@ export default function Dir() {
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
+      <AssistantContext.ListingContext data={data} />
 
       <RRDom.Prompt when={hasSelection} message={guardNavigation} />
 

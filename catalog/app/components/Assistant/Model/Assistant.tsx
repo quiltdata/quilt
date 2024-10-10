@@ -10,6 +10,9 @@ import * as Bedrock from './Bedrock'
 import * as Context from './Context'
 import * as Conversation from './Conversation'
 import * as GlobalContext from './GlobalContext'
+import useIsEnabled from './enabled'
+
+export const DISABLED = Symbol('DISABLED')
 
 function usePassThru<T>(val: T) {
   const ref = React.useRef(val)
@@ -61,26 +64,32 @@ function useConstructAssistantAPI() {
 
 type AssistantAPI = ReturnType<typeof useConstructAssistantAPI>
 
-const Ctx = React.createContext<AssistantAPI | null>(null)
+const Ctx = React.createContext<AssistantAPI | typeof DISABLED | null>(null)
 
 function AssistantAPIProvider({ children }: React.PropsWithChildren<{}>) {
   return <Ctx.Provider value={useConstructAssistantAPI()}>{children}</Ctx.Provider>
 }
 
+function DisabledAPIProvider({ children }: React.PropsWithChildren<{}>) {
+  return <Ctx.Provider value={DISABLED}>{children}</Ctx.Provider>
+}
+
 export function AssistantProvider({ children }: React.PropsWithChildren<{}>) {
-  return (
+  return useIsEnabled() ? (
     <Context.ContextAggregatorProvider>
       <AssistantAPIProvider>{children}</AssistantAPIProvider>
     </Context.ContextAggregatorProvider>
+  ) : (
+    <DisabledAPIProvider>{children}</DisabledAPIProvider>
   )
 }
 
 export function useAssistantAPI() {
   const api = React.useContext(Ctx)
   invariant(api, 'AssistantAPI must be used within an AssistantProvider')
-  return api
+  return api === DISABLED ? null : api
 }
 
 export function useAssistant() {
-  return useAssistantAPI().assist
+  return useAssistantAPI()?.assist
 }

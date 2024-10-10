@@ -1,4 +1,5 @@
 export { useAssistant, useAssistantAPI, AssistantProvider } from './Assistant'
+export { default as useIsEnabled } from './enabled'
 
 export * as Assistant from './Assistant'
 export * as Content from './Content'

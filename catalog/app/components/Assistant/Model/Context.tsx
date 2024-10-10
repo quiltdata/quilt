@@ -9,6 +9,7 @@ import useConst from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 
 import * as Tool from './Tool'
+import useIsEnabled from './enabled'
 
 export interface ContextShape {
   messages: string[]
@@ -105,6 +106,18 @@ export function usePushContext(context: Partial<ContextShape>) {
 export function Push(context: Partial<ContextShape>) {
   usePushContext(context)
   return null
+}
+
+export type ContextProviderHook<Props> = (props: Props) => Partial<ContextShape>
+
+export function LazyContext<Props>(useContext: ContextProviderHook<Props>) {
+  function ProvideContext(props: Props) {
+    usePushContext(useContext(props))
+    return null
+  }
+  return function WithLazyContext(props: Props & JSX.IntrinsicAttributes) {
+    return useIsEnabled() ? <ProvideContext {...props} /> : null
+  }
 }
 
 export class ConversationContext extends Eff.Context.Tag('ConversationContext')<

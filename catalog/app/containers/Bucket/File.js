@@ -41,6 +41,7 @@ import { useViewModes, viewModeToSelectOption } from './viewModes'
 
 function SummarizeButton() {
   const assist = Assistant.use()
+  if (!assist) return null
   const msg = 'Summarize this document'
   return (
     <M.IconButton color="primary" onClick={() => assist(msg)} edge="end">
@@ -96,10 +97,9 @@ function VersionInfo({ bucket, path, version }) {
 
   const data = useData(requests.objectVersions, { s3, bucket, path })
 
-  AssistantContext.useVersionsContext(data)
-
   return (
     <>
+      <AssistantContext.VersionsContext data={data} />
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
         {version ? (
@@ -361,8 +361,6 @@ export default function File() {
     resetKey,
   })
 
-  AssistantContext.useCurrentVersionContext(version, objExistsData, versionExistsData)
-
   const objExists = objExistsData.case({
     _: () => false,
     Ok: requests.ObjectExistence.case({
@@ -453,6 +451,8 @@ export default function File() {
 
   return (
     <FileView.Root>
+      <AssistantContext.CurrentVersionContext {...{ version, objExistsData, versionExistsData }} />
+
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
       <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>

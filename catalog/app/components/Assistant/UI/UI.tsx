@@ -20,7 +20,7 @@ function Sidebar() {
   const classes = useSidebarStyles()
 
   const api = Model.useAssistantAPI()
-  // if (!api) return null
+  if (!api) return null
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
@@ -45,7 +45,7 @@ const useTriggerStyles = M.makeStyles({
 function Trigger() {
   const classes = useTriggerStyles()
   const api = Model.useAssistantAPI()
-  // if (!api) return null
+  if (!api) return null
   return (
     <M.Zoom in={!api.visible}>
       <M.Fab onClick={api.show} className={classes.trigger} color="primary">

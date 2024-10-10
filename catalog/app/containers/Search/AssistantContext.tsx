@@ -256,7 +256,4 @@ function useSearchContext() {
   }
 }
 
-export default function AssistantContext() {
-  Assistant.Context.usePushContext(useSearchContext())
-  return null
-}
+export default Assistant.Context.LazyContext(useSearchContext)

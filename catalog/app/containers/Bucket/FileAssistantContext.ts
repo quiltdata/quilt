@@ -6,87 +6,99 @@ import * as XML from 'utils/XML'
 
 import { ObjectExistence } from './requests'
 
-export function useVersionsContext(data: $TSFixMe) {
-  const msg = React.useMemo(
-    () =>
-      Eff.pipe(
-        data.case({
-          Ok: (vs: $TSFixMe[]) =>
-            Eff.Option.some(
-              vs.map((v) => XML.tag('version', { id: v.id }, JSON.stringify(v, null, 2))),
-            ),
-          Err: () => Eff.Option.some(['Error fetching versions']),
-          _: () => Eff.Option.none(),
-        }),
-        Eff.Option.map((children: Array<XML.Tag | string>) =>
-          XML.tag('object-versions', {}, ...children).toString(),
-        ),
-      ),
-    [data],
-  )
-
-  Assistant.Context.usePushContext({
-    markers: { versionsReady: Eff.Option.isSome(msg) },
-    messages: Eff.Option.toArray(msg),
-  })
+interface VersionsContextProps {
+  data: $TSFixMe
 }
 
-export function useCurrentVersionContext(
-  version: string,
-  objExistsData: $TSFixMe,
-  versionExistsData: $TSFixMe,
-) {
-  const msg = React.useMemo(
-    () =>
-      Eff.pipe(
-        objExistsData.case({
-          _: () => Eff.Option.none(),
-          Err: (e: $TSFixMe) =>
-            Eff.Option.some(
-              `Could not get object data: ${
-                e.code === 'Forbidden' ? 'Access Denied' : e
-              }`,
-            ),
-          Ok: ObjectExistence.case({
-            DoesNotExist: () => Eff.Option.some('Object does not exist'),
-            Exists: () =>
-              versionExistsData.case({
-                _: () => Eff.Option.none(),
-                Err: (e: $TSFixMe) =>
-                  Eff.Option.some(`Could not get current object version data: ${e}`),
-                Ok: ObjectExistence.case({
-                  Exists: (v: $TSFixMe) =>
-                    Eff.Option.some(
-                      JSON.stringify(
-                        {
-                          deleted: v.deleted,
-                          archived: v.archived,
-                          id: v.version,
-                          lastModified: v.lastModified,
-                        },
-                        null,
-                        2,
-                      ),
-                    ),
-                  DoesNotExist: () => Eff.Option.some('Object version does not exist'),
-                }),
-              }),
+export const VersionsContext = Assistant.Context.LazyContext(
+  ({ data }: VersionsContextProps) => {
+    const msg = React.useMemo(
+      () =>
+        Eff.pipe(
+          data.case({
+            Ok: (vs: $TSFixMe[]) =>
+              Eff.Option.some(
+                vs.map((v) =>
+                  XML.tag('version', { id: v.id }, JSON.stringify(v, null, 2)),
+                ),
+              ),
+            Err: () => Eff.Option.some(['Error fetching versions']),
+            _: () => Eff.Option.none(),
           }),
-        }),
-        Eff.Option.map((children: string) =>
-          XML.tag(
-            'object-current-version',
-            {},
-            `Currently displayed version: ${version || 'latest'}`,
-            children,
-          ).toString(),
+          Eff.Option.map((children: Array<XML.Tag | string>) =>
+            XML.tag('object-versions', {}, ...children).toString(),
+          ),
         ),
-      ),
-    [version, objExistsData, versionExistsData],
-  )
+      [data],
+    )
 
-  Assistant.Context.usePushContext({
-    markers: { currentVersionReady: Eff.Option.isSome(msg) },
-    messages: Eff.Option.toArray(msg),
-  })
+    return {
+      markers: { versionsReady: Eff.Option.isSome(msg) },
+      messages: Eff.Option.toArray(msg),
+    }
+  },
+)
+
+interface CurrentVersionContextProps {
+  version: string
+  objExistsData: $TSFixMe
+  versionExistsData: $TSFixMe
 }
+
+export const CurrentVersionContext = Assistant.Context.LazyContext(
+  ({ version, objExistsData, versionExistsData }: CurrentVersionContextProps) => {
+    const msg = React.useMemo(
+      () =>
+        Eff.pipe(
+          objExistsData.case({
+            _: () => Eff.Option.none(),
+            Err: (e: $TSFixMe) =>
+              Eff.Option.some(
+                `Could not get object data: ${
+                  e.code === 'Forbidden' ? 'Access Denied' : e
+                }`,
+              ),
+            Ok: ObjectExistence.case({
+              DoesNotExist: () => Eff.Option.some('Object does not exist'),
+              Exists: () =>
+                versionExistsData.case({
+                  _: () => Eff.Option.none(),
+                  Err: (e: $TSFixMe) =>
+                    Eff.Option.some(`Could not get current object version data: ${e}`),
+                  Ok: ObjectExistence.case({
+                    Exists: (v: $TSFixMe) =>
+                      Eff.Option.some(
+                        JSON.stringify(
+                          {
+                            deleted: v.deleted,
+                            archived: v.archived,
+                            id: v.version,
+                            lastModified: v.lastModified,
+                          },
+                          null,
+                          2,
+                        ),
+                      ),
+                    DoesNotExist: () => Eff.Option.some('Object version does not exist'),
+                  }),
+                }),
+            }),
+          }),
+          Eff.Option.map((children: string) =>
+            XML.tag(
+              'object-current-version',
+              {},
+              `Currently displayed version: ${version || 'latest'}`,
+              children,
+            ).toString(),
+          ),
+        ),
+      [version, objExistsData, versionExistsData],
+    )
+
+    return {
+      markers: { currentVersionReady: Eff.Option.isSome(msg) },
+      messages: Eff.Option.toArray(msg),
+    }
+  },
+)
