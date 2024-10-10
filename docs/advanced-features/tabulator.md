@@ -1,8 +1,6 @@
-# Tabulator Configuration for Quilt
-
-> This feature requires Quilt stack version 1.55.0 or higher
-
-## Overview
+<!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable-next-line first-line-h1 -->
+> NOTE: This feature requires Quilt stack version 1.55.0 or higher
 
 Tabulator aggregates tabular data objects across multiple packages using AWS
 Athena. Admins define schemas and data sources for CSV, TSV, or Parquet files,
@@ -10,18 +8,16 @@ enabling users to run SQL queries directly on the contents of Quilt packages.
 You can even use regular expressions to extract additional columns from the
 logical key.
 
-The configuration can be written in YAML and managed using the
-`quilt3.admin.tabulator_config.set()` function or via the Quilt Admin UI.
+The configuration is written in YAML and managed using the
+`quilt3.admin.tabulator` [APIs](../api-reference/Admin.md) (below) or via the
+Quilt Admin UI.
 
 ![Admin UI for setting Tabulator configuration](../imgs/admin-tabulator-config.png)
 
 ## Configuration
 
 Each Tabulator configuration is written in YAML, following the structure
-outlined below. Columns names must be lowercase, while types must be uppercase
-and match the [Apache Arrow Data
-Types](https://github.com/awslabs/aws-athena-query-federation/tree/master/athena-federation-sdk#datatypes)
-used by Amazon Athena.
+outlined below.
 
 ```yaml
 
@@ -29,35 +25,56 @@ used by Amazon Athena.
 
 ```yaml
 schema:
-  - name: Name
-    type: STRING
-  - name: Length
+  - name: name  # must match ^[a-z_][a-z0-9_]*$
+    type: STRING  # usually BOOLEAN, INT, FLOAT, DOUBLE, STRING, DATE, TIMESTAMP
+  - name: length
     type: INT
-  - name: EffectiveLength
+  - name: effective_length
     type: FLOAT
-  - name: TPM
+  - name: tpm
     type: FLOAT
-  - name: NumReads
+  - name: num_reads
     type: FLOAT
 source:
-  type: quilt-packages
+  type: quilt-packages  # currently the only supported type
   package_name: "^ccle/"
   logical_key: "salmon/(?<sample_id>[^/]+)/quant*\\.genes\\.sf$"
 parser:
-  format: csv
+  format: csv  # or `parquet`
   delimiter: "\t"
+  header: true
 ```
 
-1. The `ccle-tsv` table is defined with a schema containing five columns:
-   `Name`, `Length`, `EffectiveLength`, `TPM`, and `NumReads`.
-2. Currently, the only supported source type is `quilt`.
-3. The table is sourced from Quilt packages whose names match the regular
-   expression `ccle/.*`, using those files whose logical keys match the
-   regular expression `salmon/([^/]+)/quant.genes.sf$`.
-4. The named group `sample_id` is extracted from the logical key and used as an
-   additional column of type `Utf8` in the table.
-5. The parser is configured to read the data as CSV with tab-delimited fields.
-   Other supported formats include `parquet`.
+1. **Schema**: The schema defines the columns in the table. Each column must
+   have a name and a type. The name must match the regular expression
+   `^[a-z_][a-z0-9_]*$`.  It does not need to match the column names in the
+   document.  However, if the column names are present in the document, you must
+   set `header` to `true` in the parser configuration.
+2. **Types**:  Must be uppercase and match the [Apache Arrow Data
+Types](https://github.com/awslabs/aws-athena-query-federation/tree/master/athena-federation-sdk#datatypes)
+used by Amazon Athena.  Valid types are BOOLEAN, TINYINT, SMALLINT, INT, BIGINT,
+FLOAT, DOUBLE, STRING, BINARY, DATE, TIMESTAMP.
+3. **Source**: The source defines the packages and objects to query. The `type`
+   must be `quilt-packages`. The `package_name` is a regular expression that
+   matches the package names to include. The `logical_key` is a regular
+   expression that matches the keys of the objects to include. The regular
+   expression may include a named capture group that will be added as a column
+   to the table.
+4. **Parser**: The parser defines how to read the files. The `format` must be
+   one of `csv` or `parquet`. The optional `delimiter` is the character used to
+   separate fields in the CSV file. The optional `header` field is a boolean
+   that indicates whether the first row of the CSV file contains column names.
+
+### Added columns
+
+In addition to the columns defined in the schema, Tabulator will add:
+
+- any named capture groups from the logical key regular expression
+- `$pkg_name` for the package name
+- `$logical_key` for the object as referenced by the package
+- `$physical_key` for the underlying S3 key
+- `$top_hash` for the revision of the package containing the object (which is
+  currently always `latest`)
 
 ### Caveats
 
@@ -71,7 +88,9 @@ parser:
    controls and monitoring.
 4. **Access Restrictions**: Due to the way permissions are configured, Tabulator
    cannot be accessed from the AWS Console or views. You must use the Quilt
-   Catalog to directly query the tables.
+   Catalog to directly query the tables.  However, you can use `quilt3.login` to
+   access the Catalog, then reuse that session from, e.g., Jupyter notebooks to
+   perform Athena queries.
 
 ## Usage
 
@@ -80,7 +99,7 @@ from the Quilt Catalog. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console.
 
 For example, to query the `ccle-tsv` table from the appropriate workgroup in
-the 'quilt-tf-dev-federator' stack:
+the `quilt-tf-dev-federator` stack:
 
 ```sql
 SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
