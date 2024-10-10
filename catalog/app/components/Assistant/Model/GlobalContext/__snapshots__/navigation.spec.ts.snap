@@ -1,0 +1,803 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produced JSON Schema should match the snapshot 1`] = `
+{
+  "$defs": {
+    "BooleanPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "false": {
+          "type": "boolean",
+        },
+        "true": {
+          "type": "boolean",
+        },
+      },
+      "required": [],
+      "title": "Boolean predicate state",
+      "type": "object",
+    },
+    "BooleanTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "Boolean",
+          ],
+        },
+        "value": {
+          "$ref": "#/$defs/BooleanPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "DatetimePredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "gte": {
+          "description": "ISO date string",
+          "format": "date-time",
+          "type": "string",
+        },
+        "lte": {
+          "description": "ISO date string",
+          "format": "date-time",
+          "type": "string",
+        },
+      },
+      "required": [],
+      "title": "Datetime predicate state",
+      "type": "object",
+    },
+    "DatetimeTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "Datetime",
+          ],
+        },
+        "value": {
+          "$ref": "#/$defs/DatetimePredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "KeywordEnumPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "terms": {
+          "items": {
+            "type": "string",
+          },
+          "type": "array",
+        },
+      },
+      "required": [],
+      "title": "KeywordEnum predicate state",
+      "type": "object",
+    },
+    "KeywordEnumTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "KeywordEnum",
+          ],
+        },
+        "value": {
+          "$ref": "#/$defs/KeywordEnumPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "KeywordWildcardPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "wildcard": {
+          "type": "string",
+        },
+      },
+      "required": [],
+      "title": "KeywordWildcard predicate state",
+      "type": "object",
+    },
+    "KeywordWildcardTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "KeywordWildcard",
+          ],
+        },
+        "value": {
+          "$ref": "#/$defs/KeywordWildcardPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "NumberPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "gte": {
+          "type": "number",
+        },
+        "lte": {
+          "type": "number",
+        },
+      },
+      "required": [],
+      "title": "Number predicate state",
+      "type": "object",
+    },
+    "NumberTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "Number",
+          ],
+        },
+        "value": {
+          "$ref": "#/$defs/NumberPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+    "TextPredicateState": {
+      "additionalProperties": false,
+      "properties": {
+        "queryString": {
+          "type": "string",
+        },
+      },
+      "required": [],
+      "title": "Text predicate state",
+      "type": "object",
+    },
+    "TextTaggedPredicate": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "Text",
+          ],
+        },
+        "value": {
+          "$ref": "#/$defs/TextPredicateState",
+        },
+      },
+      "required": [
+        "type",
+        "value",
+      ],
+      "type": "object",
+    },
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "description": "navigate to a provided route",
+  "properties": {
+    "route": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "Home page",
+          "properties": {
+            "name": {
+              "enum": [
+                "home",
+              ],
+            },
+            "params": {
+              "$id": "/schemas/{}",
+              "anyOf": [
+                {
+                  "type": "object",
+                },
+                {
+                  "type": "array",
+                },
+              ],
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "Installation page",
+          "properties": {
+            "name": {
+              "enum": [
+                "install",
+              ],
+            },
+            "params": {
+              "$id": "/schemas/{}",
+              "anyOf": [
+                {
+                  "type": "object",
+                },
+                {
+                  "type": "array",
+                },
+              ],
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "Search page",
+          "properties": {
+            "name": {
+              "enum": [
+                "search",
+              ],
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "buckets": {
+                  "description": "A list of buckets to search in (keep empty to search in all buckets)",
+                  "items": {
+                    "type": "string",
+                  },
+                  "title": "Search buckets",
+                  "type": "array",
+                },
+                "order": {
+                  "$comment": "/schemas/enums",
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "BEST_MATCH",
+                      ],
+                      "title": "BEST_MATCH",
+                    },
+                    {
+                      "enum": [
+                        "NEWEST",
+                      ],
+                      "title": "NEWEST",
+                    },
+                    {
+                      "enum": [
+                        "OLDEST",
+                      ],
+                      "title": "OLDEST",
+                    },
+                  ],
+                  "description": "Order of search results",
+                  "title": "Search result order",
+                },
+                "params": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "filter": {
+                          "description": "Filter results by system metadata",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "modified",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/DatetimePredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Last modified date",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "size",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/NumberPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "File size in bytes",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "name",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordWildcardPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Package name (aka namespace or handle)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "hash",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordWildcardPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Package revision hash",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "entries",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/NumberPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Number of package entries",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "comment",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/TextPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Package revision comment (aka commit message)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "workflow",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordEnumPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Package workflow",
+                                "type": "object",
+                              },
+                            ],
+                          },
+                          "title": "Result filters (system metadata)",
+                          "type": "array",
+                        },
+                        "resultType": {
+                          "enum": [
+                            "p",
+                          ],
+                          "title": "Result type: Quilt Package",
+                        },
+                        "userMetaFilters": {
+                          "description": "Filter results by user metadata",
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "path": {
+                                "type": "string",
+                              },
+                              "predicate": {
+                                "anyOf": [
+                                  {
+                                    "$ref": "#/$defs/BooleanTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/DatetimeTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/KeywordEnumTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/KeywordWildcardTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/NumberTaggedPredicate",
+                                  },
+                                  {
+                                    "$ref": "#/$defs/TextTaggedPredicate",
+                                  },
+                                ],
+                              },
+                            },
+                            "required": [
+                              "path",
+                              "predicate",
+                            ],
+                            "type": "object",
+                          },
+                          "title": "Result filters (user metadata)",
+                          "type": "array",
+                        },
+                      },
+                      "required": [
+                        "resultType",
+                      ],
+                      "title": "Package-specific search parameters",
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "filter": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "modified",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/DatetimePredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Last modified date",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "size",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/NumberPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "File size in bytes",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "ext",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordEnumPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "File extensions (with a leading dot)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "key",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/KeywordWildcardPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "File name (aka S3 Object Key)",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "content",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/TextPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Indexed text contents",
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "key": {
+                                    "enum": [
+                                      "deleted",
+                                    ],
+                                  },
+                                  "predicate": {
+                                    "$ref": "#/$defs/BooleanPredicateState",
+                                  },
+                                },
+                                "required": [
+                                  "key",
+                                  "predicate",
+                                ],
+                                "title": "Whether a file is a delete marker",
+                                "type": "object",
+                              },
+                            ],
+                          },
+                          "title": "Result filters",
+                          "type": "array",
+                        },
+                        "resultType": {
+                          "enum": [
+                            "o",
+                          ],
+                          "title": "Result type: S3 Object",
+                        },
+                      },
+                      "required": [
+                        "resultType",
+                      ],
+                      "title": "Object-specific search parameters",
+                      "type": "object",
+                    },
+                  ],
+                  "title": "Result type-specific parameters",
+                },
+                "searchString": {
+                  "description": "A String to search for. ElasticSearch syntax supported. For packages, searches in package name, comment (commit message), and metadata. For objects, searches in object key and indexed content.",
+                  "title": "Search string",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "params",
+              ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "TBD",
+          "properties": {
+            "name": {
+              "enum": [
+                "activate",
+              ],
+            },
+            "params": {
+              "$id": "/schemas/{}",
+              "anyOf": [
+                {
+                  "type": "object",
+                },
+                {
+                  "type": "array",
+                },
+              ],
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "S3 Object (aka File) page",
+          "properties": {
+            "name": {
+              "enum": [
+                "bucket.object",
+              ],
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "type": "string",
+                },
+                "mode": {
+                  "description": "Contents preview mode",
+                  "title": "Viewing Mode",
+                  "type": "string",
+                },
+                "path": {
+                  "description": "S3 Object Key aka File Path",
+                  "title": "Path",
+                  "type": "string",
+                },
+                "version": {
+                  "description": "S3 Object Version ID (omit for latest version)",
+                  "title": "Version ID",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "bucket",
+                "path",
+              ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "S3 Prefix (aka Directory) page",
+          "properties": {
+            "name": {
+              "enum": [
+                "bucket.prefix",
+              ],
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "type": "string",
+                },
+                "path": {
+                  "description": "S3 Prefix aka Directory Path",
+                  "title": "Path",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "bucket",
+                "path",
+              ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+        {
+          "additionalProperties": false,
+          "description": "Bucket overview page",
+          "properties": {
+            "name": {
+              "enum": [
+                "bucket.overview",
+              ],
+            },
+            "params": {
+              "additionalProperties": false,
+              "properties": {
+                "bucket": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "bucket",
+              ],
+              "type": "object",
+            },
+          },
+          "required": [
+            "name",
+            "params",
+          ],
+          "type": "object",
+        },
+      ],
+    },
+  },
+  "required": [
+    "route",
+  ],
+  "title": "navigate the catalog",
+  "type": "object",
+}
+`;
