@@ -12,6 +12,7 @@ import quilt3
 from .utils import QuiltTestCase
 
 
+
 class TestSession(QuiltTestCase):
     @patch('quilt3.session.open_url')
     @patch('quilt3.session.input', return_value='123456')
@@ -120,6 +121,14 @@ class TestSession(QuiltTestCase):
         assert credentials.token == 'session-token2'
 
         mock_save_credentials.assert_called()
+
+    def test_get_boto_session(self):
+        boto_session = quilt3.util.get_boto_session()
+        assert boto_session is not None
+        assert boto_session.region_name is not None
+        assert boto_session.get_credentials().access_key is not None
+        assert boto_session.get_credentials().secret_key is not None
+        assert boto_session.get_credentials().token is None
 
     def test_logged_in(self):
         registry_url = quilt3.session.get_registry_url()
