@@ -212,3 +212,32 @@ mutation ssoConfigSet($config: String) {
     }
   }
 }
+
+query bucketTabulatorTablesList($name: String!) {
+  bucketConfig(name: $name) {
+    tabulatorTables {
+      name
+      config
+    }
+  }
+}
+
+mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $config: String) {
+  admin {
+    bucketSetTabulatorTable(bucketName: $bucketName, tableName: $tableName, config: $config) {
+      __typename
+      ...InvalidInputSelection
+      ...OperationErrorSelection
+    }
+  }
+}
+
+mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $newTableName: String!)  {
+  admin {
+    bucketRenameTabulatorTable(bucketName: $bucketName, tableName: $tableName, newTableName: $newTableName) {
+      __typename
+      ...InvalidInputSelection
+      ...OperationErrorSelection
+    }
+  }
+}

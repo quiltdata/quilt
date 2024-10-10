@@ -14,6 +14,9 @@
 ## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}
 
 
+## TabulatorTable(name: str, config: str) -> None  {#TabulatorTable}
+
+
 # quilt3.admin.roles
 
 
@@ -143,4 +146,22 @@ Get the current SSO configuration.
 ## set(config: Optional[str]) -> Optional[quilt3.admin.types.SSOConfig]  {#set}
 
 Set the SSO configuration. Pass `None` to remove SSO configuration.
+
+
+# quilt3.admin.tabulator
+
+
+## list\_tables(bucket\_name: str) -> list[quilt3.admin.types.TabulatorTable]  {#list\_tables}
+
+List all tabulator tables in a bucket.
+
+
+## set\_table(bucket\_name: str, table\_name: str, config: Optional[str]) -> None  {#set\_table}
+
+Set the tabulator table configuration. Pass `None` to remove the table.
+
+
+## rename\_table(bucket\_name: str, table\_name: str, new\_table\_name: str) -> None  {#rename\_table}
+
+Rename tabulator table.
 
