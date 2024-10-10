@@ -89,6 +89,15 @@ In addition to the columns defined in the schema, Tabulator will add:
 4. **Access Restrictions**: Due to the way permissions are configured, Tabulator
    cannot be accessed from the AWS Console or views. You must access Tabulator
    via the Quilt Catalog in order to query the tables.
+5. **Concurrency**: Tabulator will attempt to process each file concurrently,
+   but may be limited by the concurrency of Athena or the federation lambda in
+   the
+   [region](https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/discover)
+   where the query is running. If you are experiencing slow performance, it may
+   be because the concurrency is too low. You can increase the concurrency in
+   [that
+   region](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/lambda/quotas/L-B99A9384)'s
+   AWS Service Quotas console.
 
 ## Usage
 
