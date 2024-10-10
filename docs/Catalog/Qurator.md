@@ -46,7 +46,7 @@ To enable Qurator Omni:
    - Enable the model by configuring it within your Bedrock environment.
    - Carefully monitor the model’s cost implications. The Claude model is
      charged based on usage, so ensure that you have the necessary budget
-     allocated. Initial estimates are roughly a penny per page for complex documents,
+     allocated. Initial estimates are roughly a penny per page for complex documents.
 
 3. **Start Using Qurator**:  
    - Once activated, the Qurator chatbot will appear in the Quilt web catalog
@@ -55,13 +55,13 @@ To enable Qurator Omni:
      bottom right of the screen to open the chat interface. ![qurator icon](../imgs/qurator-icon.png)
    - You can begin by typing questions into the chat interface. For example,
      queries like _“What are the key findings on small molecule delivery?”_ will
-     prompt Qurator to retrieve relevant packages and present a summarized
+     prompt Qurator to search for relevant data and present a summarized
      overview.
 
 ### Example Use Cases
 
 - **Search**: _“What are the latest papers on melanoma?”_  
-  Qurator will search through the Quilt packages using Elastic Search and
+  Qurator will search through the Quilt catalog using Elastic Search and
   retrieve the most relevant data.
   
 - **Summarize**: _“Summarize the key points of this BRCA1 research.”_  
