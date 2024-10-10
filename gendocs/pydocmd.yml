@@ -13,6 +13,7 @@ generate:
     # line above this comment.  Specified explicitly for this example.
     - quilt3.config
     - quilt3.delete_package
+    - quilt3.get_boto3_session
     - quilt3.list_package_versions
     - quilt3.list_packages
     - quilt3.logged_in

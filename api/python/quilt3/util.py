@@ -81,6 +81,9 @@ binaryApiGatewayEndpoint:
 
 default_registry_version: 1
 
+# AWS region
+region:
+
 """.format(BASE_PATH.as_uri() + '/packages')
 
 
