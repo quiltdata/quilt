@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://quiltdata.com/tabulator/config/1",
+  "title": "Config",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "title": "Schema",
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Column"
+      }
+    },
+    "source": {
+      "$ref": "#/definitions/PackageSource"
+    },
+    "parser": {
+      "title": "Parser",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/CsvParser"
+        },
+        {
+          "$ref": "#/definitions/ParquetParser"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "source",
+    "parser"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "Column": {
+      "title": "Column",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "enum": [
+            "BOOLEAN",
+            "TINYINT",
+            "SMALLINT",
+            "INT",
+            "BIGINT",
+            "FLOAT",
+            "DOUBLE",
+            "STRING",
+            "BINARY",
+            "DATE",
+            "TIMESTAMP"
+          ],
+          "type": "string"
+        },
+        "nullable": {
+          "title": "Nullable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "PackageSource": {
+      "title": "PackageSource",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "enum": [
+            "quilt-packages"
+          ],
+          "type": "string"
+        },
+        "package_name": {
+          "title": "Package Name",
+          "minLength": 1,
+          "type": "string"
+        },
+        "logical_key": {
+          "title": "Logical Key",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "package_name",
+        "logical_key"
+      ],
+      "additionalProperties": false
+    },
+    "CsvParser": {
+      "title": "CsvParser",
+      "type": "object",
+      "properties": {
+        "format": {
+          "title": "Format",
+          "enum": [
+            "csv"
+          ],
+          "type": "string"
+        },
+        "header": {
+          "title": "Header",
+          "type": "boolean"
+        },
+        "delimiter": {
+          "title": "Delimiter",
+          "maxLength": 1,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    "ParquetParser": {
+      "title": "ParquetParser",
+      "type": "object",
+      "properties": {
+        "format": {
+          "title": "Format",
+          "enum": [
+            "parquet"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

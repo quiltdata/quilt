@@ -1,4 +1,4 @@
-FROM amazonlinux:2023.2.20231011.0
+FROM amazonlinux:2023.5.20241001.1
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 # Based on:
@@ -13,14 +13,13 @@ ENV NGINX_VERSION=1.24.0
 # Download and compile Nginx.
 # Dependencies:
 # - pcre: runtime dependency for nginx
-# - awscli: aws used by run-nginx.sh
 # - gettext: envsubst used by run-nginx.sh
 # - shadow-utils: useradd
 # - tar, gzip: download the source
 # - gcc, make, *-devel: compile nginx
 RUN set -x \
     && dnf -y upgrade \
-    && dnf -y install --setopt=install_weak_deps=False pcre awscli gettext shadow-utils tar gzip gcc make openssl-devel pcre-devel zlib-devel \
+    && dnf -y install --setopt=install_weak_deps=False pcre gettext shadow-utils tar gzip gcc make openssl-devel pcre-devel zlib-devel \
     && cd /root \
     && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
@@ -35,11 +34,11 @@ RUN set -x \
         --error-log-path=/dev/stdout \
         --pid-path=/var/run/nginx.pid \
         --lock-path=/var/run/nginx.lock \
-        --http-client-body-temp-path=/var/cache/nginx/client_temp \
-        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        --http-client-body-temp-path=/var/lib/nginx/tmp/client_temp \
+        --http-proxy-temp-path=/var/lib/nginx/tmp/proxy_temp \
+        --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi_temp \
+        --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi_temp \
+        --http-scgi-temp-path=/var/lib/nginx/tmp/scgi_temp \
         --user=nginx \
         --group=nginx \
         --with-compat \
@@ -78,9 +77,10 @@ RUN set -x \
 RUN set -x \
     && useradd --system --user-group --no-create-home --home /nonexistent --shell /sbin/nologin nginx
 
-RUN mkdir /var/cache/nginx/
+RUN mkdir -p /var/lib/nginx/tmp/
 COPY nginx.conf /root/nginx.conf.tmpl
 COPY run-nginx.sh /root/run-nginx.sh
+RUN ln -sf /tmp/nginx.conf /etc/nginx/nginx.conf
 
 # Use SIGQUIT for a "graceful" shutdown
 STOPSIGNAL SIGQUIT

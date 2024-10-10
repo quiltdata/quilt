@@ -37,17 +37,29 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
+  const prefs = BucketPreferences.use()
   const prompt = FileEditor.useCreateFileInBucket(bucket, path)
   const menuItems = React.useMemo(
-    () => [
-      {
-        onClick: prompt.open,
-        title: 'Create file',
-      },
-    ],
-    [prompt.open],
+    () =>
+      BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) => {
+            const menu = []
+            if (actions.writeFile) {
+              menu.push({
+                onClick: prompt.open,
+                title: 'Create file',
+              })
+            }
+            return menu
+          },
+          _: () => [],
+        },
+        prefs,
+      ),
+    [prefs, prompt.open],
   )
-
+  if (!menuItems.length) return null
   return (
     <>
       {prompt.render()}
@@ -344,32 +356,40 @@ export default function Dir() {
           />
           {BucketPreferences.Result.match(
             {
-              Ok: ({ ui: { actions } }) =>
-                actions.createPackage && (
-                  <Successors.Button
-                    bucket={bucket}
-                    className={classes.button}
-                    onChange={openPackageCreationDialog}
-                    variant={hasSelection ? 'contained' : 'outlined'}
-                    color={hasSelection ? 'primary' : 'default'}
-                  >
-                    Create package
-                  </Successors.Button>
-                ),
-              Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
+              Ok: ({ ui: { actions } }) => (
+                <>
+                  {actions.createPackage && (
+                    <Successors.Button
+                      bucket={bucket}
+                      className={classes.button}
+                      onChange={openPackageCreationDialog}
+                      variant={hasSelection ? 'contained' : 'outlined'}
+                      color={hasSelection ? 'primary' : 'default'}
+                    >
+                      Create package
+                    </Successors.Button>
+                  )}
+                  {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
+                    <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
+                      <Buttons.Iconized
+                        className={classes.button}
+                        label="Download directory"
+                        icon="archive"
+                        type="submit"
+                      />
+                    </FileView.ZipDownloadForm>
+                  )}
+                </>
+              ),
+              Pending: () => (
+                <>
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                </>
+              ),
               Init: () => null,
             },
             prefs,
-          )}
-          {!cfg.noDownload && !cfg.desktop && (
-            <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
-              <Buttons.Iconized
-                className={classes.button}
-                label="Download directory"
-                icon="archive"
-                type="submit"
-              />
-            </FileView.ZipDownloadForm>
           )}
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>

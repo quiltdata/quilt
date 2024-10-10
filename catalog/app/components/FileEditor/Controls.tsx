@@ -63,7 +63,7 @@ export function Controls({
           <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
             {types.map((type) => (
               <M.MenuItem onClick={() => handleTypeClick(type)} key={type.brace}>
-                Edit as {type.title || type.brace}
+                {type.title || 'Edit file'}
               </M.MenuItem>
             ))}
           </M.Menu>

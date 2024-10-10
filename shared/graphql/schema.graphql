@@ -37,6 +37,8 @@ type Ok {
   _: Boolean
 }
 
+union OperationResult = Ok | InvalidInput | OperationError
+
 type Unavailable {
   _: Boolean
 }
@@ -120,6 +122,11 @@ type CollaboratorBucketConnection {
   permissionLevel: BucketPermissionLevel!
 }
 
+type TabulatorTable {
+  name: String!
+  config: String!
+}
+
 type BucketConfig {
   name: String!
   title: String!
@@ -139,6 +146,7 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   collaborators: [CollaboratorBucketConnection!]!
+  tabulatorTables: [TabulatorTable!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
@@ -187,6 +195,21 @@ type RoleBucketPermission implements BucketPermission {
   role: Role!
   bucket: BucketConfig!
   level: BucketPermissionLevel!
+}
+
+type User {
+  name: String!
+  email: String!
+  dateJoined: Datetime!
+  lastLogin: Datetime!
+  isActive: Boolean!
+  isAdmin: Boolean!
+  isSsoOnly: Boolean!
+  isService: Boolean!
+  role: Role
+  extraRoles: [Role!]!
+  isRoleAssignmentDisabled: Boolean!
+  isAdminAssignmentDisabled: Boolean!
 }
 
 type AccessCountForDate {
@@ -405,6 +428,7 @@ type PackagesSearchStats {
   entries: NumberExtents!
   workflow: KeywordExtents!
   userMeta: [PackageUserMetaFacet!]!
+  userMetaTruncated: Boolean!
 }
 
 type ObjectsSearchResultSet {
@@ -412,11 +436,18 @@ type ObjectsSearchResultSet {
   firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
 }
 
+enum PackageUserMetaFacetType {
+  NUMBER
+  DATETIME
+  KEYWORD
+  TEXT
+  BOOLEAN
+}
+
 type PackagesSearchResultSet {
   stats: PackagesSearchStats!
+  filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
   firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
-  # XXX: do we need this at all? do we need to accept type here?
-  # userMetaFacet(path: String!): PackageUserMetaFacet
 }
 
 type EmptySearchResultSet {
@@ -464,7 +495,45 @@ type SearchHitPackage {
   # tags: [String!]! // TODO: currently not provided
 }
 
+type SubscriptionState {
+  active: Boolean!
+  timestamp: Datetime!
+}
+
+type UserAdminQueries {
+  list: [User!]!
+  get(name: String!): User
+}
+
+type SsoConfig {
+  text: String!
+  timestamp: Datetime!
+  uploader: User!
+}
+
+type AdminQueries {
+  user: UserAdminQueries!
+  ssoConfig: SsoConfig
+  isDefaultRoleSettingDisabled: Boolean!
+}
+
+type MyRole {
+  name: String!
+}
+
+type Me {
+  name: String!
+  email: String!
+  isAdmin: Boolean!
+  role: MyRole!
+  roles: [MyRole!]!
+}
+
+union SwitchRoleResult = Me | InvalidInput | OperationError
+
 type Query {
+  me: Me
+
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
@@ -484,6 +553,10 @@ type Query {
   ): PackagesSearchResult!
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
+  subscription: SubscriptionState!
+
+  admin: AdminQueries! @admin
+
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
@@ -570,6 +643,10 @@ type IndexingInProgress {
   _: Boolean
 }
 
+type SubscriptionInvalid {
+  _: Boolean
+}
+
 union BucketAddResult =
     BucketAddSuccess
   | BucketAlreadyAdded
@@ -580,6 +657,7 @@ union BucketAddResult =
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
+  | SubscriptionInvalid
 
 type BucketUpdateSuccess {
   bucketConfig: BucketConfig!
@@ -631,6 +709,10 @@ type RoleNameInvalid {
   _: Boolean
 }
 
+type RoleNameUsedBySsoConfig {
+  _: Boolean
+}
+
 type RoleDoesNotExist {
   _: Boolean
 }
@@ -667,6 +749,7 @@ union RoleUpdateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
@@ -683,9 +766,14 @@ union RoleDeleteResult =
     RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
+  | RoleNameUsedBySsoConfig
   | RoleAssigned
 
-union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+type SsoConfigConflict {
+  _: Boolean
+}
+
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigConflict
 
 type RoleSetDefaultSuccess {
   role: Role!
@@ -715,12 +803,19 @@ input PackagePushParams {
   name: String!
 }
 
+input PackageEntryHash {
+  type: String!
+  value: String!
+}
+
 input PackageConstructEntry {
   logicalKey: String!
   physicalKey: String!
-  hash: String
+  hash: PackageEntryHash
   # 32-bit Int may be too small to represent file size which may exceed several GB
   size: Float
+  # `meta` is the full metadata dict for entry that includes optional `user_meta` property,
+  # see PackageEntry._meta vs PackageEntry.meta.
   meta: JsonRecord
 }
 
@@ -732,17 +827,6 @@ input PackagePromoteSource {
   bucket: String!
   name: String!
   hash: String!
-}
-
-input PackageFromFolderEntry {
-  isDir: Boolean!
-  logicalKey: String!
-  path: String!
-}
-
-input PackageFromFolderSource {
-  bucket: String!
-  entries: [PackageFromFolderEntry!]!
 }
 
 type PackagePushSuccess {
@@ -761,11 +845,6 @@ union PackageConstructResult =
 
 union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 
-union PackageFromFolderResult =
-    PackagePushSuccess
-  | InvalidInput
-  | OperationError
-
 union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
   | OperationError
@@ -782,7 +861,45 @@ union BrowsingSessionRefreshResult =
 
 union BrowsingSessionDisposeResult = Ok | OperationError
 
+input UserInput {
+  name: String!
+  email: String!
+  role: String!
+  extraRoles: [String!]
+}
+
+union UserResult = User | InvalidInput | OperationError
+
+type MutateUserAdminMutations {
+  delete: OperationResult!
+  setEmail(email: String!): UserResult!
+  setRole(role: String!, extraRoles: [String!], append: Boolean! = false): UserResult!
+  addRoles(roles: [String!]!): UserResult!
+  removeRoles(roles: [String!]!, fallback: String): UserResult!
+  setAdmin(admin: Boolean!): UserResult!
+  setActive(active: Boolean!): UserResult!
+  resetPassword: OperationResult!
+}
+
+type UserAdminMutations {
+  create(input: UserInput!): UserResult!
+  mutate(name: String!): MutateUserAdminMutations
+}
+
+union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
+
+union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
+
+type AdminMutations {
+  user: UserAdminMutations!
+  setSsoConfig(config: String): SetSsoConfigResult
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
+}
+
 type Mutation {
+  switchRole(roleName: String!): SwitchRoleResult!
+
   packageConstruct(
     params: PackagePushParams!
     src: PackageConstructSource!
@@ -791,15 +908,13 @@ type Mutation {
     params: PackagePushParams!
     src: PackagePromoteSource!
   ): PackagePromoteResult!
-  packageFromFolder(
-    params: PackagePushParams!
-    src: PackageFromFolderSource!
-  ): PackageFromFolderResult!
   packageRevisionDelete(
     bucket: String!
     name: String!
     hash: String!
   ): PackageRevisionDeleteResult!
+
+  admin: AdminMutations! @admin
 
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!

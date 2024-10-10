@@ -28,7 +28,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-type NodeRenderer = (props: {
+export type NodeRenderer = (props: {
   expanded: boolean
   setExpanded: (exp: boolean) => void
 }) => React.ReactNode

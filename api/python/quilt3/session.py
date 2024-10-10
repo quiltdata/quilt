@@ -9,11 +9,7 @@ import stat
 import subprocess
 import sys
 import time
-
-try:
-    from importlib import metadata
-except ImportError:
-    import importlib_metadata as metadata
+from importlib import metadata
 
 import botocore.session
 import requests

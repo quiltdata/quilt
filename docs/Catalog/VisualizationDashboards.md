@@ -76,6 +76,7 @@ or an object with one or more of the following properties:
     - `["perspective"]` to render tabular data (csv, xlsx etc.) with Perspective
     - `["igv"]` to render JSON with Integrative Genomics Viewer
     - `["voila"]` to render a Jupyter notebook as an interactive Voila dashboard
+    - `["text"]` to render anything as text with syntax highlighting
 
 If you need to control the height of an element (useful for Voila dashboards),
 use the following extended syntax:

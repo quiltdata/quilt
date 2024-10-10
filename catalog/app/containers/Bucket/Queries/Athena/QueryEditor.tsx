@@ -7,6 +7,7 @@ import * as Lab from '@material-ui/lab'
 import 'ace-builds/src-noconflict/mode-sql'
 import 'ace-builds/src-noconflict/theme-eclipse'
 
+import { useConfirm } from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -178,10 +179,23 @@ export { FormSkeleton as Skeleton }
 
 const useFormStyles = M.makeStyles((t) => ({
   actions: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
     display: 'flex',
+    justifyContent: 'space-between',
     margin: t.spacing(2, 0),
+    [t.breakpoints.up('sm')]: {
+      alignItems: 'center',
+    },
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
+  },
+  database: {
+    [t.breakpoints.up('sm')]: {
+      width: '50%',
+    },
+    [t.breakpoints.down('sm')]: {
+      marginBottom: t.spacing(2),
+    },
   },
   error: {
     margin: t.spacing(1, 0, 0),
@@ -191,33 +205,67 @@ const useFormStyles = M.makeStyles((t) => ({
 interface FormProps {
   bucket: string
   className?: string
-  onChange: (value: string) => void
-  queryExecutionId?: string
-  value: string | null
+  onChange: (value: requests.athena.QueryExecution) => void
+  value: requests.athena.QueryExecution | null
   workgroup: requests.athena.Workgroup
 }
 
-export function Form({
-  bucket,
-  className,
-  onChange,
-  queryExecutionId,
-  value,
-  workgroup,
-}: FormProps) {
+export function Form({ bucket, className, onChange, value, workgroup }: FormProps) {
   const classes = useFormStyles()
-  const [executionContext, setExecutionContext] =
-    React.useState<requests.athena.ExecutionContext | null>(null)
 
-  const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
+  const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
+    () =>
+      value?.catalog && value?.db
+        ? {
+            catalogName: value.catalog,
+            database: value.db,
+          }
+        : null,
+    [value],
+  )
+  const confirm = useConfirm({
+    onSubmit: (confirmed) => {
+      if (confirmed) {
+        if (!value?.query) {
+          throw new Error('Query is not set')
+        }
+        onSubmit(value!.query, executionContext)
+      }
+    },
+    submitTitle: 'Proceed',
+    title: 'Execution context is not set',
+  })
+  const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, value?.id)
   const handleSubmit = React.useCallback(() => {
-    if (!value) return
-    onSubmit(value, executionContext)
-  }, [executionContext, onSubmit, value])
+    if (!value?.query) return
+    if (!executionContext) {
+      return confirm.open()
+    }
+    onSubmit(value.query, executionContext)
+  }, [confirm, executionContext, onSubmit, value])
+  const handleExecutionContext = React.useCallback(
+    (exeContext) => {
+      if (!exeContext) {
+        onChange({ ...value, catalog: undefined, db: undefined })
+        return
+      }
+      const { catalogName, database } = exeContext
+      onChange({ ...value, catalog: catalogName, db: database })
+    },
+    [onChange, value],
+  )
 
   return (
     <div className={className}>
-      <EditorField onChange={onChange} query={value || ''} />
+      {confirm.render(
+        <M.Typography>
+          Data catalog and database are not set. Run query without them?
+        </M.Typography>,
+      )}
+      <EditorField
+        onChange={(query: string) => onChange({ ...value, query })}
+        query={value?.query || ''}
+      />
 
       {error && (
         <Lab.Alert className={classes.error} severity="error">
@@ -226,7 +274,11 @@ export function Form({
       )}
 
       <div className={classes.actions}>
-        <Database onChange={setExecutionContext} value={executionContext} />
+        <Database
+          className={classes.database}
+          onChange={handleExecutionContext}
+          value={executionContext}
+        />
         <M.Button
           variant="contained"
           color="primary"

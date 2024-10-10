@@ -41,6 +41,7 @@ const useButtonStyles = M.makeStyles((t) => ({
 const useStyles = M.makeStyles((t) => ({
   value: {
     fontWeight: t.typography.fontWeightMedium,
+    marginLeft: t.spacing(0.5),
   },
 }))
 
@@ -51,6 +52,8 @@ interface SortProps {
 export default function Sort({ className }: SortProps) {
   const classes = useStyles()
   const buttonClasses = useButtonStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const model = SearchUIModel.use()
   const { setOrder } = model.actions
   const ButtonProps = React.useMemo(
@@ -107,7 +110,7 @@ export default function Sort({ className }: SortProps) {
       onChange={handleChange}
       ButtonProps={ButtonProps}
     >
-      <span>Sort by:</span>&nbsp;
+      {sm ? <M.Icon>sort</M.Icon> : 'Sort by:'}
     </SelectDropdown>
   )
 }

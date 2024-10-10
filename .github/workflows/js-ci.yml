@@ -12,13 +12,11 @@ jobs:
     defaults:
       run:
         working-directory: catalog
-    env:
-      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '16.11'
+          node-version-file: 'catalog/package.json'
           cache: 'npm'
           cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
@@ -27,20 +25,19 @@ jobs:
       - env:
           BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
         run: npm run bundlewatch
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: catalog
           name: ${{ github.job }}
   lint-docs:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '16.11'
-      - run: npx --package=markdownlint-cli markdownlint --ignore node_modules **/*.md
+          node-version-file: 'catalog/package.json'
+      - run: npx --package=markdownlint-cli markdownlint .

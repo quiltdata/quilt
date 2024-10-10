@@ -1,0 +1,16 @@
+mutation ($roleName: String!) {
+  switchRole(roleName: $roleName) {
+    __typename
+    ... on OperationError {
+      message
+      name
+    }
+    ... on InvalidInput {
+      errors {
+        name
+        path
+        message
+      }
+    }
+  }
+}

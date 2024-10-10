@@ -22,11 +22,9 @@ Sentry.init(cfg, history)
 import 'sanitize.css'
 
 // Import the rest of our modules
-import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
-import GTMLoader from 'utils/gtm'
 import * as Auth from 'containers/Auth'
 import * as Errors from 'containers/Errors'
 import * as Notifications from 'containers/Notifications'
@@ -39,7 +37,10 @@ import * as APIConnector from 'utils/APIConnector'
 import * as GraphQL from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
+import WithGlobalDialogs from 'utils/GlobalDialogs'
+import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { PFSCookieManager } from 'utils/PFSCookieManager'
 import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
@@ -58,10 +59,15 @@ globalApi.attach(window)
 const GlobalAPIProvider = globalApi.getProvider()
 
 // listen for Roboto fonts
-fontLoader('Roboto', 'Roboto Mono').then(() => {
-  // reload doc when we have all custom fonts
-  document.body.classList.add('fontLoaded')
-})
+fontLoader('Roboto', 'Roboto Mono')
+  .then(() => {
+    // reload doc when we have all custom fonts
+    document.body.classList.add('fontLoaded')
+  })
+  .catch((error) => {
+    log.log('Failed to load fonts')
+    log.error(error)
+  })
 
 const MOUNT_NODE = document.getElementById('app')
 
@@ -98,7 +104,6 @@ const render = () => {
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { storage }],
-      [GTMLoader, { gtmId: cfg.gtmId }],
       [
         Intercom.Provider,
         {
@@ -109,15 +114,16 @@ const render = () => {
           vertical_padding: 59,
         },
       ],
-      ExperimentsProvider,
       [Tracking.Provider, { userSelector: Auth.selectors.username }],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,
       AWS.S3.Provider,
       Notifications.WithNotifications,
+      WithGlobalDialogs,
       Errors.ErrorBoundary,
       BucketCacheProvider,
+      PFSCookieManager,
       App,
     ),
     MOUNT_NODE,
