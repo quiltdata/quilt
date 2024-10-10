@@ -32,8 +32,6 @@ export function ContextAggregatorProvider({ children }: React.PropsWithChildren<
   const push = React.useCallback(
     (context: Partial<ContextShape>) => {
       const id = uuid.v4()
-      // eslint-disable-next-line no-console
-      console.log('push context', id, context)
       mountedRef.current[id] = context
       setCounter((c) => c + 1)
       return () => {
@@ -64,8 +62,6 @@ const ROOT_CONTEXT: ContextShape = {
 }
 
 function aggregateContext(contexts: Partial<ContextShape>[]) {
-  // eslint-disable-next-line no-console
-  console.log('aggregate', contexts)
   return contexts.reduce(
     (acc: ContextShape, next) => ({
       // XXX: check for conflicts?
@@ -87,8 +83,6 @@ export function useAggregatedContext(): ContextShape {
   React.useEffect(() => {
     const values = getValues()
     const aggregated = aggregateContext(values)
-    // eslint-disable-next-line no-console
-    console.log('COMPUTE aggregated', { counter, values, aggregated })
     setComputed(aggregated)
   }, [setComputed, getValues, counter])
 
