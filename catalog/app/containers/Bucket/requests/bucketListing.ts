@@ -21,7 +21,7 @@ interface DrainObjectListParams {
   prefix: string
   delimiter?: string
   continuationToken?: string
-  maxRequests: true | number
+  maxRequests: number
 }
 
 const drainObjectList = async ({

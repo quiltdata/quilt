@@ -103,10 +103,27 @@ Said another way, users created through SSO can only log in through SSO.
 * You _must disable SSO_ and enable `PasswordAuth` if you wish to log in as an admin
 using a password (as opposed to SSO).
 
-### Changing the admin via CloudFormation
-If you need to change the admin (e.g. you have accidentally broken your admin user)
-try the following:
-1. Change the value of the `AdminEmail` CloudFormation parameter.
+### Unable to log in
+
+The following are common causes of failed logins. In most cases we recommend that
+you check the [network panel of your browser](#browser-network-and-console) for details.
+
+1. SSO connector misconfigured. See [SSO](technical-reference.md#cnames) for details.
+1. SSL errors are often caused by misspelled names, or incomplete Subject Alternate Names.
+The ACM certificate for `CertificateArnELB` must cover all three Quilt [CNAMEs](technical-reference.md#cnames) either via a suitable `*` or explicit Subject Alternate Names.
+
+### Changing the admin email or password
+
+Changing the admin password is only possible with `PasswordAuth=Enabled` in CloudFormation
+and is subject to the following limitations for security reasons:
+* Has no effect if SSO is in use, or was in use when the admin was first created.
+* Has no effect on pre-existing admin username/password pairs.
+
+You can click "reset password" on the login page.
+ 
+To change the admin email (e.g. you have accidentally broken your admin user) try the following:
+
+1. Change the value of the `AdminEmail` CloudFormation parameter _to a net new email_.
 1. Apply the change as a stack _Update_.
 1. Once the update is successful, the new admin can log in, set roles, and nominate
 other admins as needed.

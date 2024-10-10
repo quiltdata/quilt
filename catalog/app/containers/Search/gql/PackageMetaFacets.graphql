@@ -3,27 +3,11 @@ query ($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter
     __typename
     ... on PackagesSearchResultSet {
       stats {
+        userMetaTruncated
         userMeta {
           __typename
           ... on IPackageUserMetaFacet {
             path
-          }
-          ... on NumberPackageUserMetaFacet {
-            numberExtents: extents {
-              min
-              max
-            }
-          }
-          ... on DatetimePackageUserMetaFacet {
-            datetimeExtents: extents {
-              min
-              max
-            }
-          }
-          ... on KeywordPackageUserMetaFacet {
-            extents {
-              values
-            }
           }
         }
       }

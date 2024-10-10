@@ -1,0 +1,21 @@
+# import UserSelection from "./UserSelection.graphql"
+
+fragment UserResultSelection on UserResult {
+  __typename
+  ... on User {
+    ...UserSelection
+  }
+  ... on InvalidInput {
+    errors {
+      path
+      message
+      name
+      context
+    }
+  }
+  ... on OperationError {
+    message
+    name
+    context
+  }
+}

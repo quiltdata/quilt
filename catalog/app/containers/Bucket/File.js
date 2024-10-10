@@ -32,6 +32,7 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import FileCodeSamples from './CodeSamples/File'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
+import QuratorSection from './Qurator/Section'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
@@ -303,6 +304,9 @@ const useStyles = M.makeStyles((t) => ({
       maxWidth: 'calc(100% - 40px)',
     },
   },
+  editor: {
+    minHeight: t.spacing(50),
+  },
   topBar: {
     alignItems: 'flex-end',
     display: 'flex',
@@ -359,7 +363,17 @@ export default function File() {
         downloadable: false,
       }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        downloadable: !cfg.noDownload && !deleted && !archived,
+        downloadable:
+          !cfg.noDownload &&
+          !deleted &&
+          !archived &&
+          BucketPreferences.Result.match(
+            {
+              Ok: ({ ui }) => ui.actions.downloadObject,
+              _: R.F,
+            },
+            prefs,
+          ),
         fileVersionId: versionId,
       }),
     }),
@@ -452,12 +466,20 @@ export default function File() {
               onChange={onViewModeChange}
             />
           )}
-          {FileEditor.isSupportedFileType(handle.key) && (
-            <FileEditor.Controls
-              {...editorState}
-              className={classes.button}
-              onSave={handleEditorSave}
-            />
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) =>
+                actions.writeFile &&
+                FileEditor.isSupportedFileType(handle.key) && (
+                  <FileEditor.Controls
+                    {...editorState}
+                    className={classes.button}
+                    onSave={handleEditorSave}
+                  />
+                ),
+              _: () => null,
+            },
+            prefs,
           )}
           {bookmarks && (
             <Buttons.Iconized
@@ -496,6 +518,9 @@ export default function File() {
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
+                      {cfg.qurator && blocks.qurator && (
+                        <QuratorSection handle={handle} />
+                      )}
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />
@@ -510,7 +535,11 @@ export default function File() {
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                  <FileEditor.Editor {...editorState} handle={handle} />
+                  <FileEditor.Editor
+                    {...editorState}
+                    className={classes.editor}
+                    handle={handle}
+                  />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
@@ -535,7 +564,16 @@ export default function File() {
             ) : (
               <>
                 <Message headline="No Such Object">
-                  <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                  {BucketPreferences.Result.match(
+                    {
+                      Ok: ({ ui: { actions } }) =>
+                        actions.writeFile && (
+                          <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                        ),
+                      _: () => null,
+                    },
+                    prefs,
+                  )}
                 </Message>
               </>
             ),

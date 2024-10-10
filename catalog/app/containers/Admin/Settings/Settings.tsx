@@ -281,13 +281,13 @@ export default function Settings() {
   return (
     <div className={classes.root}>
       <MetaTitle>{['Settings', 'Admin']}</MetaTitle>
-      <M.Typography variant="h4" className={classes.title}>
+      <M.Typography variant="h5" className={classes.title}>
         Catalog Customization
       </M.Typography>
       <M.Grid container spacing={2}>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Navbar link
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
@@ -297,7 +297,7 @@ export default function Settings() {
         </M.Grid>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Theme (logo and color)
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
@@ -307,7 +307,7 @@ export default function Settings() {
         </M.Grid>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Default search mode
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
@@ -317,7 +317,7 @@ export default function Settings() {
         </M.Grid>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Enable beta features
             </M.Typography>
             <BetaSwitch />

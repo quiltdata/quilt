@@ -127,14 +127,14 @@ export default function PreviewDisplay({
           }),
         Expired: ({ retry }) =>
           renderMessage({
-            heading: 'Session is expired',
-            body: 'Try to reload the page',
+            heading: 'Session expired',
+            body: !retry && 'Try to reload the page',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
-        Unexpected: ({ retry }) =>
+        Unexpected: ({ retry, message }) =>
           renderMessage({
             heading: 'Unexpected Error',
-            body: 'Something went wrong while loading preview',
+            body: message || 'Something went wrong while loading preview',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
         __: ({ retry }) =>

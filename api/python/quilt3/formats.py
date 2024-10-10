@@ -77,12 +77,8 @@ import tempfile
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from importlib import metadata as importlib_metadata
 from pathlib import Path
-
-try:
-    from importlib import metadata as importlib_metadata
-except ImportError:
-    import importlib_metadata
 
 from .util import QuiltException
 

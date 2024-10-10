@@ -11,6 +11,8 @@ import type { SectionProps } from '../Section'
 
 import Code from './Code'
 
+// TODO: use markdown templates + prism code highlighter + autolinker plugin
+
 const TEMPLATES = {
   PY: (bucket: string, name: string, path: string, hashDisplay: string) => {
     const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
@@ -82,6 +84,7 @@ export default function PackageCodeSamples({
       },
       {
         label: 'URI',
+        hl: 'uri',
         contents: PackageUri.stringify({ bucket, name, hash, path }),
       },
     ],

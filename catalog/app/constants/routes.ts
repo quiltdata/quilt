@@ -26,22 +26,7 @@ export const install: Route = {
   url: () => '/install',
 }
 
-// Marketing
-
-export const about: Route = {
-  path: '/about',
-  url: () => '/about',
-}
-
-export const personas: Route = {
-  path: '/personas',
-  url: () => '/personas',
-}
-
-export const product: Route = {
-  path: '/product',
-  url: () => '/product',
-}
+// Auth
 
 export type ActivateArgs = [options: { registryUrl: string; token: string }]
 
@@ -50,14 +35,7 @@ export const activate: Route<ActivateArgs> = {
   url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
 }
 
-export const example: Route = {
-  path: '/__example',
-  url: () => '/__example',
-}
-
 export type SignInArgs = [next: string]
-
-// Auth
 
 export const signIn: Route<SignInArgs> = {
   path: '/signin',
@@ -105,11 +83,11 @@ export const profile: Route = {
   url: () => '/profile',
 }
 
+// Global search
+
 export type SearchArgs = [
   options: { q: string; buckets: string; p: string; mode: string; retry: string },
 ]
-
-// Global search
 
 export const search: Route<SearchArgs> = {
   path: '/search',
@@ -117,9 +95,9 @@ export const search: Route<SearchArgs> = {
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 }
 
-export type UriResolverArgs = [uri: string]
-
 // Immutable URI resolver
+
+export type UriResolverArgs = [uri: string]
 
 export const uriResolver: Route<UriResolverArgs> = {
   path: '/uri/:uri(.*)',
@@ -141,6 +119,7 @@ export type BucketSearchArgs = [
 ]
 
 export const bucketOverview = bucketRoot
+
 // redirects to global search
 export const bucketSearch: Route<BucketSearchArgs> = {
   path: '/b/:bucket/search',
@@ -283,11 +262,23 @@ export const admin: Route = {
 
 export const adminUsers = admin
 
-export type AdminBucketsArgs = [bucket: string]
+export type AdminBucketsArgs = [
+  options?: {
+    add?: boolean
+    bucket?: string /* @deprecated legacy param   */
+  },
+]
 
 export const adminBuckets: Route<AdminBucketsArgs> = {
   path: '/admin/buckets',
-  url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
+  url: ({ add, bucket } = {}) => `/admin/buckets${mkSearch({ add, bucket })}`,
+}
+
+export type AdminBucketEditArgs = [bucket: string]
+
+export const adminBucketEdit: Route<AdminBucketEditArgs> = {
+  path: '/admin/buckets/:bucketName',
+  url: (bucketName) => `/admin/buckets/${bucketName}`,
 }
 
 export const adminSettings: Route = {

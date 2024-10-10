@@ -20,6 +20,7 @@ const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
       reference: R.evolve({
         fastaURL: fn,
         indexURL: fn,
+        compressedIndexURL: fn,
         cytobandURL: fn,
         aliasURL: fn,
       }),
@@ -58,7 +59,7 @@ interface PreviewResult {
 }
 
 export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderProps) {
-  const signUrls = useSignObjectUrls(handle, traverseUrls)
+  const signUrls = useSignObjectUrls(handle, traverseUrls, { asyncReady: true })
 
   const { result, fetch } = utils.usePreview({
     type: 'txt',
@@ -72,6 +73,13 @@ export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderP
       const tail = data.tail.join('\n')
       try {
         const options = JSON.parse([head, tail].join('\n'))
+        if (!options.reference?.indexFile && options.reference?.fastaURL) {
+          // This is a copy of the IGV behaviour, that is a copy IGV desktop behaviour.
+          // But with a fix of a bug when after signing URLs `fastaURL` contains async thunk.
+          // `indexFile` will be discarded if reference has `indexURL`
+          // XXX: remove that after https://github.com/igvteam/igv.js/pull/1821 merged
+          options.reference.indexFile = `${options.reference.fastaURL}.fai`
+        }
         const auxOptions = await signUrls(options)
         return PreviewData.Igv({
           options: auxOptions,

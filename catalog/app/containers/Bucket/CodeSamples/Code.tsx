@@ -32,14 +32,12 @@ const useLineOfCodeStyles = M.makeStyles((t) => ({
     overflowY: 'hidden',
     whiteSpace: 'pre',
     minHeight: t.typography.body2.fontSize,
-    display: 'flex',
-    alignItems: 'flex-end',
     '&:hover $help': {
       opacity: 1,
     },
   },
   help: {
-    display: 'inline-flex',
+    display: 'inline-block',
     marginLeft: t.spacing(0.5),
     opacity: 0.3,
   },
@@ -54,7 +52,13 @@ function LineOfCode({ lang, text, help }: LineOfCodeProps) {
   const classes = useLineOfCodeStyles()
   return (
     <div className={classes.root}>
-      {highlight(text, lang)}
+      {lang === 'uri' ? (
+        <StyledLink href={text} target={text.startsWith('http') ? '_blank' : '_self'}>
+          {text}
+        </StyledLink>
+      ) : (
+        highlight(text, lang)
+      )}
       {help && (
         <StyledLink href={help} className={classes.help} target="_blank">
           [?]
@@ -85,7 +89,6 @@ interface CodeProps extends Partial<SectionProps> {
   defaultSelected?: number
 }
 
-// children: [{ label: str, contents: str, hl: lang }]
 export default function Code({ defaultSelected = 0, children, ...props }: CodeProps) {
   const classes = useStyles()
   const { push } = Notifications.use()

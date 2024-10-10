@@ -812,7 +812,7 @@ function Head({ s3, overviewUrl, bucket, description }) {
           />
         </M.Box>
         {isAdmin && (
-          <RRLink className={classes.settings} to={urls.adminBuckets(bucket)}>
+          <RRLink className={classes.settings} to={urls.adminBucketEdit(bucket)}>
             <M.IconButton color="inherit">
               <M.Icon>settings</M.Icon>
             </M.IconButton>

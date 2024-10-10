@@ -1,5 +1,12 @@
 import { isSupportedFileType } from './loader'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    apiGatewayEndpoint: '',
+  })),
+)
+
 describe('components/FileEditor/loader', () => {
   describe('isSupportedFileType', () => {
     it('should return true for supported files', () => {

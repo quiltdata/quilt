@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
 import cfg from 'constants/config'
-import Delay from 'utils/Delay'
 
 import { useNavBar, expandAnimationDuration } from './Provider'
 import Suggestions from './Suggestions'
@@ -172,18 +171,13 @@ function SearchNotAvailable() {
 
 function DelayedProgress() {
   return (
-    <Delay alwaysRender>
-      {(ready) => (
-        <M.Fade in={ready}>
-          <M.CircularProgress />
-        </M.Fade>
-      )}
-    </Delay>
+    <M.Fade in style={{ transitionDelay: '1000ms' }}>
+      <M.CircularProgress />
+    </M.Fade>
   )
 }
 
 export default function SearchWrapper(props: SearchProps) {
-  if (cfg.disableNavigator) return null
   if (cfg.mode === 'LOCAL') return <SearchNotAvailable />
   return (
     <React.Suspense fallback={<DelayedProgress />}>

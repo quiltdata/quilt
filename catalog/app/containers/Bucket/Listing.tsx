@@ -10,6 +10,7 @@ import { fade } from '@material-ui/core/styles'
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import type { Urls } from 'utils/NamedRoutes'
 import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
@@ -284,14 +285,11 @@ const usePaginationStyles = M.makeStyles((t) => ({
   select: {
     alignItems: 'center',
     display: 'flex',
-    height: 24,
-    paddingBottom: 0,
     paddingLeft: t.spacing(0.5),
-    paddingTop: 0,
   },
   input: {
     fontSize: 'inherit',
-    marginRight: t.spacing(0.5),
+    marginRight: t.spacing(2),
 
     [t.breakpoints.down('xs')]: {
       display: 'none',
@@ -299,9 +297,7 @@ const usePaginationStyles = M.makeStyles((t) => ({
   },
   button: {
     color: t.palette.action.active,
-    minWidth: 'auto',
-    paddingBottom: 1,
-    paddingTop: 1,
+    minWidth: t.spacing(4),
   },
   current: {
     color: t.palette.text.primary,
@@ -310,15 +306,20 @@ const usePaginationStyles = M.makeStyles((t) => ({
 }))
 
 interface PaginationProps {
-  truncated?: boolean
+  apiRef?: DG.GridApiRef
   loadMore?: () => void
+  state: DG.GridPaginationState
+  truncated?: boolean
 }
 
-function Pagination({ truncated, loadMore }: PaginationProps) {
+function Pagination({
+  apiRef,
+  state: paginationState,
+  truncated,
+  loadMore,
+}: PaginationProps) {
   const classes = usePaginationStyles()
 
-  const apiRef = React.useContext(DG.GridApiContext)
-  const paginationState = DG.useGridSelector(apiRef, DG.gridPaginationSelector)
   const options = DG.useGridSelector(apiRef, optionsSelector)
 
   const page = paginationState.page + 1
@@ -509,6 +510,10 @@ const useToolbarStyles = M.makeStyles((t) => ({
     fontSize: t.typography.body1.fontSize,
     marginRight: t.spacing(0.5),
   },
+  summary: {
+    marginLeft: 'auto',
+    marginRight: t.spacing(1),
+  },
   truncated: {
     ...t.typography.body2,
     alignItems: 'center',
@@ -548,7 +553,11 @@ function Toolbar({
   items,
   children,
 }: ToolbarProps) {
+  const apiRef = React.useContext(DG.GridApiContext)
+  const paginationState = DG.useGridSelector(apiRef, DG.gridPaginationSelector)
   const classes = useToolbarStyles()
+  const from = paginationState.page * paginationState.pageSize + 1
+  const to = Math.min((paginationState.page + 1) * paginationState.pageSize, items.length)
   return (
     <div className={classes.root}>
       {children}
@@ -572,7 +581,9 @@ function Toolbar({
           )}
         </div>
       )}
-      <Pagination truncated={truncated} loadMore={loadMore} />
+      <div className={classes.summary}>
+        Showing {from}—{to} out of {truncated ? 'first' : ''} {items.length}
+      </div>
       <FilterToolbarButton />
       {locked && <div className={classes.lock} />}
     </div>
@@ -664,7 +675,7 @@ function ColumnMenu({
 }
 
 const useFooterStyles = M.makeStyles((t) => ({
-  root: {
+  section: {
     alignItems: 'center',
     borderTop: `1px solid ${t.palette.divider}`,
     color: t.palette.text.secondary,
@@ -750,6 +761,8 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
 
   const stats = React.useMemo(() => computeStats(items), [items])
 
+  const paginationState = DG.useGridSelector(apiRef, DG.gridPaginationSelector)
+
   const filteredStats = React.useMemo(() => {
     if (!filterCount) return undefined
     const visibleItems = (state.visibleRows.visibleRows || []).map(
@@ -761,74 +774,85 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
   const modified = filteredStats ? filteredStats.modified : stats.modified
 
   return (
-    <div className={classes.root}>
-      <div className={classes.cellFirst}>
-        <M.Tooltip title="Directories" arrow enterDelay={TIP_DELAY}>
-          <div className={classes.group}>
-            <M.Icon className={classes.icon}>folder_open</M.Icon>
-            {filteredStats && <>{filteredStats.dirs} / </>}
-            {stats.dirs}
-            {truncated && '+'}
-          </div>
-        </M.Tooltip>
-
-        <M.Tooltip title="Files" arrow enterDelay={TIP_DELAY}>
-          <div className={classes.group}>
-            <M.Icon className={classes.icon}>insert_drive_file</M.Icon>
-            {filteredStats && <>{filteredStats.files} / </>}
-            {stats.files}
-            {truncated && '+'}
-          </div>
-        </M.Tooltip>
-
-        {!!filterCount && (
-          <M.Tooltip title={<ActiveFilters />} arrow enterDelay={TIP_DELAY}>
+    <>
+      <div className={classes.section}>
+        <div className={classes.cellFirst}>
+          <M.Tooltip title="Directories" arrow enterDelay={TIP_DELAY}>
             <div className={classes.group}>
-              <M.Icon className={classes.icon}>filter_list</M.Icon>
-              {filterCount}
+              <M.Icon className={classes.icon}>folder_open</M.Icon>
+              {filteredStats && <>{filteredStats.dirs} / </>}
+              {stats.dirs}
+              {truncated && '+'}
             </div>
           </M.Tooltip>
-        )}
 
-        {truncated && (
-          // TODO: show tooltip with detailed description?
-          <div className={classes.group}>
-            <M.Icon className={classes.icon}>warning</M.Icon>
-            <span className={classes.truncationWarning}>
-              Showing first {items.length} objects
-              {!!loadMore && (
-                <>
-                  <> &rarr;&nbsp;</>
-                  <M.Link
-                    onClick={loadMore}
-                    className={classes.loadMore}
-                    component="button"
-                    underline="always"
-                  >
-                    load more
-                  </M.Link>
-                  {locked && (
-                    <M.CircularProgress size={16} className={classes.progress} />
-                  )}
-                </>
-              )}
-            </span>
+          <M.Tooltip title="Files" arrow enterDelay={TIP_DELAY}>
+            <div className={classes.group}>
+              <M.Icon className={classes.icon}>insert_drive_file</M.Icon>
+              {filteredStats && <>{filteredStats.files} / </>}
+              {stats.files}
+              {truncated && '+'}
+            </div>
+          </M.Tooltip>
+
+          {!!filterCount && (
+            <M.Tooltip title={<ActiveFilters />} arrow enterDelay={TIP_DELAY}>
+              <div className={classes.group}>
+                <M.Icon className={classes.icon}>filter_list</M.Icon>
+                {filterCount}
+              </div>
+            </M.Tooltip>
+          )}
+
+          {truncated && (
+            // TODO: show tooltip with detailed description?
+            <div className={classes.group}>
+              <M.Icon className={classes.icon}>warning</M.Icon>
+              <span className={classes.truncationWarning}>
+                Showing first {items.length} objects
+                {!!loadMore && (
+                  <>
+                    <> &rarr;&nbsp;</>
+                    <M.Link
+                      onClick={loadMore}
+                      className={classes.loadMore}
+                      component="button"
+                      underline="always"
+                    >
+                      load more
+                    </M.Link>
+                    {locked && (
+                      <M.CircularProgress size={16} className={classes.progress} />
+                    )}
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+        </div>
+        <div className={classes.spacer} />
+        <div className={classes.cellSecond}>
+          {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
+          {readableBytes(stats.size, truncated ? '+' : '')}
+        </div>
+        {modified && (
+          <div className={classes.cellLast}>
+            {truncated ? '~' : ''}
+            {modified.toLocaleString()}
           </div>
         )}
+        {locked && <div className={classes.lock} />}
       </div>
-      <div className={classes.spacer} />
-      <div className={classes.cellSecond}>
-        {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
-        {readableBytes(stats.size, truncated ? '+' : '')}
+
+      <div className={classes.section}>
+        <Pagination
+          apiRef={apiRef}
+          state={paginationState}
+          truncated={truncated}
+          loadMore={loadMore}
+        />
       </div>
-      {modified && (
-        <div className={classes.cellLast}>
-          {truncated ? '~' : ''}
-          {modified.toLocaleString()}
-        </div>
-      )}
-      {locked && <div className={classes.lock} />}
-    </div>
+    </>
   )
 }
 
@@ -1036,6 +1060,7 @@ export function Listing({
   const classes = useStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const prefs = BucketPreferences.use()
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
@@ -1170,15 +1195,24 @@ export function Listing({
         params.id === '..' ? (
           <></>
         ) : (
-          <RowActions
-            archived={params.row.archived}
-            physicalKey={params.row.physicalKey}
-            to={params.row.to}
-          />
+          BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) => (
+                <RowActions
+                  archived={params.row.archived}
+                  physicalKey={params.row.physicalKey}
+                  prefs={actions}
+                  to={params.row.to}
+                />
+              ),
+              _: () => <></>,
+            },
+            prefs,
+          )
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, items, sm])
+  }, [classes, CellComponent, items, sm, prefs])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''

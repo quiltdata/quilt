@@ -44,6 +44,7 @@ interface PromptProps {
   title: string
 }
 
+// TODO: Re-use utils/Dialog
 export function useConfirm({ cancelTitle, title, onSubmit, submitTitle }: PromptProps) {
   const [key, setKey] = React.useState(0)
   const [opened, setOpened] = React.useState(false)
