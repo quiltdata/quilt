@@ -4,7 +4,7 @@
 Tabulator aggregates tabular data objects across multiple packages using AWS
 Athena. Admins define schemas and data sources for CSV, TSV, or Parquet files,
 enabling users to run SQL queries directly on the contents of Quilt packages.
-You can even use named regular expressions to extract additional columns from
+You can even use named capture groups to extract additional columns from
 the logical key and package name.
 
 The configuration is written in YAML and managed using the
