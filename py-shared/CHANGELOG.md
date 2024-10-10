@@ -1,3 +1,4 @@
+<!-- markdownlint-disable line-length -->
 # Changelog
 
 Changes are listed in reverse chronological order (newer entries at the top).
