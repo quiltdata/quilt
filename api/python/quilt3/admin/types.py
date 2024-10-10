@@ -44,3 +44,9 @@ class SSOConfig:
     text: str
     timestamp: datetime
     uploader: User
+
+
+@pydantic.dataclasses.dataclass
+class TabulatorTable:
+    name: str
+    config: str
