@@ -93,8 +93,6 @@ Entries inside each section should be ordered by type:
 * [Changed] **BREAKING:** Switch from a regular SHA256 checksum to a hash list (`sha2-256-chunked`) to match S3's built-in checksums ([#2782](https://github.com/quiltdata/quilt/pull/2782))
 * [Changed] **BREAKING:** Delay object hashing until package push to take advantage of S3's hashing; as a result, `dest` functions no longer receive a `top_hash` ([#2782](https://github.com/quiltdata/quilt/pull/2782))
 
-## CLI
-
 ## Catalog, Lambdas
 
 * [Added] Support chunked checksums ([#3403](https://github.com/quiltdata/quilt/pull/3403), [#3887](https://github.com/quiltdata/quilt/pull/3887))
