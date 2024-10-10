@@ -806,7 +806,7 @@ export function usePackageCreationDialog({
     async (initial?: {
       successor?: workflows.Successor
       path?: string
-      selection?: Selection.PrefixedKeysMap
+      selection?: Selection.ListingSelection
     }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)

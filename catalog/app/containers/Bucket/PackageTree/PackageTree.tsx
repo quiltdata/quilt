@@ -26,6 +26,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
+import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
@@ -39,6 +40,7 @@ import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import QuratorSection from '../Qurator/Section'
 import Section from '../Section'
+import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
 import WithPackagesSupport from '../WithPackagesSupport'
@@ -46,6 +48,7 @@ import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
+
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -98,6 +101,82 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   )
 }
 
+const useSelectionWidgetStyles = M.makeStyles({
+  close: {
+    marginLeft: 'auto',
+  },
+  title: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  badge: {
+    right: '4px',
+  },
+})
+
+interface SelectionWidgetProps {
+  className: string
+  onSelection: (changed: Selection.ListingSelection) => void
+  packageHandle: PackageHandle
+  selection: Selection.ListingSelection
+}
+
+function SelectionWidget({
+  className,
+  packageHandle,
+  selection,
+  onSelection,
+}: SelectionWidgetProps) {
+  const classes = useSelectionWidgetStyles()
+  const location = RRDom.useLocation()
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+  const [opened, setOpened] = React.useState(false)
+  const open = React.useCallback(() => setOpened(true), [])
+  const close = React.useCallback(() => setOpened(false), [])
+  React.useEffect(() => close(), [close, location])
+  const badgeClasses = React.useMemo(() => ({ badge: classes.badge }), [classes])
+  return (
+    <>
+      <M.Badge
+        badgeContent={count}
+        classes={badgeClasses}
+        className={className}
+        color="primary"
+        max={999}
+        showZero
+      >
+        <M.Button onClick={open} size="small">
+          Selected items
+        </M.Button>
+      </M.Badge>
+
+      <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
+        <M.DialogTitle disableTypography>
+          <M.Typography className={classes.title} variant="h6">
+            {count} items selected
+            <M.IconButton size="small" className={classes.close} onClick={close}>
+              <M.Icon>close</M.Icon>
+            </M.IconButton>
+          </M.Typography>
+        </M.DialogTitle>
+        <M.DialogContent>
+          <Selection.Dashboard
+            onDone={close}
+            onSelection={onSelection}
+            packageHandle={packageHandle}
+            selection={selection}
+          />
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={close} variant="contained" color="primary" size="small">
+            Close
+          </M.Button>
+        </M.DialogActions>
+      </M.Dialog>
+    </>
+  )
+}
+
 const useDirDisplayStyles = M.makeStyles((t) => ({
   button: {
     flexShrink: 0,
@@ -115,6 +194,8 @@ interface DirDisplayProps {
   path: string
   crumbs: BreadCrumbs.Crumb[]
   size?: number
+  selection: Selection.ListingSelection
+  onSelection: (ids: Selection.ListingSelection) => void
 }
 
 function DirDisplay({
@@ -125,6 +206,8 @@ function DirDisplay({
   path,
   crumbs,
   size,
+  selection,
+  onSelection,
 }: DirDisplayProps) {
   const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
@@ -333,6 +416,12 @@ function DirDisplay({
                   {
                     Ok: ({ ui: { actions } }) => (
                       <>
+                        <SelectionWidget
+                          className={classes.button}
+                          onSelection={onSelection}
+                          packageHandle={packageHandle}
+                          selection={selection}
+                        />
                         {actions.revisePackage && (
                           <M.Button
                             className={classes.button}
@@ -398,7 +487,20 @@ function DirDisplay({
                         />
                       )}
                       <M.Box mt={2}>
-                        {blocks.browser && <Listing.Listing items={items} key={hash} />}
+                        {blocks.browser && (
+                          <Listing.Listing
+                            onSelectionChange={(ids) =>
+                              onSelection(Selection.merge(ids, bucket, path)(selection))
+                            }
+                            selection={Selection.getDirectorySelection(
+                              selection,
+                              bucket,
+                              path,
+                            )}
+                            items={items}
+                            key={hash}
+                          />
+                        )}
                         <Summary
                           path={path}
                           files={summaryHandles}
@@ -815,6 +917,11 @@ function PackageTree({
     tailSeparator: path.endsWith('/'),
   })
 
+  // TODO: guard for leaving this exact package
+  const [selection, setSelection] = React.useState<Selection.ListingSelection>(
+    Selection.EMPTY_MAP,
+  )
+
   return (
     <FileView.Root>
       {/* TODO: bring back linked data after re-implementing it using graphql
@@ -872,6 +979,8 @@ function PackageTree({
                 hashOrTag,
                 crumbs,
                 size,
+                selection,
+                onSelection: setSelection,
               }}
             />
           ) : (

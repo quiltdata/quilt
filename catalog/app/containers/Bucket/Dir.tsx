@@ -88,8 +88,8 @@ interface DirContentsProps {
   bucket: string
   path: string
   loadMore?: () => void
-  selection: string[]
-  onSelection: (ids: string[]) => void
+  selection: Selection.SelectionItem[]
+  onSelection: (ids: Selection.SelectionItem[]) => void
 }
 
 function DirContents({
@@ -156,8 +156,8 @@ const useSelectionWidgetStyles = M.makeStyles({
 
 interface SelectionWidgetProps {
   className: string
-  selection: Selection.PrefixedKeysMap
-  onSelection: (changed: Selection.PrefixedKeysMap) => void
+  selection: Selection.ListingSelection
+  onSelection: (changed: Selection.ListingSelection) => void
 }
 
 function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
@@ -281,7 +281,7 @@ export default function Dir() {
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState<Record<string, string[]>>(
+  const [selection, setSelection] = React.useState<Selection.ListingSelection>(
     Selection.EMPTY_MAP,
   )
   const handleSelection = React.useCallback(

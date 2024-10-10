@@ -5,13 +5,17 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
-import { EMPTY_MAP, PrefixedKeysMap, toHandlesMap } from './utils'
+import * as FileView from '../FileView'
+
+import { EMPTY_MAP, ListingSelection, toHandlesMap, toHandlesList } from './utils'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
@@ -100,10 +104,16 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
   },
+  buttons: {
+    display: 'flex',
+  },
   button: {
     '& + &': {
       marginLeft: t.spacing(1),
     },
+  },
+  divider: {
+    marginTop: t.spacing(2),
   },
   list: {
     background: t.palette.background.paper,
@@ -126,16 +136,28 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DashboardProps {
   onDone: () => void
-  onSelection: (changed: PrefixedKeysMap) => void
-  selection: PrefixedKeysMap
+  onSelection: (changed: ListingSelection) => void
+  selection: ListingSelection
+  packageHandle?: PackageHandle
 }
 
-export default function Dashboard({ onDone, onSelection, selection }: DashboardProps) {
+// TODO: BucketPreferences
+
+export default function Dashboard({
+  onDone,
+  onSelection,
+  selection,
+  packageHandle,
+}: DashboardProps) {
   const classes = useStyles()
   const lists = React.useMemo(() => toHandlesMap(selection), [selection])
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
 
-  const bookmarks = Bookmarks.use()
+  const bookmarksCtx = Bookmarks.use()
+  const bookmarks = React.useMemo(
+    () => !packageHandle && bookmarksCtx,
+    [packageHandle, bookmarksCtx],
+  )
   const hasSomethingToBookmark = React.useMemo(
     () =>
       bookmarks &&
@@ -161,7 +183,7 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
 
   const handleRemove = React.useCallback(
     (prefixUrl: string, index: number) => {
-      const newSelection = R.dissocPath<PrefixedKeysMap>([prefixUrl, index], selection)
+      const newSelection = R.dissocPath<ListingSelection>([prefixUrl, index], selection)
       onSelection(newSelection)
       if (!Object.values(newSelection).some((ids) => !!ids.length)) {
         onDone()
@@ -172,7 +194,7 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
 
   return (
     <div className={classes.root}>
-      <>
+      <div className={classes.buttons}>
         {bookmarks && (
           <M.Button
             className={classes.button}
@@ -185,6 +207,15 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
             {hasSomethingToBookmark ? 'Add to bookmarks' : 'Remove from bookmarks'}
           </M.Button>
         )}
+        {!!packageHandle && (
+          <FileView.ZipDownloadForm
+            suffix={`package/${packageHandle.bucket}/${packageHandle.name}/${packageHandle.hash}`}
+            className={classes.button}
+            files={toHandlesList(selection).map(({ key }) => key)}
+          >
+            <Buttons.Iconized label="Download selected" icon="archive" type="submit" />
+          </FileView.ZipDownloadForm>
+        )}
         <M.Button
           className={classes.button}
           color="primary"
@@ -195,8 +226,8 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
         >
           Clear selection
         </M.Button>
-        <M.Divider style={{ marginTop: '16px' }} />
-      </>
+      </div>
+      <M.Divider style={{ marginTop: '16px' }} />
       {hasSelection ? (
         <M.List dense disablePadding className={classes.list}>
           {Object.entries(lists).map(([prefixUrl, handles]) =>

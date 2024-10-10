@@ -19,6 +19,7 @@ import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
 import { RowActions } from './ListingActions'
+import * as Selection from './Selection'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
 
@@ -474,10 +475,10 @@ function FilterToolbarButton() {
 
 // Iterate over `items`, and add slash if selection item is directory
 // Iterate over `items` only once, but keep the sort order as in original selection
-function formatSelection(ids: DG.GridRowId[], items: Item[]): string[] {
-  if (!ids.length) return ids as string[]
+function formatSelection(ids: DG.GridRowId[], items: Item[]): Selection.SelectionItem[] {
+  if (!ids.length) return []
 
-  const names: string[] = []
+  const names: Selection.SelectionItem[] = []
   const sortOrder = ids.reduce(
     (memo, id, index) => ({ ...memo, [id]: index + 1 }),
     {} as Record<DG.GridRowId, number>,
@@ -485,13 +486,17 @@ function formatSelection(ids: DG.GridRowId[], items: Item[]): string[] {
   items.some(({ name, type }) => {
     if (name === '..') return false
     if (ids.includes(name)) {
-      names.push(type === 'dir' ? s3paths.ensureSlash(name) : name)
+      names.push(
+        type === 'dir'
+          ? { logicalKey: s3paths.ensureSlash(name) }
+          : { logicalKey: name.toString() },
+      )
     }
     if (names.length === ids.length) return true
   })
   names.sort((a, b) => {
-    const aPos = sortOrder[a] || sortOrder[s3paths.ensureNoSlash(a.toString())]
-    const bPos = sortOrder[b] || sortOrder[s3paths.ensureNoSlash(b.toString())]
+    const aPos = sortOrder[a.logicalKey] || sortOrder[s3paths.ensureNoSlash(a.logicalKey)]
+    const bPos = sortOrder[b.logicalKey] || sortOrder[s3paths.ensureNoSlash(b.logicalKey)]
     return aPos - bPos
   })
   return names
@@ -1035,8 +1040,8 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
-  selection?: string[]
-  onSelectionChange?: (newSelection: string[]) => void
+  selection?: Selection.SelectionItem[]
+  onSelectionChange?: (newSelection: Selection.SelectionItem[]) => void
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
@@ -1229,10 +1234,10 @@ export function Listing({
     [items, onSelectionChange],
   )
 
-  const selectionModel = React.useMemo(
-    () => (selection?.length ? selection.map(s3paths.ensureNoSlash) : selection),
-    [selection],
-  )
+  const selectionModel = React.useMemo(() => {
+    if (!selection) return selection
+    return selection.map(({ logicalKey }) => s3paths.ensureNoSlash(logicalKey))
+  }, [selection])
 
   // TODO: control page, pageSize, filtering and sorting via props
   return (

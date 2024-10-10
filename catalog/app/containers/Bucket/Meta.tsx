@@ -81,6 +81,7 @@ export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProp
   const classes = usePackageMetaStyles()
   if (!meta || R.isEmpty(meta)) return null
   const { message, user_meta: userMeta, workflow } = meta
+  if (!message && !userMeta && !workflow) return null
   return (
     <Section icon="list" heading="Metadata" defaultExpanded>
       <M.Table className={classes.table} size="small" data-testid="package-meta">
