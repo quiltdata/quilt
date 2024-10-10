@@ -1,4 +1,3 @@
-<!--pytest-codeblocks:skipfile-->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 > NOTE: This feature requires Quilt stack version 1.55.0 or higher
 
