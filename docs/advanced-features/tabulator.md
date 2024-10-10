@@ -5,8 +5,8 @@
 Tabulator aggregates tabular data objects across multiple packages using AWS
 Athena. Admins define schemas and data sources for CSV, TSV, or Parquet files,
 enabling users to run SQL queries directly on the contents of Quilt packages.
-You can even use regular expressions to extract additional columns from the
-logical key.
+You can even use named regular expressions to extract additional columns from
+the logical key and package name.
 
 The configuration is written in YAML and managed using the
 `quilt3.admin.tabulator` [APIs](../api-reference/Admin.md) (below) or via the
@@ -58,7 +58,7 @@ FLOAT, DOUBLE, STRING, BINARY, DATE, TIMESTAMP.
    must be `quilt-packages`. The `package_name` is a regular expression that
    matches the package names to include. The `logical_key` is a regular
    expression that matches the keys of the objects to include. The regular
-   expression may include a named capture group that will be added as a column
+   expression may include named capture groups that will be added as columns
    to the table.
 4. **Parser**: The parser defines how to read the files. The `format` must be
    one of `csv` or `parquet`. The optional `delimiter` is the character used to
