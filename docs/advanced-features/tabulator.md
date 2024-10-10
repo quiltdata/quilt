@@ -85,10 +85,8 @@ In addition to the columns defined in the schema, Tabulator will add:
    (approximately dollars per terabyte). Be sure to set up appropriate cost
    controls and monitoring.
 4. **Access Restrictions**: Due to the way permissions are configured, Tabulator
-   cannot be accessed from the AWS Console or views. You must use the Quilt
-   Catalog to directly query the tables.  However, you can use `quilt3.login` to
-   access the Catalog, then call `get_boto_session` and use that from, e.g.,
-   Jupyter notebooks to perform Athena queries.
+   cannot be accessed from the AWS Console or views. You must access Tabulator
+   via the Quilt Catalog in order to query the tables.
 
 ## Usage
 
