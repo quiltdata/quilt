@@ -110,7 +110,7 @@ export default function App() {
           <AuthSignOut />
         </Route>
 
-        {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+        {cfg.mode === 'OPEN' && (
           <Route path={paths.signUp} exact>
             <AuthSignUp />
           </Route>
