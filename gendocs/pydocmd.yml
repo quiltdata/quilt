@@ -35,6 +35,7 @@ generate:
   - quilt3.admin.roles+
   - quilt3.admin.users+
   - quilt3.admin.sso_config+
+  - quilt3.admin.tabulator+
 
 # MkDocs pages configuration. The `<<` operator is sugar added by pydocmd
 # that allows you to use an external Markdown file (eg. your project's README)

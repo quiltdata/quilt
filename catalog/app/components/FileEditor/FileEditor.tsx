@@ -27,12 +27,14 @@ const TextPreview: React.FC<TextPreviewProps> = RT.mkLazy(
 )
 
 interface EditorProps extends EditorState {
+  className: string
   editing: EditorInputType
   empty?: boolean
   handle: Model.S3.S3ObjectLocation
 }
 
 function EditorSuspended({
+  className,
   saving,
   empty,
   error,
@@ -49,6 +51,7 @@ function EditorSuspended({
   if (empty)
     return editing.brace === '__quiltConfig' ? (
       <QuiltConfigEditor
+        className={className}
         handle={handle}
         disabled={disabled}
         error={error}
@@ -56,7 +59,14 @@ function EditorSuspended({
         initialValue=""
       />
     ) : (
-      <TextEditor error={error} type={editing} value="" onChange={onChange} />
+      <TextEditor
+        autoFocus
+        className={className}
+        error={error}
+        initialValue=""
+        onChange={onChange}
+        type={editing}
+      />
     )
   return data.case({
     _: () => <Skeleton />,
@@ -73,6 +83,7 @@ function EditorSuspended({
       if (editing.brace === '__quiltConfig') {
         return (
           <QuiltConfigEditor
+            className={className}
             handle={handle}
             disabled={disabled}
             error={error}
@@ -83,11 +94,13 @@ function EditorSuspended({
       }
       return (
         <TextEditor
+          autoFocus
+          className={className}
           disabled={disabled}
           error={error}
           onChange={onChange}
           type={editing}
-          value={value}
+          initialValue={value}
         />
       )
     },

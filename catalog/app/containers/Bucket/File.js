@@ -304,6 +304,9 @@ const useStyles = M.makeStyles((t) => ({
       maxWidth: 'calc(100% - 40px)',
     },
   },
+  editor: {
+    minHeight: t.spacing(50),
+  },
   topBar: {
     alignItems: 'flex-end',
     display: 'flex',
@@ -554,7 +557,11 @@ export default function File() {
                   )}
                   defaultExpanded
                 >
-                  <FileEditor.Editor {...editorState} handle={handle} />
+                  <FileEditor.Editor
+                    {...editorState}
+                    className={classes.editor}
+                    handle={handle}
+                  />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
