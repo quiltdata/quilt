@@ -451,7 +451,9 @@ export default function File() {
 
   return (
     <FileView.Root>
-      <AssistantContext.CurrentVersionContext {...{ version, objExistsData, versionExistsData }} />
+      <AssistantContext.CurrentVersionContext
+        {...{ version, objExistsData, versionExistsData }}
+      />
 
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
@@ -509,15 +511,14 @@ export default function File() {
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
-          {cfg.qurator &&
-            BucketPreferences.Result.match(
-              {
-                // XXX: only show this when the object exists?
-                Ok: ({ ui: { blocks } }) => (blocks.qurator ? <SummarizeButton /> : null),
-                _: () => null,
-              },
-              prefs,
-            )}
+          {BucketPreferences.Result.match(
+            {
+              // XXX: only show this when the object exists?
+              Ok: ({ ui: { blocks } }) => (blocks.qurator ? <SummarizeButton /> : null),
+              _: () => null,
+            },
+            prefs,
+          )}
         </div>
       </div>
       {objExistsData.case({
