@@ -65,23 +65,24 @@ class TestSession(QuiltTestCase):
             expiry_time="2019-05-28T23:58:07+00:00"
         ))
 
+
+    def create_mock_session(self, loader, expiry_time):
+        loader.return_value = dict(
+            access_key='access-key',
+            secret_key='secret-key',
+            token='session-token',
+            expiry_time=expiry_time
+        )
+        return quilt3.session.create_botocore_session()
+
     @patch('quilt3.session._save_credentials')
     @patch('quilt3.session._load_credentials')
     def test_create_botocore_session(self, mock_load_credentials, mock_save_credentials):
         def format_date(date):
             return date.replace(tzinfo=datetime.timezone.utc, microsecond=0).isoformat()
-
         # Test good credentials.
         future_date = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-
-        mock_load_credentials.return_value = dict(
-            access_key='access-key',
-            secret_key='secret-key',
-            token='session-token',
-            expiry_time=format_date(future_date)
-        )
-
-        session = quilt3.session.create_botocore_session()
+        session = self.create_mock_session(mock_load_credentials, format_date(future_date))
         credentials = session.get_credentials()
 
         assert credentials.access_key == 'access-key'
@@ -93,13 +94,7 @@ class TestSession(QuiltTestCase):
         # Test expired credentials.
         past_date = datetime.datetime.utcnow() - datetime.timedelta(minutes=5)
 
-        mock_load_credentials.return_value = dict(
-            access_key='access-key',
-            secret_key='secret-key',
-            token='session-token',
-            expiry_time=format_date(past_date)
-        )
-
+        session = self.create_mock_session(mock_load_credentials, format_date(past_date))
         url = quilt3.session.get_registry_url()
         self.requests_mock.add(
             responses.GET,
