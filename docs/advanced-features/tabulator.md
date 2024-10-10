@@ -9,8 +9,9 @@ You can even use named regular expressions to extract additional columns from
 the logical key and package name.
 
 The configuration is written in YAML and managed using the
-`quilt3.admin.tabulator` [APIs](../api-reference/Admin.md#quilt3.admin.tabulator) (below) or via the
-Quilt Admin UI.
+`quilt3.admin.tabulator`
+[APIs](../api-reference/Admin.md#quilt3.admin.tabulator) (below) or via the
+Quilt Admin UI:
 
 ![Admin UI for setting Tabulator configuration](../imgs/admin-tabulator-config.png)
 
@@ -18,6 +19,7 @@ Quilt Admin UI.
 
 Each Tabulator configuration is written in YAML, following the structure
 outlined below.
+
 ### Example
 
 ```yaml
@@ -77,17 +79,17 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 1. **Schema Consistency**: All files in the package that match the logical key
    must have the same schema as defined in the configuration.
-2. **Memory Usage**: Tabulator currently reads each file into memory, which may
-   cause issues with very large files. Additionally, Athena has a 16 MB limit per
-   row.
+2. **Memory Usage**: Tabulator may fail on large files (> 10 GB), files with
+   large rows (> 100 KB), and large numbers of files (> 10000). Additionally,
+   Athena has a 16 MB limit per row.
 3. **Cost Management**: Querying very large datasets can be expensive
    (approximately dollars per terabyte). Be sure to set up appropriate cost
    controls and monitoring.
 4. **Access Restrictions**: Due to the way permissions are configured, Tabulator
    cannot be accessed from the AWS Console or views. You must use the Quilt
    Catalog to directly query the tables.  However, you can use `quilt3.login` to
-   access the Catalog, then reuse that session from, e.g., Jupyter notebooks to
-   perform Athena queries.
+   access the Catalog, then call `get_boto_session` and use that from, e.g.,
+   Jupyter notebooks to perform Athena queries.
 
 ## Usage
 
