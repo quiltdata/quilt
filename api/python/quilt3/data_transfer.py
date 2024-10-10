@@ -21,7 +21,6 @@ from enum import Enum
 from threading import Lock
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
-import boto3
 import jsonlines
 from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
