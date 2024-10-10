@@ -30,7 +30,7 @@ const ConfigEditor = React.lazy(() =>
 
 const defaultConfig = `schema:
     - name: column1 # specify the schema
-      type: Utf8
+      type: STRING
 source:
     type: quilt-packages
     package_name: "" # specify a RegEx for matching packages
