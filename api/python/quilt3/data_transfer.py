@@ -43,7 +43,7 @@ from tenacity import (
 from tqdm import tqdm
 
 from . import util
-from .session import create_botocore_session
+from .session import get_boto3_session
 from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
 MAX_COPY_FILE_LIST_RETRIES = 3
@@ -152,9 +152,7 @@ class S3ClientProvider:
                     raise S3NoValidClientError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
 
     def get_boto_session(self):
-        botocore_session = create_botocore_session()
-        boto_session = boto3.Session(botocore_session=botocore_session)
-        return boto_session
+       return get_boto3_session()
 
     def _build_client(self, is_unsigned):
         session = self.get_boto_session()
