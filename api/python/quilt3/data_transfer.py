@@ -152,7 +152,7 @@ class S3ClientProvider:
                     raise S3NoValidClientError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
 
     def get_boto_session(self):
-       return get_boto3_session()
+        return get_boto3_session()
 
     def _build_client(self, is_unsigned):
         session = self.get_boto_session()
