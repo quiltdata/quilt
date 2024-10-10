@@ -35,7 +35,7 @@ schema:
     type: FLOAT
 source:
   type: quilt-packages  # currently the only supported type
-  package_name: "^ccle/"
+  package_name: "^ccle/(?<date>[^_]+)_(?<study_id>[^_]+)_nfcore_rnaseq$"
   logical_key: "salmon/(?<sample_id>[^/]+)/quant*\\.genes\\.sf$"
 parser:
   format: csv  # or `parquet`
