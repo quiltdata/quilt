@@ -9,7 +9,7 @@ the logical key and package name.
 
 The configuration is written in YAML and managed using the
 `quilt3.admin.tabulator`
-[APIs](../api-reference/Admin.md#quilt3.admin.tabulator) (below) or via the
+[APIs](../api-reference/Admin.md#quilt3.admin.tabulator) or via the
 Quilt Admin UI:
 
 ![Admin UI for setting Tabulator configuration](../imgs/admin-tabulator-config.png)
