@@ -9,7 +9,7 @@ You can even use named regular expressions to extract additional columns from
 the logical key and package name.
 
 The configuration is written in YAML and managed using the
-`quilt3.admin.tabulator` [APIs](../api-reference/Admin.md) (below) or via the
+`quilt3.admin.tabulator` [APIs](../api-reference/Admin.md#quilt3.admin.tabulator) (below) or via the
 Quilt Admin UI.
 
 ![Admin UI for setting Tabulator configuration](../imgs/admin-tabulator-config.png)
@@ -18,9 +18,6 @@ Quilt Admin UI.
 
 Each Tabulator configuration is written in YAML, following the structure
 outlined below.
-
-```yaml
-
 ### Example
 
 ```yaml
@@ -72,7 +69,7 @@ In addition to the columns defined in the schema, Tabulator will add:
 - any named capture groups from the logical key regular expression
 - `$pkg_name` for the package name
 - `$logical_key` for the object as referenced by the package
-- `$physical_key` for the underlying S3 key
+- `$physical_key` for the underlying S3 URI
 - `$top_hash` for the revision of the package containing the object (which is
   currently always `latest`)
 
@@ -81,7 +78,7 @@ In addition to the columns defined in the schema, Tabulator will add:
 1. **Schema Consistency**: All files in the package that match the logical key
    must have the same schema as defined in the configuration.
 2. **Memory Usage**: Tabulator currently reads each file into memory, which may
-   cause issues with very large files. Additionally, Athena has a 16MB limit per
+   cause issues with very large files. Additionally, Athena has a 16 MB limit per
    row.
 3. **Cost Management**: Querying very large datasets can be expensive
    (approximately dollars per terabyte). Be sure to set up appropriate cost
