@@ -16,6 +16,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   heading: {
     display: 'flex',
+    flexGrow: 1,
   },
   gutterBottom: {
     marginBottom: t.spacing(2),
