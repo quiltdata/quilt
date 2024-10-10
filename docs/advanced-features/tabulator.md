@@ -4,9 +4,11 @@
 
 ## Overview
 
-Tabulator aggregates tabular data objects across multiple packages using AWS Athena.
-Admins define schemas and data sources for CSV, TSV, Parquet, and other formats,
+Tabulator aggregates tabular data objects across multiple packages using AWS
+Athena. Admins define schemas and data sources for CSV, TSV, or Parquet files,
 enabling users to run SQL queries directly on the contents of Quilt packages.
+You can even use regular expressions to extract additional columns from the
+logical key.
 
 The configuration can be written in YAML and managed using the
 `quilt3.admin.tabulator_config.set()` function or via the Quilt Admin UI.
@@ -16,24 +18,29 @@ The configuration can be written in YAML and managed using the
 ## Configuration
 
 Each Tabulator configuration is written in YAML, following the structure
-outlined below:
+outlined below. Columns names must be lowercase, while types must be uppercase
+and match the [Apache Arrow Data
+Types](https://github.com/awslabs/aws-athena-query-federation/tree/master/athena-federation-sdk#datatypes)
+used by Amazon Athena.
+
+```yaml
 
 ### Example
 
 ```yaml
 schema:
   - name: Name
-    type: Utf8
+    type: STRING
   - name: Length
-    type: Int32
+    type: INT
   - name: EffectiveLength
-    type: Float64
+    type: FLOAT
   - name: TPM
-    type: Float64
+    type: FLOAT
   - name: NumReads
-    type: Float64
+    type: FLOAT
 source:
-  type: quilt
+  type: quilt-packages
   package_name: "^ccle/"
   logical_key: "salmon/(?<sample_id>[^/]+)/quant*\\.genes\\.sf$"
 parser:
