@@ -1187,7 +1187,7 @@ function TabulatorCard({
     <Card
       className={className}
       disabled={disabled}
-      title="Tabulation (Longitudinal Querying)"
+      title="Tabulator (Longitudinal Querying)"
     >
       <TabulatorForm bucket={bucket} tables={tabulatorTables} />
     </Card>
