@@ -369,7 +369,6 @@ function Revision({
       meta={
         !!userMeta &&
         !R.isEmpty(userMeta) && (
-          // @ts-expect-error
           <JsonDisplay
             name="User metadata"
             value={userMeta}
