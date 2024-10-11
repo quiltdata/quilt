@@ -34,7 +34,7 @@ To enable Qurator Omni:
 
 1. **Opt-In to Qurator**:  
    - Install Release 1.55 or later of the Quilt Platform CloudFormation template.
-   - Set the `qurator` parameter to `true` in the CloudFormation template to
+   - Set the `Qurator` parameter to `Enabled` in the CloudFormation template to
      enable the Qurator chatbot.
 
 2. **Configure Claude Model**:  
