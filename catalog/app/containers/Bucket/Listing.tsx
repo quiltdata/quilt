@@ -486,11 +486,9 @@ function formatSelection(ids: DG.GridRowId[], items: Item[]): Selection.Selectio
   items.some(({ name, type }) => {
     if (name === '..') return false
     if (ids.includes(name)) {
-      names.push(
-        type === 'dir'
-          ? { logicalKey: s3paths.ensureSlash(name) }
-          : { logicalKey: name.toString() },
-      )
+      names.push({
+        logicalKey: type === 'dir' ? s3paths.ensureSlash(name) : name.toString(),
+      })
     }
     if (names.length === ids.length) return true
   })
@@ -1040,8 +1038,8 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
-  selection?: Selection.SelectionItem[]
-  onSelectionChange?: (newSelection: Selection.SelectionItem[]) => void
+  selection: Selection.SelectionItem[]
+  onSelectionChange: (newSelection: Selection.SelectionItem[]) => void
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
@@ -1234,10 +1232,10 @@ export function Listing({
     [items, onSelectionChange],
   )
 
-  const selectionModel = React.useMemo(() => {
-    if (!selection) return selection
-    return selection.map(({ logicalKey }) => s3paths.ensureNoSlash(logicalKey))
-  }, [selection])
+  const selectionModel = React.useMemo(
+    () => selection.map(({ logicalKey }) => s3paths.ensureNoSlash(logicalKey)),
+    [selection],
+  )
 
   // TODO: control page, pageSize, filtering and sorting via props
   return (
@@ -1269,8 +1267,7 @@ export function Listing({
         disableMultipleSelection
         disableMultipleColumnsSorting
         localeText={{ noRowsLabel, ...localeText }}
-        // selection-related props
-        checkboxSelection={!!onSelectionChange}
+        checkboxSelection
         selectionModel={selectionModel}
         onSelectionModelChange={handleSelectionModelChange}
         {...dataGridProps}
