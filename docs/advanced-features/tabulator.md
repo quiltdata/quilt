@@ -43,26 +43,26 @@ parser:
   header: true
 ```
 
-
 1. **Schema**: The schema defines the columns in the table. Each column must
    have a name and a type. The name must match the regular expression
-   `^[a-z_][a-z0-9_]*$`.  It does not need to match the column names in the
-   document.  However, if the column names are present in the document, you must
-   set `header` to `true` in the parser configuration.
-2. **Types**:  Must be uppercase and match the [Apache Arrow Data
-Types](https://github.com/awslabs/aws-athena-query-federation/tree/master/athena-federation-sdk#datatypes)
+   `^[a-z_][a-z0-9_]*$`.  For CSVs, these names do not need to match the column
+   names in the document.  However, if column names are present in a CSV/TSV,
+   you must set `header` to `true` in the parser configuration.
+1. **Types**:  Must be uppercase and match the [Apache Arrow Data
+Types](https://docs.aws.amazon.com/athena/latest/ug/data-types.html)
 used by Amazon Athena.  Valid types are BOOLEAN, TINYINT, SMALLINT, INT, BIGINT,
 FLOAT, DOUBLE, STRING, BINARY, DATE, TIMESTAMP.
-3. **Source**: The source defines the packages and objects to query. The `type`
+1. **Source**: The source defines the packages and objects to query. The `type`
    must be `quilt-packages`. The `package_name` is a regular expression that
    matches the package names to include. The `logical_key` is a regular
    expression that matches the keys of the objects to include. The regular
    expression may include named capture groups that will be added as columns
    to the table.
-4. **Parser**: The parser defines how to read the files. The `format` must be
-   one of `csv` or `parquet`. The optional `delimiter` is the character used to
-   separate fields in the CSV file. The optional `header` field is a boolean
-   that indicates whether the first row of the CSV file contains column names.
+1. **Parser**: The parser defines how to read the files. The `format` must be
+   one of `csv` or `parquet`. The optional `delimiter` (defaults to ',') is the
+   character used to separate fields in the CSV file. The optional `header`
+   field (defaults to 'false') is a boolean that indicates whether the first row
+   of the CSV file contains column names.
 
 ### Added columns
 
@@ -72,8 +72,8 @@ In addition to the columns defined in the schema, Tabulator will add:
 - `$pkg_name` for the package name
 - `$logical_key` for the object as referenced by the package
 - `$physical_key` for the underlying S3 URI
-- `$top_hash` for the revision of the package containing the object (which is
-  currently always `latest`)
+- `$top_hash` for the revision of the package containing the object (currently
+  we query only the `latest` package revision)
 
 ### Caveats
 
@@ -105,7 +105,7 @@ from the Quilt Catalog. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console.
 
 For example, to query the `ccle-tsv` table from the appropriate workgroup in
-the `quilt-tf-dev-federator` stack:
+the `quilt-tf-dev-federator` stackm, where the database (bucket name) is `udp-spec`:
 
 ```sql
 SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
@@ -117,7 +117,7 @@ table:
 
 ```sql
 SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-WHERE pkg_name IS NOT NULL
+LIMIT 10
 ```
 
 We can then join on PKG_NAME to add the `user_meta` field from the package
