@@ -29,10 +29,11 @@ import parseSearch from 'utils/parseSearch'
 import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
+import AssistButton from './AssistButton'
 import FileCodeSamples from './CodeSamples/File'
+import * as AssistantContext from './FileAssistantContext'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
-import QuratorSection from './Qurator/Section'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
@@ -85,6 +86,7 @@ function VersionInfo({ bucket, path, version }) {
 
   return (
     <>
+      <AssistantContext.VersionsContext data={data} />
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
         {version ? (
@@ -436,6 +438,10 @@ export default function File() {
 
   return (
     <FileView.Root>
+      <AssistantContext.CurrentVersionContext
+        {...{ version, objExistsData, versionExistsData }}
+      />
+
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
       <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
@@ -492,6 +498,14 @@ export default function File() {
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
+          {BucketPreferences.Result.match(
+            {
+              // XXX: only show this when the object exists?
+              Ok: ({ ui }) => ui.blocks.qurator && <AssistButton edge="end" />,
+              _: () => null,
+            },
+            prefs,
+          )}
         </div>
       </div>
       {objExistsData.case({
@@ -517,9 +531,6 @@ export default function File() {
                       {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
-                      )}
-                      {cfg.qurator && blocks.qurator && (
-                        <QuratorSection handle={handle} />
                       )}
                       {blocks.meta && (
                         <>
