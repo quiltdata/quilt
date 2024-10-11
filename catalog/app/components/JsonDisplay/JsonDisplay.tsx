@@ -48,8 +48,14 @@ const useStyles = M.makeStyles((t) => ({
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
     overflow: 'auto',
+    padding: '1px', // makes `outline` visible when `overflow: hidden`
     whiteSpace: 'pre',
     width: '100%',
+  },
+  container: {
+    alignItems: 'start',
+    display: 'flex',
+    flexDirection: 'column',
   },
   more: {
     opacity: 0.5,
@@ -58,6 +64,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
   },
   compoundInner: {
+    alignItems: 'start',
+    display: 'flex',
+    flexDirection: 'column',
     paddingLeft: t.spacing(2),
   },
   hidden: {
@@ -74,6 +83,18 @@ const useStyles = M.makeStyles((t) => ({
   },
   brace: {
     opacity: 0.5,
+  },
+  clickable: {
+    cursor: 'pointer',
+    '&:hover': {
+      outline: `1px dotted ${t.palette.text.primary}`,
+    },
+  },
+  topLevelIcon: {
+    margin: '1px 0 0 1px',
+  },
+  tailingBrace: {
+    padding: t.spacing(0, 0.5),
   },
 }))
 
@@ -256,6 +277,7 @@ function CollapsedEntry({
 }
 
 function CompoundEntry({
+  className,
   name,
   value,
   topLevel,
@@ -281,10 +303,13 @@ function CompoundEntry({
       4, // braces + spaces
     ])
 
+  const clickable = !R.isEmpty(value)
   return (
-    <div>
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-      <div className={classes.flex} onClick={toggle}>
+    <div className={className}>
+      <div
+        className={cx(classes.flex, { [classes.clickable]: clickable })}
+        onClick={toggle}
+      >
         {/* TODO: use icon rotation like MUI ? */}
         {empty ? ( // eslint-disable-line no-nested-ternary
           !topLevel && <IconBlank classes={classes} />
@@ -315,6 +340,7 @@ function CompoundEntry({
           <div className={cx(classes.compoundInner)}>
             {entries.map(([k, v]) => (
               <JsonDisplayInner
+                className={className}
                 classes={classes}
                 key={k}
                 name={k}
@@ -325,8 +351,9 @@ function CompoundEntry({
                 showValuesWhenCollapsed={showValuesWhenCollapsed}
               />
             ))}
-            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-            <div onClick={toggle}>{braces[1]}</div>
+            <div className={cx(classes.clickable, classes.tailingBrace)} onClick={toggle}>
+              {braces[1]}
+            </div>
           </div>
         </React.Suspense>
       )}
@@ -335,6 +362,7 @@ function CompoundEntry({
 }
 
 interface JsonDisplayInnerProps<Value> {
+  className: string
   name?: string
   value: Value
   topLevel: boolean
@@ -403,6 +431,7 @@ export default function JsonDisplay({
             topLevel,
             defaultExpanded: defaultExpandedComputed,
             classes,
+            className: classes.container,
             showValuesWhenCollapsed,
             showKeysWhenCollapsed: computedKeys,
           }}
