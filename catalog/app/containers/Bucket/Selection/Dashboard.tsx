@@ -144,8 +144,6 @@ interface DashboardProps {
   packageHandle?: PackageHandle
 }
 
-// TODO: BucketPreferences
-
 export default function Dashboard({
   onClose,
   onSelection,

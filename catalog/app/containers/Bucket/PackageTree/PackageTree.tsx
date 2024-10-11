@@ -341,12 +341,14 @@ function DirDisplay({
                   {
                     Ok: ({ ui: { actions } }) => (
                       <>
-                        <Selection.Control
-                          className={classes.button}
-                          onSelection={onSelection}
-                          packageHandle={packageHandle}
-                          selection={selection}
-                        />
+                        {actions.downloadPackage && (
+                          <Selection.Control
+                            className={classes.button}
+                            onSelection={onSelection}
+                            packageHandle={packageHandle}
+                            selection={selection}
+                          />
+                        )}
                         {actions.revisePackage && (
                           <M.Button
                             className={classes.button}
