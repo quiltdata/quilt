@@ -53,6 +53,9 @@ const useListItemStyles = M.makeStyles((t) => ({
   icon: {
     minWidth: t.spacing(5),
   },
+  action: {
+    right: 0, // https://github.com/mui/material-ui/issues/21722
+  },
 }))
 
 interface ListItemProps {
@@ -91,7 +94,7 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
       <StyledLink className={classes.link} to={url}>
         {decodeURIComponent(s3paths.handleToS3Url(handle))}
       </StyledLink>
-      <M.ListItemSecondaryAction>
+      <M.ListItemSecondaryAction className={classes.action}>
         <M.IconButton size="small" onClick={onClear}>
           <M.Icon fontSize="small">clear</M.Icon>
         </M.IconButton>
