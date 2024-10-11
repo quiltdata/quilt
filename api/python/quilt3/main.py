@@ -224,6 +224,20 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     )
 
 
+def cmd_get_credentials():
+    # TODO: check that the user is logged in
+    # TODO: do not refresh credentials if they are still valid?
+    session._refresh_credentials()
+    creds = session._load_credentials()
+    print(json.dumps({
+        "Version": 1,
+        "AccessKeyId": creds["access_key"],
+        "SecretAccessKey": creds["secret_key"],
+        "SessionToken": creds["token"],
+        "Expiration": creds["expiry_time"],
+    }))
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -480,6 +494,11 @@ def create_parser():
         help="Do not copy data. Package manifest entries will reference the data at the original location.",
     )
     push_p.set_defaults(func=cmd_push)
+
+    # get-credentials
+    shorthelp = "Get temporary AWS credentials for the current user"  # TODO
+    get_credentials_p = subparsers.add_parser("get-credentials", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    get_credentials_p.set_defaults(func=cmd_get_credentials)
 
     return parser
 
