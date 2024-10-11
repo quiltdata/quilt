@@ -32,6 +32,7 @@ import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
+import AssistButton from '../AssistButton'
 import PackageCodeSamples from '../CodeSamples/Package'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
@@ -582,19 +583,6 @@ const FileContext = Assistant.Context.LazyContext(({ pkg, file }: FileContextPro
   }
 })
 
-function SummarizeButton() {
-  const assist = Assistant.use()
-  if (!assist) return null
-  const msg = 'Summarize this document'
-  return (
-    <M.IconButton color="primary" onClick={() => assist(msg)} edge="end">
-      <M.Tooltip title="Summarize and chat with AI">
-        <M.Icon>assistant</M.Icon>
-      </M.Tooltip>
-    </M.IconButton>
-  )
-}
-
 interface FileDisplayProps extends FileDisplayQueryProps {
   file: Model.GQLTypes.PackageFile
 }
@@ -716,18 +704,20 @@ function FileDisplay({
                 )}
                 {BucketPreferences.Result.match(
                   {
-                    Ok: ({ ui: { actions, blocks } }) => (
+                    Ok: ({ ui }) => (
                       <>
                         {!cfg.noDownload &&
                           !deleted &&
                           !archived &&
-                          actions.downloadPackage && (
+                          ui.actions.downloadPackage && (
                             <FileView.DownloadButton
                               className={classes.button}
                               handle={handle}
                             />
                           )}
-                        {blocks.qurator && !deleted && !archived && <SummarizeButton />}
+                        {ui.blocks.qurator && !deleted && !archived && (
+                          <AssistButton edge="end" />
+                        )}
                       </>
                     ),
                     Pending: () => (
