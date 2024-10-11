@@ -431,8 +431,10 @@ def load_config():
     Read the local config using defaults from CONFIG_TEMPLATE.
     """
     local_config = read_yaml(CONFIG_TEMPLATE)
-    if CONFIG_PATH.exists():
+    try:
         local_config.update(read_yaml(CONFIG_PATH))
+    except FileNotFoundError:
+        pass
     return local_config
 
 
