@@ -27,10 +27,11 @@ VERSION = metadata.version('quilt3')
 
 
 def _load_auth():
-    if AUTH_PATH.exists():
+    try:
         with open(AUTH_PATH, encoding='utf-8') as fd:
             return json.load(fd)
-    return {}
+    except FileNotFoundError:
+        return {}
 
 
 def _save_auth(cfg):
@@ -41,10 +42,11 @@ def _save_auth(cfg):
 
 
 def _load_credentials():
-    if CREDENTIALS_PATH.exists():
+    try:
         with open(CREDENTIALS_PATH, encoding='utf-8') as fd:
             return json.load(fd)
-    return {}
+    except FileNotFoundError:
+        return {}
 
 
 def _save_credentials(creds):
