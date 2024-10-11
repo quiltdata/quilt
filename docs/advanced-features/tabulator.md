@@ -43,7 +43,6 @@ parser:
   header: true
 ```
 
-A more complex example is available in [this yaml file](./tabulator-example.yaml).
 
 1. **Schema**: The schema defines the columns in the table. Each column must
    have a name and a type. The name must match the regular expression
