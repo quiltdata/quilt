@@ -61,7 +61,7 @@ interface ButtonProps {
   onClick: () => void
 }
 
-function Button({ className, count, onClick }: ButtonProps) {
+export function Button({ className, count, onClick }: ButtonProps) {
   const badgeClasses = useBadgeClasses()
   return (
     <M.Badge
@@ -83,7 +83,7 @@ interface ControlProps extends Omit<DashboardProps, 'onClose'> {
   className: string
 }
 
-export default function Control({
+export function Control({
   className,
   onSelection,
   packageHandle,

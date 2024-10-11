@@ -22,6 +22,11 @@ const useSelectionWidgetStyles = M.makeStyles((t) => ({
     position: 'absolute',
     zIndex: 2,
   },
+  close: {
+    position: 'absolute',
+    right: t.spacing(2),
+    top: t.spacing(2),
+  },
   popup: {
     minHeight: t.spacing(40),
     position: 'absolute',
@@ -30,11 +35,6 @@ const useSelectionWidgetStyles = M.makeStyles((t) => ({
     width: '60%',
     zIndex: 10,
     padding: t.spacing(2),
-  },
-  close: {
-    position: 'absolute',
-    right: t.spacing(2),
-    top: t.spacing(2),
   },
 }))
 
@@ -46,36 +46,29 @@ interface SelectionWidgetProps {
 
 function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
   const classes = useSelectionWidgetStyles()
-  const [selectionOpened, setSelectionOpened] = React.useState(false)
+  const [open, setOpen] = React.useState(false)
+  const toggle = React.useCallback(() => setOpen((o) => !o), [])
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-  const open = React.useCallback(() => setSelectionOpened(true), [])
-  const close = React.useCallback(() => setSelectionOpened(false), [])
+  const backdrop = React.useRef<HTMLElement | null>(null)
   return (
     <>
-      <M.Badge
-        badgeContent={count}
-        className={className}
-        color="primary"
-        max={999}
-        showZero
+      <Selection.Button count={count} className={className} onClick={toggle} />
+      <M.Backdrop
+        className={classes.backdrop}
+        onClick={(event) => backdrop.current === event.target && toggle()}
+        open={open}
+        ref={backdrop}
       >
-        <M.Button onClick={open} size="small">
-          Selected items
-        </M.Button>
-      </M.Badge>
-      <M.Backdrop open={selectionOpened} onClick={close} className={classes.backdrop}>
-        <M.Grow in={selectionOpened}>
-          <M.Paper className={classes.popup}>
-            <M.IconButton className={classes.close} onClick={close} size="small">
-              <M.Icon>close</M.Icon>
-            </M.IconButton>
-            <Selection.Dashboard
-              onSelection={onSelection}
-              onClose={close}
-              selection={selection}
-            />
-          </M.Paper>
-        </M.Grow>
+        <M.Paper className={classes.popup}>
+          <M.IconButton className={classes.close} onClick={toggle} size="small">
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+          <Selection.Dashboard
+            onSelection={onSelection}
+            onClose={toggle}
+            selection={selection}
+          />
+        </M.Paper>
       </M.Backdrop>
     </>
   )
