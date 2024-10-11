@@ -7,7 +7,6 @@ import * as s3paths from 'utils/s3paths'
 
 export interface SelectionItem {
   logicalKey: string
-  physicalKey?: string
 }
 
 export interface ListingSelection {
