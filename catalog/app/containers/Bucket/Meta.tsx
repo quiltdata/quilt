@@ -106,7 +106,6 @@ export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProp
                 User metadata:
               </HeadCell>
               <M.TableCell>
-                {/* @ts-expect-error */}
                 <JsonDisplay
                   defaultExpanded={preferences.userMeta.expanded}
                   value={userMeta}
@@ -124,7 +123,6 @@ export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProp
                 Workflow:
               </HeadCell>
               <M.TableCell>
-                {/* @ts-expect-error */}
                 <JsonDisplay
                   defaultExpanded={preferences.workflows.expanded}
                   value={workflow}
@@ -147,7 +145,6 @@ export function ObjectMetaSection({ meta, title = 'Metadata' }: ObjectMetaSectio
   if (!meta || R.isEmpty(meta)) return null
   return (
     <Section icon="list" heading={title} defaultExpanded>
-      {/* @ts-expect-error */}
       <JsonDisplay value={meta} defaultExpanded={1} />
     </Section>
   )
@@ -178,7 +175,6 @@ function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
   if (!tags || R.isEmpty(tags)) return null
   return (
     <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
-      {/* @ts-expect-error */}
       <JsonDisplay value={tags} defaultExpanded={1} />
     </Section>
   )

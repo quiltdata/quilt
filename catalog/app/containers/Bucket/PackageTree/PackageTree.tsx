@@ -6,6 +6,7 @@ import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as Assistant from 'components/Assistant'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
@@ -24,6 +25,7 @@ import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as XML from 'utils/XML'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import type { PackageHandle } from 'utils/packageHandle'
@@ -31,6 +33,7 @@ import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
+import AssistButton from '../AssistButton'
 import PackageCodeSamples from '../CodeSamples/Package'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
@@ -38,7 +41,6 @@ import * as FileView from '../FileView'
 import * as Listing from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
-import QuratorSection from '../Qurator/Section'
 import Section from '../Section'
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
@@ -647,6 +649,42 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface FileContextProps {
+  pkg: {
+    bucket: string
+    name: string
+    hash: string
+  }
+  file: Model.GQLTypes.PackageFile
+}
+
+const FileContext = Assistant.Context.LazyContext(({ pkg, file }: FileContextProps) => {
+  const msg = React.useMemo(() => {
+    const s3loc = s3paths.parseS3Url(file.physicalKey)
+    return XML.tag('viewport')
+      .children(
+        'You are currently viewing a file in a package.',
+        XML.tag(
+          'package',
+          pkg,
+          XML.tag(
+            'package-entry',
+            { path: file.path, size: file.size },
+            'You can use the physicalLocation to access the file in S3 (always provide version if available)',
+            XML.tag('physicalLocation', {}, JSON.stringify(s3loc, null, 2)),
+            file.metadata &&
+              XML.tag('metadata', {}, JSON.stringify(file.metadata, null, 2)),
+          ),
+        ),
+      )
+      .toString()
+  }, [file, pkg])
+
+  return {
+    messages: [msg],
+  }
+})
+
 interface FileDisplayProps extends FileDisplayQueryProps {
   file: Model.GQLTypes.PackageFile
 }
@@ -729,6 +767,7 @@ function FileDisplay({
         Ok: requests.ObjectExistence.case({
           Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
             <>
+              <FileContext file={file} pkg={packageHandle} />
               <TopBar crumbs={crumbs}>
                 <FileProperties
                   className={classes.fileProperties}
@@ -767,16 +806,22 @@ function FileDisplay({
                 )}
                 {BucketPreferences.Result.match(
                   {
-                    Ok: ({ ui: { actions } }) =>
-                      !cfg.noDownload &&
-                      !deleted &&
-                      !archived &&
-                      actions.downloadPackage && (
-                        <FileView.DownloadButton
-                          className={classes.button}
-                          handle={handle}
-                        />
-                      ),
+                    Ok: ({ ui }) => (
+                      <>
+                        {!cfg.noDownload &&
+                          !deleted &&
+                          !archived &&
+                          ui.actions.downloadPackage && (
+                            <FileView.DownloadButton
+                              className={classes.button}
+                              handle={handle}
+                            />
+                          )}
+                        {ui.blocks.qurator && !deleted && !archived && (
+                          <AssistButton edge="end" />
+                        )}
+                      </>
+                    ),
                     Pending: () => (
                       <Buttons.Skeleton className={classes.button} size="small" />
                     ),
@@ -797,9 +842,6 @@ function FileDisplay({
                           <FileView.ObjectMetaSection meta={file.metadata} />
                           <FileView.ObjectTags handle={handle} />
                         </>
-                      )}
-                      {cfg.qurator && blocks.qurator && (
-                        <QuratorSection handle={handle} />
                       )}
                     </>
                   ),

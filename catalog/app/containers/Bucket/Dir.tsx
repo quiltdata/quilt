@@ -20,6 +20,7 @@ import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
 import DirCodeSamples from './CodeSamples/Dir'
+import * as AssistantContext from './DirAssistantContext'
 import * as FileView from './FileView'
 import * as Listing from './Listing'
 import Menu from './Menu'
@@ -333,6 +334,8 @@ export default function Dir() {
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
+      <AssistantContext.ListingContext data={data} />
 
       <RRDom.Prompt when={hasSelection} message={guardNavigation} />
 
