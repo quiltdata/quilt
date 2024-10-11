@@ -71,7 +71,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
             </M.IconButton>
             <Selection.Dashboard
               onSelection={onSelection}
-              onDone={close}
+              onClose={close}
               selection={selection}
             />
           </M.Paper>

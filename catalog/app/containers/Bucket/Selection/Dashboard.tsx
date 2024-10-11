@@ -138,7 +138,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface DashboardProps {
-  onDone: () => void
+  onClose: () => void
   onSelection: (changed: ListingSelection) => void
   selection: ListingSelection
   packageHandle?: PackageHandle
@@ -147,7 +147,7 @@ interface DashboardProps {
 // TODO: BucketPreferences
 
 export default function Dashboard({
-  onDone,
+  onClose,
   onSelection,
   selection,
   packageHandle,
@@ -181,18 +181,18 @@ export default function Dashboard({
 
   const handleClear = React.useCallback(() => {
     onSelection(EMPTY_MAP)
-    onDone()
-  }, [onSelection, onDone])
+    onClose()
+  }, [onSelection, onClose])
 
   const handleRemove = React.useCallback(
     (prefixUrl: string, index: number) => {
       const newSelection = R.dissocPath<ListingSelection>([prefixUrl, index], selection)
       onSelection(newSelection)
       if (!Object.values(newSelection).some((ids) => !!ids.length)) {
-        onDone()
+        onClose()
       }
     },
-    [onDone, onSelection, selection],
+    [onClose, onSelection, selection],
   )
 
   return (

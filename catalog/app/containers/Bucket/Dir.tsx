@@ -142,75 +142,6 @@ function DirContents({
   )
 }
 
-const useSelectionWidgetStyles = M.makeStyles({
-  close: {
-    marginLeft: 'auto',
-  },
-  title: {
-    alignItems: 'center',
-    display: 'flex',
-  },
-  badge: {
-    right: '4px',
-  },
-})
-
-interface SelectionWidgetProps {
-  className: string
-  selection: Selection.ListingSelection
-  onSelection: (changed: Selection.ListingSelection) => void
-}
-
-function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
-  const classes = useSelectionWidgetStyles()
-  const location = RRDom.useLocation()
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-  const [opened, setOpened] = React.useState(false)
-  const open = React.useCallback(() => setOpened(true), [])
-  const close = React.useCallback(() => setOpened(false), [])
-  React.useEffect(() => close(), [close, location])
-  const badgeClasses = React.useMemo(() => ({ badge: classes.badge }), [classes])
-  return (
-    <>
-      <M.Badge
-        badgeContent={count}
-        classes={badgeClasses}
-        className={className}
-        color="primary"
-        max={999}
-        showZero
-      >
-        <M.Button onClick={open} size="small">
-          Selected items
-        </M.Button>
-      </M.Badge>
-
-      <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
-        <M.DialogTitle disableTypography>
-          <M.Typography className={classes.title} variant="h6">
-            {count} items selected
-            <M.IconButton size="small" className={classes.close} onClick={close}>
-              <M.Icon>close</M.Icon>
-            </M.IconButton>
-          </M.Typography>
-        </M.DialogTitle>
-        <M.DialogContent>
-          <Selection.Dashboard
-            onSelection={onSelection}
-            onDone={close}
-            selection={selection}
-          />
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.Button onClick={close} variant="contained" color="primary" size="small">
-            Close
-          </M.Button>
-        </M.DialogActions>
-      </M.Dialog>
-    </>
-  )
-}
-
 const useStyles = M.makeStyles((t) => ({
   crumbs: {
     ...t.typography.body1,
@@ -352,7 +283,7 @@ export default function Dir() {
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
-          <SelectionWidget
+          <Selection.Control
             className={cx(classes.button)}
             selection={selection}
             onSelection={setSelection}
