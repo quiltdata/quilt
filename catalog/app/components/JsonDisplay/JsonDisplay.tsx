@@ -4,12 +4,44 @@ import * as React from 'react'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
+import * as JSONOneliner from 'utils/JSONOneliner'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 import wait from 'utils/wait'
-import * as JSONOneliner from 'utils/JSONOneliner'
+
+type SupportedPrimitiveValue = string | number | boolean | null | undefined
+
+interface UnsupportedPrimitiveValue {
+  _tag: 'unsupported'
+}
+
+type PrimitiveValue = UnsupportedPrimitiveValue | SupportedPrimitiveValue
+
+type CompoundValue = Array<AnyValue> | { [key: string]: AnyValue }
+
+type AnyValue = CompoundValue | PrimitiveValue
+
+const isCompound = (x: unknown): x is CompoundValue =>
+  x != null && (Array.isArray(x) || x.constructor === Object)
+
+type IsPrimitiveSupported = (x: unknown) => x is SupportedPrimitiveValue
+
+const isPrimitiveSupported = R.anyPass([
+  R.is(String),
+  R.is(Number),
+  R.is(Boolean),
+  R.equals(null),
+  // @ts-expect-error
+  R.equals(undefined),
+]) as IsPrimitiveSupported
+
+const normalizePrimitive = (x: unknown): PrimitiveValue =>
+  isPrimitiveSupported(x) ? x : (x as UnsupportedPrimitiveValue)
+
+const normalizeValue = (x: unknown): AnyValue =>
+  isCompound(x) ? x : normalizePrimitive(x)
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -20,7 +52,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   more: {
-    color: t.palette.text.secondary,
+    opacity: 0.5,
   },
   flex: {
     display: 'flex',
@@ -41,17 +73,21 @@ const useStyles = M.makeStyles((t) => ({
     opacity: 0.7,
   },
   brace: {
-    color: t.palette.text.secondary,
+    opacity: 0.5,
   },
 }))
 
-const IconBlank = ({ classes }) => <div className={classes.iconBlank} />
+type Classes = ReturnType<typeof useStyles>
+
+const IconBlank = ({ classes }: { classes: Classes }) => (
+  <div className={classes.iconBlank} />
+)
 const IconExpand = () => <M.Icon fontSize="small">chevron_right</M.Icon>
 const IconCollapse = () => <M.Icon fontSize="small">expand_more</M.Icon>
 
 const useWaitingJsonRenderStyles = M.makeStyles((t) => ({
   root: {
-    color: t.palette.text.secondary,
+    opacity: 0.5,
     display: 'flex',
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
@@ -68,11 +104,16 @@ const WaitingJsonRender = () => {
   )
 }
 
-function Key({ children, classes }) {
-  return !!children && <div className={classes.key}>{children}: </div>
+interface KeyProps {
+  children: React.ReactNode
+  classes: Classes
 }
 
-function getHref(v) {
+function Key({ children, classes }: KeyProps) {
+  return children ? <div className={classes.key}>{children}: </div> : null
+}
+
+function getHref(v: string) {
   try {
     const urlData = new URL(v)
     return urlData.href
@@ -81,11 +122,11 @@ function getHref(v) {
   }
 }
 
-function NonStringValue({ value }) {
+function NonStringValue({ value }: { value: PrimitiveValue }) {
   return <div>{`${value}`}</div>
 }
 
-function S3UrlValue({ href, children }) {
+function S3UrlValue({ href, children }: React.PropsWithChildren<{ href: string }>) {
   const { urls } = NamedRoutes.use()
   const to = React.useMemo(() => {
     const { bucket, key, version } = s3paths.parseS3Url(href)
@@ -98,7 +139,7 @@ function S3UrlValue({ href, children }) {
   )
 }
 
-function StringValue({ value }) {
+function StringValue({ value }: { value: string }) {
   const href = React.useMemo(() => getHref(value), [value])
   if (!href) return <div>"{value}"</div>
   if (s3paths.isS3Url(href)) {
@@ -119,7 +160,12 @@ function StringValue({ value }) {
   )
 }
 
-function PrimitiveEntry({ name, value, topLevel = true, classes }) {
+function PrimitiveEntry({
+  name,
+  value,
+  topLevel,
+  classes,
+}: JsonDisplayInnerProps<PrimitiveValue>) {
   return (
     <div className={classes.flex}>
       {!topLevel && <IconBlank classes={classes} />}
@@ -137,8 +183,19 @@ const SEP_LEN = 2
 const MORE_LEN = 4
 const CHAR_W = 8.55
 
-function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
+interface CollapsedEntryProps {
+  value: CompoundValue
+  availableSpace: number
+  showValuesWhenCollapsed: boolean
+}
+
+function CollapsedEntry({
+  availableSpace,
+  value,
+  showValuesWhenCollapsed,
+}: CollapsedEntryProps) {
   const classes = useStyles()
+  // @ts-expect-error
   const data = JSONOneliner.print(value, availableSpace, showValuesWhenCollapsed)
   return (
     <div>
@@ -201,15 +258,15 @@ function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
 function CompoundEntry({
   name,
   value,
-  topLevel = true,
-  defaultExpanded = false,
+  topLevel,
+  defaultExpanded,
   showKeysWhenCollapsed,
   showValuesWhenCollapsed,
   classes,
-}) {
+}: JsonDisplayInnerProps<CompoundValue>) {
   const braces = Array.isArray(value) ? '[]' : '{}'
   const entries = React.useMemo(() => Object.entries(value), [value])
-  const [stateExpanded, setExpanded] = React.useState(!!defaultExpanded)
+  const [stateExpanded, setExpanded] = React.useState(defaultExpanded > 0)
   const toggle = React.useCallback(() => setExpanded((e) => !e), [])
   const empty = !entries.length
   const expanded = !empty && stateExpanded
@@ -263,11 +320,7 @@ function CompoundEntry({
                 name={k}
                 value={v}
                 topLevel={false}
-                defaultExpanded={
-                  Number.isInteger(defaultExpanded) && defaultExpanded > 0
-                    ? defaultExpanded - 1
-                    : defaultExpanded
-                }
+                defaultExpanded={defaultExpanded - 1}
                 showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
                 showValuesWhenCollapsed={showValuesWhenCollapsed}
               />
@@ -281,54 +334,64 @@ function CompoundEntry({
   )
 }
 
-const isPrimitive = R.anyPass([
-  R.is(String),
-  R.is(Number),
-  R.is(Boolean),
-  R.equals(null),
-  R.equals(undefined),
-])
-
-function useComponentOnNextTick(Component, props, optTimeout) {
-  return useMemoEq([Component, props], () =>
-    React.lazy(async () => {
-      await wait(optTimeout || 0)
-      return {
-        default: () => <Component {...props} />,
-      }
-    }),
-  )
+interface JsonDisplayInnerProps<Value> {
+  name?: string
+  value: Value
+  topLevel: boolean
+  defaultExpanded: number
+  classes: Classes
+  showValuesWhenCollapsed: boolean
+  showKeysWhenCollapsed: number
 }
 
-function JsonDisplayInner(props) {
-  const Component = useComponentOnNextTick(
-    isPrimitive(props.value) ? PrimitiveEntry : CompoundEntry,
-    props,
+function JsonDisplayInner({ value, ...rest }: JsonDisplayInnerProps<unknown>) {
+  const normalizedValue = useMemoEq(value, normalizeValue)
+  const Component = isCompound(value) ? CompoundEntry : PrimitiveEntry
+  // XXX: do we need to re-instantiate on props change?
+  const Lazy = React.useMemo(
+    () => React.lazy(() => wait(0).then(() => ({ default: Component }))),
+    [Component],
   )
-  return <Component />
+  // @ts-expect-error
+  return <Lazy {...rest} value={normalizedValue} />
+}
+
+interface JsonDisplayProps extends M.BoxProps {
+  name?: string
+  value: unknown
+  topLevel?: boolean
+  // true (expand all) | false (collapse all) | int (expand N levels deep)
+  defaultExpanded?: boolean | number
+  // true (show all keys) | false (dont show keys, just show their number) | int (max length of keys string to show, incl. commas and stuff) | 'auto' (calculate string length based on screen size)
+  showKeysWhenCollapsed?: boolean | number | 'auto'
+  showValuesWhenCollapsed?: boolean
 }
 
 export default function JsonDisplay({
   name,
   value,
-  topLevel,
-  // true (expand all) | false (collapse all) | int (expand N levels deep)
-  defaultExpanded,
-  // true (show all keys) | false (dont show keys, just show their number) | int (max length of keys string to show, incl. commas and stuff) | 'auto' (calculate string length based on screen size)
+  topLevel = true,
+  defaultExpanded = false,
   showKeysWhenCollapsed = 'auto',
   showValuesWhenCollapsed = true,
   className,
   ...props
-}) {
+}: JsonDisplayProps) {
   const ref = React.useRef(null)
   const classes = useStyles()
   const { width: currentBPWidth } = useResizeObserver({ ref })
   const computedKeys = React.useMemo(() => {
     if (showKeysWhenCollapsed === true) return Number.POSITIVE_INFINITY
     if (showKeysWhenCollapsed === false) return Number.POSITIVE_INFINITY
-    if (showKeysWhenCollapsed === 'auto') return currentBPWidth / CHAR_W
+    if (showKeysWhenCollapsed === 'auto') return (currentBPWidth ?? 0) / CHAR_W
     return showKeysWhenCollapsed
   }, [showKeysWhenCollapsed, currentBPWidth])
+
+  const defaultExpandedComputed = React.useMemo(() => {
+    if (defaultExpanded === true) return Number.POSITIVE_INFINITY
+    if (defaultExpanded === false) return 0
+    return defaultExpanded
+  }, [defaultExpanded])
 
   return (
     <M.Box className={cx(className, classes.root)} {...props} ref={ref}>
@@ -338,11 +401,11 @@ export default function JsonDisplay({
             name,
             value,
             topLevel,
-            defaultExpanded,
+            defaultExpanded: defaultExpandedComputed,
             classes,
             showValuesWhenCollapsed,
+            showKeysWhenCollapsed: computedKeys,
           }}
-          showKeysWhenCollapsed={computedKeys}
         />
       </React.Suspense>
     </M.Box>

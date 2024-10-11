@@ -27,7 +27,7 @@ export default function Buckets({ className }: { className?: string }) {
         onChange={model.actions.setBuckets}
         placeholder="Select buckets"
         size="small"
-        value={model.state.buckets}
+        value={model.state.buckets as string[]}
         variant="outlined"
         selectAll={'All buckets'}
       />
