@@ -95,7 +95,7 @@
     },
     "qurator": {
       "type": "boolean",
-      "description": "Enable Qurator AI Assistant (powered by AWS Bedrock)"
+      "description": "Enable Qurator AI Assistant (powered by Amazon Bedrock)"
     }
   },
   "required": [

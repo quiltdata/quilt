@@ -33,6 +33,7 @@ export type containers_Search_gql_FirstPageObjectsQuery = {
                 | 'key'
                 | 'version'
                 | 'deleted'
+                | 'indexedContent'
               >
             >
           }
@@ -187,6 +188,10 @@ export const containers_Search_gql_FirstPageObjectsDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'deleted' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'indexedContent' },
                                   },
                                 ],
                               },

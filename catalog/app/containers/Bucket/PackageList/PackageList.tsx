@@ -237,7 +237,6 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
               Ok: ({ ui: { packageDescription } }) =>
                 packageDescription.userMetaMultiline ? (
                   Object.entries(revision.userMeta!).map(([name, value]) => (
-                    // @ts-expect-error
                     <JsonDisplay
                       className={cx({
                         [classes.sectionWithToggle]: typeof value === 'object',
@@ -248,7 +247,6 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
                     />
                   ))
                 ) : (
-                  // @ts-expect-error
                   <JsonDisplay
                     className={classes.sectionWithToggle}
                     name="User metadata"
