@@ -30,7 +30,7 @@ function Popup({ count, onClose, ...props }: PopupProps) {
       <M.DialogTitle disableTypography>
         <M.Typography className={classes.title} variant="h6">
           {count} items selected
-          <M.IconButton size="small" className={classes.close} onClick={close}>
+          <M.IconButton size="small" className={classes.close} onClick={onClose}>
             <M.Icon>close</M.Icon>
           </M.IconButton>
         </M.Typography>
