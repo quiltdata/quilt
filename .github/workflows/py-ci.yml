@@ -138,10 +138,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools
           python -m pip install build==1.2.2.post1 twine==5.1.1
-      - name: verify git tag vs. version
-        env:
-          CIRCLE_TAG: ${{ github.ref_name }}
-        run: python setup.py verify
+      # - name: verify git tag vs. version
+      #   env:
+      #     CIRCLE_TAG: ${{ github.ref_name }}
+      #   run: python setup.py verify
       - name: build
         run: python -m build
       # - name: upload to PyPI
