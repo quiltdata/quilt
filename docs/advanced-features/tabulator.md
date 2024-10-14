@@ -76,6 +76,34 @@ In addition to the columns defined in the schema, Tabulator will add:
 - `$top_hash` for the revision of the package containing the object (currently
   we query only the `latest` package revision)
 
+### Using Athena to Access Tabulator
+
+Due to the way permissions are configured, Tabulator cannot be accessed from the
+AWS Console or views. You must access Tabulator via the Quilt stack in order to
+query the tables.  This can be done by users via the per-bucket "Queries" tab in
+the Quilt Catalog, or programmatically via `quilt3.login` and
+`quilt3.get_boto3_session` to get an Athena client with the same permissions as
+the Quilt stack:
+
+```python
+import quilt3
+import boto3
+
+quilt3.login()
+session = quilt3.get_boto3_session()
+athena_client = session.client('athena')
+
+result = athena_client.start_query_execution(
+    QueryString='SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"',
+    QueryExecutionContext={
+        'Database': 'udp-spec'
+    },
+    ResultConfiguration={
+        'OutputLocation': 's3://quilt-tf-dev-federator-tabulator-athena-results/'
+    }
+)
+```
+
 ### Caveats
 
 1. **Schema Consistency**: All files in the package that match the logical key
@@ -86,10 +114,7 @@ In addition to the columns defined in the schema, Tabulator will add:
 3. **Cost Management**: Querying very large datasets can be expensive
    (approximately dollars per terabyte). Be sure to set up appropriate cost
    controls and monitoring.
-4. **Access Restrictions**: Due to the way permissions are configured, Tabulator
-   cannot be accessed from the AWS Console or views. You must access Tabulator
-   via the Quilt Catalog in order to query the tables.
-5. **Concurrency**: Tabulator will attempt to process each file concurrently,
+4. **Concurrency**: Tabulator will attempt to process each file concurrently,
    but may be limited by the concurrency of Athena or the federation lambda in
    the
    [region](https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/discover)
@@ -98,7 +123,7 @@ In addition to the columns defined in the schema, Tabulator will add:
    [that
    region](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/lambda/quotas/L-B99A9384)'s
    AWS Service Quotas console.
-6. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
+5. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
    it is accessible from the Quilt stack and Tabulator lambda.
 
 ## Usage
