@@ -47,8 +47,6 @@ function Popup({ count, onClose, ...props }: PopupProps) {
   )
 }
 
-// TODO: check mobile view
-
 const useBadgeClasses = M.makeStyles({
   badge: {
     right: '4px',
@@ -62,6 +60,8 @@ interface ButtonProps {
 }
 
 export function Button({ className, count, onClick }: ButtonProps) {
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const badgeClasses = useBadgeClasses()
   return (
     <M.Badge
@@ -72,9 +72,21 @@ export function Button({ className, count, onClick }: ButtonProps) {
       max={999}
       showZero
     >
-      <M.Button onClick={onClick} size="small">
-        Selected items
-      </M.Button>
+      {sm ? (
+        <M.IconButton
+          className={className}
+          edge="end"
+          size="small"
+          title={'Selected items'}
+          onClick={onClick}
+        >
+          <M.Icon>playlist_add_check</M.Icon>
+        </M.IconButton>
+      ) : (
+        <M.Button onClick={onClick} size="small">
+          Selected items
+        </M.Button>
+      )}
     </M.Badge>
   )
 }
