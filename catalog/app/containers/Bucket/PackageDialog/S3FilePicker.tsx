@@ -40,19 +40,16 @@ const useSelectionWidgetStyles = M.makeStyles((t) => ({
 
 interface SelectionWidgetProps {
   className: string
-  selection: Selection.ListingSelection
-  onSelection: (changed: Selection.ListingSelection) => void
 }
 
-function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
+function SelectionWidget({ className }: SelectionWidgetProps) {
   const classes = useSelectionWidgetStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((o) => !o), [])
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
   const backdrop = React.useRef<HTMLElement | null>(null)
   return (
     <>
-      <Selection.Button count={count} className={className} onClick={toggle} />
+      <Selection.Button className={className} onClick={toggle} />
       <M.Backdrop
         className={classes.backdrop}
         onClick={(event) => backdrop.current === event.target && toggle()}
@@ -63,11 +60,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
           <M.IconButton className={classes.close} onClick={toggle} size="small">
             <M.Icon>close</M.Icon>
           </M.IconButton>
-          <Selection.Dashboard
-            onSelection={onSelection}
-            onClose={toggle}
-            selection={selection}
-          />
+          <Selection.Dashboard onClose={toggle} />
         </M.Paper>
       </M.Backdrop>
     </>
@@ -180,11 +173,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
-  const [selection, setSelection] = React.useState(Selection.EMPTY_MAP)
-  const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix],
-  )
+  const { selection, setSelection } = Selection.use()
 
   const [locked, setLocked] = React.useState(false)
 
@@ -251,7 +240,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPrefix('')
     setPrev(null)
     setSelection(Selection.EMPTY_MAP)
-  }, [])
+  }, [setSelection])
 
   return (
     <M.Dialog
@@ -280,11 +269,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
         <div className={classes.crumbs}>
           {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
         </div>
-        <SelectionWidget
-          className={classes.selectionButton}
-          selection={selection}
-          onSelection={setSelection}
-        />
+        <SelectionWidget className={classes.selectionButton} />
       </div>
       {data.case({
         // TODO: customized error display?
@@ -300,7 +285,9 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
               setPrefix={setPrefix}
               loadMore={loadMore}
               selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
-              onSelectionChange={handleSelection}
+              onSelectionChange={(ids) =>
+                setSelection(Selection.merge(ids, bucket, path, prefix))
+              }
             />
           ) : (
             // TODO: skeleton

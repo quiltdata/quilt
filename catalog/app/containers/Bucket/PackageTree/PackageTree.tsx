@@ -119,8 +119,6 @@ interface DirDisplayProps {
   path: string
   crumbs: BreadCrumbs.Crumb[]
   size?: number
-  selection: Selection.ListingSelection
-  onSelection: (ids: Selection.ListingSelection) => void
 }
 
 function DirDisplay({
@@ -131,8 +129,6 @@ function DirDisplay({
   path,
   crumbs,
   size,
-  selection,
-  onSelection,
 }: DirDisplayProps) {
   const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
@@ -228,6 +224,7 @@ function DirDisplay({
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
+  const { setSelection, selection } = Selection.use()
 
   return (
     <>
@@ -344,9 +341,7 @@ function DirDisplay({
                         {actions.downloadPackage && (
                           <Selection.Control
                             className={classes.button}
-                            onSelection={onSelection}
                             packageHandle={packageHandle}
-                            selection={selection}
                           />
                         )}
                         {actions.revisePackage && (
@@ -417,7 +412,7 @@ function DirDisplay({
                         {blocks.browser && (
                           <Listing.Listing
                             onSelectionChange={(ids) =>
-                              onSelection(Selection.merge(ids, bucket, path)(selection))
+                              setSelection(Selection.merge(ids, bucket, path))
                             }
                             selection={Selection.getDirectorySelection(
                               selection,
@@ -884,12 +879,12 @@ function PackageTree({
     tailSeparator: path.endsWith('/'),
   })
 
-  const [selection, setSelection] = React.useState<Selection.ListingSelection>(
-    Selection.EMPTY_MAP,
-  )
-  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
+  const sel = Selection.use()
   const guardNavigation = React.useCallback(
     (location) => {
+      // TODO: Good to proceed:
+      //   * root package same tag or same hash
+      //   * any path (same tag or same hash) and is directory
       const sameRevisionAnyPath = RRDom.matchPath(location.pathname, {
         path: urls.bucketPackageTree(bucket, name, hashOrTag),
         exact: true,
@@ -904,7 +899,7 @@ function PackageTree({
 
   return (
     <FileView.Root>
-      <RRDom.Prompt when={hasSelection} message={guardNavigation} />
+      <RRDom.Prompt when={sel.hasSelection} message={guardNavigation} />
       {/* TODO: bring back linked data after re-implementing it using graphql
       {!!bucketCfg &&
         revisionData.case({
@@ -960,8 +955,6 @@ function PackageTree({
                 hashOrTag,
                 crumbs,
                 size,
-                selection,
-                onSelection: setSelection,
               }}
             />
           ) : (
@@ -1027,19 +1020,21 @@ function PackageTreeQueries({
       }
 
       return (
-        <PackageTree
-          {...{
-            bucket,
-            name,
-            hashOrTag,
-            hash: d.package.revision?.hash,
-            size: d.package.revision?.totalBytes ?? undefined,
-            path,
-            mode,
-            resolvedFrom,
-            revisionListQuery,
-          }}
-        />
+        <Selection.Provider>
+          <PackageTree
+            {...{
+              bucket,
+              name,
+              hashOrTag,
+              hash: d.package.revision?.hash,
+              size: d.package.revision?.totalBytes ?? undefined,
+              path,
+              mode,
+              resolvedFrom,
+              revisionListQuery,
+            }}
+          />
+        </Selection.Provider>
       )
     },
   })

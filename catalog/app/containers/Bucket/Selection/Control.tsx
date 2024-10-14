@@ -1,9 +1,11 @@
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Dialogs from 'utils/Dialogs'
 
 import Dashboard from './Dashboard'
+import { useSelection } from './Provider'
 
 type DashboardProps = React.ComponentProps<typeof Dashboard>
 
@@ -19,27 +21,38 @@ const usePopupStyles = M.makeStyles({
   },
 })
 
-interface PopupProps extends DashboardProps {
-  count: number
+interface PopupProps extends Omit<DashboardProps, 'onClose'> {
+  close: () => void
 }
 
-function Popup({ count, onClose, ...props }: PopupProps) {
+function Popup({ close, ...props }: PopupProps) {
+  const state = useSelection()
   const classes = usePopupStyles()
+
+  const location = RRDom.useLocation()
+  const firstRender = React.useRef(true)
+  React.useEffect(() => {
+    if (!firstRender.current) {
+      close()
+    }
+    firstRender.current = false
+  }, [close, location.pathname])
+
   return (
     <>
       <M.DialogTitle disableTypography>
         <M.Typography className={classes.title} variant="h6">
-          {count} items selected
-          <M.IconButton size="small" className={classes.close} onClick={onClose}>
+          {state.totalCount} items selected
+          <M.IconButton size="small" className={classes.close} onClick={close}>
             <M.Icon>close</M.Icon>
           </M.IconButton>
         </M.Typography>
       </M.DialogTitle>
       <M.DialogContent>
-        <Dashboard onClose={onClose} {...props} />
+        <Dashboard onClose={close} {...props} />
       </M.DialogContent>
       <M.DialogActions>
-        <M.Button onClick={onClose} variant="contained" color="primary" size="small">
+        <M.Button onClick={close} variant="contained" color="primary" size="small">
           Close
         </M.Button>
       </M.DialogActions>
@@ -55,17 +68,17 @@ const useBadgeClasses = M.makeStyles({
 
 interface ButtonProps {
   className: string
-  count: number
   onClick: () => void
 }
 
-export function Button({ className, count, onClick }: ButtonProps) {
+export function Button({ className, onClick }: ButtonProps) {
+  const state = useSelection()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const badgeClasses = useBadgeClasses()
   return (
     <M.Badge
-      badgeContent={count}
+      badgeContent={state.totalCount}
       classes={badgeClasses}
       className={className}
       color="primary"
@@ -95,23 +108,14 @@ interface ControlProps extends Omit<DashboardProps, 'onClose'> {
   className: string
 }
 
-export function Control({
-  className,
-  onSelection,
-  packageHandle,
-  selection,
-}: ControlProps) {
+export function Control({ className, ...rest }: ControlProps) {
   const dialog = Dialogs.use()
 
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-  const handleClick = () =>
-    dialog.open(({ close: onClose }) => (
-      <Popup {...{ count, onClose, onSelection, packageHandle, selection }} />
-    ))
+  const handleClick = () => dialog.open((props) => <Popup {...{ ...props, ...rest }} />)
 
   return (
     <>
-      <Button count={count} className={className} onClick={handleClick} />
+      <Button className={className} onClick={handleClick} />
       {dialog.render(DIALOG_PROPS)}
     </>
   )

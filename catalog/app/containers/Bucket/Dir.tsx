@@ -213,12 +213,10 @@ export default function Dir() {
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState<Selection.ListingSelection>(
-    Selection.EMPTY_MAP,
-  )
+  const { selection, hasSelection, setSelection } = Selection.use()
   const handleSelection = React.useCallback(
     (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix],
+    [bucket, path, prefix, setSelection],
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
@@ -246,7 +244,6 @@ export default function Dir() {
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
-  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
   const guardNavigation = React.useCallback(
     (location) => {
       if (
@@ -283,11 +280,7 @@ export default function Dir() {
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
-          <Selection.Control
-            className={cx(classes.button)}
-            selection={selection}
-            onSelection={setSelection}
-          />
+          <Selection.Control className={cx(classes.button)} />
           {BucketPreferences.Result.match(
             {
               Ok: ({ ui: { actions } }) => (
