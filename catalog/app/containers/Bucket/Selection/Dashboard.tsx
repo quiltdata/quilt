@@ -59,12 +59,13 @@ const useListItemStyles = M.makeStyles((t) => ({
 }))
 
 interface ListItemProps {
+  bookmarks?: ReturnType<typeof Bookmarks.use>
   handle: Model.S3.S3ObjectLocation
   className: string
   onClear: () => void
 }
 
-function ListItem({ className, handle, onClear }: ListItemProps) {
+function ListItem({ bookmarks, className, handle, onClear }: ListItemProps) {
   const classes = useListItemStyles()
   const isDir = s3paths.isDir(handle.key)
   const { urls } = NamedRoutes.use()
@@ -72,21 +73,19 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
     ? urls.bucketDir(handle.bucket, handle.key)
     : urls.bucketFile(handle.bucket, handle.key)
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
-
-  const bookmarks = Bookmarks.use()
   const isBookmarked = bookmarks?.isBookmarked('main', handle)
   const toggleBookmark = () => bookmarks?.toggle('main', handle)
   return (
     <M.ListItem className={cx(classes.root, className)} disableGutters>
-      <M.ListItemIcon className={classes.icon}>
-        {bookmarks && (
+      {bookmarks && (
+        <M.ListItemIcon className={classes.icon}>
           <M.IconButton size="small" onClick={toggleBookmark}>
             <M.Icon fontSize="small">
               {isBookmarked ? 'turned_in' : 'turned_in_not'}
             </M.Icon>
           </M.IconButton>
-        )}
-      </M.ListItemIcon>
+        </M.ListItemIcon>
+      )}
       <M.ListItemIcon className={classes.icon}>
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
       </M.ListItemIcon>
@@ -156,7 +155,7 @@ export default function Dashboard({
 
   const bookmarksCtx = Bookmarks.use()
   const bookmarks = React.useMemo(
-    () => !packageHandle && bookmarksCtx,
+    () => (!packageHandle ? bookmarksCtx : null),
     [packageHandle, bookmarksCtx],
   )
   const hasSomethingToBookmark = React.useMemo(
@@ -228,7 +227,7 @@ export default function Dashboard({
           Clear selection
         </M.Button>
       </div>
-      <M.Divider style={{ marginTop: '16px' }} />
+      <M.Divider className={classes.divider} />
       {hasSelection ? (
         <M.List dense disablePadding className={classes.list}>
           {Object.entries(lists).map(([prefixUrl, handles]) =>
@@ -240,6 +239,7 @@ export default function Dashboard({
                     {handles.map((handle, index) => (
                       <ListItem
                         key={handle.key}
+                        bookmarks={bookmarks}
                         className={classes.item}
                         handle={handle}
                         onClear={() => handleRemove(prefixUrl, index)}
