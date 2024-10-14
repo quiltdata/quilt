@@ -88,18 +88,18 @@ the Quilt stack:
 ```python
 import quilt3
 
-quilt3.config(navigator_url='http://dev.federator.quilttest.com/')
+quilt3.config(navigator_url='https://YOUR-CATALOG-URL.com/')
 quilt3.login()
 session = quilt3.get_boto3_session()
 athena_client = session.client('athena')
 
 result = athena_client.start_query_execution(
-    QueryString='SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"',
+    QueryString='SELECT * FROM "quilt-YOUR-CATALOG-URL-tabulator"."udp-spec"."ccle-tsv"',
     QueryExecutionContext={
         'Database': 'udp-spec'
     },
     ResultConfiguration={
-        'OutputLocation': 's3://quilt-tf-dev-federator-tabulator-athena-results/'
+        'OutputLocation': 's3://quilt-YOUR-CATALOG-URL-tabulator-athena-results/'
     }
 )
 ```
