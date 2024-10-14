@@ -33,6 +33,22 @@ pip3 install quilt3
 which quilt3 #e.g., /usr/local/bin/quilt3
 ```
 
+### Writing to S3 URIs
+
+New in v0.8: nf-quilt now supports using native S3 URIs, automatically creating Quilt packages with metadata from each run.
+
+Example:
+
+```sh
+nextflow run nf-core/rnaseq -plugins nf-quilt --outdir "s3://quilt-example-bucket/test/nf_quilt_rnaseq"
+```
+
+This automatically generates a Quilt package:
+
+```sh
+quilt+s3://quilt-example-bucket#package=test/nf_quilt_rnaseq
+```
+
 ### Reading and Writing Quilt URLs
 
 Next, create a Quilt URL for the S3 bucket where you want to store (and eventually read) your results.
