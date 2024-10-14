@@ -302,16 +302,19 @@ def create_botocore_session(*, credentials: T.Optional[dict] = None) -> botocore
     return botocore_session
 
 
-def get_boto3_session() -> T.Optional[boto3.Session]:
+def get_boto3_session(*, fallback: bool = True) -> boto3.Session:
     """
     Return a Boto3 session with Quilt credentials.
-    If no Quilt credentials are found, return `None`.
+    In case of no Quilt credentials found, return a "normal" Boto3 session if `fallback` is `True`,
+    otherwise raise a `QuiltException`.
 
-    > Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set,
+    > Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set on the session,
     if you previously called it in quilt3 < 6.1.0.
     """
     if not (credentials := _load_credentials()):
-        return None
+        if fallback:
+            return boto3.Session()
+        raise QuiltException("No Quilt credentials found.")
     return boto3.Session(
         botocore_session=create_botocore_session(credentials=credentials),
         region_name=get_from_config("region"),

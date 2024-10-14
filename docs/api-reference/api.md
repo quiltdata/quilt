@@ -43,12 +43,13 @@ __Arguments__
 * __top_hash (str)__:  Optional. A package hash to delete, instead of the whole package.
 
 
-## get\_boto3\_session() -> Optional[boto3.session.Session]  {#get\_boto3\_session}
+## get\_boto3\_session(\*, fallback: bool = True) -> boto3.session.Session  {#get\_boto3\_session}
 
 Return a Boto3 session with Quilt credentials.
-If no Quilt credentials are found, return `None`.
+In case of no Quilt credentials found, return a "normal" Boto3 session if `fallback` is `True`,
+otherwise raise a `QuiltException`.
 
-> Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set,
+> Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set on the session,
 if you previously called it in quilt3 < 6.1.0.
 
 
