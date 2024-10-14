@@ -87,8 +87,8 @@ the Quilt stack:
 
 ```python
 import quilt3
-import boto3
 
+quilt3.configure(navigator_url='http://dev.federator.quilttest.com/')
 quilt3.login()
 session = quilt3.get_boto3_session()
 athena_client = session.client('athena')
