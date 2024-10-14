@@ -73,14 +73,15 @@ const usePackageMetaStyles = M.makeStyles({
 })
 
 interface PackageMetaSectionProps {
-  meta: MetaData | null
+  meta: MetaData
   preferences: MetaBlockPreferences
 }
 
-export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProps) {
+export function PackageMetaSection({
+  meta: { message, user_meta: userMeta, workflow },
+  preferences,
+}: PackageMetaSectionProps) {
   const classes = usePackageMetaStyles()
-  if (!meta || R.isEmpty(meta)) return null
-  const { message, user_meta: userMeta, workflow } = meta
   if (!message && !userMeta && !workflow) return null
   return (
     <Section icon="list" heading="Metadata" defaultExpanded>
