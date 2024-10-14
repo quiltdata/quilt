@@ -45,9 +45,10 @@ parser:
 
 1. **Schema**: The schema defines the columns in the table. Each column must
    have a name and a type. The name must match the regular expression
-   `^[a-z_][a-z0-9_]*$`.  For CSVs, these names do not need to match the column
-   names in the document.  However, if column names are present in a CSV/TSV,
-   you must set `header` to `true` in the parser configuration.
+   `^[a-z_][a-z0-9_]*$`.  For CSV/TSVs, these names do not need to match the
+   column names in the document.  For Parquet, they must match except for case.
+   However, if column names are present in a CSV/TSV, you must set `header` to
+   `true` in the parser configuration.
 1. **Types**:  Must be uppercase and match the [Apache Arrow Data
 Types](https://docs.aws.amazon.com/athena/latest/ug/data-types.html)
 used by Amazon Athena.  Valid types are BOOLEAN, TINYINT, SMALLINT, INT, BIGINT,
