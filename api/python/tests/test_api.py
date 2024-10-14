@@ -17,7 +17,8 @@ class TestAPI(QuiltTestCase):
             'telemetry_disabled': False,
             's3Proxy': None,
             'apiGatewayEndpoint': None,
-            'binaryApiGatewayEndpoint': None
+            'binaryApiGatewayEndpoint': None,
+            "region": "us-west-2",
         }
         self.requests_mock.add(responses.GET, 'https://foo.bar/config.json', json=content, status=200)
 
