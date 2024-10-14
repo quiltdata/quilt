@@ -304,7 +304,7 @@ def create_botocore_session(*, credentials: T.Optional[dict] = None) -> botocore
 
 def get_boto3_session(*, fallback: bool = True) -> boto3.Session:
     """
-    Return a Boto3 session with Quilt credentials.
+    Return a Boto3 session with Quilt stack credentials and AWS region.
     In case of no Quilt credentials found, return a "normal" Boto3 session if `fallback` is `True`,
     otherwise raise a `QuiltException`.
 
