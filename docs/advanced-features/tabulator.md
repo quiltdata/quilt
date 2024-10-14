@@ -108,7 +108,7 @@ from the Quilt Catalog. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console.
 
 For example, to query the `ccle-tsv` table from the appropriate workgroup in
-the `quilt-tf-dev-federator` stackm, where the database (bucket name) is `udp-spec`:
+the `quilt-tf-dev-federator` stack, where the database (bucket name) is `udp-spec`:
 
 ```sql
 SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
