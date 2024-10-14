@@ -884,13 +884,27 @@ function PackageTree({
     tailSeparator: path.endsWith('/'),
   })
 
-  // TODO: guard for leaving this exact package
   const [selection, setSelection] = React.useState<Selection.ListingSelection>(
     Selection.EMPTY_MAP,
+  )
+  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
+  const guardNavigation = React.useCallback(
+    (location) => {
+      const sameRevisionAnyPath = RRDom.matchPath(location.pathname, {
+        path: urls.bucketPackageTree(bucket, name, hashOrTag),
+        exact: true,
+      })
+      return (
+        !!sameRevisionAnyPath ||
+        'Selection will be lost. Clear selection and confirm navigation?'
+      )
+    },
+    [urls, bucket, name, hashOrTag],
   )
 
   return (
     <FileView.Root>
+      <RRDom.Prompt when={hasSelection} message={guardNavigation} />
       {/* TODO: bring back linked data after re-implementing it using graphql
       {!!bucketCfg &&
         revisionData.case({
