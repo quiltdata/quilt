@@ -98,6 +98,8 @@ In addition to the columns defined in the schema, Tabulator will add:
    [that
    region](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/lambda/quotas/L-B99A9384)'s
    AWS Service Quotas console.
+6. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
+   it is accessible from the Quilt stack and Tabulator lambda.
 
 ## Usage
 
