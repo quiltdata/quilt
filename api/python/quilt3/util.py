@@ -81,7 +81,16 @@ binaryApiGatewayEndpoint:
 
 default_registry_version: 1
 
+# AWS Region
+region:
 """.format(BASE_PATH.as_uri() + '/packages')
+
+FEATURE_TEMPLATE = """
+alwaysRequiresAuth: false
+chunkedChecksums: false
+noDownload: false
+qurator: false
+"""
 
 
 def get_pos_int_from_env(var_name):
@@ -442,11 +451,21 @@ def get_from_config(key):
     return load_config().get(key)
 
 
+def get_feature_flags():
+    return read_yaml(FEATURE_TEMPLATE)
+
+
 def get_install_location():
     loc = get_from_config('default_install_location')
     if loc is None:
         loc = get_from_config('default_local_registry').rstrip('/')
     return loc
+
+
+def get_boto_session():
+    from quilt3.data_transfer import S3ClientProvider
+    s3_client_provider = S3ClientProvider()
+    return s3_client_provider.get_boto_session()
 
 
 def set_config_value(key, value):

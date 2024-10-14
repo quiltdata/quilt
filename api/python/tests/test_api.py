@@ -32,6 +32,7 @@ class TestAPI(QuiltTestCase):
         content['default_install_location'] = None
         content['default_registry_version'] = 1
         content['registryUrl'] = None
+        content['region'] = None
 
         assert config == content
 
@@ -42,3 +43,13 @@ class TestAPI(QuiltTestCase):
         # present.  ..but, a bad port causes an error..
         with pytest.raises(util.QuiltException, match='Port must be a number'):
             he.config('https://fliff:fluff')
+
+    def test_config_feature_flags(self):
+        features = util.get_feature_flags()
+        print(features)
+        # These come from CONFIG_FEATURES
+        assert features['alwaysRequiresAuth'] is False
+        assert features['chunkedChecksums'] is False
+        assert features['noDownload'] is False
+        assert features['qurator'] is False
+        assert 'notAFlag' not in features

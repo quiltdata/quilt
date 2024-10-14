@@ -1373,7 +1373,7 @@ class Package:
 
         However, selector_fn will dictate whether the new package points to the local file or to s3:
 
-        If `selector_fn('entry_1', pkg["entry_1"]) == False`,
+        If `selector_fn('entry_1', pkg["entry_1"]) is False`,
         `new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
 
         If `selector_fn('entry_1', pkg["entry_1"]) == True`,
