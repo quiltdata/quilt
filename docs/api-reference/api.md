@@ -43,6 +43,16 @@ __Arguments__
 * __top_hash (str)__:  Optional. A package hash to delete, instead of the whole package.
 
 
+## get\_boto3\_session(\*, fallback: bool = True) -> boto3.session.Session  {#get\_boto3\_session}
+
+Return a Boto3 session with Quilt stack credentials and AWS region.
+In case of no Quilt credentials found, return a "normal" Boto3 session if `fallback` is `True`,
+otherwise raise a `QuiltException`.
+
+> Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set on the session,
+if you previously called it in quilt3 < 6.1.0.
+
+
 ## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
 Lists versions of a given package.
 
