@@ -21,6 +21,7 @@ from enum import Enum
 from threading import Lock
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
+import boto3
 import jsonlines
 from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
@@ -150,8 +151,8 @@ class S3ClientProvider:
                 else:
                     raise S3NoValidClientError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
 
-    def get_boto_session(self):
-        return get_boto3_session()
+    def get_boto_session(self) -> boto3.Session:
+        return get_boto3_session() or boto3.Session()
 
     def _build_client(self, is_unsigned):
         session = self.get_boto_session()

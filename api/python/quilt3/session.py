@@ -9,6 +9,7 @@ import stat
 import subprocess
 import sys
 import time
+import typing as T
 from importlib import metadata
 
 import boto3
@@ -287,11 +288,12 @@ class QuiltProvider(CredentialProvider):
         return creds
 
 
-def create_botocore_session():
+def create_botocore_session(*, credentials: T.Optional[dict] = None) -> botocore.session.Session:
     botocore_session = botocore.session.get_session()
 
     # If we have saved credentials, use them. Otherwise, create a normal Boto session.
-    credentials = _load_credentials()
+    if credentials is None:
+        credentials = _load_credentials()
     if credentials:
         provider = QuiltProvider(credentials)
         resolver = CredentialResolver([provider])
@@ -300,18 +302,17 @@ def create_botocore_session():
     return botocore_session
 
 
-def get_boto3_session() -> boto3.Session:
+def get_boto3_session() -> T.Optional[boto3.Session]:
     """
     Return a Boto3 session with Quilt credentials.
-    If no Quilt credentials are found, return a session that uses normal credentials provider chain.
+    If no Quilt credentials are found, return `None`.
 
     > Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set,
     if you previously called it in quilt3 < 6.1.0.
     """
-    # XXX: maybe it makes more sense to return None if
-    #      not _load_credentials()/not logged_in()?
-    boto_session = boto3.Session(
-        botocore_session=create_botocore_session(),
-        region_name=get_from_config("region") if _load_credentials() else None,
+    if not (credentials := _load_credentials()):
+        return None
+    return boto3.Session(
+        botocore_session=create_botocore_session(credentials=credentials),
+        region_name=get_from_config("region"),
     )
-    return boto_session

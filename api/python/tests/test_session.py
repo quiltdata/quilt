@@ -5,11 +5,16 @@ Tests for login and logout.
 import datetime
 from unittest.mock import patch
 
+import boto3
 import responses
 
 import quilt3
 
 from .utils import QuiltTestCase
+
+
+def format_date(date):
+    return date.replace(tzinfo=datetime.timezone.utc, microsecond=0).isoformat()
 
 
 class TestSession(QuiltTestCase):
@@ -67,9 +72,6 @@ class TestSession(QuiltTestCase):
     @patch('quilt3.session._save_credentials')
     @patch('quilt3.session._load_credentials')
     def test_create_botocore_session(self, mock_load_credentials, mock_save_credentials):
-        def format_date(date):
-            return date.replace(tzinfo=datetime.timezone.utc, microsecond=0).isoformat()
-
         # Test good credentials.
         future_date = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
 
@@ -120,6 +122,44 @@ class TestSession(QuiltTestCase):
         assert credentials.token == 'session-token2'
 
         mock_save_credentials.assert_called()
+
+    @patch("quilt3.util.load_config")
+    @patch("quilt3.session._load_credentials")
+    def test_get_boto3_session(self, mock_load_credentials, mock_load_config):
+        region = "us-west-2"
+        config = quilt3.util.load_config()
+        mock_load_config.return_value = {
+            **config,
+            "region": region,
+        }
+
+        future_date = datetime.datetime.now() + datetime.timedelta(hours=1)
+        mock_load_credentials.return_value = dict(
+            access_key="access-key",
+            secret_key="secret-key",
+            token="session-token",
+            expiry_time=format_date(future_date),
+        )
+
+        session = quilt3.get_boto3_session()
+        mock_load_credentials.assert_called_once_with()
+        mock_load_config.assert_called_with()
+
+        assert isinstance(session, boto3.Session)
+        credentials = session.get_credentials()
+
+        assert credentials.access_key == "access-key"
+        assert credentials.secret_key == "secret-key"
+        assert credentials.token == "session-token"
+
+        assert session.region_name == region
+
+    @patch("quilt3.session._load_credentials", return_value={})
+    def test_get_boto3_session_no_credentials(self, mock_load_credentials):
+        session = quilt3.get_boto3_session()
+        mock_load_credentials.assert_called_once_with()
+
+        assert session is None
 
     def test_logged_in(self):
         registry_url = quilt3.session.get_registry_url()
