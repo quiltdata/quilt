@@ -407,7 +407,7 @@ function DirDisplay({
                       {blocks.code && (
                         <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
-                      {blocks.meta && dir.metadata && (
+                      {blocks.meta && (
                         <FileView.PackageMetaSection
                           meta={dir.metadata}
                           preferences={blocks.meta}
