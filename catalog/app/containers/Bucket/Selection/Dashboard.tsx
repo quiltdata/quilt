@@ -34,6 +34,40 @@ function EmptyState() {
   )
 }
 
+interface FileLinkProps {
+  className: string
+  handle: Model.S3.S3ObjectLocation
+  packageHandle?: PackageHandle
+}
+
+function FileLink({ className, handle, packageHandle }: FileLinkProps) {
+  const { urls } = NamedRoutes.use()
+
+  if (!packageHandle) {
+    const to = s3paths.isDir(handle.key)
+      ? urls.bucketDir(handle.bucket, handle.key)
+      : urls.bucketFile(handle.bucket, handle.key)
+    const children = decodeURIComponent(s3paths.handleToS3Url(handle))
+    return <StyledLink {...{ children, className, to }} />
+  }
+
+  const to = urls.bucketPackageTree(
+    packageHandle.bucket,
+    packageHandle.name,
+    packageHandle.hash,
+    handle.key,
+  )
+  const packageUri = PackageUri.stringify({
+    ...packageHandle,
+    path: handle.key,
+  })
+  const children = decodeURIComponent(
+    packageUri.slice(0, packageUri.indexOf('@') + 10) +
+      packageUri.slice(packageUri.indexOf('&path')),
+  )
+  return <StyledLink {...{ children, className, to }} />
+}
+
 const useListItemStyles = M.makeStyles((t) => ({
   root: {
     whiteSpace: 'nowrap',
@@ -77,37 +111,9 @@ function ListItem({
 }: ListItemProps) {
   const classes = useListItemStyles()
   const isDir = s3paths.isDir(handle.key)
-  const { urls } = NamedRoutes.use()
-  const name = s3paths.isDir(handle.key)
-    ? s3paths.ensureSlash(basename(handle.key))
-    : basename(handle.key)
+  const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
   const isBookmarked = bookmarks?.isBookmarked('main', handle)
   const toggleBookmark = () => bookmarks?.toggle('main', handle)
-
-  const url = React.useMemo(() => {
-    if (packageHandle) {
-      return urls.bucketPackageTree(
-        packageHandle.bucket,
-        packageHandle.name,
-        packageHandle.hash,
-        handle.key,
-      )
-    }
-    return s3paths.isDir(handle.key)
-      ? urls.bucketDir(handle.bucket, handle.key)
-      : urls.bucketFile(handle.bucket, handle.key)
-  }, [urls, packageHandle, handle])
-  const linkLabel = React.useMemo(() => {
-    if (!packageHandle) return decodeURIComponent(s3paths.handleToS3Url(handle))
-    const packageUri = PackageUri.stringify({
-      ...packageHandle,
-      path: handle.key,
-    })
-    return decodeURIComponent(
-      packageUri.slice(0, packageUri.indexOf('@') + 10) +
-        packageUri.slice(packageUri.indexOf('&path')),
-    )
-  }, [handle, packageHandle])
   return (
     <M.ListItem className={cx(classes.root, className)} disableGutters>
       {bookmarks && (
@@ -123,9 +129,7 @@ function ListItem({
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
       </M.ListItemIcon>
       <span className={classes.name}>{name}</span>
-      <StyledLink className={classes.link} to={url}>
-        {linkLabel}
-      </StyledLink>
+      <FileLink className={classes.link} packageHandle={packageHandle} handle={handle} />
       <M.ListItemSecondaryAction className={classes.action}>
         <M.IconButton size="small" onClick={onClear}>
           <M.Icon fontSize="small">clear</M.Icon>
