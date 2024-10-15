@@ -85,6 +85,7 @@ the Quilt Catalog, or programmatically via `quilt3.login` and
 `quilt3.get_boto3_session` to get an Athena client with the same permissions as
 the Quilt stack:
 
+<!--pytest.mark.skip-->
 ```python
 import quilt3
 
