@@ -282,6 +282,10 @@ function DirDisplay({
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
+  const handleSelection = React.useCallback(
+    (ids) => slt.merge(ids, bucket, path),
+    [bucket, path, slt],
+  )
 
   return (
     <>
@@ -468,7 +472,7 @@ function DirDisplay({
                       <M.Box mt={2}>
                         {blocks.browser && (
                           <Listing.Listing
-                            onSelectionChange={(ids) => slt.merge(ids, bucket, path)}
+                            onSelectionChange={handleSelection}
                             selection={Selection.getDirectorySelection(
                               slt.selection,
                               bucket,
