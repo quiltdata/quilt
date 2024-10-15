@@ -81,15 +81,15 @@ In addition to the columns defined in the schema, Tabulator will add:
 Due to the way permissions are configured, Tabulator cannot be accessed from the
 AWS Console or views. You must access Tabulator via the Quilt stack in order to
 query the tables.  This can be done by users via the per-bucket "Queries" tab in
-the Quilt Catalog, or programmatically via `quilt3.login` and
-`quilt3.get_boto3_session` to get an Athena client with the same permissions as
+the Quilt Catalog, or programmatically via `quilt3.login()` and
+`quilt3.get_boto3_session()` to get an Athena client with the same permissions as
 the Quilt stack:
 
 <!--pytest.mark.skip-->
 ```python
 import quilt3
 
-quilt3.config(navigator_url='https://YOUR-CATALOG-URL.com/')
+quilt3.config('https://YOUR-CATALOG-URL.com/')
 quilt3.login()
 session = quilt3.get_boto3_session()
 athena_client = session.client('athena')
