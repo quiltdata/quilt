@@ -9,8 +9,10 @@ import stat
 import subprocess
 import sys
 import time
+import typing as T
 from importlib import metadata
 
+import boto3
 import botocore.session
 import requests
 from botocore.credentials import (
@@ -288,14 +290,34 @@ class QuiltProvider(CredentialProvider):
         return creds
 
 
-def create_botocore_session():
+def create_botocore_session(*, credentials: T.Optional[dict] = None) -> botocore.session.Session:
     botocore_session = botocore.session.get_session()
 
     # If we have saved credentials, use them. Otherwise, create a normal Boto session.
-    credentials = _load_credentials()
+    if credentials is None:
+        credentials = _load_credentials()
     if credentials:
         provider = QuiltProvider(credentials)
         resolver = CredentialResolver([provider])
         botocore_session.register_component('credential_provider', resolver)
 
     return botocore_session
+
+
+def get_boto3_session(*, fallback: bool = True) -> boto3.Session:
+    """
+    Return a Boto3 session with Quilt stack credentials and AWS region.
+    In case of no Quilt credentials found, return a "normal" Boto3 session if `fallback` is `True`,
+    otherwise raise a `QuiltException`.
+
+    > Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set on the session,
+    if you previously called it in quilt3 < 6.1.0.
+    """
+    if not (credentials := _load_credentials()):
+        if fallback:
+            return boto3.Session()
+        raise QuiltException("No Quilt credentials found.")
+    return boto3.Session(
+        botocore_session=create_botocore_session(credentials=credentials),
+        region_name=get_from_config("region"),
+    )

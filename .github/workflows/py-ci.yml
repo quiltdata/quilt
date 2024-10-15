@@ -133,15 +133,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install build==1.2.2.post1 twine==5.1.1
       - name: verify git tag vs. version
         env:
           CIRCLE_TAG: ${{ github.ref_name }}
         run: python setup.py verify
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install build==0.8.0 twine==4.0.0
       - name: build
         run: python -m build
       - name: upload to PyPI
