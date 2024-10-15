@@ -26,7 +26,7 @@ interface PopupProps extends Omit<DashboardProps, 'onClose'> {
 }
 
 function Popup({ close, ...props }: PopupProps) {
-  const state = useSelection()
+  const slt = useSelection()
   const classes = usePopupStyles()
 
   const location = RRDom.useLocation()
@@ -42,7 +42,7 @@ function Popup({ close, ...props }: PopupProps) {
     <>
       <M.DialogTitle disableTypography>
         <M.Typography className={classes.title} variant="h6">
-          {state.totalCount} items selected
+          {slt.totalCount} items selected
           <M.IconButton size="small" className={classes.close} onClick={close}>
             <M.Icon>close</M.Icon>
           </M.IconButton>
@@ -72,13 +72,13 @@ interface ButtonProps {
 }
 
 export function Button({ className, onClick }: ButtonProps) {
-  const state = useSelection()
+  const slt = useSelection()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const badgeClasses = useBadgeClasses()
   return (
     <M.Badge
-      badgeContent={state.totalCount}
+      badgeContent={slt.totalCount}
       classes={badgeClasses}
       className={className}
       color="primary"

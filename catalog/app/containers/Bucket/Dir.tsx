@@ -213,10 +213,10 @@ export default function Dir() {
     )
   }, [data.result])
 
-  const { selection, hasSelection, setSelection } = Selection.use()
+  const slt = Selection.use()
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix, setSelection],
+    (ids) => slt.merge(ids, bucket, path, prefix),
+    [bucket, path, prefix, slt],
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
@@ -231,10 +231,10 @@ export default function Dir() {
       packageDirectoryDialog.open({
         path,
         successor,
-        selection,
+        selection: slt.selection,
       })
     },
-    [packageDirectoryDialog, path, selection],
+    [packageDirectoryDialog, path, slt.selection],
   )
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
@@ -265,7 +265,7 @@ export default function Dir() {
 
       <AssistantContext.ListingContext data={data} />
 
-      <RRDom.Prompt when={hasSelection} message={guardNavigation} />
+      <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
 
       {packageDirectoryDialog.render({
         successTitle: 'Package created',
@@ -290,8 +290,8 @@ export default function Dir() {
                       bucket={bucket}
                       className={classes.button}
                       onChange={openPackageCreationDialog}
-                      variant={hasSelection ? 'contained' : 'outlined'}
-                      color={hasSelection ? 'primary' : 'default'}
+                      variant={slt.isEmpty ? 'outlined' : 'contained'}
+                      color={slt.isEmpty ? 'default' : 'primary'}
                     >
                       Create package
                     </Successors.Button>
@@ -344,7 +344,11 @@ export default function Dir() {
               bucket={bucket}
               path={path}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              selection={Selection.getDirectorySelection(
+                slt.selection,
+                res.bucket,
+                res.path,
+              )}
               onSelection={handleSelection}
             />
           ) : (

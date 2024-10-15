@@ -1,7 +1,6 @@
 import { basename } from 'path'
 
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -17,7 +16,7 @@ import * as s3paths from 'utils/s3paths'
 import * as FileView from '../FileView'
 
 import { useSelection } from './Provider'
-import { EMPTY_MAP, ListingSelection, toHandlesMap, toHandlesList } from './utils'
+import { toHandlesMap, toHandlesList } from './utils'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
@@ -181,25 +180,21 @@ interface DashboardProps {
 export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
   const classes = useStyles()
 
-  const state = useSelection()
-  const lists = React.useMemo(() => toHandlesMap(state.selection), [state.selection])
+  const slt = useSelection()
+  const lists = React.useMemo(() => toHandlesMap(slt.selection), [slt.selection])
   const handleClear = React.useCallback(() => {
-    state.setSelection(EMPTY_MAP)
+    slt.clear()
     onClose()
-  }, [state, onClose])
+  }, [slt, onClose])
 
   const handleRemove = React.useCallback(
     (prefixUrl: string, index: number) => {
-      const newSelection = R.dissocPath<ListingSelection>(
-        [prefixUrl, index],
-        state.selection,
-      )
-      state.setSelection(newSelection)
-      if (!Object.values(newSelection).some((ids) => !!ids.length)) {
+      const { isEmpty } = slt.remove(prefixUrl, index)
+      if (isEmpty) {
         onClose()
       }
     },
-    [onClose, state],
+    [onClose, slt],
   )
 
   const bookmarksCtx = Bookmarks.use()
@@ -232,7 +227,7 @@ export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
           <M.Button
             className={classes.button}
             color="primary"
-            disabled={!state.hasSelection}
+            disabled={slt.isEmpty}
             onClick={handleBookmarks}
             size="small"
             variant="outlined"
@@ -244,7 +239,7 @@ export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
           <FileView.ZipDownloadForm
             suffix={`package/${packageHandle.bucket}/${packageHandle.name}/${packageHandle.hash}`}
             className={classes.button}
-            files={toHandlesList(state.selection).map(({ key }) => key)}
+            files={toHandlesList(slt.selection).map(({ key }) => key)}
           >
             <Buttons.Iconized label="Download selected" icon="archive" type="submit" />
           </FileView.ZipDownloadForm>
@@ -252,7 +247,7 @@ export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
         <M.Button
           className={classes.button}
           color="primary"
-          disabled={!state.hasSelection}
+          disabled={slt.isEmpty}
           onClick={handleClear}
           size="small"
           variant="outlined"
@@ -261,7 +256,7 @@ export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
         </M.Button>
       </div>
       <M.Divider className={classes.divider} />
-      {state.hasSelection ? (
+      {!slt.isEmpty ? (
         <M.List dense disablePadding className={classes.list}>
           {Object.entries(lists).map(([prefixUrl, handles]) =>
             handles.length ? (

@@ -281,7 +281,7 @@ function DirDisplay({
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
-  const { setSelection, selection } = Selection.use()
+  const slt = Selection.use()
 
   return (
     <>
@@ -468,11 +468,9 @@ function DirDisplay({
                       <M.Box mt={2}>
                         {blocks.browser && (
                           <Listing.Listing
-                            onSelectionChange={(ids) =>
-                              setSelection(Selection.merge(ids, bucket, path))
-                            }
+                            onSelectionChange={(ids) => slt.merge(ids, bucket, path)}
                             selection={Selection.getDirectorySelection(
-                              selection,
+                              slt.selection,
                               bucket,
                               path,
                             )}
@@ -936,7 +934,7 @@ function PackageTree({
     tailSeparator: path.endsWith('/'),
   })
 
-  const sel = Selection.use()
+  const slt = Selection.use()
   const guardNavigation = React.useCallback(
     (location) =>
       isStillBrowsingPackage(urls, location.pathname, {
@@ -950,7 +948,7 @@ function PackageTree({
 
   return (
     <FileView.Root>
-      <RRDom.Prompt when={sel.hasSelection} message={guardNavigation} />
+      <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
       {/* TODO: bring back linked data after re-implementing it using graphql
       {!!bucketCfg &&
         revisionData.case({

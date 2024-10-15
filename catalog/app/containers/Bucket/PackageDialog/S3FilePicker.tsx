@@ -173,7 +173,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
-  const { selection, setSelection } = Selection.use()
+  const slt = Selection.use()
 
   const [locked, setLocked] = React.useState(false)
 
@@ -227,20 +227,20 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const add = React.useCallback(async () => {
     try {
       setLocked(true)
-      const handles = Selection.toHandlesList(selection)
+      const handles = Selection.toHandlesList(slt.selection)
       const filesMap = await getFiles(handles)
       onClose({ filesMap })
     } finally {
       setLocked(false)
     }
-  }, [getFiles, onClose, selection])
+  }, [getFiles, onClose, slt.selection])
 
   const handleExited = React.useCallback(() => {
     setPath('')
     setPrefix('')
     setPrev(null)
-    setSelection(Selection.EMPTY_MAP)
-  }, [setSelection])
+    slt.clear()
+  }, [slt])
 
   return (
     <M.Dialog
@@ -284,10 +284,12 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
               setPath={setPath}
               setPrefix={setPrefix}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
-              onSelectionChange={(ids) =>
-                setSelection(Selection.merge(ids, bucket, path, prefix))
-              }
+              selection={Selection.getDirectorySelection(
+                slt.selection,
+                res.bucket,
+                res.path,
+              )}
+              onSelectionChange={(ids) => slt.merge(ids, bucket, path, prefix)}
             />
           ) : (
             // TODO: skeleton
@@ -305,7 +307,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           onClick={add}
           variant="contained"
           color="primary"
-          disabled={locked || R.isEmpty(selection)}
+          disabled={locked || slt.isEmpty}
         >
           Add files
         </M.Button>
