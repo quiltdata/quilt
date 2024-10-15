@@ -61,6 +61,63 @@ import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
 
+interface RouteArgs {
+  bucket: string
+  name: string
+  hashOrTag: string
+  hash?: string
+}
+
+interface PackageRoutes {
+  bucketPackageTree: [string, string, string | undefined, string | undefined]
+}
+
+const samePackageRoot = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  { bucket, name, hashOrTag }: RouteArgs,
+) =>
+  RRDom.matchPath(pathname, {
+    path: urls.bucketPackageTree(bucket, name, hashOrTag, undefined),
+    exact: true,
+    strict: true,
+  })
+
+const samePackageAnyPath = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  { bucket, name, hashOrTag }: RouteArgs,
+) =>
+  RRDom.matchPath(pathname, {
+    path: urls.bucketPackageTree(bucket, name, hashOrTag, undefined),
+    strict: true,
+  })
+
+const sameRevisionAnyPath = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  { bucket, name, hash }: RouteArgs,
+) =>
+  RRDom.matchPath(pathname, {
+    path: urls.bucketPackageTree(bucket, name, hash, undefined),
+    strict: true,
+  })
+
+const isStillBrowsingPackage = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  routeArgs: RouteArgs,
+) => {
+  if (routeArgs.hashOrTag === 'latest') {
+    return !!(
+      samePackageRoot(urls, pathname, routeArgs) ||
+      (samePackageAnyPath(urls, pathname, routeArgs) && s3paths.isDir(pathname))
+    )
+  } else {
+    return !!(sameRevisionAnyPath(urls, pathname, routeArgs) && s3paths.isDir(pathname))
+  }
+}
+
 const useTopBarStyles = M.makeStyles((t) => ({
   topBar: {
     alignItems: 'flex-end',
@@ -860,7 +917,7 @@ function PackageTree({
   size,
 }: PackageTreeProps) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<PackageRoutes>()
 
   // TODO: use urql to get bucket config
   // const data = useQuery({
@@ -881,20 +938,14 @@ function PackageTree({
 
   const sel = Selection.use()
   const guardNavigation = React.useCallback(
-    (location) => {
-      // TODO: Good to proceed:
-      //   * root package same tag or same hash
-      //   * any path (same tag or same hash) and is directory
-      const sameRevisionAnyPath = RRDom.matchPath(location.pathname, {
-        path: urls.bucketPackageTree(bucket, name, hashOrTag),
-        exact: true,
-      })
-      return (
-        !!sameRevisionAnyPath ||
-        'Selection will be lost. Clear selection and confirm navigation?'
-      )
-    },
-    [urls, bucket, name, hashOrTag],
+    (location) =>
+      isStillBrowsingPackage(urls, location.pathname, {
+        bucket,
+        name,
+        hashOrTag,
+        hash,
+      }) || 'Selection will be lost. Clear selection and confirm navigation?',
+    [urls, bucket, name, hashOrTag, hash],
   )
 
   return (
