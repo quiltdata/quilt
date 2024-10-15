@@ -18,6 +18,7 @@ metadata from each run.  You can do this in one of three ways.
 
 1. Add it to the command-line:
 
+    <!--pytest.mark.skip-->
     ```sh
     nextflow run nf-core/rnaseq -plugins nf-quilt --outdir "s3://quilt-example-bucket/test/nf_quilt_rnaseq"
     ```
