@@ -8,7 +8,6 @@ import { EMPTY_MAP, ListingSelection } from './utils'
 interface State {
   hasSelection: boolean
   selection: ListingSelection
-  // TODO: Find out what to do with merge
   setSelection: React.Dispatch<React.SetStateAction<ListingSelection>>
   totalCount: number
 }
