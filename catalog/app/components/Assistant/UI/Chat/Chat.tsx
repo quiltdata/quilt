@@ -350,6 +350,8 @@ const useStyles = M.makeStyles((t) => ({
     top: t.spacing(1),
   },
   devTools: {
+    height: '50%',
+    overflow: 'auto',
     padding: t.spacing(1),
   },
   historyContainer: {
@@ -420,7 +422,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
         onToggleDevTools={toggleDevTools}
         className={classes.menu}
       />
-      <M.Slide direction="down" in={devToolsOpen}>
+      <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
           <DevTools state={state} dispatch={dispatch} onToggle={toggleDevTools} />
         </M.Paper>

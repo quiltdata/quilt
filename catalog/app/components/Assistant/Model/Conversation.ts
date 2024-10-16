@@ -360,7 +360,7 @@ to your advantage.
 Use GitHub Flavored Markdown syntax for formatting when appropriate.
 `
 
-const constructPrompt = (
+export const constructPrompt = (
   events: Event[],
   context: Context.ContextShape,
 ): Eff.Effect.Effect<LLM.Prompt> =>

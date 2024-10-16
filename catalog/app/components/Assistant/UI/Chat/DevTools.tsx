@@ -1,11 +1,8 @@
-import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
-import Markdown from 'components/Markdown'
-import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
 
@@ -16,9 +13,25 @@ interface DevToolsProps {
 }
 
 export default function DevTools({ state, dispatch, onToggle }: DevToolsProps) {
+  const context = Model.Context.useAggregatedContext()
+
+  const prompt = React.useMemo(
+    () =>
+      Eff.Effect.runSync(
+        Model.Conversation.constructPrompt(
+          state.events.filter((e) => !e.discarded),
+          context,
+        ),
+      ),
+    [state, context],
+  )
+
   return (
     <>
-      <JsonDisplay name="State" value={state} defaultExpanded={1} />
+      <JsonDisplay name="Context" value={context} />
+      <JsonDisplay name="State" value={state} />
+      <JsonDisplay name="Prompt" value={prompt} />
+
       <M.Button onClick={onToggle}>Close</M.Button>
     </>
   )
