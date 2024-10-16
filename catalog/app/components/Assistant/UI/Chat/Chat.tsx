@@ -281,12 +281,71 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
+interface MenuProps {
+  state: Model.Conversation.State
+  dispatch: ConversationDispatch
+  className?: string
+}
+
+function Menu({ state, dispatch, className }: MenuProps) {
+  const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
+
+  const isIdle = state._tag === 'Idle'
+
+  const toggleMenu = React.useCallback(
+    (e: React.BaseSyntheticEvent) =>
+      setMenuOpen((prev) => (prev ? null : e.currentTarget)),
+    [setMenuOpen],
+  )
+  const closeMenu = React.useCallback(() => setMenuOpen(null), [setMenuOpen])
+
+  const startNewSession = React.useCallback(() => {
+    if (isIdle) dispatch(Model.Conversation.Action.Clear())
+    closeMenu()
+  }, [closeMenu, isIdle, dispatch])
+
+  const showSettings = React.useCallback(() => {
+    console.log('show settings')
+    closeMenu()
+  }, [closeMenu])
+
+  const showDevTools = React.useCallback(() => {
+    console.log('show dev tools')
+    closeMenu()
+  }, [closeMenu])
+
+  return (
+    <>
+      <M.IconButton
+        aria-label="menu"
+        aria-haspopup="true"
+        onClick={toggleMenu}
+        className={className}
+      >
+        <M.Icon>menu</M.Icon>
+      </M.IconButton>
+      <M.Menu anchorEl={menuOpen} open={!!menuOpen} onClose={closeMenu}>
+        <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
+          New session
+        </M.MenuItem>
+        <M.MenuItem onClick={showSettings}>Settings</M.MenuItem>
+        <M.MenuItem onClick={showDevTools}>Developer Tools</M.MenuItem>
+      </M.Menu>
+    </>
+  )
+}
+
 const useChatStyles = M.makeStyles((t) => ({
   chat: {
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
     overflow: 'hidden',
+  },
+  menu: {
+    position: 'absolute',
+    right: t.spacing(1),
+    top: t.spacing(1),
   },
   historyContainer: {
     flexGrow: 1,
@@ -321,7 +380,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
   const classes = useChatStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  const inputDisabled = state._tag != 'Idle'
+  const inputDisabled = state._tag !== 'Idle'
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
@@ -343,6 +402,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
 
   return (
     <div className={classes.chat}>
+      <Menu state={state} dispatch={dispatch} className={classes.menu} />
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
