@@ -9,6 +9,7 @@ import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
 
+import DevTools from './DevTools'
 import Input from './Input'
 
 const BG = {
@@ -145,10 +146,8 @@ function MessageAction({ children, onClick }: MessageActionProps) {
   )
 }
 
-type ConversationDispatch = (action: Model.Conversation.Action) => void
-
 interface ConversationDispatchProps {
-  dispatch: ConversationDispatch
+  dispatch: Model.Assistant.API['dispatch']
 }
 
 interface ConversationStateProps {
@@ -282,12 +281,13 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
 }
 
 interface MenuProps {
-  state: Model.Conversation.State
-  dispatch: ConversationDispatch
+  state: Model.Assistant.API['state']
+  dispatch: Model.Assistant.API['dispatch']
+  onToggleDevTools: () => void
   className?: string
 }
 
-function Menu({ state, dispatch, className }: MenuProps) {
+function Menu({ state, dispatch, onToggleDevTools, className }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
 
   const isIdle = state._tag === 'Idle'
@@ -304,15 +304,15 @@ function Menu({ state, dispatch, className }: MenuProps) {
     closeMenu()
   }, [closeMenu, isIdle, dispatch])
 
-  const showSettings = React.useCallback(() => {
-    console.log('show settings')
-    closeMenu()
-  }, [closeMenu])
+  // const showSettings = React.useCallback(() => {
+  //   console.log('show settings')
+  //   closeMenu()
+  // }, [closeMenu])
 
   const showDevTools = React.useCallback(() => {
-    console.log('show dev tools')
+    onToggleDevTools()
     closeMenu()
-  }, [closeMenu])
+  }, [closeMenu, onToggleDevTools])
 
   return (
     <>
@@ -328,14 +328,16 @@ function Menu({ state, dispatch, className }: MenuProps) {
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>
+        {/*
         <M.MenuItem onClick={showSettings}>Settings</M.MenuItem>
+        */}
         <M.MenuItem onClick={showDevTools}>Developer Tools</M.MenuItem>
       </M.Menu>
     </>
   )
 }
 
-const useChatStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   chat: {
     display: 'flex',
     flexDirection: 'column',
@@ -346,6 +348,9 @@ const useChatStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: t.spacing(1),
     top: t.spacing(1),
+  },
+  devTools: {
+    padding: t.spacing(1),
   },
   historyContainer: {
     flexGrow: 1,
@@ -372,12 +377,12 @@ const useChatStyles = M.makeStyles((t) => ({
 }))
 
 interface ChatProps {
-  state: Model.Conversation.State
-  dispatch: ConversationDispatch
+  state: Model.Assistant.API['state']
+  dispatch: Model.Assistant.API['dispatch']
 }
 
 export default function Chat({ state, dispatch }: ChatProps) {
-  const classes = useChatStyles()
+  const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const inputDisabled = state._tag !== 'Idle'
@@ -400,9 +405,26 @@ export default function Chat({ state, dispatch }: ChatProps) {
     [dispatch],
   )
 
+  const [devToolsOpen, setDevToolsOpen] = React.useState(false)
+
+  const toggleDevTools = React.useCallback(
+    () => setDevToolsOpen((prev) => !prev),
+    [setDevToolsOpen],
+  )
+
   return (
     <div className={classes.chat}>
-      <Menu state={state} dispatch={dispatch} className={classes.menu} />
+      <Menu
+        state={state}
+        dispatch={dispatch}
+        onToggleDevTools={toggleDevTools}
+        className={classes.menu}
+      />
+      <M.Slide direction="down" in={devToolsOpen}>
+        <M.Paper square className={classes.devTools}>
+          <DevTools state={state} dispatch={dispatch} onToggle={toggleDevTools} />
+        </M.Paper>
+      </M.Slide>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
