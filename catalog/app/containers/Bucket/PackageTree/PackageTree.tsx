@@ -387,9 +387,15 @@ function DirDisplay({
             )
             .filter(Boolean)
 
-          const downloadPath = path
-            ? `package/${bucket}/${name}/${hash}/${path}`
-            : `package/${bucket}/${name}/${hash}`
+          const downloadLabel = !slt.isEmpty // eslint-disable-line no-nested-ternary
+            ? 'Download selected'
+            : path
+            ? 'Download sub-package'
+            : 'Download package'
+          const downloadPath =
+            path && slt.isEmpty
+              ? `package/${bucket}/${name}/${hash}/${path}`
+              : `package/${bucket}/${name}/${hash}`
 
           return (
             <>
@@ -430,9 +436,10 @@ function DirDisplay({
                         {actions.downloadPackage && (
                           <Download.DownloadButton
                             className={classes.button}
-                            label={path ? 'Download sub-package' : 'Download package'}
+                            label={downloadLabel}
                             onClick={openInDesktopState.confirm}
                             path={downloadPath}
+                            selection={slt.selection}
                           />
                         )}
                         <RevisionMenu
