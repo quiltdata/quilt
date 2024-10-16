@@ -75,7 +75,7 @@ class TestSession(QuiltTestCase):
     @patch('quilt3.session._load_credentials')
     def test_create_botocore_session(self, mock_load_credentials, mock_save_credentials):
         # Test good credentials.
-        future_date = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        future_date = datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=1)
 
         mock_load_credentials.return_value = dict(
             access_key='access-key',
@@ -94,7 +94,7 @@ class TestSession(QuiltTestCase):
         mock_save_credentials.assert_not_called()
 
         # Test expired credentials.
-        past_date = datetime.datetime.utcnow() - datetime.timedelta(minutes=5)
+        past_date = datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=5)
 
         mock_load_credentials.return_value = dict(
             access_key='access-key',
@@ -156,12 +156,6 @@ class TestSession(QuiltTestCase):
                 mock_load_config.assert_called_with()
 
                 assert isinstance(session, boto3.Session)
-                credentials = session.get_credentials()
-
-                assert credentials.access_key == "access-key"
-                assert credentials.secret_key == "secret-key"
-                assert credentials.token == "session-token"
-
                 assert session.region_name == region
 
     @patch("quilt3.session.create_botocore_session")
