@@ -76,6 +76,14 @@ In addition to the columns defined in the schema, Tabulator will add:
 - `$top_hash` for the revision of the package containing the object (currently
   we query only the `latest` package revision)
 
+### Using Athena to Access Tabulator
+
+Due to the way permissions are configured, Tabulator cannot be accessed from the
+AWS Console or Athena views. You must access Tabulator via the Quilt stack in
+order to query those tables.  This can be done by users via the per-bucket
+"Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
+"Usage" below for more details.
+
 ### Caveats
 
 1. **Schema Consistency**: All files in the package that match the logical key
@@ -86,10 +94,7 @@ In addition to the columns defined in the schema, Tabulator will add:
 3. **Cost Management**: Querying very large datasets can be expensive
    (approximately dollars per terabyte). Be sure to set up appropriate cost
    controls and monitoring.
-4. **Access Restrictions**: Due to the way permissions are configured, Tabulator
-   cannot be accessed from the AWS Console or views. You must access Tabulator
-   via the Quilt Catalog in order to query the tables.
-5. **Concurrency**: Tabulator will attempt to process each file concurrently,
+4. **Concurrency**: Tabulator will attempt to process each file concurrently,
    but may be limited by the concurrency of Athena or the federation lambda in
    the
    [region](https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/discover)
@@ -98,7 +103,7 @@ In addition to the columns defined in the schema, Tabulator will add:
    [that
    region](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/lambda/quotas/L-B99A9384)'s
    AWS Service Quotas console.
-6. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
+5. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
    it is accessible from the Quilt stack and Tabulator lambda.
 
 ## Usage
@@ -107,11 +112,11 @@ Once the configuration is set, users can query the tables using the Athena tab
 from the Quilt Catalog. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console.
 
-For example, to query the `ccle-tsv` table from the appropriate workgroup in
-the `quilt-tf-dev-federator` stack, where the database (bucket name) is `udp-spec`:
+For example, to query the `ccle_tsv` table from the appropriate workgroup in
+the `quilt-tf-stable` stack, where the database (bucket name) is `udp-spec`:
 
 ```sql
-SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
+SELECT * FROM "quilt-tf-stable-tabulator"."udp-spec"."ccle_tsv"
 ```
 
 You can join this with any other Athena table, including the package and
@@ -128,9 +133,58 @@ metadata to the tabulated results:
 
 ```sql
 SELECT
-  "ccle-tsv".*,
+  "ccle_tsv".*,
   "udp-spec_packages-view".user_meta
-FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
+FROM "quilt-tf-stable-tabulator"."udp-spec"."ccle_tsv"
 JOIN "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-ON "ccle-tsv".pkg_name = "udp-spec_packages-view".pkg_name
+ON "ccle_tsv".pkg_name = "udp-spec_packages-view".pkg_name
+```
+
+### From Outside the Quilt Catalog
+
+To call Tabulator from outside the Queries tab, you must use `quilt3` to
+authenticate against the stack using `config()` and `login()`, which opens a web
+page from which you must paste in the appropriate access token. Use
+`get_boto3_session()` to get a session with the same permissions as your Quilt
+Catalog user, then use the `boto3` Athena client to run queries.
+
+Here is a complete example:
+
+<!--pytest.mark.skip-->
+```python
+import quilt3
+import time
+
+DOMAIN = 'stable'
+WORKGROUP = f'QuiltUserAthena-tf-{DOMAIN}-NonManagedRoleWorkgroup'
+FULL_TABLE = f'"quilt-tf-{DOMAIN}-tabulator"."udp-spec"."ccle_tsv"'
+QUERY = f'SELECT * FROM {FULL_TABLE} LIMIT 10'
+
+quilt3.config(f'https://{DOMAIN}.quilttest.com/')
+quilt3.login()
+session = quilt3.get_boto3_session()
+athena_client = session.client('athena')
+
+response = athena_client.start_query_execution(
+    QueryString=QUERY,
+    WorkGroup=WORKGROUP
+)
+query_execution_id = response['QueryExecutionId']
+print(f'Query execution ID: {query_execution_id}')
+
+while True:
+    execution_response = athena_client.get_query_execution(QueryExecutionId=query_execution_id)
+    state = execution_response['QueryExecution']['Status']['State']
+    if state in ('SUCCEEDED', 'FAILED', 'CANCELLED'):
+        break
+    print(f'\tQuery state: {state}')
+    time.sleep(1)
+print(f'Query finished with state: {state}')
+
+if state == 'SUCCEEDED':
+    results = athena_client.get_query_results(QueryExecutionId=query_execution_id)
+    for row in results['ResultSet']['Rows']:
+        print([field.get('VarCharValue') for field in row['Data']])
+else:
+    print(f'Query did not succeed. Final state: {state}')
 ```
