@@ -17,6 +17,8 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
+import * as Selection from '../Selection'
+
 import EditFileMeta from './EditFileMeta'
 import {
   FilesEntryState,
@@ -1589,13 +1591,15 @@ export function FilesInput({
   return (
     <Root className={className}>
       {isS3FilePickerEnabled && (
-        <S3FilePicker.Dialog
-          bucket={bucket}
-          buckets={buckets}
-          selectBucket={selectBucket}
-          open={s3FilePickerOpen}
-          onClose={closeS3FilePicker}
-        />
+        <Selection.Provider>
+          <S3FilePicker.Dialog
+            bucket={bucket}
+            buckets={buckets}
+            selectBucket={selectBucket}
+            open={s3FilePickerOpen}
+            onClose={closeS3FilePicker}
+          />
+        </Selection.Provider>
       )}
       {prompt.render(
         <M.Typography variant="body2">

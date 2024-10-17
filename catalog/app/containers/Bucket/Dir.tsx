@@ -89,8 +89,8 @@ interface DirContentsProps {
   bucket: string
   path: string
   loadMore?: () => void
-  selection: string[]
-  onSelection: (ids: string[]) => void
+  selection: Selection.SelectionItem[]
+  onSelection: (ids: Selection.SelectionItem[]) => void
 }
 
 function DirContents({
@@ -138,75 +138,6 @@ function DirContents({
       {/* Remove TS workaround when Summary will be converted to .tsx */}
       {/* @ts-expect-error */}
       <Summary files={response.files} mkUrl={null} path={path} />
-    </>
-  )
-}
-
-const useSelectionWidgetStyles = M.makeStyles({
-  close: {
-    marginLeft: 'auto',
-  },
-  title: {
-    alignItems: 'center',
-    display: 'flex',
-  },
-  badge: {
-    right: '4px',
-  },
-})
-
-interface SelectionWidgetProps {
-  className: string
-  selection: Selection.PrefixedKeysMap
-  onSelection: (changed: Selection.PrefixedKeysMap) => void
-}
-
-function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
-  const classes = useSelectionWidgetStyles()
-  const location = RRDom.useLocation()
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-  const [opened, setOpened] = React.useState(false)
-  const open = React.useCallback(() => setOpened(true), [])
-  const close = React.useCallback(() => setOpened(false), [])
-  React.useEffect(() => close(), [close, location])
-  const badgeClasses = React.useMemo(() => ({ badge: classes.badge }), [classes])
-  return (
-    <>
-      <M.Badge
-        badgeContent={count}
-        classes={badgeClasses}
-        className={className}
-        color="primary"
-        max={999}
-        showZero
-      >
-        <M.Button onClick={open} size="small">
-          Selected items
-        </M.Button>
-      </M.Badge>
-
-      <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
-        <M.DialogTitle disableTypography>
-          <M.Typography className={classes.title} variant="h6">
-            {count} items selected
-            <M.IconButton size="small" className={classes.close} onClick={close}>
-              <M.Icon>close</M.Icon>
-            </M.IconButton>
-          </M.Typography>
-        </M.DialogTitle>
-        <M.DialogContent>
-          <Selection.Dashboard
-            onSelection={onSelection}
-            onDone={close}
-            selection={selection}
-          />
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.Button onClick={close} variant="contained" color="primary" size="small">
-            Close
-          </M.Button>
-        </M.DialogActions>
-      </M.Dialog>
     </>
   )
 }
@@ -282,12 +213,10 @@ export default function Dir() {
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState<Record<string, string[]>>(
-    Selection.EMPTY_MAP,
-  )
+  const slt = Selection.use()
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix],
+    (ids) => slt.merge(ids, bucket, path, prefix),
+    [bucket, path, prefix, slt],
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
@@ -302,10 +231,10 @@ export default function Dir() {
       packageDirectoryDialog.open({
         path,
         successor,
-        selection,
+        selection: slt.selection,
       })
     },
-    [packageDirectoryDialog, path, selection],
+    [packageDirectoryDialog, path, slt.selection],
   )
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
@@ -315,7 +244,6 @@ export default function Dir() {
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
-  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
   const guardNavigation = React.useCallback(
     (location) => {
       if (
@@ -337,7 +265,7 @@ export default function Dir() {
 
       <AssistantContext.ListingContext data={data} />
 
-      <RRDom.Prompt when={hasSelection} message={guardNavigation} />
+      <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
 
       {packageDirectoryDialog.render({
         successTitle: 'Package created',
@@ -352,11 +280,7 @@ export default function Dir() {
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
-          <SelectionWidget
-            className={cx(classes.button)}
-            selection={selection}
-            onSelection={setSelection}
-          />
+          <Selection.Control className={cx(classes.button)} />
           {BucketPreferences.Result.match(
             {
               Ok: ({ ui: { actions } }) => (
@@ -366,8 +290,8 @@ export default function Dir() {
                       bucket={bucket}
                       className={classes.button}
                       onChange={openPackageCreationDialog}
-                      variant={hasSelection ? 'contained' : 'outlined'}
-                      color={hasSelection ? 'primary' : 'default'}
+                      variant={slt.isEmpty ? 'outlined' : 'contained'}
+                      color={slt.isEmpty ? 'default' : 'primary'}
                     >
                       Create package
                     </Successors.Button>
@@ -420,7 +344,11 @@ export default function Dir() {
               bucket={bucket}
               path={path}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              selection={Selection.getDirectorySelection(
+                slt.selection,
+                res.bucket,
+                res.path,
+              )}
               onSelection={handleSelection}
             />
           ) : (
