@@ -80,11 +80,77 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 Due to the way permissions are configured, Tabulator cannot be accessed from the
 AWS Console or Athena views. You must access Tabulator via the Quilt stack in
-order to query the tables.  This can be done by users via the per-bucket
-"Queries" tab in the Quilt Catalog, or programmatically via `quilt3.login()` and
-`quilt3.get_boto3_session()` to get an Athena client with the same permissions
-as your Quilt Catalog user:
+order to query those tables.  This can be done by users via the per-bucket
+"Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
+"Usage" below for more details.
 
+### Caveats
+
+1. **Schema Consistency**: All files in the package that match the logical key
+   must have the same schema as defined in the configuration.
+2. **Memory Usage**: Tabulator may fail on large files (> 10 GB), files with
+   large rows (> 100 KB), and large numbers of files (> 10000). Additionally,
+   Athena has a 16 MB limit per row.
+3. **Cost Management**: Querying very large datasets can be expensive
+   (approximately dollars per terabyte). Be sure to set up appropriate cost
+   controls and monitoring.
+4. **Concurrency**: Tabulator will attempt to process each file concurrently,
+   but may be limited by the concurrency of Athena or the federation lambda in
+   the
+   [region](https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/discover)
+   where the query is running. If you are experiencing slow performance, it may
+   be because the concurrency is too low. You can increase the concurrency in
+   [that
+   region](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/lambda/quotas/L-B99A9384)'s
+   AWS Service Quotas console.
+5. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
+   it is accessible from the Quilt stack and Tabulator lambda.
+
+## Usage
+
+Once the configuration is set, users can query the tables using the Athena tab
+from the Quilt Catalog. Note that because Tabulator runs with elevated
+permissions, it cannot be accessed from the AWS Console.
+
+For example, to query the `ccle_tsv` table from the appropriate workgroup in
+the `quilt-tf-stable` stack, where the database (bucket name) is `udp-spec`:
+
+```sql
+SELECT * FROM "quilt-tf-stable-tabulator"."udp-spec"."ccle_tsv"
+```
+
+You can join this with any other Athena table, including the package and
+object tables automatically created by Quilt. For example, this is the package
+table:
+
+```sql
+SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
+LIMIT 10
+```
+
+We can then join on PKG_NAME to add the `user_meta` field from the package
+metadata to the tabulated results:
+
+```sql
+SELECT
+  "ccle_tsv".*,
+  "udp-spec_packages-view".user_meta
+FROM "quilt-tf-stable-tabulator"."udp-spec"."ccle_tsv"
+JOIN "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
+ON "ccle_tsv".pkg_name = "udp-spec_packages-view".pkg_name
+```
+
+### From Outside the Quilt Catalog
+
+To call Tabulator from outside the Queries tab, you must use `quilt3` to
+authenticate against the stack using `config()` and `login()`, which opens a web
+page from which you must paste in the appropriate access token. Use
+`get_boto3_session()` to get a session with the same permissions as your Quilt
+Catalog user, then use the `boto3` Athena client to run queries.
+
+Here is a complete example:
+
+<!--pytest.mark.skip-->
 ```python
 import quilt3
 import time
@@ -121,60 +187,4 @@ if state == 'SUCCEEDED':
         print([field.get('VarCharValue') for field in row['Data']])
 else:
     print(f'Query did not succeed. Final state: {state}')
-```
-
-### Caveats
-
-1. **Schema Consistency**: All files in the package that match the logical key
-   must have the same schema as defined in the configuration.
-2. **Memory Usage**: Tabulator may fail on large files (> 10 GB), files with
-   large rows (> 100 KB), and large numbers of files (> 10000). Additionally,
-   Athena has a 16 MB limit per row.
-3. **Cost Management**: Querying very large datasets can be expensive
-   (approximately dollars per terabyte). Be sure to set up appropriate cost
-   controls and monitoring.
-4. **Concurrency**: Tabulator will attempt to process each file concurrently,
-   but may be limited by the concurrency of Athena or the federation lambda in
-   the
-   [region](https://us-east-1.console.aws.amazon.com/lambda/home?region=us-east-1#/discover)
-   where the query is running. If you are experiencing slow performance, it may
-   be because the concurrency is too low. You can increase the concurrency in
-   [that
-   region](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/lambda/quotas/L-B99A9384)'s
-   AWS Service Quotas console.
-5. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
-   it is accessible from the Quilt stack and Tabulator lambda.
-
-## Usage
-
-Once the configuration is set, users can query the tables using the Athena tab
-from the Quilt Catalog. Note that because Tabulator runs with elevated
-permissions, it cannot be accessed from the AWS Console.
-
-For example, to query the `ccle-tsv` table from the appropriate workgroup in
-the `quilt-tf-dev-federator` stack, where the database (bucket name) is `udp-spec`:
-
-```sql
-SELECT * FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
-```
-
-You can join this with any other Athena table, including the package and
-object tables automatically created by Quilt. For example, this is the package
-table:
-
-```sql
-SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-LIMIT 10
-```
-
-We can then join on PKG_NAME to add the `user_meta` field from the package
-metadata to the tabulated results:
-
-```sql
-SELECT
-  "ccle-tsv".*,
-  "udp-spec_packages-view".user_meta
-FROM "quilt-tf-dev-federator-tabulator"."udp-spec"."ccle-tsv"
-JOIN "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
-ON "ccle-tsv".pkg_name = "udp-spec_packages-view".pkg_name
 ```
