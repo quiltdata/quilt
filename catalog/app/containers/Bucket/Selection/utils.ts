@@ -5,11 +5,15 @@ import * as R from 'ramda'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
 
-export interface PrefixedKeysMap {
-  [prefixUrl: string]: string[]
+export interface SelectionItem {
+  logicalKey: string
 }
 
-export const EMPTY_MAP: PrefixedKeysMap = {}
+export interface ListingSelection {
+  [prefixUrl: string]: SelectionItem[]
+}
+
+export const EMPTY_MAP: ListingSelection = {}
 
 interface SelectionHandles {
   [prefixUrl: string]: Model.S3.S3ObjectLocation[]
@@ -23,42 +27,53 @@ const convertIdToHandle = (
   key: join(parentHandle.key, id.toString()),
 })
 
-export const toHandlesMap = (selection: PrefixedKeysMap): SelectionHandles =>
+export const toHandlesMap = (selection: ListingSelection): SelectionHandles =>
   Object.entries(selection).reduce(
-    (memo, [prefixUrl, keys]) => ({
+    (memo, [prefixUrl, items]) => ({
       ...memo,
-      [prefixUrl]: keys.map((id) => convertIdToHandle(id, s3paths.parseS3Url(prefixUrl))),
+      [prefixUrl]: items.map((item) =>
+        convertIdToHandle(item.logicalKey, s3paths.parseS3Url(prefixUrl)),
+      ),
     }),
     {} as SelectionHandles,
   )
 
-export const toHandlesList = (selection: PrefixedKeysMap): Model.S3.S3ObjectLocation[] =>
+export const toHandlesList = (selection: ListingSelection): Model.S3.S3ObjectLocation[] =>
   Object.entries(selection).reduce(
-    (memo, [prefixUrl, keys]) => [
+    (memo, [prefixUrl, items]) => [
       ...memo,
-      ...keys.map((key) => convertIdToHandle(key, s3paths.parseS3Url(prefixUrl))),
+      ...items.map((item) =>
+        convertIdToHandle(item.logicalKey, s3paths.parseS3Url(prefixUrl)),
+      ),
     ],
     [] as Model.S3.S3ObjectLocation[],
   )
 
 const mergeWithFiltered =
-  (prefix: string, filteredIds: string[]) => (allIds: string[]) => {
-    if (!allIds || !allIds.length) return filteredIds
-    const selectionOutsideFilter = allIds.filter((id) => !id.startsWith(prefix))
-    const newIds = [...selectionOutsideFilter, ...filteredIds]
-    return R.equals(newIds, allIds) ? allIds : newIds // avoids cyclic update
+  (prefix: string, filteredItems: SelectionItem[]) => (allItems: SelectionItem[]) => {
+    if (!allItems || !allItems.length) return filteredItems
+    const selectionOutsideFilter = allItems.filter(
+      (item) => !item.logicalKey.startsWith(prefix),
+    )
+    const newIds = [...selectionOutsideFilter, ...filteredItems]
+    return R.equals(newIds, allItems) ? allItems : newIds // avoids cyclic update
   }
 
-export function merge(ids: string[], bucket: string, path: string, filter?: string) {
+export function merge(
+  items: SelectionItem[],
+  bucket: string,
+  path: string,
+  filter?: string,
+): (state: ListingSelection) => ListingSelection {
   const prefixUrl = `s3://${bucket}/${path}`
-  const lens = R.lensProp<Record<string, string[]>>(prefixUrl)
-  return filter ? R.over(lens, mergeWithFiltered(filter, ids)) : R.set(lens, ids)
+  const lens = R.lensProp<Record<string, SelectionItem[]>>(prefixUrl)
+  return filter ? R.over(lens, mergeWithFiltered(filter, items)) : R.set(lens, items)
 }
 
 const EmptyKeys: string[] = []
 
 export const getDirectorySelection = (
-  selection: PrefixedKeysMap,
+  selection: ListingSelection,
   bucket: string,
   path: string,
 ) => selection[`s3://${bucket}/${path}`] || EmptyKeys
