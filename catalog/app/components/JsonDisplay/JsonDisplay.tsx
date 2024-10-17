@@ -123,7 +123,14 @@ function getHref(v: string) {
 }
 
 function NonStringValue({ value }: { value: PrimitiveValue }) {
-  return <div>{`${value}`}</div>
+  const formatted = React.useMemo(() => {
+    if (value instanceof Date) return `Date(${value.toISOString()})`
+    if (typeof value === 'function') {
+      return `Function(${(value as Function).name || 'anonymous'})`
+    }
+    return `${value}`
+  }, [value])
+  return <div>{formatted}</div>
 }
 
 function S3UrlValue({ href, children }: React.PropsWithChildren<{ href: string }>) {
