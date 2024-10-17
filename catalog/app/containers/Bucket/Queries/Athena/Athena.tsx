@@ -19,6 +19,65 @@ import Results from './Results'
 import History from './History'
 import Workgroups from './Workgroups'
 
+const useRelieveMessageStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+  },
+  text: {
+    animation: '$show 0.3s ease-out',
+  },
+  '@keyframes show': {
+    from: {
+      opacity: 0,
+    },
+    to: {
+      opacity: 1,
+    },
+  },
+}))
+
+const RELIEVE_INITIAL_TIMEOUT = 1000
+
+interface RelieveMessageProps {
+  className: string
+  messages: string[]
+}
+
+function RelieveMessage({ className, messages }: RelieveMessageProps) {
+  const classes = useRelieveMessageStyles()
+  const [relieve, setRelieve] = React.useState('')
+  const timersData = React.useMemo(
+    () =>
+      messages.map((message, index) => {
+        const increasedTimeout = RELIEVE_INITIAL_TIMEOUT * (index + 1) ** 2
+        const randomShift = (Math.random() * increasedTimeout) / 2
+        return {
+          timeout: increasedTimeout + randomShift,
+          message,
+        }
+      }),
+    [messages],
+  )
+  React.useEffect(() => {
+    const timers = timersData.map(({ timeout, message }) =>
+      setTimeout(() => {
+        setRelieve(message)
+      }, timeout),
+    )
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer))
+    }
+  }, [timersData])
+  if (!relieve) return null
+  return (
+    <M.Paper className={cx(classes.root, className)}>
+      <M.Typography className={classes.text} key={relieve} variant="caption">
+        {relieve}
+      </M.Typography>
+    </M.Paper>
+  )
+}
+
 interface QuerySelectSkeletonProps {
   className?: string
 }
@@ -103,13 +162,27 @@ function QueryConstructor({
   )
 }
 
+const useQueryConstructorSkeletonStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+  },
+  relieve: {
+    left: '50%',
+    position: 'absolute',
+    top: t.spacing(18),
+    transform: 'translateX(-50%)',
+  },
+}))
+
 function QueryConstructorSkeleton() {
-  const classes = useStyles()
+  const classes = useQueryConstructorSkeletonStyles()
+  const pageClasses = useStyles()
   return (
-    <>
-      <QuerySelectSkeleton className={classes.section} />
-      <QueryEditor.Skeleton className={classes.section} />
-    </>
+    <div className={classes.root}>
+      <QuerySelectSkeleton className={pageClasses.section} />
+      <QueryEditor.Skeleton className={pageClasses.section} />
+      <RelieveMessage className={classes.relieve} messages={messages} />
+    </div>
   )
 }
 
@@ -146,6 +219,15 @@ const useResultsContainerStyles = M.makeStyles((t) => ({
   breadcrumbs: {
     margin: t.spacing(0, 0, 1),
   },
+  table: {
+    position: 'relative',
+  },
+  relieve: {
+    left: '50%',
+    position: 'absolute',
+    top: t.spacing(7),
+    transform: 'translateX(-50%)',
+  },
 }))
 
 interface ResultsContainerSkeletonProps {
@@ -154,6 +236,14 @@ interface ResultsContainerSkeletonProps {
   queryExecutionId: string
   workgroup: requests.athena.Workgroup
 }
+
+const messages = [
+  'Still loading…',
+  'Still loading… 1',
+  'Still loading… 2',
+  'Still loading… 3',
+  'Still loading… 4',
+]
 
 function ResultsContainerSkeleton({
   bucket,
@@ -172,7 +262,10 @@ function ResultsContainerSkeleton({
       >
         <Skeleton height={24} width={144} animate />
       </ResultsBreadcrumbs>
-      <TableSkeleton size={10} />
+      <div className={classes.table}>
+        <TableSkeleton size={10} />
+        <RelieveMessage className={classes.relieve} messages={messages} />
+      </div>
     </div>
   )
 }
