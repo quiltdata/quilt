@@ -162,6 +162,12 @@ function QueryConstructor({
   )
 }
 
+const editorRelieveMessages = [
+  'Still loading…',
+  'Processing your request. This might take a little while',
+  'We’re still on it! Thanks for waiting patiently.',
+]
+
 const useQueryConstructorSkeletonStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
@@ -181,7 +187,7 @@ function QueryConstructorSkeleton() {
     <div className={classes.root}>
       <QuerySelectSkeleton className={pageClasses.section} />
       <QueryEditor.Skeleton className={pageClasses.section} />
-      <RelieveMessage className={classes.relieve} messages={messages} />
+      <RelieveMessage className={classes.relieve} messages={editorRelieveMessages} />
     </div>
   )
 }
@@ -237,12 +243,11 @@ interface ResultsContainerSkeletonProps {
   workgroup: requests.athena.Workgroup
 }
 
-const messages = [
+const resultsRelieveMessages = [
   'Still loading…',
-  'Still loading… 1',
-  'Still loading… 2',
-  'Still loading… 3',
-  'Still loading… 4',
+  'This is taking a moment. Thanks for your patience!',
+  'Looks like a heavy task! We’re still working on it.',
+  'Hang in there, we haven’t forgotten about you! Your request is still being processed.',
 ]
 
 function ResultsContainerSkeleton({
@@ -264,7 +269,7 @@ function ResultsContainerSkeleton({
       </ResultsBreadcrumbs>
       <div className={classes.table}>
         <TableSkeleton size={10} />
-        <RelieveMessage className={classes.relieve} messages={messages} />
+        <RelieveMessage className={classes.relieve} messages={resultsRelieveMessages} />
       </div>
     </div>
   )
