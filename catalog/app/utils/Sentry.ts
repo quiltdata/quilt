@@ -6,14 +6,12 @@ import * as Sentry from '@sentry/react'
 import * as AuthSelectors from 'containers/Auth/selectors'
 import type { Config } from 'utils/Config'
 
-const RELEASE = `catalog@${process.env.REVISION_HASH}`
-
 export function init(cfg: Config, history?: History) {
   if (!cfg.sentryDSN) return false
 
   Sentry.init({
     dsn: cfg.sentryDSN,
-    release: RELEASE,
+    release: cfg.stackVersion,
     environment: process.env.NODE_ENV === 'development' ? 'dev' : 'prod',
     integrations: [
       history

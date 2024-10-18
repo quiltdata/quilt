@@ -47,6 +47,8 @@ export interface ConfigJson {
   qurator?: boolean
 
   build_version?: string // not sure where this comes from
+
+  stackVersion?: string
 }
 
 const ajv = new Ajv({ allErrors: true, removeAdditional: true })
@@ -92,6 +94,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
   qurator: !!cfg.qurator,
+  stackVersion: cfg.stackVersion,
 })
 
 export function prepareConfig(input: unknown) {

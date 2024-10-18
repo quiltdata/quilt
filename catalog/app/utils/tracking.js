@@ -76,7 +76,7 @@ export function TrackingProvider({ userSelector, children }) {
       origin: window.location.origin,
       location,
       user,
-      catalog_release: process.env.REVISION_HASH,
+      catalog_release: cfg.stackVersion,
     }),
     [location, user],
   )
