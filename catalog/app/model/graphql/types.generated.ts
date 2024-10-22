@@ -863,6 +863,7 @@ export interface Query {
   readonly searchPackages: PackagesSearchResult
   readonly searchMoreObjects: ObjectsSearchMoreResult
   readonly searchMorePackages: PackagesSearchMoreResult
+  readonly stack: Stack
   readonly subscription: SubscriptionState
   readonly admin: AdminQueries
   readonly policies: ReadonlyArray<Policy>
@@ -1076,6 +1077,11 @@ export interface SsoConfig {
 export interface SsoConfigConflict {
   readonly __typename: 'SsoConfigConflict'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface Stack {
+  readonly __typename: 'Stack'
+  readonly version: Scalars['String']
 }
 
 export interface Status {

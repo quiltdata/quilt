@@ -3,9 +3,39 @@ import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
+import * as style from 'constants/style'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as NavBar from 'containers/NavBar'
+import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
+
+const useComponentErrorStyles = M.makeStyles((t) => ({
+  root: {
+    background: t.palette.secondary.dark,
+    position: 'relative',
+  },
+  container: {
+    color: t.palette.error.light,
+    padding: t.spacing(2),
+  },
+}))
+
+function ComponentError() {
+  const classes = useComponentErrorStyles()
+  return (
+    <div className={classes.root}>
+      <M.Container maxWidth="lg" className={classes.container}>
+        <M.Typography>Failed to render component</M.Typography>
+      </M.Container>
+    </div>
+  )
+}
+
+const ErrorBoundary = createBoundary(() => () => (
+  <M.MuiThemeProvider theme={style.navTheme}>
+    <ComponentError />
+  </M.MuiThemeProvider>
+))
 
 const useRootStyles = M.makeStyles({
   root: {
@@ -49,11 +79,11 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
   return (
     <Root dark={dark}>
       <NavBar.Provider>
-        {bare ? <NavBar.Container /> : <NavBar.NavBar />}
+        <ErrorBoundary>{bare ? <NavBar.Container /> : <NavBar.NavBar />}</ErrorBoundary>
         {!!pre && pre}
         {!!children && <M.Box p={4}>{children}</M.Box>}
         <M.Box flexGrow={1} />
-        {!!isHomepage && isHomepage.isExact && <Footer />}
+        <ErrorBoundary>{!!isHomepage && isHomepage.isExact && <Footer />}</ErrorBoundary>
         {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
       </NavBar.Provider>
     </Root>
