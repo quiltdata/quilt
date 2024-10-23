@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Athena: progress messages to reassure users during long requests ([#4194](https://github.com/quiltdata/quilt/pull/4194))
 - [Added] Selective package downloading ([#4173](https://github.com/quiltdata/quilt/pull/4173))
 - [Added] Qurator Omni: initial public release ([#4032](https://github.com/quiltdata/quilt/pull/4032), [#4181](https://github.com/quiltdata/quilt/pull/4181))
 - [Added] Admin: UI for configuring longitudinal queries (Tabulator) ([#4135](https://github.com/quiltdata/quilt/pull/4135), [#4164](https://github.com/quiltdata/quilt/pull/4164), [#4165](https://github.com/quiltdata/quilt/pull/4165))
