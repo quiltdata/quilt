@@ -53,3 +53,9 @@ urllib3==1.26.19
 webencodings==0.5.1
 xlrd==2.0.1
 zipp==3.19.1
+
+pyarrow==14.0.1
+pyparsing==3.0.9
+cycler==0.12.1
+kiwisolver==1.0.1
+fontTools==4.54.1
