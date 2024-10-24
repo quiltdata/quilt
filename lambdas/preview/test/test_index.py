@@ -587,6 +587,21 @@ class TestIndex():
         assert meta['variant_count'] == 0, 'expected no variants'
         assert not body['info']['metadata']['variants'], 'expected no variants'
 
+    @responses.activate
+    def test_genbank(self):
+        """test sending ipynb bytes"""
+        notebook = BASE_DIR / 'example_sequence.gb'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=notebook.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'gb'})
+        resp = t4_lambda_preview.lambda_handler(event, None)
+        assert resp['statusCode'] == 200, 'preview failed on example_sequence.gb'
+        body_html = read_body(resp)
+        assert len(body_html) > 1, 'Preview of example_sequence.gb is empty'
+
 
 def _check_vcf(resp):
     """common logic for checking vcf files, e.g. across compression settings"""

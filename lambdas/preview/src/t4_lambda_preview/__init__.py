@@ -4,11 +4,15 @@ disk and RAM pressure.
 
 Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
+import base64
 import io
 import os
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
+from dna_features_viewer import BiopythonTranslator
+from PIL import Image
+from Bio import SeqIO
 import pandas
 import requests
 
@@ -38,7 +42,9 @@ S3_DOMAIN_SUFFIX = '.amazonaws.com'
 FILE_EXTENSIONS = ["csv", "excel", "fcs", "ipynb", "parquet", "vcf"]
 # BED https://genome.ucsc.edu/FAQ/FAQformat.html#format1
 TEXT_TYPES = ["bed", "txt"]
+GENBANK = ["gb"]
 FILE_EXTENSIONS.extend(TEXT_TYPES)
+FILE_EXTENSIONS.extend(GENBANK)
 
 EXTRACT_PARQUET_MAX_BYTES = 10_000
 
@@ -150,6 +156,12 @@ def lambda_handler(request):
             html, info = extract_txt(
                 get_preview_lines(content_iter, compression, line_count, max_bytes)
             )
+        elif input_type == 'gb':
+            data, truncated = extract_genbank(get_bytes(content_iter, compression), exclude_output)
+            headers = {
+                "Content-Type": 'plain/text'
+            }
+            return 200, data, headers
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -238,6 +250,24 @@ def extract_ipynb(file_, exclude_output: bool):
     html, _ = html_exporter.from_notebook_node(notebook)
 
     return html, info
+
+
+def extract_genbank(file_, exclude_output: bool):
+    f = io.TextIOWrapper(file_, encoding='utf-8')
+    for record in SeqIO.parse(f, "genbank"):
+        truncated = False
+        buf = io.BytesIO()
+
+        try:
+            graphic_record = BiopythonTranslator().translate_record(record)
+            ax, _ = graphic_record.plot(figure_width=10, strand_in_label_threshold=7)
+            ax.figure.tight_layout()
+            ax.figure.savefig(buf)
+        except out.Full:
+                truncated = True
+
+        b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+        return b64, truncated
 
 
 def extract_vcf(head):
