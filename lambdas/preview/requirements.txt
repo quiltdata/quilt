@@ -1,5 +1,5 @@
 attrs==19.1.0
-bcbio_gff=0.7.1
+bcbio_gff==0.7.1
 beautifulsoup4==4.12.2
 biopython=1.84
 bleach==3.3.0
