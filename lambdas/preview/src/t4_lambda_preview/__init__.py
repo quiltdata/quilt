@@ -11,7 +11,6 @@ from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
 from dna_features_viewer import BiopythonTranslator
-from PIL import Image
 from Bio import SeqIO
 import pandas
 import requests
