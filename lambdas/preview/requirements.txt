@@ -57,5 +57,5 @@ zipp==3.19.1
 pyarrow==14.0.1
 pyparsing==3.0.9
 cycler==0.12.1
-kiwisolver==1.0.1
+kiwisolver==1.4.7
 fontTools==4.54.1
