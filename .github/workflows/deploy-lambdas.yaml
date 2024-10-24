@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - genbank-preview
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
