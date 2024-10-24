@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] **BREAKING**: Make `AWSCredentials` frozen ([#4197](https://github.com/quiltdata/quilt/pull/4197))
 - [Changed] **BREAKING**: Add `scratch_buckets` required field to `S3HashLambdaParams` ([#3922](https://github.com/quiltdata/quilt/pull/3922))
 - [Added] Introduce `PackageConstructParams` ([#3922](https://github.com/quiltdata/quilt/pull/3922))
 - [Changed] Tweak checksum types ([#3888](https://github.com/quiltdata/quilt/pull/3888))
