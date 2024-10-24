@@ -215,11 +215,22 @@ type User {
 type AccessCountForDate {
   date: Datetime!
   value: Int!
+  sum: Int!  # running sum
 }
 
 type AccessCounts {
   total: Int!
   counts: [AccessCountForDate!]!
+}
+
+type AccessCountsGroup {
+  ext: String!
+  counts: AccessCounts!
+}
+
+type BucketAccessCounts {
+  byExt(groups: Int): AccessCountsGroup[]
+  combined: AccessCounts
 }
 
 type PackageDir {
@@ -555,6 +566,9 @@ type Query {
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
   subscription: SubscriptionState!
+
+  bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
+  objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
 
   admin: AdminQueries! @admin
 
