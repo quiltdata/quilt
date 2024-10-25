@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as Audio from './loaders/Audio'
 import * as ECharts from './loaders/ECharts'
 import * as Fcs from './loaders/Fcs'
+import * as Genbank from './loaders/Genbank'
 import * as Html from './loaders/Html'
 import * as Igv from './loaders/Igv'
 import * as Image from './loaders/Image'
@@ -27,6 +28,7 @@ const loaderChain = [
   Audio,
   ECharts,
   Fcs,
+  Genbank,
   Html,
   Igv,
   Image,

@@ -1,6 +1,7 @@
 export { default as Audio } from './Audio'
 export { default as ECharts } from './ECharts'
 export { default as Fcs } from './Fcs'
+export { default as Genbank } from './Genbank'
 export { default as IFrame } from './IFrame'
 export { default as Igv } from './Igv'
 export { default as Image } from './Image'
