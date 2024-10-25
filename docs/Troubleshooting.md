@@ -1,12 +1,21 @@
-<!-- markdownlint-disable -->
+<!-- markdownlint-disable-next-line first-line-h1 -->
 ## Catalog Overview stats (objects, packages) seem incorrect or aren't updating
+
 ## Catalog Packages tab doesn't work
+
 ## Catalog packages or stats are missing or are not updating
 
-If you recently added the bucket or upgraded the stack, if search volume is high,
-or if read/write volume is high, wait a few minutes and try again.
+These are all symptoms of the same underlying issue: the Elasticsearch index is out of sync. If any of the following are true, please wait a few minutes and try again:
+
+- you recently added the bucket or upgraded the stack
+- search volume is high, or
+- read/write volume is high
+
+If that doesn't work, try the following steps:
 
 ### Re-index the bucket
+
+If you have less than 1 million objects in the bucket, you should re-index the bucket:
 
 1. Open the bucket overview in the Quilt catalog and click the gear icon (upper right),
 or navigate to Admin settings > Buckets and inspect the settings of the bucket in question.
@@ -18,7 +27,9 @@ or navigate to Admin settings > Buckets and inspect the settings of the bucket i
 > question, check "Repair S3 notifications".
 
 Bucket packages, stats, and the search index will repopulate in the next few minutes.
-Buckets with more than one million objects will take longer.
+
+However, if you have more than 1 million objects in the bucket, re-indexing will take much longer and potentially become expensive.  In that case,
+please try the below steps. If those do not work, please contact [Quilt support](mailto:support@quiltdata.io).
 
 ### Inspect the Elasticsearch domain
 
@@ -39,7 +50,8 @@ or `aws opensearch list-domain-names`. Note the domain name (hereafter `QUILT_DO
 
 1. Send the JSON output file and screenshots to [Quilt support](mailto:support@quiltdata.io).
 
-> As a rule you should not reconfigure your Elasticsearch domain directly as this will
+> As a rule you should **not** reconfigure your Elasticsearch domain directly as
+> this will
 > result in stack drift that will be lost the next time you update your Quilt instance.
 
 ## Missing metadata when working with Quilt packages via the API
@@ -90,17 +102,19 @@ after clicking the `RELOAD` button in the Quilt Catalog.
 1. Your Quilt user Role has been corrupted. You will need a Quilt Admin
 user to reset your Quilt user Role to a default (**and valid**) Role.
 
-
 ## User creation and log in
+
 Users can either be invited directly or are _just-in-time provisioned (JIP)_ when
 they sign in via SSO and receive the "default role."
 
 ### Important conditions and pre-requisites
-* If an admin (or any user) is created by JIP, or created through CloudFormation
+
+- If an admin (or any user) is created by JIP, or created through CloudFormation
 with an SSO Provider set to anything other than Disabled, then setting the password
 for that user has no effect and _password login will never succeed_ for that user.
 Said another way, users created through SSO can only log in through SSO.
-* You _must disable SSO_ and enable `PasswordAuth` if you wish to log in as an admin
+
+- You _must disable SSO_ and enable `PasswordAuth` if you wish to log in as an admin
 using a password (as opposed to SSO).
 
 ### Unable to log in
@@ -116,11 +130,12 @@ The ACM certificate for `CertificateArnELB` must cover all three Quilt [CNAMEs](
 
 Changing the admin password is only possible with `PasswordAuth=Enabled` in CloudFormation
 and is subject to the following limitations for security reasons:
-* Has no effect if SSO is in use, or was in use when the admin was first created.
-* Has no effect on pre-existing admin username/password pairs.
+
+- Has no effect if SSO is in use, or was in use when the admin was first created.
+- Has no effect on pre-existing admin username/password pairs.
 
 You can click "reset password" on the login page.
- 
+
 To change the admin email (e.g. you have accidentally broken your admin user) try the following:
 
 1. Change the value of the `AdminEmail` CloudFormation parameter _to a net new email_.
@@ -129,10 +144,11 @@ To change the admin email (e.g. you have accidentally broken your admin user) tr
 other admins as needed.
 
 ## General stack update failure steps
+
 On rare occasions, Quilt stack deployment updates might fail. This can happen for several
-reasons. To expedite resolution of stack deployment issues, it's helpful to 
-have the following data and output from the following [AWS CLI](https://aws.amazon.com/cli/) 
-commands when contacting support@quiltdata.io.
+reasons. To expedite resolution of stack deployment issues, it's helpful to
+have the following data and output from the following [AWS CLI](https://aws.amazon.com/cli/)
+commands when contacting <support@quiltdata.io>.
 
 1. Quilt stack outputs:
     <!--pytest.mark.skip-->
@@ -143,7 +159,7 @@ commands when contacting support@quiltdata.io.
         --query 'Stacks[].Outputs'
     ```
 
-1. Initiate drift detection: 
+1. Initiate drift detection:
     <!--pytest.mark.skip-->
     ```sh
     aws cloudformation detect-stack-drift \
@@ -201,6 +217,7 @@ Quilt support:
     ```sh
     aws cloudformation list-stacks
     ```
+
 1. Capture Quilt log events for the last 30 minutes as follows:
     <!--pytest.mark.skip-->
     ```sh
@@ -263,9 +280,8 @@ aws lambda get-event-source-mapping --uuid \
         --query StackResourceDetail.PhysicalResourceId --output text)
 ```
 
-## Remediation
+### Remediation
 
-### Event source mapping
 If for some reason the event source mapping is disabled, it can be enabled as
 follows.
 <!--pytest.mark.skip-->
