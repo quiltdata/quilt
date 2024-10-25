@@ -157,10 +157,10 @@ def lambda_handler(request):
             )
         elif input_type == 'gb':
             data, truncated = extract_genbank(get_bytes(content_iter, compression), exclude_output)
-            headers = {
-                "Content-Type": 'plain/text'
+            html = ''
+            info = {
+                'data': data,
             }
-            return 200, data, headers
         else:
             assert False, f'unexpected input_type: {input_type}'
 
