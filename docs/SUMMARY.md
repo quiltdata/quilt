@@ -27,6 +27,7 @@
 * [Enterprise Installs](technical-reference.md)
 * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
 * [Tabulator](advanced-features/tabulator.md)
+* [Troubleshooting](Troubleshooting.md)
 * **Advanced**
   * [quilt3.admin Python API](api-reference/Admin.md)
   * [GxP for Security & Compliance](advanced-features/good-practice.md)
@@ -69,4 +70,3 @@
   * [Changelog](CHANGELOG.md)
   * [Contributing](CONTRIBUTING.md)
   * [Frequently Asked Questions](FAQ.md)
-  * [Troubleshooting](Troubleshooting.md)
