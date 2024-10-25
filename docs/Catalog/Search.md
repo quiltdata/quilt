@@ -74,7 +74,12 @@ The following are all valid search parameters:
 | `?` | Exactly one character | `ext:React.?sx` |
 | `//` | Regular expression (slows performance) | `content:/lmnb[12]/` |
 
-### QUERIES > ELASTICSEARCH tab
+### ELASTICSEARCH tab
+
+When you click into a specific bucket, you can access the Elasticsearch tab to
+run more complex queries. The Elasticsearch tab provides a more powerful search
+interface than the search bar, allowing you to specify the Elasticsearch index
+and query parameters.
 
 ![catalog-es-queries-default](../imgs/catalog-es-queries-default.png)
 
