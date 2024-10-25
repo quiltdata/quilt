@@ -4,15 +4,17 @@ objects and packages as documents. The cluster is deployed in the
 AWS OpenSearch service. You can connect to your Elasticsearch
 domain to query documents.
 
-Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index aliases:
+Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index
+aliases:
 
 1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
-2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
+2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in
+   the bucket.
 
 ## Configuring Saved Queries
 
-You can provide pre-canned Elasticsearch queries for your users by providing a configuration file
-at `s3://YOUR_BUCKET/.quilt/queries/config.yaml`:
+You can provide pre-canned Elasticsearch queries for your users by providing a
+configuration file at `s3://YOUR_BUCKET/.quilt/queries/config.yaml`:
 
 ```yaml
 version: "1"
@@ -31,6 +33,7 @@ select, edit, and execute.
 
 ## Managing Elasticsearch
 
+<!-- markdownlint-disable-next-line MD013 -->
 Quilt uses Amazon Elasticsearch 6.7
 ([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
 
@@ -41,6 +44,7 @@ specified file formats (100KB). Both the max number of bytes per document and
 which file formats to deep index can be customized per Bucket in the Catalog
 Admin settings.
 
+<!-- markdownlint-disable-next-line MD013 -->
 ![Example of Admin Bucket indexing options](../imgs/elastic-search-indexing-options.png)
 
 ## Querying Elasticsearch with Python
@@ -100,7 +104,8 @@ will be one result (`Logical ID` value of `Search`).
 Elasticsearch cluster in the AWS OpenSearch service.
 1. Select the "Cluster health" tab.
 1. Review the "Summary" section (look for **Green** Status):
-   - If your cluster Status is **Red** or **Yellow**, notify your Quilt account manager.
+   - If your cluster Status is **Red** or **Yellow**, notify your Quilt account
+     manager.
 1. In the "Overall health" section, update the "Time range" to `2w`
 and review all graphs, paying particular attention to:
     - Total free storage space: if one or more nodes in your cluster
@@ -126,6 +131,7 @@ directly.
 
 ### References
 
+<!-- markdownlint-disable-next-line MD013 -->
 - [Sizing Amazon OpenSearch Service
 domains](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/sizing-domains.html)
 
@@ -151,7 +157,9 @@ actions and re-run the Quilt CloudFormation deployment:
 
 1. Access the Quilt OpenSearch cluster (see steps 1 - 3 above).
 1. Select the "Auto-Tune" tab.
-1. Review the "Status" value. If the value is **Turned on**, click the "Edit" button.
-1. Select the option to "Turn off" Auto-Tune and click the "Save changes" button:
+1. Review the "Status" value. If the value is **Turned on**, click the "Edit"
+   button.
+1. Select the option to "Turn off" Auto-Tune and click the "Save changes"
+   button:
 
 ![Auto-Tune configuration](../imgs/elastic-search-autotune.png)

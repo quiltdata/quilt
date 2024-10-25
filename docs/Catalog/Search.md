@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 Each Quilt stack includes an Elasticsearch cluster that indexes objects and
 packages as documents. The objects in Amazon S3 buckets connected to Quilt are
@@ -30,8 +31,8 @@ The search bar on every page in the catalog provides a convenient
 shortcut for searching objects and packages in an Amazon S3
 bucket.
 
-> Quilt uses Elasticsearch 6.7 [query string
-> syntax](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html#query-string-syntax).
+NOTE: Quilt uses Elasticsearch 6.7 [query string
+syntax](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html#query-string-syntax).
 
 The following are all valid search parameters:
 
@@ -92,4 +93,3 @@ more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-req
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
 * `body` — the search query body as a JSON dictionary ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html))
-
