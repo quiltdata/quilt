@@ -1,4 +1,4 @@
-<!-- markdownlint-disable -->
+<!-- markdownlint-disable-next-line first-line-h1 -->
 ## How do I sync my notebook and all of its data and models to S3 as a package?
 <!--pytest.mark.skip-->
 ```python
@@ -6,10 +6,12 @@ p = quilt3.Package()
 p.set_dir(".", ".")
 p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 ```
+
 > Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
 for more control over which files `set_dir()` includes.
 
 ## How does Quilt versioning relate to S3 object versioning?
+
 Quilt packages are one level of abstraction above S3 object versions.
 Object versions track mutations to a single file,
 whereas a quilt package references a *collection* files and assigns this collection a unique version.
@@ -20,13 +22,16 @@ Object versioning ensures that mutations to every object are tracked,
 and provides some protection against deletion.
 
 ## Where are the Quilt 2 packages?
+
 Visit [legacy.quiltdata.com](https://legacy.quiltdata.com/)
 and use [`quilt`](https://pypi.org/project/quilt/) on PyPI.
 
 ## Does `quilt3` collect anonymous usage statistics?
+
 Yes, to find bugs and prioritize features.
 
 You can disable anonymous usage collection with an environment variable:
+
 ```bash
 export QUILT_DISABLE_USAGE_METRICS=true
 ```
@@ -37,6 +42,7 @@ to persistently disable anonymous usage statistics.
 ## Can I turn off TQDM progress bars for log files?
 
 Yes:
+
 ```bash
 export QUILT_MINIMIZE_STDOUT=true
 ```
@@ -44,14 +50,19 @@ export QUILT_MINIMIZE_STDOUT=true
 ## Which version of Quilt are you on?
 
 ### Python client
+
 ```bash
 quilt3 --version
 ```
 
 ### CloudFormation application
+
 1. Go to CloudFormation > Stacks > YourQuiltStack > Outputs
 1. Copy the row labeled TemplateBuildMetadata
 1. "git_revision" is your template version
+
+This information is also available in the footer of the main page of the
+Catalog.
 
 ## Hashing during `push` takes a long time. Can I speed it up?
 
@@ -82,6 +93,7 @@ use Quilt with R, using either:
 1. [Reticulate](https://rstudio.github.io/reticulate/)
 
 ### Using the Quilt CLI API with R
+
 You can script the Quilt CLI directly from your shell environment and chain it
 with your R scripts to create a unified workflow:
 
@@ -93,17 +105,18 @@ quilt3 push --dir path/to/remote-registry my-package # upload Quilt data package
 ```
 
 ### Using Quilt with Reticulate
+
 The [Reticulate](https://rstudio.github.io/reticulate/) package provides a set of tools
 for interoperability between Python and R by embedding a Python session within your R session.
 
 ## How do I delete a data package and all of the objects in the data package?
 
 You may have a test data package that you wish to delete at some point to ensure
-your data repository is clean and organized. *Please do this very carefully!* 
+your data repository is clean and organized. *Please do this very carefully!*
 In favor of immutability, Quilt makes deletion a
 bit tricky. First, note that `quilt3.Package.delete` only deletes the
-_package manifest_, not the *underlying objects*. If you wish to delete
-the entire package *and* its objects, _delete the objects first_.
+*package manifest*, not the *underlying objects*. If you wish to delete
+the entire package *and* its objects, *delete the objects first*.
 
 *Warning: the objects you delete will be lost forever. Ditto for the package revision.*
 
@@ -129,12 +142,13 @@ You can then follow the above with `q3.delete_package(pname, registry=reg, top_h
 
 ## Do I have to login via quilt3 to use the Quilt APIs? How do I push to Quilt from a headless environment like a Docker container?
 
-Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) 
+Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
 and `quilt3` will use the same for its API calls.
 
-> Be sure to run `quilt3 logout` if you've previously logged in. 
+> Be sure to run `quilt3 logout` if you've previously logged in.
 
 Select among multiple profiles in your shell as follows:
+
 ```bash
 export AWS_PROFILE=your_profile
 ```
@@ -169,6 +183,7 @@ There are [many considerations and limitations](https://docs.aws.amazon.com/athe
 when writing Amazon Athena queries.
 
 ### References
+
 * [SQL reference for Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html)
 * [Functions in Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html)
 
@@ -183,6 +198,7 @@ that might require special handling, and characters to avoid, please
 review the official Amazon S3 documentation linked below.
 
 ### List of safe characters
+
 * Alphanumeric characters:
   * 0-9
   * a-z
@@ -197,8 +213,9 @@ review the official Amazon S3 documentation linked below.
   * Open parenthesis (`(`)
   * Close parenthesis (`)`)
 
-### References
-* [Creating object key names](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html)
+For more details, see [Creating object key
+names](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html)
+in the Amazon S3 documentation.
 
 ## How many IPs does a standard Quilt stack require?
 
@@ -213,4 +230,3 @@ Optional additional features (such as automated data packaging) require addition
 Amazon S3 is a key-value store with prefixes but no true "folders".
 In the Quilt Catalog Bucket view, as in AWS Console, only objects have
 a "Last modified" value, whereas package entries and prefixes do not.
-
