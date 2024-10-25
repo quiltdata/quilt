@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - selective-package-download
+      - genbank-preview
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
