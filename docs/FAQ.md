@@ -153,7 +153,7 @@ for (k, e) in p.walk():
 You can then follow the above with `q3.delete_package(pname, registry=reg,
 top_hash=p.top_hash)`.
 
-## Do I have to login via quilt3 to use the Quilt APIs? 
+## Do I have to login via quilt3 to use the Quilt APIs?
 
 ## How do I push to Quilt from a headless environment like a Docker container?
 
@@ -187,7 +187,7 @@ review the references linked below to learn more.
 
 ### Helpful examples
 
-`regexp_extract_all(string, pattern)` 
+`regexp_extract_all(string, pattern)`
 
 Return the substring(s) matched by the regular expression `pattern` in `string`
 
@@ -200,7 +200,7 @@ SELECT regexp_extract_all('1a 2b 14m', '\d+');
 
 There are [many considerations and
 <!-- markdownlint-disable-next-line line-length -->
-limitations](https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html)
+limitations](<https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html>)
 when writing Amazon Athena queries.
 
 ### References
