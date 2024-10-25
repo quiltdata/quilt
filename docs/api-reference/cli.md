@@ -1,7 +1,8 @@
 # Quilt3 CLI and environment
 
 ## `catalog`
-```
+
+```shell
 usage: quilt3 catalog [-h] [--detailed-help] [--host HOST] [--port PORT]
                       [--no-browser]
                       [navigation_target]
@@ -32,15 +33,17 @@ Temporary credentials are derived from your default AWS credentials
 (or active `AWS_PROFILE`) using `boto3.sts.get_session_token`.
 For more details about configuring and using AWS credentials in `boto3`,
 see the AWS documentation:
-https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
+<https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html>
 
 #### Previewing files in S3
+
 The Quilt catalog allows users to preview files in S3 by downloading and
 processing/converting them inside the Python webserver running on local machine.
 Neither your AWS credentials nor data requested goes through any third-party
 cloud services aside of S3.
 
 ## `config`
+
 ```
 usage: quilt3 config [-h] [--set KEY=VALUE [KEY=VALUE ...]] [catalog_url]
 
@@ -59,7 +62,9 @@ optional arguments:
                         quotes: foo="this is a sentence". Note that values are
                         always treated as strings.
 ```
+
 ## `config-default-remote-registry`
+
 ```
 usage: quilt3 config-default-remote-registry [-h] default_remote_registry
 
@@ -72,7 +77,9 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 ```
+
 ## `disable-telemetry`
+
 ```
 usage: quilt3 disable-telemetry [-h]
 
@@ -81,7 +88,9 @@ Disable anonymous usage metrics
 optional arguments:
   -h, --help  show this help message and exit
 ```
+
 ## `install`
+
 ```
 usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
                       [--dest DEST] [--dest-registry DEST_REGISTRY]
@@ -104,7 +113,9 @@ optional arguments:
                         registry.
   --path PATH           If specified, downloads only PATH or its children.
 ```
+
 ## `list-packages`
+
 ```
 usage: quilt3 list-packages [-h] registry
 
@@ -116,7 +127,9 @@ positional arguments:
 optional arguments:
   -h, --help  show this help message and exit
 ```
+
 ## `login`
+
 ```
 usage: quilt3 login [-h]
 
@@ -125,7 +138,9 @@ Log in to configured Quilt server
 optional arguments:
   -h, --help  show this help message and exit
 ```
+
 ## `logout`
+
 ```
 usage: quilt3 logout [-h]
 
@@ -134,7 +149,9 @@ Log out of current Quilt server
 optional arguments:
   -h, --help  show this help message and exit
 ```
+
 ## `push`
+
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
@@ -168,7 +185,9 @@ optional arguments:
   --no-copy            Do not copy data. Package manifest entries will
                        reference the data at the original location.
 ```
+
 ## `verify`
+
 ```
 usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR
                      [--extra-files-ok]
@@ -188,46 +207,57 @@ optional arguments:
   --extra-files-ok     Whether extra files in the directory should cause a
                        failure
 ```
+
 ## Environment variables
 
 ### `QUILT_DISABLE_CACHE`
+
 Turn off cache. Defaults to `False`.
+
 ```
-$ export QUILT_DISABLE_CACHE=true
+export QUILT_DISABLE_CACHE=true
 ```
 
 ### `QUILT_DISABLE_USAGE_METRICS`
+
 Disable anonymous usage collection. Defaults to `False`
+
 ```
-$ export QUILT_DISABLE_USAGE_METRICS=true
+export QUILT_DISABLE_USAGE_METRICS=true
 ```
 
 ### `QUILT_MANIFEST_MAX_RECORD_SIZE`
+
 Maximum size of a record in package manifest. **Setting this variable is strongly discouraged.**
 Defaults to `1_000_000`.
 
 ### `QUILT_MINIMIZE_STDOUT`
+
 Turn off TQDM progress bars for log files. Defaults to `False`
+
 ```
-$ export QUILT_MINIMIZE_STDOUT=true
+export QUILT_MINIMIZE_STDOUT=true
 ```
 
 ### `QUILT_TRANSFER_MAX_CONCURRENCY`
+
 Number of threads for file transfers. Defaults to `10`.
 
 This variable could be tried for improving file transfer rate. The optimal value
 depends on network bandwidth, CPU performance, file sizes, etc.
+
 ```
-$ export QUILT_TRANSFER_MAX_CONCURRENCY=20
+export QUILT_TRANSFER_MAX_CONCURRENCY=20
 ```
 
 ### `XDG_*`
+
 `quilt3` uses platformdirs so you can set one or more of the
 [XDG environment variables](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
 to customize where `quilt3` writes to disk.
 
 For example, AWS Lambda requires the user to use `/tmp/*` as the scratch
-directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` 
+directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install`
 will succeed, by setting the `XDG_CACHE_HOME` environment variable in code or in
 your [AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html).
 

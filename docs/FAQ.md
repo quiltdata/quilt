@@ -7,14 +7,15 @@ p.set_dir(".", ".")
 p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 ```
 
-> Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
-for more control over which files `set_dir()` includes.
+> Use a [.quiltignore
+file](https://docs.quiltdata.com/advanced-usage/.quiltignore) for more control
+over which files `set_dir()` includes.
 
 ## How does Quilt versioning relate to S3 object versioning?
 
-Quilt packages are one level of abstraction above S3 object versions.
-Object versions track mutations to a single file,
-whereas a quilt package references a *collection* files and assigns this collection a unique version.
+Quilt packages are one level of abstraction above S3 object versions. Object
+versions track mutations to a single file, whereas a quilt package references a
+*collection* files and assigns this collection a unique version.
 
 It is strongly recommended that you enable object versioning on the S3 buckets
 that you push Quilt packages to.
@@ -73,21 +74,27 @@ a local machine or foreign region)—I/O is much faster.
 
 1. Use a larger instance with more vCPUs.
 
-1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
+1. Increase
+[`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
 
-1. If you are using Quilt Catalog 1.51 (released Feb 2024), you can enable the `ChunkedChecksums` CloudFormation parameter so it will calculate the checksums in parallel, or reuse them if already existing in S3. Parallel checksums are also available by default in `quilt3` v6 or later (pre-released Feb 2024).
+1. If you are using Quilt Catalog 1.51 (released Feb 2024), you can enable the
+   `ChunkedChecksums` CloudFormation parameter so it will calculate the
+   checksums in parallel, or reuse them if already existing in S3. Parallel
+   checksums are also available by default in `quilt3` v6 or later (pre-released
+   Feb 2024).
 
 ## Does Quilt work with R?
 
-In the scientific computing community, the [R Project](https://www.r-project.org/)
-is commonly used as an alternative, or companion, to Python. It is a language and
-environment for statistical computing and graphics, and is available as Free Software
-under the [GNU General Public License](https://www.r-project.org/COPYING).
+In the scientific computing community, the [R
+Project](https://www.r-project.org/) is commonly used as an alternative, or
+companion, to Python. It is a language and environment for statistical computing
+and graphics, and is available as Free Software under the [GNU General Public
+License](https://www.r-project.org/COPYING).
 
 Currently there are no plans to release a Quilt package for distribution through
-the [CRAN package repository](https://cloud.r-project.org/). However, you can still
-use Quilt with R, using either:
+the [CRAN package repository](https://cloud.r-project.org/). However, you can
+still use Quilt with R, using either:
 
 1. The Command Line Interface (CLI) API
 1. [Reticulate](https://rstudio.github.io/reticulate/)
@@ -101,13 +108,15 @@ with your R scripts to create a unified workflow:
 ```bash
 quilt3 install my-package # download Quilt data package 
 [Run R commands or scripts] # modify the data in Quilt data package using R
-quilt3 push --dir path/to/remote-registry my-package # upload Quilt data package to the remote registry
+quilt3 push --dir path/to/remote-registry my-package 
+# upload Quilt data package to the remote registry
 ```
 
 ### Using Quilt with Reticulate
 
-The [Reticulate](https://rstudio.github.io/reticulate/) package provides a set of tools
-for interoperability between Python and R by embedding a Python session within your R session.
+The [Reticulate](https://rstudio.github.io/reticulate/) package provides a set
+of tools for interoperability between Python and R by embedding a Python session
+within your R session.
 
 ## How do I delete a data package and all of the objects in the data package?
 
@@ -118,9 +127,11 @@ bit tricky. First, note that `quilt3.Package.delete` only deletes the
 *package manifest*, not the *underlying objects*. If you wish to delete
 the entire package *and* its objects, *delete the objects first*.
 
-*Warning: the objects you delete will be lost forever. Ditto for the package revision.*
+*Warning: the objects you delete will be lost forever. Ditto for the package
+revision.*
 
-To delete, first browse the package then walk it, deleting its entry objects as follows:
+To delete, first browse the package then walk it, deleting its entry objects as
+follows:
 
 <!--pytest.mark.skip-->
 ```python
@@ -138,7 +149,8 @@ for (k, e) in p.walk():
     s3.delete_object(Bucket=pk.bucket, Key=pk.path, VersionId=pk.version_id)
 ```
 
-You can then follow the above with `q3.delete_package(pname, registry=reg, top_hash=p.top_hash)`.
+You can then follow the above with `q3.delete_package(pname, registry=reg,
+top_hash=p.top_hash)`.
 
 ## Do I have to login via quilt3 to use the Quilt APIs? How do I push to Quilt from a headless environment like a Docker container?
 
