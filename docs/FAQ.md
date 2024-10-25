@@ -75,6 +75,7 @@ a local machine or foreign region)—I/O is much faster.
 1. Use a larger instance with more vCPUs.
 
 1. Increase
+<!-- markdownlint-disable-next-line line-length -->
 [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
 
@@ -152,8 +153,11 @@ for (k, e) in p.walk():
 You can then follow the above with `q3.delete_package(pname, registry=reg,
 top_hash=p.top_hash)`.
 
-## Do I have to login via quilt3 to use the Quilt APIs? How do I push to Quilt from a headless environment like a Docker container?
+## Do I have to login via quilt3 to use the Quilt APIs? 
 
+## How do I push to Quilt from a headless environment like a Docker container?
+
+<!-- markdownlint-disable-next-line line-length -->
 Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
 and `quilt3` will use the same for its API calls.
 
@@ -166,23 +170,26 @@ export AWS_PROFILE=your_profile
 ```
 
 The S3 permissions needed by `quilt3` are similar to
+<!-- markdownlint-disable-next-line line-length -->
 [this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies)                                                                                                  but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
 
 ## How complex can my Athena queries be?
 
-Amazon Athena supports a subset of Data Defintion Language (DDL)
-and Data Manipulation Language (DML) statements, functions, operators,
-and data types, based on [Presto](https://prestodb.io/) and [Trino](https://trino.io/).
+Amazon Athena supports a subset of Data Defintion Language (DDL) and Data
+Manipulation Language (DML) statements, functions, operators, and data types,
+based on [Presto](https://prestodb.io/) and [Trino](https://trino.io/).
 
-This allows for extremely granular querying of your data package name, metadata, and contents
-and includes logical operators, comparison functions, conditional expressions, mathematical functions,
-bitwise functions, date and time functions and operators, regular expression functions, and aggregate
-functions. Please review the references linked below to learn more.
+This allows for extremely granular querying of your data package name, metadata,
+and contents and includes logical operators, comparison functions, conditional
+expressions, mathematical functions, bitwise functions, date and time functions
+and operators, regular expression functions, and aggregate functions. Please
+review the references linked below to learn more.
 
 ### Helpful examples
 
-`regexp_extract_all(string, pattern)`
-  Return the substring(s) matched by the regular expression `pattern` in `string`
+`regexp_extract_all(string, pattern)` 
+
+Return the substring(s) matched by the regular expression `pattern` in `string`
 
 <!--pytest.mark.skip-->
 ```sql
@@ -191,12 +198,16 @@ SELECT regexp_extract_all('1a 2b 14m', '\d+');
 
 ### Considerations and limitations
 
-There are [many considerations and limitations](https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html)
+There are [many considerations and
+<!-- markdownlint-disable-next-line line-length -->
+limitations](https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html)
 when writing Amazon Athena queries.
 
 ### References
 
+<!-- markdownlint-disable-next-line line-length -->
 * [SQL reference for Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html)
+<!-- markdownlint-disable-next-line line-length -->
 * [Functions in Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html)
 
 ## Are there any limitations on characters in Quilt filenames?
@@ -235,7 +246,8 @@ Currently, a full size, multi-Availability Zone deployment (without
 [Voila](https://docs.quiltdata.com/catalog/visualizationdashboards#voila))
 requires at least 256 IPs. This means a minimum CIDR block of `/24`.
 
-Optional additional features (such as automated data packaging) require additional IPs.
+Optional additional features (such as automated data packaging) require
+additional IPs.
 
 ## The "Last Modified" column in the Quilt catalog is empty
 

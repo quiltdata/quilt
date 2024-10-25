@@ -5,7 +5,9 @@
 
 ## Catalog packages or stats are missing or are not updating
 
-These are all symptoms of the same underlying issue: the Elasticsearch index is out of sync. If any of the following are true, please wait a few minutes and try again:
+These are all symptoms of the same underlying issue: the Elasticsearch index is
+out of sync. If any of the following are true, please wait a few minutes and try
+again:
 
 - you recently added the bucket or upgraded the stack
 - search volume is high, or
@@ -15,50 +17,60 @@ If that doesn't work, try the following steps:
 
 ### Re-index the bucket
 
-If you have less than 1 million objects in the bucket, you should re-index the bucket:
+If you have less than 1 million objects in the bucket, you should re-index the
+bucket:
 
-1. Open the bucket overview in the Quilt catalog and click the gear icon (upper right),
-or navigate to Admin settings > Buckets and inspect the settings of the bucket in question.
+1. Open the bucket overview in the Quilt catalog and click the gear icon (upper
+right), or navigate to Admin settings > Buckets and inspect the settings of the
+bucket in question.
 
 1. Under "Indexing and notifications", click "Re-index and Repair".
 
-> Optionally: **if and only if** bucket notifications are not working and you are
-> certain that there are no other subscribers to the S3 Events of the bucket in
-> question, check "Repair S3 notifications".
+> Optionally: **if and only if** bucket notifications are not working and you
+> are certain that there are no other subscribers to the S3 Events of the bucket
+> in question, check "Repair S3 notifications".
 
-Bucket packages, stats, and the search index will repopulate in the next few minutes.
+Bucket packages, stats, and the search index will repopulate in the next few
+minutes.
 
-However, if you have more than 1 million objects in the bucket, re-indexing will take much longer and potentially become expensive.  In that case,
-please try the below steps. If those do not work, please contact [Quilt support](mailto:support@quiltdata.io).
+However, if you have more than 1 million objects in the bucket, re-indexing will
+take much longer and potentially become expensive.  In that case, please try the
+below steps. If those do not work, please contact [Quilt
+support](mailto:support@quiltdata.io).
 
 ### Inspect the Elasticsearch domain
 
-1. Determine your Quilt instance's ElasticSearch domain from Amazon Console > OpenSearch
-or `aws opensearch list-domain-names`. Note the domain name (hereafter `QUILT_DOMAIN`).
+1. Determine your Quilt instance's ElasticSearch domain from Amazon Console >
+OpenSearch or `aws opensearch list-domain-names`. Note the domain name
+(hereafter `QUILT_DOMAIN`).
 
 1. Run the following command and save the output file:
     <!--pytest.mark.skip-->
     ```sh
-    aws es describe-elasticsearch-domain --domain-name "$QUILT_DOMAIN" > quilt-es-domain.json
+    aws es describe-elasticsearch-domain --domain-name "$QUILT_DOMAIN"\
+      > quilt-es-domain.json
     ```
 
 1. Visit Amazon Console > OpenSearch > `QUILT_DOMAIN` > Cluster health.
 
-1. Set the time range as long as possible to fully overlap with your observed issues.
+1. Set the time range as long as possible to fully overlap with your observed
+   issues.
 
-1. Screenshot the Summary, Overall Health, and Key Performance Indicator sections
+1. Screenshot the Summary, Overall Health, and Key Performance Indicator
+   sections
 
-1. Send the JSON output file and screenshots to [Quilt support](mailto:support@quiltdata.io).
+1. Send the JSON output file and screenshots to [Quilt
+   support](mailto:support@quiltdata.io).
 
 > As a rule you should **not** reconfigure your Elasticsearch domain directly as
-> this will
-> result in stack drift that will be lost the next time you update your Quilt instance.
+> this will result in stack drift that will be lost the next time you update
+> your Quilt instance.
 
 ## Missing metadata when working with Quilt packages via the API
 
-> `Package.set_dir()` on the package root (".") overrides package-level metadata.
-> If you do not provide `set_dir(".", foo, meta=baz)` with a value for `meta=`,
-> `set_dir` will set package-level metadata to `None`.
+> `Package.set_dir()` on the package root (".") overrides package-level
+> metadata. If you do not provide `set_dir(".", foo, meta=baz)` with a value for
+> `meta=`, `set_dir` will set package-level metadata to `None`.
 
 A common pattern is to `Package.browse()` to get the most recent
 version of a package, and then `Package.push()` updates.
@@ -104,51 +116,60 @@ user to reset your Quilt user Role to a default (**and valid**) Role.
 
 ## User creation and log in
 
-Users can either be invited directly or are _just-in-time provisioned (JIP)_ when
-they sign in via SSO and receive the "default role."
+Users can either be invited directly or are _just-in-time provisioned (JIP)_
+when they sign in via SSO and receive the "default role."
 
 ### Important conditions and pre-requisites
 
 - If an admin (or any user) is created by JIP, or created through CloudFormation
-with an SSO Provider set to anything other than Disabled, then setting the password
-for that user has no effect and _password login will never succeed_ for that user.
-Said another way, users created through SSO can only log in through SSO.
+with an SSO Provider set to anything other than Disabled, then setting the
+password for that user has no effect and _password login will never succeed_ for
+that user. Said another way, users created through SSO can only log in through
+SSO.
 
-- You _must disable SSO_ and enable `PasswordAuth` if you wish to log in as an admin
-using a password (as opposed to SSO).
+- You _must disable SSO_ and enable `PasswordAuth` if you wish to log in as an
+admin using a password (as opposed to SSO).
 
 ### Unable to log in
 
-The following are common causes of failed logins. In most cases we recommend that
-you check the [network panel of your browser](#browser-network-and-console) for details.
+The following are common causes of failed logins. In most cases we recommend
+that you check the [network panel of your browser](#browser-network-and-console)
+for details.
 
-1. SSO connector misconfigured. See [SSO](technical-reference.md#cnames) for details.
-1. SSL errors are often caused by misspelled names, or incomplete Subject Alternate Names.
-The ACM certificate for `CertificateArnELB` must cover all three Quilt [CNAMEs](technical-reference.md#cnames) either via a suitable `*` or explicit Subject Alternate Names.
+1. SSO connector misconfigured. See [SSO](technical-reference.md#cnames) for
+   details.
+1. SSL errors are often caused by misspelled names, or incomplete Subject
+Alternate Names. The ACM certificate for `CertificateArnELB` must cover all
+three Quilt [CNAMEs](technical-reference.md#cnames) either via a suitable `*` or
+explicit Subject Alternate Names.
 
 ### Changing the admin email or password
 
-Changing the admin password is only possible with `PasswordAuth=Enabled` in CloudFormation
-and is subject to the following limitations for security reasons:
+Changing the admin password is only possible with `PasswordAuth=Enabled` in
+CloudFormation and is subject to the following limitations for security reasons:
 
-- Has no effect if SSO is in use, or was in use when the admin was first created.
+- Has no effect if SSO is in use, or was in use when the admin was first
+  created.
 - Has no effect on pre-existing admin username/password pairs.
 
 You can click "reset password" on the login page.
 
-To change the admin email (e.g. you have accidentally broken your admin user) try the following:
+To change the admin email (e.g. you have accidentally broken your admin user)
+try the following:
 
-1. Change the value of the `AdminEmail` CloudFormation parameter _to a net new email_.
+1. Change the value of the `AdminEmail` CloudFormation parameter _to a net new
+   email_.
 1. Apply the change as a stack _Update_.
-1. Once the update is successful, the new admin can log in, set roles, and nominate
-other admins as needed.
+1. Once the update is successful, the new admin can log in, set roles, and
+nominate other admins as needed.
 
 ## General stack update failure steps
 
-On rare occasions, Quilt stack deployment updates might fail. This can happen for several
-reasons. To expedite resolution of stack deployment issues, it's helpful to
-have the following data and output from the following [AWS CLI](https://aws.amazon.com/cli/)
-commands when contacting <support@quiltdata.io>.
+On rare occasions, Quilt stack deployment updates might fail. This can happen
+for several reasons. To expedite resolution of stack deployment issues, it's
+helpful to have the following data and output from the following [AWS
+CLI](https://aws.amazon.com/cli/) commands when contacting
+<support@quiltdata.io>.
 
 1. Quilt stack outputs:
     <!--pytest.mark.skip-->
@@ -194,17 +215,21 @@ Quilt support:
     Chrome menu select **More tools > Developer tools**.
 1. Select the **Network** tab.
     1. Ensure the session is recorded:
-        - Google Chrome: Check the red button in the upper left corner is set to **Record**.
+        - Google Chrome: Check the red button in the upper left corner is set to
+          **Record**.
     1. Ensure **Preserve Log** is enabled.
-    1. Perform the action that triggers the error (e.g. clicking the `Download package` button).
+    1. Perform the action that triggers the error (e.g. clicking the `Download
+       package` button).
     1. Export the logs as HAR format.
         - Google Chrome: **Ctrl + Click** anywhere on the grid of
         network requests and select **Save all as HAR with content**.
     1. Save the HAR-formatted file to your localhost.
 
-        ![Save browser Network error logs as HAR content](imgs/troubleshooting-logs-browser.png)
+        ![Save browser Network error logs as HAR
+        content](imgs/troubleshooting-logs-browser.png)
 1. Select the **Console** tab.
-    1. Perform the action that triggers the error (e.g. clicking the `Download package` button).
+    1. Perform the action that triggers the error (e.g. clicking the `Download
+       package` button).
     1. Export the logs.
         - Google Chrome: **Ctrl + Click** anywhere on the grid of
         network requests and select **Save as...**.
@@ -249,9 +274,9 @@ aws s3api get-object-tagging --bucket "$BUCKET" --key "$PREFIX"
 
 ### Specific logical resources
 
-Sometimes you may wish to find an ID or other information from a logical resource
-in a Quilt stack. The following example is for security groups. Modify the commands as needed
-for other resource types.
+Sometimes you may wish to find an ID or other information from a logical
+resource in a Quilt stack. The following example is for security groups. Modify
+the commands as needed for other resource types.
 
 <!--pytest.mark.skip-->
 ```sh
