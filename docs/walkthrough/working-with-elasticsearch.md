@@ -1,23 +1,51 @@
-<!-- markdownlint-disable -->
-
+<!-- markdownlint-disable-next-line first-line-h1 -->
 Each Quilt stack includes an Elasticsearch cluster that indexes
 objects and packages as documents. The cluster is deployed in the
 AWS OpenSearch service. You can connect to your Elasticsearch
 domain to query documents.
 
-> If your Quilt stack uses private endpoints for Elasticsearch you will need to
-> connect to the cluster from a machine in the same VPC as the cluster.
-
 Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index aliases:
+
 1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
 2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
 
-> Quilt uses Amazon Elasticsearch version 6.7.
+## Configuring Saved Queries
 
-## Query Elasticsearch with Python
+You can provide pre-canned Elasticsearch queries for your users by providing a configuration file
+at `s3://YOUR_BUCKET/.quilt/queries/config.yaml`:
 
-You can use [`elasticsearch
-6.3.1`](https://elasticsearch-py.readthedocs.io/en/6.3.1/) as
+```yaml
+version: "1"
+queries:
+  query-1:
+    name: My first query
+    description: Optional description
+    url: s3://BUCKET/.quilt/queries/query-1.json
+  query-2:
+    name: Second query
+    url: s3://BUCKET/.quilt/queries/query-2.json
+```
+
+The Quilt catalog displays your saved queries in a drop-down for your users to
+select, edit, and execute.
+
+## Managing Elasticsearch
+
+Quilt uses Amazon Elasticsearch 6.7
+([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
+
+1. If your Quilt stack uses private endpoints for Elasticsearch you will need to
+   connect to the cluster from a machine in the same VPC as the cluster.
+2. By default, Quilt indexes a limited number of bytes per document for
+specified file formats (100KB). Both the max number of bytes per document and
+which file formats to deep index can be customized per Bucket in the Catalog
+Admin settings.
+
+![Example of Admin Bucket indexing options](../imgs/elastic-search-indexing-options.png)
+
+## Querying Elasticsearch with Python
+
+You can use [`elasticsearch`](https://elasticsearch-py.readthedocs.io/en/) as
 follows:
 
 <!--pytest.mark.skip-->
@@ -109,7 +137,7 @@ workload. There is known bug in CloudFormation when deploying and/or
 upgrading Quilt stacks using t2 or t3 instance types. During stack
 deployments the following error may be encountered:
 
-```
+```log
 Autotune is not supported in t2/t3 instance types.
 Disable autotune or change your instance type.
 (Service: AWSElasticsearch; Status Code: 400; Error Code: ValidationException;
