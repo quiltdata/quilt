@@ -12,18 +12,19 @@
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
 * [Embeddable iFrames](Catalog/Embed.md)
-* [Search & Query](Catalog/SearchQuery.md)
+* [Search](Catalog/Search.md)
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
+* [Query](Catalog/Query.md)
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
 * **Advanced**
   * [Athena](advanced-features/athena.md)
-  * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
 
 ## Quilt Platform Administrator
 
 * [Admin Settings UI](Catalog/Admin.md)
 * [Catalog Configuration](Catalog/Preferences.md)
 * [Cross-Account Access](CrossAccount.md)
+* [Elasticsearch](walkthrough/working-with-elasticsearch.md)
 * [Enterprise Installs](technical-reference.md)
 * [quilt3.admin Python API](api-reference/Admin.md)
 * **Advanced**
