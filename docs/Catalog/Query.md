@@ -19,14 +19,6 @@ views. See, for example, [Tabulator](advanced-features/tabulator.md).
 
 ![history](../imgs/athena-history.png)
 
-## Configuration
-
-Athena queries saved from the AWS Console for a given workgroup will be
-available in the Quilt Catalog for all users to run.
-
-Administrators can hide the "Queries" tab by setting `ui > nav > queries: false`
-([learn more](./Preferences.md)).
-
 ## Example: query package-level metadata
 
 Suppose we wish to find all packages produced by algorithm version 1.3 with a
@@ -53,3 +45,11 @@ AND json_extract_scalar(meta,
   '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
 AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
 ```
+
+## Configuration
+
+Athena queries saved from the AWS Console for a given workgroup will be
+available in the Quilt Catalog for all users to run.
+
+Administrators can hide the "Queries" tab by setting `ui > nav > queries: false`
+([learn more](./Preferences.md)).
