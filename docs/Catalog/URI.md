@@ -1,9 +1,13 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-Every package and object in Packages view has a "CODE" pane, which contains:
+Every package and object in Packages view has a "CODE" pane, which contains
+three tabs, each of which provides a code snippets that can be used to retrieve
+or update a package or object.
 
-- **Python**: code snippet to install (and update) the package or object
-- **CLI**: shell commands to install (and update) the package or object
-- **URI**: a Quilt+ URI to uniquely identify the package or object
+- Python (API) ![Python](../imgs/uri-python.png)
+- CLI (shell commands) ![CLI](../imgs/uri-cli.png)
+- URI (identifier) ![URI](../imgs/uri-uri.png)
+
+They all have a `copy` button that copies the code to the clipboard.
 
 ## Quilt+ URIs
 
@@ -16,6 +20,16 @@ bucket.  For example:
 
 The URI above references a specific version of the `CORD19.ipynb` notebook in
 the `akarve/cord19` package of the `quilt-example` bucket.
+
+### Catalog Usage
+
+URIs can be used to quickly navigate to a specific package or object from the
+Catalog.  If your window is wide enough, there will be a "URI" button to the
+right of the search bar.  Clicking this button will display a dialog where you
+can paste a URI and "Resolve" it to navigate to the package or object it
+references.
+
+![Resolving URIs](../imgs/uri-resolve.png)
 
 ### Syntax
 
@@ -38,3 +52,6 @@ In addition, it may contain the following optional components:
   `latest` tag is supported.  You may not specify both a top_hash and a tag.
 - `&path=<path>`: The path to the object within the package, if any, e.g.
   `CORD19.ipynb`.
+
+Note that a given bucket may be available from zero or more catalogs,
+each of which may support different users and access controls.
