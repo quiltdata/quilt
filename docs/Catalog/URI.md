@@ -1,10 +1,13 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-Every package and object in Packages view has a "CODE" pane, which contains
-three tabs, each of which provides a code snippets that can be used to retrieve
-or update a package or object.
+Every package and object in the Bucket and Packages views has a "CODE" pane,
+which contains code snippets that can be used to download and upload a package
+or object via either:
 
 - Python (API) ![Python](../imgs/uri-python.png)
 - CLI (shell commands) ![CLI](../imgs/uri-cli.png)
+
+In addition, Packages have a third tab that returns a Quilt+ URI:
+
 - URI (identifier) ![URI](../imgs/uri-uri.png)
 
 They all have a `copy` button that copies the code to the clipboard.
