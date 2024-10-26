@@ -39,10 +39,8 @@ A Quilt+ URI most contain the following components:
 - `s3://`: The protocol of the URI. This is currently `s3://`.
 - `<bucket>`: The name of the bucket containing the package or object, e.g.
   `quilt-example`.
-- `#`: The fragment delimiter between the bucket and the package or object
-  reference.
-- `package=<package>`: The name of the package containing the object, e.g.
-  `akarve/cord19`.
+- `#package=<package>`: A fragment for the name of the package containing the
+  object, e.g. `akarve/cord19`.
 
 In addition, it may contain the following optional components:
 
@@ -50,9 +48,10 @@ In addition, it may contain the following optional components:
   `e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b`.
 - `<package>:tag`: The tag for this specific package. Currently, only the
   `latest` tag is supported.  You may not specify both a top_hash and a tag.
-- `&path=<path>`: The path to the object within the package, if any, e.g.
-  `CORD19.ipynb`.
-- `&catalog=<catalog>`: The DNS name of catalog where this package was located.
+- `&path=<path>`: Fragment for the path to the object within the package, if
+  any, e.g.ß `CORD19.ipynb`.
+- `&catalog=<catalog>`: Fragment for the DNS name of catalog where this package
+  was located.
 
 Note that a given bucket may be available from zero or more catalogs,
 each of which may support different users and access controls.
