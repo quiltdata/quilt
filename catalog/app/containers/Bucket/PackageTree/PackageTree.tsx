@@ -41,6 +41,7 @@ import * as Listing from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
+import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
 import WithPackagesSupport from '../WithPackagesSupport'
@@ -48,6 +49,7 @@ import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
+
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -58,6 +60,63 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
+
+interface RouteArgs {
+  bucket: string
+  name: string
+  hashOrTag: string
+  hash?: string
+}
+
+interface PackageRoutes {
+  bucketPackageTree: [string, string, string | undefined, string | undefined]
+}
+
+const samePackageRoot = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  { bucket, name, hashOrTag }: RouteArgs,
+) =>
+  RRDom.matchPath(pathname, {
+    path: urls.bucketPackageTree(bucket, name, hashOrTag, undefined),
+    exact: true,
+    strict: true,
+  })
+
+const samePackageAnyPath = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  { bucket, name, hashOrTag }: RouteArgs,
+) =>
+  RRDom.matchPath(pathname, {
+    path: urls.bucketPackageTree(bucket, name, hashOrTag, undefined),
+    strict: true,
+  })
+
+const sameRevisionAnyPath = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  { bucket, name, hash }: RouteArgs,
+) =>
+  RRDom.matchPath(pathname, {
+    path: urls.bucketPackageTree(bucket, name, hash, undefined),
+    strict: true,
+  })
+
+const isStillBrowsingPackage = (
+  urls: NamedRoutes.Urls<PackageRoutes>,
+  pathname: string,
+  routeArgs: RouteArgs,
+) => {
+  if (routeArgs.hashOrTag === 'latest') {
+    return !!(
+      samePackageRoot(urls, pathname, routeArgs) ||
+      (samePackageAnyPath(urls, pathname, routeArgs) && s3paths.isDir(pathname))
+    )
+  } else {
+    return !!(sameRevisionAnyPath(urls, pathname, routeArgs) && s3paths.isDir(pathname))
+  }
+}
 
 const useTopBarStyles = M.makeStyles((t) => ({
   topBar: {
@@ -222,6 +281,11 @@ function DirDisplay({
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
+  const slt = Selection.use()
+  const handleSelection = React.useCallback(
+    (ids) => slt.merge(ids, bucket, path),
+    [bucket, path, slt],
+  )
 
   return (
     <>
@@ -323,9 +387,15 @@ function DirDisplay({
             )
             .filter(Boolean)
 
-          const downloadPath = path
-            ? `package/${bucket}/${name}/${hash}/${path}`
-            : `package/${bucket}/${name}/${hash}`
+          const downloadLabel = !slt.isEmpty // eslint-disable-line no-nested-ternary
+            ? 'Download selected'
+            : path
+            ? 'Download sub-package'
+            : 'Download package'
+          const downloadPath =
+            path && slt.isEmpty
+              ? `package/${bucket}/${name}/${hash}/${path}`
+              : `package/${bucket}/${name}/${hash}`
 
           return (
             <>
@@ -335,6 +405,12 @@ function DirDisplay({
                   {
                     Ok: ({ ui: { actions } }) => (
                       <>
+                        {actions.downloadPackage && (
+                          <Selection.Control
+                            className={classes.button}
+                            packageHandle={packageHandle}
+                          />
+                        )}
                         {actions.revisePackage && (
                           <M.Button
                             className={classes.button}
@@ -360,9 +436,10 @@ function DirDisplay({
                         {actions.downloadPackage && (
                           <Download.DownloadButton
                             className={classes.button}
-                            label={path ? 'Download sub-package' : 'Download package'}
+                            label={downloadLabel}
                             onClick={openInDesktopState.confirm}
                             path={downloadPath}
+                            selection={slt.selection}
                           />
                         )}
                         <RevisionMenu
@@ -400,7 +477,18 @@ function DirDisplay({
                         />
                       )}
                       <M.Box mt={2}>
-                        {blocks.browser && <Listing.Listing items={items} key={hash} />}
+                        {blocks.browser && (
+                          <Listing.Listing
+                            onSelectionChange={handleSelection}
+                            selection={Selection.getDirectorySelection(
+                              slt.selection,
+                              bucket,
+                              path,
+                            )}
+                            items={items}
+                            key={hash}
+                          />
+                        )}
                         <Summary
                           path={path}
                           files={summaryHandles}
@@ -838,7 +926,7 @@ function PackageTree({
   size,
 }: PackageTreeProps) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<PackageRoutes>()
 
   // TODO: use urql to get bucket config
   // const data = useQuery({
@@ -857,8 +945,21 @@ function PackageTree({
     tailSeparator: path.endsWith('/'),
   })
 
+  const slt = Selection.use()
+  const guardNavigation = React.useCallback(
+    (location) =>
+      isStillBrowsingPackage(urls, location.pathname, {
+        bucket,
+        name,
+        hashOrTag,
+        hash,
+      }) || 'Selection will be lost. Clear selection and confirm navigation?',
+    [urls, bucket, name, hashOrTag, hash],
+  )
+
   return (
     <FileView.Root>
+      <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
       {/* TODO: bring back linked data after re-implementing it using graphql
       {!!bucketCfg &&
         revisionData.case({
@@ -979,19 +1080,21 @@ function PackageTreeQueries({
       }
 
       return (
-        <PackageTree
-          {...{
-            bucket,
-            name,
-            hashOrTag,
-            hash: d.package.revision?.hash,
-            size: d.package.revision?.totalBytes ?? undefined,
-            path,
-            mode,
-            resolvedFrom,
-            revisionListQuery,
-          }}
-        />
+        <Selection.Provider>
+          <PackageTree
+            {...{
+              bucket,
+              name,
+              hashOrTag,
+              hash: d.package.revision?.hash,
+              size: d.package.revision?.totalBytes ?? undefined,
+              path,
+              mode,
+              resolvedFrom,
+              revisionListQuery,
+            }}
+          />
+        </Selection.Provider>
       )
     },
   })
