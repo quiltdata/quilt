@@ -19,7 +19,7 @@ catalog. They are used to reference packages and objects relative to a Quilt
 bucket.  For example:
 
 <!-- markdownlint-disable-next-line line-length -->
-`quilt+s3://quilt-example#package=akarve/cord19@e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b&path=CORD19.ipynb&catalog=open.quiltdata.com`
+`quilt+s3://quilt-example#package=akarve/cord19@e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b&path=CORD19.ipynb`
 
 The URI above references a specific version of the `CORD19.ipynb` notebook in
 the `akarve/cord19` package of the `quilt-example` bucket.
@@ -53,7 +53,6 @@ In addition, it may contain the following optional components:
   `latest` tag is supported.  You may not specify both a top_hash and a tag.
 - `&path=<path>`: Fragment for the path to the object within the package, if
   any, e.g.ß `CORD19.ipynb`.
-- `&catalog=<catalog>`: Fragment for the DNS name of catalog where this package
   was located.
 
 Note that a given bucket may be available from zero or more catalogs,
