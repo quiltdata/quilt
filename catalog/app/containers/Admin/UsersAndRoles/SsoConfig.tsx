@@ -121,7 +121,10 @@ function Form({
             <FormError error={error || submitError} errors={FORM_ERRORS} />
             <M.Typography variant="body2">
               Learn more about{' '}
-              <StyledLink href={`${docs}/quilt-platform-administrator/advanced/sso-permissions`} target="_blank">
+              <StyledLink
+                href={`${docs}/quilt-platform-administrator/advanced/sso-permissions`}
+                target="_blank"
+              >
                 SSO permissions mapping
               </StyledLink>
               .

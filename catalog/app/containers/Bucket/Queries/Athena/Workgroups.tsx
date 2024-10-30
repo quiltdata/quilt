@@ -108,8 +108,10 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
       <M.Box mt={1}>
         <M.Typography variant="body2">
           Check{' '}
-          <StyledLink href={`${docs}/quilt-platform-catalog-user/advanced/athena`}>Athena Queries docs</StyledLink> on
-          setup and correct usage
+          <StyledLink href={`${docs}/quilt-platform-catalog-user/advanced/athena`}>
+            Athena Queries docs
+          </StyledLink>{' '}
+          on setup and correct usage
         </M.Typography>
       </M.Box>
     </>
