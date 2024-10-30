@@ -618,7 +618,9 @@ function SummaryFailed({ error }: SummaryFailedProps) {
       <M.Typography>Check your quilt_summarize.json file for errors.</M.Typography>
       <M.Typography>
         See the{' '}
-        <Link href={`${docs}/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json`}>
+        <Link
+          href={`${docs}/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json`}
+        >
           summarize docs
         </Link>{' '}
         for more.
