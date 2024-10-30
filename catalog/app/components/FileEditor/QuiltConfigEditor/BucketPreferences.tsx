@@ -12,7 +12,7 @@ function Header() {
   return (
     <M.Typography variant="body2">
       Configuration for Catalog UI: show and hide features, set default values. See{' '}
-      <StyledLink href={`${docs}/catalog/preferences`} target="_blank">
+      <StyledLink href={`${docs}/quilt-platform-administrator/preferences`} target="_blank">
         the docs
       </StyledLink>
     </M.Typography>

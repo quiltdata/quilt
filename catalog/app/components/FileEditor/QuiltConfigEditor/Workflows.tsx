@@ -18,7 +18,7 @@ function Header() {
   return (
     <M.Typography variant="body2">
       Configuration for data quality workflows. See{' '}
-      <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
+      <StyledLink href={`${docs}/workflows`} target="_blank">
         the docs
       </StyledLink>
     </M.Typography>

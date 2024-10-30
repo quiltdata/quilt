@@ -28,7 +28,7 @@ function EmptySlot({ bucket }: EmptySlotProps) {
       </M.Typography>
       <M.Typography>
         <StyledLink
-          href={`${docs}/advanced/workflows#cross-bucket-package-push-quilt-catalog`}
+          href={`${docs}/workflows#cross-bucket-package-push-quilt-catalog`}
           target="_blank"
         >
           Learn more
@@ -52,7 +52,7 @@ function ErrorSlot({ error }: ErrorSlotProps) {
       {error instanceof ERRORS.WorkflowsConfigInvalid && (
         <M.Typography>
           Please fix the workflows config according to{' '}
-          <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
+          <StyledLink href={`${docs}/workflows`} target="_blank">
             the documentation
           </StyledLink>
         </M.Typography>

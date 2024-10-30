@@ -54,7 +54,7 @@ export default function Status() {
               GxP and other compliance regimes.
             </M.Typography>
             <M.Typography align="center">
-              <StyledLink href={`${docs}/advanced/good-practice`} target="_blank">
+              <StyledLink href={`${docs}/quilt-platform-administrator/best-practices/good-practice`} target="_blank">
                 Learn more
               </StyledLink>{' '}
               or <StyledLink href="mailto:sales@quiltdata.io">contact sales</StyledLink>.
