@@ -75,3 +75,50 @@ export interface S3File {
   size: number
   version?: string
 }
+
+export const Loading = Symbol('loading')
+
+export type Maybe<T> = T | null
+
+// `T` is the value
+// `undefined` is no value. It is not loaded or doesn't exist in loaded data
+// `Loading` is loading, ok?
+// `Error` is error, ok?
+export type Data<T> = T | undefined | typeof Loading | Error
+
+// `T` is the value
+// `null` is no value, explicitly set by user
+// `undefined` is no value. It is not loaded or doesn't exist in loaded data
+// `Loading` is loading, ok?
+// `Error` is error, ok?
+export type Value<T> = Maybe<Data<T>>
+
+export function isError<T>(value: Value<T>): value is Error {
+  return value instanceof Error
+}
+
+export function isPending<T>(value: Value<T>): value is undefined | typeof Loading {
+  if (value === undefined || value === Loading) {
+    return true
+  }
+  return false
+}
+
+export function isFulfilled<T>(value: Value<T>): value is T | null {
+  if (value === undefined || value === Loading || value instanceof Error) {
+    return false
+  }
+  return true
+}
+
+export function isSelected<T>(value: Value<T>): value is T {
+  if (
+    value === undefined ||
+    value === Loading ||
+    value instanceof Error ||
+    value === null
+  ) {
+    return false
+  }
+  return true
+}

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import AceEditor from 'react-ace'
-import * as RRDom from 'react-router-dom'
+// import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -9,12 +9,14 @@ import 'ace-builds/src-noconflict/theme-eclipse'
 
 import { useConfirm } from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
-import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
+// import * as Notifications from 'containers/Notifications'
+import * as Model from 'model'
+// import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
-import * as requests from '../requests'
+// import * as requests from '../requests'
 
+import * as State from './State'
 import Database from './Database'
 
 const ATHENA_REF_INDEX = 'https://aws.amazon.com/athena/'
@@ -60,7 +62,11 @@ interface EditorFieldProps {
 
 function EditorField({ className, query, onChange }: EditorFieldProps) {
   const classes = useStyles()
+  const { query: selectedQuery } = State.use()
 
+  if (!Model.isFulfilled(selectedQuery)) {
+    return <h1>Not ready</h1>
+  }
   return (
     <div className={className}>
       <M.Typography className={classes.header} variant="body1">
@@ -82,50 +88,50 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
   )
 }
 
-function useQueryRun(
-  bucket: string,
-  workgroup: requests.athena.Workgroup,
-  queryExecutionId?: string,
-) {
-  const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<Error | undefined>()
-  const runQuery = requests.athena.useQueryRun(workgroup)
-  const { push: notify } = Notifications.use()
-  const goToExecution = React.useCallback(
-    (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
-    [bucket, history, urls, workgroup],
-  )
-  const onSubmit = React.useCallback(
-    async (value: string, executionContext: requests.athena.ExecutionContext | null) => {
-      setLoading(true)
-      setError(undefined)
-      try {
-        const { id } = await runQuery(value, executionContext)
-        if (id === queryExecutionId) notify('Query execution results remain unchanged')
-        setLoading(false)
-        goToExecution(id)
-      } catch (e) {
-        setLoading(false)
-        if (e instanceof Error) {
-          setError(e)
-        } else {
-          throw e
-        }
-      }
-    },
-    [goToExecution, notify, runQuery, queryExecutionId],
-  )
-  return React.useMemo(
-    () => ({
-      loading,
-      error,
-      onSubmit,
-    }),
-    [loading, error, onSubmit],
-  )
-}
+// function useQueryRun(
+//   bucket: string,
+//   workgroup: requests.athena.Workgroup,
+//   queryExecutionId?: string,
+// ) {
+//   const { urls } = NamedRoutes.use()
+//   const history = RRDom.useHistory()
+//   const [loading, setLoading] = React.useState(false)
+//   const [error, setError] = React.useState<Error | undefined>()
+//   const runQuery = requests.athena.useQueryRun(workgroup)
+//   const { push: notify } = Notifications.use()
+//   const goToExecution = React.useCallback(
+//     (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
+//     [bucket, history, urls, workgroup],
+//   )
+//   const onSubmit = React.useCallback(
+//     async (value: string, executionContext: requests.athena.ExecutionContext | null) => {
+//       setLoading(true)
+//       setError(undefined)
+//       try {
+//         const { id } = await runQuery(value, executionContext)
+//         if (id === queryExecutionId) notify('Query execution results remain unchanged')
+//         setLoading(false)
+//         goToExecution(id)
+//       } catch (e) {
+//         setLoading(false)
+//         if (e instanceof Error) {
+//           setError(e)
+//         } else {
+//           throw e
+//         }
+//       }
+//     },
+//     [goToExecution, notify, runQuery, queryExecutionId],
+//   )
+//   return React.useMemo(
+//     () => ({
+//       loading,
+//       error,
+//       onSubmit,
+//     }),
+//     [loading, error, onSubmit],
+//   )
+// }
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
   button: {
@@ -203,57 +209,61 @@ const useFormStyles = M.makeStyles((t) => ({
 }))
 
 interface FormProps {
-  bucket: string
   className?: string
-  onChange: (value: requests.athena.QueryExecution) => void
-  value: requests.athena.QueryExecution | null
-  workgroup: requests.athena.Workgroup
 }
 
-export function Form({ bucket, className, onChange, value, workgroup }: FormProps) {
+export function Form({ className }: FormProps) {
   const classes = useFormStyles()
+  const { catalogName, database, queryBody, setQueryBody, submit, execution } =
+    State.use()
 
-  const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
-    () =>
-      value?.catalog && value?.db
-        ? {
-            catalogName: value.catalog,
-            database: value.db,
-          }
-        : null,
-    [value],
-  )
+  // const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
+  //   () =>
+  //     Model.isSelected(catalogName) && Model.isSelected(database)
+  //       ? {
+  //           catalogName,
+  //           database,
+  //         }
+  //       : null,
+  //   [catalogName, database],
+  // )
+  // const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, query?.id)
   const confirm = useConfirm({
-    onSubmit: (confirmed) => {
-      if (confirmed) {
-        if (!value?.query) {
-          throw new Error('Query is not set')
-        }
-        onSubmit(value!.query, executionContext)
-      }
-    },
-    submitTitle: 'Proceed',
-    title: 'Execution context is not set',
+    onSubmit: () => submit(),
+    title: 'Confirm',
   })
-  const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, value?.id)
-  const handleSubmit = React.useCallback(() => {
-    if (!value?.query) return
-    if (!executionContext) {
-      return confirm.open()
-    }
-    onSubmit(value.query, executionContext)
-  }, [confirm, executionContext, onSubmit, value])
-  const handleExecutionContext = React.useCallback(
-    (exeContext) => {
-      if (!exeContext) {
-        onChange({ ...value, catalog: undefined, db: undefined })
-        return
-      }
-      const { catalogName, database } = exeContext
-      onChange({ ...value, catalog: catalogName, db: database })
-    },
-    [onChange, value],
-  )
+  // const confirm = useConfirm({
+  //   onSubmit: (confirmed) => {
+  //     if (!Model.isSelected(query)) return // TODO: throw error
+  //     if (confirmed) {
+  //       if (!query?.body) {
+  //         throw new Error('Query is not set')
+  //       }
+  //       onSubmit(query!.body, executionContext)
+  //     }
+  //   },
+  //   submitTitle: 'Proceed',
+  //   title: 'Execution context is not set',
+  // })
+  // const handleSubmit = React.useCallback(() => {
+  //   if (!Model.isSelected(query)) return // TODO: throw error
+  //   if (!query?.body) return
+  //   if (!executionContext) {
+  //     return confirm.open()
+  //   }
+  //   onSubmit(query.body, executionContext)
+  // }, [confirm, executionContext, onSubmit, value])
+
+  if (Model.isError(queryBody)) {
+    return (
+      <Lab.Alert className={classes.error} severity="error">
+        {queryBody.message}
+      </Lab.Alert>
+    )
+  }
+  if (Model.isPending(queryBody)) {
+    return <h1>Loading…</h1>
+  }
 
   return (
     <div className={className}>
@@ -262,28 +272,18 @@ export function Form({ bucket, className, onChange, value, workgroup }: FormProp
           Data catalog and database are not set. Run query without them?
         </M.Typography>,
       )}
-      <EditorField
-        onChange={(query: string) => onChange({ ...value, query })}
-        query={value?.query || ''}
-      />
-
-      {error && (
-        <Lab.Alert className={classes.error} severity="error">
-          {error.message}
-        </Lab.Alert>
-      )}
+      <EditorField onChange={setQueryBody} query={queryBody || ''} />
 
       <div className={classes.actions}>
-        <Database
-          className={classes.database}
-          onChange={handleExecutionContext}
-          value={executionContext}
-        />
+        <Database className={classes.database} />
         <M.Button
           variant="contained"
           color="primary"
-          disabled={!value || loading}
-          onClick={handleSubmit}
+          disabled={
+            (Model.isPending(execution) || !Model.isSelected(catalogName),
+            !Model.isSelected(database) || !queryBody)
+          }
+          onClick={submit}
         >
           Run query
         </M.Button>
