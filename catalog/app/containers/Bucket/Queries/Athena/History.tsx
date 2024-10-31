@@ -6,12 +6,14 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
+import * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import { trimCenter } from 'utils/string'
 
 import * as requests from '../requests'
+import * as State from './State'
 
 const useToggleButtonStyles = M.makeStyles({
   root: {
@@ -61,15 +63,12 @@ function Date({ date }: DateProps) {
 interface QueryDateCompletedProps {
   bucket: string
   queryExecution: requests.athena.QueryExecution
-  workgroup: requests.athena.Workgroup
 }
 
-function QueryDateCompleted({
-  bucket,
-  queryExecution,
-  workgroup,
-}: QueryDateCompletedProps) {
+function QueryDateCompleted({ bucket, queryExecution }: QueryDateCompletedProps) {
   const { urls } = NamedRoutes.use()
+  const { workgroup } = State.use()
+  if (!Model.isFulfilled(workgroup)) return null
   if (queryExecution.status !== 'SUCCEEDED') {
     return <Date date={queryExecution.completed} />
   }
@@ -146,10 +145,9 @@ function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
 interface ExecutionProps {
   bucket: string
   queryExecution: requests.athena.QueryExecution
-  workgroup: requests.athena.Workgroup
 }
 
-function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
+function Execution({ bucket, queryExecution }: ExecutionProps) {
   const [expanded, setExpanded] = React.useState(false)
   const onToggle = React.useCallback(() => setExpanded(!expanded), [expanded])
 
@@ -176,11 +174,7 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
           <Date date={queryExecution.created} />
         </M.TableCell>
         <M.TableCell>
-          <QueryDateCompleted
-            queryExecution={queryExecution}
-            bucket={bucket}
-            workgroup={workgroup}
-          />
+          <QueryDateCompleted queryExecution={queryExecution} bucket={bucket} />
         </M.TableCell>
       </M.TableRow>
       {queryExecution.query && (
@@ -225,22 +219,16 @@ interface HistoryProps {
   bucket: string
   executions: requests.athena.QueryExecution[]
   onLoadMore?: () => void
-  workgroup: requests.athena.Workgroup
 }
 
-export default function History({
-  bucket,
-  executions,
-  onLoadMore,
-  workgroup,
-}: HistoryProps) {
+export default function History({ bucket, executions, onLoadMore }: HistoryProps) {
   const classes = useStyles()
 
   const pageSize = 10
   const [page, setPage] = React.useState(1)
 
   const handlePagination = React.useCallback(
-    (event, value) => {
+    (_event, value) => {
       setPage(value)
     },
     [setPage],
@@ -278,7 +266,6 @@ export default function History({
               bucket={bucket}
               queryExecution={queryExecution}
               key={queryExecution.id}
-              workgroup={workgroup}
             />
           ))}
           {!executions.length && (

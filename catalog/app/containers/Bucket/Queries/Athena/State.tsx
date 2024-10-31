@@ -30,6 +30,7 @@ interface State {
   onExecutionsMore: () => void
   onQueriesMore: () => void
   onResultsMore: () => void
+  onWorkgroupsMore: () => void
   queries: Model.Data<requests.athena.QueriesResponse>
   query: Model.Value<requests.athena.AthenaQuery>
   queryBody: Model.Value<string> // No `null`?
@@ -38,6 +39,7 @@ interface State {
   setDatabase: (v: requests.athena.Database | null) => void
   setQuery: (v: requests.athena.AthenaQuery | null) => void
   setQueryBody: (v: string | null) => void
+  workgroups: Model.Data<requests.athena.WorkgroupsResponse>
 }
 
 const Ctx = React.createContext<State | null>(null)
@@ -58,6 +60,7 @@ export function Provider({ children }: ProviderProps) {
 
   // TODO: [data, loadMore] → { data: Model.Data, loadMore }
   // TODO: [value, setValue] → { value: Model.Value, setValue }
+  const [workgroups, onWorkgroupsMore] = requests.athena.useWorkgroups()
   const [catalogNames, onCatalogNamesMore] = requests.athena.useCatalogNamesCancelable()
   const [catalogName, setCatalogName] = requests.athena.useCatalogName(catalogNames)
   const [databases, onDatabasesMore] = requests.athena.useDatabasesCancelable(catalogName)
@@ -65,9 +68,9 @@ export function Provider({ children }: ProviderProps) {
   const [queries, onQueriesMore] = requests.athena.useQueriesCancelable(workgroup)
   const [query, setQuery] = requests.athena.useQuery(queries)
   const [queryBody, setQueryBody] = requests.athena.useQueryBody(query, setQuery)
-  const [results, onResultsMore] = requests.athena.useResultsCancelable(execution)
   const [executions, onExecutionsMore] =
     requests.athena.useExecutionsCancelable(workgroup)
+  const [results, onResultsMore] = requests.athena.useResultsCancelable(execution)
 
   const submit = () => {
     //console.log('SUBMIT', {
@@ -81,6 +84,8 @@ export function Provider({ children }: ProviderProps) {
   const value: State = {
     submit,
 
+    workgroups,
+    onWorkgroupsMore,
     executions,
     onExecutionsMore,
     catalogName,

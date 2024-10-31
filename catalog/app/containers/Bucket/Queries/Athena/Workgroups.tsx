@@ -4,12 +4,14 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { docs } from 'constants/urls'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import Skeleton from 'components/Skeleton'
+import * as Model from 'model'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
 import * as requests from '../requests'
 import * as storage from '../requests/storage'
+import * as State from './State'
 
 import { Alert, Section } from './Components'
 
@@ -135,35 +137,35 @@ function RedirectToDefaultWorkgroup({
 
 interface AthenaWorkgroupsProps {
   bucket: string
-  workgroup: requests.athena.Workgroup | null
 }
 
-export default function AthenaWorkgroups({ bucket, workgroup }: AthenaWorkgroupsProps) {
-  const [prev, setPrev] = React.useState<requests.athena.WorkgroupsResponse | null>(null)
-  const data = requests.athena.useWorkgroups(prev)
-  return data.case({
-    Ok: (workgroups) => {
-      if (!workgroup && workgroups.defaultWorkgroup)
-        return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups} />
-      return (
-        <Section title="Select workgroup" empty={<WorkgroupsEmpty />}>
-          {workgroups.list.length && (
-            <WorkgroupSelect
-              bucket={bucket}
-              onLoadMore={setPrev}
-              value={workgroup}
-              workgroups={workgroups}
-            />
-          )}
-        </Section>
-      )
-    },
-    Err: (error) => <WorkgroupsEmpty error={error} />,
-    _: () => (
+export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
+  const { workgroup, workgroups, onWorkgroupsMore } = State.use()
+
+  if (Model.isError(workgroups)) return <WorkgroupsEmpty error={workgroups} />
+  if (!Model.isValue(workgroups)) {
+    return (
       <>
         <Skeleton height={24} width={128} animate />
         <Skeleton height={48} mt={1} animate />
       </>
-    ),
-  })
+    )
+  }
+
+  if (!workgroup && workgroups.defaultWorkgroup) {
+    return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups} />
+  }
+
+  return (
+    <Section title="Select workgroup" empty={<WorkgroupsEmpty />}>
+      {workgroups.list.length && (
+        <WorkgroupSelect
+          bucket={bucket}
+          onLoadMore={onWorkgroupsMore}
+          value={workgroup || null}
+          workgroups={workgroups}
+        />
+      )}
+    </Section>
+  )
 }

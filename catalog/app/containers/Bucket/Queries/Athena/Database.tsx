@@ -85,13 +85,22 @@ function Select({
   return (
     <M.FormControl className={cx(classes.root, className)} disabled={disabled}>
       <M.InputLabel>{label}</M.InputLabel>
-      <M.Select onChange={handleChange} value={value?.toLowerCase()}>
+      <M.Select
+        onChange={handleChange}
+        value={value?.toLowerCase()}
+        disabled={!data.list.length}
+      >
         {data.list.map((item) => (
           <M.MenuItem key={item} value={item.toLowerCase()}>
             {item}
           </M.MenuItem>
         ))}
         {data.next && <M.MenuItem value={LOAD_MORE}>Load more</M.MenuItem>}
+        {!data.list.length && (
+          <M.MenuItem value={value?.toLowerCase() || undefined}>
+            {value || 'Empty list'}
+          </M.MenuItem>
+        )}
       </M.Select>
     </M.FormControl>
   )
@@ -103,14 +112,14 @@ interface SelectCatalogNameProps {
 
 function SelectCatalogName({ className }: SelectCatalogNameProps) {
   const { catalogName, setCatalogName, catalogNames, onCatalogNamesMore } = State.use()
-  if (Model.isPending(catalogName) || Model.isPending(catalogNames)) {
-    return <Skeleton className={className} height={32} animate />
-  }
   if (Model.isError(catalogNames)) {
     return <SelectError className={className} error={catalogNames} />
   }
   if (Model.isError(catalogName)) {
     return <SelectError className={className} error={catalogName} />
+  }
+  if (!Model.isValue(catalogName) || !Model.isData(catalogNames)) {
+    return <Skeleton className={className} height={32} animate />
   }
 
   return (
@@ -137,7 +146,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   if (Model.isError(database)) {
     return <SelectError className={className} error={database} />
   }
-  if (Model.isPending(database) || Model.isPending(databases)) {
+  if (!Model.isValue(database) || !Model.isData(databases)) {
     return <Skeleton className={className} height={32} animate />
   }
 

@@ -122,3 +122,54 @@ export function isSelected<T>(value: Value<T>): value is T {
   }
   return true
 }
+
+// Data is loaded
+// or value is set to actual value
+export function isData<T>(value: Value<T>): value is T {
+  if (
+    value === undefined ||
+    value === Loading ||
+    value instanceof Error ||
+    value === null
+  ) {
+    return false
+  }
+  return true
+}
+
+// Value is selected with some or no value, or resolved with error
+// Or, data is loaded
+export function isValueResolved<T>(value: Value<T>): value is T | null | Error {
+  if (value === undefined || value === Loading) {
+    return false
+  }
+  return true
+}
+
+// Value is selected with some or no value
+// Or, data is loaded successfully
+export function isValue<T>(value: Value<T>): value is T | null {
+  if (value === undefined || value === Loading || value instanceof Error) {
+    return false
+  }
+  return true
+}
+
+// Data is loading, or value is waiting for data
+export function isLoading<T>(value: Value<T>): value is typeof Loading {
+  return value === Loading
+}
+
+// No value yet, value or data was just initialized
+export function isNone<T>(value: Value<T>): value is undefined {
+  return value === undefined
+}
+
+// User explicitly set no value
+export function isNoneSelected<T>(value: Value<T>): value is null {
+  return value === null
+}
+
+export function takeError<T>(error: Value<T>): Error | undefined {
+  return isError(error) ? error : undefined
+}

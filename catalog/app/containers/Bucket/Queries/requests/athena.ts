@@ -170,10 +170,10 @@ async function fetchWorkgroups({
   }
 }
 
-export function useWorkgroups(
-  prev: WorkgroupsResponse | null,
-): AsyncData<WorkgroupsResponse> {
+export function useWorkgroups(): [Model.Data<WorkgroupsResponse>, () => void] {
   const athena = AWS.Athena.use()
+  const [prev, setPrev] = React.useState<WorkgroupsResponse | null>(null)
+  const [data, setData] = React.useState<Model.Data<WorkgroupsResponse>>()
   const prefs = BucketPreferences.use()
   const preferences = React.useMemo(
     () =>
@@ -186,7 +186,15 @@ export function useWorkgroups(
       ),
     [prefs],
   )
-  return useData(fetchWorkgroups, { athena, prev, preferences })
+  React.useEffect(() => {
+    if (!athena) return
+    fetchWorkgroups({ athena, prev, preferences }).then(setData).catch(setData)
+  }, [athena, prev, preferences])
+  const loadMore = React.useCallback(
+    () => Model.isFulfilled(data) && setPrev(data),
+    [data],
+  )
+  return [data, loadMore]
 }
 
 export interface QueryExecution {
@@ -297,10 +305,11 @@ export function useExecutionsCancelable(
           return
         }
         if (!QueryExecutionIds || !QueryExecutionIds.length) {
-          return {
+          setData({
             list: [],
             next,
-          }
+          })
+          return
         }
         batchRequest = athena?.batchGetQueryExecution(
           { QueryExecutionIds },
@@ -313,10 +322,10 @@ export function useExecutionsCancelable(
               .map(parseQueryExecution)
               .concat((UnprocessedQueryExecutionIds || []).map(parseQueryExecutionError))
             const list = (prev?.list || []).concat(parsed)
-            return {
+            setData({
               list,
               next,
-            }
+            })
           },
         )
       },
@@ -819,7 +828,7 @@ export function useQuery(
       }
       // TODO: If new queries list DOESn't contain the same value,
       //       should be `undefined`?
-      return queries.list[0]
+      return queries.list[0] || null
     })
   }, [queries])
   return [value, setValue]
@@ -831,11 +840,9 @@ export function useQueryBody(
 ): [Model.Value<string>, (value: string | null) => void] {
   const [value, setValue] = React.useState<Model.Value<string>>()
   React.useEffect(() => {
-    if (!Model.isSelected(query)) return
-    // Override querybody every type query changed/selected
-    // if (typeof value === 'undefined')
-    setValue(query.body)
-    // }
+    if (Model.isValue(query)) {
+      setValue(query?.body || null)
+    }
   }, [query])
   const handleValue = React.useCallback(
     (v: string | null) => {

@@ -1,3 +1,4 @@
+// import cx from 'classnames'
 import * as React from 'react'
 import AceEditor from 'react-ace'
 // import * as RRDom from 'react-router-dom'
@@ -54,21 +55,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface EditorFieldProps {
-  className?: string
-  onChange: (value: string) => void
-  query: string
-}
+interface EditorFieldProps {}
 
-function EditorField({ className, query, onChange }: EditorFieldProps) {
+function EditorField({}: EditorFieldProps) {
   const classes = useStyles()
-  const { query: selectedQuery } = State.use()
-
-  if (!Model.isFulfilled(selectedQuery)) {
-    return <h1>Not ready</h1>
+  const { queryBody, setQueryBody } = State.use()
+  if (Model.isError(queryBody)) {
+    return <Lab.Alert severity="error">{queryBody.message}</Lab.Alert>
   }
+  if (!Model.isData(queryBody)) {
+    return <FormSkeleton />
+  }
+
   return (
-    <div className={className}>
+    <div>
       <M.Typography className={classes.header} variant="body1">
         Query body
       </M.Typography>
@@ -77,9 +77,9 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
           editorProps={{ $blockScrolling: true }}
           height="200px"
           mode="sql"
-          onChange={onChange}
+          onChange={setQueryBody}
           theme="eclipse"
-          value={query}
+          value={queryBody}
           width="100%"
         />
       </M.Paper>
@@ -134,11 +134,11 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
 // }
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
-  button: {
-    height: t.spacing(4),
-    marginTop: t.spacing(2),
-    width: t.spacing(14),
-  },
+  // button: {
+  //   height: t.spacing(4),
+  //   marginTop: t.spacing(2),
+  //   width: t.spacing(14),
+  // },
   canvas: {
     flexGrow: 1,
     height: t.spacing(27),
@@ -163,7 +163,7 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
 }))
 
 interface FormSkeletonProps {
-  className: string
+  className?: string
 }
 
 function FormSkeleton({ className }: FormSkeletonProps) {
@@ -176,7 +176,9 @@ function FormSkeleton({ className }: FormSkeletonProps) {
         <Skeleton className={classes.canvas} animate />
       </div>
       <HelperText />
+      {/*
       <Skeleton className={classes.button} animate />
+        */}
     </div>
   )
 }
@@ -209,61 +211,18 @@ const useFormStyles = M.makeStyles((t) => ({
 }))
 
 interface FormProps {
-  className?: string
+  className: string
 }
 
 export function Form({ className }: FormProps) {
   const classes = useFormStyles()
-  const { catalogName, database, queryBody, setQueryBody, submit, execution } =
-    State.use()
 
-  // const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
-  //   () =>
-  //     Model.isSelected(catalogName) && Model.isSelected(database)
-  //       ? {
-  //           catalogName,
-  //           database,
-  //         }
-  //       : null,
-  //   [catalogName, database],
-  // )
-  // const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, query?.id)
+  const { catalogName, database, queryBody, submit, execution } = State.use()
+
   const confirm = useConfirm({
     onSubmit: () => submit(),
     title: 'Confirm',
   })
-  // const confirm = useConfirm({
-  //   onSubmit: (confirmed) => {
-  //     if (!Model.isSelected(query)) return // TODO: throw error
-  //     if (confirmed) {
-  //       if (!query?.body) {
-  //         throw new Error('Query is not set')
-  //       }
-  //       onSubmit(query!.body, executionContext)
-  //     }
-  //   },
-  //   submitTitle: 'Proceed',
-  //   title: 'Execution context is not set',
-  // })
-  // const handleSubmit = React.useCallback(() => {
-  //   if (!Model.isSelected(query)) return // TODO: throw error
-  //   if (!query?.body) return
-  //   if (!executionContext) {
-  //     return confirm.open()
-  //   }
-  //   onSubmit(query.body, executionContext)
-  // }, [confirm, executionContext, onSubmit, value])
-
-  if (Model.isError(queryBody)) {
-    return (
-      <Lab.Alert className={classes.error} severity="error">
-        {queryBody.message}
-      </Lab.Alert>
-    )
-  }
-  if (Model.isPending(queryBody)) {
-    return <h1>Loading…</h1>
-  }
 
   return (
     <div className={className}>
@@ -272,7 +231,7 @@ export function Form({ className }: FormProps) {
           Data catalog and database are not set. Run query without them?
         </M.Typography>,
       )}
-      <EditorField onChange={setQueryBody} query={queryBody || ''} />
+      <EditorField />
 
       <div className={classes.actions}>
         <Database className={classes.database} />
