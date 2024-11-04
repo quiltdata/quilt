@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
-import Skeleton from 'components/Skeleton'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
@@ -36,7 +35,7 @@ function Version() {
   const classes = useVersionStyles()
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
-    copyToClipboard(cfg.stackVersion || '')
+    copyToClipboard(cfg.stackVersion)
     push('Web catalog container hash has been copied to clipboard')
   }, [push])
   return (
@@ -206,9 +205,7 @@ export default function Footer() {
           </M.Box>
         </M.Container>
         <M.Container maxWidth="lg">
-          <React.Suspense fallback={<Skeleton width={80} height={14} />}>
-            <Version />
-          </React.Suspense>
+          <Version />
         </M.Container>
       </footer>
     </M.MuiThemeProvider>
