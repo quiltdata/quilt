@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
-import wait from 'utils/wait'
 
 import * as Model from '../Athena/model'
 
@@ -17,11 +16,6 @@ export interface AthenaQuery {
   description?: string
   key: string
   name: string
-}
-
-export interface QueriesResponse {
-  list: AthenaQuery[]
-  next?: string
 }
 
 function parseNamedQuery(query: Athena.NamedQuery): AthenaQuery {
@@ -157,14 +151,9 @@ export interface QueryExecution {
   workgroup?: Athena.WorkGroupName
 }
 
-export interface QueryExecutionsResponse {
-  list: QueryExecution[]
-  next?: string
-}
-
 interface QueryExecutionsArgs {
   athena: Athena
-  prev: QueryExecutionsResponse | null
+  prev: Model.List<QueryExecution> | null
   workgroup: string
 }
 
@@ -195,7 +184,7 @@ async function fetchQueryExecutions({
   athena,
   prev,
   workgroup,
-}: QueryExecutionsArgs): Promise<QueryExecutionsResponse> {
+}: QueryExecutionsArgs): Promise<Model.List<QueryExecution>> {
   try {
     const executionIdsOutput = await athena
       .listQueryExecutions({ WorkGroup: workgroup, NextToken: prev?.next })
@@ -234,10 +223,10 @@ async function fetchQueryExecutions({
 
 export function useExecutions(
   workgroup?: string,
-): Model.DataController<QueryExecutionsResponse> {
+): Model.DataController<Model.List<QueryExecution>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<QueryExecutionsResponse | null>(null)
-  const [data, setData] = React.useState<Model.Data<QueryExecutionsResponse>>()
+  const [prev, setPrev] = React.useState<Model.List<QueryExecution> | null>(null)
+  const [data, setData] = React.useState<Model.Data<Model.List<QueryExecution>>>()
 
   React.useEffect(() => {
     if (!workgroup) return
@@ -287,8 +276,8 @@ export function useExecutions(
 
 export function useQueryExecutions(
   workgroup: string,
-  prev: QueryExecutionsResponse | null,
-): AsyncData<QueryExecutionsResponse> {
+  prev: Model.List<QueryExecution> | null,
+): AsyncData<Model.List<QueryExecution>> {
   const athena = AWS.Athena.use()
   return useData(
     fetchQueryExecutions,
@@ -367,46 +356,6 @@ export function useWaitForQueryExecution(
   return data
 }
 
-async function waitForQueryStatus(
-  athena: Athena,
-  QueryExecutionId: string,
-): Promise<QueryExecution> {
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    // NOTE: await is used to intentionally pause loop and make requests in series
-    // eslint-disable-next-line no-await-in-loop
-    const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
-    const status = statusData?.QueryExecution?.Status?.State
-    const parsed = statusData?.QueryExecution
-      ? parseQueryExecution(statusData?.QueryExecution)
-      : {
-          id: QueryExecutionId,
-        }
-    switch (status) {
-      case 'FAILED':
-      case 'CANCELLED': {
-        const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
-        return {
-          ...parsed,
-          error: new Error(`${status}: ${reason}`),
-        }
-      }
-      case 'SUCCEEDED':
-        return parsed
-      case 'QUEUED':
-      case 'RUNNING':
-        // eslint-disable-next-line no-await-in-loop
-        await wait(1000)
-        break
-      default:
-        return {
-          ...parsed,
-          error: new Error('Unknown query execution status'),
-        }
-    }
-  }
-}
-
 export type QueryResultsValue = Athena.datumString
 
 export interface QueryResultsColumnInfo {
@@ -421,7 +370,6 @@ export type QueryResultsRows = Row[]
 export interface QueryResultsResponse {
   columns: QueryResultsColumns
   next?: string
-  queryExecution: QueryExecution
   rows: QueryResultsRows
 }
 
@@ -431,96 +379,17 @@ export interface QueryManifestsResponse extends QueryResultsResponse {
   rows: [ManifestKey[], ...string[][]]
 }
 
-interface QueryResultsArgs {
-  athena: Athena
-  queryExecutionId: string
-  prev: QueryResultsResponse | null
-}
-
 const emptyRow: Row = []
 const emptyList: QueryResultsRows = []
 const emptyColumns: QueryResultsColumns = []
-
-async function fetchQueryResults({
-  athena,
-  queryExecutionId,
-  prev,
-}: QueryResultsArgs): Promise<QueryResultsResponse> {
-  const queryExecution = await waitForQueryStatus(athena, queryExecutionId)
-  if (queryExecution.error) {
-    return {
-      rows: emptyList,
-      columns: emptyColumns,
-      queryExecution,
-    }
-  }
-
-  try {
-    const queryResultsOutput = await athena
-      .getQueryResults({
-        QueryExecutionId: queryExecutionId,
-        NextToken: prev?.next,
-      })
-      .promise()
-    const parsed =
-      queryResultsOutput.ResultSet?.Rows?.map(
-        (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
-      ) || emptyList
-    const rows = [...(prev?.rows || emptyList), ...parsed]
-    const columns =
-      queryResultsOutput.ResultSet?.ResultSetMetadata?.ColumnInfo?.map(
-        ({ Name, Type }) => ({
-          name: Name,
-          type: Type,
-        }),
-      ) || emptyColumns
-    const isHeadColumns = columns.every(({ name }, index) => name === rows[0][index])
-    return {
-      rows: isHeadColumns ? rows.slice(1) : rows,
-      columns,
-      next: queryResultsOutput.NextToken,
-      queryExecution,
-    }
-  } catch (error) {
-    // TODO: return error instead of emptyList and emptyColumns
-    return {
-      rows: emptyList,
-      columns: emptyColumns,
-      queryExecution: {
-        ...queryExecution,
-        error: error instanceof Error ? error : new Error(`${error}`),
-      },
-    }
-  }
-}
-
-export function useQueryResults(
-  queryExecutionId: string | null,
-  prev: QueryResultsResponse | null,
-): AsyncData<QueryResultsResponse> {
-  const athena = AWS.Athena.use()
-  return useData(
-    fetchQueryResults,
-    { athena, prev, queryExecutionId },
-    { noAutoFetch: !queryExecutionId },
-  )
-}
 
 export interface QueryRunResponse {
   id: string
 }
 
 export type CatalogName = string
-export interface CatalogNamesResponse {
-  list: CatalogName[]
-  next?: string
-}
 
 export type Database = string
-export interface DatabasesResponse {
-  list: CatalogName[]
-  next?: string
-}
 
 export type QueryId = string
 export interface QueriesIdsResponse {
@@ -528,10 +397,12 @@ export interface QueriesIdsResponse {
   next?: string
 }
 
-export function useQueries(workgroup?: string): Model.DataController<QueriesResponse> {
+export function useQueries(
+  workgroup?: string,
+): Model.DataController<Model.List<AthenaQuery>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<QueriesResponse | null>(null)
-  const [data, setData] = React.useState<Model.Data<QueriesResponse>>()
+  const [prev, setPrev] = React.useState<Model.List<AthenaQuery> | null>(null)
+  const [data, setData] = React.useState<Model.Data<Model.List<AthenaQuery>>>()
   React.useEffect(() => {
     if (!workgroup) return
     setData(Model.Loading)
@@ -622,7 +493,6 @@ export function useResults(
           rows: isHeadColumns ? rows.slice(1) : rows,
           columns,
           next,
-          queryExecution: execution,
         })
       },
     )
@@ -633,10 +503,10 @@ export function useResults(
 
 export function useDatabases(
   catalogName: Model.Value<CatalogName>,
-): Model.DataController<DatabasesResponse> {
+): Model.DataController<Model.List<Database>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<DatabasesResponse | null>(null)
-  const [data, setData] = React.useState<Model.Data<DatabasesResponse>>()
+  const [prev, setPrev] = React.useState<Model.List<Database> | null>(null)
+  const [data, setData] = React.useState<Model.Data<Model.List<Database>>>()
   React.useEffect(() => {
     if (!Model.isSelected(catalogName)) {
       // TODO: setData(undefined)?
@@ -682,10 +552,10 @@ function wrapData<T>(
   }
 }
 
-export function useCatalogNames(): Model.DataController<CatalogNamesResponse> {
+export function useCatalogNames(): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<CatalogNamesResponse | null>(null)
-  const [data, setData] = React.useState<Model.Data<CatalogNamesResponse>>()
+  const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
+  const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
   React.useEffect(() => {
     const request = athena?.listDataCatalogs(
       { NextToken: prev?.next },
@@ -710,7 +580,7 @@ export function useCatalogNames(): Model.DataController<CatalogNamesResponse> {
 }
 
 export function useQuery(
-  queries: Model.Data<QueriesResponse>,
+  queries: Model.Data<Model.List<AthenaQuery>>,
 ): Model.ValueController<AthenaQuery> {
   const [value, setValue] = React.useState<Model.Value<AthenaQuery>>()
   React.useEffect(() => {
@@ -720,7 +590,7 @@ export function useQuery(
         // If new queries list contains the same value, keep it
         return v
       }
-      // TODO: If new queries list DOESn't contain the same value,
+      // TODO: If new queries list DOESN'T contain the same value,
       //       should be `undefined`?
       return queries.list[0] || null
     })
@@ -749,7 +619,7 @@ export function useQueryBody(
 }
 
 export function useCatalogName(
-  catalogNames: Model.Data<CatalogNamesResponse>,
+  catalogNames: Model.Data<Model.List<CatalogName>>,
 ): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>()
   React.useEffect(() => {
@@ -759,7 +629,7 @@ export function useCatalogName(
         // If new catalog names list contains the same value, keep it
         return v
       }
-      // TODO: If new catalog names list DOESn't contain the same value,
+      // TODO: If new catalog names list DOESN'T contain the same value,
       //       should be `undefined`?
       return catalogNames.list[0]
     })
@@ -768,7 +638,7 @@ export function useCatalogName(
 }
 
 export function useDatabase(
-  databases: Model.Data<DatabasesResponse>,
+  databases: Model.Data<Model.List<Database>>,
 ): Model.ValueController<Database> {
   const [value, setValue] = React.useState<Model.Value<Database>>()
   React.useEffect(() => {
@@ -782,7 +652,7 @@ export function useDatabase(
         // If new databases list contains the same value, keep it
         return v
       }
-      // TODO: If new databases list DOESn't contain the same value,
+      // TODO: If new databases list DOESN'T contain the same value,
       //       should be `undefined`?
       return databases.list[0]
     })
