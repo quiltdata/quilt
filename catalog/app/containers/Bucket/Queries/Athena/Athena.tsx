@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
-import * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -19,6 +18,7 @@ import History from './History'
 import Results from './Results'
 import * as State from './State'
 import Workgroups from './Workgroups'
+import * as Model from './model'
 
 interface QuerySelectSkeletonProps {
   className?: string

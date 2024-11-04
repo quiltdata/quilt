@@ -1,15 +1,15 @@
 import Athena from 'aws-sdk/clients/athena'
 import * as React from 'react'
 
-import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import wait from 'utils/wait'
 
-import * as storage from './storage'
+import * as Model from '../Athena/model'
 
-import { AsyncData } from './requests'
+import * as storage from './storage'
+import type { AsyncData } from './requests'
 
 // TODO: rename to requests.athena.Query
 export interface AthenaQuery {
@@ -669,7 +669,6 @@ function wrapValue<T>(
   return {
     value,
     setValue,
-    // TODO: isData, isError etc.
   }
 }
 
@@ -680,7 +679,6 @@ function wrapData<T>(
   return {
     data,
     loadMore: () => Model.hasData(data) && setPrev(data),
-    // TODO: isData, isError etc.
   }
 }
 

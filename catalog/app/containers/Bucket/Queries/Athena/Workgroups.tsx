@@ -5,14 +5,14 @@ import * as Lab from '@material-ui/lab'
 
 import { docs } from 'constants/urls'
 import Skeleton from 'components/Skeleton'
-import * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
 import * as requests from '../requests'
 import * as storage from '../requests/storage'
-import * as State from './State'
 
+import * as State from './State'
+import * as Model from './model'
 import { Alert, Section } from './Components'
 
 const useStyles = M.makeStyles((t) => ({

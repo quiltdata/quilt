@@ -3,11 +3,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import * as Model from 'model'
 import Skeleton from 'components/Skeleton'
 import * as Dialogs from 'utils/GlobalDialogs'
 
 import * as State from './State'
+import * as Model from './model'
 
 interface SelectErrorProps {
   className?: string

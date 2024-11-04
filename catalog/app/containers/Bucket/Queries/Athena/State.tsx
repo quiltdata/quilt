@@ -2,9 +2,9 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
-import * as Model from 'model'
-
 import * as requests from '../requests'
+
+import * as Model from './model'
 
 interface State {
   bucket: string

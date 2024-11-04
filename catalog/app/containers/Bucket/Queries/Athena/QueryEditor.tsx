@@ -11,7 +11,6 @@ import 'ace-builds/src-noconflict/theme-eclipse'
 import { useConfirm } from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
 // import * as Notifications from 'containers/Notifications'
-import * as Model from 'model'
 // import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
@@ -19,6 +18,7 @@ import StyledLink from 'utils/StyledLink'
 
 import * as State from './State'
 import Database from './Database'
+import * as Model from './model'
 
 const ATHENA_REF_INDEX = 'https://aws.amazon.com/athena/'
 const ATHENA_REF_SQL =

@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
-import * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
@@ -14,6 +13,7 @@ import { trimCenter } from 'utils/string'
 
 import * as requests from '../requests'
 import * as State from './State'
+import * as Model from './model'
 
 const useToggleButtonStyles = M.makeStyles({
   root: {
@@ -68,7 +68,7 @@ interface QueryDateCompletedProps {
 function QueryDateCompleted({ bucket, queryExecution }: QueryDateCompletedProps) {
   const { urls } = NamedRoutes.use()
   const { workgroup } = State.use()
-  if (!Model.isFulfilled(workgroup)) return null
+  if (!Model.hasValue(workgroup)) return null
   if (queryExecution.status !== 'SUCCEEDED') {
     return <Date date={queryExecution.completed} />
   }
