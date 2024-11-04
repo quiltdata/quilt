@@ -103,24 +103,10 @@ export interface ValueController<T> {
   setValue: (v: T | null) => void
 }
 
-export function isError<T>(value: Value<T>): value is Error {
-  return value instanceof Error
-}
+// Bad
 
 export function isFulfilled<T>(value: Value<T>): value is T | null {
   if (value === undefined || value === Loading || value instanceof Error) {
-    return false
-  }
-  return true
-}
-
-export function isSelected<T>(value: Value<T>): value is T {
-  if (
-    value === undefined ||
-    value === Loading ||
-    value instanceof Error ||
-    value === null
-  ) {
     return false
   }
   return true
@@ -158,6 +144,24 @@ export function isValue<T>(value: Value<T>): value is T | null {
   return true
 }
 
+// Good
+
+export function isSelected<T>(value: Value<T>): value is T {
+  if (
+    value === undefined ||
+    value === Loading ||
+    value instanceof Error ||
+    value === null
+  ) {
+    return false
+  }
+  return true
+}
+
+export function isError<T>(value: Value<T>): value is Error {
+  return value instanceof Error
+}
+
 // Data is loading, or value is waiting for data
 export function isLoading<T>(value: Value<T>): value is typeof Loading {
   return value === Loading
@@ -171,8 +175,4 @@ export function isNone<T>(value: Value<T>): value is undefined {
 // User explicitly set no value
 export function isNoneSelected<T>(value: Value<T>): value is null {
   return value === null
-}
-
-export function takeError<T>(error: Value<T>): Error | undefined {
-  return isError(error) ? error : undefined
 }

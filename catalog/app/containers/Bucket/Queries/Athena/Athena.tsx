@@ -48,8 +48,6 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     return <QuerySelectSkeleton className={className} />
   }
 
-  const queryError = Model.takeError(query.value)
-
   return (
     <Section
       className={className}
@@ -64,7 +62,9 @@ function QueryConstructor({ className }: QueryConstructorProps) {
           value={Model.isError(query.value) ? null : query.value}
         />
       )}
-      {queryError && <M.FormHelperText error>{queryError.message}</M.FormHelperText>}
+      {Model.isError(query.value) && (
+        <M.FormHelperText error>{query.value.message}</M.FormHelperText>
+      )}
     </Section>
   )
 }
