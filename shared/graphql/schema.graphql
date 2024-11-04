@@ -532,10 +532,6 @@ type Me {
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
 
-type Stack {
-  version: String!
-}
-
 type Query {
   me: Me
 
@@ -558,7 +554,6 @@ type Query {
   ): PackagesSearchResult!
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
-  stack: Stack!
   subscription: SubscriptionState!
 
   admin: AdminQueries! @admin

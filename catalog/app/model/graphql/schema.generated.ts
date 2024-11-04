@@ -4177,18 +4177,6 @@ export default {
             ],
           },
           {
-            name: 'stack',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'Stack',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'subscription',
             type: {
               kind: 'NON_NULL',
@@ -5021,25 +5009,6 @@ export default {
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
-        name: 'Stack',
-        fields: [
-          {
-            name: 'version',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
             },
             args: [],
           },

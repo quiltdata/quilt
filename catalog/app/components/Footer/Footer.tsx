@@ -10,11 +10,8 @@ import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
-
-import STACK_QUERY from 'utils/Stack.generated'
 
 import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
@@ -36,13 +33,12 @@ const useVersionStyles = M.makeStyles((t) => ({
 }))
 
 function Version() {
-  const { stack } = GQL.useQueryS(STACK_QUERY)
   const classes = useVersionStyles()
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
-    copyToClipboard(stack.version || '')
+    copyToClipboard(cfg.stackVersion || '')
     push('Web catalog container hash has been copied to clipboard')
-  }, [push, stack.version])
+  }, [push])
   return (
     <M.Typography
       className={classes.revision}
@@ -50,7 +46,7 @@ function Version() {
       title="Copy product revision hash to clipboard"
       variant="caption"
     >
-      Version: {stack.version}
+      Version: {cfg.stackVersion}
     </M.Typography>
   )
 }
