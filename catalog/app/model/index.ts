@@ -114,7 +114,7 @@ export function isFulfilled<T>(value: Value<T>): value is T | null {
 
 // Data is loaded
 // or value is set to actual value
-export function isData<T>(value: Value<T>): value is T {
+export function hasData<T>(value: Value<T>): value is T {
   if (
     value === undefined ||
     value === Loading ||
@@ -128,7 +128,7 @@ export function isData<T>(value: Value<T>): value is T {
 
 // Value is selected with some or no value, or resolved with error
 // Or, data is loaded
-export function isValueResolved<T>(value: Value<T>): value is T | null | Error {
+export function isObtained<T>(value: Value<T>): value is T | null | Error {
   if (value === undefined || value === Loading) {
     return false
   }
@@ -137,7 +137,7 @@ export function isValueResolved<T>(value: Value<T>): value is T | null | Error {
 
 // Value is selected with some or no value
 // Or, data is loaded successfully
-export function isValue<T>(value: Value<T>): value is T | null {
+export function hasValue<T>(value: Value<T>): value is T | null {
   if (value === undefined || value === Loading || value instanceof Error) {
     return false
   }

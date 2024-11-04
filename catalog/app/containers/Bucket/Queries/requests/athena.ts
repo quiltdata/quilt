@@ -360,7 +360,7 @@ export function useWaitForQueryExecution(
     return () => clearInterval(t)
   }, [fetch])
   React.useEffect(() => {
-    if (Model.isFulfilled(data) && timer) {
+    if (Model.hasValue(data) && timer) {
       clearInterval(timer)
     }
   }, [timer, data])
@@ -591,7 +591,7 @@ export function useResults(
       setData(undefined)
       return
     }
-    if (!Model.isFulfilled(execution)) {
+    if (!Model.hasValue(execution)) {
       setData(execution)
       return
     }
@@ -679,7 +679,7 @@ function wrapData<T>(
 ): Model.DataController<T> {
   return {
     data,
-    loadMore: () => Model.isData(data) && setPrev(data),
+    loadMore: () => Model.hasData(data) && setPrev(data),
     // TODO: isData, isError etc.
   }
 }
@@ -716,7 +716,7 @@ export function useQuery(
 ): Model.ValueController<AthenaQuery> {
   const [value, setValue] = React.useState<Model.Value<AthenaQuery>>()
   React.useEffect(() => {
-    if (!Model.isFulfilled(queries)) return
+    if (!Model.hasValue(queries)) return
     setValue((v) => {
       if (Model.isSelected(v) && queries.list.includes(v)) {
         // If new queries list contains the same value, keep it
@@ -736,7 +736,7 @@ export function useQueryBody(
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>()
   React.useEffect(() => {
-    if (Model.isValue(query)) {
+    if (Model.hasValue(query)) {
       setValue(query?.body || null)
     }
   }, [query])
@@ -755,7 +755,7 @@ export function useCatalogName(
 ): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>()
   React.useEffect(() => {
-    if (!Model.isFulfilled(catalogNames)) return
+    if (!Model.hasValue(catalogNames)) return
     setValue((v) => {
       if (Model.isSelected(v) && catalogNames.list.includes(v)) {
         // If new catalog names list contains the same value, keep it
@@ -778,7 +778,7 @@ export function useDatabase(
       setValue(databases)
       return
     }
-    if (!Model.isFulfilled(databases)) return
+    if (!Model.hasValue(databases)) return
     setValue((v) => {
       if (Model.isSelected(v) && databases.list.includes(v)) {
         // If new databases list contains the same value, keep it

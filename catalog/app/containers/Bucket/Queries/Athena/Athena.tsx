@@ -44,7 +44,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     return makeAsyncDataErrorHandler('Select query')(queries.data)
   }
 
-  if (!Model.isData(queries.data) || !Model.isValueResolved(query.value)) {
+  if (!Model.hasData(queries.data) || !Model.isObtained(query.value)) {
     return <QuerySelectSkeleton className={className} />
   }
 
@@ -78,7 +78,7 @@ function HistoryContainer({ bucket }: HistoryContainerProps) {
   if (Model.isError(executions.data)) {
     return makeAsyncDataErrorHandler('Executions Data')(executions.data)
   }
-  if (!Model.isData(executions.data)) {
+  if (!Model.hasData(executions.data)) {
     return <TableSkeleton size={4} />
   }
   return (
@@ -289,7 +289,7 @@ function AthenaExecution({ bucket }: AthenaExecutionProps) {
   if (Model.isError(results.data)) {
     return makeAsyncDataErrorHandler('Query Results Data')(results.data)
   }
-  if (!Model.isFulfilled(execution) || !Model.isFulfilled(results.data)) {
+  if (!Model.hasValue(execution) || !Model.hasValue(results.data)) {
     return (
       <div className={classes.content}>
         <QuerySelectSkeleton className={classes.section} />

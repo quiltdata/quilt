@@ -143,7 +143,7 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
   const { workgroup, workgroups } = State.use()
 
   if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
-  if (!Model.isValue(workgroups.data)) {
+  if (!Model.hasValue(workgroups.data)) {
     return (
       <>
         <Skeleton height={24} width={128} animate />

@@ -63,7 +63,7 @@ function EditorField({}: EditorFieldProps) {
   if (Model.isError(queryBody.value)) {
     return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
   }
-  if (!Model.isData(queryBody.value)) {
+  if (!Model.hasData(queryBody.value)) {
     return <FormSkeleton />
   }
 
@@ -239,9 +239,9 @@ export function Form({ className }: FormProps) {
           variant="contained"
           color="primary"
           disabled={
-            !Model.isValueResolved(execution) ||
-            !Model.isData(catalogName) ||
-            !Model.isData(database) ||
+            !Model.isObtained(execution) ||
+            !Model.hasData(catalogName) ||
+            !Model.hasData(database) ||
             !queryBody
           }
           onClick={submit}

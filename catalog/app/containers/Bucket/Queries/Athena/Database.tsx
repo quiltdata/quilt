@@ -118,7 +118,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
   if (Model.isError(catalogName.value)) {
     return <SelectError className={className} error={catalogName.value} />
   }
-  if (!Model.isValue(catalogName.value) || !Model.isData(catalogNames.data)) {
+  if (!Model.hasValue(catalogName.value) || !Model.hasData(catalogNames.data)) {
     return <Skeleton className={className} height={32} animate />
   }
 
@@ -146,14 +146,14 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   if (Model.isError(database.value)) {
     return <SelectError className={className} error={database.value} />
   }
-  if (!Model.isValue(database.value) || !Model.isData(databases.data)) {
+  if (!Model.hasValue(database.value) || !Model.hasData(databases.data)) {
     return <Skeleton className={className} height={32} animate />
   }
 
   return (
     <Select
       data={databases.data}
-      disabled={!Model.isFulfilled(catalogName)}
+      disabled={!Model.hasValue(catalogName)}
       label="Database"
       onChange={database.setValue}
       onLoadMore={databases.loadMore}
