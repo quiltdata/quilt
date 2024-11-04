@@ -118,6 +118,7 @@ interface ResultsContainerProps {
   className: string
   queryResults: requests.athena.QueryResultsResponse
   onLoadMore?: () => void
+  execution: requests.athena.QueryExecution
 }
 
 function ResultsContainer({
@@ -125,6 +126,7 @@ function ResultsContainer({
   className,
   queryResults,
   onLoadMore,
+  execution,
 }: ResultsContainerProps) {
   const classes = useResultsContainerStyles()
   return (
@@ -142,10 +144,10 @@ function ResultsContainer({
           onLoadMore={onLoadMore}
         />
       ) : // eslint-disable-next-line no-nested-ternary
-      queryResults.queryExecution.error ? (
-        <Alert error={queryResults.queryExecution.error} title="Query Results Data" />
-      ) : queryResults.queryExecution ? (
-        <History bucket={bucket} executions={[queryResults.queryExecution]} />
+      execution.error ? (
+        <Alert error={execution.error} title="Query Results Data" />
+      ) : execution ? (
+        <History bucket={bucket} executions={[execution]} />
       ) : (
         <Alert
           error={new Error("Couldn't fetch query results")}
@@ -170,19 +172,6 @@ function TableSkeleton({ size }: TableSkeletonProps) {
     </>
   )
 }
-
-// interface QueryResults {
-//   data: requests.AsyncData<requests.athena.QueryResultsResponse>
-//   loadMore: (prev: requests.athena.QueryResultsResponse) => void
-// }
-
-// function useQueryResults(queryExecutionId?: string): QueryResults {
-//   const [prev, setPrev] = React.useState<requests.athena.QueryResultsResponse | null>(
-//     null,
-//   )
-//   const data = requests.athena.useQueryResults(queryExecutionId || null, prev)
-//   return React.useMemo(() => ({ data, loadMore: setPrev }), [data])
-// }
 
 const useOverrideStyles = M.makeStyles({
   li: {
@@ -289,7 +278,7 @@ function AthenaExecution({ bucket }: AthenaExecutionProps) {
   if (Model.isError(results.data)) {
     return makeAsyncDataErrorHandler('Query Results Data')(results.data)
   }
-  if (!Model.hasValue(execution) || !Model.hasValue(results.data)) {
+  if (!Model.hasData(execution) || !Model.hasValue(results.data)) {
     return (
       <div className={classes.content}>
         <QuerySelectSkeleton className={classes.section} />
@@ -306,6 +295,7 @@ function AthenaExecution({ bucket }: AthenaExecutionProps) {
 
       <ResultsContainer
         bucket={bucket}
+        execution={execution}
         className={classes.section}
         queryResults={results.data}
         onLoadMore={results.data.next ? results.loadMore : undefined}

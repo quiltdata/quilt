@@ -12,12 +12,12 @@ interface State {
   workgroup?: string
 
   catalogName: Model.ValueController<requests.athena.CatalogName>
-  catalogNames: Model.DataController<requests.athena.CatalogNamesResponse>
+  catalogNames: Model.DataController<Model.List<requests.athena.CatalogName>>
   database: Model.ValueController<requests.athena.Database>
-  databases: Model.DataController<requests.athena.DatabasesResponse>
+  databases: Model.DataController<Model.List<requests.athena.Database>>
   execution: Model.Value<requests.athena.QueryExecution>
-  executions: Model.DataController<requests.athena.QueryExecutionsResponse>
-  queries: Model.DataController<requests.athena.QueriesResponse>
+  executions: Model.DataController<Model.List<requests.athena.QueryExecution>>
+  queries: Model.DataController<Model.List<requests.athena.AthenaQuery>>
   query: Model.ValueController<requests.athena.AthenaQuery>
   queryBody: Model.ValueController<string> // No `null`, simple `useState<string>('')` ?
   results: Model.DataController<requests.athena.QueryResultsResponse>

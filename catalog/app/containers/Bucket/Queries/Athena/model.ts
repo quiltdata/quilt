@@ -13,6 +13,11 @@ export interface DataController<T> {
   loadMore: () => void
 }
 
+export interface List<T> {
+  list: T[]
+  next?: string
+}
+
 // `T` is the value
 // `null` is no value, explicitly set by user
 // `undefined` is no value. It is not loaded or doesn't exist in loaded data
@@ -24,8 +29,6 @@ export interface ValueController<T> {
   value: Value<T>
   setValue: (v: T | null) => void
 }
-
-// Bad
 
 export function isFulfilled<T>(value: Value<T>): value is T | null {
   if (value === undefined || value === Loading || value instanceof Error) {
@@ -65,8 +68,6 @@ export function hasValue<T>(value: Value<T>): value is T | null {
   }
   return true
 }
-
-// Good
 
 export function isSelected<T>(value: Value<T>): value is T {
   if (
