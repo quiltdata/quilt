@@ -24,12 +24,6 @@ export interface QueriesResponse {
   next?: string
 }
 
-interface QueriesArgs {
-  athena: Athena
-  prev: QueriesResponse | null
-  workgroup: string
-}
-
 function parseNamedQuery(query: Athena.NamedQuery): AthenaQuery {
   return {
     body: query.QueryString,
@@ -37,49 +31,6 @@ function parseNamedQuery(query: Athena.NamedQuery): AthenaQuery {
     key: query.NamedQueryId!,
     name: query.Name,
   }
-}
-
-async function fetchQueries({
-  athena,
-  prev,
-  workgroup,
-}: QueriesArgs): Promise<QueriesResponse> {
-  try {
-    const queryIdsOutput = await athena
-      ?.listNamedQueries({ WorkGroup: workgroup, NextToken: prev?.next })
-      .promise()
-    if (!queryIdsOutput.NamedQueryIds || !queryIdsOutput.NamedQueryIds.length)
-      return {
-        list: prev?.list || [],
-        next: queryIdsOutput.NextToken,
-      }
-
-    const queriesOutput = await athena
-      ?.batchGetNamedQuery({
-        NamedQueryIds: queryIdsOutput.NamedQueryIds,
-      })
-      .promise()
-    const parsed = (queriesOutput.NamedQueries || []).map(parseNamedQuery)
-    const list = (prev?.list || []).concat(parsed)
-    return {
-      list,
-      next: queryIdsOutput.NextToken,
-    }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
-}
-
-export function useQueries(
-  workgroup: string,
-  prev: QueriesResponse | null,
-): AsyncData<QueriesResponse> {
-  const athena = AWS.Athena.use()
-  return useData(fetchQueries, { athena, prev, workgroup }, { noAutoFetch: !workgroup })
 }
 
 export type Workgroup = string
@@ -285,7 +236,7 @@ async function fetchQueryExecutions({
   }
 }
 
-export function useExecutionsCancelable(
+export function useExecutions(
   workgroup?: string,
 ): [Model.Data<QueryExecutionsResponse>, () => void] {
   const athena = AWS.Athena.use()
@@ -573,61 +524,10 @@ export interface CatalogNamesResponse {
   next?: string
 }
 
-interface CatalogNamesArgs {
-  athena: Athena
-  prev?: CatalogNamesResponse
-}
-
-async function fetchCatalogNames({
-  athena,
-  prev,
-}: CatalogNamesArgs): Promise<CatalogNamesResponse> {
-  const catalogsOutput = await athena
-    ?.listDataCatalogs({ NextToken: prev?.next })
-    .promise()
-  const list =
-    catalogsOutput?.DataCatalogsSummary?.map(
-      ({ CatalogName }) => CatalogName || 'Unknown',
-    ) || []
-  return {
-    list: (prev?.list || []).concat(list),
-    next: catalogsOutput.NextToken,
-  }
-}
-
-export function useCatalogNames(
-  prev: CatalogNamesResponse | null,
-): AsyncData<CatalogNamesResponse> {
-  const athena = AWS.Athena.use()
-  return useData(fetchCatalogNames, { athena, prev })
-}
-
 export type Database = string
 export interface DatabasesResponse {
   list: CatalogName[]
   next?: string
-}
-
-interface DatabasesArgs {
-  athena: Athena
-  catalogName: CatalogName
-  prev?: DatabasesResponse
-}
-
-async function fetchDatabases({
-  athena,
-  catalogName,
-  prev,
-}: DatabasesArgs): Promise<DatabasesResponse> {
-  const databasesOutput = await athena
-    ?.listDatabases({ CatalogName: catalogName, NextToken: prev?.next })
-    .promise()
-  // TODO: add `Description` besides `Name`
-  const list = databasesOutput?.DatabaseList?.map(({ Name }) => Name || 'Unknown') || []
-  return {
-    list: (prev?.list || []).concat(list),
-    next: databasesOutput.NextToken,
-  }
 }
 
 export type QueryId = string
@@ -636,7 +536,7 @@ export interface QueriesIdsResponse {
   next?: string
 }
 
-export function useQueriesCancelable(
+export function useQueries(
   workgroup?: string,
 ): [Model.Data<QueriesResponse>, () => void] {
   const athena = AWS.Athena.use()
@@ -693,7 +593,7 @@ export function useQueriesCancelable(
   return [data, loadMore]
 }
 
-export function useResultsCancelable(
+export function useResults(
   execution: Model.Value<QueryExecution>,
 ): [Model.Data<QueryResultsResponse>, () => void] {
   const athena = AWS.Athena.use()
@@ -749,7 +649,7 @@ export function useResultsCancelable(
   return [data, loadMore]
 }
 
-export function useDatabasesCancelable(
+export function useDatabases(
   catalogName: Model.Value<CatalogName>,
 ): [Model.Data<DatabasesResponse>, () => void] {
   const athena = AWS.Athena.use()
@@ -784,10 +684,7 @@ export function useDatabasesCancelable(
   return [data, loadMore]
 }
 
-export function useCatalogNamesCancelable(): [
-  Model.Data<CatalogNamesResponse>,
-  () => void,
-] {
+export function useCatalogNames(): [Model.Data<CatalogNamesResponse>, () => void] {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<CatalogNamesResponse | null>(null)
   const [value, setValue] = React.useState<Model.Data<CatalogNamesResponse>>()
@@ -894,45 +791,6 @@ export function useDatabase(
     })
   }, [databases])
   return [value, setValue]
-}
-
-export function useDatabases(
-  catalogName: CatalogName | null,
-  prev: DatabasesResponse | null,
-): AsyncData<DatabasesResponse> {
-  const athena = AWS.Athena.use()
-  return useData(
-    fetchDatabases,
-    { athena, catalogName, prev },
-    { noAutoFetch: !catalogName },
-  )
-}
-
-interface DefaultDatabaseArgs {
-  athena: Athena
-}
-
-async function fetchDefaultQueryExecution({
-  athena,
-}: DefaultDatabaseArgs): Promise<QueryExecution | null> {
-  const catalogNames = await fetchCatalogNames({ athena })
-  if (!catalogNames.list.length) {
-    return null
-  }
-  const catalogName = catalogNames.list[0]
-  const databases = await fetchDatabases({ athena, catalogName })
-  if (!databases.list.length) {
-    return null
-  }
-  return {
-    catalog: catalogName,
-    db: databases.list[0],
-  }
-}
-
-export function useDefaultQueryExecution(): AsyncData<QueryExecution> {
-  const athena = AWS.Athena.use()
-  return useData(fetchDefaultQueryExecution, { athena })
 }
 
 export interface ExecutionContext {

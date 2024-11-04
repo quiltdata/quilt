@@ -61,16 +61,15 @@ export function Provider({ children }: ProviderProps) {
   // TODO: [data, loadMore] → { data: Model.Data, loadMore }
   // TODO: [value, setValue] → { value: Model.Value, setValue }
   const [workgroups, onWorkgroupsMore] = requests.athena.useWorkgroups()
-  const [catalogNames, onCatalogNamesMore] = requests.athena.useCatalogNamesCancelable()
+  const [catalogNames, onCatalogNamesMore] = requests.athena.useCatalogNames()
   const [catalogName, setCatalogName] = requests.athena.useCatalogName(catalogNames)
-  const [databases, onDatabasesMore] = requests.athena.useDatabasesCancelable(catalogName)
+  const [databases, onDatabasesMore] = requests.athena.useDatabases(catalogName)
   const [database, setDatabase] = requests.athena.useDatabase(databases)
-  const [queries, onQueriesMore] = requests.athena.useQueriesCancelable(workgroup)
+  const [queries, onQueriesMore] = requests.athena.useQueries(workgroup)
   const [query, setQuery] = requests.athena.useQuery(queries)
   const [queryBody, setQueryBody] = requests.athena.useQueryBody(query, setQuery)
-  const [executions, onExecutionsMore] =
-    requests.athena.useExecutionsCancelable(workgroup)
-  const [results, onResultsMore] = requests.athena.useResultsCancelable(execution)
+  const [executions, onExecutionsMore] = requests.athena.useExecutions(workgroup)
+  const [results, onResultsMore] = requests.athena.useResults(execution)
 
   const submit = () => {
     //console.log('SUBMIT', {
