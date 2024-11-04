@@ -111,14 +111,14 @@ interface SelectCatalogNameProps {
 }
 
 function SelectCatalogName({ className }: SelectCatalogNameProps) {
-  const { catalogName, setCatalogName, catalogNames } = State.use()
+  const { catalogName, catalogNames } = State.use()
   if (Model.isError(catalogNames.data)) {
     return <SelectError className={className} error={catalogNames.data} />
   }
-  if (Model.isError(catalogName)) {
-    return <SelectError className={className} error={catalogName} />
+  if (Model.isError(catalogName.value)) {
+    return <SelectError className={className} error={catalogName.value} />
   }
-  if (!Model.isValue(catalogName) || !Model.isData(catalogNames.data)) {
+  if (!Model.isValue(catalogName.value) || !Model.isData(catalogNames.data)) {
     return <Skeleton className={className} height={32} animate />
   }
 
@@ -127,9 +127,9 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
       className={className}
       data={catalogNames.data}
       label="Data catalog"
-      onChange={setCatalogName}
+      onChange={catalogName.setValue}
       onLoadMore={catalogNames.loadMore}
-      value={catalogName}
+      value={catalogName.value}
     />
   )
 }
@@ -139,14 +139,14 @@ interface SelectDatabaseProps {
 }
 
 function SelectDatabase({ className }: SelectDatabaseProps) {
-  const { catalogName, database, setDatabase, databases } = State.use()
+  const { catalogName, database, databases } = State.use()
   if (Model.isError(databases.data)) {
     return <SelectError className={className} error={databases.data} />
   }
-  if (Model.isError(database)) {
-    return <SelectError className={className} error={database} />
+  if (Model.isError(database.value)) {
+    return <SelectError className={className} error={database.value} />
   }
-  if (!Model.isValue(database) || !Model.isData(databases.data)) {
+  if (!Model.isValue(database.value) || !Model.isData(databases.data)) {
     return <Skeleton className={className} height={32} animate />
   }
 
@@ -155,9 +155,9 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
       data={databases.data}
       disabled={!Model.isFulfilled(catalogName)}
       label="Database"
-      onChange={setDatabase}
+      onChange={database.setValue}
       onLoadMore={databases.loadMore}
-      value={database}
+      value={database.value}
     />
   )
 }

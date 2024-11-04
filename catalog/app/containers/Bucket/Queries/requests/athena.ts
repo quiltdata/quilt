@@ -662,6 +662,17 @@ export function useDatabases(
   return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
+function wrapValue<T>(
+  value: Model.Value<T>,
+  setValue: (d: T | null) => void,
+): Model.ValueController<T> {
+  return {
+    value,
+    setValue,
+    // TODO: isData, isError etc.
+  }
+}
+
 function wrapData<T>(
   data: Model.Data<T>,
   setPrev: (d: T) => void,
@@ -702,7 +713,7 @@ export function useCatalogNames(): Model.DataController<CatalogNamesResponse> {
 
 export function useQuery(
   queries: Model.Data<QueriesResponse>,
-): [Model.Value<AthenaQuery>, (value: AthenaQuery | null) => void] {
+): Model.ValueController<AthenaQuery> {
   const [value, setValue] = React.useState<Model.Value<AthenaQuery>>()
   React.useEffect(() => {
     if (!Model.isFulfilled(queries)) return
@@ -716,13 +727,13 @@ export function useQuery(
       return queries.list[0] || null
     })
   }, [queries])
-  return [value, setValue]
+  return React.useMemo(() => wrapValue(value, setValue), [value])
 }
 
 export function useQueryBody(
   query: Model.Value<AthenaQuery>,
   setQuery: (value: null) => void,
-): [Model.Value<string>, (value: string | null) => void] {
+): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>()
   React.useEffect(() => {
     if (Model.isValue(query)) {
@@ -736,12 +747,12 @@ export function useQueryBody(
     },
     [setQuery],
   )
-  return [value, handleValue]
+  return React.useMemo(() => wrapValue(value, handleValue), [value, handleValue])
 }
 
 export function useCatalogName(
   catalogNames: Model.Data<CatalogNamesResponse>,
-): [Model.Value<CatalogName>, (value: CatalogName | null) => void] {
+): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>()
   React.useEffect(() => {
     if (!Model.isFulfilled(catalogNames)) return
@@ -755,12 +766,12 @@ export function useCatalogName(
       return catalogNames.list[0]
     })
   }, [catalogNames])
-  return [value, setValue]
+  return React.useMemo(() => wrapValue(value, setValue), [value])
 }
 
 export function useDatabase(
   databases: Model.Data<DatabasesResponse>,
-): [Model.Value<Database>, (value: Database | null) => void] {
+): Model.ValueController<Database> {
   const [value, setValue] = React.useState<Model.Value<Database>>()
   React.useEffect(() => {
     if (Model.isError(databases)) {
@@ -778,7 +789,7 @@ export function useDatabase(
       return databases.list[0]
     })
   }, [databases])
-  return [value, setValue]
+  return React.useMemo(() => wrapValue(value, setValue), [value])
 }
 
 export interface ExecutionContext {

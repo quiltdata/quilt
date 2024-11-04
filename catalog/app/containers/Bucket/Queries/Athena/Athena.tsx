@@ -38,17 +38,17 @@ interface QueryConstructorProps {
 }
 
 function QueryConstructor({ className }: QueryConstructorProps) {
-  const { query, setQuery, queries } = State.use()
+  const { query, queries } = State.use()
 
   if (Model.isError(queries.data)) {
     return makeAsyncDataErrorHandler('Select query')(queries.data)
   }
 
-  if (!Model.isData(queries.data) || !Model.isValueResolved(query)) {
+  if (!Model.isData(queries.data) || !Model.isValueResolved(query.value)) {
     return <QuerySelectSkeleton className={className} />
   }
 
-  const queryError = Model.takeError(query)
+  const queryError = Model.takeError(query.value)
 
   return (
     <Section
@@ -58,10 +58,10 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     >
       {!!queries.data.list.length && (
         <QuerySelect<requests.athena.AthenaQuery | null>
-          onChange={setQuery}
+          onChange={query.setValue}
           onLoadMore={queries.data.next ? queries.loadMore : undefined}
           queries={queries.data.list}
-          value={Model.isError(query) ? null : query}
+          value={Model.isError(query.value) ? null : query.value}
         />
       )}
       {queryError && <M.FormHelperText error>{queryError.message}</M.FormHelperText>}

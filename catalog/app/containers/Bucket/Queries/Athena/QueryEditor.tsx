@@ -59,11 +59,11 @@ interface EditorFieldProps {}
 
 function EditorField({}: EditorFieldProps) {
   const classes = useStyles()
-  const { queryBody, setQueryBody } = State.use()
-  if (Model.isError(queryBody)) {
-    return <Lab.Alert severity="error">{queryBody.message}</Lab.Alert>
+  const { queryBody } = State.use()
+  if (Model.isError(queryBody.value)) {
+    return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
   }
-  if (!Model.isData(queryBody)) {
+  if (!Model.isData(queryBody.value)) {
     return <FormSkeleton />
   }
 
@@ -77,9 +77,9 @@ function EditorField({}: EditorFieldProps) {
           editorProps={{ $blockScrolling: true }}
           height="200px"
           mode="sql"
-          onChange={setQueryBody}
+          onChange={queryBody.setValue}
           theme="eclipse"
-          value={queryBody}
+          value={queryBody.value}
           width="100%"
         />
       </M.Paper>

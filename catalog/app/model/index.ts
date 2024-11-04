@@ -98,6 +98,11 @@ export interface DataController<T> {
 // `Error` is error, ok?
 export type Value<T> = Maybe<Data<T>>
 
+export interface ValueController<T> {
+  value: Value<T>
+  setValue: (v: T | null) => void
+}
+
 export function isError<T>(value: Value<T>): value is Error {
   return value instanceof Error
 }
