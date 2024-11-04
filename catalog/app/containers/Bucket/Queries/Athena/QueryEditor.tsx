@@ -239,8 +239,10 @@ export function Form({ className }: FormProps) {
           variant="contained"
           color="primary"
           disabled={
-            (Model.isPending(execution) || !Model.isSelected(catalogName),
-            !Model.isSelected(database) || !queryBody)
+            !Model.isValueResolved(execution) ||
+            !Model.isData(catalogName) ||
+            !Model.isData(database) ||
+            !queryBody
           }
           onClick={submit}
         >

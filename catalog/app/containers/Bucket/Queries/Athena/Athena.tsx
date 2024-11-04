@@ -38,13 +38,13 @@ interface QueryConstructorProps {
 }
 
 function QueryConstructor({ className }: QueryConstructorProps) {
-  const { query, setQuery, queries, onQueriesMore } = State.use()
+  const { query, setQuery, queries } = State.use()
 
-  if (Model.isError(queries)) {
-    return makeAsyncDataErrorHandler('Select query')(queries)
+  if (Model.isError(queries.data)) {
+    return makeAsyncDataErrorHandler('Select query')(queries.data)
   }
 
-  if (!Model.isData(queries) || !Model.isValueResolved(query)) {
+  if (!Model.isData(queries.data) || !Model.isValueResolved(query)) {
     return <QuerySelectSkeleton className={className} />
   }
 
@@ -56,11 +56,11 @@ function QueryConstructor({ className }: QueryConstructorProps) {
       title="Select query"
       empty="There are no saved queries."
     >
-      {!!queries.list.length && (
+      {!!queries.data.list.length && (
         <QuerySelect<requests.athena.AthenaQuery | null>
           onChange={setQuery}
-          onLoadMore={queries.next ? onQueriesMore : undefined}
-          queries={queries.list}
+          onLoadMore={queries.data.next ? queries.loadMore : undefined}
+          queries={queries.data.list}
           value={Model.isError(query) ? null : query}
         />
       )}
@@ -74,18 +74,18 @@ interface HistoryContainerProps {
 }
 
 function HistoryContainer({ bucket }: HistoryContainerProps) {
-  const { executions, onExecutionsMore } = State.use()
-  if (Model.isError(executions)) {
-    return makeAsyncDataErrorHandler('Executions Data')(executions)
+  const { executions } = State.use()
+  if (Model.isError(executions.data)) {
+    return makeAsyncDataErrorHandler('Executions Data')(executions.data)
   }
-  if (!Model.isData(executions)) {
+  if (!Model.isData(executions.data)) {
     return <TableSkeleton size={4} />
   }
   return (
     <History
       bucket={bucket}
-      executions={executions.list}
-      onLoadMore={executions.next ? onExecutionsMore : undefined}
+      executions={executions.data.list}
+      onLoadMore={executions.data.next ? executions.loadMore : undefined}
     />
   )
 }
@@ -281,16 +281,15 @@ interface AthenaExecutionProps {
 
 function AthenaExecution({ bucket }: AthenaExecutionProps) {
   const classes = useStyles()
-  // const results = useQueryResults(queryExecutionId)
-  const { execution, results, onResultsMore } = State.use()
+  const { execution, results } = State.use()
   // TODO: execution and results independent
   if (Model.isError(execution)) {
     return makeAsyncDataErrorHandler('Query Results Data')(execution)
   }
-  if (Model.isError(results)) {
-    return makeAsyncDataErrorHandler('Query Results Data')(results)
+  if (Model.isError(results.data)) {
+    return makeAsyncDataErrorHandler('Query Results Data')(results.data)
   }
-  if (!Model.isFulfilled(execution) || !Model.isFulfilled(results)) {
+  if (!Model.isFulfilled(execution) || !Model.isFulfilled(results.data)) {
     return (
       <div className={classes.content}>
         <QuerySelectSkeleton className={classes.section} />
@@ -308,8 +307,8 @@ function AthenaExecution({ bucket }: AthenaExecutionProps) {
       <ResultsContainer
         bucket={bucket}
         className={classes.section}
-        queryResults={results}
-        onLoadMore={results.next ? onResultsMore : undefined}
+        queryResults={results.data}
+        onLoadMore={results.data.next ? results.loadMore : undefined}
       />
     </div>
   )

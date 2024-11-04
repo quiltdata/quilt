@@ -121,7 +121,7 @@ async function fetchWorkgroups({
   }
 }
 
-export function useWorkgroups(): [Model.Data<WorkgroupsResponse>, () => void] {
+export function useWorkgroups(): Model.DataController<WorkgroupsResponse> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<WorkgroupsResponse | null>(null)
   const [data, setData] = React.useState<Model.Data<WorkgroupsResponse>>()
@@ -141,11 +141,7 @@ export function useWorkgroups(): [Model.Data<WorkgroupsResponse>, () => void] {
     if (!athena) return
     fetchWorkgroups({ athena, prev, preferences }).then(setData).catch(setData)
   }, [athena, prev, preferences])
-  const loadMore = React.useCallback(
-    () => Model.isFulfilled(data) && setPrev(data),
-    [data],
-  )
-  return [data, loadMore]
+  return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
 export interface QueryExecution {
@@ -238,7 +234,7 @@ async function fetchQueryExecutions({
 
 export function useExecutions(
   workgroup?: string,
-): [Model.Data<QueryExecutionsResponse>, () => void] {
+): Model.DataController<QueryExecutionsResponse> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<QueryExecutionsResponse | null>(null)
   const [data, setData] = React.useState<Model.Data<QueryExecutionsResponse>>()
@@ -286,11 +282,7 @@ export function useExecutions(
       batchRequest?.abort()
     }
   }, [athena, workgroup, prev])
-  const loadMore = React.useCallback(
-    () => Model.isFulfilled(data) && setPrev(data),
-    [data],
-  )
-  return [data, loadMore]
+  return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
 export function useQueryExecutions(
@@ -536,9 +528,7 @@ export interface QueriesIdsResponse {
   next?: string
 }
 
-export function useQueries(
-  workgroup?: string,
-): [Model.Data<QueriesResponse>, () => void] {
+export function useQueries(workgroup?: string): Model.DataController<QueriesResponse> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<QueriesResponse | null>(null)
   const [data, setData] = React.useState<Model.Data<QueriesResponse>>()
@@ -586,16 +576,12 @@ export function useQueries(
       batchRequest?.abort()
     }
   }, [athena, workgroup, prev])
-  const loadMore = React.useCallback(
-    () => Model.isFulfilled(data) && setPrev(data),
-    [data],
-  )
-  return [data, loadMore]
+  return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
 export function useResults(
   execution: Model.Value<QueryExecution>,
-): [Model.Data<QueryResultsResponse>, () => void] {
+): Model.DataController<QueryResultsResponse> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<QueryResultsResponse | null>(null)
   const [data, setData] = React.useState<Model.Data<QueryResultsResponse>>()
@@ -642,16 +628,12 @@ export function useResults(
     )
     return () => request?.abort()
   }, [athena, execution, prev])
-  const loadMore = React.useCallback(
-    () => Model.isFulfilled(data) && setPrev(data),
-    [data],
-  )
-  return [data, loadMore]
+  return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
 export function useDatabases(
   catalogName: Model.Value<CatalogName>,
-): [Model.Data<DatabasesResponse>, () => void] {
+): Model.DataController<DatabasesResponse> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<DatabasesResponse | null>(null)
   const [data, setData] = React.useState<Model.Data<DatabasesResponse>>()
@@ -677,39 +659,45 @@ export function useDatabases(
     )
     return () => request?.abort()
   }, [athena, catalogName, prev])
-  const loadMore = React.useCallback(
-    () => Model.isFulfilled(data) && setPrev(data),
-    [data],
-  )
-  return [data, loadMore]
+  return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
-export function useCatalogNames(): [Model.Data<CatalogNamesResponse>, () => void] {
+function wrapData<T>(
+  data: Model.Data<T>,
+  setPrev: (d: T) => void,
+): Model.DataController<T> {
+  return {
+    data,
+    loadMore: () => Model.isData(data) && setPrev(data),
+    // TODO: isData, isError etc.
+  }
+}
+
+export function useCatalogNames(): Model.DataController<CatalogNamesResponse> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<CatalogNamesResponse | null>(null)
-  const [value, setValue] = React.useState<Model.Data<CatalogNamesResponse>>()
+  const [data, setData] = React.useState<Model.Data<CatalogNamesResponse>>()
   React.useEffect(() => {
-    const request = athena?.listDataCatalogs({ NextToken: prev?.next }, (err, data) => {
-      setValue(Model.Loading)
-      if (err) {
-        setValue(err)
-        return
-      }
-      const list = data?.DataCatalogsSummary?.map(
-        ({ CatalogName }) => CatalogName || 'Unknown',
-      )
-      setValue({
-        list: (prev?.list || []).concat(list || []),
-        next: data.NextToken,
-      })
-    })
+    const request = athena?.listDataCatalogs(
+      { NextToken: prev?.next },
+      (err, { DataCatalogsSummary, NextToken: next }) => {
+        setData(Model.Loading)
+        if (err) {
+          setData(err)
+          return
+        }
+        const list = DataCatalogsSummary?.map(
+          ({ CatalogName }) => CatalogName || 'Unknown',
+        )
+        setData({
+          list: (prev?.list || []).concat(list || []),
+          next,
+        })
+      },
+    )
     return () => request?.abort()
   }, [athena, prev])
-  const loadMore = React.useCallback(
-    () => Model.isFulfilled(value) && setPrev(value),
-    [value],
-  )
-  return [value, loadMore]
+  return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
 export function useQuery(

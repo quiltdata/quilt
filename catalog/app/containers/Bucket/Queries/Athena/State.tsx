@@ -20,26 +20,20 @@ interface State {
   => void
 
   catalogName: Model.Value<requests.athena.CatalogName>
-  catalogNames: Model.Data<requests.athena.CatalogNamesResponse>
+  catalogNames: Model.DataController<requests.athena.CatalogNamesResponse>
   database: Model.Value<requests.athena.Database>
-  databases: Model.Data<requests.athena.DatabasesResponse>
+  databases: Model.DataController<requests.athena.DatabasesResponse>
   execution: Model.Value<requests.athena.QueryExecution>
-  executions: Model.Data<requests.athena.QueryExecutionsResponse>
-  onCatalogNamesMore: () => void
-  onDatabasesMore: () => void
-  onExecutionsMore: () => void
-  onQueriesMore: () => void
-  onResultsMore: () => void
-  onWorkgroupsMore: () => void
-  queries: Model.Data<requests.athena.QueriesResponse>
+  executions: Model.DataController<requests.athena.QueryExecutionsResponse>
+  queries: Model.DataController<requests.athena.QueriesResponse>
   query: Model.Value<requests.athena.AthenaQuery>
   queryBody: Model.Value<string> // No `null`?
-  results: Model.Data<requests.athena.QueryResultsResponse>
+  results: Model.DataController<requests.athena.QueryResultsResponse>
   setCatalogName: (v: requests.athena.CatalogName | null) => void
   setDatabase: (v: requests.athena.Database | null) => void
   setQuery: (v: requests.athena.AthenaQuery | null) => void
   setQueryBody: (v: string | null) => void
-  workgroups: Model.Data<requests.athena.WorkgroupsResponse>
+  workgroups: Model.DataController<requests.athena.WorkgroupsResponse>
 }
 
 const Ctx = React.createContext<State | null>(null)
@@ -60,16 +54,16 @@ export function Provider({ children }: ProviderProps) {
 
   // TODO: [data, loadMore] → { data: Model.Data, loadMore }
   // TODO: [value, setValue] → { value: Model.Value, setValue }
-  const [workgroups, onWorkgroupsMore] = requests.athena.useWorkgroups()
-  const [catalogNames, onCatalogNamesMore] = requests.athena.useCatalogNames()
-  const [catalogName, setCatalogName] = requests.athena.useCatalogName(catalogNames)
-  const [databases, onDatabasesMore] = requests.athena.useDatabases(catalogName)
-  const [database, setDatabase] = requests.athena.useDatabase(databases)
-  const [queries, onQueriesMore] = requests.athena.useQueries(workgroup)
-  const [query, setQuery] = requests.athena.useQuery(queries)
+  const workgroups = requests.athena.useWorkgroups()
+  const catalogNames = requests.athena.useCatalogNames()
+  const [catalogName, setCatalogName] = requests.athena.useCatalogName(catalogNames.data)
+  const databases = requests.athena.useDatabases(catalogName)
+  const [database, setDatabase] = requests.athena.useDatabase(databases.data)
+  const queries = requests.athena.useQueries(workgroup)
+  const [query, setQuery] = requests.athena.useQuery(queries.data)
   const [queryBody, setQueryBody] = requests.athena.useQueryBody(query, setQuery)
-  const [executions, onExecutionsMore] = requests.athena.useExecutions(workgroup)
-  const [results, onResultsMore] = requests.athena.useResults(execution)
+  const executions = requests.athena.useExecutions(workgroup)
+  const results = requests.athena.useResults(execution)
 
   const submit = () => {
     //console.log('SUBMIT', {
@@ -84,18 +78,12 @@ export function Provider({ children }: ProviderProps) {
     submit,
 
     workgroups,
-    onWorkgroupsMore,
     executions,
-    onExecutionsMore,
     catalogName,
     catalogNames,
     database,
     databases,
     execution,
-    onCatalogNamesMore,
-    onDatabasesMore,
-    onQueriesMore,
-    onResultsMore,
     queries,
     query,
     queryBody,

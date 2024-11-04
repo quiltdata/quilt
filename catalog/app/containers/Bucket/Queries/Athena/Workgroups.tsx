@@ -140,10 +140,10 @@ interface AthenaWorkgroupsProps {
 }
 
 export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
-  const { workgroup, workgroups, onWorkgroupsMore } = State.use()
+  const { workgroup, workgroups } = State.use()
 
-  if (Model.isError(workgroups)) return <WorkgroupsEmpty error={workgroups} />
-  if (!Model.isValue(workgroups)) {
+  if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
+  if (!Model.isValue(workgroups.data)) {
     return (
       <>
         <Skeleton height={24} width={128} animate />
@@ -152,18 +152,18 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
     )
   }
 
-  if (!workgroup && workgroups.defaultWorkgroup) {
-    return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups} />
+  if (!workgroup && workgroups.data.defaultWorkgroup) {
+    return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups.data} />
   }
 
   return (
     <Section title="Select workgroup" empty={<WorkgroupsEmpty />}>
-      {workgroups.list.length && (
+      {workgroups.data.list.length && (
         <WorkgroupSelect
           bucket={bucket}
-          onLoadMore={onWorkgroupsMore}
+          onLoadMore={workgroups.loadMore}
           value={workgroup || null}
-          workgroups={workgroups}
+          workgroups={workgroups.data}
         />
       )}
     </Section>

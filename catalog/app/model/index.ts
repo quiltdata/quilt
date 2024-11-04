@@ -86,6 +86,11 @@ export type Maybe<T> = T | null
 // `Error` is error, ok?
 export type Data<T> = T | undefined | typeof Loading | Error
 
+export interface DataController<T> {
+  data: Data<T>
+  loadMore: () => void
+}
+
 // `T` is the value
 // `null` is no value, explicitly set by user
 // `undefined` is no value. It is not loaded or doesn't exist in loaded data
@@ -95,13 +100,6 @@ export type Value<T> = Maybe<Data<T>>
 
 export function isError<T>(value: Value<T>): value is Error {
   return value instanceof Error
-}
-
-export function isPending<T>(value: Value<T>): value is undefined | typeof Loading {
-  if (value === undefined || value === Loading) {
-    return true
-  }
-  return false
 }
 
 export function isFulfilled<T>(value: Value<T>): value is T | null {
