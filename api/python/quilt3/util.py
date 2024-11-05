@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import os
 import pathlib
 import re
@@ -20,6 +21,7 @@ import requests
 import yaml
 from platformdirs import user_cache_dir, user_data_dir
 
+logger = logging.getLogger(__name__)
 
 def get_bool_from_env(var_name: str):
     return os.getenv(var_name, '').lower() == 'true'
@@ -139,6 +141,10 @@ class PhysicalKey:
             assert version_id is None, "Local keys cannot have a version ID"
             if os.name == 'nt':
                 assert '\\' not in path, "Paths must use / as a separator"
+        else:
+            if path.startswith('/'):
+                # S3 paths are not absolute, but there may be a "/" folder in root.
+                logger.warning("S3 paths should not start with '/': %r", path)
 
         self.bucket = bucket
         self.path = path
