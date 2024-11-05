@@ -92,9 +92,9 @@ async function fetchWorkgroups({
     const workgroupsOutput = await athena
       .listWorkGroups({ NextToken: prev?.next })
       .promise()
-    const parsed = (workgroupsOutput.WorkGroups || []).map(
-      ({ Name }) => Name || 'Unknown',
-    )
+    const parsed = (workgroupsOutput.WorkGroups || [])
+      .map(({ Name }) => Name || 'Unknown')
+      .sort()
     const available = (
       await Promise.all(parsed.map((workgroup) => fetchWorkgroup({ athena, workgroup })))
     ).filter(Boolean)
@@ -372,7 +372,9 @@ export function useQueries(
               setData(batchErr)
               return
             }
-            const parsed = (NamedQueries || []).map(parseNamedQuery)
+            const parsed = (NamedQueries || [])
+              .map(parseNamedQuery)
+              .sort((a, b) => a.name.localeCompare(b.name))
             const list = (prev?.list || []).concat(parsed)
             setData({
               list,
@@ -463,7 +465,7 @@ export function useDatabases(
           setData(err)
           return
         }
-        const list = DatabaseList?.map(({ Name }) => Name || 'Unknown') || []
+        const list = DatabaseList?.map(({ Name }) => Name || 'Unknown').sort() || []
         setData({ list: (prev?.list || []).concat(list), next })
       },
     )
