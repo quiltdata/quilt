@@ -6,7 +6,6 @@ import * as Lab from '@material-ui/lab'
 import Skeleton from 'components/Skeleton'
 import * as Dialogs from 'utils/GlobalDialogs'
 
-import * as State from './State'
 import * as Model from './model'
 
 interface SelectErrorProps {
@@ -111,7 +110,7 @@ interface SelectCatalogNameProps {
 }
 
 function SelectCatalogName({ className }: SelectCatalogNameProps) {
-  const { catalogName, catalogNames } = State.use()
+  const { catalogName, catalogNames } = Model.use()
   if (Model.isError(catalogNames.data)) {
     return <SelectError className={className} error={catalogNames.data} />
   }
@@ -139,7 +138,7 @@ interface SelectDatabaseProps {
 }
 
 function SelectDatabase({ className }: SelectDatabaseProps) {
-  const { catalogName, database, databases } = State.use()
+  const { catalogName, database, databases } = Model.use()
   if (Model.isError(databases.data)) {
     return <SelectError className={className} error={databases.data} />
   }

@@ -1,9 +1,8 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as Sentry from '@sentry/react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-
-import * as Sentry from 'utils/Sentry'
 
 const useSectionStyles = M.makeStyles((t) => ({
   header: {
@@ -36,11 +35,9 @@ interface AlertProps {
 }
 
 export function Alert({ error, title }: AlertProps) {
-  const sentry = Sentry.use()
-
   React.useEffect(() => {
-    sentry('captureException', error)
-  }, [error, sentry])
+    Sentry.captureException(error)
+  }, [error])
 
   return (
     <Lab.Alert severity="error">

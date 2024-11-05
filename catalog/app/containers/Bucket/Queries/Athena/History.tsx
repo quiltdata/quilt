@@ -11,8 +11,6 @@ import Link from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import { trimCenter } from 'utils/string'
 
-import * as requests from '../requests'
-import * as State from './State'
 import * as Model from './model'
 
 const useToggleButtonStyles = M.makeStyles({
@@ -62,12 +60,12 @@ function Date({ date }: DateProps) {
 
 interface QueryDateCompletedProps {
   bucket: string
-  queryExecution: requests.athena.QueryExecution
+  queryExecution: Model.QueryExecution
 }
 
 function QueryDateCompleted({ bucket, queryExecution }: QueryDateCompletedProps) {
   const { urls } = NamedRoutes.use()
-  const { workgroup } = State.use()
+  const { workgroup } = Model.use()
   if (!Model.hasValue(workgroup)) return null
   if (queryExecution.status !== 'SUCCEEDED') {
     return <Date date={queryExecution.completed} />
@@ -80,7 +78,7 @@ function QueryDateCompleted({ bucket, queryExecution }: QueryDateCompletedProps)
 }
 
 interface CopyButtonProps {
-  queryExecution: requests.athena.QueryExecution
+  queryExecution: Model.QueryExecution
 }
 
 function CopyButton({ queryExecution }: CopyButtonProps) {
@@ -115,7 +113,7 @@ const useFullQueryRowStyles = M.makeStyles((t) => ({
 
 interface FullQueryRowProps {
   expanded: boolean
-  queryExecution: requests.athena.QueryExecution
+  queryExecution: Model.QueryExecution
 }
 
 function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
@@ -144,7 +142,7 @@ function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
 
 interface ExecutionProps {
   bucket: string
-  queryExecution: requests.athena.QueryExecution
+  queryExecution: Model.QueryExecution
 }
 
 function Execution({ bucket, queryExecution }: ExecutionProps) {
@@ -217,7 +215,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface HistoryProps {
   bucket: string
-  executions: requests.athena.QueryExecution[]
+  executions: Model.QueryExecution[]
   onLoadMore?: () => void
 }
 
@@ -237,7 +235,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
   const rowsSorted = React.useMemo(
     () =>
       R.sort(
-        (a: requests.athena.QueryExecution, b: requests.athena.QueryExecution) =>
+        (a: Model.QueryExecution, b: Model.QueryExecution) =>
           b?.completed && a?.completed
             ? b.completed.valueOf() - a.completed.valueOf()
             : -1,

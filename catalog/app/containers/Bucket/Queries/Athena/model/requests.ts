@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import * as Model from '../Athena/model'
+import * as Model from './utils'
 
 import * as storage from './storage'
 

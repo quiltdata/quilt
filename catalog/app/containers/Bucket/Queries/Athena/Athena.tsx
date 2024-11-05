@@ -9,14 +9,12 @@ import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
-import * as requests from '../requests'
 
 import { Alert, Section, makeAsyncDataErrorHandler } from './Components'
 import CreatePackage from './CreatePackage'
 import * as QueryEditor from './QueryEditor'
 import History from './History'
 import Results from './Results'
-import * as State from './State'
 import Workgroups from './Workgroups'
 import * as Model from './model'
 
@@ -38,7 +36,7 @@ interface QueryConstructorProps {
 }
 
 function QueryConstructor({ className }: QueryConstructorProps) {
-  const { query, queries } = State.use()
+  const { query, queries } = Model.use()
 
   if (Model.isError(queries.data)) {
     return makeAsyncDataErrorHandler('Select query')(queries.data)
@@ -55,7 +53,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
       empty="There are no saved queries."
     >
       {!!queries.data.list.length && (
-        <QuerySelect<requests.athena.Query | null>
+        <QuerySelect<Model.Query | null>
           onChange={query.setValue}
           onLoadMore={queries.data.next ? queries.loadMore : undefined}
           queries={queries.data.list}
@@ -74,7 +72,7 @@ interface HistoryContainerProps {
 }
 
 function HistoryContainer({ bucket }: HistoryContainerProps) {
-  const { executions } = State.use()
+  const { executions } = Model.use()
   if (Model.isError(executions.data)) {
     return makeAsyncDataErrorHandler('Executions Data')(executions.data)
   }
@@ -116,9 +114,9 @@ function ResultsContainerSkeleton({ bucket, className }: ResultsContainerSkeleto
 interface ResultsContainerProps {
   bucket: string
   className: string
-  queryResults: requests.athena.QueryResultsResponse
+  queryResults: Model.QueryResultsResponse
   onLoadMore?: () => void
-  execution: requests.athena.QueryExecution
+  execution: Model.QueryExecution
 }
 
 function ResultsContainer({
@@ -207,7 +205,7 @@ interface ResultsBreadcrumbsProps {
 }
 
 function ResultsBreadcrumbs({ bucket, children, className }: ResultsBreadcrumbsProps) {
-  const { workgroup, queryExecutionId } = State.use()
+  const { workgroup, queryExecutionId } = Model.use()
   const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
@@ -270,7 +268,7 @@ interface AthenaExecutionProps {
 
 function AthenaExecution({ bucket }: AthenaExecutionProps) {
   const classes = useStyles()
-  const { execution, results } = State.use()
+  const { execution, results } = Model.use()
   // TODO: execution and results independent
   if (Model.isError(execution)) {
     return makeAsyncDataErrorHandler('Query Results Data')(execution)
@@ -305,7 +303,7 @@ function AthenaExecution({ bucket }: AthenaExecutionProps) {
 }
 
 function AthenaContainer() {
-  const { bucket, queryExecutionId } = State.use()
+  const { bucket, queryExecutionId } = Model.use()
 
   const classes = useStyles()
   return (
@@ -327,8 +325,8 @@ function AthenaContainer() {
 
 export default function Wrapper() {
   return (
-    <State.Provider>
+    <Model.Provider>
       <AthenaContainer />
-    </State.Provider>
+    </Model.Provider>
   )
 }

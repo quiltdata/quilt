@@ -8,10 +8,8 @@ import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
-import * as requests from '../requests'
-import * as storage from '../requests/storage'
+import * as storage from './model/storage'
 
-import * as State from './State'
 import * as Model from './model'
 import { Alert, Section } from './Components'
 
@@ -28,9 +26,9 @@ const LOAD_MORE = 'load-more'
 
 interface WorkgroupSelectProps {
   bucket: string
-  onLoadMore: (workgroups: requests.athena.WorkgroupsResponse) => void
-  value: requests.athena.Workgroup | null
-  workgroups: requests.athena.WorkgroupsResponse
+  onLoadMore: (workgroups: Model.WorkgroupsResponse) => void
+  value: Model.Workgroup | null
+  workgroups: Model.WorkgroupsResponse
 }
 
 function WorkgroupSelect({
@@ -120,7 +118,7 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
 
 interface RedirectToDefaultWorkgroupProps {
   bucket: string
-  workgroups: requests.athena.WorkgroupsResponse
+  workgroups: Model.WorkgroupsResponse
 }
 
 function RedirectToDefaultWorkgroup({
@@ -140,7 +138,7 @@ interface AthenaWorkgroupsProps {
 }
 
 export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
-  const { workgroup, workgroups } = State.use()
+  const { workgroup, workgroups } = Model.use()
 
   if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
   if (!Model.hasValue(workgroups.data)) {

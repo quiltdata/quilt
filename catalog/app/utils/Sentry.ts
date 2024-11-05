@@ -62,13 +62,13 @@ export const UserTracker = function SentryUserTracker({
   return children
 }
 
-/** @deprecated */
+/** @deprecated use '@sentry/react'  */
 async function callSentry(method: string, ...args: $TSFixMe[]) {
   return (Sentry as $TSFixMe)[method](...args)
 }
 
-/** @deprecated */
+/** @deprecated use '@sentry/react' */
 export const useSentry = () => callSentry
 
-/** @deprecated */
+/** @deprecated use '@sentry/react'  */
 export const use = useSentry

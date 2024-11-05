@@ -14,9 +14,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Dialogs from 'utils/GlobalDialogs'
 import StyledLink from 'utils/StyledLink'
 
-import * as requests from '../requests'
-
-import * as State from './State'
 import Database from './Database'
 import * as Model from './model'
 
@@ -59,7 +56,7 @@ interface EditorFieldProps {}
 
 function EditorField({}: EditorFieldProps) {
   const classes = useStyles()
-  const { queryBody } = State.use()
+  const { queryBody } = Model.use()
   if (Model.isError(queryBody.value)) {
     return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
   }
@@ -91,21 +88,21 @@ function EditorField({}: EditorFieldProps) {
 
 // function useQueryRun(
 //   bucket: string,
-//   workgroup: requests.athena.Workgroup,
+//   workgroup: Model.Workgroup,
 //   queryExecutionId?: string,
 // ) {
 //   const { urls } = NamedRoutes.use()
 //   const history = RRDom.useHistory()
 //   const [loading, setLoading] = React.useState(false)
 //   const [error, setError] = React.useState<Error | undefined>()
-//   const runQuery = requests.athena.useQueryRun(workgroup)
+//   const runQuery = Model.useQueryRun(workgroup)
 //   const { push: notify } = Notifications.use()
 //   const goToExecution = React.useCallback(
 //     (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
 //     [bucket, history, urls, workgroup],
 //   )
 //   const onSubmit = React.useCallback(
-//     async (value: string, executionContext: requests.athena.ExecutionContext | null) => {
+//     async (value: string, executionContext: Model.ExecutionContext | null) => {
 //       setLoading(true)
 //       setError(undefined)
 //       try {
@@ -185,18 +182,18 @@ function FormSkeleton({ className }: FormSkeletonProps) {
 }
 
 interface FormConfirmProps {
-  data: Model.Value<requests.athena.QueryRunResponse>
+  data: Model.Value<Model.QueryRunResponse>
   close: () => void
   submit: () => void
 }
 
 function FormConfirm({ close, data, submit }: FormConfirmProps) {
-  if (data === requests.athena.NO_CATALOG_NAME || data === requests.athena.NO_DATABASE) {
+  if (data === Model.NO_CATALOG_NAME || data === Model.NO_DATABASE) {
     return (
       <>
         <M.DialogContent>
-          {data === requests.athena.NO_CATALOG_NAME && 'Catalog name '}
-          {data === requests.athena.NO_DATABASE && 'Database '}
+          {data === Model.NO_CATALOG_NAME && 'Catalog name '}
+          {data === Model.NO_DATABASE && 'Database '}
           is not set. Run query without them?
         </M.DialogContent>
         <M.DialogActions>
@@ -265,7 +262,7 @@ export function Form({ className }: FormProps) {
   const classes = useFormStyles()
 
   const { bucket, catalogName, database, queryBody, submit, execution, workgroup } =
-    State.use()
+    Model.use()
 
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
