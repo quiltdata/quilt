@@ -1,20 +1,20 @@
 // import cx from 'classnames'
 import * as React from 'react'
 import AceEditor from 'react-ace'
-// import * as RRDom from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import 'ace-builds/src-noconflict/mode-sql'
 import 'ace-builds/src-noconflict/theme-eclipse'
 
-import { useConfirm } from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
 // import * as Notifications from 'containers/Notifications'
-// import * as NamedRoutes from 'utils/NamedRoutes'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Dialogs from 'utils/GlobalDialogs'
 import StyledLink from 'utils/StyledLink'
 
-// import * as requests from '../requests'
+import * as requests from '../requests'
 
 import * as State from './State'
 import Database from './Database'
@@ -63,6 +63,7 @@ function EditorField({}: EditorFieldProps) {
   if (Model.isError(queryBody.value)) {
     return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
   }
+  // FIXME:
   if (!Model.hasData(queryBody.value)) {
     return <FormSkeleton />
   }
@@ -183,6 +184,52 @@ function FormSkeleton({ className }: FormSkeletonProps) {
   )
 }
 
+interface FormConfirmProps {
+  data: Model.Value<requests.athena.QueryRunResponse>
+  close: () => void
+  submit: () => void
+}
+
+function FormConfirm({ close, data, submit }: FormConfirmProps) {
+  if (data === requests.athena.NO_CATALOG_NAME || data === requests.athena.NO_DATABASE) {
+    return (
+      <>
+        <M.DialogContent>
+          {data === requests.athena.NO_CATALOG_NAME && 'Catalog name '}
+          {data === requests.athena.NO_DATABASE && 'Database '}
+          is not set. Run query without them?
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={close}>Close</M.Button>
+          <M.Button
+            onClick={() => {
+              close()
+              submit()
+            }}
+          >
+            Confirm, run without
+          </M.Button>
+        </M.DialogActions>
+      </>
+    )
+  }
+  if (Model.isError(data)) {
+    return (
+      <>
+        <M.DialogContent>Error: {data.message}</M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={close}>Close</M.Button>
+        </M.DialogActions>
+      </>
+    )
+  }
+  if (Model.isLoading(data)) {
+    // This shouldn't happen
+    throw new Error('Unexpected loading state. Submit button should be disabled')
+  }
+  return null
+}
+
 export { FormSkeleton as Skeleton }
 
 const useFormStyles = M.makeStyles((t) => ({
@@ -217,20 +264,44 @@ interface FormProps {
 export function Form({ className }: FormProps) {
   const classes = useFormStyles()
 
-  const { catalogName, database, queryBody, submit, execution } = State.use()
+  const { bucket, catalogName, database, queryBody, submit, execution, workgroup } =
+    State.use()
 
-  const confirm = useConfirm({
-    onSubmit: () => submit(),
-    title: 'Confirm',
-  })
+  const { urls } = NamedRoutes.use()
+  const history = RRDom.useHistory()
+  const goToExecution = React.useCallback(
+    (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
+    [bucket, history, urls, workgroup],
+  )
+
+  const openDialog = Dialogs.use()
+  const submitWithDefaults = React.useCallback(async () => {
+    const data = await submit(true)
+    if (!Model.isSelected(data)) {
+      return openDialog(({ close }) => (
+        <FormConfirm
+          data={data}
+          close={close}
+          submit={() => {
+            throw new Error('Unexpected state')
+          }}
+        />
+      ))
+    }
+    goToExecution(data.id)
+  }, [goToExecution, openDialog, submit])
+  const handleSubmit = React.useCallback(async () => {
+    const data = await submit()
+    if (!Model.isSelected(data)) {
+      return openDialog(({ close }) => (
+        <FormConfirm data={data} close={close} submit={() => submitWithDefaults()} />
+      ))
+    }
+    goToExecution(data.id)
+  }, [goToExecution, openDialog, submit, submitWithDefaults])
 
   return (
     <div className={className}>
-      {confirm.render(
-        <M.Typography>
-          Data catalog and database are not set. Run query without them?
-        </M.Typography>,
-      )}
       <EditorField />
 
       <div className={classes.actions}>
@@ -244,7 +315,7 @@ export function Form({ className }: FormProps) {
             !Model.hasData(database) ||
             !queryBody
           }
-          onClick={submit}
+          onClick={handleSubmit}
         >
           Run query
         </M.Button>

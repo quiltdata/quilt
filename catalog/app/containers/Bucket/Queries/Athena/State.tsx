@@ -25,11 +25,9 @@ interface State {
 
   // TODO
   // TODO: return Error, and if some specific Error then confirm
-  submit: () // workgroup: requests.athena.Workgroup,
-  // queryBody: string,
-  // catalogName: requests.athena.CatalogName,
-  // database: requests.athena.Database,
-  => void
+  submit: (
+    forceDefaultExecutionContext?: boolean, // workgroup: requests.athena.Workgroup,
+  ) => Promise<Model.Value<requests.athena.QueryRunResponse>>
 }
 
 const Ctx = React.createContext<State | null>(null)
@@ -59,14 +57,12 @@ export function Provider({ children }: ProviderProps) {
   const executions = requests.athena.useExecutions(workgroup)
   const results = requests.athena.useResults(execution)
 
-  const submit = () => {
-    //console.log('SUBMIT', {
-    //  workgroup,
-    //  queryBody,
-    //  catalogName,
-    //  database,
-    //})
-  }
+  const submit = requests.athena.useQueryRun({
+    workgroup: workgroup,
+    catalogName: catalogName.value,
+    database: database.value,
+    queryBody: queryBody.value,
+  })
 
   const value: State = {
     bucket,

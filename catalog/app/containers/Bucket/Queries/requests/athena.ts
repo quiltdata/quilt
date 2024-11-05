@@ -3,12 +3,10 @@ import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import { useData } from 'utils/Data'
 
 import * as Model from '../Athena/model'
 
 import * as storage from './storage'
-import type { AsyncData } from './requests'
 
 // TODO: rename to requests.athena.Query
 export interface AthenaQuery {
@@ -151,12 +149,6 @@ export interface QueryExecution {
   workgroup?: Athena.WorkGroupName
 }
 
-interface QueryExecutionsArgs {
-  athena: Athena
-  prev: Model.List<QueryExecution> | null
-  workgroup: string
-}
-
 function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecution {
   return {
     catalog: queryExecution?.QueryExecutionContext?.Catalog,
@@ -177,47 +169,6 @@ function parseQueryExecutionError(
   return {
     error: new Error(error?.ErrorMessage || 'Unknown'),
     id: error?.QueryExecutionId,
-  }
-}
-
-async function fetchQueryExecutions({
-  athena,
-  prev,
-  workgroup,
-}: QueryExecutionsArgs): Promise<Model.List<QueryExecution>> {
-  try {
-    const executionIdsOutput = await athena
-      .listQueryExecutions({ WorkGroup: workgroup, NextToken: prev?.next })
-      .promise()
-
-    const ids = executionIdsOutput.QueryExecutionIds
-    if (!ids || !ids.length)
-      return {
-        list: [],
-        next: executionIdsOutput.NextToken,
-      }
-
-    const executionsOutput = await athena
-      ?.batchGetQueryExecution({ QueryExecutionIds: ids })
-      .promise()
-    const parsed = (executionsOutput.QueryExecutions || [])
-      .map(parseQueryExecution)
-      .concat(
-        (executionsOutput.UnprocessedQueryExecutionIds || []).map(
-          parseQueryExecutionError,
-        ),
-      )
-    const list = (prev?.list || []).concat(parsed)
-    return {
-      list,
-      next: executionIdsOutput.NextToken,
-    }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
   }
 }
 
@@ -274,18 +225,6 @@ export function useExecutions(
   return React.useMemo(() => wrapData(data, setPrev), [data])
 }
 
-export function useQueryExecutions(
-  workgroup: string,
-  prev: Model.List<QueryExecution> | null,
-): AsyncData<Model.List<QueryExecution>> {
-  const athena = AWS.Athena.use()
-  return useData(
-    fetchQueryExecutions,
-    { athena, prev, workgroup },
-    { noAutoFetch: !workgroup },
-  )
-}
-
 function useFetchQueryExecution(
   QueryExecutionId?: string,
 ): [Model.Value<QueryExecution>, () => void] {
@@ -300,38 +239,36 @@ function useFetchQueryExecution(
       return
     }
     setData(Model.Loading)
-    const request = athena?.getQueryExecution(
-      { QueryExecutionId },
-      (err, { QueryExecution }) => {
-        if (err) {
-          setData(err)
-          return
+    const request = athena?.getQueryExecution({ QueryExecutionId }, (err, d) => {
+      const { QueryExecution } = d || {}
+      if (err) {
+        setData(err)
+        return
+      }
+      const status = QueryExecution?.Status?.State
+      const parsed = QueryExecution
+        ? parseQueryExecution(QueryExecution)
+        : { id: QueryExecutionId }
+      switch (status) {
+        case 'FAILED':
+        case 'CANCELLED': {
+          const reason = QueryExecution?.Status?.StateChangeReason || ''
+          setData(new Error(`${status}: ${reason}`))
+          break
         }
-        const status = QueryExecution?.Status?.State
-        const parsed = QueryExecution
-          ? parseQueryExecution(QueryExecution)
-          : { id: QueryExecutionId }
-        switch (status) {
-          case 'FAILED':
-          case 'CANCELLED': {
-            const reason = QueryExecution?.Status?.StateChangeReason || ''
-            setData(new Error(`${status}: ${reason}`))
-            break
-          }
-          case 'SUCCEEDED':
-            setData(parsed)
-            break
-          case 'QUEUED':
-          case 'RUNNING':
-            // eslint-disable-next-line no-await-in-loop
-            // await wait(1000)
-            break
-          default:
-            setData(new Error('Unknown query execution status'))
-            break
-        }
-      },
-    )
+        case 'SUCCEEDED':
+          setData(parsed)
+          break
+        case 'QUEUED':
+        case 'RUNNING':
+          // eslint-disable-next-line no-await-in-loop
+          // await wait(1000)
+          break
+        default:
+          setData(new Error('Unknown query execution status'))
+          break
+      }
+    })
     return () => request?.abort()
   }, [athena, QueryExecutionId, counter])
   const fetch = React.useCallback(() => setCounter((prev) => prev + 1), [])
@@ -349,7 +286,7 @@ export function useWaitForQueryExecution(
     return () => clearInterval(t)
   }, [fetch])
   React.useEffect(() => {
-    if (Model.hasValue(data) && timer) {
+    if (Model.isObtained(data) && timer) {
       clearInterval(timer)
     }
   }, [timer, data])
@@ -383,6 +320,7 @@ const emptyRow: Row = []
 const emptyList: QueryResultsRows = []
 const emptyColumns: QueryResultsColumns = []
 
+// TODO: rename to `QueryRun`
 export interface QueryRunResponse {
   id: string
 }
@@ -413,7 +351,8 @@ export function useQueries(
         WorkGroup: workgroup,
         NextToken: prev?.next,
       },
-      async (err, { NamedQueryIds, NextToken: next }) => {
+      async (err, d) => {
+        const { NamedQueryIds, NextToken: next } = d || {}
         if (err) {
           setData(err)
           return
@@ -427,7 +366,8 @@ export function useQueries(
         }
         batchRequest = athena?.batchGetNamedQuery(
           { NamedQueryIds },
-          (batchErr, { NamedQueries }) => {
+          (batchErr, batchData) => {
+            const { NamedQueries } = batchData || {}
             if (batchErr) {
               setData(batchErr)
               return
@@ -708,13 +648,51 @@ export async function runQuery({
   }
 }
 
-export function useQueryRun(workgroup: string) {
+export const NO_CATALOG_NAME = new Error('No catalog name')
+export const NO_DATABASE = new Error('No catalog name')
+
+interface QueryRunArgs {
+  workgroup?: Workgroup
+  catalogName: Model.Value<CatalogName>
+  database: Model.Value<Database>
+  queryBody: Model.Value<string>
+}
+export function useQueryRun({
+  workgroup,
+  catalogName,
+  database,
+  queryBody,
+}: QueryRunArgs): () => Promise<Model.Value<QueryRunResponse>> {
   const athena = AWS.Athena.use()
   return React.useCallback(
-    (queryBody: string, executionContext: ExecutionContext | null) => {
-      if (!athena) return Promise.reject(new Error('No Athena available'))
-      return runQuery({ athena, queryBody, workgroup, executionContext })
+    async (forceDefaultExecutionContext?: boolean) => {
+      if (!athena) return new Error('No Athena')
+      if (!workgroup) return new Error('No workgroup')
+
+      if (!Model.hasValue(catalogName)) return catalogName
+      if (!catalogName && !forceDefaultExecutionContext) return NO_CATALOG_NAME
+
+      if (!Model.hasValue(database)) return database
+      if (!database && !forceDefaultExecutionContext) return NO_DATABASE
+
+      if (!Model.isSelected(queryBody)) return queryBody
+
+      try {
+        return await runQuery({
+          athena,
+          queryBody: queryBody,
+          workgroup,
+          executionContext: forceDefaultExecutionContext
+            ? null
+            : {
+                catalogName: catalogName as string,
+                database: database as string,
+              },
+        })
+      } catch (err) {
+        return err instanceof Error ? err : new Error('Unknown error')
+      }
     },
-    [athena, workgroup],
+    [athena, workgroup, catalogName, database, queryBody],
   )
 }
