@@ -19,7 +19,7 @@ interface State {
   queries: Model.DataController<Model.List<requests.Query>>
   query: Model.ValueController<requests.Query>
   queryBody: Model.ValueController<string> // No `null`, simple `useState<string>('')` ?
-  results: Model.DataController<requests.QueryResultsResponse>
+  results: Model.DataController<requests.QueryResults>
   workgroups: Model.DataController<requests.WorkgroupsResponse>
 
   // TODO
@@ -27,6 +27,9 @@ interface State {
   submit: (
     forceDefaultExecutionContext?: boolean, // workgroup: requests.Workgroup,
   ) => Promise<Model.Value<requests.QueryRun>>
+
+  readyToRun: boolean
+  running: boolean
 }
 
 const Ctx = React.createContext<State | null>(null)
@@ -56,6 +59,21 @@ export function Provider({ children }: ProviderProps) {
   const executions = requests.useExecutions(workgroup)
   const results = requests.useResults(execution)
 
+  const running = React.useMemo(
+    () =>
+      !!queryExecutionId && (Model.isLoading(execution) || Model.isLoading(results.data)),
+    [execution, queryExecutionId, results.data],
+  )
+
+  const readyToRun = React.useMemo(
+    () =>
+      Model.isReady(execution) &&
+      Model.hasData(catalogName) &&
+      Model.hasData(database) &&
+      !!queryBody,
+    [execution, catalogName, database, queryBody],
+  )
+
   const submit = requests.useQueryRun({
     workgroup: workgroup,
     catalogName: catalogName.value,
@@ -81,6 +99,9 @@ export function Provider({ children }: ProviderProps) {
     workgroups,
 
     submit,
+
+    readyToRun,
+    running,
   }
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

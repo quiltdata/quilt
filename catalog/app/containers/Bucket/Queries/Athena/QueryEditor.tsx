@@ -8,6 +8,7 @@ import * as Lab from '@material-ui/lab'
 import 'ace-builds/src-noconflict/mode-sql'
 import 'ace-builds/src-noconflict/theme-eclipse'
 
+import Lock from 'components/Lock'
 import Skeleton from 'components/Skeleton'
 // import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -46,6 +47,7 @@ function HelperText() {
 const useStyles = M.makeStyles((t) => ({
   editor: {
     padding: t.spacing(1),
+    position: 'relative',
   },
   header: {
     margin: t.spacing(0, 0, 1),
@@ -56,7 +58,7 @@ interface EditorFieldProps {}
 
 function EditorField({}: EditorFieldProps) {
   const classes = useStyles()
-  const { queryBody } = Model.use()
+  const { queryBody, running } = Model.use()
   if (Model.isError(queryBody.value)) {
     return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
   }
@@ -80,6 +82,7 @@ function EditorField({}: EditorFieldProps) {
           value={queryBody.value}
           width="100%"
         />
+        {running && <Lock />}
       </M.Paper>
       <HelperText />
     </div>
@@ -261,8 +264,7 @@ interface FormProps {
 export function Form({ className }: FormProps) {
   const classes = useFormStyles()
 
-  const { bucket, catalogName, database, queryBody, submit, execution, workgroup } =
-    Model.use()
+  const { bucket, readyToRun, running, submit, workgroup } = Model.use()
 
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
@@ -306,12 +308,7 @@ export function Form({ className }: FormProps) {
         <M.Button
           variant="contained"
           color="primary"
-          disabled={
-            !Model.isReady(execution) ||
-            !Model.hasData(catalogName) ||
-            !Model.hasData(database) ||
-            !queryBody
-          }
+          disabled={!readyToRun || running}
           onClick={handleSubmit}
         >
           Run query

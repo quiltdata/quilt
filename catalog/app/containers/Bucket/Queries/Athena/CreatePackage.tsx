@@ -27,8 +27,8 @@ function SeeDocsForCreatingPackage() {
 }
 
 function doQueryResultsContainManifestEntries(
-  queryResults: requests.athena.QueryResultsResponse,
-): queryResults is requests.athena.QueryManifestsResponse {
+  queryResults: requests.athena.QueryResults,
+): queryResults is requests.athena.QueryManifests {
   const columnNames = queryResults.columns.map(({ name }) => name)
   return (
     columnNames.includes('size') &&
@@ -81,9 +81,7 @@ interface ParsedRows {
   invalid: requests.athena.QueryResultsRows
 }
 
-function parseQueryResults(
-  queryResults: requests.athena.QueryManifestsResponse,
-): ParsedRows {
+function parseQueryResults(queryResults: requests.athena.QueryManifests): ParsedRows {
   // TODO: use one reduce-loop
   //       merge `rowToManifestEntryStringified` and `parseManifestEntryStringified` into one function
   const manifestEntries: ManifestEntryStringified[] = queryResults.rows.reduce(
@@ -123,7 +121,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface CreatePackageProps {
   bucket: string
-  queryResults: requests.athena.QueryResultsResponse
+  queryResults: requests.athena.QueryResults
 }
 
 export default function CreatePackage({ bucket, queryResults }: CreatePackageProps) {

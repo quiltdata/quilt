@@ -30,17 +30,18 @@ export function Section({ className, empty, title, children }: SectionProps) {
 }
 
 interface AlertProps {
+  className?: string
   error: Error
   title: string
 }
 
-export function Alert({ error, title }: AlertProps) {
+export function Alert({ className, error, title }: AlertProps) {
   React.useEffect(() => {
     Sentry.captureException(error)
   }, [error])
 
   return (
-    <Lab.Alert severity="error">
+    <Lab.Alert severity="error" className={className}>
       <Lab.AlertTitle>{title}</Lab.AlertTitle>
       {error.message}
     </Lab.Alert>

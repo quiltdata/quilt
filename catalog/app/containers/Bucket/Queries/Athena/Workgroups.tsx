@@ -26,6 +26,7 @@ const LOAD_MORE = 'load-more'
 
 interface WorkgroupSelectProps {
   bucket: string
+  disabled?: boolean
   onLoadMore: (workgroups: Model.WorkgroupsResponse) => void
   value: Model.Workgroup | null
   workgroups: Model.WorkgroupsResponse
@@ -33,6 +34,7 @@ interface WorkgroupSelectProps {
 
 function WorkgroupSelect({
   bucket,
+  disabled,
   onLoadMore,
   value,
   workgroups,
@@ -65,7 +67,7 @@ function WorkgroupSelect({
       <M.FormControl className={classes.selectWrapper}>
         <M.Select
           classes={{ root: classes.select }}
-          disabled={!workgroups.list.length}
+          disabled={disabled || !workgroups.list.length}
           onChange={handleChange}
           value={value || 'none'}
         >
@@ -138,7 +140,7 @@ interface AthenaWorkgroupsProps {
 }
 
 export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
-  const { workgroup, workgroups } = Model.use()
+  const { running, workgroup, workgroups } = Model.use()
 
   if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
   if (!Model.hasValue(workgroups.data)) {
@@ -158,6 +160,7 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
     <Section title="Select workgroup" empty={<WorkgroupsEmpty />}>
       {workgroups.data.list.length && (
         <WorkgroupSelect
+          disabled={running}
           bucket={bucket}
           onLoadMore={workgroups.loadMore}
           value={workgroup || null}

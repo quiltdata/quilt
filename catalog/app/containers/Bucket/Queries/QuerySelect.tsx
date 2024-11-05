@@ -8,6 +8,7 @@ interface AbstractQuery {
 }
 
 interface QuerySelectProps<T> {
+  disabled?: boolean
   onChange: (value: T | null) => void
   onLoadMore?: () => void
   queries: T[]
@@ -29,9 +30,10 @@ const useStyles = M.makeStyles((t) => ({
 const LOAD_MORE = 'load-more'
 
 export default function QuerySelect<T>({
-  queries,
+  disabled,
   onChange,
   onLoadMore,
+  queries,
   value,
 }: QuerySelectProps<T & AbstractQuery>) {
   const classes = useStyles()
@@ -52,7 +54,7 @@ export default function QuerySelect<T>({
       <M.FormControl className={classes.selectWrapper}>
         <M.Select
           classes={{ root: classes.select }}
-          disabled={!queries.length}
+          disabled={disabled || !queries.length}
           onChange={handleChange}
           value={value?.key || 'none'}
         >

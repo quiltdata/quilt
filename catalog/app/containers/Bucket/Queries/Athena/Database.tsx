@@ -87,7 +87,7 @@ function Select({
       <M.Select
         onChange={handleChange}
         value={value?.toLowerCase()}
-        disabled={!data.list.length}
+        disabled={disabled || !data.list.length}
       >
         {data.list.map((item) => (
           <M.MenuItem key={item} value={item.toLowerCase()}>
@@ -110,7 +110,7 @@ interface SelectCatalogNameProps {
 }
 
 function SelectCatalogName({ className }: SelectCatalogNameProps) {
-  const { catalogName, catalogNames } = Model.use()
+  const { catalogName, catalogNames, running } = Model.use()
   if (Model.isError(catalogNames.data)) {
     return <SelectError className={className} error={catalogNames.data} />
   }
@@ -125,6 +125,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
     <Select
       className={className}
       data={catalogNames.data}
+      disabled={running}
       label="Data catalog"
       onChange={catalogName.setValue}
       onLoadMore={catalogNames.loadMore}
@@ -138,7 +139,7 @@ interface SelectDatabaseProps {
 }
 
 function SelectDatabase({ className }: SelectDatabaseProps) {
-  const { catalogName, database, databases } = Model.use()
+  const { catalogName, database, databases, running } = Model.use()
   if (Model.isError(databases.data)) {
     return <SelectError className={className} error={databases.data} />
   }
@@ -152,7 +153,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   return (
     <Select
       data={databases.data}
-      disabled={!Model.hasValue(catalogName)}
+      disabled={!Model.hasValue(catalogName) || running}
       label="Database"
       onChange={database.setValue}
       onLoadMore={databases.loadMore}

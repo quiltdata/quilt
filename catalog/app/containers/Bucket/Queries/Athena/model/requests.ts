@@ -302,7 +302,7 @@ export type QueryResultsColumns = QueryResultsColumnInfo[]
 type Row = QueryResultsValue[]
 export type QueryResultsRows = Row[]
 
-export interface QueryResultsResponse {
+export interface QueryResults {
   columns: QueryResultsColumns
   next?: string
   rows: QueryResultsRows
@@ -310,7 +310,7 @@ export interface QueryResultsResponse {
 
 type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
 
-export interface QueryManifestsResponse extends QueryResultsResponse {
+export interface QueryManifests extends QueryResults {
   rows: [ManifestKey[], ...string[][]]
 }
 
@@ -318,7 +318,6 @@ const emptyRow: Row = []
 const emptyList: QueryResultsRows = []
 const emptyColumns: QueryResultsColumns = []
 
-// TODO: rename to `QueryRun`
 export interface QueryRun {
   id: string
 }
@@ -390,10 +389,10 @@ export function useQueries(workgroup?: string): Model.DataController<Model.List<
 
 export function useResults(
   execution: Model.Value<QueryExecution>,
-): Model.DataController<QueryResultsResponse> {
+): Model.DataController<QueryResults> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<QueryResultsResponse | null>(null)
-  const [data, setData] = React.useState<Model.Data<QueryResultsResponse>>()
+  const [prev, setPrev] = React.useState<QueryResults | null>(null)
+  const [data, setData] = React.useState<Model.Data<QueryResults>>()
 
   React.useEffect(() => {
     if (execution === null) {

@@ -36,7 +36,7 @@ interface QueryConstructorProps {
 }
 
 function QueryConstructor({ className }: QueryConstructorProps) {
-  const { query, queries } = Model.use()
+  const { query, queries, running } = Model.use()
 
   if (Model.isError(queries.data)) {
     return makeAsyncDataErrorHandler('Select query')(queries.data)
@@ -54,6 +54,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     >
       {!!queries.data.list.length && (
         <QuerySelect<Model.Query | null>
+          disabled={running}
           onChange={query.setValue}
           onLoadMore={queries.data.next ? queries.loadMore : undefined}
           queries={queries.data.list}
@@ -67,12 +68,8 @@ function QueryConstructor({ className }: QueryConstructorProps) {
   )
 }
 
-interface HistoryContainerProps {
-  bucket: string
-}
-
-function HistoryContainer({ bucket }: HistoryContainerProps) {
-  const { executions } = Model.use()
+function HistoryContainer() {
+  const { bucket, executions } = Model.use()
   if (Model.isError(executions.data)) {
     return makeAsyncDataErrorHandler('Executions Data')(executions.data)
   }
@@ -112,37 +109,41 @@ function ResultsContainerSkeleton({ bucket, className }: ResultsContainerSkeleto
 }
 
 interface ResultsContainerProps {
-  bucket: string
   className: string
-  queryResults: Model.QueryResultsResponse
-  onLoadMore?: () => void
-  execution: Model.QueryExecution
 }
 
-function ResultsContainer({
-  bucket,
-  className,
-  queryResults,
-  onLoadMore,
-  execution,
-}: ResultsContainerProps) {
+function ResultsContainer({ className }: ResultsContainerProps) {
   const classes = useResultsContainerStyles()
+  const { bucket, execution, results } = Model.use()
+
+  if (Model.isError(execution)) {
+    return <Alert error={execution} title="Query execution" className={className} />
+  }
+
+  if (Model.isError(results.data)) {
+    return <Alert error={results.data} title="Query results" className={className} />
+  }
+
+  if (!Model.isReady(execution) || !Model.isReady(results.data)) {
+    return <ResultsContainerSkeleton bucket={bucket} className={className} />
+  }
+
   return (
     <div className={className}>
       <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
-        {!!queryResults.rows.length && (
-          <CreatePackage bucket={bucket} queryResults={queryResults} />
+        {!!results.data.rows.length && (
+          <CreatePackage bucket={bucket} queryResults={results.data} />
         )}
       </ResultsBreadcrumbs>
       {/* eslint-disable-next-line no-nested-ternary */}
-      {queryResults.rows.length ? (
+      {results.data.rows.length ? (
         <Results
-          rows={queryResults.rows}
-          columns={queryResults.columns}
-          onLoadMore={onLoadMore}
+          rows={results.data.rows}
+          columns={results.data.columns}
+          onLoadMore={results.loadMore}
         />
       ) : // eslint-disable-next-line no-nested-ternary
-      execution.error ? (
+      execution?.error ? (
         <Alert error={execution.error} title="Query Results Data" />
       ) : execution ? (
         <History bucket={bucket} executions={[execution]} />
@@ -243,65 +244,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface AthenaMainProps {
-  bucket: string
-}
-
-function AthenaMain({ bucket }: AthenaMainProps) {
-  const classes = useStyles()
-  return (
-    <div className={classes.content}>
-      <div className={classes.section}>
-        <QueryConstructor />
-        <QueryEditor.Form className={classes.form} />
-      </div>
-      <Section title="Query executions" className={classes.section}>
-        <HistoryContainer bucket={bucket} />
-      </Section>
-    </div>
-  )
-}
-
-interface AthenaExecutionProps {
-  bucket: string
-}
-
-function AthenaExecution({ bucket }: AthenaExecutionProps) {
-  const classes = useStyles()
-  const { execution, results } = Model.use()
-  // TODO: execution and results independent
-  if (Model.isError(execution)) {
-    return makeAsyncDataErrorHandler('Query Results Data')(execution)
-  }
-  if (Model.isError(results.data)) {
-    return makeAsyncDataErrorHandler('Query Results Data')(results.data)
-  }
-  if (!Model.hasData(execution) || !Model.hasValue(results.data)) {
-    return (
-      <div className={classes.content}>
-        <QuerySelectSkeleton className={classes.section} />
-        <ResultsContainerSkeleton bucket={bucket} className={classes.section} />
-      </div>
-    )
-  }
-  return (
-    <div className={classes.content}>
-      <div className={classes.section}>
-        <QueryConstructor />
-        <QueryEditor.Form className={classes.form} />
-      </div>
-
-      <ResultsContainer
-        bucket={bucket}
-        execution={execution}
-        className={classes.section}
-        queryResults={results.data}
-        onLoadMore={results.data.next ? results.loadMore : undefined}
-      />
-    </div>
-  )
-}
-
 function AthenaContainer() {
   const { bucket, queryExecutionId } = Model.use()
 
@@ -314,11 +256,21 @@ function AthenaContainer() {
 
       <Workgroups bucket={bucket} />
 
-      {queryExecutionId ? (
-        <AthenaExecution bucket={bucket} />
-      ) : (
-        <AthenaMain bucket={bucket} />
-      )}
+      <div className={classes.content}>
+        <div className={classes.section}>
+          <QueryConstructor />
+          <QueryEditor.Form className={classes.form} />
+        </div>
+        <Section title="Query executions" className={classes.section}>
+          {queryExecutionId ? (
+            <ResultsContainer className={classes.section} />
+          ) : (
+            <Section title="Query executions" className={classes.section}>
+              <HistoryContainer />
+            </Section>
+          )}
+        </Section>
+      </div>
     </>
   )
 }
