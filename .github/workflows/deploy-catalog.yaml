@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - stack-version
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
