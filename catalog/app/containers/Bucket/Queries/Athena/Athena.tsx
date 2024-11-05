@@ -117,11 +117,21 @@ function ResultsContainer({ className }: ResultsContainerProps) {
   const { bucket, execution, results } = Model.use()
 
   if (Model.isError(execution)) {
-    return <Alert error={execution} title="Query execution" className={className} />
+    return (
+      <>
+        <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
+        <Alert error={execution} title="Query execution" className={className} />
+      </>
+    )
   }
 
   if (Model.isError(results.data)) {
-    return <Alert error={results.data} title="Query results" className={className} />
+    return (
+      <>
+        <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
+        <Alert error={results.data} title="Query results" className={className} />
+      </>
+    )
   }
 
   if (!Model.isReady(execution) || !Model.isReady(results.data)) {
@@ -201,7 +211,7 @@ const useResultsBreadcrumbsStyles = M.makeStyles({
 
 interface ResultsBreadcrumbsProps {
   bucket: string
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
 }
 
@@ -224,7 +234,7 @@ function ResultsBreadcrumbs({ bucket, children, className }: ResultsBreadcrumbsP
         </M.Typography>
       </M.Breadcrumbs>
 
-      <div className={classes.actions}>{children}</div>
+      {children && <div className={classes.actions}>{children}</div>}
     </div>
   )
 }
