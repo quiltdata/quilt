@@ -286,7 +286,7 @@ export function useWaitForQueryExecution(
     return () => clearInterval(t)
   }, [fetch])
   React.useEffect(() => {
-    if (Model.isObtained(data) && timer) {
+    if (Model.isReady(data) && timer) {
       clearInterval(timer)
     }
   }, [timer, data])
@@ -448,7 +448,7 @@ export function useDatabases(
   const [prev, setPrev] = React.useState<Model.List<Database> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<Database>>>()
   React.useEffect(() => {
-    if (!Model.isSelected(catalogName)) {
+    if (!Model.hasData(catalogName)) {
       // TODO: setData(undefined)?
       return
     }
@@ -526,7 +526,7 @@ export function useQuery(
   React.useEffect(() => {
     if (!Model.hasValue(queries)) return
     setValue((v) => {
-      if (Model.isSelected(v) && queries.list.includes(v)) {
+      if (Model.hasData(v) && queries.list.includes(v)) {
         // If new queries list contains the same value, keep it
         return v
       }
@@ -565,7 +565,7 @@ export function useCatalogName(
   React.useEffect(() => {
     if (!Model.hasValue(catalogNames)) return
     setValue((v) => {
-      if (Model.isSelected(v) && catalogNames.list.includes(v)) {
+      if (Model.hasData(v) && catalogNames.list.includes(v)) {
         // If new catalog names list contains the same value, keep it
         return v
       }
@@ -588,7 +588,7 @@ export function useDatabase(
     }
     if (!Model.hasValue(databases)) return
     setValue((v) => {
-      if (Model.isSelected(v) && databases.list.includes(v)) {
+      if (Model.hasData(v) && databases.list.includes(v)) {
         // If new databases list contains the same value, keep it
         return v
       }
@@ -675,12 +675,12 @@ export function useQueryRun({
       if (!Model.hasValue(database)) return database
       if (!database && !forceDefaultExecutionContext) return NO_DATABASE
 
-      if (!Model.isSelected(queryBody)) return queryBody
+      if (!Model.hasData(queryBody)) return queryBody
 
       try {
         return await runQuery({
           athena,
-          queryBody: queryBody,
+          queryBody,
           workgroup,
           executionContext: forceDefaultExecutionContext
             ? null

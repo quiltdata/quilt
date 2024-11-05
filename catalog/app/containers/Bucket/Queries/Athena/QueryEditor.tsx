@@ -277,7 +277,7 @@ export function Form({ className }: FormProps) {
   const openDialog = Dialogs.use()
   const submitWithDefaults = React.useCallback(async () => {
     const data = await submit(true)
-    if (!Model.isSelected(data)) {
+    if (!Model.hasData(data)) {
       return openDialog(({ close }) => (
         <FormConfirm
           data={data}
@@ -292,7 +292,7 @@ export function Form({ className }: FormProps) {
   }, [goToExecution, openDialog, submit])
   const handleSubmit = React.useCallback(async () => {
     const data = await submit()
-    if (!Model.isSelected(data)) {
+    if (!Model.hasData(data)) {
       return openDialog(({ close }) => (
         <FormConfirm data={data} close={close} submit={() => submitWithDefaults()} />
       ))
@@ -310,7 +310,7 @@ export function Form({ className }: FormProps) {
           variant="contained"
           color="primary"
           disabled={
-            !Model.isObtained(execution) ||
+            !Model.isReady(execution) ||
             !Model.hasData(catalogName) ||
             !Model.hasData(database) ||
             !queryBody

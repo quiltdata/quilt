@@ -44,7 +44,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     return makeAsyncDataErrorHandler('Select query')(queries.data)
   }
 
-  if (!Model.hasData(queries.data) || !Model.isObtained(query.value)) {
+  if (!Model.hasData(queries.data) || !Model.isReady(query.value)) {
     return <QuerySelectSkeleton className={className} />
   }
 
