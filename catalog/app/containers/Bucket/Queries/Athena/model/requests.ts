@@ -4,9 +4,8 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import * as Model from './utils'
-
 import * as storage from './storage'
+import * as Model from './utils'
 
 export interface Query {
   body: string
@@ -320,7 +319,7 @@ const emptyList: QueryResultsRows = []
 const emptyColumns: QueryResultsColumns = []
 
 // TODO: rename to `QueryRun`
-export interface QueryRunResponse {
+export interface QueryRun {
   id: string
 }
 
@@ -614,7 +613,7 @@ export async function runQuery({
   queryBody,
   workgroup,
   executionContext,
-}: RunQueryArgs): Promise<QueryRunResponse> {
+}: RunQueryArgs): Promise<QueryRun> {
   try {
     const options: Athena.Types.StartQueryExecutionInput = {
       QueryString: queryBody,
@@ -659,7 +658,7 @@ export function useQueryRun({
   catalogName,
   database,
   queryBody,
-}: QueryRunArgs): () => Promise<Model.Value<QueryRunResponse>> {
+}: QueryRunArgs): () => Promise<Model.Value<QueryRun>> {
   const athena = AWS.Athena.use()
   return React.useCallback(
     async (forceDefaultExecutionContext?: boolean) => {

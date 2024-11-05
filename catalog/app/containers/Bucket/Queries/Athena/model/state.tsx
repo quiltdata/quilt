@@ -26,7 +26,7 @@ interface State {
   // TODO: return Error, and if some specific Error then confirm
   submit: (
     forceDefaultExecutionContext?: boolean, // workgroup: requests.Workgroup,
-  ) => Promise<Model.Value<requests.QueryRunResponse>>
+  ) => Promise<Model.Value<requests.QueryRun>>
 }
 
 const Ctx = React.createContext<State | null>(null)

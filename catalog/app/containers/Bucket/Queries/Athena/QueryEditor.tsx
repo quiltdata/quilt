@@ -182,7 +182,7 @@ function FormSkeleton({ className }: FormSkeletonProps) {
 }
 
 interface FormConfirmProps {
-  data: Model.Value<Model.QueryRunResponse>
+  data: Model.Value<Model.QueryRun>
   close: () => void
   submit: () => void
 }
