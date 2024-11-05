@@ -37,8 +37,8 @@ references.
 
 A Quilt+ URI contains the following components:
 
-- `quilt+`: The scheme of the URI. This is always `quilt+`.
-- `s3://`: The protocol of the URI. This is currently `s3://`.
+- `quilt+<protocol>`: The scheme of the URI. This always begins with `quilt+`.
+  Currently the only supported protocol is `s3`.
 - `<bucket>`: The name of the bucket containing the package or object, e.g.
   `quilt-example`.
 - `#package=<package_name[specifier]>`: A fragment for the name of the package,
