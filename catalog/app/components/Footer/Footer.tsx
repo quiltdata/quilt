@@ -42,7 +42,7 @@ function Version() {
     <M.Typography
       className={classes.revision}
       onClick={handleCopy}
-      title="Copy product revision hash to clipboard"
+      title="Copy Platform release version to clipboard"
       variant="caption"
     >
       Version: {cfg.stackVersion}
@@ -87,7 +87,7 @@ const useStyles = M.makeStyles((t) => ({
       '0px -12px 24px 0px rgba(25, 22, 59, 0.05)',
       '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
       '0px -24px 88px 0px rgba(25, 22, 59, 0.16)',
-    ].join(' '),
+    ].join(', '),
     height: 230,
     paddingTop: t.spacing(6),
     position: 'relative',

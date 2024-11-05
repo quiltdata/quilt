@@ -97,9 +97,9 @@
       "type": "boolean",
       "description": "Enable Qurator AI Assistant (powered by Amazon Bedrock)"
     },
-    "stack_version": {
+    "stackVersion": {
       "type": "string",
-      "description": "Stack release version, uses semver"
+      "description": "Stack release version"
     }
   },
   "required": [
