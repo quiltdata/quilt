@@ -13,6 +13,12 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
+# 6.1.1 - UNRELEASED
+
+## Python API
+
+* [Fixed] Allow S3 paths starting with `/` in `Package().set_dir()` ([#4207](https://github.com/quiltdata/quilt/pull/4207))
+
 # 6.1.0 - 2024-10-14
 
 ## Python API
