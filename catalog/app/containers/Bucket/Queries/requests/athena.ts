@@ -261,8 +261,6 @@ function useFetchQueryExecution(
           break
         case 'QUEUED':
         case 'RUNNING':
-          // eslint-disable-next-line no-await-in-loop
-          // await wait(1000)
           break
         default:
           setData(new Error('Unknown query execution status'))
