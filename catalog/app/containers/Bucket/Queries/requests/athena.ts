@@ -9,14 +9,14 @@ import * as Model from '../Athena/model'
 import * as storage from './storage'
 
 // TODO: rename to requests.athena.Query
-export interface AthenaQuery {
+export interface Query {
   body: string
   description?: string
   key: string
   name: string
 }
 
-function parseNamedQuery(query: Athena.NamedQuery): AthenaQuery {
+function parseNamedQuery(query: Athena.NamedQuery): Query {
   return {
     body: query.QueryString,
     description: query.Description,
@@ -333,12 +333,10 @@ export interface QueriesIdsResponse {
   next?: string
 }
 
-export function useQueries(
-  workgroup?: string,
-): Model.DataController<Model.List<AthenaQuery>> {
+export function useQueries(workgroup?: string): Model.DataController<Model.List<Query>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<AthenaQuery> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<AthenaQuery>>>()
+  const [prev, setPrev] = React.useState<Model.List<Query> | null>(null)
+  const [data, setData] = React.useState<Model.Data<Model.List<Query>>>()
   React.useEffect(() => {
     if (!workgroup) return
     setData(Model.Loading)
@@ -520,9 +518,9 @@ export function useCatalogNames(): Model.DataController<Model.List<CatalogName>>
 }
 
 export function useQuery(
-  queries: Model.Data<Model.List<AthenaQuery>>,
-): Model.ValueController<AthenaQuery> {
-  const [value, setValue] = React.useState<Model.Value<AthenaQuery>>()
+  queries: Model.Data<Model.List<Query>>,
+): Model.ValueController<Query> {
+  const [value, setValue] = React.useState<Model.Value<Query>>()
   React.useEffect(() => {
     if (!Model.hasValue(queries)) return
     setValue((v) => {
@@ -539,7 +537,7 @@ export function useQuery(
 }
 
 export function useQueryBody(
-  query: Model.Value<AthenaQuery>,
+  query: Model.Value<Query>,
   setQuery: (value: null) => void,
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>()

@@ -62,7 +62,7 @@ interface QueriesStateRenderProps {
   error: Error | null
   handleError: (error: Error | null) => void
   handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
-  handleQueryMetaChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
+  handleQueryMetaChange: (q: requests.Query | requests.athena.Query | null) => void
   handleSubmit: (q: requests.ElasticSearchQuery) => () => void
   queries: requests.Query[]
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
@@ -99,7 +99,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   )
 
   const handleQueryMetaChange = React.useCallback(
-    (q: requests.athena.AthenaQuery | requests.Query | null) => {
+    (q: requests.athena.Query | requests.Query | null) => {
       setQueryMeta(q as requests.Query | null)
       setCustomQueryBody(null)
     },

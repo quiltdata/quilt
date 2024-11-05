@@ -55,7 +55,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
       empty="There are no saved queries."
     >
       {!!queries.data.list.length && (
-        <QuerySelect<requests.athena.AthenaQuery | null>
+        <QuerySelect<requests.athena.Query | null>
           onChange={query.setValue}
           onLoadMore={queries.data.next ? queries.loadMore : undefined}
           queries={queries.data.list}

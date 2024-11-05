@@ -17,8 +17,8 @@ interface State {
   databases: Model.DataController<Model.List<requests.athena.Database>>
   execution: Model.Value<requests.athena.QueryExecution>
   executions: Model.DataController<Model.List<requests.athena.QueryExecution>>
-  queries: Model.DataController<Model.List<requests.athena.AthenaQuery>>
-  query: Model.ValueController<requests.athena.AthenaQuery>
+  queries: Model.DataController<Model.List<requests.athena.Query>>
+  query: Model.ValueController<requests.athena.Query>
   queryBody: Model.ValueController<string> // No `null`, simple `useState<string>('')` ?
   results: Model.DataController<requests.athena.QueryResultsResponse>
   workgroups: Model.DataController<requests.athena.WorkgroupsResponse>
