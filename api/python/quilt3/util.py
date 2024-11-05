@@ -21,7 +21,9 @@ import requests
 import yaml
 from platformdirs import user_cache_dir, user_data_dir
 
+
 logger = logging.getLogger(__name__)
+
 
 def get_bool_from_env(var_name: str):
     return os.getenv(var_name, '').lower() == 'true'
