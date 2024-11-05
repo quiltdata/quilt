@@ -113,7 +113,8 @@
     "s3Proxy",
     "serviceBucket",
     "ssoAuth",
-    "ssoProviders"
+    "ssoProviders",
+    "stackVersion"
   ],
   "definitions": {
     "Url": {
