@@ -53,7 +53,7 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
         {!!pre && pre}
         {!!children && <M.Box p={4}>{children}</M.Box>}
         <M.Box flexGrow={1} />
-        {!!isHomepage && isHomepage.isExact && <Footer />}
+        {isHomepage?.isExact && <Footer />}
         {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
       </NavBar.Provider>
     </Root>
