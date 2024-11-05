@@ -8,7 +8,6 @@ import * as Model from '../Athena/model'
 
 import * as storage from './storage'
 
-// TODO: rename to requests.athena.Query
 export interface Query {
   body: string
   description?: string
@@ -186,7 +185,8 @@ export function useExecutions(
 
     const request = athena?.listQueryExecutions(
       { WorkGroup: workgroup, NextToken: prev?.next },
-      (err, { QueryExecutionIds, NextToken: next }) => {
+      (err, d) => {
+        const { QueryExecutionIds, NextToken: next } = d || {}
         if (err) {
           setData(err)
           return
@@ -200,7 +200,8 @@ export function useExecutions(
         }
         batchRequest = athena?.batchGetQueryExecution(
           { QueryExecutionIds },
-          (batchErr, { QueryExecutions, UnprocessedQueryExecutionIds }) => {
+          (batchErr, batchData) => {
+            const { QueryExecutions, UnprocessedQueryExecutionIds } = batchData || {}
             if (batchErr) {
               setData(batchErr)
               return
@@ -411,7 +412,8 @@ export function useResults(
 
     const request = athena?.getQueryResults(
       { QueryExecutionId: execution.id, NextToken: prev?.next },
-      (err, { ResultSet, NextToken: next }) => {
+      (err, d) => {
+        const { ResultSet, NextToken: next } = d || {}
         if (err) {
           setData(err)
           return
@@ -456,7 +458,8 @@ export function useDatabases(
         CatalogName: catalogName,
         NextToken: prev?.next,
       },
-      (err, { DatabaseList, NextToken: next }) => {
+      (err, d) => {
+        const { DatabaseList, NextToken: next } = d || {}
         if (err) {
           setData(err)
           return
@@ -495,23 +498,19 @@ export function useCatalogNames(): Model.DataController<Model.List<CatalogName>>
   const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
   React.useEffect(() => {
-    const request = athena?.listDataCatalogs(
-      { NextToken: prev?.next },
-      (err, { DataCatalogsSummary, NextToken: next }) => {
-        setData(Model.Loading)
-        if (err) {
-          setData(err)
-          return
-        }
-        const list = DataCatalogsSummary?.map(
-          ({ CatalogName }) => CatalogName || 'Unknown',
-        )
-        setData({
-          list: (prev?.list || []).concat(list || []),
-          next,
-        })
-      },
-    )
+    const request = athena?.listDataCatalogs({ NextToken: prev?.next }, (err, d) => {
+      const { DataCatalogsSummary, NextToken: next } = d || {}
+      setData(Model.Loading)
+      if (err) {
+        setData(err)
+        return
+      }
+      const list = DataCatalogsSummary?.map(({ CatalogName }) => CatalogName || 'Unknown')
+      setData({
+        list: (prev?.list || []).concat(list || []),
+        next,
+      })
+    })
     return () => request?.abort()
   }, [athena, prev])
   return React.useMemo(() => wrapData(data, setPrev), [data])
