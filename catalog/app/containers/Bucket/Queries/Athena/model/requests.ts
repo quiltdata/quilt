@@ -282,7 +282,7 @@ export function useWaitForQueryExecution(
     const t = setInterval(fetch, 1000)
     setTimer(t)
     return () => clearInterval(t)
-  }, [fetch])
+  }, [queryExecutionId, fetch])
   React.useEffect(() => {
     if (Model.isReady(data) && timer) {
       clearInterval(timer)
