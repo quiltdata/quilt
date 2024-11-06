@@ -120,7 +120,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
     return <SelectError className={className} error={catalogName.value} />
   }
   if (!Model.hasValue(catalogName.value) || !Model.hasData(catalogNames.data)) {
-    return <Skeleton className={className} height={32} animate />
+    return <Skeleton className={className} height={32} animate mt={2} />
   }
 
   return (
@@ -149,7 +149,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
     return <SelectError className={className} error={database.value} />
   }
   if (!Model.hasValue(database.value) || !Model.hasData(databases.data)) {
-    return <Skeleton className={className} height={32} animate />
+    return <Skeleton className={className} height={32} animate mt={2} />
   }
 
   return (

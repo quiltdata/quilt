@@ -540,20 +540,25 @@ export function useCatalogNames(): Model.DataController<Model.List<CatalogName>>
 
 export function useQuery(
   queries: Model.Data<Model.List<Query>>,
+  execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Query> {
   const [value, setValue] = React.useState<Model.Value<Query>>()
   React.useEffect(() => {
-    if (!Model.hasValue(queries)) return
+    if (!Model.hasData(queries)) {
+      setValue(queries)
+      return
+    }
     setValue((v) => {
       if (Model.hasData(v) && queries.list.includes(v)) {
         // If new queries list contains the same value, keep it
         return v
+      } else if (Model.hasData(execution) && execution.query) {
+        const executionQuery = queries.list.find((q) => execution.query === q.name)
+        if (executionQuery) return executionQuery
       }
-      // TODO: If new queries list DOESN'T contain the same value,
-      //       should be `undefined`?
       return queries.list[0] || null
     })
-  }, [queries])
+  }, [execution, queries])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
@@ -563,9 +568,11 @@ export function useQueryBody(
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>()
   React.useEffect(() => {
-    if (Model.hasValue(query)) {
-      setValue(query?.body || null)
-    }
+    setValue(() => {
+      if (Model.hasData(query)) return query.body
+      if (Model.isError(query)) return null
+      return query
+    })
   }, [query])
   const handleValue = React.useCallback(
     (v: string | null) => {
@@ -579,43 +586,59 @@ export function useQueryBody(
 
 export function useCatalogName(
   catalogNames: Model.Data<Model.List<CatalogName>>,
+  execution: Model.Value<QueryExecution>,
 ): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>()
   React.useEffect(() => {
-    if (!Model.hasValue(catalogNames)) return
+    if (!Model.hasData(catalogNames)) {
+      setValue(catalogNames)
+      return
+    }
+    if (!Model.isReady(execution)) {
+      setValue(execution)
+      return
+    }
     setValue((v) => {
       if (Model.hasData(v) && catalogNames.list.includes(v)) {
         // If new catalog names list contains the same value, keep it
         return v
+      } else if (
+        Model.hasData(execution) &&
+        execution.catalog &&
+        catalogNames.list.includes(execution.catalog)
+      ) {
+        return execution.catalog
       }
-      // TODO: If new catalog names list DOESN'T contain the same value,
-      //       should be `undefined`?
-      return catalogNames.list[0]
+      return catalogNames.list[0] || new Error('No catalog names')
     })
-  }, [catalogNames])
+  }, [catalogNames, execution])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
 export function useDatabase(
   databases: Model.Data<Model.List<Database>>,
+  execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Database> {
   const [value, setValue] = React.useState<Model.Value<Database>>()
   React.useEffect(() => {
-    if (Model.isError(databases)) {
+    if (!Model.hasData(databases)) {
       setValue(databases)
       return
     }
-    if (!Model.hasValue(databases)) return
     setValue((v) => {
       if (Model.hasData(v) && databases.list.includes(v)) {
         // If new databases list contains the same value, keep it
         return v
+      } else if (
+        Model.hasData(execution) &&
+        execution.db &&
+        databases.list.includes(execution.db)
+      ) {
+        return execution.db
       }
-      // TODO: If new databases list DOESN'T contain the same value,
-      //       should be `undefined`?
-      return databases.list[0]
+      return databases.list[0] || new Error('No databases')
     })
-  }, [databases])
+  }, [databases, execution])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
@@ -627,11 +650,11 @@ export interface ExecutionContext {
 interface RunQueryArgs {
   athena: Athena
   queryBody: string
-  workgroup: string
+  workgroup: Workgroup
   executionContext: ExecutionContext | null
 }
 
-export async function runQuery({
+async function runQuery({
   athena,
   queryBody,
   workgroup,
@@ -687,7 +710,7 @@ export function useQueryRun({
     async (forceDefaultExecutionContext?: boolean) => {
       if (!athena) return new Error('No Athena')
 
-      if (!Model.hasValue(workgroup)) return new Error('No workgroup')
+      if (!Model.hasData(workgroup)) return new Error('No workgroup')
 
       if (!Model.hasValue(catalogName)) return catalogName
       if (!catalogName && !forceDefaultExecutionContext) return NO_CATALOG_NAME

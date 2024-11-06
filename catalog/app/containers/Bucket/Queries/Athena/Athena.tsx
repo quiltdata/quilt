@@ -52,17 +52,21 @@ function QueryConstructor({ className }: QueryConstructorProps) {
       title="Select query"
       empty="There are no saved queries."
     >
-      {!!queries.data.list.length && (
-        <QuerySelect<Model.Query | null>
-          disabled={running}
-          onChange={query.setValue}
-          onLoadMore={queries.data.next ? queries.loadMore : undefined}
-          queries={queries.data.list}
-          value={Model.isError(query.value) ? null : query.value}
-        />
-      )}
-      {Model.isError(query.value) && (
-        <M.FormHelperText error>{query.value.message}</M.FormHelperText>
+      {(!!queries.data.list.length || Model.isError(query.value)) && (
+        <>
+          {!!queries.data.list.length && (
+            <QuerySelect<Model.Query | null>
+              disabled={running}
+              onChange={query.setValue}
+              onLoadMore={queries.data.next ? queries.loadMore : undefined}
+              queries={queries.data.list}
+              value={Model.isError(query.value) ? null : query.value}
+            />
+          )}
+          {Model.isError(query.value) && (
+            <M.FormHelperText error>{query.value.message}</M.FormHelperText>
+          )}
+        </>
       )}
     </Section>
   )
@@ -266,7 +270,7 @@ function AthenaContainer() {
 
       <Workgroups bucket={bucket} />
 
-      {!Model.hasData(workgroup) && (
+      {Model.hasData(workgroup.data) && (
         <div className={classes.content}>
           <div className={classes.section}>
             <QueryConstructor />
@@ -276,9 +280,7 @@ function AthenaContainer() {
             {queryExecutionId ? (
               <ResultsContainer className={classes.section} />
             ) : (
-              <Section title="Query executions" className={classes.section}>
-                <HistoryContainer />
-              </Section>
+              <HistoryContainer />
             )}
           </Section>
         </div>

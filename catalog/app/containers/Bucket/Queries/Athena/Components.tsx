@@ -19,8 +19,9 @@ interface SectionProps {
 
 export function Section({ className, empty, title, children }: SectionProps) {
   const classes = useSectionStyles()
-  if (!children && empty)
+  if (!children && empty) {
     return <div className={cx(classes.header, className)}>{empty}</div>
+  }
   return (
     <div className={className}>
       <div className={classes.header}>{title}</div>

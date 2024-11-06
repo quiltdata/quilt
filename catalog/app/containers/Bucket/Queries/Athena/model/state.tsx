@@ -56,13 +56,13 @@ export function Provider({ children }: ProviderProps) {
 
   const workgroups = requests.useWorkgroups()
   const workgroup = requests.useWorkgroup(workgroups, workgroupId)
-  const catalogNames = requests.useCatalogNames()
-  const catalogName = requests.useCatalogName(catalogNames.data)
-  const databases = requests.useDatabases(catalogName.value)
-  const database = requests.useDatabase(databases.data)
   const queries = requests.useQueries(workgroup.data)
-  const query = requests.useQuery(queries.data)
+  const query = requests.useQuery(queries.data, execution)
   const queryBody = requests.useQueryBody(query.value, query.setValue)
+  const catalogNames = requests.useCatalogNames()
+  const catalogName = requests.useCatalogName(catalogNames.data, execution)
+  const databases = requests.useDatabases(catalogName.value)
+  const database = requests.useDatabase(databases.data, execution)
   const executions = requests.useExecutions(workgroup.data)
   const results = requests.useResults(execution)
 
@@ -75,9 +75,9 @@ export function Provider({ children }: ProviderProps) {
   const readyToRun = React.useMemo(
     () =>
       Model.isReady(execution) &&
-      Model.hasValue(catalogName) &&
-      Model.hasValue(database) &&
-      !!queryBody.value,
+      Model.hasValue(catalogName.value) &&
+      Model.hasValue(database.value) &&
+      Model.hasData(queryBody.value),
     [execution, catalogName, database, queryBody],
   )
 

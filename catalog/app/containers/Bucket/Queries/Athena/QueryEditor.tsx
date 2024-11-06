@@ -65,7 +65,7 @@ function EditorField() {
     return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
   }
 
-  if (!Model.hasData(queryBody.value)) {
+  if (!Model.hasValue(queryBody.value)) {
     return <FormSkeleton />
   }
 
@@ -81,7 +81,7 @@ function EditorField() {
           mode="sql"
           onChange={queryBody.setValue}
           theme="eclipse"
-          value={queryBody.value}
+          value={queryBody.value || ''}
           width="100%"
         />
         {running && <Lock />}
@@ -223,7 +223,7 @@ export function Form({ className }: FormProps) {
       if (queryExecutionId === id) {
         notify('Query execution results remain unchanged')
       } else {
-        history.push(urls.bucketAthenaExecution(bucket, workgroup, id))
+        history.push(urls.bucketAthenaExecution(bucket, workgroup.data, id))
       }
     },
     [bucket, history, queryExecutionId, notify, urls, workgroup],
