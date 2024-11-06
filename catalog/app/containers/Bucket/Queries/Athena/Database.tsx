@@ -7,6 +7,7 @@ import Skeleton from 'components/Skeleton'
 import * as Dialogs from 'utils/GlobalDialogs'
 
 import * as Model from './model'
+import * as storage from './model/storage'
 
 interface SelectErrorProps {
   className?: string
@@ -113,6 +114,16 @@ interface SelectCatalogNameProps {
 
 function SelectCatalogName({ className }: SelectCatalogNameProps) {
   const { catalogName, catalogNames, running } = Model.use()
+
+  const handleChange = React.useCallback(
+    (value) => {
+      storage.setCatalog(value)
+      storage.clearDatabase()
+      catalogName.setValue(value)
+    },
+    [catalogName],
+  )
+
   if (Model.isError(catalogNames.data)) {
     return <SelectError className={className} error={catalogNames.data} />
   }
@@ -129,7 +140,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
       data={catalogNames.data}
       disabled={running}
       label="Data catalog"
-      onChange={catalogName.setValue}
+      onChange={handleChange}
       onLoadMore={catalogNames.loadMore}
       value={catalogName.value}
     />
@@ -142,6 +153,15 @@ interface SelectDatabaseProps {
 
 function SelectDatabase({ className }: SelectDatabaseProps) {
   const { catalogName, database, databases, running } = Model.use()
+
+  const handleChange = React.useCallback(
+    (value) => {
+      storage.setDatabase(value)
+      database.setValue(value)
+    },
+    [database],
+  )
+
   if (Model.isError(databases.data)) {
     return <SelectError className={className} error={databases.data} />
   }
@@ -157,7 +177,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
       data={databases.data}
       disabled={!Model.hasValue(catalogName) || running}
       label="Database"
-      onChange={database.setValue}
+      onChange={handleChange}
       onLoadMore={databases.loadMore}
       value={database.value}
     />

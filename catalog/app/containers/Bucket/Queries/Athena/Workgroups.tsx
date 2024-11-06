@@ -8,10 +8,9 @@ import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
-import * as storage from './model/storage'
-
-import * as Model from './model'
 import { Alert, Section } from './Components'
+import * as Model from './model'
+import * as storage from './model/storage'
 
 const useStyles = M.makeStyles((t) => ({
   selectWrapper: {

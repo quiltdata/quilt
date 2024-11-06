@@ -143,16 +143,18 @@ export function useWorkgroup(
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
     const workgroupsData = workgroups.data
-    const workgroup =
-      requestedWorkgroup || workgroupsData.defaultWorkgroup || workgroupsData.list[0]
+    const workgroup = requestedWorkgroup || workgroupsData.defaultWorkgroup
     setData((d) => {
       if (!Model.hasData(workgroupsData)) return d
       if (workgroup && workgroupsData.list.includes(workgroup)) {
         // If workgroups list contains requested workgroup, keep it
         return workgroup
       }
-      return new Error(
-        workgroup ? `Workgroup "${workgroup}" not found` : 'Workgroup not found',
+      return (
+        workgroupsData.list[0] ||
+        new Error(
+          workgroup ? `Workgroup "${workgroup}" not found` : 'Workgroup not found',
+        )
       )
     })
   }, [requestedWorkgroup, workgroups])
@@ -611,6 +613,10 @@ export function useCatalogName(
       ) {
         return execution.catalog
       }
+      const initialCatalogName = storage.getCatalog()
+      if (initialCatalogName && catalogNames.list.includes(initialCatalogName)) {
+        return initialCatalogName
+      }
       return catalogNames.list[0] || new Error('No catalog names')
     })
   }, [catalogNames, execution])
@@ -637,6 +643,10 @@ export function useDatabase(
         databases.list.includes(execution.db)
       ) {
         return execution.db
+      }
+      const initialDatabase = storage.getDatabase()
+      if (initialDatabase && databases.list.includes(initialDatabase)) {
+        return initialDatabase
       }
       return databases.list[0] || new Error('No databases')
     })
