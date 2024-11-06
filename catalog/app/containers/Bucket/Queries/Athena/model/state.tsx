@@ -68,7 +68,7 @@ export function Provider({ children }: ProviderProps) {
       Model.isReady(execution) &&
       Model.hasData(catalogName) &&
       Model.hasData(database) &&
-      !!queryBody,
+      !!queryBody.value,
     [execution, catalogName, database, queryBody],
   )
 

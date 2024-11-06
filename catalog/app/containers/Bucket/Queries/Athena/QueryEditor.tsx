@@ -56,10 +56,15 @@ const useStyles = M.makeStyles((t) => ({
 function EditorField() {
   const classes = useStyles()
   const { queryBody, running } = Model.use()
+
+  if (Model.isNone(queryBody.value)) {
+    return null
+  }
+
   if (Model.isError(queryBody.value)) {
     return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
   }
-  // FIXME:
+
   if (!Model.hasData(queryBody.value)) {
     return <FormSkeleton />
   }
