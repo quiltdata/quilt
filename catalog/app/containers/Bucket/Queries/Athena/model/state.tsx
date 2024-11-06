@@ -2,6 +2,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
+import type * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as requests from './requests'
@@ -19,10 +20,10 @@ export interface State {
   executions: Model.DataController<Model.List<requests.QueryExecution>>
   queries: Model.DataController<Model.List<requests.Query>>
   query: Model.ValueController<requests.Query>
-  queryBody: Model.ValueController<string> // No `null`, simple `useState<string>('')` ?
+  queryBody: Model.ValueController<string>
   results: Model.DataController<requests.QueryResults>
   workgroup: Model.DataController<requests.Workgroup>
-  workgroups: Model.DataController<requests.WorkgroupsResponse>
+  workgroups: Model.DataController<Model.List<requests.Workgroup>>
 
   submit: (
     forceDefaultExecutionContext?: boolean, // workgroup: requests.Workgroup,
@@ -35,10 +36,11 @@ export interface State {
 export const Ctx = React.createContext<State | null>(null)
 
 interface ProviderProps {
+  preferences?: BucketPreferences.AthenaPreferences
   children: React.ReactNode
 }
 
-export function Provider({ children }: ProviderProps) {
+export function Provider({ preferences, children }: ProviderProps) {
   const { urls } = NamedRoutes.use()
 
   const {
@@ -55,7 +57,7 @@ export function Provider({ children }: ProviderProps) {
   const execution = requests.useWaitForQueryExecution(queryExecutionId)
 
   const workgroups = requests.useWorkgroups()
-  const workgroup = requests.useWorkgroup(workgroups, workgroupId)
+  const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
   const queries = requests.useQueries(workgroup.data)
   const query = requests.useQuery(queries.data, execution)
   const queryBody = requests.useQueryBody(query.value, query.setValue, execution)

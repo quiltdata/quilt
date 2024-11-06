@@ -26,9 +26,9 @@ const LOAD_MORE = 'load-more'
 interface WorkgroupSelectProps {
   bucket: string
   disabled?: boolean
-  onLoadMore: (workgroups: Model.WorkgroupsResponse) => void
+  onLoadMore: (workgroups: Model.List<Model.Workgroup>) => void
   value: Model.Workgroup | null
-  workgroups: Model.WorkgroupsResponse
+  workgroups: Model.List<Model.Workgroup>
 }
 
 function WorkgroupSelect({

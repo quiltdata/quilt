@@ -26,17 +26,6 @@ function parseNamedQuery(query: Athena.NamedQuery): Query {
 
 export type Workgroup = string
 
-function getDefaultWorkgroup(
-  list: Workgroup[],
-  preferences?: BucketPreferences.AthenaPreferences,
-): Workgroup {
-  const workgroupFromConfig = preferences?.defaultWorkgroup
-  if (workgroupFromConfig && list.includes(workgroupFromConfig)) {
-    return workgroupFromConfig
-  }
-  return storage.getWorkgroup() || list[0]
-}
-
 interface WorkgroupArgs {
   athena: Athena
   workgroup: Workgroup
@@ -70,23 +59,10 @@ async function fetchWorkgroup({
   }
 }
 
-export interface WorkgroupsResponse {
-  defaultWorkgroup: Workgroup
-  list: Workgroup[]
-  next?: string
-}
-
-interface WorkgroupsArgs {
-  athena: Athena
-  prev: WorkgroupsResponse | null
-  preferences?: BucketPreferences.AthenaPreferences
-}
-
-async function fetchWorkgroups({
-  athena,
-  prev,
-  preferences,
-}: WorkgroupsArgs): Promise<WorkgroupsResponse> {
+async function fetchWorkgroups(
+  athena: Athena,
+  prev: Model.List<Workgroup> | null,
+): Promise<Model.List<Workgroup>> {
   try {
     const workgroupsOutput = await athena
       .listWorkGroups({ NextToken: prev?.next })
@@ -99,7 +75,6 @@ async function fetchWorkgroups({
     ).filter(Boolean)
     const list = (prev?.list || []).concat(available as Workgroup[])
     return {
-      defaultWorkgroup: getDefaultWorkgroup(list, preferences),
       list,
       next: workgroupsOutput.NextToken,
     }
@@ -112,52 +87,37 @@ async function fetchWorkgroups({
   }
 }
 
-export function useWorkgroups(): Model.DataController<WorkgroupsResponse> {
+export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<WorkgroupsResponse | null>(null)
-  const [data, setData] = React.useState<Model.Data<WorkgroupsResponse>>()
-  const prefs = BucketPreferences.use()
-  const preferences = React.useMemo(
-    () =>
-      BucketPreferences.Result.match(
-        {
-          Ok: ({ ui }) => ui.athena,
-          _: () => undefined,
-        },
-        prefs,
-      ),
-    [prefs],
-  )
+  const [prev, setPrev] = React.useState<Model.List<Workgroup> | null>(null)
+  const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>()
   React.useEffect(() => {
     if (!athena) return
-    fetchWorkgroups({ athena, prev, preferences }).then(setData).catch(setData)
-  }, [athena, prev, preferences])
+    fetchWorkgroups(athena, prev).then(setData).catch(setData)
+  }, [athena, prev])
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
 export function useWorkgroup(
-  workgroups: Model.DataController<WorkgroupsResponse>,
+  workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
+  preferences?: BucketPreferences.AthenaPreferences,
 ): Model.DataController<CatalogName> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
-    const workgroupsData = workgroups.data
-    const workgroup = requestedWorkgroup || workgroupsData.defaultWorkgroup
     setData((d) => {
-      if (!Model.hasData(workgroupsData)) return d
-      if (workgroup && workgroupsData.list.includes(workgroup)) {
-        // If workgroups list contains requested workgroup, keep it
-        return workgroup
+      if (!Model.hasData(workgroups.data)) return d
+      if (requestedWorkgroup && workgroups.data.list.includes(requestedWorkgroup)) {
+        return requestedWorkgroup
       }
-      return (
-        workgroupsData.list[0] ||
-        new Error(
-          workgroup ? `Workgroup "${workgroup}" not found` : 'Workgroup not found',
-        )
-      )
+      const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
+      if (initialWorkgroup && workgroups.data.list.includes(initialWorkgroup)) {
+        return initialWorkgroup
+      }
+      return workgroups.data.list[0] || new Error('Workgroup not found')
     })
-  }, [requestedWorkgroup, workgroups])
+  }, [preferences, requestedWorkgroup, workgroups])
   return React.useMemo(
     () => Model.wrapData(data, workgroups.loadMore),
     [data, workgroups.loadMore],
@@ -593,6 +553,7 @@ export function useCatalogName(
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>()
+  // TODO: two independent effects on catalogNames and execution
   React.useEffect(() => {
     if (!Model.hasData(catalogNames)) {
       setValue(catalogNames)
@@ -628,6 +589,7 @@ export function useDatabase(
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Database> {
   const [value, setValue] = React.useState<Model.Value<Database>>()
+  // TODO: two independent effects on databases and execution
   React.useEffect(() => {
     if (!Model.hasData(databases)) {
       setValue(databases)

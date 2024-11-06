@@ -5,7 +5,9 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
+import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -290,9 +292,16 @@ function AthenaContainer() {
 }
 
 export default function Wrapper() {
-  return (
-    <Model.Provider>
-      <AthenaContainer />
-    </Model.Provider>
+  const prefs = BucketPreferences.use()
+  return BucketPreferences.Result.match(
+    {
+      Ok: ({ ui }) => (
+        <Model.Provider preferences={ui.athena}>
+          <AthenaContainer />
+        </Model.Provider>
+      ),
+      _: () => <Placeholder color="inherit" />,
+    },
+    prefs,
   )
 }
