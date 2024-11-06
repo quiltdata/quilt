@@ -71,7 +71,7 @@ function QueryDateCompleted({ bucket, queryExecution }: QueryDateCompletedProps)
     return <Date date={queryExecution.completed} />
   }
   return (
-    <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
+    <Link to={urls.bucketAthenaExecution(bucket, workgroup.data, queryExecution.id)}>
       <Date date={queryExecution.completed} />
     </Link>
   )

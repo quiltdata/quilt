@@ -58,7 +58,7 @@ export function Provider({ children }: ProviderProps) {
   const workgroup = requests.useWorkgroup(workgroups, workgroupId)
   const queries = requests.useQueries(workgroup.data)
   const query = requests.useQuery(queries.data, execution)
-  const queryBody = requests.useQueryBody(query.value, query.setValue)
+  const queryBody = requests.useQueryBody(query.value, query.setValue, execution)
   const catalogNames = requests.useCatalogNames()
   const catalogName = requests.useCatalogName(catalogNames.data, execution)
   const databases = requests.useDatabases(catalogName.value)

@@ -553,7 +553,7 @@ export function useQuery(
         // If new queries list contains the same value, keep it
         return v
       } else if (Model.hasData(execution) && execution.query) {
-        const executionQuery = queries.list.find((q) => execution.query === q.name)
+        const executionQuery = queries.list.find((q) => execution.query === q.body)
         if (executionQuery) return executionQuery
       }
       return queries.list[0] || null
@@ -565,15 +565,17 @@ export function useQuery(
 export function useQueryBody(
   query: Model.Value<Query>,
   setQuery: (value: null) => void,
+  execution: Model.Value<QueryExecution>,
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>()
   React.useEffect(() => {
     setValue(() => {
-      if (Model.hasData(query)) return query.body
       if (Model.isError(query)) return null
+      if (Model.hasData(query)) return query.body
+      if (Model.hasData(execution) && execution.query) return execution.query
       return query
     })
-  }, [query])
+  }, [execution, query])
   const handleValue = React.useCallback(
     (v: string | null) => {
       setQuery(null)

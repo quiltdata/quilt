@@ -229,7 +229,7 @@ function ResultsBreadcrumbs({ bucket, children, className }: ResultsBreadcrumbsP
       <M.Breadcrumbs classes={overrideClasses}>
         <RRDom.Link
           className={classes.breadcrumb}
-          to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
+          to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)}
         >
           Query Executions
         </RRDom.Link>
