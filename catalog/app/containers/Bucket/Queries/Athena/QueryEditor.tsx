@@ -1,4 +1,3 @@
-// import cx from 'classnames'
 import * as React from 'react'
 import AceEditor from 'react-ace'
 import * as RRDom from 'react-router-dom'
@@ -10,7 +9,7 @@ import 'ace-builds/src-noconflict/theme-eclipse'
 
 import Lock from 'components/Lock'
 import Skeleton from 'components/Skeleton'
-// import * as Notifications from 'containers/Notifications'
+import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Dialogs from 'utils/GlobalDialogs'
 import StyledLink from 'utils/StyledLink'
@@ -89,57 +88,7 @@ function EditorField({}: EditorFieldProps) {
   )
 }
 
-// function useQueryRun(
-//   bucket: string,
-//   workgroup: Model.Workgroup,
-//   queryExecutionId?: string,
-// ) {
-//   const { urls } = NamedRoutes.use()
-//   const history = RRDom.useHistory()
-//   const [loading, setLoading] = React.useState(false)
-//   const [error, setError] = React.useState<Error | undefined>()
-//   const runQuery = Model.useQueryRun(workgroup)
-//   const { push: notify } = Notifications.use()
-//   const goToExecution = React.useCallback(
-//     (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
-//     [bucket, history, urls, workgroup],
-//   )
-//   const onSubmit = React.useCallback(
-//     async (value: string, executionContext: Model.ExecutionContext | null) => {
-//       setLoading(true)
-//       setError(undefined)
-//       try {
-//         const { id } = await runQuery(value, executionContext)
-//         if (id === queryExecutionId) notify('Query execution results remain unchanged')
-//         setLoading(false)
-//         goToExecution(id)
-//       } catch (e) {
-//         setLoading(false)
-//         if (e instanceof Error) {
-//           setError(e)
-//         } else {
-//           throw e
-//         }
-//       }
-//     },
-//     [goToExecution, notify, runQuery, queryExecutionId],
-//   )
-//   return React.useMemo(
-//     () => ({
-//       loading,
-//       error,
-//       onSubmit,
-//     }),
-//     [loading, error, onSubmit],
-//   )
-// }
-
 const useFormSkeletonStyles = M.makeStyles((t) => ({
-  // button: {
-  //   height: t.spacing(4),
-  //   marginTop: t.spacing(2),
-  //   width: t.spacing(14),
-  // },
   canvas: {
     flexGrow: 1,
     height: t.spacing(27),
@@ -177,9 +126,6 @@ function FormSkeleton({ className }: FormSkeletonProps) {
         <Skeleton className={classes.canvas} animate />
       </div>
       <HelperText />
-      {/*
-      <Skeleton className={classes.button} animate />
-        */}
     </div>
   )
 }
@@ -264,13 +210,20 @@ interface FormProps {
 export function Form({ className }: FormProps) {
   const classes = useFormStyles()
 
-  const { bucket, readyToRun, running, submit, workgroup } = Model.use()
+  const { bucket, queryExecutionId, readyToRun, running, submit, workgroup } = Model.use()
 
+  const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
   const goToExecution = React.useCallback(
-    (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
-    [bucket, history, urls, workgroup],
+    (id: string) => {
+      if (queryExecutionId === id) {
+        notify('Query execution results remain unchanged')
+      } else {
+        history.push(urls.bucketAthenaExecution(bucket, workgroup, id))
+      }
+    },
+    [bucket, history, queryExecutionId, notify, urls, workgroup],
   )
 
   const openDialog = Dialogs.use()

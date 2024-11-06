@@ -22,8 +22,6 @@ interface State {
   results: Model.DataController<requests.QueryResults>
   workgroups: Model.DataController<requests.WorkgroupsResponse>
 
-  // TODO
-  // TODO: return Error, and if some specific Error then confirm
   submit: (
     forceDefaultExecutionContext?: boolean, // workgroup: requests.Workgroup,
   ) => Promise<Model.Value<requests.QueryRun>>
