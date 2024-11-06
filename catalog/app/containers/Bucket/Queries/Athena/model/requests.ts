@@ -1,5 +1,6 @@
 import Athena from 'aws-sdk/clients/athena'
 import * as React from 'react'
+import * as Sentry from '@sentry/react'
 
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -184,10 +185,11 @@ export function useExecutions(
 
     const request = athena?.listQueryExecutions(
       { WorkGroup: workgroup, NextToken: prev?.next },
-      (err, d) => {
+      (error, d) => {
         const { QueryExecutionIds, NextToken: next } = d || {}
-        if (err) {
-          setData(err)
+        if (error) {
+          Sentry.captureException(error)
+          setData(error)
           return
         }
         if (!QueryExecutionIds || !QueryExecutionIds.length) {
@@ -202,6 +204,7 @@ export function useExecutions(
           (batchErr, batchData) => {
             const { QueryExecutions, UnprocessedQueryExecutionIds } = batchData || {}
             if (batchErr) {
+              Sentry.captureException(batchErr)
               setData(batchErr)
               return
             }
@@ -239,10 +242,11 @@ function useFetchQueryExecution(
       return
     }
     setData(Model.Loading)
-    const request = athena?.getQueryExecution({ QueryExecutionId }, (err, d) => {
+    const request = athena?.getQueryExecution({ QueryExecutionId }, (error, d) => {
       const { QueryExecution } = d || {}
-      if (err) {
-        setData(err)
+      if (error) {
+        Sentry.captureException(error)
+        setData(error)
         return
       }
       const status = QueryExecution?.Status?.State
@@ -346,10 +350,11 @@ export function useQueries(workgroup?: string): Model.DataController<Model.List<
         WorkGroup: workgroup,
         NextToken: prev?.next,
       },
-      async (err, d) => {
+      async (error, d) => {
         const { NamedQueryIds, NextToken: next } = d || {}
-        if (err) {
-          setData(err)
+        if (error) {
+          Sentry.captureException(error)
+          setData(error)
           return
         }
         if (!NamedQueryIds || !NamedQueryIds.length) {
@@ -364,6 +369,7 @@ export function useQueries(workgroup?: string): Model.DataController<Model.List<
           (batchErr, batchData) => {
             const { NamedQueries } = batchData || {}
             if (batchErr) {
+              Sentry.captureException(batchErr)
               setData(batchErr)
               return
             }
@@ -410,10 +416,11 @@ export function useResults(
 
     const request = athena?.getQueryResults(
       { QueryExecutionId: execution.id, NextToken: prev?.next },
-      (err, d) => {
+      (error, d) => {
         const { ResultSet, NextToken: next } = d || {}
-        if (err) {
-          setData(err)
+        if (error) {
+          Sentry.captureException(error)
+          setData(error)
           return
         }
         const parsed =
@@ -456,10 +463,11 @@ export function useDatabases(
         CatalogName: catalogName,
         NextToken: prev?.next,
       },
-      (err, d) => {
+      (error, d) => {
         const { DatabaseList, NextToken: next } = d || {}
-        if (err) {
-          setData(err)
+        if (error) {
+          Sentry.captureException(error)
+          setData(error)
           return
         }
         const list = DatabaseList?.map(({ Name }) => Name || 'Unknown').sort() || []
@@ -478,11 +486,12 @@ export function useCatalogNames(): Model.DataController<Model.List<CatalogName>>
   const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
   React.useEffect(() => {
-    const request = athena?.listDataCatalogs({ NextToken: prev?.next }, (err, d) => {
+    const request = athena?.listDataCatalogs({ NextToken: prev?.next }, (error, d) => {
       const { DataCatalogsSummary, NextToken: next } = d || {}
       setData(Model.Loading)
-      if (err) {
-        setData(err)
+      if (error) {
+        Sentry.captureException(error)
+        setData(error)
         return
       }
       const list = DataCatalogsSummary?.map(({ CatalogName }) => CatalogName || 'Unknown')

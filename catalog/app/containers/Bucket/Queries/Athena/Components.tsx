@@ -1,6 +1,5 @@
 import cx from 'classnames'
 import * as React from 'react'
-import * as Sentry from '@sentry/react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -36,18 +35,10 @@ interface AlertProps {
 }
 
 export function Alert({ className, error, title }: AlertProps) {
-  React.useEffect(() => {
-    Sentry.captureException(error)
-  }, [error])
-
   return (
     <Lab.Alert severity="error" className={className}>
       <Lab.AlertTitle>{title}</Lab.AlertTitle>
       {error.message}
     </Lab.Alert>
   )
-}
-
-export function makeAsyncDataErrorHandler(title: string) {
-  return (error: Error) => <Alert error={error} title={title} />
 }

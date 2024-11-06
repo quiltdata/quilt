@@ -10,7 +10,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
 
-import { Alert, Section, makeAsyncDataErrorHandler } from './Components'
+import { Alert, Section } from './Components'
 import CreatePackage from './CreatePackage'
 import * as QueryEditor from './QueryEditor'
 import History from './History'
@@ -39,7 +39,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
   const { query, queries, running } = Model.use()
 
   if (Model.isError(queries.data)) {
-    return makeAsyncDataErrorHandler('Select query')(queries.data)
+    return <Alert className={className} error={queries.data} title="Select query" />
   }
 
   if (!Model.hasData(queries.data) || !Model.isReady(query.value)) {
@@ -71,7 +71,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
 function HistoryContainer() {
   const { bucket, executions } = Model.use()
   if (Model.isError(executions.data)) {
-    return makeAsyncDataErrorHandler('Executions Data')(executions.data)
+    return <Alert error={executions.data} title="Executions Data" />
   }
   if (!Model.hasData(executions.data)) {
     return <TableSkeleton size={4} />
