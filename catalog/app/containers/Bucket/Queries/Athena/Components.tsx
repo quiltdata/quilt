@@ -5,6 +5,7 @@ import * as Lab from '@material-ui/lab'
 
 const useSectionStyles = M.makeStyles((t) => ({
   header: {
+    ...t.typography.body2,
     margin: t.spacing(0, 0, 1),
   },
 }))
@@ -19,10 +20,10 @@ interface SectionProps {
 export function Section({ className, empty, title, children }: SectionProps) {
   const classes = useSectionStyles()
   if (!children && empty)
-    return <M.Typography className={cx(classes.header, className)}>{empty}</M.Typography>
+    return <div className={cx(classes.header, className)}>{empty}</div>
   return (
     <div className={className}>
-      <M.Typography className={classes.header}>{title}</M.Typography>
+      <div className={classes.header}>{title}</div>
       {children}
     </div>
   )

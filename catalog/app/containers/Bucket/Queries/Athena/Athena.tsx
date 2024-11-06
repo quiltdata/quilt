@@ -255,7 +255,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function AthenaContainer() {
-  const { bucket, queryExecutionId } = Model.use()
+  const { bucket, queryExecutionId, workgroup } = Model.use()
 
   const classes = useStyles()
   return (
@@ -266,21 +266,23 @@ function AthenaContainer() {
 
       <Workgroups bucket={bucket} />
 
-      <div className={classes.content}>
-        <div className={classes.section}>
-          <QueryConstructor />
-          <QueryEditor.Form className={classes.form} />
+      {!Model.isNone(workgroup) && (
+        <div className={classes.content}>
+          <div className={classes.section}>
+            <QueryConstructor />
+            <QueryEditor.Form className={classes.form} />
+          </div>
+          <Section title="Query executions" className={classes.section}>
+            {queryExecutionId ? (
+              <ResultsContainer className={classes.section} />
+            ) : (
+              <Section title="Query executions" className={classes.section}>
+                <HistoryContainer />
+              </Section>
+            )}
+          </Section>
         </div>
-        <Section title="Query executions" className={classes.section}>
-          {queryExecutionId ? (
-            <ResultsContainer className={classes.section} />
-          ) : (
-            <Section title="Query executions" className={classes.section}>
-              <HistoryContainer />
-            </Section>
-          )}
-        </Section>
-      </div>
+      )}
     </>
   )
 }
