@@ -553,26 +553,21 @@ export function useCatalogName(
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>()
-  // TODO: two independent effects on catalogNames and execution
   React.useEffect(() => {
     if (!Model.hasData(catalogNames)) {
       setValue(catalogNames)
       return
     }
-    if (!Model.isReady(execution)) {
-      setValue(execution)
-      return
-    }
     setValue((v) => {
-      if (Model.hasData(v) && catalogNames.list.includes(v)) {
-        // If new catalog names list contains the same value, keep it
-        return v
-      } else if (
+      if (
         Model.hasData(execution) &&
         execution.catalog &&
         catalogNames.list.includes(execution.catalog)
       ) {
         return execution.catalog
+      }
+      if (Model.hasData(v) && catalogNames.list.includes(v)) {
+        return v
       }
       const initialCatalogName = storage.getCatalog()
       if (initialCatalogName && catalogNames.list.includes(initialCatalogName)) {
@@ -589,22 +584,21 @@ export function useDatabase(
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Database> {
   const [value, setValue] = React.useState<Model.Value<Database>>()
-  // TODO: two independent effects on databases and execution
   React.useEffect(() => {
     if (!Model.hasData(databases)) {
       setValue(databases)
       return
     }
     setValue((v) => {
-      if (Model.hasData(v) && databases.list.includes(v)) {
-        // If new databases list contains the same value, keep it
-        return v
-      } else if (
+      if (
         Model.hasData(execution) &&
         execution.db &&
         databases.list.includes(execution.db)
       ) {
         return execution.db
+      }
+      if (Model.hasData(v) && databases.list.includes(v)) {
+        return v
       }
       const initialDatabase = storage.getDatabase()
       if (initialDatabase && databases.list.includes(initialDatabase)) {

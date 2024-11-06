@@ -278,13 +278,13 @@ function AthenaContainer() {
             <QueryConstructor />
             <QueryEditor.Form className={classes.form} />
           </div>
-          <Section title="Query executions" className={classes.section}>
-            {queryExecutionId ? (
-              <ResultsContainer className={classes.section} />
-            ) : (
+          {queryExecutionId ? (
+            <ResultsContainer className={classes.section} />
+          ) : (
+            <Section title="Query executions" className={classes.section}>
               <HistoryContainer />
-            )}
-          </Section>
+            </Section>
+          )}
         </div>
       )}
     </>
