@@ -131,7 +131,7 @@ export function useWorkgroups(): Model.DataController<WorkgroupsResponse> {
     if (!athena) return
     fetchWorkgroups({ athena, prev, preferences }).then(setData).catch(setData)
   }, [athena, prev, preferences])
-  return React.useMemo(() => wrapData(data, setPrev), [data])
+  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
 export interface QueryExecution {
@@ -222,7 +222,7 @@ export function useExecutions(
       batchRequest?.abort()
     }
   }, [athena, workgroup, prev])
-  return React.useMemo(() => wrapData(data, setPrev), [data])
+  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
 function useFetchQueryExecution(
@@ -384,7 +384,7 @@ export function useQueries(workgroup?: string): Model.DataController<Model.List<
       batchRequest?.abort()
     }
   }, [athena, workgroup, prev])
-  return React.useMemo(() => wrapData(data, setPrev), [data])
+  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
 export function useResults(
@@ -436,7 +436,7 @@ export function useResults(
     )
     return () => request?.abort()
   }, [athena, execution, prev])
-  return React.useMemo(() => wrapData(data, setPrev), [data])
+  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
 export function useDatabases(
@@ -468,28 +468,10 @@ export function useDatabases(
     )
     return () => request?.abort()
   }, [athena, catalogName, prev])
-  return React.useMemo(() => wrapData(data, setPrev), [data])
+  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
-function wrapValue<T>(
-  value: Model.Value<T>,
-  setValue: (d: T | null) => void,
-): Model.ValueController<T> {
-  return {
-    value,
-    setValue,
-  }
-}
-
-function wrapData<T>(
-  data: Model.Data<T>,
-  setPrev: (d: T) => void,
-): Model.DataController<T> {
-  return {
-    data,
-    loadMore: () => Model.hasData(data) && setPrev(data),
-  }
-}
+// TODO: move to model/utils?
 
 export function useCatalogNames(): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
@@ -511,7 +493,7 @@ export function useCatalogNames(): Model.DataController<Model.List<CatalogName>>
     })
     return () => request?.abort()
   }, [athena, prev])
-  return React.useMemo(() => wrapData(data, setPrev), [data])
+  return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
 export function useQuery(
@@ -530,7 +512,7 @@ export function useQuery(
       return queries.list[0] || null
     })
   }, [queries])
-  return React.useMemo(() => wrapValue(value, setValue), [value])
+  return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
 export function useQueryBody(
@@ -550,7 +532,7 @@ export function useQueryBody(
     },
     [setQuery],
   )
-  return React.useMemo(() => wrapValue(value, handleValue), [value, handleValue])
+  return React.useMemo(() => Model.wrapValue(value, handleValue), [value, handleValue])
 }
 
 export function useCatalogName(
@@ -569,7 +551,7 @@ export function useCatalogName(
       return catalogNames.list[0]
     })
   }, [catalogNames])
-  return React.useMemo(() => wrapValue(value, setValue), [value])
+  return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
 export function useDatabase(
@@ -592,7 +574,7 @@ export function useDatabase(
       return databases.list[0]
     })
   }, [databases])
-  return React.useMemo(() => wrapValue(value, setValue), [value])
+  return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
 export interface ExecutionContext {

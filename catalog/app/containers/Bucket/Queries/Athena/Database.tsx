@@ -39,6 +39,8 @@ function SelectError({ className, error }: SelectErrorProps) {
 
 const LOAD_MORE = '__load-more__'
 
+const EMPTY = '__empty__'
+
 interface Response {
   list: string[]
   next?: string
@@ -86,7 +88,7 @@ function Select({
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select
         onChange={handleChange}
-        value={value?.toLowerCase()}
+        value={data.list.length ? value?.toLowerCase() || '' : EMPTY}
         disabled={disabled || !data.list.length}
       >
         {data.list.map((item) => (
@@ -96,7 +98,7 @@ function Select({
         ))}
         {data.next && <M.MenuItem value={LOAD_MORE}>Load more</M.MenuItem>}
         {!data.list.length && (
-          <M.MenuItem value={value?.toLowerCase() || undefined}>
+          <M.MenuItem value={value?.toLowerCase() || EMPTY}>
             {value || 'Empty list'}
           </M.MenuItem>
         )}

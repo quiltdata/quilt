@@ -13,6 +13,13 @@ export interface DataController<T> {
   loadMore: () => void
 }
 
+export function wrapData<T>(data: Data<T>, setPrev: (d: T) => void): DataController<T> {
+  return {
+    data,
+    loadMore: () => hasData(data) && setPrev(data),
+  }
+}
+
 export interface List<T> {
   list: T[]
   next?: string
@@ -28,6 +35,16 @@ export type Value<T> = Maybe<Data<T>>
 export interface ValueController<T> {
   value: Value<T>
   setValue: (v: T | null) => void
+}
+
+export function wrapValue<T>(
+  value: Value<T>,
+  setValue: (d: T | null) => void,
+): ValueController<T> {
+  return {
+    value,
+    setValue,
+  }
 }
 
 // Data is loaded

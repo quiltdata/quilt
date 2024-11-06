@@ -53,9 +53,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface EditorFieldProps {}
-
-function EditorField({}: EditorFieldProps) {
+function EditorField() {
   const classes = useStyles()
   const { queryBody, running } = Model.use()
   if (Model.isError(queryBody.value)) {

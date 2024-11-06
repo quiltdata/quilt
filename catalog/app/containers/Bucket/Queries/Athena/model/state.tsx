@@ -5,7 +5,7 @@ import * as RRDom from 'react-router-dom'
 import * as requests from './requests'
 import * as Model from './utils'
 
-interface State {
+export interface State {
   bucket: string
   queryExecutionId?: string
   workgroup?: string
@@ -30,7 +30,7 @@ interface State {
   running: boolean
 }
 
-const Ctx = React.createContext<State | null>(null)
+export const Ctx = React.createContext<State | null>(null)
 
 interface ProviderProps {
   children: React.ReactNode
