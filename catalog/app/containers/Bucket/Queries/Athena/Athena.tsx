@@ -266,7 +266,7 @@ function AthenaContainer() {
 
       <Workgroups bucket={bucket} />
 
-      {!Model.isNone(workgroup) && (
+      {!Model.hasData(workgroup) && (
         <div className={classes.content}>
           <div className={classes.section}>
             <QueryConstructor />

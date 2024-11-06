@@ -2,13 +2,14 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
+import * as NamedRoutes from 'utils/NamedRoutes'
+
 import * as requests from './requests'
 import * as Model from './utils'
 
 export interface State {
   bucket: string
   queryExecutionId?: string
-  workgroup?: string
 
   catalogName: Model.ValueController<requests.CatalogName>
   catalogNames: Model.DataController<Model.List<requests.CatalogName>>
@@ -20,6 +21,7 @@ export interface State {
   query: Model.ValueController<requests.Query>
   queryBody: Model.ValueController<string> // No `null`, simple `useState<string>('')` ?
   results: Model.DataController<requests.QueryResults>
+  workgroup: Model.DataController<requests.Workgroup>
   workgroups: Model.DataController<requests.WorkgroupsResponse>
 
   submit: (
@@ -37,7 +39,13 @@ interface ProviderProps {
 }
 
 export function Provider({ children }: ProviderProps) {
-  const { bucket, queryExecutionId, workgroup } = RRDom.useParams<{
+  const { urls } = NamedRoutes.use()
+
+  const {
+    bucket,
+    queryExecutionId,
+    workgroup: workgroupId,
+  } = RRDom.useParams<{
     bucket: string
     queryExecutionId?: string
     workgroup?: requests.Workgroup
@@ -47,14 +55,15 @@ export function Provider({ children }: ProviderProps) {
   const execution = requests.useWaitForQueryExecution(queryExecutionId)
 
   const workgroups = requests.useWorkgroups()
+  const workgroup = requests.useWorkgroup(workgroups, workgroupId)
   const catalogNames = requests.useCatalogNames()
   const catalogName = requests.useCatalogName(catalogNames.data)
   const databases = requests.useDatabases(catalogName.value)
   const database = requests.useDatabase(databases.data)
-  const queries = requests.useQueries(workgroup)
+  const queries = requests.useQueries(workgroup.data)
   const query = requests.useQuery(queries.data)
   const queryBody = requests.useQueryBody(query.value, query.setValue)
-  const executions = requests.useExecutions(workgroup)
+  const executions = requests.useExecutions(workgroup.data)
   const results = requests.useResults(execution)
 
   const running = React.useMemo(
@@ -66,14 +75,14 @@ export function Provider({ children }: ProviderProps) {
   const readyToRun = React.useMemo(
     () =>
       Model.isReady(execution) &&
-      Model.hasData(catalogName) &&
-      Model.hasData(database) &&
+      Model.hasValue(catalogName) &&
+      Model.hasValue(database) &&
       !!queryBody.value,
     [execution, catalogName, database, queryBody],
   )
 
   const submit = requests.useQueryRun({
-    workgroup: workgroup,
+    workgroup: workgroup.data,
     catalogName: catalogName.value,
     database: database.value,
     queryBody: queryBody.value,
@@ -100,6 +109,10 @@ export function Provider({ children }: ProviderProps) {
 
     readyToRun,
     running,
+  }
+
+  if (Model.hasData(workgroup.data) && !workgroupId) {
+    return <RRDom.Redirect to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)} />
   }
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

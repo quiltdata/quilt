@@ -135,6 +135,33 @@ export function useWorkgroups(): Model.DataController<WorkgroupsResponse> {
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
+export function useWorkgroup(
+  workgroups: Model.DataController<WorkgroupsResponse>,
+  requestedWorkgroup?: Workgroup,
+): Model.DataController<CatalogName> {
+  const [data, setData] = React.useState<Model.Data<Workgroup>>()
+  React.useEffect(() => {
+    if (!Model.hasData(workgroups.data)) return
+    const workgroupsData = workgroups.data
+    const workgroup =
+      requestedWorkgroup || workgroupsData.defaultWorkgroup || workgroupsData.list[0]
+    setData((d) => {
+      if (!Model.hasData(workgroupsData)) return d
+      if (workgroup && workgroupsData.list.includes(workgroup)) {
+        // If workgroups list contains requested workgroup, keep it
+        return workgroup
+      }
+      return new Error(
+        workgroup ? `Workgroup "${workgroup}" not found` : 'Workgroup not found',
+      )
+    })
+  }, [requestedWorkgroup, workgroups])
+  return React.useMemo(
+    () => Model.wrapData(data, workgroups.loadMore),
+    [data, workgroups.loadMore],
+  )
+}
+
 export interface QueryExecution {
   catalog?: string
   completed?: Date
@@ -172,14 +199,17 @@ function parseQueryExecutionError(
 }
 
 export function useExecutions(
-  workgroup?: string,
+  workgroup: Model.Data<Workgroup>,
 ): Model.DataController<Model.List<QueryExecution>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<QueryExecution> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<QueryExecution>>>()
 
   React.useEffect(() => {
-    if (!workgroup) return
+    if (!Model.hasValue(workgroup)) {
+      setData(workgroup)
+      return
+    }
     setData(Model.Loading)
     let batchRequest: ReturnType<InstanceType<typeof Athena>['batchGetQueryExecution']>
 
@@ -238,7 +268,7 @@ function useFetchQueryExecution(
   const [counter, setCounter] = React.useState(0)
   React.useEffect(() => {
     if (!QueryExecutionId) {
-      // setData(null)
+      setData(null)
       return
     }
     setData(Model.Loading)
@@ -336,12 +366,17 @@ export interface QueriesIdsResponse {
   next?: string
 }
 
-export function useQueries(workgroup?: string): Model.DataController<Model.List<Query>> {
+export function useQueries(
+  workgroup: Model.Data<Workgroup>,
+): Model.DataController<Model.List<Query>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<Query> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<Query>>>()
   React.useEffect(() => {
-    if (!workgroup) return
+    if (!Model.hasValue(workgroup)) {
+      setData(workgroup)
+      return
+    }
     setData(Model.Loading)
 
     let batchRequest: ReturnType<InstanceType<typeof Athena>['batchGetNamedQuery']>
@@ -454,7 +489,7 @@ export function useDatabases(
   const [data, setData] = React.useState<Model.Data<Model.List<Database>>>()
   React.useEffect(() => {
     if (!Model.hasData(catalogName)) {
-      // TODO: setData(undefined)?
+      setData(catalogName || undefined)
       return
     }
     setData(Model.Loading)
@@ -478,8 +513,6 @@ export function useDatabases(
   }, [athena, catalogName, prev])
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
-
-// TODO: move to model/utils?
 
 export function useCatalogNames(): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
@@ -638,7 +671,7 @@ export const NO_CATALOG_NAME = new Error('No catalog name')
 export const NO_DATABASE = new Error('No catalog name')
 
 interface QueryRunArgs {
-  workgroup?: Workgroup
+  workgroup: Model.Data<Workgroup>
   catalogName: Model.Value<CatalogName>
   database: Model.Value<Database>
   queryBody: Model.Value<string>
@@ -653,7 +686,8 @@ export function useQueryRun({
   return React.useCallback(
     async (forceDefaultExecutionContext?: boolean) => {
       if (!athena) return new Error('No Athena')
-      if (!workgroup) return new Error('No workgroup')
+
+      if (!Model.hasValue(workgroup)) return new Error('No workgroup')
 
       if (!Model.hasValue(catalogName)) return catalogName
       if (!catalogName && !forceDefaultExecutionContext) return NO_CATALOG_NAME

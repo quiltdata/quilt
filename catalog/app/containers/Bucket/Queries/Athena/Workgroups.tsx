@@ -118,23 +118,6 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
   )
 }
 
-interface RedirectToDefaultWorkgroupProps {
-  bucket: string
-  workgroups: Model.WorkgroupsResponse
-}
-
-function RedirectToDefaultWorkgroup({
-  bucket,
-  workgroups,
-}: RedirectToDefaultWorkgroupProps) {
-  const { urls } = NamedRoutes.use()
-  return (
-    <RRDom.Redirect
-      to={urls.bucketAthenaWorkgroup(bucket, workgroups.defaultWorkgroup)}
-    />
-  )
-}
-
 interface AthenaWorkgroupsProps {
   bucket: string
 }
@@ -143,17 +126,14 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
   const { running, workgroup, workgroups } = Model.use()
 
   if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
-  if (!Model.hasValue(workgroups.data)) {
+  if (Model.isError(workgroup.data)) return <WorkgroupsEmpty error={workgroup.data} />
+  if (!Model.hasData(workgroups.data) || !Model.hasData(workgroup.data)) {
     return (
       <>
         <Skeleton height={24} width={128} animate />
         <Skeleton height={48} mt={1} animate />
       </>
     )
-  }
-
-  if (!workgroup && workgroups.data.defaultWorkgroup) {
-    return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups.data} />
   }
 
   return (
@@ -163,7 +143,7 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
           disabled={running}
           bucket={bucket}
           onLoadMore={workgroups.loadMore}
-          value={workgroup || null}
+          value={workgroup.data}
           workgroups={workgroups.data}
         />
       )}

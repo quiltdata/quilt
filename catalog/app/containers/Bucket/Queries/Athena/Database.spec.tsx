@@ -28,6 +28,7 @@ const emptyState: Model.State = {
   queryBody: { value: undefined, setValue: noop },
   results: { data: undefined, loadMore: noop },
   workgroups: { data: undefined, loadMore: noop },
+  workgroup: { data: undefined, loadMore: noop },
 
   submit: () => Promise.resolve({ id: 'bar' }),
 
