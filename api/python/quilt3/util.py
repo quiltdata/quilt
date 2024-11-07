@@ -143,10 +143,6 @@ class PhysicalKey:
             assert version_id is None, "Local keys cannot have a version ID"
             if os.name == 'nt':
                 assert '\\' not in path, "Paths must use / as a separator"
-        else:
-            if path.startswith('/'):
-                # S3 paths are not absolute, but there may be a "/" folder in root.
-                logger.warning("S3 paths should not start with '/': %r", path)
 
         self.bucket = bucket
         self.path = path
