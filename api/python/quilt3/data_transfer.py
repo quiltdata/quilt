@@ -876,7 +876,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
     """
     def sanity_check(rel_path):
         for part in rel_path.split('/'):
-            if part in ('', '.', '..'):
+            if part in ('.', '..'):
                 raise ValueError("Invalid relative path: %r" % rel_path)
 
     url_list = []

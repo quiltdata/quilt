@@ -513,7 +513,7 @@ def validate_key(key):
         )
 
     for part in key.split('/'):
-        if part in ('', '.', '..'):
+        if part in ('.', '..'):
             raise QuiltException(
                 f"Invalid key {key!r}. "
                 f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
