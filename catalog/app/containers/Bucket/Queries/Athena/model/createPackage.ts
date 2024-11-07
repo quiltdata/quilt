@@ -16,27 +16,22 @@ export function doQueryResultsContainManifestEntries(
   )
 }
 
-// TODO: this name doesn't make sense without `parseManifestEntryStringified`
-//       merge it into one
-function rowToManifestEntryStringified(
-  row: string[],
+function parseRow(
+  row: requests.QueryManifests['rows'][0],
   columns: requests.QueryResultsColumns,
-): ManifestEntryStringified {
-  return row.reduce((acc, value, index) => {
-    if (!columns[index]?.name) return acc
-    return {
-      ...acc,
-      [columns[index].name]: value,
-    }
-  }, {} as ManifestEntryStringified)
-}
-
-function parseManifestEntryStringified(entry: ManifestEntryStringified): {
+): {
   [key: string]: Model.S3File
 } | null {
-  if (!entry.logical_key) return null
-  if (!entry.physical_key && !entry.physical_keys) return null
   try {
+    const entry = row.reduce((acc, value, index) => {
+      if (!columns[index]?.name) return acc
+      return {
+        ...acc,
+        [columns[index].name]: value,
+      }
+    }, {} as ManifestEntryStringified)
+    if (!entry.logical_key) return null
+    if (!entry.physical_key && !entry.physical_keys) return null
     const handle = entry.physical_key
       ? s3paths.parseS3Url(entry.physical_key)
       : s3paths.parseS3Url(entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''))
@@ -61,15 +56,9 @@ export interface ParsedRows {
 }
 
 export function parseQueryResults(queryResults: requests.QueryManifests): ParsedRows {
-  // TODO: use one reduce-loop
-  //       merge `rowToManifestEntryStringified` and `parseManifestEntryStringified` into one function
-  const manifestEntries: ManifestEntryStringified[] = queryResults.rows.reduce(
-    (memo, row) => memo.concat(rowToManifestEntryStringified(row, queryResults.columns)),
-    [] as ManifestEntryStringified[],
-  )
-  return manifestEntries.reduce(
+  return queryResults.rows.reduce(
     (memo, entry, index) => {
-      const parsed = parseManifestEntryStringified(entry)
+      const parsed = parseRow(entry, queryResults.columns)
       return parsed
         ? // if entry is ok then add it to valid map, and invalid is pristine
           {
