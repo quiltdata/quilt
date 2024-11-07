@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Athena: improved loading state and errors visuals; fixed minor bugs; aphabetize and persist selection in workgroups, catalog names and databases ([#4208](https://github.com/quiltdata/quilt/pull/4208))
 - [Changed] Show stack release version in footer ([#4200](https://github.com/quiltdata/quilt/pull/4200))
 - [Added] Selective package downloading ([#4173](https://github.com/quiltdata/quilt/pull/4173))
 - [Added] Qurator Omni: initial public release ([#4032](https://github.com/quiltdata/quilt/pull/4032), [#4181](https://github.com/quiltdata/quilt/pull/4181))
