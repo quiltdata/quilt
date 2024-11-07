@@ -289,12 +289,12 @@ export function useWaitForQueryExecution(
 
 export type QueryResultsValue = Athena.datumString
 
-export interface QueryResultsColumnInfo {
-  name: Athena.String
+interface QueryResultsColumnInfo<T> {
+  name: T
   type: Athena.String
 }
 
-export type QueryResultsColumns = QueryResultsColumnInfo[]
+export type QueryResultsColumns<T = Athena.String> = QueryResultsColumnInfo<T>[]
 type Row = QueryResultsValue[]
 export type QueryResultsRows = Row[]
 
@@ -304,10 +304,16 @@ export interface QueryResults {
   rows: QueryResultsRows
 }
 
-type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
+export type ManifestKey =
+  | 'hash'
+  | 'logical_key'
+  | 'meta'
+  | 'physical_key'
+  | 'physical_keys'
+  | 'size'
 
 export interface QueryManifests extends QueryResults {
-  rows: [ManifestKey[], ...string[][]]
+  columns: QueryResultsColumns<ManifestKey>
 }
 
 const emptyRow: Row = []
