@@ -11,7 +11,13 @@ import * as requests from '../requests'
 
 import Results from './Results'
 
-type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
+type ManifestKey =
+  | 'hash'
+  | 'logical_key'
+  | 'meta'
+  | 'physical_key'
+  | 'physical_keys'
+  | 'size'
 type ManifestEntryStringified = Record<ManifestKey, string>
 
 function SeeDocsForCreatingPackage() {
@@ -32,7 +38,7 @@ function doQueryResultsContainManifestEntries(
   const columnNames = queryResults.columns.map(({ name }) => name)
   return (
     columnNames.includes('size') &&
-    columnNames.includes('physical_keys') &&
+    (columnNames.includes('physical_keys') || columnNames.includes('physical_key')) &&
     columnNames.includes('logical_key')
   )
 }
@@ -56,11 +62,11 @@ function parseManifestEntryStringified(entry: ManifestEntryStringified): {
   [key: string]: Model.S3File
 } | null {
   if (!entry.logical_key) return null
-  if (!entry.physical_keys) return null
+  if (!entry.physical_key && !entry.physical_keys) return null
   try {
-    const handle = s3paths.parseS3Url(
-      entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''),
-    )
+    const handle = entry.physical_key
+      ? s3paths.parseS3Url(entry.physical_key)
+      : s3paths.parseS3Url(entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''))
     const sizeParsed = Number(entry.size)
     const size = Number.isNaN(sizeParsed) ? 0 : sizeParsed
     return {
