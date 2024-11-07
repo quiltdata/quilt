@@ -26,7 +26,7 @@ export interface State {
   workgroups: Model.DataController<Model.List<requests.Workgroup>>
 
   submit: (
-    forceDefaultExecutionContext?: boolean, // workgroup: requests.Workgroup,
+    forceDefaultExecutionContext?: boolean,
   ) => Promise<Model.Value<requests.QueryRun>>
 
   readyToRun: boolean
@@ -121,7 +121,7 @@ export function Provider({ preferences, children }: ProviderProps) {
 }
 
 /** state object is not memoized, use destructuring down to memoized properties */
-export const useState = () => {
+export function useState() {
   const model = React.useContext(Ctx)
   invariant(model, 'Athena state accessed outside of provider')
   return model
