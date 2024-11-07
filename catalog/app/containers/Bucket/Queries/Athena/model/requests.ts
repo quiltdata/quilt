@@ -517,12 +517,12 @@ export function useQuery(
       return
     }
     setValue((v) => {
-      if (Model.hasData(v) && queries.list.includes(v)) {
-        // If new queries list contains the same value, keep it
-        return v
-      } else if (Model.hasData(execution) && execution.query) {
+      if (Model.hasData(execution) && execution.query) {
         const executionQuery = queries.list.find((q) => execution.query === q.body)
-        if (executionQuery) return executionQuery
+        return executionQuery || null
+      }
+      if (Model.hasData(v) && queries.list.includes(v)) {
+        return v
       }
       return queries.list[0] || null
     })
