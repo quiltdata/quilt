@@ -90,7 +90,7 @@ export function Provider({ preferences, children }: ProviderProps) {
   const catalogName = requests.useCatalogName(catalogNames.data, execution)
   const databases = requests.useDatabases(catalogName.value)
   const database = requests.useDatabase(databases.data, execution)
-  const executions = requests.useExecutions(workgroup.data)
+  const executions = requests.useExecutions(workgroup.data, queryExecutionId)
   const results = requests.useResults(execution)
 
   const running = React.useMemo(

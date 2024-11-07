@@ -162,12 +162,14 @@ function parseQueryExecutionError(
 
 export function useExecutions(
   workgroup: Model.Data<Workgroup>,
+  queryExecutionId?: string,
 ): Model.DataController<Model.List<QueryExecution>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<QueryExecution> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<QueryExecution>>>()
 
   React.useEffect(() => {
+    if (queryExecutionId) return
     if (!Model.hasValue(workgroup)) {
       setData(workgroup)
       return
@@ -216,7 +218,7 @@ export function useExecutions(
       request?.abort()
       batchRequest?.abort()
     }
-  }, [athena, workgroup, prev])
+  }, [athena, workgroup, prev, queryExecutionId])
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
