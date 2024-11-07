@@ -13,7 +13,7 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
-# 6.1.1 - UNRELEASED
+# unreleased - YYYY-MM-DD
 
 ## Python API
 
