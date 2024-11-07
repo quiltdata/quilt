@@ -210,19 +210,19 @@ function ResultsContainer({ className }: ResultsContainerProps) {
 
   if (Model.isError(execution)) {
     return (
-      <>
+      <div className={className}>
         <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
         <Alert error={execution} title="Query execution" className={className} />
-      </>
+      </div>
     )
   }
 
   if (Model.isError(results.data)) {
     return (
-      <>
+      <div className={className}>
         <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
         <Alert error={results.data} title="Query results" className={className} />
-      </>
+      </div>
     )
   }
 
