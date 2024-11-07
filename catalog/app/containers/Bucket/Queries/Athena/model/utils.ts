@@ -47,8 +47,7 @@ export function wrapValue<T>(
   }
 }
 
-// Data is loaded
-// or value is set to actual value
+/** Data is loaded, or value is set to actual value */
 export function hasData<T>(value: Value<T>): value is T {
   if (
     value === undefined ||
@@ -61,12 +60,12 @@ export function hasData<T>(value: Value<T>): value is T {
   return true
 }
 
-// No value yet, value or data was just initialized
+/** No value yet: value or data was just initialized */
 export function isNone<T>(value: Value<T>): value is undefined {
   return value === undefined
 }
 
-// Data is loading, or value is waiting for data
+/** Data is loading, or value is waiting for data */
 export function isLoading<T>(value: Value<T>): value is typeof Loading {
   return value === Loading
 }
@@ -75,8 +74,7 @@ export function isError<T>(value: Value<T>): value is Error {
   return value instanceof Error
 }
 
-// Value is selected with some or no value, or resolved with error
-// Or, data is loaded
+/** Value is selected with some or no value, or resolved with error, or data is loaded (successfully or not) */
 export function isReady<T>(value: Value<T>): value is T | null | Error {
   if (value === undefined || value === Loading) {
     return false
@@ -84,8 +82,7 @@ export function isReady<T>(value: Value<T>): value is T | null | Error {
   return true
 }
 
-// Value is selected with some or no value
-// Or, data is loaded successfully
+/** Value is selected with some or no value, or data is loaded successfully */
 export function hasValue<T>(value: Value<T>): value is T | null {
   if (value === undefined || value === Loading || value instanceof Error) {
     return false
@@ -93,7 +90,7 @@ export function hasValue<T>(value: Value<T>): value is T | null {
   return true
 }
 
-// User explicitly set no value
+/** User explicitly set no value */
 export function isNoneSelected<T>(value: Value<T>): value is null {
   return value === null
 }
