@@ -20,6 +20,59 @@ import Results from './Results'
 import Workgroups from './Workgroups'
 import * as Model from './model'
 
+const useRelieveMessageStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+  },
+  text: {
+    animation: '$show 0.3s ease-out',
+  },
+  '@keyframes show': {
+    from: {
+      opacity: 0,
+    },
+    to: {
+      opacity: 1,
+    },
+  },
+}))
+
+const RELIEVE_INITIAL_TIMEOUT = 1000
+
+interface RelieveMessageProps {
+  className: string
+  messages: string[]
+}
+
+function RelieveMessage({ className, messages }: RelieveMessageProps) {
+  const classes = useRelieveMessageStyles()
+  const [relieve, setRelieve] = React.useState('')
+  const timersData = React.useMemo(
+    () =>
+      messages.map((message, index) => ({
+        timeout: RELIEVE_INITIAL_TIMEOUT * (index + 1) ** 2,
+        message,
+      })),
+    [messages],
+  )
+  React.useEffect(() => {
+    const timers = timersData.map(({ timeout, message }) =>
+      setTimeout(() => setRelieve(message), timeout),
+    )
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer))
+    }
+  }, [timersData])
+  if (!relieve) return null
+  return (
+    <M.Paper className={cx(classes.root, className)}>
+      <M.Typography className={classes.text} key={relieve} variant="caption">
+        {relieve}
+      </M.Typography>
+    </M.Paper>
+  )
+}
+
 interface QuerySelectSkeletonProps {
   className?: string
 }
@@ -95,12 +148,28 @@ const useResultsContainerStyles = M.makeStyles((t) => ({
   breadcrumbs: {
     margin: t.spacing(0, 0, 1),
   },
+  relieve: {
+    left: '50%',
+    position: 'absolute',
+    top: t.spacing(7),
+    transform: 'translateX(-50%)',
+  },
+  table: {
+    position: 'relative',
+  },
 }))
 
 interface ResultsContainerSkeletonProps {
   bucket: string
   className: string
 }
+
+const relieveMessages = [
+  'Still loading…',
+  'This is taking a moment. Thanks for your patience!',
+  'Looks like a heavy task! We’re still working on it.',
+  'Hang in there, we haven’t forgotten about you! Your request is still being processed.',
+]
 
 function ResultsContainerSkeleton({ bucket, className }: ResultsContainerSkeletonProps) {
   const classes = useResultsContainerStyles()
@@ -109,7 +178,10 @@ function ResultsContainerSkeleton({ bucket, className }: ResultsContainerSkeleto
       <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
         <Skeleton height={24} width={144} animate />
       </ResultsBreadcrumbs>
-      <TableSkeleton size={10} />
+      <div className={classes.table}>
+        <TableSkeleton size={10} />
+        <RelieveMessage className={classes.relieve} messages={relieveMessages} />
+      </div>
     </div>
   )
 }
