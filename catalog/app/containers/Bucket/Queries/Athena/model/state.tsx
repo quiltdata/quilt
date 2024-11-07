@@ -22,7 +22,7 @@ export interface State {
   databases: Model.DataController<Model.List<requests.Database>>
   /**
    * Query execution loaded by id on the corresponding page.
-   * On the index page (where is no queryExecutionId) it is null.
+   * On the index page (where is no queryExecutionId) it's value is null.
    */
   execution: Model.Value<requests.QueryExecution>
   /** List of query executions, in other words, history of executions */
@@ -37,7 +37,7 @@ export interface State {
   results: Model.DataController<requests.QueryResults>
   /**
    * Workgroup selected by user explicitly or from page URL, and validated that it does exist
-   * If workgroup doesn't exist, then it is Error
+   * If workgroup doesn't exist, then it's value is Error
    */
   workgroup: Model.DataController<requests.Workgroup>
   /** List of workgroups from Athena */
@@ -52,7 +52,7 @@ export interface State {
     forceDefaultExecutionContext?: boolean,
   ) => Promise<Model.Value<requests.QueryRun>>
 
-  /** If there is enoght values set to run query */
+  /** If there are enough values set to run query */
   readyToRun: boolean
   /** If query is running */
   running: boolean
