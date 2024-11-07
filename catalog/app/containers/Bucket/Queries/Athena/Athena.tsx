@@ -13,12 +13,26 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import QuerySelect from '../QuerySelect'
 
 import { Alert, Section } from './Components'
-import CreatePackage from './CreatePackage'
 import * as QueryEditor from './QueryEditor'
 import History from './History'
 import Results from './Results'
 import Workgroups from './Workgroups'
 import * as Model from './model'
+import { doQueryResultsContainManifestEntries } from './model/createPackage'
+
+const CreatePackage = React.lazy(() => import('./CreatePackage'))
+
+function SeeDocsForCreatingPackage() {
+  return (
+    <M.Tooltip title="You can create packages from the query results. Click to see the docs.">
+      <a href="https://docs.quiltdata.com/advanced/athena" target="_blank">
+        <M.IconButton>
+          <M.Icon>help_outline</M.Icon>
+        </M.IconButton>
+      </a>
+    </M.Tooltip>
+  )
+}
 
 const useRelieveMessageStyles = M.makeStyles((t) => ({
   root: {
@@ -219,8 +233,12 @@ function ResultsContainer({ className }: ResultsContainerProps) {
   return (
     <div className={className}>
       <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
-        {!!results.data.rows.length && (
-          <CreatePackage bucket={bucket} queryResults={results.data} />
+        {doQueryResultsContainManifestEntries(results.data) ? (
+          <React.Suspense fallback={<M.CircularProgress />}>
+            <CreatePackage bucket={bucket} queryResults={results.data} />
+          </React.Suspense>
+        ) : (
+          <SeeDocsForCreatingPackage />
         )}
       </ResultsBreadcrumbs>
       {/* eslint-disable-next-line no-nested-ternary */}

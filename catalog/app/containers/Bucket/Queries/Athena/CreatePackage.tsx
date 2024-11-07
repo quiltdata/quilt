@@ -14,18 +14,6 @@ import {
 
 import Results from './Results'
 
-function SeeDocsForCreatingPackage() {
-  return (
-    <M.Tooltip title="You can create packages from the query results. Click to see the docs.">
-      <a href="https://docs.quiltdata.com/advanced/athena" target="_blank">
-        <M.IconButton>
-          <M.Icon>help_outline</M.Icon>
-        </M.IconButton>
-      </a>
-    </M.Tooltip>
-  )
-}
-
 const useStyles = M.makeStyles((t) => ({
   results: {
     'div&': {
@@ -64,7 +52,6 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
   const onPackage = React.useCallback(() => {
     if (!doQueryResultsContainManifestEntries(queryResults)) return
 
-    // TODO: make it lazy, and disable button
     const parsed = parseQueryResults(queryResults)
     setEntries(parsed)
     if (parsed.invalid.length) {
@@ -74,10 +61,6 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
       createDialog.open()
     }
   }, [addToPackage, confirm, createDialog, queryResults])
-
-  if (!doQueryResultsContainManifestEntries(queryResults)) {
-    return <SeeDocsForCreatingPackage />
-  }
 
   return (
     <>

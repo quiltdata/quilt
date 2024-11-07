@@ -6,6 +6,7 @@ import type * as requests from './requests'
 export function doQueryResultsContainManifestEntries(
   queryResults: requests.QueryResults,
 ): queryResults is requests.QueryManifests {
+  if (!queryResults.rows.length) return false
   const columnNames = queryResults.columns.map(({ name }) => name)
   return (
     columnNames.includes('size') &&
