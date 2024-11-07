@@ -3,8 +3,6 @@ import * as s3paths from 'utils/s3paths'
 
 import type * as requests from './requests'
 
-type ManifestEntryStringified = Record<requests.ManifestKey, string>
-
 export function doQueryResultsContainManifestEntries(
   queryResults: requests.QueryResults,
 ): queryResults is requests.QueryManifests {
@@ -16,37 +14,42 @@ export function doQueryResultsContainManifestEntries(
   )
 }
 
+type Row = requests.QueryManifests['rows'][0]
 function parseRow(
-  row: requests.QueryManifests['rows'][0],
+  row: Row,
   columns: requests.QueryResultsColumns,
-): {
-  [key: string]: Model.S3File
-} | null {
+): { fail?: undefined; ok: [string, Model.S3File] } | { fail: Row; ok?: undefined } {
   try {
-    const entry = row.reduce((acc, value, index) => {
-      if (!columns[index]?.name) return acc
-      return {
-        ...acc,
-        [columns[index].name]: value,
-      }
-    }, {} as ManifestEntryStringified)
-    if (!entry.logical_key) return null
-    if (!entry.physical_key && !entry.physical_keys) return null
+    const entry = row.reduce(
+      (acc, value, index) => {
+        if (!columns[index]?.name) return acc
+        return {
+          ...acc,
+          [columns[index].name]: value,
+        }
+      },
+      {} as Record<requests.ManifestKey, string>,
+    )
+    if (!entry.logical_key) return { fail: row }
+    if (!entry.physical_key && !entry.physical_keys) return { fail: row }
     const handle = entry.physical_key
       ? s3paths.parseS3Url(entry.physical_key)
       : s3paths.parseS3Url(entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''))
     const sizeParsed = Number(entry.size)
     const size = Number.isNaN(sizeParsed) ? 0 : sizeParsed
     return {
-      [entry.logical_key]: {
-        ...handle,
-        size,
-      },
+      ok: [
+        entry.logical_key,
+        {
+          ...handle,
+          size,
+        },
+      ],
     }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e)
-    return null
+    return { fail: row }
   }
 }
 
@@ -56,24 +59,22 @@ export interface ParsedRows {
 }
 
 export function parseQueryResults(queryResults: requests.QueryManifests): ParsedRows {
-  return queryResults.rows.reduce(
-    (memo, entry, index) => {
-      const parsed = parseRow(entry, queryResults.columns)
-      return parsed
-        ? // if entry is ok then add it to valid map, and invalid is pristine
-          {
-            valid: {
-              ...memo.valid,
-              ...parsed,
+  return queryResults.rows
+    .map((row) => parseRow(row, queryResults.columns))
+    .reduce(
+      (memo, { ok, fail }) =>
+        ok
+          ? {
+              valid: {
+                ...memo.valid,
+                [ok[0]]: ok[1],
+              },
+              invalid: memo.invalid,
+            }
+          : {
+              valid: memo.valid,
+              invalid: [...memo.invalid, fail],
             },
-            invalid: memo.invalid,
-          }
-        : // if no entry then add original data to list of invalid, and valid is pristine
-          {
-            valid: memo.valid,
-            invalid: [...memo.invalid, queryResults.rows[index]],
-          }
-    },
-    { valid: {}, invalid: [] } as ParsedRows,
-  )
+      { valid: {}, invalid: [] } as ParsedRows,
+    )
 }
