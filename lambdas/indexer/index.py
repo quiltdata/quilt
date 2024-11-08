@@ -493,8 +493,9 @@ def select_package_stats(bucket, manifest_key) -> Optional[dict]:
     )
     lambda_ = make_lambda_client()
     q = f"""
-    SELECT COALESCE(SUM(size), 0) AS total_bytes,
-    COUNT(size) AS total_files FROM read_ndjson('{url}', columns={{size='UBIGINT'}}) obj
+    SELECT
+        COALESCE(SUM(size), 0) AS total_bytes,
+        COUNT(size) AS total_files FROM read_ndjson('{url}', columns={{size: 'UBIGINT'}}) obj
     """
     resp = lambda_.invoke(
         FunctionName=DUCKDB_SELECT_LAMBDA_ARN,
