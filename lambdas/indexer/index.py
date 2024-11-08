@@ -93,7 +93,6 @@ from t4_lambda_shared.utils import (
     POINTER_PREFIX_V1,
     get_available_memory,
     get_quilt_logger,
-    query_manifest_content,
     separated_env_to_iter,
 )
 
