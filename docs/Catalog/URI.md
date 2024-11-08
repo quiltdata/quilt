@@ -27,7 +27,7 @@ the `akarve/cord19` package of the `quilt-example` bucket.
 
 URIs can be used to quickly navigate to a specific package or object from the
 Catalog. If your window is wide enough, there will be a "URI" button to the
-right of the search bar.  Clicking this button will display a dialog where you
+right of the search bar. Clicking this button will display a dialog where you
 can paste a URI and "Resolve" it to navigate to the package or object it
 references.
 
@@ -39,7 +39,7 @@ A Quilt+ URI contains the following components:
 
 - `quilt+<protocol>`: The scheme of the URI. This always begins with `quilt+`.
   Currently the only supported protocol is `s3`.
-- `<bucket>`: The name of the bucket containing the package or object, e.g.
+- `<bucket>`: The name of the bucket containing the package, e.g.
   `quilt-example`.
 - `#package=<package_name[specifier]>`: A fragment for the name of the package,
   e.g. `akarve/cord19`, plus an optional specifier. The specifier identifies a
