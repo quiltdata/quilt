@@ -2,8 +2,8 @@ name: Deploy lambdas to S3 and ECR
 
 on:
   push:
-    branches:
-      - master
+    # branches:
+    #   - master
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
@@ -13,17 +13,17 @@ jobs:
     strategy:
       matrix:
         path:
-          - access_counts
+          # - access_counts
           - indexer
-          - pkgevents
-          - pkgpush
-          - pkgselect
-          - preview
-          - s3hash
-          - s3select
-          - status_reports
-          - tabular_preview
-          - transcode
+          # - pkgevents
+          # - pkgpush
+          # - pkgselect
+          # - preview
+          # - s3hash
+          # - s3select
+          # - status_reports
+          # - tabular_preview
+          # - transcode
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
