@@ -1,4 +1,4 @@
-import type Athena from 'aws-sdk/clients/athena'
+import type A from 'aws-sdk/clients/athena'
 import { renderHook } from '@testing-library/react-hooks'
 
 import * as Model from './utils'
@@ -9,7 +9,7 @@ jest.mock(
   jest.fn(() => ({})),
 )
 
-function athenaRequest<I, O>(output: O, delay = 100) {
+function req<I, O>(output: O, delay = 100) {
   return jest.fn((_x: I, callback: (e: Error | null, d: O) => void) => {
     const timer = setTimeout(() => {
       callback(null, output)
@@ -22,23 +22,17 @@ function athenaRequest<I, O>(output: O, delay = 100) {
   })
 }
 
+const listDataCatalogs = jest.fn()
+
+const listDatabases = jest.fn()
+
 jest.mock(
   'utils/AWS',
   jest.fn(() => ({
     Athena: {
       use: jest.fn(() => ({
-        listDataCatalogs: athenaRequest<
-          Athena.Types.ListDataCatalogsInput,
-          Athena.Types.ListDataCatalogsOutput
-        >({
-          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
-        }),
-        listDatabases: athenaRequest<
-          Athena.Types.ListDatabasesInput,
-          Athena.Types.ListDatabasesOutput
-        >({
-          DatabaseList: [{ Name: 'bar' }, { Name: 'baz' }],
-        }),
+        listDataCatalogs,
+        listDatabases,
       })),
     },
   })),
@@ -47,16 +41,52 @@ jest.mock(
 describe('containers/Bucket/Queries/Athena/model/requests', () => {
   describe('useCatalogNames', () => {
     it('return catalog names', async () => {
+      listDataCatalogs.mockImplementationOnce(
+        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
+          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+        }),
+      )
       const { result, waitFor } = renderHook(() => requests.useCatalogNames())
       expect(result.current.data).toBe(undefined)
       await waitFor(() =>
         expect(result.current.data).toMatchObject({ list: ['foo', 'bar'] }),
       )
     })
+    it('return empty list', async () => {
+      listDataCatalogs.mockImplementationOnce(
+        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
+          DataCatalogsSummary: [],
+        }),
+      )
+      const { result, waitFor } = renderHook(() => requests.useCatalogNames())
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+    })
+    it('return unknowns on invalid data', async () => {
+      listDataCatalogs.mockImplementationOnce(
+        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
+          // @ts-expect-error
+          DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
+        }),
+      )
+      const { result, waitFor } = renderHook(() => requests.useCatalogNames())
+      await waitFor(() =>
+        expect(result.current.data).toMatchObject({ list: ['Unknown', 'Unknown'] }),
+      )
+    })
+    it('return empty list on invalid data', async () => {
+      listDataCatalogs.mockImplementationOnce(
+        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
+          // @ts-expect-error
+          Invalid: [],
+        }),
+      )
+      const { result, waitFor } = renderHook(() => requests.useCatalogNames())
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+    })
   })
 
   describe('useDatabases', () => {
-    it.skip('wait for catalogName', async () => {
+    it('wait for catalogName', async () => {
       const { result, rerender, waitFor } = renderHook(
         (...c: Parameters<typeof requests.useDatabases>) => requests.useDatabases(...c),
         {
@@ -72,6 +102,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('return databases', async () => {
+      listDatabases.mockImplementation(
+        req<A.ListDatabasesInput, A.ListDatabasesOutput>({
+          DatabaseList: [{ Name: 'bar' }, { Name: 'baz' }],
+        }),
+      )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
 
       expect((result.all[0] as Model.DataController<any>).data).toBe(undefined)
@@ -79,6 +114,30 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await waitFor(() =>
         expect(result.current.data).toMatchObject({ list: ['bar', 'baz'] }),
       )
+    })
+
+    it('handle invalid database', async () => {
+      listDatabases.mockImplementation(
+        req<A.ListDatabasesInput, A.ListDatabasesOutput>({
+          // @ts-expect-error
+          DatabaseList: [{ A: 'B' }, { C: 'D' }],
+        }),
+      )
+      const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
+      await waitFor(() =>
+        expect(result.current.data).toMatchObject({ list: ['Unknown', 'Unknown'] }),
+      )
+    })
+
+    it('handle invalid list', async () => {
+      listDatabases.mockImplementation(
+        req<A.ListDatabasesInput, A.ListDatabasesOutput>({
+          // @ts-expect-error
+          Foo: 'Bar',
+        }),
+      )
+      const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
+      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
     })
   })
 })
