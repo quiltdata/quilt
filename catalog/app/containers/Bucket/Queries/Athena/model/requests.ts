@@ -1,4 +1,4 @@
-import Athena from 'aws-sdk/clients/athena'
+import type Athena from 'aws-sdk/clients/athena'
 import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
