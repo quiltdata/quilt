@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 import os
 import pathlib
 import re
@@ -20,9 +19,6 @@ import requests
 # Third-Party
 import yaml
 from platformdirs import user_cache_dir, user_data_dir
-
-
-logger = logging.getLogger(__name__)
 
 
 def get_bool_from_env(var_name: str):
