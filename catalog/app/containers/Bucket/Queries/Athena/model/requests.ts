@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react'
 
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import Log from 'utils/Logging'
 
 import * as storage from './storage'
 import * as Model from './utils'
@@ -47,13 +48,9 @@ async function fetchWorkgroup({
     return null
   } catch (error) {
     if ((error as $TSFixMe).code === 'AccessDeniedException') {
-      // eslint-disable-next-line no-console
-      console.info(
-        `Fetching "${workgroup}" workgroup failed: ${(error as $TSFixMe).code}`,
-      )
+      Log.info(`Fetching "${workgroup}" workgroup failed: ${(error as $TSFixMe).code}`)
     } else {
-      // eslint-disable-next-line no-console
-      console.error(`Fetching "${workgroup}" workgroup failed:`, error)
+      Log.error(`Fetching "${workgroup}" workgroup failed:`, error)
     }
     return null
   }
@@ -68,7 +65,8 @@ async function fetchWorkgroups(
       .listWorkGroups({ NextToken: prev?.next })
       .promise()
     const parsed = (workgroupsOutput.WorkGroups || [])
-      .map(({ Name }) => Name || 'Unknown')
+      .map(({ Name }) => Name || '')
+      .filter(Boolean)
       .sort()
     const available = (
       await Promise.all(parsed.map((workgroup) => fetchWorkgroup({ athena, workgroup })))
@@ -79,10 +77,7 @@ async function fetchWorkgroups(
       next: workgroupsOutput.NextToken,
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    Log.error(e)
     throw e
   }
 }
@@ -92,8 +87,14 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const [prev, setPrev] = React.useState<Model.List<Workgroup> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>()
   React.useEffect(() => {
+    let mounted = true
     if (!athena) return
-    fetchWorkgroups(athena, prev).then(setData).catch(setData)
+    fetchWorkgroups(athena, prev)
+      .then((d) => mounted && setData(d))
+      .catch((d) => mounted && setData(d))
+    return () => {
+      mounted = false
+    }
   }, [athena, prev])
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
@@ -658,10 +659,7 @@ async function runQuery({
       id: QueryExecutionId,
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    Log.error(e)
     throw e
   }
 }
