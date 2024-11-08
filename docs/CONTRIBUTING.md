@@ -28,7 +28,7 @@ git checkout -B new-branch-name
 
 ## Local package development
 
-### Environment
+### Python Environment
 
 Use `pip` to install `quilt` locally (including development dependencies):
 
@@ -42,7 +42,7 @@ install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs)
 of `quilt`, allowing you to modify the code and test your changes
 right away.
 
-### Testing
+### Python Testing
 
 All new code contributions are expected to have complete unit test
 coverage, and to pass all preexisting tests.
@@ -62,7 +62,7 @@ catalog if you already have a catalog deployed to AWS, because the
 catalog relies on certain services (namely, AWS Lambda and the AWS
 Elasticsearch Service) which cannot be run locally.
 
-### Environment
+### Catalog Environment
 
 Use `npm` to install the catalog (`quilt-navigator`) dependencies locally:
 
@@ -152,7 +152,7 @@ Make sure that any images you check into the repository are
 [optimized](https://kinsta.com/blog/optimize-images-for-web/) at
 check-in time.
 
-### Testing
+### Catalog Testing
 
 To run the catalog unit tests:
 
