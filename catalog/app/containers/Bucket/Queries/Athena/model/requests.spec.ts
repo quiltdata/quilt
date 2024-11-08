@@ -1,5 +1,5 @@
 import type A from 'aws-sdk/clients/athena'
-import { renderHook } from '@testing-library/react-hooks'
+import { act, renderHook } from '@testing-library/react-hooks'
 
 import Log from 'utils/Logging'
 
@@ -35,13 +35,11 @@ function reqThen<I, O>(output: (x: I) => O, delay = 100) {
   }))
 }
 
-function reqTrow() {
-  return jest.fn(() => ({
-    promise: () => {
-      throw new Error()
-    },
-  }))
-}
+const reqTrow = jest.fn(() => ({
+  promise: () => {
+    throw new Error()
+  },
+}))
 
 const listDataCatalogs = jest.fn()
 
@@ -248,8 +246,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
       await waitFor(() => typeof result.current.data === 'object')
       expect(result.current.data).toMatchObject({ list: [] })
-      Log.setLevel(loglevel)
       unmount()
+      Log.setLevel(loglevel)
     })
 
     it('handle no data in list', async () => {
@@ -267,14 +265,16 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('handle fail in list', async () => {
-      listWorkGroups.mockImplementation(reqTrow)
-      const loglevel = Log.getLevel()
-      Log.setLevel('silent')
-      const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-      await waitFor(() => result.current.data instanceof Error)
-      expect(result.current.data).toBeInstanceOf(Error)
-      Log.setLevel(loglevel)
-      unmount()
+      await act(async () => {
+        listWorkGroups.mockImplementation(reqTrow)
+        const loglevel = Log.getLevel()
+        Log.setLevel('silent')
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => result.current.data instanceof Error)
+        expect(result.current.data).toBeInstanceOf(Error)
+        unmount()
+        Log.setLevel(loglevel)
+      })
     })
   })
 })
