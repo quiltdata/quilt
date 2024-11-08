@@ -1,6 +1,7 @@
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
 
+import Log from 'utils/Logging'
 import type * as requests from './requests'
 
 export function doQueryResultsContainManifestEntries(
@@ -48,8 +49,7 @@ function parseRow(
       ],
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e)
+    Log.error(e)
     return { fail: row }
   }
 }

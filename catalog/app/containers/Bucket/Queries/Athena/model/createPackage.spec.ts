@@ -1,5 +1,7 @@
+import Log from 'utils/Logging'
+
 import type * as Model from './requests'
-import { parseQueryResults } from './createPackage'
+import { doQueryResultsContainManifestEntries, parseQueryResults } from './createPackage'
 
 jest.mock(
   'constants/config',
@@ -31,6 +33,13 @@ describe('containers/Bucket/Queries/Athena/model/createPackage', () => {
           { name: 'logical_key', type: 'varchar' },
         ],
       }
+      const results3: Model.QueryManifests = {
+        rows: [['foo', 'bar']],
+        columns: [
+          { name: 'size', type: 'varchar' },
+          { name: 'logical_key', type: 'varchar' },
+        ],
+      }
       expect(parseQueryResults(results1)).toEqual({
         valid: {},
         invalid: [
@@ -56,6 +65,13 @@ describe('containers/Bucket/Queries/Athena/model/createPackage', () => {
         invalid: [
           // Not enough row elements for a manifest entry
           ['s3://foo'],
+        ],
+      })
+      expect(parseQueryResults(results3)).toEqual({
+        valid: {},
+        invalid: [
+          // Not enough columns for a manifest entry
+          ['foo', 'bar'],
         ],
       })
     })
@@ -101,6 +117,97 @@ describe('containers/Bucket/Queries/Athena/model/createPackage', () => {
         },
         invalid: [],
       })
+    })
+    it('should catch error', () => {
+      const results: Model.QueryManifests = {
+        rows: [
+          ['abc', 'a/b/c', '{"a": "b"}', '[s3://a/b/c/d?versionId=def]', '123'],
+          ['def', 'd/e/f', '{"d": "e"}', '[s3://]', '456', 'extra'],
+        ],
+        columns: [
+          { name: 'hash', type: 'varchar' },
+          { name: 'logical_key', type: 'varchar' },
+          { name: 'meta', type: 'varchar' },
+          { name: 'physical_keys', type: 'varchar' },
+          { name: 'size', type: 'varchar' },
+        ],
+      }
+      const loglevel = Log.getLevel()
+      Log.setLevel('silent')
+      expect(parseQueryResults(results)).toEqual({
+        valid: {
+          'a/b/c': {
+            bucket: 'a',
+            key: 'b/c/d',
+            size: 123,
+            version: 'def',
+            // meta: { a: 'b' }, discarded, not supported for creating packages yet
+          },
+        },
+        invalid: [['def', 'd/e/f', '{"d": "e"}', '[s3://]', '456', 'extra']],
+      })
+      Log.setLevel(loglevel)
+    })
+  })
+
+  describe('doQueryResultsContainManifestEntries', () => {
+    it('does not contain rows', () => {
+      expect(doQueryResultsContainManifestEntries({ columns: [], rows: [] })).toBe(false)
+    })
+
+    it('does not contain valid columns', () => {
+      expect(
+        doQueryResultsContainManifestEntries({
+          columns: [
+            { name: 'foo', type: 'varchar' },
+            { name: 'bar', type: 'varchar' },
+          ],
+          rows: [['some']],
+        }),
+      ).toBe(false)
+    })
+
+    it('does not contain enough columns', () => {
+      expect(
+        doQueryResultsContainManifestEntries({
+          columns: [
+            { name: 'size', type: 'varchar' },
+            { name: 'physical_keys', type: 'varchar' },
+          ],
+          rows: [['some']],
+        }),
+      ).toBe(false)
+      expect(
+        doQueryResultsContainManifestEntries({
+          columns: [
+            { name: 'size', type: 'varchar' },
+            { name: 'physical_key', type: 'varchar' },
+          ],
+          rows: [['some']],
+        }),
+      ).toBe(false)
+      expect(
+        doQueryResultsContainManifestEntries({
+          columns: [
+            { name: 'size', type: 'varchar' },
+            { name: 'logical_key', type: 'varchar' },
+          ],
+          rows: [['some']],
+        }),
+      ).toBe(false)
+    })
+
+    it('does contain enough valid data', () => {
+      expect(
+        doQueryResultsContainManifestEntries({
+          columns: [
+            { name: 'size', type: 'varchar' },
+            { name: 'physical_key', type: 'varchar' },
+            { name: 'logical_key', type: 'varchar' },
+          ],
+          rows: [['some']],
+        }),
+      ).toBe(true)
     })
   })
 })
