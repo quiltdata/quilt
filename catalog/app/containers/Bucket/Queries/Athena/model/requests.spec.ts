@@ -6,6 +6,8 @@ import Log from 'utils/Logging'
 import * as Model from './utils'
 import * as requests from './requests'
 
+// TODO: Log.setLevel workaround doesn't work everywhere
+
 jest.mock(
   'constants/config',
   jest.fn(() => ({})),
@@ -41,23 +43,34 @@ const reqTrow = jest.fn(() => ({
   },
 }))
 
-const listDataCatalogs = jest.fn()
-
-const listDatabases = jest.fn()
-
-const listWorkGroups = jest.fn()
-
+const batchGetQueryExecution = jest.fn()
 const getWorkGroup = jest.fn()
+const listDataCatalogs = jest.fn()
+const listDatabases = jest.fn()
+const listQueryExecutions = jest.fn()
+const listWorkGroups = jest.fn()
+const getQueryExecution = jest.fn()
+const listNamedQueries = jest.fn()
+const batchGetNamedQuery = jest.fn()
+const getQueryResults = jest.fn()
+const startQueryExecution = jest.fn()
 
 jest.mock(
   'utils/AWS',
   jest.fn(() => ({
     Athena: {
       use: jest.fn(() => ({
+        batchGetNamedQuery,
+        batchGetQueryExecution,
+        getQueryExecution,
+        getQueryResults,
+        getWorkGroup,
         listDataCatalogs,
         listDatabases,
+        listNamedQueries,
+        listQueryExecutions,
         listWorkGroups,
-        getWorkGroup,
+        startQueryExecution,
       })),
     },
   })),
@@ -240,9 +253,9 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('handle fail in workgroup', async () => {
-      getWorkGroup.mockImplementation(reqTrow)
       const loglevel = Log.getLevel()
       Log.setLevel('silent')
+      getWorkGroup.mockImplementation(reqTrow)
       const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
       await waitFor(() => typeof result.current.data === 'object')
       expect(result.current.data).toMatchObject({ list: [] })
@@ -251,24 +264,24 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('handle no data in list', async () => {
+      const loglevel = Log.getLevel()
+      Log.setLevel('silent')
       listWorkGroups.mockImplementation(
         // @ts-expect-error
         reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => null),
       )
-      const loglevel = Log.getLevel()
-      Log.setLevel('silent')
       const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
       await waitFor(() => result.current.data instanceof Error)
       expect(result.current.data).toBeInstanceOf(Error)
-      Log.setLevel(loglevel)
       unmount()
+      Log.setLevel(loglevel)
     })
 
     it('handle fail in list', async () => {
       await act(async () => {
-        listWorkGroups.mockImplementation(reqTrow)
         const loglevel = Log.getLevel()
         Log.setLevel('silent')
+        listWorkGroups.mockImplementation(reqTrow)
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => result.current.data instanceof Error)
         expect(result.current.data).toBeInstanceOf(Error)
@@ -277,4 +290,65 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       })
     })
   })
+
+  // TODO
+  // describe('useExecutions', () => {
+  //   // listQueryExecutions
+  //   // batchGetQueryExecution
+  // })
+
+  // TODO
+  // describe('useWaitForQueryExecution', () => {
+  //   // getQueryExecution
+  // })
+
+  // TODO
+  // describe('useQueries', () => {
+  //   // listNamedQueries
+  //   // batchGetNamedQuery
+  // })
+
+  describe('useResults', () => {
+    it('return results', async () => {
+      getQueryResults.mockImplementation(
+        req<A.GetQueryResultsInput, A.GetQueryResultsOutput>({
+          ResultSet: {
+            Rows: [
+              {
+                Data: [{ VarCharValue: 'foo' }, { VarCharValue: 'bar' }],
+              },
+              {
+                Data: [{ VarCharValue: 'bar' }, { VarCharValue: 'baz' }],
+              },
+            ],
+            ResultSetMetadata: {
+              ColumnInfo: [
+                { Name: 'foo', Type: 'some' },
+                { Name: 'bar', Type: 'another' },
+              ],
+            },
+          },
+        }),
+      )
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useResults({ id: 'any' }),
+        )
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(result.current.data).toMatchObject({
+          rows: [['bar', 'baz']],
+          columns: [
+            { name: 'foo', type: 'some' },
+            { name: 'bar', type: 'another' },
+          ],
+        })
+        unmount()
+      })
+    })
+  })
+
+  // TODO
+  // describe('useQueryRun', () => {
+  //   // startQueryExecution
+  // })
 })
