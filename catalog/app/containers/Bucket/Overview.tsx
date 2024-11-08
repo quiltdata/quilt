@@ -12,6 +12,7 @@ import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
+import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -22,6 +23,7 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
+import useConst from 'utils/useConstant'
 
 import * as Gallery from './Gallery'
 import * as Summarize from './Summarize'
@@ -29,6 +31,18 @@ import * as requests from './requests'
 import BUCKET_CONFIG_QUERY from './OverviewBucketConfig.generated'
 
 import bg from './Overview-bg.jpg'
+
+// interface StatsData {
+//   exts: ExtData[]
+//   totalObjects: number
+//   totalBytes: number
+// }
+
+interface ExtData {
+  ext: string
+  bytes: number
+  objects: number
+}
 
 const RODA_LINK = 'https://registry.opendata.aws'
 const RODA_BUCKET = 'quilt-open-data-bucket'
@@ -49,10 +63,14 @@ const COLOR_MAP = [
   '#94ad6b',
 ]
 
-function mkKeyedPool(pool) {
-  const map = {}
+interface ColorPool {
+  get: (key: string) => string
+}
+
+function mkKeyedPool(pool: string[]): ColorPool {
+  const map: Record<string, string> = {}
   let poolIdx = 0
-  const get = (key) => {
+  const get = (key: string): string => {
     if (!(key in map)) {
       // eslint-disable-next-line no-plusplus
       map[key] = pool[poolIdx++ % pool.length]
@@ -60,12 +78,6 @@ function mkKeyedPool(pool) {
     return map[key]
   }
   return { get }
-}
-
-function useConst(cons) {
-  const ref = React.useRef(null)
-  if (!ref.current) ref.current = { value: cons() }
-  return ref.current.value
 }
 
 const useObjectsByExtStyles = M.makeStyles((t) => ({
@@ -146,18 +158,23 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ObjectsByExt({ data, colorPool, ...props }) {
+interface ObjectsByExtProps extends M.BoxProps {
+  data: $TSFixMe // AsyncResult<ExtData[]>
+  colorPool: ColorPool
+}
+
+function ObjectsByExt({ data, colorPool, ...props }: ObjectsByExtProps) {
   const classes = useObjectsByExtStyles()
   return (
     <M.Box className={classes.root} {...props}>
       <div className={classes.heading}>Objects by File Extension</div>
       {AsyncResult.case(
         {
-          Ok: (exts) => {
+          Ok: (exts: ExtData[]) => {
             const capped = exts.slice(0, MAX_EXTS)
             const maxBytes = capped.reduce((max, e) => Math.max(max, e.bytes), 0)
             const max = Math.log(maxBytes + 1)
-            const scale = (x) => Math.log(x + 1) / max
+            const scale = (x: number) => Math.log(x + 1) / max
             return capped.map(({ ext, bytes, objects }, i) => {
               const color = colorPool.get(ext)
               return (
@@ -189,7 +206,7 @@ function ObjectsByExt({ data, colorPool, ...props }) {
               )
             })
           },
-          _: (r) => (
+          _: (r: $TSFixMe) => (
             <>
               {R.times(
                 (i) => (
@@ -227,9 +244,15 @@ const skelData = R.times(
 const skelColors = [
   [M.colors.grey[300], M.colors.grey[100]],
   [M.colors.grey[400], M.colors.grey[200]],
-]
+] as const
 
-const mkPulsingGradient = ({ colors: [c1, c2], animate = false }) =>
+const mkPulsingGradient = ({
+  colors: [c1, c2],
+  animate = false,
+}: {
+  colors: readonly [string, string]
+  animate?: boolean
+}) =>
   SVG.Paint.Server(
     <linearGradient>
       <stop offset="0%" stopColor={c2}>
@@ -245,13 +268,21 @@ const mkPulsingGradient = ({ colors: [c1, c2], animate = false }) =>
     </linearGradient>,
   )
 
+interface ChartSkelProps {
+  height: number
+  width: number
+  lines?: number
+  animate?: boolean
+  children?: React.ReactNode
+}
+
 function ChartSkel({
   height,
   width,
   lines = skelData.length,
   animate = false,
   children,
-}) {
+}: ChartSkelProps) {
   const data = React.useMemo(
     () => R.times((i) => skelData[i % skelData.length], lines),
     [lines],
@@ -266,6 +297,7 @@ function ChartSkel({
   )
   return (
     <M.Box position="relative">
+      {/* @ts-expect-error */}
       <StackedAreaChart
         data={data}
         width={width}
@@ -288,7 +320,14 @@ const ANALYTICS_WINDOW_OPTIONS = [
   { value: 365, label: 'Last 12 months' },
 ]
 
-function DownloadsRange({ value, onChange, bucket, rawData }) {
+interface DownloadsRangeProps {
+  value: number
+  onChange: (value: number) => void
+  bucket: string
+  rawData?: string
+}
+
+function DownloadsRange({ value, onChange, bucket, rawData }: DownloadsRangeProps) {
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -348,7 +387,7 @@ const useStatsTipStyles = M.makeStyles((t) => ({
   root: {
     background: fade(t.palette.grey[700], 0.9),
     color: t.palette.common.white,
-    padding: [[6, 8]],
+    padding: '6px 8px',
   },
   head: {
     display: 'flex',
@@ -389,7 +428,27 @@ const useStatsTipStyles = M.makeStyles((t) => ({
   },
 }))
 
-function StatsTip({ stats, colorPool, className, ...props }) {
+interface StatsTipProps {
+  stats: {
+    date: Date
+    combined: {
+      sum: number
+      value: number
+    }
+    byExt: Array<{
+      ext: string
+      sum: number
+      value: number
+    }>
+    highlighted?: {
+      ext: string
+    }
+  }
+  colorPool: ColorPool
+  className?: string
+}
+
+function StatsTip({ stats, colorPool, className, ...props }: StatsTipProps) {
   const classes = useStatsTipStyles()
   return (
     <M.Paper className={cx(classes.root, className)} elevation={8} {...props}>
@@ -422,14 +481,15 @@ function StatsTip({ stats, colorPool, className, ...props }) {
   )
 }
 
-const Transition = ({ TransitionComponent = M.Grow, children, ...props }) => {
-  const contentsRef = React.useRef(null)
+interface TransitionProps {
+  children: () => JSX.Element
+  in?: boolean
+}
+
+const Transition = ({ children, ...props }: TransitionProps) => {
+  const contentsRef = React.useRef<JSX.Element | null>(null)
   if (props.in) contentsRef.current = children()
-  return (
-    contentsRef.current && (
-      <TransitionComponent {...props}>{contentsRef.current}</TransitionComponent>
-    )
-  )
+  return contentsRef.current && <M.Grow {...props}>{contentsRef.current}</M.Grow>
 }
 
 // use the same height as the bar chart: 20px per bar with 2px margin
@@ -517,15 +577,47 @@ const useDownloadsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Downloads({ bucket, colorPool, ...props }) {
+interface DownloadsProps extends M.BoxProps {
+  bucket: string
+  colorPool: ColorPool
+}
+
+interface Counts {
+  date: Date
+  sum: number
+  value: number
+}
+
+interface BucketAccessCounts {
+  byExt: Array<{
+    ext: string
+    counts: Counts[]
+  }>
+  byExtCollapsed: Array<{
+    ext: string
+    counts: Counts[]
+    total: number
+  }>
+  combined: {
+    counts: Counts[]
+    total: number
+  }
+}
+
+interface Cursor {
+  i: number | null
+  j: number
+}
+
+function Downloads({ bucket, colorPool, ...props }: DownloadsProps) {
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
   const classes = useDownloadsStyles()
   const ref = React.useRef(null)
   const { width } = useComponentSize(ref)
   const [window, setWindow] = React.useState(ANALYTICS_WINDOW_OPTIONS[0].value)
-  const [cursor, setCursor] = React.useState(null)
-  const cursorStats = (counts) => {
+  const [cursor, setCursor] = React.useState<Cursor | null>(null)
+  const cursorStats = (counts: BucketAccessCounts) => {
     if (!cursor) return null
     const { date, ...combined } = counts.combined.counts[cursor.j]
     const byExt = counts.byExtCollapsed.map((e) => ({
@@ -538,7 +630,7 @@ function Downloads({ bucket, colorPool, ...props }) {
   }
 
   const mkRawData = AsyncResult.case({
-    Ok: (data) => `data:application/json,${JSON.stringify(data)}`,
+    Ok: (data: $TSFixMe) => `data:application/json,${JSON.stringify(data)}`,
     _: () => null,
   })
 
@@ -551,8 +643,9 @@ function Downloads({ bucket, colorPool, ...props }) {
   }
 
   return (
+    // @ts-expect-error
     <Data fetch={requests.bucketAccessCounts} params={{ s3, bucket, today, window }}>
-      {(data) => (
+      {(data: $TSFixMe) => (
         <M.Box className={classes.root} {...props} ref={ref}>
           <div className={classes.period}>
             <DownloadsRange
@@ -565,9 +658,9 @@ function Downloads({ bucket, colorPool, ...props }) {
           <div className={classes.heading}>
             {AsyncResult.case(
               {
-                Ok: (counts) => {
+                Ok: (counts: BucketAccessCounts) => {
                   const stats = cursorStats(counts)
-                  const hl = stats && stats.highlighted
+                  const hl = stats?.highlighted
                   const ext = hl ? hl.ext || 'other' : 'total'
                   const total = hl ? hl.total : counts.combined.total
                   if (!counts.byExtCollapsed.length) return 'Downloads'
@@ -586,7 +679,7 @@ function Downloads({ bucket, colorPool, ...props }) {
           <div className={classes.chart}>
             {AsyncResult.case(
               {
-                Ok: (counts) => {
+                Ok: (counts: BucketAccessCounts) => {
                   if (!counts.byExtCollapsed.length) {
                     return (
                       <ChartSkel height={CHART_H} width={width}>
@@ -598,6 +691,7 @@ function Downloads({ bucket, colorPool, ...props }) {
                   const stats = cursorStats(counts)
                   return (
                     <>
+                      {/* @ts-expect-error */}
                       <StackedAreaChart
                         data={counts.byExtCollapsed.map((e) =>
                           e.counts.map((i) => Math.log(i.sum + 1)),
@@ -616,6 +710,7 @@ function Downloads({ bucket, colorPool, ...props }) {
                       <Transition in={!!stats && stats.firstHalf}>
                         {() => (
                           <StatsTip
+                            // @ts-expect-error
                             stats={stats}
                             colorPool={colorPool}
                             className={cx(classes.dateStats, classes.right)}
@@ -625,6 +720,7 @@ function Downloads({ bucket, colorPool, ...props }) {
                       <Transition in={!!stats && !stats.firstHalf}>
                         {() => (
                           <StatsTip
+                            // @ts-expect-error
                             stats={stats}
                             colorPool={colorPool}
                             className={cx(classes.dateStats, classes.left)}
@@ -696,7 +792,14 @@ const useStatDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-function StatDisplay({ value, label, format, fallback }) {
+interface StatsDisplayProps {
+  value: $TSFixMe // AsyncResult<?>
+  label?: string
+  format?: (v: any) => any
+  fallback?: (v: any) => any
+}
+
+function StatDisplay({ value, label, format, fallback }: StatsDisplayProps) {
   const classes = useStatDisplayStyles()
   return R.pipe(
     AsyncResult.case({
@@ -705,7 +808,7 @@ function StatDisplay({ value, label, format, fallback }) {
       _: R.identity,
     }),
     AsyncResult.case({
-      Ok: (v) =>
+      Ok: (v: $TSFixMe) =>
         v != null && (
           <span className={classes.root}>
             <span className={classes.value}>{v}</span>
@@ -718,7 +821,8 @@ function StatDisplay({ value, label, format, fallback }) {
         </div>
       ),
     }),
-  )(value)
+    // @ts-expect-error
+  )(value) as JSX.Element
 }
 
 const useHeadStyles = M.makeStyles((t) => ({
@@ -757,7 +861,14 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ s3, overviewUrl, bucket, description }) {
+interface HeadProps {
+  s3: $TSFixMe // AWS.S3
+  bucket: string
+  overviewUrl: string | null | undefined
+  description: string | null | undefined
+}
+
+function Head({ s3, overviewUrl, bucket, description }: HeadProps) {
   const classes = useHeadStyles()
   const req = APIConnector.use()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
@@ -850,11 +961,23 @@ function Head({ s3, overviewUrl, bucket, description }) {
   )
 }
 
-function Readmes({ s3, overviewUrl, bucket }) {
+interface BucketReadmes {
+  forced?: Model.S3.S3ObjectLocation
+  discovered: Model.S3.S3ObjectLocation[]
+}
+
+interface ReadmesProps {
+  s3: $TSFixMe // AWS.S3
+  bucket: string
+  overviewUrl: string | undefined | null
+}
+
+function Readmes({ s3, overviewUrl, bucket }: ReadmesProps) {
   return (
+    // @ts-expect-error
     <Data fetch={requests.bucketReadmes} params={{ s3, overviewUrl, bucket }}>
       {AsyncResult.case({
-        Ok: (rs) =>
+        Ok: (rs: BucketReadmes) =>
           (rs.discovered.length > 0 || !!rs.forced) && (
             <>
               {!!rs.forced && (
@@ -866,6 +989,7 @@ function Readmes({ s3, overviewUrl, bucket }) {
                 />
               )}
               {rs.discovered.map((h) => (
+                // @ts-expect-error
                 <Summarize.FilePreview
                   key={`readme:${h.bucket}/${h.key}`}
                   handle={h}
@@ -880,16 +1004,34 @@ function Readmes({ s3, overviewUrl, bucket }) {
   )
 }
 
-function Imgs({ s3, overviewUrl, inStack, bucket }) {
+interface ImgsProps {
+  s3: $TSFixMe // AWS.S3
+  bucket: string
+  overviewUrl: string | undefined | null
+  inStack: boolean
+}
+
+function Imgs({ s3, overviewUrl, inStack, bucket }: ImgsProps) {
   const req = APIConnector.use()
   return (
+    // @ts-expect-error
     <Data fetch={requests.bucketImgs} params={{ req, s3, overviewUrl, inStack, bucket }}>
       {AsyncResult.case({
-        Ok: (images) => (images.length ? <Gallery.Thumbnails images={images} /> : null),
+        Ok: (images: Model.S3.S3ObjectLocation[]) =>
+          images.length ? <Gallery.Thumbnails images={images} /> : null,
         _: () => <Gallery.Skeleton />,
       })}
     </Data>
   )
+}
+
+interface ThumbnailsWrapperProps extends ImgsProps {
+  preferences?:
+    | false
+    | {
+        overview: boolean
+        summarize: boolean
+      }
 }
 
 function ThumbnailsWrapper({
@@ -898,13 +1040,14 @@ function ThumbnailsWrapper({
   inStack,
   bucket,
   preferences: galleryPrefs,
-}) {
+}: ThumbnailsWrapperProps) {
   if (cfg.noOverviewImages || !galleryPrefs) return null
   if (!galleryPrefs.overview) return null
   return (
+    // @ts-expect-error
     <Data fetch={requests.ensureQuiltSummarizeIsPresent} params={{ s3, bucket }}>
       {AsyncResult.case({
-        Ok: (h) =>
+        Ok: (h?: Model.S3.S3ObjectLocation) =>
           (!h || galleryPrefs.summarize) && (
             <Imgs {...{ s3, bucket, inStack, overviewUrl }} />
           ),
@@ -917,7 +1060,7 @@ function ThumbnailsWrapper({
 }
 
 export default function Overview() {
-  const { bucket } = useParams()
+  const { bucket } = useParams<{ bucket: string }>()
 
   const s3 = AWS.S3.use()
   const { bucketConfig } = useQueryS(BUCKET_CONFIG_QUERY, { bucket })
@@ -953,7 +1096,7 @@ export default function Overview() {
             />
           ),
           Pending: () => <Gallery.Skeleton />,
-          Init: R.F,
+          Init: () => null,
         },
         prefs,
       )}

@@ -566,7 +566,7 @@ interface SummaryRootProps {
   s3: S3
   bucket: string
   inStack: boolean
-  overviewUrl: string
+  overviewUrl?: string | null
 }
 
 export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootProps) {
