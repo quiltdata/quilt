@@ -84,6 +84,41 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'AccessCountsGroup',
+        fields: [
+          {
+            name: 'ext',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'counts',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'AccessCounts',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
+      },
+      {
+        kind: 'OBJECT',
         name: 'AdminMutations',
         fields: [
           {
@@ -207,10 +242,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
       },
       {
         kind: 'OBJECT',
@@ -364,6 +395,46 @@ export default {
             name: 'OperationError',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'BucketAccessCounts',
+        fields: [
+          {
+            name: 'byExt',
+            type: {
+              kind: 'LIST',
+              ofType: {
+                kind: 'NON_NULL',
+                ofType: {
+                  kind: 'OBJECT',
+                  name: 'AccessCountsGroup',
+                  ofType: null,
+                },
+              },
+            },
+            args: [
+              {
+                name: 'groups',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'combined',
+            type: {
+              kind: 'OBJECT',
+              name: 'AccessCounts',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'UNION',
@@ -4187,6 +4258,81 @@ export default {
               },
             },
             args: [],
+          },
+          {
+            name: 'bucketAccessCounts',
+            type: {
+              kind: 'OBJECT',
+              name: 'BucketAccessCounts',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'window',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'objectAccessCounts',
+            type: {
+              kind: 'OBJECT',
+              name: 'AccessCounts',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'key',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'window',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
           },
           {
             name: 'admin',
