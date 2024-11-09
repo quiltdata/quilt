@@ -25,10 +25,11 @@ import * as SVG from 'utils/SVG'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
-import * as Gallery from './Gallery'
-import * as Summarize from './Summarize'
-import * as requests from './requests'
-import BUCKET_CONFIG_QUERY from './OverviewBucketConfig.generated'
+import * as Gallery from '../Gallery'
+import * as Summarize from '../Summarize'
+import * as requests from '../requests'
+
+import BUCKET_CONFIG_QUERY from './gql/BucketConfig.generated'
 
 import bg from './Overview-bg.jpg'
 
