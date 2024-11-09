@@ -30,6 +30,7 @@ import * as Summarize from '../Summarize'
 import * as requests from '../requests'
 
 import BUCKET_CONFIG_QUERY from './gql/BucketConfig.generated'
+import BUCKET_ACCESS_COUNTS_QUERY from './gql/BucketAccessCounts.generated'
 
 import bg from './Overview-bg.jpg'
 
@@ -634,6 +635,10 @@ function Downloads({ bucket, colorPool, ...props }: DownloadsProps) {
     Ok: (data: $TSFixMe) => `data:application/json,${JSON.stringify(data)}`,
     _: () => null,
   })
+
+  const countsGql = GQL.useQuery(BUCKET_ACCESS_COUNTS_QUERY, { bucket, window })
+
+  console.log('countsGql', countsGql)
 
   if (!cfg.analyticsBucket) {
     return (
