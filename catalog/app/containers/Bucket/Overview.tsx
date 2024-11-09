@@ -18,7 +18,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data, { useData } from 'utils/Data'
-import { useQueryS } from 'utils/GraphQL'
+import * as GQL from 'utils/GraphQL'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -1063,7 +1063,7 @@ export default function Overview() {
   const { bucket } = useParams<{ bucket: string }>()
 
   const s3 = AWS.S3.use()
-  const { bucketConfig } = useQueryS(BUCKET_CONFIG_QUERY, { bucket })
+  const { bucketConfig } = GQL.useQueryS(BUCKET_CONFIG_QUERY, { bucket })
   const inStack = !!bucketConfig
   const overviewUrl = bucketConfig?.overviewUrl
   const description = bucketConfig?.description
