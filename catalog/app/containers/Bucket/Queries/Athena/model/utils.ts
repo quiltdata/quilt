@@ -3,7 +3,7 @@ export const Loading = Symbol('loading')
 export type Maybe<T> = T | null
 
 // `T` is the value
-// `undefined` is no value. It is not loaded or doesn't exist in loaded data
+// `undefined` is no data. It is not initialized
 // `Loading` is loading
 // `Error` is error
 export type Data<T> = T | undefined | typeof Loading | Error
@@ -27,7 +27,7 @@ export interface List<T> {
 
 // `T` is the value
 // `null` is no value, explicitly set by user
-// `undefined` is no value. It is not loaded or doesn't exist in loaded data
+// `undefined` is no value. It is not initialized
 // `Loading` is loading
 // `Error` is error
 export type Value<T> = Maybe<Data<T>>
