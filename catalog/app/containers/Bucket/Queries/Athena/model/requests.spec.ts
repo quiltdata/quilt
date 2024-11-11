@@ -6,7 +6,13 @@ import Log from 'utils/Logging'
 import * as Model from './utils'
 import * as requests from './requests'
 
-// TODO: Log.setLevel workaround doesn't work everywhere
+jest.mock(
+  'utils/Logging',
+  jest.fn(() => ({
+    error: jest.fn(),
+    info: jest.fn(),
+  })),
+)
 
 jest.mock(
   'constants/config',
@@ -37,11 +43,18 @@ function reqThen<I, O>(output: (x: I) => O, delay = 100) {
   }))
 }
 
-const reqTrow = jest.fn(() => ({
+const reqThrow = jest.fn(() => ({
   promise: () => {
     throw new Error()
   },
 }))
+
+const reqThrowWith = (o: unknown) =>
+  jest.fn(() => ({
+    promise: () => {
+      throw o
+    },
+  }))
 
 const batchGetQueryExecution = jest.fn()
 const getWorkGroup = jest.fn()
@@ -187,106 +200,141 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     )
 
     it('return workgroups', async () => {
-      getWorkGroup.mockImplementation(
-        reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
-          WorkGroup: {
-            Configuration: {
-              ResultConfiguration: {
-                OutputLocation: 'any',
+      await act(async () => {
+        getWorkGroup.mockImplementation(
+          reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
+            WorkGroup: {
+              Configuration: {
+                ResultConfiguration: {
+                  OutputLocation: 'any',
+                },
               },
+              State: 'ENABLED',
+              Name,
             },
-            State: 'ENABLED',
-            Name,
-          },
-        })),
-      )
-      const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-      await waitFor(() =>
-        expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] }),
-      )
-      unmount()
+          })),
+        )
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() =>
+          expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] }),
+        )
+        unmount()
+      })
     })
 
     it('return only valid workgroups', async () => {
-      getWorkGroup.mockImplementation(
-        reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
-          WorkGroup: {
-            Configuration: {
-              ResultConfiguration: {
-                OutputLocation: 'any',
+      await act(async () => {
+        getWorkGroup.mockImplementation(
+          reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(({ WorkGroup: Name }) => ({
+            WorkGroup: {
+              Configuration: {
+                ResultConfiguration: {
+                  OutputLocation: 'any',
+                },
               },
+              State: Name === 'foo' ? 'DISABLED' : 'ENABLED',
+              Name,
             },
-            State: Name === 'foo' ? 'DISABLED' : 'ENABLED',
-            Name,
-          },
-        })),
-      )
-      const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-      await waitFor(() => expect(result.current.data).toMatchObject({ list: ['bar'] }))
-      unmount()
+          })),
+        )
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => expect(result.current.data).toMatchObject({ list: ['bar'] }))
+        unmount()
+      })
     })
 
     it('handle invalid workgroup', async () => {
-      getWorkGroup.mockImplementation(
-        // @ts-expect-error
-        reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(() => ({
-          Invalid: 'foo',
-        })),
-      )
-      const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-      await waitFor(() => typeof result.current.data === 'object')
-      expect(result.current.data).toMatchObject({ list: [] })
-      unmount()
-    })
-
-    it('handle invalid list', async () => {
-      listWorkGroups.mockImplementation(
-        // @ts-expect-error
-        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => ({
-          Invalid: [{ Name: 'foo' }, { Name: 'bar' }],
-        })),
-      )
-      const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-      await waitFor(() => typeof result.current.data === 'object')
-      expect(result.current.data).toMatchObject({ list: [] })
-      unmount()
+      await act(async () => {
+        getWorkGroup.mockImplementation(
+          // @ts-expect-error
+          reqThen<A.GetWorkGroupInput, A.GetWorkGroupOutput>(() => ({
+            Invalid: 'foo',
+          })),
+        )
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(result.current.data).toMatchObject({ list: [] })
+        unmount()
+      })
     })
 
     it('handle fail in workgroup', async () => {
-      const loglevel = Log.getLevel()
-      Log.setLevel('silent')
-      getWorkGroup.mockImplementation(reqTrow)
-      const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-      await waitFor(() => typeof result.current.data === 'object')
-      expect(result.current.data).toMatchObject({ list: [] })
-      unmount()
-      Log.setLevel(loglevel)
+      await act(async () => {
+        getWorkGroup.mockImplementation(reqThrow)
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(Log.error).toBeCalledWith(
+          'Fetching "bar" workgroup failed:',
+          expect.any(Error),
+        )
+        expect(Log.error).toBeCalledWith(
+          'Fetching "foo" workgroup failed:',
+          expect.any(Error),
+        )
+        expect(result.current.data).toMatchObject({ list: [] })
+        unmount()
+      })
+    })
+
+    it('handle access denied for workgroup list', async () => {
+      await act(async () => {
+        getWorkGroup.mockImplementation(
+          reqThrowWith({
+            code: 'AccessDeniedException',
+          }),
+        )
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(Log.info).toBeCalledWith(
+          'Fetching "bar" workgroup failed: AccessDeniedException',
+        )
+        expect(Log.info).toBeCalledWith(
+          'Fetching "foo" workgroup failed: AccessDeniedException',
+        )
+        expect(result.current.data).toMatchObject({ list: [] })
+        unmount()
+      })
+    })
+
+    it('handle invalid list', async () => {
+      await act(async () => {
+        listWorkGroups.mockImplementation(
+          // @ts-expect-error
+          reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => ({
+            Invalid: [{ Name: 'foo' }, { Name: 'bar' }],
+          })),
+        )
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(result.current.data).toMatchObject({ list: [] })
+        unmount()
+      })
     })
 
     it('handle no data in list', async () => {
-      const loglevel = Log.getLevel()
-      Log.setLevel('silent')
-      listWorkGroups.mockImplementation(
-        // @ts-expect-error
-        reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => null),
-      )
-      const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
-      await waitFor(() => result.current.data instanceof Error)
-      expect(result.current.data).toBeInstanceOf(Error)
-      unmount()
-      Log.setLevel(loglevel)
+      await act(async () => {
+        listWorkGroups.mockImplementation(
+          // @ts-expect-error
+          reqThen<A.ListWorkGroupsInput, A.ListWorkGroupsOutput>(() => null),
+        )
+        const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
+        await waitFor(() => result.current.data instanceof Error)
+        expect(Log.error).toBeCalledWith(
+          new TypeError(`Cannot read properties of null (reading 'WorkGroups')`),
+        )
+        expect(result.current.data).toBeInstanceOf(TypeError)
+        unmount()
+      })
     })
 
     it('handle fail in list', async () => {
       await act(async () => {
-        const loglevel = Log.getLevel()
-        Log.setLevel('silent')
-        listWorkGroups.mockImplementation(reqTrow)
+        listWorkGroups.mockImplementation(reqThrow)
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => result.current.data instanceof Error)
+        expect(Log.error).toBeCalledWith(expect.any(Error))
         expect(result.current.data).toBeInstanceOf(Error)
         unmount()
-        Log.setLevel(loglevel)
       })
     })
   })
@@ -449,6 +497,47 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         expect(run).toMatchObject({
           id: 'foo',
         })
+        unmount()
+      })
+    })
+
+    it('return error if no execution id', async () => {
+      startQueryExecution.mockImplementation(
+        reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
+      )
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useQueryRun({
+            workgroup: 'a',
+            catalogName: 'b',
+            database: 'c',
+            queryBody: 'd',
+          }),
+        )
+        await waitFor(() => typeof result.current === 'function')
+        const run = await result.current()
+        expect(run).toBeInstanceOf(Error)
+        expect(Log.error).toBeCalledWith(new Error('No execution id'))
+        // @ts-expect-error
+        expect(run.message).toBe('No execution id')
+        unmount()
+      })
+    })
+
+    it('handle fail in request', async () => {
+      startQueryExecution.mockImplementation(reqThrow)
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useQueryRun({
+            workgroup: 'a',
+            catalogName: 'b',
+            database: 'c',
+            queryBody: 'd',
+          }),
+        )
+        await waitFor(() => typeof result.current === 'function')
+        const run = await result.current()
+        expect(run).toBeInstanceOf(Error)
         unmount()
       })
     })
