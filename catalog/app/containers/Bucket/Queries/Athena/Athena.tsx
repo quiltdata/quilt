@@ -118,8 +118,8 @@ function QueryConstructor({ className }: QueryConstructorProps) {
   return (
     <Section
       className={className}
-      title="Select query"
-      empty="There are no saved queries."
+      title="Select a query"
+      empty="No saved queries."
     >
       {(!!queries.data.list.length || Model.isError(query.value)) && (
         <>

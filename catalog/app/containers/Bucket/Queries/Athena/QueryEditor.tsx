@@ -144,9 +144,9 @@ function FormConfirm({ close, data, submit }: FormConfirmProps) {
     return (
       <>
         <M.DialogContent>
-          {data === Model.NO_CATALOG_NAME && 'Catalog name '}
+          {data === Model.NO_CATALOG_NAME && 'Catalog '}
           {data === Model.NO_DATABASE && 'Database '}
-          is not set. Run query without them?
+          is not selected. Run the query without it?
         </M.DialogContent>
         <M.DialogActions>
           <M.Button onClick={close}>Close</M.Button>
