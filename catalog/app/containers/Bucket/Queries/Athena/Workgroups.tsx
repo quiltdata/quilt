@@ -8,22 +8,9 @@ import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
-import { Alert, Section } from './Components'
+import { Alert } from './Components'
 import * as Model from './model'
 import * as storage from './model/storage'
-
-const useStyles = M.makeStyles((t) => ({
-  paper: {
-    // TODO: use M.FormControl variant="filled | outlined" instead of M.Paper
-    overflow: 'hidden',
-  },
-  selectWrapper: {
-    width: '100%',
-  },
-  select: {
-    padding: t.spacing(1),
-  },
-}))
 
 const LOAD_MORE = 'load-more'
 
@@ -42,7 +29,6 @@ function WorkgroupSelect({
   value,
   workgroups,
 }: WorkgroupSelectProps) {
-  const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
@@ -66,29 +52,27 @@ function WorkgroupSelect({
   )
 
   return (
-    <M.Paper className={classes.paper}>
-      <M.FormControl className={classes.selectWrapper}>
-        <M.Select
-          classes={{ root: classes.select }}
-          disabled={disabled || !workgroups.list.length}
-          onChange={handleChange}
-          value={value || 'none'}
-        >
-          {workgroups.list.map((name) => (
-            <M.MenuItem key={name} value={name}>
-              <M.ListItemText>{name}</M.ListItemText>
-            </M.MenuItem>
-          ))}
-          {workgroups.next && (
-            <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
-              <M.ListItemText>
-                <em>Load more</em>
-              </M.ListItemText>
-            </M.MenuItem>
-          )}
-        </M.Select>
-      </M.FormControl>
-    </M.Paper>
+    <M.FormControl fullWidth>
+      <M.InputLabel>Select workgroup</M.InputLabel>
+      <M.Select
+        disabled={disabled || !workgroups.list.length}
+        onChange={handleChange}
+        value={value || 'none'}
+      >
+        {workgroups.list.map((name) => (
+          <M.MenuItem key={name} value={name}>
+            <M.ListItemText>{name}</M.ListItemText>
+          </M.MenuItem>
+        ))}
+        {workgroups.next && (
+          <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
+            <M.ListItemText>
+              <em>Load more</em>
+            </M.ListItemText>
+          </M.MenuItem>
+        )}
+      </M.Select>
+    </M.FormControl>
   )
 }
 
@@ -139,17 +123,15 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
     )
   }
 
+  if (!workgroups.data.list.length) return <WorkgroupsEmpty />
+
   return (
-    <Section title="Select workgroup" empty={<WorkgroupsEmpty />}>
-      {workgroups.data.list.length && (
-        <WorkgroupSelect
-          disabled={running}
-          bucket={bucket}
-          onLoadMore={workgroups.loadMore}
-          value={workgroup.data}
-          workgroups={workgroups.data}
-        />
-      )}
-    </Section>
+    <WorkgroupSelect
+      disabled={running}
+      bucket={bucket}
+      onLoadMore={workgroups.loadMore}
+      value={workgroup.data}
+      workgroups={workgroups.data}
+    />
   )
 }

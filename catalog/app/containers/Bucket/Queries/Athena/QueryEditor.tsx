@@ -49,7 +49,7 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   header: {
-    margin: t.spacing(0, 0, 1),
+    margin: t.spacing(2, 0, 1),
   },
 }))
 
@@ -185,7 +185,7 @@ const useFormStyles = M.makeStyles((t) => ({
   actions: {
     display: 'flex',
     justifyContent: 'space-between',
-    margin: t.spacing(2, 0),
+    margin: t.spacing(2, 0, 4),
     [t.breakpoints.up('sm')]: {
       alignItems: 'center',
     },

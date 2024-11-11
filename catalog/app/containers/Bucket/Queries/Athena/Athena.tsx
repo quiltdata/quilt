@@ -115,25 +115,25 @@ function QueryConstructor({ className }: QueryConstructorProps) {
     return <QuerySelectSkeleton className={className} />
   }
 
+  if (!queries.data.list.length && !Model.isError(query.value)) {
+    return <M.Typography className={className}>No saved queries.</M.Typography>
+  }
+
   return (
-    <Section className={className} title="Select a query" empty="No saved queries.">
-      {(!!queries.data.list.length || Model.isError(query.value)) && (
-        <>
-          {!!queries.data.list.length && (
-            <QuerySelect<Model.Query | null>
-              disabled={running}
-              onChange={query.setValue}
-              onLoadMore={queries.data.next ? queries.loadMore : undefined}
-              queries={queries.data.list}
-              value={Model.isError(query.value) ? null : query.value}
-            />
-          )}
-          {Model.isError(query.value) && (
-            <M.FormHelperText error>{query.value.message}</M.FormHelperText>
-          )}
-        </>
+    <>
+      <QuerySelect<Model.Query | null>
+        label="Select a query"
+        className={className}
+        disabled={running}
+        onChange={query.setValue}
+        onLoadMore={queries.data.next ? queries.loadMore : undefined}
+        queries={queries.data.list}
+        value={Model.isError(query.value) ? null : query.value}
+      />
+      {Model.isError(query.value) && (
+        <M.FormHelperText error>{query.value.message}</M.FormHelperText>
       )}
-    </Section>
+    </>
   )
 }
 
