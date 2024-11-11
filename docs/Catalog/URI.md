@@ -14,12 +14,11 @@ They all have a `copy` button that copies the code to the clipboard.
 
 ## Quilt+ URIs
 
-Quilt+ URIs are a way to uniquely identify a package or object in the Quilt
-catalog. They are used to reference packages and objects relative to a Quilt
-bucket.  For example:
+Quilt+ URIs are a way to uniquely identify a package or sub-package (e.g.,
+folder or entry) in the Quilt catalog, relative to an S3 bucket. For example:
 
 <!-- markdownlint-disable-next-line line-length -->
-`quilt+s3://quilt-example#package=akarve/cord19@e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b&path=CORD19.ipynb&catalog=open.quiltdata.com`
+`quilt+s3://quilt-example#package=akarve/cord19@e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b&path=CORD19.ipynb`
 
 The URI above references a specific version of the `CORD19.ipynb` notebook in
 the `akarve/cord19` package of the `quilt-example` bucket.
@@ -27,8 +26,8 @@ the `akarve/cord19` package of the `quilt-example` bucket.
 ### Catalog Usage
 
 URIs can be used to quickly navigate to a specific package or object from the
-Catalog.  If your window is wide enough, there will be a "URI" button to the
-right of the search bar.  Clicking this button will display a dialog where you
+Catalog. If your window is wide enough, there will be a "URI" button to the
+right of the search bar. Clicking this button will display a dialog where you
 can paste a URI and "Resolve" it to navigate to the package or object it
 references.
 
@@ -36,25 +35,18 @@ references.
 
 ### Syntax
 
-A Quilt+ URI most contain the following components:
+A Quilt+ URI contains the following components:
 
-- `quilt+`: The scheme of the URI. This is always `quilt+`.
-- `s3://`: The protocol of the URI. This is currently `s3://`.
-- `<bucket>`: The name of the bucket containing the package or object, e.g.
+- `quilt+<protocol>`: The scheme of the URI. This always begins with `quilt+`.
+  Currently the only supported protocol is `s3`.
+- `<bucket>`: The name of the bucket containing the package, e.g.
   `quilt-example`.
-- `#package=<package>`: A fragment for the name of the package containing the
-  object, e.g. `akarve/cord19`.
-
-In addition, it may contain the following optional components:
-
-- `<package>@<top_hash>`: The hash for this specific package, e.g.
-  `e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b`.
-- `<package>:tag`: The tag for this specific package. Currently, only the
-  `latest` tag is supported.  You may not specify both a top_hash and a tag.
-- `&path=<path>`: Fragment for the path to the object within the package, if
-  any, e.g.ß `CORD19.ipynb`.
-- `&catalog=<catalog>`: Fragment for the DNS name of catalog where this package
-  was located.
-
-Note that a given bucket may be available from zero or more catalogs,
-each of which may support different users and access controls.
+- `#package=<package_name[specifier]>`: A fragment for the name of the package,
+  e.g. `akarve/cord19`, plus an optional specifier. The specifier identifies a
+  particular revision, using either `@<top_hash>` (e.g.
+  `@e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b`) or
+  `:<tag>` (defaults to `:latest` when omitted). You may not specify both a
+  top_hash and a tag.
+- `&path=<path>`: An optional fragment after the package, specifying the path to
+  a particular subpackage (i.e., folder or entry) within the package. This is
+  always a relative path, e.g. `CORD19.ipynb` in the example.

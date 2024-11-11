@@ -1,4 +1,3 @@
-import PT from 'prop-types'
 import React from 'react'
 import * as M from '@material-ui/core'
 
@@ -8,7 +7,24 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Notification({ id, ttl, message, action, dismiss }) {
+interface NotificationProps {
+  id: string
+  ttl?: number | null
+  message: React.ReactNode
+  action: {
+    onClick: () => void
+    label: React.ReactNode
+  }
+  dismiss: (id: string) => void
+}
+
+export default function Notification({
+  id,
+  ttl,
+  message,
+  action,
+  dismiss,
+}: NotificationProps) {
   const classes = useStyles()
 
   const handleClose = React.useCallback(() => dismiss(id), [dismiss, id])
@@ -39,15 +55,4 @@ export default function Notification({ id, ttl, message, action, dismiss }) {
       }
     />
   )
-}
-
-Notification.propTypes = {
-  id: PT.string.isRequired,
-  ttl: PT.oneOf([null, PT.number.isRequired]),
-  message: PT.node.isRequired,
-  action: PT.shape({
-    label: PT.string.isRequired,
-    onClick: PT.func.isRequired,
-  }),
-  dismiss: PT.func.isRequired,
 }
