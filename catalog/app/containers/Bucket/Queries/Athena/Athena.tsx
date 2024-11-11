@@ -26,7 +26,7 @@ function SeeDocsForCreatingPackage() {
   return (
     <M.Tooltip title="You can create packages from the query results. Click to see the docs.">
       <a href="https://docs.quiltdata.com/advanced/athena" target="_blank">
-        <M.IconButton>
+        <M.IconButton size="small">
           <M.Icon>help_outline</M.Icon>
         </M.IconButton>
       </a>
@@ -291,7 +291,7 @@ const useResultsBreadcrumbsStyles = M.makeStyles({
     display: 'flex',
   },
   actions: {
-    marginLeft: 'auto',
+    margin: '-3px 0 -3px auto',
   },
   breadcrumb: {
     display: 'flex',

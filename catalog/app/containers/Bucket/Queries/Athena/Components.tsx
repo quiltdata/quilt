@@ -5,7 +5,7 @@ import * as Lab from '@material-ui/lab'
 
 const useSectionStyles = M.makeStyles((t) => ({
   header: {
-    ...t.typography.body2,
+    ...t.typography.body1,
     margin: t.spacing(0, 0, 1),
   },
 }))
