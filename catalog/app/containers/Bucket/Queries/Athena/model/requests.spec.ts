@@ -438,6 +438,30 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
   })
 
   describe('useResults', () => {
+    it('handle empty results', async () => {
+      getQueryResults.mockImplementation(
+        req<A.GetQueryResultsInput, A.GetQueryResultsOutput>({
+          ResultSet: {
+            Rows: [],
+            ResultSetMetadata: {
+              ColumnInfo: [{ Name: 'any', Type: 'some' }],
+            },
+          },
+        }),
+      )
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useResults({ id: 'any' }),
+        )
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(result.current.data).toMatchObject({
+          rows: [],
+          columns: [],
+        })
+        unmount()
+      })
+    })
+
     it('return results', async () => {
       getQueryResults.mockImplementation(
         req<A.GetQueryResultsInput, A.GetQueryResultsOutput>({

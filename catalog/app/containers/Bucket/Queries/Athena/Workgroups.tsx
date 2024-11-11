@@ -13,6 +13,10 @@ import * as Model from './model'
 import * as storage from './model/storage'
 
 const useStyles = M.makeStyles((t) => ({
+  paper: {
+    // TODO: use M.FormControl variant="filled | outlined" instead of M.Paper
+    overflow: 'hidden',
+  },
   selectWrapper: {
     width: '100%',
   },
@@ -62,7 +66,7 @@ function WorkgroupSelect({
   )
 
   return (
-    <M.Paper>
+    <M.Paper className={classes.paper}>
       <M.FormControl className={classes.selectWrapper}>
         <M.Select
           classes={{ root: classes.select }}

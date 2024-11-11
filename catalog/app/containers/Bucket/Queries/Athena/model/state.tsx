@@ -93,12 +93,14 @@ export function Provider({ preferences, children }: ProviderProps) {
   const executions = requests.useExecutions(workgroup.data, queryExecutionId)
   const results = requests.useResults(execution)
 
+  // TODO: queryRun: Model.Loading
   const running = React.useMemo(
     () =>
       !!queryExecutionId && (Model.isLoading(execution) || Model.isLoading(results.data)),
     [execution, queryExecutionId, results.data],
   )
 
+  // TODO: queryRun: null || Error('no catalog name') || Error('no database') || Error('no query body')
   const readyToRun = React.useMemo(
     () =>
       Model.isReady(execution) &&
@@ -108,6 +110,7 @@ export function Provider({ preferences, children }: ProviderProps) {
     [execution, catalogName, database, queryBody],
   )
 
+  // TODO: queryRun: counter#setState((x) => x + 1)
   const submit = requests.useQueryRun({
     workgroup: workgroup.data,
     catalogName: catalogName.value,

@@ -436,6 +436,14 @@ export function useResults(
             (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
           ) || emptyList
         const rows = [...(prev?.rows || emptyList), ...parsed]
+        if (!rows.length) {
+          setData({
+            rows: [],
+            columns: [],
+            next,
+          })
+          return
+        }
         const columns =
           ResultSet?.ResultSetMetadata?.ColumnInfo?.map(({ Name, Type }) => ({
             name: Name,
