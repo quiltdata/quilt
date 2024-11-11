@@ -675,7 +675,7 @@ async function runQuery({
 }
 
 export const NO_CATALOG_NAME = new Error('No catalog name')
-export const NO_DATABASE = new Error('No catalog name')
+export const NO_DATABASE = new Error('No database')
 
 interface QueryRunArgs {
   workgroup: Model.Data<Workgroup>
