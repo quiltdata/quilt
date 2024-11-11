@@ -91,7 +91,7 @@ function CopyButton({ queryExecution }: CopyButtonProps) {
   }, [push, queryExecution.query])
   return (
     <M.IconButton onClick={handleCopy} size="small">
-      <M.Icon>content_copy</M.Icon>
+      <M.Icon fontSize="inherit">content_copy</M.Icon>
     </M.IconButton>
   )
 }
@@ -104,10 +104,17 @@ const useFullQueryRowStyles = M.makeStyles((t) => ({
   collapsed: {
     borderBottom: 0,
   },
+  queryRow: {
+    alignItems: 'center',
+    display: 'flex',
+  },
   query: {
     maxHeight: t.spacing(30),
     maxWidth: '100%',
     overflow: 'auto',
+    padding: t.spacing(2, 3),
+    margin: 0,
+    whiteSpace: 'pre-wrap',
   },
 }))
 
@@ -121,19 +128,14 @@ function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
   return (
     <M.TableRow>
       <M.TableCell
-        padding="checkbox"
-        className={cx(classes.cell, {
-          [classes.collapsed]: !expanded,
-        })}
-      >
-        {!!expanded && <CopyButton queryExecution={queryExecution} />}
-      </M.TableCell>
-      <M.TableCell
-        colSpan={4}
+        colSpan={5}
         className={cx(classes.cell, { [classes.collapsed]: !expanded })}
       >
-        <M.Collapse in={expanded}>
-          <pre className={classes.query}>{queryExecution.query}</pre>
+        <M.Collapse in={expanded} unmountOnExit>
+          <div className={classes.queryRow}>
+            <CopyButton queryExecution={queryExecution} />
+            <pre className={classes.query}>{queryExecution.query}</pre>
+          </div>
         </M.Collapse>
       </M.TableCell>
     </M.TableRow>
@@ -208,9 +210,6 @@ const useStyles = M.makeStyles((t) => ({
   more: {
     marginLeft: 'auto',
   },
-  table: {
-    tableLayout: 'fixed',
-  },
 }))
 
 interface HistoryProps {
@@ -248,7 +247,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
 
   return (
     <M.TableContainer component={M.Paper}>
-      <M.Table size="small" className={classes.table}>
+      <M.Table size="small">
         <M.TableHead>
           <M.TableRow>
             <M.TableCell className={classes.actionCell} />
