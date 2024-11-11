@@ -683,6 +683,7 @@ interface QueryRunArgs {
   database: Model.Value<Database>
   queryBody: Model.Value<string>
 }
+
 export function useQueryRun({
   workgroup,
   catalogName,
@@ -717,6 +718,7 @@ export function useQueryRun({
               },
         })
       } catch (err) {
+        Log.error(err)
         return err instanceof Error ? err : new Error('Unknown error')
       }
     },
