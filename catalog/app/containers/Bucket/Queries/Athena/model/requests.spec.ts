@@ -291,22 +291,103 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
   })
 
-  // TODO
-  // describe('useExecutions', () => {
-  //   // listQueryExecutions
-  //   // batchGetQueryExecution
-  // })
+  describe('useExecutions', () => {
+    listQueryExecutions.mockImplementation(
+      req<A.ListQueryExecutionsInput, A.ListQueryExecutionsOutput>({
+        QueryExecutionIds: ['foo', 'bar'],
+      }),
+    )
+    it('return results', async () => {
+      batchGetQueryExecution.mockImplementation(
+        req<A.BatchGetQueryExecutionInput, A.BatchGetQueryExecutionOutput>({
+          QueryExecutions: [
+            {
+              QueryExecutionId: '$foo',
+            },
+            {
+              QueryExecutionId: '$bar',
+            },
+          ],
+          UnprocessedQueryExecutionIds: [
+            { QueryExecutionId: '$baz', ErrorMessage: 'fail' },
+          ],
+        }),
+      )
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useExecutions('any'),
+        )
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(result.current.data).toMatchObject({
+          list: [
+            { id: '$foo' },
+            { id: '$bar' },
+            { id: '$baz', error: new Error('fail') },
+          ],
+        })
+        unmount()
+      })
+    })
+  })
 
-  // TODO
-  // describe('useWaitForQueryExecution', () => {
-  //   // getQueryExecution
-  // })
+  describe('useWaitForQueryExecution', () => {
+    it('return execution', async () => {
+      getQueryExecution.mockImplementation(
+        req<A.GetQueryExecutionInput, A.GetQueryExecutionOutput>({
+          QueryExecution: { QueryExecutionId: '$foo', Status: { State: 'SUCCEEDED' } },
+        }),
+      )
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useWaitForQueryExecution('any'),
+        )
+        await waitFor(() => typeof result.current === 'object')
+        expect(result.current).toMatchObject({
+          id: '$foo',
+        })
+        unmount()
+      })
+    })
+  })
 
-  // TODO
-  // describe('useQueries', () => {
-  //   // listNamedQueries
-  //   // batchGetNamedQuery
-  // })
+  describe('useQueries', () => {
+    listNamedQueries.mockImplementation(
+      req<A.ListNamedQueriesInput, A.ListNamedQueriesOutput>({
+        NamedQueryIds: ['foo', 'bar'],
+      }),
+    )
+    it('return results', async () => {
+      batchGetNamedQuery.mockImplementation(
+        req<A.BatchGetNamedQueryInput, A.BatchGetNamedQueryOutput>({
+          NamedQueries: [
+            {
+              Database: 'any',
+              QueryString: 'SELECT * FROM *',
+              NamedQueryId: '$foo',
+              Name: 'Foo',
+            },
+            {
+              Database: 'any',
+              QueryString: 'SELECT * FROM *',
+              NamedQueryId: '$bar',
+              Name: 'Bar',
+            },
+          ],
+        }),
+      )
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() => requests.useQueries('any'))
+        await waitFor(() => typeof result.current.data === 'object')
+        expect(result.current.data).toMatchObject({
+          list: [
+            { name: 'Bar', key: '$bar', body: 'SELECT * FROM *' },
+            { name: 'Foo', key: '$foo', body: 'SELECT * FROM *' },
+          ],
+        })
+        unmount()
+      })
+    })
+  })
 
   describe('useResults', () => {
     it('return results', async () => {
@@ -347,8 +428,29 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
   })
 
-  // TODO
-  // describe('useQueryRun', () => {
-  //   // startQueryExecution
-  // })
+  describe('useQueryRun', () => {
+    it('return execution id', async () => {
+      startQueryExecution.mockImplementation(
+        reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({
+          QueryExecutionId: 'foo',
+        })),
+      )
+      await act(async () => {
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useQueryRun({
+            workgroup: 'a',
+            catalogName: 'b',
+            database: 'c',
+            queryBody: 'd',
+          }),
+        )
+        await waitFor(() => typeof result.current === 'function')
+        const run = await result.current()
+        expect(run).toMatchObject({
+          id: 'foo',
+        })
+        unmount()
+      })
+    })
+  })
 })

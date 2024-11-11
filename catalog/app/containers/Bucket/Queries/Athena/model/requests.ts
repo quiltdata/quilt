@@ -10,6 +10,7 @@ import * as storage from './storage'
 import * as Model from './utils'
 
 export interface Query {
+  // TODO: database?
   body: string
   description?: string
   key: string
@@ -17,6 +18,7 @@ export interface Query {
 }
 
 function parseNamedQuery(query: Athena.NamedQuery): Query {
+  // TODO: database: query.Database!
   return {
     body: query.QueryString,
     description: query.Description,
