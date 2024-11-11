@@ -116,11 +116,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
   }
 
   return (
-    <Section
-      className={className}
-      title="Select a query"
-      empty="No saved queries."
-    >
+    <Section className={className} title="Select a query" empty="No saved queries.">
       {(!!queries.data.list.length || Model.isError(query.value)) && (
         <>
           {!!queries.data.list.length && (
@@ -246,7 +242,7 @@ function ResultsContainer({ className }: ResultsContainerProps) {
         <Results
           rows={results.data.rows}
           columns={results.data.columns}
-          onLoadMore={results.loadMore}
+          onLoadMore={results.data.next ? results.loadMore : undefined}
         />
       ) : // eslint-disable-next-line no-nested-ternary
       execution?.error ? (
