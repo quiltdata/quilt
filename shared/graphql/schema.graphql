@@ -229,7 +229,9 @@ type AccessCountsGroup {
 }
 
 type BucketAccessCounts {
+  # XXX: should be required?
   byExt(groups: Int): [AccessCountsGroup!]
+  # XXX: should be required?
   combined: AccessCounts
 }
 

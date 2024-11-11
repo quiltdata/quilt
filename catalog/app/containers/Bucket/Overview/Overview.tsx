@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as dateFns from 'date-fns'
+import * as Eff from 'effect'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink, useParams } from 'react-router-dom'
@@ -326,10 +327,10 @@ interface DownloadsRangeProps {
   value: number
   onChange: (value: number) => void
   bucket: string
-  rawData?: string
+  data: BucketAccessCountsGQL | null
 }
 
-function DownloadsRange({ value, onChange, bucket, rawData }: DownloadsRangeProps) {
+function DownloadsRange({ value, onChange, bucket, data }: DownloadsRangeProps) {
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -353,6 +354,12 @@ function DownloadsRange({ value, onChange, bucket, rawData }: DownloadsRangeProp
 
   const { label } = ANALYTICS_WINDOW_OPTIONS.find((o) => o.value === value) || {}
 
+  const jsonData = React.useMemo(
+    // TODO: remove `__typename`s
+    () => data && `data:application/json,${JSON.stringify(data)}`,
+    [data],
+  )
+
   return (
     <>
       <M.Button variant="outlined" size="small" onClick={open}>
@@ -374,9 +381,9 @@ function DownloadsRange({ value, onChange, bucket, rawData }: DownloadsRangeProp
         <M.MenuItem
           onClick={close}
           component="a"
-          href={rawData}
+          href={jsonData || 'javascript:void(0)'}
           download={`${bucket}.downloads.json`}
-          disabled={!rawData}
+          disabled={!jsonData}
         >
           Download to file
         </M.MenuItem>
@@ -585,31 +592,35 @@ interface DownloadsProps extends M.BoxProps {
 }
 
 interface Counts {
-  date: Date
-  sum: number
-  value: number
+  total: number
+  counts: readonly {
+    date: Date
+    // TODO: compute sum
+    // sum: number
+    value: number
+  }[]
 }
 
 interface BucketAccessCounts {
-  byExt: Array<{
+  byExt: readonly {
     ext: string
-    counts: Counts[]
-  }>
-  byExtCollapsed: Array<{
+    counts: Counts
+  }[]
+  byExtCollapsed: readonly {
     ext: string
-    counts: Counts[]
-    total: number
-  }>
-  combined: {
-    counts: Counts[]
-    total: number
-  }
+    counts: Counts
+  }[]
+  combined: Counts
 }
 
 interface Cursor {
   i: number | null
   j: number
 }
+
+type BucketAccessCountsGQL = NonNullable<
+  GQL.DataForDoc<typeof BUCKET_ACCESS_COUNTS_QUERY>['bucketAccessCounts']
+>
 
 function Downloads({ bucket, colorPool, ...props }: DownloadsProps) {
   const s3 = AWS.S3.use()
@@ -624,21 +635,42 @@ function Downloads({ bucket, colorPool, ...props }: DownloadsProps) {
     const { date, ...combined } = counts.combined.counts[cursor.j]
     const byExt = counts.byExtCollapsed.map((e) => ({
       ext: e.ext,
-      ...e.counts[cursor.j],
+      ...e.counts.counts[cursor.j],
     }))
     const highlighted = cursor.i == null ? null : counts.byExtCollapsed[cursor.i]
     const firstHalf = cursor.j < counts.combined.counts.length / 2
     return { date, combined, byExt, highlighted, firstHalf }
   }
 
-  const mkRawData = AsyncResult.case({
-    Ok: (data: $TSFixMe) => `data:application/json,${JSON.stringify(data)}`,
-    _: () => null,
+  const countsGql = GQL.useQuery(
+    BUCKET_ACCESS_COUNTS_QUERY,
+    { bucket, window },
+    { pause: !cfg.analyticsBucket },
+  )
+
+  const dataGql = GQL.fold(countsGql, {
+    data: (data) => data.bucketAccessCounts,
+    fetching: () => null,
+    error: () => null,
   })
 
-  const countsGql = GQL.useQuery(BUCKET_ACCESS_COUNTS_QUERY, { bucket, window })
+  const dataO = GQL.fold(countsGql, {
+    data: ({ bucketAccessCounts: counts }) => {
+      if (!counts) return Eff.Option.none()
+      const { combined, byExtCollapsed, byExt } = counts
+      if (!combined || !byExtCollapsed || !byExt) return Eff.Option.none()
+      if (!byExtCollapsed.length) return Eff.Option.none()
+      return Eff.Option.some({ combined, byExtCollapsed, byExt })
+    },
+    fetching: () => Eff.Option.none(),
+    error: () => Eff.Option.none(),
+  })
 
-  console.log('countsGql', countsGql)
+  // console.log('countsGql', countsGql)
+
+  const countsLegacy = useData(requests.bucketAccessCounts, { s3, bucket, today, window })
+  const data = countsLegacy.result
+  console.log('countsLegacy', data)
 
   if (!cfg.analyticsBucket) {
     return (
@@ -649,101 +681,91 @@ function Downloads({ bucket, colorPool, ...props }: DownloadsProps) {
   }
 
   return (
-    // @ts-expect-error
-    <Data fetch={requests.bucketAccessCounts} params={{ s3, bucket, today, window }}>
-      {(data: $TSFixMe) => (
-        <M.Box className={classes.root} {...props} ref={ref}>
-          <div className={classes.period}>
-            <DownloadsRange
-              value={window}
-              onChange={setWindow}
-              bucket={bucket}
-              rawData={mkRawData(data)}
-            />
-          </div>
-          <div className={classes.heading}>
-            {AsyncResult.case(
-              {
-                Ok: (counts: BucketAccessCounts) => {
-                  const stats = cursorStats(counts)
-                  const hl = stats?.highlighted
-                  const ext = hl ? hl.ext || 'other' : 'total'
-                  const total = hl ? hl.total : counts.combined.total
-                  if (!counts.byExtCollapsed.length) return 'Downloads'
-                  return (
-                    <>
-                      Downloads (<span className={classes.ext}>{ext}</span>):{' '}
-                      {readableQuantity(total)}
-                    </>
-                  )
-                },
-                _: () => 'Downloads',
-              },
-              data,
-            )}
-          </div>
-          <div className={classes.chart}>
-            {AsyncResult.case(
-              {
-                Ok: (counts: BucketAccessCounts) => {
-                  if (!counts.byExtCollapsed.length) {
-                    return (
-                      <ChartSkel height={CHART_H} width={width}>
-                        <div className={classes.unavail}>No Data</div>
-                      </ChartSkel>
-                    )
-                  }
+    <M.Box className={classes.root} {...props} ref={ref}>
+      <div className={classes.period}>
+        <DownloadsRange
+          value={window}
+          onChange={setWindow}
+          bucket={bucket}
+          data={dataGql}
+        />
+      </div>
+      <div className={classes.heading}>
+        {Eff.Option.match(dataO, {
+          onSome: (counts) => {
+            const stats = cursorStats(counts)
+            const hl = stats?.highlighted
+            const ext = hl ? hl.ext || 'other' : 'total'
+            const total = hl ? hl.counts.total : counts.combined.total
+            return (
+              <>
+                Downloads (<span className={classes.ext}>{ext}</span>):{' '}
+                {readableQuantity(total)}
+              </>
+            )
+          },
+          onNone: () => 'Downloads',
+        })}
+      </div>
+      <div className={classes.chart}>
+        {Eff.Option.match(dataO, {
+          onSome: (counts) => {
+            if (!counts.byExtCollapsed.length) {
+              return (
+                <ChartSkel height={CHART_H} width={width}>
+                  <div className={classes.unavail}>No Data</div>
+                </ChartSkel>
+              )
+            }
 
-                  const stats = cursorStats(counts)
-                  return (
-                    <>
-                      {/* @ts-expect-error */}
-                      <StackedAreaChart
-                        data={counts.byExtCollapsed.map((e) =>
-                          e.counts.map((i) => Math.log(i.sum + 1)),
-                        )}
-                        onCursor={setCursor}
-                        height={CHART_H}
-                        width={width}
-                        areaFills={counts.byExtCollapsed.map((e) =>
-                          SVG.Paint.Color(colorPool.get(e.ext)),
-                        )}
-                        lineStroke={SVG.Paint.Color(M.colors.grey[500])}
-                        extendL
-                        extendR
-                        px={10}
-                      />
-                      <Transition in={!!stats && stats.firstHalf}>
-                        {() => (
-                          <StatsTip
-                            // @ts-expect-error
-                            stats={stats}
-                            colorPool={colorPool}
-                            className={cx(classes.dateStats, classes.right)}
-                          />
-                        )}
-                      </Transition>
-                      <Transition in={!!stats && !stats.firstHalf}>
-                        {() => (
-                          <StatsTip
-                            // @ts-expect-error
-                            stats={stats}
-                            colorPool={colorPool}
-                            className={cx(classes.dateStats, classes.left)}
-                          />
-                        )}
-                      </Transition>
-                    </>
-                  )
-                },
-                _: () => <ChartSkel height={22 * MAX_EXTS - 2} width={width} animate />,
-              },
-              data,
-            )}
-          </div>
-        </M.Box>
-      )}
-    </Data>
+            const stats = cursorStats(counts)
+            return (
+              <>
+                {/* @ts-expect-error */}
+                <StackedAreaChart
+                  data={counts.byExtCollapsed.map((e) =>
+                    // FIXME
+                    // e.counts.counts.map((i) => Math.log(i.sum + 1)),
+                    e.counts.counts.map(() => Math.log(10)),
+                  )}
+                  onCursor={setCursor}
+                  height={CHART_H}
+                  width={width}
+                  areaFills={counts.byExtCollapsed.map((e) =>
+                    SVG.Paint.Color(colorPool.get(e.ext)),
+                  )}
+                  lineStroke={SVG.Paint.Color(M.colors.grey[500])}
+                  extendL
+                  extendR
+                  px={10}
+                />
+                <Transition in={!!stats && stats.firstHalf}>
+                  {() => (
+                    <StatsTip
+                      // @ts-expect-error
+                      stats={stats}
+                      colorPool={colorPool}
+                      className={cx(classes.dateStats, classes.right)}
+                    />
+                  )}
+                </Transition>
+                <Transition in={!!stats && !stats.firstHalf}>
+                  {() => (
+                    <StatsTip
+                      // @ts-expect-error
+                      stats={stats}
+                      colorPool={colorPool}
+                      className={cx(classes.dateStats, classes.left)}
+                    />
+                  )}
+                </Transition>
+              </>
+            )
+          },
+          onNone: () => <ChartSkel height={22 * MAX_EXTS - 2} width={width} animate />,
+        })}
+      </div>
+    </M.Box>
   )
 }
 
