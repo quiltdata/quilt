@@ -50,15 +50,6 @@ A Quilt+ URI contains the following components:
 - `&path=<path>`: An optional fragment after the package, specifying the path to
   a particular subpackage (i.e., folder or entry) within the package. This is
   always a relative path, e.g. `CORD19.ipynb` in the example.
-
-### Optional Metadata
-
-Quilt+ URIs may use the query string for additional, user-specified metadata
-that may be consumed by other tools.  For example, the `quilt+` URI below
-specifies the `catalog` in the query string:
-
-<!-- markdownlint-disable-next-line line-length -->
-`quilt+s3://quilt-example?catalog=open.quiltdata.com#package=akarve/cord19@e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b&path=CORD19.ipynb`
-
-NOTE: URIs with query strings cannot be resolved by older versions of the
-Quilt catalog.
+- `&catalog=<catalog>`: An optional fragment specifying the DNS name of the
+  catalog that generated the URI. This is used to help clients generate the
+  human-readable URL for that package.
