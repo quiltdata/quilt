@@ -9,7 +9,6 @@ import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
 
@@ -36,42 +35,50 @@ function Version() {
   const classes = useVersionStyles()
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
-    copyToClipboard(process.env.REVISION_HASH)
+    copyToClipboard(cfg.stackVersion)
     push('Web catalog container hash has been copied to clipboard')
   }, [push])
   return (
-    <div>
-      <M.Typography
-        className={classes.revision}
-        onClick={handleCopy}
-        title="Copy product revision hash to clipboard"
-        variant="caption"
-      >
-        Revision: {process.env.REVISION_HASH.substring(0, 8)}
-      </M.Typography>
-    </div>
+    <M.Typography
+      className={classes.revision}
+      onClick={handleCopy}
+      title="Copy Platform release version to clipboard"
+      variant="caption"
+    >
+      Version: {cfg.stackVersion}
+    </M.Typography>
   )
 }
 
 const FooterLogo = () => <Logo height="29px" width="76.5px" />
 
-const NavLink = (props) => (
-  <M.Link
-    variant="button"
-    underline="none"
-    color="textPrimary"
-    component={props.to ? HashLink : undefined}
-    {...props}
-  />
+const NavLink = (props: M.LinkProps) => (
+  <M.Link variant="button" underline="none" color="textPrimary" {...props} />
 )
 
 const NavSpacer = () => <M.Box ml={{ xs: 2, sm: 3 }} />
 
-const NavIcon = ({ icon, ...props }) => (
-  <M.Box component="a" {...props}>
-    <M.Box component="img" height={18} src={icon} alt="" display="block" />
-  </M.Box>
-)
+const useNavIconStyles = M.makeStyles({
+  root: {
+    display: 'block',
+    height: '18px',
+  },
+})
+
+interface NavIconProps extends M.BoxProps {
+  href: string
+  icon: string
+  target: string
+}
+
+const NavIcon = ({ icon, ...props }: NavIconProps) => {
+  const classes = useNavIconStyles()
+  return (
+    <M.Box component="a" {...props}>
+      <img className={classes.root} src={icon} alt="" />
+    </M.Box>
+  )
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -80,7 +87,7 @@ const useStyles = M.makeStyles((t) => ({
       '0px -12px 24px 0px rgba(25, 22, 59, 0.05)',
       '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
       '0px -24px 88px 0px rgba(25, 22, 59, 0.16)',
-    ],
+    ].join(', '),
     height: 230,
     paddingTop: t.spacing(6),
     position: 'relative',
@@ -114,6 +121,9 @@ const useStyles = M.makeStyles((t) => ({
       `,
     },
   },
+  logoLink: {
+    display: 'block',
+  },
 }))
 
 export default function Footer() {
@@ -137,9 +147,9 @@ export default function Footer() {
                 <FooterLogo />
               </a>
             ) : (
-              <M.Box component={Link} to={urls.home()} display="block">
+              <Link className={classes.logoLink} to={urls.home()}>
                 <FooterLogo />
-              </M.Box>
+              </Link>
             )}
           </M.Box>
 
