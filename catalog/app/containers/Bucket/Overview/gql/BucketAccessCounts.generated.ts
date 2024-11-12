@@ -24,33 +24,29 @@ export type containers_Bucket_Overview_gql_BucketAccessCountsQuery = {
 } & {
   readonly bucketAccessCounts: Types.Maybe<
     { readonly __typename: 'BucketAccessCounts' } & {
-      readonly byExt: Types.Maybe<
-        ReadonlyArray<
-          { readonly __typename: 'AccessCountsGroup' } & Pick<
-            Types.AccessCountsGroup,
-            'ext'
-          > & {
-              readonly counts: {
-                readonly __typename: 'AccessCounts'
-              } & AccessCountsSelectionFragment
-            }
-        >
+      readonly byExt: ReadonlyArray<
+        { readonly __typename: 'AccessCountsGroup' } & Pick<
+          Types.AccessCountsGroup,
+          'ext'
+        > & {
+            readonly counts: {
+              readonly __typename: 'AccessCounts'
+            } & AccessCountsSelectionFragment
+          }
       >
-      readonly byExtCollapsed: Types.Maybe<
-        ReadonlyArray<
-          { readonly __typename: 'AccessCountsGroup' } & Pick<
-            Types.AccessCountsGroup,
-            'ext'
-          > & {
-              readonly counts: {
-                readonly __typename: 'AccessCounts'
-              } & AccessCountsSelectionFragment
-            }
-        >
+      readonly byExtCollapsed: ReadonlyArray<
+        { readonly __typename: 'AccessCountsGroup' } & Pick<
+          Types.AccessCountsGroup,
+          'ext'
+        > & {
+            readonly counts: {
+              readonly __typename: 'AccessCounts'
+            } & AccessCountsSelectionFragment
+          }
       >
-      readonly combined: Types.Maybe<
-        { readonly __typename: 'AccessCounts' } & AccessCountsSelectionFragment
-      >
+      readonly combined: {
+        readonly __typename: 'AccessCounts'
+      } & AccessCountsSelectionFragment
     }
   >
 }

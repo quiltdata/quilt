@@ -97,8 +97,8 @@ export type BrowsingSessionRefreshResult = BrowsingSession | InvalidInput | Oper
 
 export interface BucketAccessCounts {
   readonly __typename: 'BucketAccessCounts'
-  readonly byExt: Maybe<ReadonlyArray<AccessCountsGroup>>
-  readonly combined: Maybe<AccessCounts>
+  readonly byExt: ReadonlyArray<AccessCountsGroup>
+  readonly combined: AccessCounts
 }
 
 export interface BucketAccessCountsbyExtArgs {

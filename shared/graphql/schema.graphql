@@ -215,7 +215,6 @@ type User {
 type AccessCountForDate {
   date: Datetime!
   value: Int!
-  # sum: Int!  # running sum
 }
 
 type AccessCounts {
@@ -229,10 +228,8 @@ type AccessCountsGroup {
 }
 
 type BucketAccessCounts {
-  # XXX: should be required?
-  byExt(groups: Int): [AccessCountsGroup!]
-  # XXX: should be required?
-  combined: AccessCounts
+  byExt(groups: Int): [AccessCountsGroup!]!
+  combined: AccessCounts!
 }
 
 type PackageDir {

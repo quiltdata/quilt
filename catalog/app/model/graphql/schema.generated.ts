@@ -403,13 +403,16 @@ export default {
           {
             name: 'byExt',
             type: {
-              kind: 'LIST',
+              kind: 'NON_NULL',
               ofType: {
-                kind: 'NON_NULL',
+                kind: 'LIST',
                 ofType: {
-                  kind: 'OBJECT',
-                  name: 'AccessCountsGroup',
-                  ofType: null,
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'AccessCountsGroup',
+                    ofType: null,
+                  },
                 },
               },
             },
@@ -427,9 +430,12 @@ export default {
           {
             name: 'combined',
             type: {
-              kind: 'OBJECT',
-              name: 'AccessCounts',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'AccessCounts',
+                ofType: null,
+              },
             },
             args: [],
           },
