@@ -2,14 +2,13 @@ import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import Link from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
-import { trimCenter } from 'utils/string'
 
 import * as Model from './model'
 
@@ -58,25 +57,6 @@ function Date({ date }: DateProps) {
   return <span className={classes.root}>{formatted}</span>
 }
 
-interface QueryDateCompletedProps {
-  bucket: string
-  queryExecution: Model.QueryExecution
-}
-
-function QueryDateCompleted({ bucket, queryExecution }: QueryDateCompletedProps) {
-  const { urls } = NamedRoutes.use()
-  const { workgroup } = Model.use()
-  if (!Model.hasValue(workgroup)) return null
-  if (queryExecution.status !== 'SUCCEEDED') {
-    return <Date date={queryExecution.completed} />
-  }
-  return (
-    <Link to={urls.bucketAthenaExecution(bucket, workgroup.data, queryExecution.id)}>
-      <Date date={queryExecution.completed} />
-    </Link>
-  )
-}
-
 interface CopyButtonProps {
   queryExecution: Model.QueryExecution
 }
@@ -97,23 +77,18 @@ function CopyButton({ queryExecution }: CopyButtonProps) {
 }
 
 const useFullQueryRowStyles = M.makeStyles((t) => ({
-  cell: {
-    paddingBottom: 0,
-    paddingTop: 0,
-  },
-  collapsed: {
-    borderBottom: 0,
-  },
   queryRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
+    padding: t.spacing(2, 2.5),
   },
   query: {
+    margin: 0,
     maxHeight: t.spacing(30),
     maxWidth: '100%',
     overflow: 'auto',
-    padding: t.spacing(2, 3),
-    margin: 0,
+    padding: t.spacing(0, 2),
     whiteSpace: 'pre-wrap',
   },
 }))
@@ -126,57 +101,98 @@ interface FullQueryRowProps {
 function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
   const classes = useFullQueryRowStyles()
   return (
-    <M.TableRow>
-      <M.TableCell
-        colSpan={5}
-        className={cx(classes.cell, { [classes.collapsed]: !expanded })}
-      >
-        <M.Collapse in={expanded} unmountOnExit>
-          <div className={classes.queryRow}>
-            <CopyButton queryExecution={queryExecution} />
-            <pre className={classes.query}>{queryExecution.query}</pre>
-          </div>
-        </M.Collapse>
-      </M.TableCell>
-    </M.TableRow>
+    <M.Collapse in={expanded} unmountOnExit>
+      <div className={classes.queryRow}>
+        <CopyButton queryExecution={queryExecution} />
+        <pre className={classes.query}>{queryExecution.query}</pre>
+      </div>
+    </M.Collapse>
   )
 }
 
+const useRowStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'grid',
+    gridColumnGap: t.spacing(2),
+    gridTemplateColumns: '30px auto 160px 160px 160px',
+    padding: t.spacing(0, 2),
+    lineHeight: `${t.spacing(4)}px`,
+    borderBottom: `1px solid ${t.palette.divider}`,
+    whiteSpace: 'nowrap',
+  },
+}))
+
+interface RowProps {
+  className: string
+  children: React.ReactNode
+}
+
+function Row({ className, children }: RowProps) {
+  const classes = useRowStyles()
+  return <div className={cx(classes.root, className)}>{children}</div>
+}
+
+interface LinkCellProps {
+  children: React.ReactNode
+  className: string
+  to?: string
+}
+
+function LinkCell({ children, className, to }: LinkCellProps) {
+  if (to) {
+    return (
+      <RRDom.Link to={to} className={className}>
+        {children}
+      </RRDom.Link>
+    )
+  }
+  return <span className={className}>{children}</span>
+}
+
+const useExecutionStyles = M.makeStyles((t) => ({
+  hover: {
+    '&:has($link:hover)': {
+      background: t.palette.action.hover,
+    },
+  },
+  failed: {
+    color: t.palette.text.disabled,
+  },
+  link: {},
+  query: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+}))
+
 interface ExecutionProps {
-  bucket: string
+  to?: string
   queryExecution: Model.QueryExecution
 }
 
-function Execution({ bucket, queryExecution }: ExecutionProps) {
+function Execution({ to, queryExecution }: ExecutionProps) {
+  const classes = useExecutionStyles()
   const [expanded, setExpanded] = React.useState(false)
   const onToggle = React.useCallback(() => setExpanded(!expanded), [expanded])
 
-  if (queryExecution.error)
-    return (
-      <M.TableRow>
-        <M.TableCell colSpan={5}>
-          <Lab.Alert severity="warning">{queryExecution.error.message}</Lab.Alert>
-        </M.TableCell>
-      </M.TableRow>
-    )
-
   return (
     <>
-      <M.TableRow>
-        <M.TableCell padding="checkbox">
-          <ToggleButton expanded={expanded} onClick={onToggle} />
-        </M.TableCell>
-        <M.TableCell>{trimCenter(queryExecution.query || '', 50)}</M.TableCell>
-        <M.TableCell>
+      <Row className={to ? classes.hover : classes.failed}>
+        <ToggleButton expanded={expanded} onClick={onToggle} />
+        <LinkCell className={cx(classes.link, classes.query)} to={to}>
+          {queryExecution.query}
+        </LinkCell>
+        <LinkCell className={classes.link} to={to}>
           <abbr title={queryExecution.id}>{queryExecution.status || 'UNKNOWN'}</abbr>
-        </M.TableCell>
-        <M.TableCell>
+        </LinkCell>
+        <LinkCell className={classes.link} to={to}>
           <Date date={queryExecution.created} />
-        </M.TableCell>
-        <M.TableCell>
-          <QueryDateCompleted queryExecution={queryExecution} bucket={bucket} />
-        </M.TableCell>
-      </M.TableRow>
+        </LinkCell>
+        <LinkCell className={classes.link} to={to}>
+          <Date date={queryExecution.completed} />
+        </LinkCell>
+      </Row>
       {queryExecution.query && (
         <FullQueryRow expanded={expanded} queryExecution={queryExecution} />
       )}
@@ -194,18 +210,14 @@ function Empty() {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  queryCell: {
-    width: '40%',
-  },
-  actionCell: {
-    width: '24px',
-  },
   header: {
-    margin: t.spacing(0, 0, 1),
+    lineHeight: `${t.spacing(4.5)}px`,
+    fontWeight: 'bold',
   },
   footer: {
+    alignItems: 'center',
     display: 'flex',
-    padding: t.spacing(1),
+    padding: t.spacing(1, 2),
   },
   more: {
     marginLeft: 'auto',
@@ -219,6 +231,7 @@ interface HistoryProps {
 }
 
 export default function History({ bucket, executions, onLoadMore }: HistoryProps) {
+  const { urls } = NamedRoutes.use()
   const classes = useStyles()
 
   const pageSize = 10
@@ -245,53 +258,55 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
   const rowsPaginated = rowsSorted.slice(pageSize * (page - 1), pageSize * page)
   const hasPagination = rowsSorted.length > rowsPaginated.length
 
+  const { workgroup } = Model.use()
+  if (!Model.hasValue(workgroup)) return null
+
   return (
-    <M.TableContainer component={M.Paper}>
-      <M.Table size="small">
-        <M.TableHead>
-          <M.TableRow>
-            <M.TableCell className={classes.actionCell} />
-            <M.TableCell className={classes.queryCell}>Query</M.TableCell>
-            <M.TableCell>Status</M.TableCell>
-            <M.TableCell>Date created</M.TableCell>
-            <M.TableCell>Date completed</M.TableCell>
-          </M.TableRow>
-        </M.TableHead>
-        <M.TableBody>
-          {rowsPaginated.map((queryExecution) => (
+    <>
+      <M.Paper>
+        <Row className={classes.header}>
+          <div />
+          <span>Query</span>
+          <span>Status</span>
+          <span>Date created</span>
+          <span>Date completed</span>
+        </Row>
+        {rowsPaginated.map((queryExecution) =>
+          queryExecution.error ? (
+            <Lab.Alert key={queryExecution.id} severity="warning">
+              {queryExecution.error.message}
+            </Lab.Alert>
+          ) : (
             <Execution
-              bucket={bucket}
               queryExecution={queryExecution}
               key={queryExecution.id}
+              to={
+                queryExecution.status === 'SUCCEEDED'
+                  ? urls.bucketAthenaExecution(bucket, workgroup.data, queryExecution.id)
+                  : undefined
+              }
             />
-          ))}
-          {!executions.length && (
-            <M.TableRow>
-              <M.TableCell colSpan={5}>
-                <Empty />
-              </M.TableCell>
-            </M.TableRow>
-          )}
-        </M.TableBody>
-      </M.Table>
-
-      {(hasPagination || !!onLoadMore) && (
-        <div className={classes.footer}>
-          {hasPagination && (
-            <Lab.Pagination
-              count={Math.ceil(executions.length / pageSize)}
-              page={page}
-              size="small"
-              onChange={handlePagination}
-            />
-          )}
-          {onLoadMore && (
-            <M.Button className={classes.more} size="small" onClick={onLoadMore}>
-              Load more
-            </M.Button>
-          )}
-        </div>
-      )}
-    </M.TableContainer>
+          ),
+        )}
+        {!executions.length && <Empty />}
+        {(hasPagination || !!onLoadMore) && (
+          <div className={classes.footer}>
+            {hasPagination && (
+              <Lab.Pagination
+                count={Math.ceil(executions.length / pageSize)}
+                page={page}
+                size="small"
+                onChange={handlePagination}
+              />
+            )}
+            {onLoadMore && (
+              <M.Button className={classes.more} size="small" onClick={onLoadMore}>
+                Load more
+              </M.Button>
+            )}
+          </div>
+        )}
+      </M.Paper>
+    </>
   )
 }
