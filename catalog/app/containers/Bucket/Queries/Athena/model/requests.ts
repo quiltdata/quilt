@@ -634,47 +634,6 @@ export interface ExecutionContext {
   database: Database
 }
 
-interface RunQueryArgs {
-  athena: Athena
-  queryBody: string
-  workgroup: Workgroup
-  executionContext: ExecutionContext | null
-}
-
-async function runQuery({
-  athena,
-  queryBody,
-  workgroup,
-  executionContext,
-}: RunQueryArgs): Promise<QueryRun> {
-  try {
-    const options: Athena.Types.StartQueryExecutionInput = {
-      QueryString: queryBody,
-      ResultConfiguration: {
-        EncryptionConfiguration: {
-          EncryptionOption: 'SSE_S3',
-        },
-      },
-      WorkGroup: workgroup,
-    }
-    if (executionContext) {
-      options.QueryExecutionContext = {
-        Catalog: executionContext.catalogName,
-        Database: executionContext.database,
-      }
-    }
-    const { QueryExecutionId } = await athena.startQueryExecution(options).promise()
-    if (!QueryExecutionId) throw new Error('No execution id')
-    return {
-      id: QueryExecutionId,
-    }
-  } catch (e) {
-    Log.error(e)
-    throw e
-  }
-}
-
-export const NO_CATALOG_NAME = new Error('No catalog name')
 export const NO_DATABASE = new Error('No database')
 
 interface QueryRunArgs {
@@ -689,39 +648,91 @@ export function useQueryRun({
   catalogName,
   database,
   queryBody,
-}: QueryRunArgs): () => Promise<Model.Value<QueryRun>> {
+}: QueryRunArgs): [
+  Model.Value<QueryRun>,
+  (force: boolean) => Promise<Model.Value<QueryRun>>,
+] {
   const athena = AWS.Athena.use()
-  return React.useCallback(
-    async (forceDefaultExecutionContext?: boolean) => {
-      if (!athena) return new Error('No Athena')
+  // `undefined` = "is not initialized" → is not ready for run
+  // `null` = is ready but not set, because not submitted for new run
+  const [value, setValue] = React.useState<Model.Value<QueryRun>>()
+  const prepare = React.useCallback(
+    (forceDefaultExecutionContext?: boolean) => {
+      if (!Model.hasData(workgroup)) {
+        return new Error('No workgroup')
+      }
 
-      if (!Model.hasData(workgroup)) return new Error('No workgroup')
+      if (!Model.hasValue(catalogName)) {
+        return catalogName
+      }
 
-      if (!Model.hasValue(catalogName)) return catalogName
-      if (!catalogName && !forceDefaultExecutionContext) return NO_CATALOG_NAME
+      if (!Model.hasValue(database)) {
+        return database
+      }
+      if (!database && !forceDefaultExecutionContext) {
+        return NO_DATABASE
+      }
 
-      if (!Model.hasValue(database)) return database
-      if (!database && !forceDefaultExecutionContext) return NO_DATABASE
+      if (!Model.hasData(queryBody)) {
+        return queryBody
+      }
+      return { workgroup, catalogName, database, queryBody }
+    },
+    [workgroup, catalogName, database, queryBody],
+  )
+  React.useEffect(() => {
+    const init = prepare(true)
+    setValue(Model.hasData(init) ? null : undefined)
+  }, [prepare])
+  const run = React.useCallback(
+    async (forceDefaultExecutionContext: boolean) => {
+      const init = prepare(forceDefaultExecutionContext)
+      if (!Model.hasData(init)) {
+        // Error shouldn't be here, because we already checked for errors
+        // Except `NO_DATABASE`, and if there is some mistake in code
+        setValue(init)
+        return init
+      }
 
-      if (!Model.hasData(queryBody)) return queryBody
-
+      const options: Athena.Types.StartQueryExecutionInput = {
+        QueryString: init.queryBody,
+        ResultConfiguration: {
+          EncryptionConfiguration: {
+            EncryptionOption: 'SSE_S3',
+          },
+        },
+        WorkGroup: init.workgroup,
+      }
+      if (init.catalogName && init.database) {
+        options.QueryExecutionContext = {
+          Catalog: init.catalogName,
+          Database: init.database,
+        }
+      }
+      setValue(Model.Loading)
       try {
-        return await runQuery({
-          athena,
-          queryBody,
-          workgroup,
-          executionContext: forceDefaultExecutionContext
-            ? null
-            : {
-                catalogName: catalogName as string,
-                database: database as string,
-              },
-        })
-      } catch (err) {
-        Log.error(err)
-        return err instanceof Error ? err : new Error('Unknown error')
+        const d = await athena?.startQueryExecution(options).promise()
+        const { QueryExecutionId } = d || {}
+        if (!QueryExecutionId) {
+          const error = new Error('No execution id')
+          Log.error(error)
+          setValue(error)
+          return error
+        }
+        const output = { id: QueryExecutionId }
+        setValue(output)
+        return output
+      } catch (error) {
+        if (error) {
+          Log.error(error)
+          if (error instanceof Error) {
+            setValue(error)
+          }
+        }
+        return error as Error
       }
     },
-    [athena, workgroup, catalogName, database, queryBody],
+    [athena, prepare],
   )
+  return [value, run]
 }

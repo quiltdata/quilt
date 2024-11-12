@@ -105,7 +105,7 @@ interface QueryConstructorProps {
 }
 
 function QueryConstructor({ className }: QueryConstructorProps) {
-  const { query, queries, running } = Model.use()
+  const { query, queries, queryRun } = Model.use()
 
   if (Model.isError(queries.data)) {
     return <Alert className={className} error={queries.data} title="Select query" />
@@ -124,7 +124,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
       <QuerySelect<Model.Query | null>
         label="Select a query"
         className={className}
-        disabled={running}
+        disabled={Model.isLoading(queryRun)}
         onChange={query.setValue}
         onLoadMore={queries.data.next ? queries.loadMore : undefined}
         queries={queries.data.list}

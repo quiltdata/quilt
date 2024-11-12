@@ -49,13 +49,14 @@ export interface State {
    * Which is handled and then user can re-submit with `forceDefaultExecutionContext: true`
    */
   submit: (
-    forceDefaultExecutionContext?: boolean,
+    forceDefaultExecutionContext: boolean,
   ) => Promise<Model.Value<requests.QueryRun>>
-
-  /** If there are sufficient data to run the query */
-  readyToRun: boolean
-  /** If query is running */
-  running: boolean
+  /**
+   * Query run is `undefined` when there is not enough data to run the query
+   * It is `null` when it is ready to run
+   * Error when submit failed or when validation failed (e.g. no database selected)
+   */
+  queryRun: Model.Value<requests.QueryRun>
 }
 
 export const Ctx = React.createContext<State | null>(null)
@@ -93,25 +94,7 @@ export function Provider({ preferences, children }: ProviderProps) {
   const executions = requests.useExecutions(workgroup.data, queryExecutionId)
   const results = requests.useResults(execution)
 
-  // TODO: queryRun: Model.Loading
-  const running = React.useMemo(
-    () =>
-      !!queryExecutionId && (Model.isLoading(execution) || Model.isLoading(results.data)),
-    [execution, queryExecutionId, results.data],
-  )
-
-  // TODO: queryRun: null || Error('no catalog name') || Error('no database') || Error('no query body')
-  const readyToRun = React.useMemo(
-    () =>
-      Model.isReady(execution) &&
-      Model.hasValue(catalogName.value) &&
-      Model.hasValue(database.value) &&
-      Model.hasData(queryBody.value),
-    [execution, catalogName, database, queryBody],
-  )
-
-  // TODO: queryRun: counter#setState((x) => x + 1)
-  const submit = requests.useQueryRun({
+  const [queryRun, submit] = requests.useQueryRun({
     workgroup: workgroup.data,
     catalogName: catalogName.value,
     database: database.value,
@@ -136,9 +119,15 @@ export function Provider({ preferences, children }: ProviderProps) {
     workgroups,
 
     submit,
+    queryRun,
+  }
 
-    readyToRun,
-    running,
+  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.id) {
+    return (
+      <RRDom.Redirect
+        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.id)}
+      />
+    )
   }
 
   if (Model.hasData(workgroup.data) && !workgroupId) {

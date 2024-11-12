@@ -516,8 +516,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitFor(() => typeof result.current === 'function')
-        const run = await result.current()
+        await waitFor(() => Array.isArray(result.current))
+        const run = await result.current[1](false)
         expect(run).toMatchObject({
           id: 'foo',
         })
@@ -538,8 +538,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitFor(() => typeof result.current === 'function')
-        const run = await result.current()
+        await waitFor(() => Array.isArray(result.current))
+        const run = await result.current[1](false)
         expect(run).toBeInstanceOf(Error)
         expect(Log.error).toBeCalledWith(new Error('No execution id'))
         // @ts-expect-error
@@ -559,8 +559,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitFor(() => typeof result.current === 'function')
-        const run = await result.current()
+        await waitFor(() => Array.isArray(result.current))
+        const run = await result.current[1](false)
         expect(run).toBeInstanceOf(Error)
         unmount()
       })

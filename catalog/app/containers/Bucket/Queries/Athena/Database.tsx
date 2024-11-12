@@ -113,7 +113,7 @@ interface SelectCatalogNameProps {
 }
 
 function SelectCatalogName({ className }: SelectCatalogNameProps) {
-  const { catalogName, catalogNames, running } = Model.use()
+  const { catalogName, catalogNames, queryRun } = Model.use()
 
   const handleChange = React.useCallback(
     (value) => {
@@ -138,7 +138,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
     <Select
       className={className}
       data={catalogNames.data}
-      disabled={running}
+      disabled={Model.isLoading(queryRun)}
       label="Data catalog"
       onChange={handleChange}
       onLoadMore={catalogNames.loadMore}
@@ -152,7 +152,7 @@ interface SelectDatabaseProps {
 }
 
 function SelectDatabase({ className }: SelectDatabaseProps) {
-  const { catalogName, database, databases, running } = Model.use()
+  const { catalogName, database, databases, queryRun } = Model.use()
 
   const handleChange = React.useCallback(
     (value) => {
@@ -175,7 +175,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   return (
     <Select
       data={databases.data}
-      disabled={!Model.hasValue(catalogName) || running}
+      disabled={!Model.hasValue(catalogName) || Model.isLoading(queryRun)}
       label="Database"
       onChange={handleChange}
       onLoadMore={databases.loadMore}

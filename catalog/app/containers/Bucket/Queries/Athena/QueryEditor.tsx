@@ -1,6 +1,5 @@
 import * as React from 'react'
 import AceEditor from 'react-ace'
-import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -9,8 +8,6 @@ import 'ace-builds/src-noconflict/theme-eclipse'
 
 import Lock from 'components/Lock'
 import Skeleton from 'components/Skeleton'
-import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Dialogs from 'utils/GlobalDialogs'
 import StyledLink from 'utils/StyledLink'
 
@@ -55,7 +52,7 @@ const useStyles = M.makeStyles((t) => ({
 
 function EditorField() {
   const classes = useStyles()
-  const { queryBody, running } = Model.use()
+  const { queryBody, queryRun } = Model.use()
 
   if (Model.isNone(queryBody.value)) {
     return null
@@ -84,7 +81,7 @@ function EditorField() {
           value={queryBody.value || ''}
           width="100%"
         />
-        {running && <Lock />}
+        {Model.isLoading(queryRun) && <Lock />}
       </M.Paper>
       <HelperText />
     </div>
@@ -134,49 +131,29 @@ function FormSkeleton({ className }: FormSkeletonProps) {
 }
 
 interface FormConfirmProps {
-  data: Model.Value<Model.QueryRun>
   close: () => void
   submit: () => void
 }
 
-function FormConfirm({ close, data, submit }: FormConfirmProps) {
-  if (data === Model.NO_CATALOG_NAME || data === Model.NO_DATABASE) {
-    return (
-      <>
-        <M.DialogContent>
-          {data === Model.NO_CATALOG_NAME && 'Catalog '}
-          {data === Model.NO_DATABASE && 'Database '}
-          is not selected. Run the query without it?
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.Button onClick={close}>Close</M.Button>
-          <M.Button
-            onClick={() => {
-              close()
-              submit()
-            }}
-          >
-            Confirm, run without
-          </M.Button>
-        </M.DialogActions>
-      </>
-    )
-  }
-  if (Model.isError(data)) {
-    return (
-      <>
-        <M.DialogContent>Error: {data.message}</M.DialogContent>
-        <M.DialogActions>
-          <M.Button onClick={close}>Close</M.Button>
-        </M.DialogActions>
-      </>
-    )
-  }
-  if (Model.isLoading(data)) {
-    // This shouldn't happen
-    throw new Error('Unexpected loading state. Submit button should be disabled')
-  }
-  return null
+function FormConfirm({ close, submit }: FormConfirmProps) {
+  return (
+    <>
+      <M.DialogContent>
+        Database is not selected. Run the query without it?
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={close}>Close</M.Button>
+        <M.Button
+          onClick={() => {
+            close()
+            submit()
+          }}
+        >
+          Confirm, run without
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
 }
 
 export { FormSkeleton as Skeleton }
@@ -213,58 +190,32 @@ interface FormProps {
 export function Form({ className }: FormProps) {
   const classes = useFormStyles()
 
-  const { bucket, queryExecutionId, readyToRun, running, submit, workgroup } = Model.use()
-
-  const { push: notify } = Notifications.use()
-  const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
-  const goToExecution = React.useCallback(
-    (id: string) => {
-      if (queryExecutionId === id) {
-        notify('Query execution results remain unchanged')
-      } else {
-        history.push(urls.bucketAthenaExecution(bucket, workgroup.data, id))
-      }
-    },
-    [bucket, history, queryExecutionId, notify, urls, workgroup],
-  )
+  const { submit, queryRun } = Model.use()
 
   const openDialog = Dialogs.use()
-  const submitWithDefaults = React.useCallback(async () => {
-    const data = await submit(true)
-    if (!Model.hasData(data)) {
-      return openDialog(({ close }) => (
-        <FormConfirm
-          data={data}
-          close={close}
-          submit={() => {
-            throw new Error('Unexpected state')
-          }}
-        />
-      ))
-    }
-    goToExecution(data.id)
-  }, [goToExecution, openDialog, submit])
   const handleSubmit = React.useCallback(async () => {
-    const data = await submit()
-    if (!Model.hasData(data)) {
-      return openDialog(({ close }) => (
-        <FormConfirm data={data} close={close} submit={() => submitWithDefaults()} />
-      ))
+    const output = await submit(false)
+    if (output === Model.NO_DATABASE) {
+      openDialog(({ close }) => <FormConfirm close={close} submit={() => submit(true)} />)
     }
-    goToExecution(data.id)
-  }, [goToExecution, openDialog, submit, submitWithDefaults])
+  }, [openDialog, submit])
 
   return (
     <div className={className}>
       <EditorField />
+
+      {Model.isError(queryRun) && (
+        <Lab.Alert className={classes.error} severity="error">
+          {queryRun.message}
+        </Lab.Alert>
+      )}
 
       <div className={classes.actions}>
         <Database className={classes.database} />
         <M.Button
           variant="contained"
           color="primary"
-          disabled={!readyToRun || running}
+          disabled={!Model.isReady(queryRun)}
           onClick={handleSubmit}
         >
           Run query

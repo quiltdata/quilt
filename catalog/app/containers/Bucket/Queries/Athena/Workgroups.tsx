@@ -110,7 +110,7 @@ interface AthenaWorkgroupsProps {
 }
 
 export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
-  const { running, workgroup, workgroups } = Model.use()
+  const { queryRun, workgroup, workgroups } = Model.use()
 
   if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
   if (Model.isError(workgroup.data)) return <WorkgroupsEmpty error={workgroup.data} />
@@ -127,7 +127,7 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
 
   return (
     <WorkgroupSelect
-      disabled={running}
+      disabled={Model.isLoading(queryRun)}
       bucket={bucket}
       onLoadMore={workgroups.loadMore}
       value={workgroup.data}
