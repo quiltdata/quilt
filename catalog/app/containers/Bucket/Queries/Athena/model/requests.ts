@@ -550,11 +550,15 @@ export function useQueryBody(
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>()
   React.useEffect(() => {
-    setValue(() => {
+    if (!Model.isReady(query)) {
+      setValue(query)
+      return
+    }
+    setValue((v) => {
       if (Model.isError(query)) return null
       if (Model.hasData(query)) return query.body
       if (Model.hasData(execution) && execution.query) return execution.query
-      return query
+      return v
     })
   }, [execution, query])
   const handleValue = React.useCallback(

@@ -57,54 +57,64 @@ function Date({ date }: DateProps) {
   return <span className={classes.root}>{formatted}</span>
 }
 
-interface CopyButtonProps {
-  queryExecution: Model.QueryExecution
-}
-
-function CopyButton({ queryExecution }: CopyButtonProps) {
-  const { push } = Notifications.use()
-  const handleCopy = React.useCallback(() => {
-    if (queryExecution.query) {
-      copyToClipboard(queryExecution.query)
-      push('Query has been copied to clipboard')
-    }
-  }, [push, queryExecution.query])
-  return (
-    <M.IconButton onClick={handleCopy} size="small">
-      <M.Icon fontSize="inherit">content_copy</M.Icon>
-    </M.IconButton>
-  )
-}
-
 const useFullQueryRowStyles = M.makeStyles((t) => ({
-  queryRow: {
-    alignItems: 'flex-start',
+  root: {
     borderBottom: `1px solid ${t.palette.divider}`,
-    display: 'flex',
-    padding: t.spacing(2, 2.5),
+    padding: t.spacing(2, 7.5),
   },
   query: {
-    margin: 0,
     maxHeight: t.spacing(30),
     maxWidth: '100%',
     overflow: 'auto',
-    padding: t.spacing(0, 2),
+    margin: t.spacing(0, 0, 2),
     whiteSpace: 'pre-wrap',
+  },
+  button: {
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
   },
 }))
 
 interface FullQueryRowProps {
   expanded: boolean
-  queryExecution: Model.QueryExecution
+  query: string
 }
 
-function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
+function FullQueryRow({ expanded, query }: FullQueryRowProps) {
+  const { push } = Notifications.use()
+  const { queryBody } = Model.use()
   const classes = useFullQueryRowStyles()
+  const handleInsert = React.useCallback(() => {
+    queryBody.setValue(query)
+    push('Query has been pasted into editor')
+  }, [push, queryBody, query])
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(query)
+    push('Query has been copied to clipboard')
+  }, [push, query])
   return (
     <M.Collapse in={expanded} unmountOnExit>
-      <div className={classes.queryRow}>
-        <CopyButton queryExecution={queryExecution} />
-        <pre className={classes.query}>{queryExecution.query}</pre>
+      <div className={classes.root}>
+        <pre className={classes.query}>{query}</pre>
+        <M.Button
+          className={classes.button}
+          onClick={handleCopy}
+          size="small"
+          startIcon={<M.Icon fontSize="inherit">content_copy</M.Icon>}
+          variant="outlined"
+        >
+          Copy
+        </M.Button>
+        <M.Button
+          className={classes.button}
+          onClick={handleInsert}
+          size="small"
+          startIcon={<M.Icon fontSize="inherit">replay</M.Icon>}
+          variant="outlined"
+        >
+          Paste into query editor
+        </M.Button>
       </div>
     </M.Collapse>
   )
@@ -194,7 +204,7 @@ function Execution({ to, queryExecution }: ExecutionProps) {
         </LinkCell>
       </Row>
       {queryExecution.query && (
-        <FullQueryRow expanded={expanded} queryExecution={queryExecution} />
+        <FullQueryRow expanded={expanded} query={queryExecution.query} />
       )}
     </>
   )
