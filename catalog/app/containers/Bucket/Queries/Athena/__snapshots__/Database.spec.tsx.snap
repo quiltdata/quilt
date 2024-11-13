@@ -244,7 +244,7 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when data f
       className="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         disabled={false}
         onBlur={[Function]}
         onClick={[Function]}
@@ -299,7 +299,7 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when data f
       className="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         disabled={false}
         onBlur={[Function]}
         onClick={[Function]}
@@ -361,7 +361,7 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when values
       className="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         disabled={false}
         onBlur={[Function]}
         onClick={[Function]}
@@ -413,7 +413,7 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when values
       className="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
         disabled={false}
         onBlur={[Function]}
         onClick={[Function]}
