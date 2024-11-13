@@ -19,7 +19,7 @@ jest.mock(
   jest.fn(() => ({})),
 )
 
-const getStorageKey = jest.fn((): string => 'value-from-storage')
+const getStorageKey = jest.fn((): string => '')
 jest.mock('utils/storage', () => () => ({
   get: jest.fn(() => getStorageKey()),
 }))
@@ -460,7 +460,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('select initial db from local storage', async () => {
-      getStorageKey.mockImplementation(() => 'bar')
+      getStorageKey.mockImplementationOnce(() => 'bar')
       const { result, rerender, waitForNextUpdate, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
@@ -851,6 +851,349 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         expect(run).toBeInstanceOf(Error)
         unmount()
       })
+    })
+  })
+
+  describe('useWorkgroup', () => {
+    function useWrapper(props: Parameters<typeof requests.useWorkgroup>) {
+      return requests.useWorkgroup(...props)
+    }
+
+    it('select requested workgroup if it exists', async () => {
+      await act(async () => {
+        const workgroups = {
+          data: { list: ['foo', 'bar'] },
+          loadMore: jest.fn(),
+        }
+        const { result, waitFor } = renderHook(() =>
+          useWrapper([workgroups, 'bar', undefined]),
+        )
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('bar')
+      })
+    })
+
+    it('select initial workgroup from storage if valid', async () => {
+      const storageMock = getStorageKey.getMockImplementation()
+      getStorageKey.mockImplementation(() => 'bar')
+      const workgroups = {
+        data: { list: ['foo', 'bar'] },
+        loadMore: jest.fn(),
+      }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, undefined, undefined]),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('bar')
+      })
+      getStorageKey.mockImplementation(storageMock)
+      unmount()
+    })
+
+    it('select default workgroup from preferences if valid', async () => {
+      const workgroups = {
+        data: { list: ['foo', 'bar'] },
+        loadMore: jest.fn(),
+      }
+      const preferences = { defaultWorkgroup: 'bar' }
+
+      const { result, waitFor, unmount } = renderHook(() =>
+        useWrapper([workgroups, undefined, preferences]),
+      )
+
+      await act(async () => {
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('bar')
+      })
+      unmount()
+    })
+
+    it('select the first available workgroup if no requested or default', async () => {
+      await act(async () => {
+        const workgroups = {
+          data: { list: ['foo', 'bar', 'baz'] },
+          loadMore: jest.fn(),
+        }
+
+        const { result, waitFor } = renderHook(() =>
+          useWrapper([workgroups, undefined, undefined]),
+        )
+
+        await waitFor(() => typeof result.current.data === 'string')
+        expect(result.current.data).toBe('foo')
+      })
+    })
+
+    it('return error if no workgroups are available', async () => {
+      await act(async () => {
+        const workgroups = {
+          data: { list: [] },
+          loadMore: jest.fn(),
+        }
+
+        const { result, waitFor } = renderHook(() =>
+          useWrapper([workgroups, undefined, undefined]),
+        )
+
+        await waitFor(() => result.current.data instanceof Error)
+        if (Model.isError(result.current.data)) {
+          expect(result.current.data.message).toBe('Workgroup not found')
+        } else {
+          throw new Error('Not an error')
+        }
+      })
+    })
+
+    it('wait for workgroups', async () => {
+      const workgroups = {
+        data: undefined,
+        loadMore: jest.fn(),
+      }
+
+      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useWorkgroup>) => useWrapper(x),
+        { initialProps: [workgroups, undefined, undefined] },
+      )
+      expect(result.current.data).toBeUndefined()
+
+      await act(async () => {
+        rerender()
+        await waitForNextUpdate()
+      })
+      expect(result.current.data).toBeUndefined()
+      unmount()
+    })
+  })
+
+  describe('useQuery', () => {
+    function useWrapper(props: Parameters<typeof requests.useQuery>) {
+      return requests.useQuery(...props)
+    }
+
+    it('sets query to the one matching the execution query', () => {
+      const queries = {
+        list: [
+          { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
+          { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+        ],
+      }
+      const execution = { query: 'SELECT * FROM bar' }
+      const { result } = renderHook(() => useWrapper([queries, execution]))
+
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value.body).toBe('SELECT * FROM bar')
+      } else {
+        throw new Error('No data')
+      }
+    })
+
+    it('unsets query if no matching execution query', () => {
+      const queries = {
+        list: [
+          { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
+          { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+        ],
+      }
+      const execution = { query: 'SELECT * FROM baz' }
+      const { result } = renderHook(() => useWrapper([queries, execution]))
+
+      if (Model.hasValue(result.current.value)) {
+        expect(result.current.value).toBe(null)
+      } else {
+        throw new Error('No data')
+      }
+    })
+
+    it('sets query to the first one if no execution query is set', () => {
+      const queries = {
+        list: [
+          { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
+          { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+        ],
+      }
+      const execution = {}
+      const { result } = renderHook(() => useWrapper([queries, execution]))
+
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value.body).toBe('SELECT * FROM foo')
+      } else {
+        throw new Error('No data')
+      }
+    })
+
+    it('sets query to null if no queries are available', () => {
+      const queries = { list: [] }
+      const execution = {}
+      const { result } = renderHook(() => useWrapper([queries, execution]))
+
+      if (Model.hasValue(result.current.value)) {
+        expect(result.current.value).toBeNull()
+      } else {
+        throw new Error('No data')
+      }
+    })
+
+    it('does not change query if a valid query is already selected', async () => {
+      const queries = {
+        list: [
+          { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
+          { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+        ],
+      }
+      const execution = {
+        query: 'SELECT * FROM bar',
+      }
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (props: Parameters<typeof requests.useQuery>) => useWrapper(props),
+        {
+          initialProps: [queries, execution],
+        },
+      )
+
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value.body).toBe('SELECT * FROM bar')
+      } else {
+        throw new Error('No data')
+      }
+      await act(async () => {
+        rerender([
+          {
+            list: [
+              { key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' },
+              { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
+              { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+            ],
+          },
+          execution,
+        ])
+        await waitForNextUpdate()
+      })
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value.body).toBe('SELECT * FROM bar')
+      } else {
+        throw new Error('No data')
+      }
+    })
+  })
+
+  describe('useQueryBody', () => {
+    function useWrapper(props: Parameters<typeof requests.useQueryBody>) {
+      return requests.useQueryBody(...props)
+    }
+
+    it('sets query body from query if query is ready', () => {
+      const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
+      const execution = {}
+      const setQuery = jest.fn()
+
+      const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
+
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value).toBe('SELECT * FROM foo')
+      } else {
+        throw new Error('No data')
+      }
+    })
+
+    it('sets query body from execution if query is not ready', () => {
+      const query = null
+      const execution = { query: 'SELECT * FROM bar' }
+      const setQuery = jest.fn()
+
+      const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
+
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value).toBe('SELECT * FROM bar')
+      } else {
+        throw new Error('No data')
+      }
+    })
+
+    it('sets query body to null if query is an error', () => {
+      const query = new Error('Query failed')
+      const execution = {}
+      const setQuery = jest.fn()
+
+      const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
+
+      if (Model.hasValue(result.current.value)) {
+        expect(result.current.value).toBeNull()
+      } else {
+        throw new Error('Unexpected state')
+      }
+    })
+
+    it('does not change value if query and execution are both not ready', async () => {
+      const query = null
+      const execution = null
+      const setQuery = jest.fn()
+
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useQueryBody>) => useWrapper(x),
+        {
+          initialProps: [query, setQuery, execution],
+        },
+      )
+
+      expect(result.current.value).toBeUndefined()
+      act(() => {
+        result.current.setValue('foo')
+      })
+      expect(result.current.value).toBe('foo')
+
+      await act(async () => {
+        rerender([query, setQuery, execution])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('foo')
+    })
+
+    it('updates query body and resets query when handleValue is called', async () => {
+      const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
+      const execution = {}
+      const setQuery = jest.fn()
+
+      const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
+
+      act(() => {
+        result.current.setValue('SELECT * FROM bar')
+      })
+
+      expect(result.current.value).toBe('SELECT * FROM bar')
+      expect(setQuery).toHaveBeenCalledWith(null)
+    })
+
+    it('retains value when execution and query are initially empty but later updates', async () => {
+      const initialQuery = null
+      const initialExecution = null
+      const setQuery = jest.fn()
+
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
+        {
+          initialProps: [initialQuery, setQuery, initialExecution],
+        },
+      )
+
+      expect(result.current.value).toBeUndefined()
+
+      await act(async () => {
+        rerender([
+          { key: 'up', name: 'Updated', body: 'SELECT * FROM updated' },
+          setQuery,
+          initialExecution,
+        ])
+        await waitForNextUpdate()
+      })
+
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value).toBe('SELECT * FROM updated')
+      } else {
+        throw new Error('No data')
+      }
     })
   })
 })
