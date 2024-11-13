@@ -1,3 +1,4 @@
+import * as Eff from 'effect'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as urql from 'urql'
@@ -129,6 +130,15 @@ export const foldC =
   ) =>
   (result: ResultForData<Data>): OnData | OnFetching | OnError =>
     fold(result, opts)
+
+export const getDataOption = <Data>(
+  result: ResultForData<Data>,
+): Eff.Option.Option<Data> =>
+  fold(result, {
+    data: Eff.Option.some,
+    fetching: Eff.Option.none,
+    error: Eff.Option.none,
+  })
 
 export type DataForDoc<Doc extends urql.TypedDocumentNode<any, any>> =
   Doc extends urql.TypedDocumentNode<infer Data, any> ? Data : never
