@@ -550,8 +550,6 @@ export function useCatalogNames(): Model.DataController<Model.List<CatalogName>>
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
-// TODO: since it's required, we can use `Model.Data` instead of `Model.Value`?
-//       or make it optional alongside with database
 export function useCatalogName(
   catalogNames: Model.Data<Model.List<CatalogName>>,
   execution: Model.Value<QueryExecution>,

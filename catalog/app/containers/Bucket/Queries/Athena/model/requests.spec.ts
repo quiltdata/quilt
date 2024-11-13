@@ -19,6 +19,11 @@ jest.mock(
   jest.fn(() => ({})),
 )
 
+const getStorageKey = jest.fn((): string => 'value-from-storage')
+jest.mock('utils/storage', () => () => ({
+  get: jest.fn(() => getStorageKey()),
+}))
+
 function req<I, O>(output: O, delay = 100) {
   return jest.fn((_x: I, callback: (e: Error | null, d: O) => void) => {
     const timer = setTimeout(() => {
@@ -189,6 +194,115 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
       const { result, waitFor } = renderHook(() => requests.useDatabases('foo'))
       await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+    })
+  })
+
+  describe('useDatabase', () => {
+    // hooks doesn't support multiple arguments
+    // https://github.com/testing-library/react-testing-library/issues/1350
+    function useWrapper(props: Parameters<typeof requests.useDatabase>) {
+      return requests.useDatabase(...props)
+    }
+    it.skip('wait for databases', async () => {
+      const { result, rerender, unmount, waitFor } = renderHook(
+        (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
+        { initialProps: [undefined, null] },
+      )
+      await act(async () => {
+        const error = new Error('Fail')
+        rerender([error, null])
+        await waitFor(() => result.current.value === error)
+      })
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, null])
+        await waitFor(() => typeof result.current.value === 'string')
+        expect(result.current.value).toBe('foo')
+      })
+      unmount()
+    })
+
+    it('switch database when execution query loaded', async () => {
+      const { result, rerender, unmount, waitFor } = renderHook(
+        (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, undefined])
+        await waitFor(() => typeof result.current.value === 'string')
+        expect(result.current.value).toBe('foo')
+      })
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
+        await waitFor(() => result.current.value !== 'foo')
+        expect(result.current.value).toBe('bar')
+      })
+      unmount()
+    })
+
+    it('select execution db when databases loaded after execution', async () => {
+      const { result, rerender, unmount, waitFor } = renderHook(
+        (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+      await act(async () => {
+        rerender([Model.Loading, { db: 'bar' }])
+        await waitFor(() => result.current.value === Model.Loading)
+      })
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
+        await waitFor(() => typeof result.current.value === 'string')
+        expect(result.current.value).toBe('bar')
+      })
+      unmount()
+    })
+
+    it('keep selection when execution has db that doesnt exist', async () => {
+      const { result, rerender, unmount, waitFor, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, undefined])
+        await waitFor(() => typeof result.current.value === 'string')
+        expect(result.current.value).toBe('foo')
+      })
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, { db: 'baz' }])
+        await waitForNextUpdate()
+        expect(result.current.value).toBe('foo')
+      })
+      unmount()
+    })
+
+    it('select null when db doesnt exist', async () => {
+      const { result, rerender, unmount, waitFor } = renderHook(
+        (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+      await act(async () => {
+        rerender([{ list: [] }, undefined])
+        await waitFor(() => typeof result.current.value !== 'undefined')
+        expect(result.current.value).toBe(null)
+      })
+      act(() => {
+        result.current.setValue('baz')
+      })
+      expect(result.current.value).toBe('baz')
+      unmount()
+    })
+
+    it('select initial db from local storage', async () => {
+      getStorageKey.mockImplementation(() => 'bar')
+      const { result, rerender, unmount, waitFor } = renderHook(
+        (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, null])
+        await waitFor(() => typeof result.current.value === 'string')
+        expect(result.current.value).toBe('bar')
+      })
+      unmount()
     })
   })
 
