@@ -25,6 +25,8 @@ import useConst from 'utils/useConstant'
 
 import * as requests from '../requests'
 
+import { ColorPool, makeColorPool } from './ColorPool'
+
 import BUCKET_ACCESS_COUNTS_QUERY from './gql/BucketAccessCounts.generated'
 
 import bg from './Overview-bg.jpg'
@@ -59,23 +61,6 @@ const COLOR_MAP = [
   '#be7265',
   '#94ad6b',
 ]
-
-interface ColorPool {
-  get: (key: string) => string
-}
-
-function mkKeyedPool(pool: string[]): ColorPool {
-  const map: Record<string, string> = {}
-  let poolIdx = 0
-  const get = (key: string): string => {
-    if (!(key in map)) {
-      // eslint-disable-next-line no-plusplus
-      map[key] = pool[poolIdx++ % pool.length]
-    }
-    return map[key]
-  }
-  return { get }
-}
 
 const useObjectsByExtStyles = M.makeStyles((t) => ({
   root: {
@@ -955,7 +940,7 @@ export default function Header({ s3, overviewUrl, bucket, description }: HeaderP
   const classes = useStyles()
   const req = APIConnector.use()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
-  const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
+  const colorPool = useConst(() => makeColorPool(COLOR_MAP))
   const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
   const pkgCountData = useData(requests.countPackageRevisions, { req, bucket })
   const { urls } = NamedRoutes.use()
