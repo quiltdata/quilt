@@ -34,19 +34,15 @@ export interface State {
   queryBody: Model.ValueController<string>
   /** List of catalog names from Athena */
   catalogNames: Model.DataController<Model.List<requests.CatalogName>>
-  /**
-   * Catalog name selected by user, or set initially
-   * It is required to be selected to run the query. Otherwise, we can't load databases
-   */
+  /** Catalog name selected by user, or set initially */
   catalogName: Model.ValueController<requests.CatalogName>
-
-  /** Database selected by user, or set initially */
-  database: Model.ValueController<requests.Database>
   /** List of databases from Athena */
   databases: Model.DataController<Model.List<requests.Database>>
+  /** Database selected by user, or set initially */
+  database: Model.ValueController<requests.Database>
   /** List of query executions, in other words, history of executions */
   executions: Model.DataController<Model.List<requests.QueryExecution>>
-  /** */
+  /** Rows and columns of query results */
   results: Model.DataController<requests.QueryResults>
 
   /**

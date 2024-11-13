@@ -495,6 +495,37 @@ export function useDatabases(
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
+export function useDatabase(
+  databases: Model.Data<Model.List<Database>>,
+  execution: Model.Value<QueryExecution>,
+): Model.ValueController<Database> {
+  const [value, setValue] = React.useState<Model.Value<Database>>()
+  React.useEffect(() => {
+    if (!Model.hasData(databases)) {
+      setValue(databases)
+      return
+    }
+    setValue((v) => {
+      if (
+        Model.hasData(execution) &&
+        execution.db &&
+        databases.list.includes(execution.db)
+      ) {
+        return execution.db
+      }
+      if (Model.hasData(v) && databases.list.includes(v)) {
+        return v
+      }
+      const initialDatabase = storage.getDatabase()
+      if (initialDatabase && databases.list.includes(initialDatabase)) {
+        return initialDatabase
+      }
+      return databases.list[0] || null
+    })
+  }, [databases, execution])
+  return React.useMemo(() => Model.wrapValue(value, setValue), [value])
+}
+
 export function useCatalogNames(): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
@@ -517,6 +548,39 @@ export function useCatalogNames(): Model.DataController<Model.List<CatalogName>>
     return () => request?.abort()
   }, [athena, prev])
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
+}
+
+// TODO: since it's required, we can use `Model.Data` instead of `Model.Value`?
+//       or make it optional alongside with database
+export function useCatalogName(
+  catalogNames: Model.Data<Model.List<CatalogName>>,
+  execution: Model.Value<QueryExecution>,
+): Model.ValueController<CatalogName> {
+  const [value, setValue] = React.useState<Model.Value<CatalogName>>()
+  React.useEffect(() => {
+    if (!Model.hasData(catalogNames)) {
+      setValue(catalogNames)
+      return
+    }
+    setValue((v) => {
+      if (
+        Model.hasData(execution) &&
+        execution.catalog &&
+        catalogNames.list.includes(execution.catalog)
+      ) {
+        return execution.catalog
+      }
+      if (Model.hasData(v) && catalogNames.list.includes(v)) {
+        return v
+      }
+      const initialCatalogName = storage.getCatalog()
+      if (initialCatalogName && catalogNames.list.includes(initialCatalogName)) {
+        return initialCatalogName
+      }
+      return catalogNames.list[0] || null
+    })
+  }, [catalogNames, execution])
+  return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
 export function useQuery(
@@ -571,70 +635,6 @@ export function useQueryBody(
   return React.useMemo(() => Model.wrapValue(value, handleValue), [value, handleValue])
 }
 
-// TODO: since it's required, we can use `Model.Data` instead of `Model.Value`?
-//       or make it optional alongside with database
-export function useCatalogName(
-  catalogNames: Model.Data<Model.List<CatalogName>>,
-  execution: Model.Value<QueryExecution>,
-): Model.ValueController<CatalogName> {
-  const [value, setValue] = React.useState<Model.Value<CatalogName>>()
-  React.useEffect(() => {
-    if (!Model.hasData(catalogNames)) {
-      setValue(catalogNames)
-      return
-    }
-    setValue((v) => {
-      if (
-        Model.hasData(execution) &&
-        execution.catalog &&
-        catalogNames.list.includes(execution.catalog)
-      ) {
-        return execution.catalog
-      }
-      if (Model.hasData(v) && catalogNames.list.includes(v)) {
-        return v
-      }
-      const initialCatalogName = storage.getCatalog()
-      if (initialCatalogName && catalogNames.list.includes(initialCatalogName)) {
-        return initialCatalogName
-      }
-      return catalogNames.list[0] || new Error('No catalog names')
-    })
-  }, [catalogNames, execution])
-  return React.useMemo(() => Model.wrapValue(value, setValue), [value])
-}
-
-export function useDatabase(
-  databases: Model.Data<Model.List<Database>>,
-  execution: Model.Value<QueryExecution>,
-): Model.ValueController<Database> {
-  const [value, setValue] = React.useState<Model.Value<Database>>()
-  React.useEffect(() => {
-    if (!Model.hasData(databases)) {
-      setValue(databases)
-      return
-    }
-    setValue((v) => {
-      if (
-        Model.hasData(execution) &&
-        execution.db &&
-        databases.list.includes(execution.db)
-      ) {
-        return execution.db
-      }
-      if (Model.hasData(v) && databases.list.includes(v)) {
-        return v
-      }
-      const initialDatabase = storage.getDatabase()
-      if (initialDatabase && databases.list.includes(initialDatabase)) {
-        return initialDatabase
-      }
-      return databases.list[0] || new Error('No databases')
-    })
-  }, [databases, execution])
-  return React.useMemo(() => Model.wrapValue(value, setValue), [value])
-}
-
 export interface ExecutionContext {
   catalogName: CatalogName
   database: Database
@@ -676,6 +676,8 @@ export function useQueryRun({
         return database
       }
       if (!database && !forceDefaultExecutionContext) {
+        // We only check if database is selected,
+        // because if catalogName is not selected, no databases loaded and no database selected as well
         return NO_DATABASE
       }
 
