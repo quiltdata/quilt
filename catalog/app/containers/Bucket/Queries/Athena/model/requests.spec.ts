@@ -141,6 +141,132 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
   })
 
+  describe('useCatalogName', () => {
+    // hooks doesn't support multiple arguments
+    // https://github.com/testing-library/react-testing-library/issues/1350
+    function useWrapper(props: Parameters<typeof requests.useCatalogName>) {
+      return requests.useCatalogName(...props)
+    }
+
+    it('wait for catalog names list', async () => {
+      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
+        { initialProps: [undefined, null] },
+      )
+      expect(result.current.value).toBe(undefined)
+
+      const error = new Error('Fail')
+      await act(async () => {
+        rerender([error, null])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe(error)
+
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, null])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('foo')
+      unmount()
+    })
+
+    it('switch catalog when execution query loaded', async () => {
+      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, undefined])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('foo')
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, { catalog: 'bar' }])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('bar')
+      unmount()
+    })
+
+    it('select execution catalog when catalog list loaded after execution', async () => {
+      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+
+      await act(async () => {
+        rerender([Model.Loading, { catalog: 'bar' }])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe(Model.Loading)
+
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, { catalog: 'bar' }])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('bar')
+
+      unmount()
+    })
+
+    it('keep selection when execution has catalog that doesnt exist', async () => {
+      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, undefined])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('foo')
+
+      await act(async () => {
+        rerender([{ list: ['foo', 'bar'] }, { catalog: 'baz' }])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('foo')
+
+      unmount()
+    })
+
+    it('select null when catalog doesnt exist', async () => {
+      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+
+      await act(async () => {
+        rerender([{ list: [] }, undefined])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe(null)
+
+      act(() => {
+        result.current.setValue('baz')
+      })
+      expect(result.current.value).toBe('baz')
+
+      unmount()
+    })
+
+    it('select initial catalog from local storage', async () => {
+      getStorageKey.mockImplementationOnce(() => 'catalog-bar')
+      const { result, rerender, unmount, waitForNextUpdate } = renderHook(
+        (x: Parameters<typeof requests.useCatalogName>) => useWrapper(x),
+        { initialProps: [undefined, undefined] },
+      )
+
+      await act(async () => {
+        rerender([{ list: ['foo', 'catalog-bar'] }, null])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe('catalog-bar')
+
+      unmount()
+    })
+  })
+
   describe('useDatabases', () => {
     it('wait for catalogName', async () => {
       const { result, rerender, waitFor } = renderHook(
@@ -203,11 +329,12 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     function useWrapper(props: Parameters<typeof requests.useDatabase>) {
       return requests.useDatabase(...props)
     }
-    it.skip('wait for databases', async () => {
+    it('wait for databases', async () => {
       const { result, rerender, unmount, waitFor } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, null] },
       )
+      expect(result.current.value).toBe(undefined)
       await act(async () => {
         const error = new Error('Fail')
         rerender([error, null])
