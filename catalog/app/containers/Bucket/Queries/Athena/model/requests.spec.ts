@@ -73,26 +73,23 @@ const batchGetNamedQuery = jest.fn()
 const getQueryResults = jest.fn()
 const startQueryExecution = jest.fn()
 
-jest.mock(
-  'utils/AWS',
-  jest.fn(() => ({
-    Athena: {
-      use: jest.fn(() => ({
-        batchGetNamedQuery,
-        batchGetQueryExecution,
-        getQueryExecution,
-        getQueryResults,
-        getWorkGroup,
-        listDataCatalogs,
-        listDatabases,
-        listNamedQueries,
-        listQueryExecutions,
-        listWorkGroups,
-        startQueryExecution,
-      })),
-    },
-  })),
-)
+jest.mock('utils/AWS', () => ({
+  Athena: {
+    use: () => ({
+      batchGetNamedQuery,
+      batchGetQueryExecution,
+      getQueryExecution,
+      getQueryResults,
+      getWorkGroup,
+      listDataCatalogs,
+      listDatabases,
+      listNamedQueries,
+      listQueryExecutions,
+      listWorkGroups,
+      startQueryExecution,
+    }),
+  },
+}))
 
 describe('containers/Bucket/Queries/Athena/model/requests', () => {
   describe('useCatalogNames', () => {
@@ -102,21 +99,29 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
         }),
       )
-      const { result, waitFor } = renderHook(() => requests.useCatalogNames())
+      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
       expect(result.current.data).toBe(undefined)
-      await waitFor(() =>
-        expect(result.current.data).toMatchObject({ list: ['foo', 'bar'] }),
-      )
+
+      await act(async () => {
+        await waitForNextUpdate()
+      })
+      expect(result.current.data).toMatchObject({ list: ['foo', 'bar'] })
     })
+
     it('return empty list', async () => {
       listDataCatalogs.mockImplementationOnce(
         req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
           DataCatalogsSummary: [],
         }),
       )
-      const { result, waitFor } = renderHook(() => requests.useCatalogNames())
-      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
+
+      await act(async () => {
+        await waitForNextUpdate()
+      })
+      expect(result.current.data).toMatchObject({ list: [] })
     })
+
     it('return unknowns on invalid data', async () => {
       listDataCatalogs.mockImplementationOnce(
         req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
@@ -124,11 +129,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
         }),
       )
-      const { result, waitFor } = renderHook(() => requests.useCatalogNames())
-      await waitFor(() =>
-        expect(result.current.data).toMatchObject({ list: ['Unknown', 'Unknown'] }),
-      )
+      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
+
+      await act(async () => {
+        await waitForNextUpdate()
+      })
+      expect(result.current.data).toMatchObject({ list: ['Unknown', 'Unknown'] })
     })
+
     it('return empty list on invalid data', async () => {
       listDataCatalogs.mockImplementationOnce(
         req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
@@ -136,8 +144,12 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           Invalid: [],
         }),
       )
-      const { result, waitFor } = renderHook(() => requests.useCatalogNames())
-      await waitFor(() => expect(result.current.data).toMatchObject({ list: [] }))
+      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
+
+      await act(async () => {
+        await waitForNextUpdate()
+      })
+      expect(result.current.data).toMatchObject({ list: [] })
     })
   })
 
@@ -269,17 +281,24 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
   describe('useDatabases', () => {
     it('wait for catalogName', async () => {
-      const { result, rerender, waitFor } = renderHook(
+      const { result, rerender, waitForNextUpdate } = renderHook(
         (...c: Parameters<typeof requests.useDatabases>) => requests.useDatabases(...c),
         {
           initialProps: undefined,
         },
       )
-      rerender(Model.Loading)
-      await waitFor(() => result.current.data === Model.Loading)
+
+      await act(async () => {
+        rerender(Model.Loading)
+        await waitForNextUpdate()
+      })
+      expect(result.current.data).toBe(Model.Loading)
+
       const error = new Error('foo')
-      rerender(error)
-      await waitFor(() => result.current.data instanceof Error)
+      await act(async () => {
+        rerender(error)
+        await waitForNextUpdate()
+      })
       expect(result.current.data).toBe(error)
     })
 
@@ -324,111 +343,135 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
   })
 
   describe('useDatabase', () => {
-    // hooks doesn't support multiple arguments
-    // https://github.com/testing-library/react-testing-library/issues/1350
     function useWrapper(props: Parameters<typeof requests.useDatabase>) {
       return requests.useDatabase(...props)
     }
+
     it('wait for databases', async () => {
-      const { result, rerender, unmount, waitFor } = renderHook(
+      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, null] },
       )
       expect(result.current.value).toBe(undefined)
+
       await act(async () => {
-        const error = new Error('Fail')
-        rerender([error, null])
-        await waitFor(() => result.current.value === error)
+        rerender([Model.Loading, null])
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe(Model.Loading)
+
+      const error = new Error('Fail')
+      await act(async () => {
+        rerender([error, null])
+        await waitForNextUpdate()
+      })
+      expect(result.current.value).toBe(error)
+
       await act(async () => {
         rerender([{ list: ['foo', 'bar'] }, null])
-        await waitFor(() => typeof result.current.value === 'string')
-        expect(result.current.value).toBe('foo')
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe('foo')
+
       unmount()
     })
 
     it('switch database when execution query loaded', async () => {
-      const { result, rerender, unmount, waitFor } = renderHook(
+      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
+
       await act(async () => {
         rerender([{ list: ['foo', 'bar'] }, undefined])
-        await waitFor(() => typeof result.current.value === 'string')
-        expect(result.current.value).toBe('foo')
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe('foo')
+
       await act(async () => {
         rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
-        await waitFor(() => result.current.value !== 'foo')
-        expect(result.current.value).toBe('bar')
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe('bar')
+
       unmount()
     })
 
     it('select execution db when databases loaded after execution', async () => {
-      const { result, rerender, unmount, waitFor } = renderHook(
+      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
+
       await act(async () => {
         rerender([Model.Loading, { db: 'bar' }])
-        await waitFor(() => result.current.value === Model.Loading)
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe(Model.Loading)
+
       await act(async () => {
         rerender([{ list: ['foo', 'bar'] }, { db: 'bar' }])
-        await waitFor(() => typeof result.current.value === 'string')
-        expect(result.current.value).toBe('bar')
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe('bar')
+
       unmount()
     })
 
-    it('keep selection when execution has db that doesnt exist', async () => {
-      const { result, rerender, unmount, waitFor, waitForNextUpdate } = renderHook(
+    it('keep selection when execution has db that doesn’t exist', async () => {
+      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
+
       await act(async () => {
         rerender([{ list: ['foo', 'bar'] }, undefined])
-        await waitFor(() => typeof result.current.value === 'string')
-        expect(result.current.value).toBe('foo')
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe('foo')
+
       await act(async () => {
         rerender([{ list: ['foo', 'bar'] }, { db: 'baz' }])
         await waitForNextUpdate()
-        expect(result.current.value).toBe('foo')
       })
+      expect(result.current.value).toBe('foo')
+
       unmount()
     })
 
-    it('select null when db doesnt exist', async () => {
-      const { result, rerender, unmount, waitFor } = renderHook(
+    it('select null when db doesn’t exist', async () => {
+      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
+
       await act(async () => {
         rerender([{ list: [] }, undefined])
-        await waitFor(() => typeof result.current.value !== 'undefined')
-        expect(result.current.value).toBe(null)
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe(null)
+
       act(() => {
         result.current.setValue('baz')
       })
       expect(result.current.value).toBe('baz')
+
       unmount()
     })
 
     it('select initial db from local storage', async () => {
       getStorageKey.mockImplementation(() => 'bar')
-      const { result, rerender, unmount, waitFor } = renderHook(
+      const { result, rerender, waitForNextUpdate, unmount } = renderHook(
         (x: Parameters<typeof requests.useDatabase>) => useWrapper(x),
         { initialProps: [undefined, undefined] },
       )
+
       await act(async () => {
         rerender([{ list: ['foo', 'bar'] }, null])
-        await waitFor(() => typeof result.current.value === 'string')
-        expect(result.current.value).toBe('bar')
+        await waitForNextUpdate()
       })
+      expect(result.current.value).toBe('bar')
+
       unmount()
     })
   })
@@ -749,7 +792,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
+        const { result, unmount, waitForNextUpdate } = renderHook(() =>
           requests.useQueryRun({
             workgroup: 'a',
             catalogName: 'b',
@@ -757,7 +800,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitFor(() => Array.isArray(result.current))
+        await waitForNextUpdate()
         const run = await result.current[1](false)
         expect(run).toMatchObject({
           id: 'foo',
@@ -771,7 +814,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
       )
       await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
+        const { result, unmount, waitForNextUpdate } = renderHook(() =>
           requests.useQueryRun({
             workgroup: 'a',
             catalogName: 'b',
@@ -779,12 +822,15 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitFor(() => Array.isArray(result.current))
+        await waitForNextUpdate()
         const run = await result.current[1](false)
         expect(run).toBeInstanceOf(Error)
         expect(Log.error).toBeCalledWith(new Error('No execution id'))
-        // @ts-expect-error
-        expect(run.message).toBe('No execution id')
+        if (Model.isError(run)) {
+          expect(run.message).toBe('No execution id')
+        } else {
+          throw new Error('queryRun is not an error')
+        }
         unmount()
       })
     })
@@ -792,7 +838,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('handle fail in request', async () => {
       startQueryExecution.mockImplementation(reqThrow)
       await act(async () => {
-        const { result, unmount, waitFor } = renderHook(() =>
+        const { result, unmount, waitForNextUpdate } = renderHook(() =>
           requests.useQueryRun({
             workgroup: 'a',
             catalogName: 'b',
@@ -800,7 +846,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
             queryBody: 'd',
           }),
         )
-        await waitFor(() => Array.isArray(result.current))
+        await waitForNextUpdate()
         const run = await result.current[1](false)
         expect(run).toBeInstanceOf(Error)
         unmount()
