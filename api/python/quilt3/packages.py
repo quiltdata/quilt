@@ -262,7 +262,7 @@ class PackageEntry:
         elif meta is not None:
             self.set_meta(meta)
         else:
-            raise PackageException('Must specify either path or meta')
+            raise PackageException('set must specify either path or meta')
 
     def get(self):
         """
@@ -831,7 +831,7 @@ class Package:
                     subpkg.set_meta(obj['meta'])
                     continue
                 if key in subpkg._children:
-                    raise PackageException("Duplicate logical key while loading package")
+                    raise PackageException("Duplicate logical key ${key} while loading package ${subpkg}")
                 subpkg._children[key] = PackageEntry(
                     PhysicalKey.from_url(obj['physical_keys'][0]),
                     obj['size'],
@@ -890,7 +890,7 @@ class Package:
         if src.is_local():
             src_path = pathlib.Path(src.path)
             if not src_path.is_dir():
-                raise PackageException("The specified directory doesn't exist")
+                raise PackageException("The specified directory ${src_path} doesn't exist")
 
             files = src_path.rglob('*')
             ignore = src_path / '.quiltignore'
@@ -951,7 +951,7 @@ class Package:
         """
         obj = self[logical_key]
         if not isinstance(obj, PackageEntry):
-            raise ValueError("Key does not point to a PackageEntry")
+            raise ValueError("Key ${logical_key} does not point to a PackageEntry")
         return obj.get()
 
     def readme(self):
@@ -1019,7 +1019,7 @@ class Package:
         if msg is not None and not isinstance(msg, str):
             raise ValueError(
                 f"The package commit message must be a string, but the message provided is an "
-                f"instance of {type(msg)}."
+                f"instance of {type(msg)}: ${msg}."
             )
 
         self._meta.update({'message': msg})
@@ -1262,7 +1262,7 @@ class Package:
             entry = PackageEntry(write_pk, size, hash_obj=None, meta=new_meta)
 
         else:
-            raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}.")
+            raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}: ${entry}.")
 
         if meta is not None:
             entry.set_meta(meta)
@@ -1271,7 +1271,7 @@ class Package:
 
         pkg = self._ensure_subpackage(path[:-1], ensure_no_entry=True)
         if path[-1] in pkg and isinstance(pkg[path[-1]], Package):
-            raise QuiltException("Cannot overwrite directory with PackageEntry")
+            raise QuiltException(f"Cannot overwrite directory ${path[-1]} with PackageEntry")
         pkg._children[path[-1]] = entry
 
         return self
@@ -1292,7 +1292,10 @@ class Package:
         for key_fragment in path:
             if ensure_no_entry and key_fragment in pkg \
                     and isinstance(pkg[key_fragment], PackageEntry):
-                raise QuiltException("Already a PackageEntry along the path.")
+                raise QuiltException(
+                    f"Already a PackageEntry for ${key_fragment}"\
+                        + " along the path ${path}: ${pkg[key_fragment]}",
+                )
             pkg = pkg._children.setdefault(key_fragment, Package())
         return pkg
 
@@ -1453,7 +1456,7 @@ class Package:
                     raise TypeError(f'{dest!r} returned {url!r}, but str is expected')
                 pk = PhysicalKey.from_url(url)
                 if pk.is_local():
-                    raise util.URLParseError("Unexpected scheme: 'file'")
+                    raise util.URLParseError(f"Unexpected scheme: 'file' for ${pk}")
                 if pk.version_id:
                     raise ValueError(f'{dest!r} returned {url!r}, but URI must not include versionId')
                 return pk
