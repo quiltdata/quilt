@@ -499,7 +499,7 @@ def select_package_stats(bucket, manifest_key) -> Optional[dict]:
     """
     resp = lambda_.invoke(
         FunctionName=DUCKDB_SELECT_LAMBDA_ARN,
-        Payload=json.dumps({"query": q}),
+        Payload=json.dumps({"query": q, "user_agent": f"DuckDB Select {USER_AGENT_EXTRA}"}),
     )
 
     payload = resp["Payload"].read()
