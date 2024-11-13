@@ -12,36 +12,42 @@ export interface State {
   bucket: string
   queryExecutionId?: string
 
-  /** Catalog name selected by user, or set initially */
-  catalogName: Model.ValueController<requests.CatalogName>
-  /** List of catalog names from Athena */
-  catalogNames: Model.DataController<Model.List<requests.CatalogName>>
-  /** Database selected by user, or set initially */
-  database: Model.ValueController<requests.Database>
-  /** List of databases from Athena */
-  databases: Model.DataController<Model.List<requests.Database>>
   /**
    * Query execution loaded by id on the corresponding page.
    * On the index page (where there is no queryExecutionId) its value is null.
    */
   execution: Model.Value<requests.QueryExecution>
-  /** List of query executions, in other words, history of executions */
-  executions: Model.DataController<Model.List<requests.QueryExecution>>
+
+  /** List of workgroups from Athena */
+  workgroups: Model.DataController<Model.List<requests.Workgroup>>
+  /**
+   * Workgroup selected by user explicitly or from page URL, and validated that it does exist
+   * If workgroup doesn't exist, then its value is Error
+   * It can't be null
+   */
+  workgroup: Model.DataController<requests.Workgroup>
   /** List of named queries, including query body for each query */
   queries: Model.DataController<Model.List<requests.Query>>
   /** Selected named query */
   query: Model.ValueController<requests.Query>
   /** Query body, typed by user or set from selected named query or query execution */
   queryBody: Model.ValueController<string>
+  /** List of catalog names from Athena */
+  catalogNames: Model.DataController<Model.List<requests.CatalogName>>
+  /**
+   * Catalog name selected by user, or set initially
+   * It is required to be selected to run the query. Otherwise, we can't load databases
+   */
+  catalogName: Model.ValueController<requests.CatalogName>
+
+  /** Database selected by user, or set initially */
+  database: Model.ValueController<requests.Database>
+  /** List of databases from Athena */
+  databases: Model.DataController<Model.List<requests.Database>>
+  /** List of query executions, in other words, history of executions */
+  executions: Model.DataController<Model.List<requests.QueryExecution>>
   /** */
   results: Model.DataController<requests.QueryResults>
-  /**
-   * Workgroup selected by user explicitly or from page URL, and validated that it does exist
-   * If workgroup doesn't exist, then its value is Error
-   */
-  workgroup: Model.DataController<requests.Workgroup>
-  /** List of workgroups from Athena */
-  workgroups: Model.DataController<Model.List<requests.Workgroup>>
 
   /**
    * Submit query to Athena with values memoized here in state

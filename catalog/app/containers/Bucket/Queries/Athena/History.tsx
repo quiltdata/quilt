@@ -222,7 +222,7 @@ function Empty() {
 const useStyles = M.makeStyles((t) => ({
   header: {
     lineHeight: `${t.spacing(4.5)}px`,
-    fontWeight: 'bold',
+    fontWeight: 500,
   },
   footer: {
     alignItems: 'center',

@@ -571,6 +571,8 @@ export function useQueryBody(
   return React.useMemo(() => Model.wrapValue(value, handleValue), [value, handleValue])
 }
 
+// TODO: since it's required, we can use `Model.Data` instead of `Model.Value`?
+//       or make it optional alongside with database
 export function useCatalogName(
   catalogNames: Model.Data<Model.List<CatalogName>>,
   execution: Model.Value<QueryExecution>,

@@ -9,24 +9,39 @@ import * as Dialogs from 'utils/GlobalDialogs'
 import * as Model from './model'
 import * as storage from './model/storage'
 
+const useSelectErrorStyles = M.makeStyles((t) => ({
+  button: {
+    whiteSpace: 'nowrap',
+  },
+  dialog: {
+    padding: t.spacing(2),
+  },
+}))
+
 interface SelectErrorProps {
   className?: string
   error: Error
 }
 
 function SelectError({ className, error }: SelectErrorProps) {
+  const classes = useSelectErrorStyles()
   const openDialog = Dialogs.use()
   const handleClick = React.useCallback(() => {
     openDialog(() => (
-      <M.Box p={2}>
+      <div className={classes.dialog}>
         <M.Typography>{error.message}</M.Typography>
-      </M.Box>
+      </div>
     ))
-  }, [error.message, openDialog])
+  }, [classes.dialog, error.message, openDialog])
   return (
     <Lab.Alert
       action={
-        <M.Button onClick={handleClick} size="small" color="inherit">
+        <M.Button
+          className={classes.button}
+          color="inherit"
+          onClick={handleClick}
+          size="small"
+        >
           Show more
         </M.Button>
       }
@@ -191,8 +206,8 @@ const useStyles = M.makeStyles((t) => ({
   },
   field: {
     cursor: 'pointer',
+    flexBasis: '50%',
     marginRight: t.spacing(2),
-    width: '50%',
     '& input': {
       cursor: 'pointer',
     },
