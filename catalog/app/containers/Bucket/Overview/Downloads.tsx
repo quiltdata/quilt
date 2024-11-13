@@ -1,7 +1,6 @@
 import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as Eff from 'effect'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -17,14 +16,116 @@ import { ColorPool } from './ColorPool'
 
 import BUCKET_ACCESS_COUNTS_QUERY from './gql/BucketAccessCounts.generated'
 
-const skelData = R.times(
-  R.pipe(
-    () => R.times(Math.random, 30),
-    R.scan(R.add, 0),
-    R.drop(1),
-    R.map((v) => Math.log(100 * v + 1)),
-  ),
+type GQLBucketAccessCounts = NonNullable<
+  GQL.DataForDoc<typeof BUCKET_ACCESS_COUNTS_QUERY>['bucketAccessCounts']
+>
+type GQLAccessCountsGroup = GQLBucketAccessCounts['byExt'][0]
+type GQLAccessCounts = GQLBucketAccessCounts['combined']
+type GQLAccessCountForDate = GQLAccessCounts['counts'][0]
+
+interface ProcessedAccessCountForDate {
+  date: Date
+  value: number
+  sum: number
+}
+
+interface ProcessedAccessCounts {
+  total: number
+  counts: readonly ProcessedAccessCountForDate[]
+}
+
+interface ProcessedAccessCountsGroup {
+  ext: string
+  counts: ProcessedAccessCounts
+}
+
+interface ProcessedBucketAccessCounts {
+  byExt: readonly ProcessedAccessCountsGroup[]
+  byExtCollapsed: readonly ProcessedAccessCountsGroup[]
+  combined: ProcessedAccessCounts
+}
+
+const processAccessCountForDateArr = (
+  counts: readonly GQLAccessCountForDate[],
+): readonly ProcessedAccessCountForDate[] =>
+  // compute running sum
+  Eff.Array.mapAccum(counts, 0, (acc, { value, date }) => [
+    acc + value,
+    {
+      value,
+      date,
+      sum: acc + value,
+    },
+  ])[1]
+
+const processAccessCounts = (counts: GQLAccessCounts): ProcessedAccessCounts => ({
+  total: counts.total,
+  counts: processAccessCountForDateArr(counts.counts),
+})
+
+const processAccessCountsGroup = (
+  group: GQLAccessCountsGroup,
+): ProcessedAccessCountsGroup => ({
+  ext: group.ext && `.${group.ext}`,
+  counts: processAccessCounts(group.counts),
+})
+
+const processBucketAccessCounts = (
+  counts: GQLBucketAccessCounts,
+): ProcessedBucketAccessCounts => ({
+  byExt: Eff.Array.map(counts.byExt, processAccessCountsGroup),
+  byExtCollapsed: Eff.Array.map(counts.byExtCollapsed, processAccessCountsGroup),
+  combined: processAccessCounts(counts.combined),
+})
+
+interface Cursor {
+  i: number | null // ext
+  j: number // date
+}
+
+interface CursorStats {
+  date: Date
+  combined: {
+    sum: number
+    value: number
+  }
+  byExt: {
+    ext: string
+    sum: number
+    value: number
+    date: Date
+  }[]
+  highlighted: {
+    ext: string
+    counts: ProcessedAccessCounts
+  } | null
+  firstHalf: boolean
+}
+
+function getCursorStats(
+  counts: ProcessedBucketAccessCounts,
+  cursor: Cursor | null,
+): CursorStats | null {
+  if (!cursor) return null
+
+  const { date, ...combined } = counts.combined.counts[cursor.j]
+  const byExt = counts.byExtCollapsed.map((e) => ({
+    ext: e.ext,
+    ...e.counts.counts[cursor.j],
+  }))
+  const highlighted = cursor.i == null ? null : counts.byExtCollapsed[cursor.i]
+  const firstHalf = cursor.j < counts.combined.counts.length / 2
+  return { date, combined, byExt, highlighted, firstHalf }
+}
+
+const skelData = Eff.Array.makeBy(
   8,
+  Eff.flow(
+    () => Eff.Array.makeBy(30, Math.random),
+    Eff.Array.scan(0, Eff.Number.sum),
+    Eff.Array.drop(1),
+    Eff.Array.map((v) => Math.log(100 * v + 1)),
+  ),
 )
 
 const skelColors = [
@@ -32,13 +133,7 @@ const skelColors = [
   [M.colors.grey[400], M.colors.grey[200]],
 ] as const
 
-const mkPulsingGradient = ({
-  colors: [c1, c2],
-  animate = false,
-}: {
-  colors: readonly [string, string]
-  animate?: boolean
-}) =>
+const mkPulsingGradient = ([c1, c2]: readonly [string, string], animate: boolean) =>
   SVG.Paint.Server(
     <linearGradient>
       <stop offset="0%" stopColor={c2}>
@@ -70,14 +165,13 @@ function ChartSkel({
   children,
 }: ChartSkelProps) {
   const data = React.useMemo(
-    () => R.times((i) => skelData[i % skelData.length], lines),
+    () => Eff.Array.makeBy(lines, (i) => skelData[i % skelData.length]),
     [lines],
   )
   const fills = React.useMemo(
     () =>
-      R.times(
-        (i) => mkPulsingGradient({ colors: skelColors[i % skelColors.length], animate }),
-        lines,
+      Eff.Array.makeBy(lines, (i) =>
+        mkPulsingGradient(skelColors[i % skelColors.length], animate),
       ),
     [lines, animate],
   )
@@ -110,7 +204,7 @@ interface DownloadsRangeProps {
   value: number
   onChange: (value: number) => void
   bucket: string
-  data: BucketAccessCountsGQL | null
+  data: Eff.Option.Option<ProcessedBucketAccessCounts>
 }
 
 function DownloadsRange({ value, onChange, bucket, data }: DownloadsRangeProps) {
@@ -138,8 +232,11 @@ function DownloadsRange({ value, onChange, bucket, data }: DownloadsRangeProps) 
   const { label } = ANALYTICS_WINDOW_OPTIONS.find((o) => o.value === value) || {}
 
   const jsonData = React.useMemo(
-    // TODO: remove `__typename`s
-    () => data && `data:application/json,${JSON.stringify(data)}`,
+    () =>
+      Eff.Option.match(data, {
+        onNone: () => null,
+        onSome: (d) => `data:application/json,${JSON.stringify(d)}`,
+      }),
     [data],
   )
 
@@ -220,38 +317,15 @@ const useStatsTipStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface CursorStats {
-  date: Date
-  combined: {
-    sum: number
-    value: number
-  }
-  byExt: {
-    ext: string
-    sum: number
-    value: number
-    date: Date
-  }[]
-  highlighted: {
-    ext: string
-    counts: AccessCountsWithSum
-  } | null
-  firstHalf: boolean
-}
-
 interface StatsTipProps {
-  stats: CursorStats
+  stats: CursorStats | null
   colorPool: ColorPool
   className?: string
 }
 
-function assertNonNull<T extends unknown>(x: T): NonNullable<T> {
-  if (x == null) throw new Error('Unexpected null')
-  return x as NonNullable<T>
-}
-
 function StatsTip({ stats, colorPool, className, ...props }: StatsTipProps) {
   const classes = useStatsTipStyles()
+  if (!stats) return null
   return (
     <M.Paper className={cx(classes.root, className)} elevation={8} {...props}>
       <div className={classes.head}>
@@ -284,17 +358,18 @@ function StatsTip({ stats, colorPool, className, ...props }: StatsTipProps) {
 }
 
 interface TransitionProps {
-  children: () => JSX.Element
-  in?: boolean
+  children: JSX.Element
+  in: boolean
 }
 
-const Transition = ({ children, ...props }: TransitionProps) => {
+function Transition({ children, ...props }: TransitionProps) {
   const contentsRef = React.useRef<JSX.Element | null>(null)
-  if (props.in) contentsRef.current = children()
+  // when `in` is false, we want to keep the last rendered contents
+  if (props.in) contentsRef.current = children
   return contentsRef.current && <M.Grow {...props}>{contentsRef.current}</M.Grow>
 }
 
-const useDownloadsStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
     gridRowGap: t.spacing(0.25),
@@ -376,74 +451,6 @@ const useDownloadsStyles = M.makeStyles((t) => ({
   },
 }))
 
-type BucketAccessCountsGQL = NonNullable<
-  GQL.DataForDoc<typeof BUCKET_ACCESS_COUNTS_QUERY>['bucketAccessCounts']
->
-
-type AccessCountsGQL = BucketAccessCountsGQL['combined']
-type AccessCountForDate = Omit<AccessCountsGQL['counts'][0], '__typename'>
-
-interface AccessCountForDateWithSum extends Omit<AccessCountForDate, '__typename'> {
-  sum: number
-}
-
-interface AccessCountsWithSum {
-  total: number
-  counts: readonly AccessCountForDateWithSum[]
-}
-
-// interface Counts {
-//   total: number
-//   counts: readonly AccessCountForDate[]
-// }
-
-// interface CountsWithSum extends Counts {
-//   counts: readonly AccessCountForDateWithSum[]
-// }
-
-// interface BucketAccessCounts {
-//   byExt: readonly {
-//     ext: string
-//     counts: Counts
-//   }[]
-//   byExtCollapsed: readonly {
-//     ext: string
-//     counts: Counts
-//   }[]
-//   combined: Counts
-// }
-
-// interface BucketAccessCountsWithSum {
-//   byExt: readonly {
-//     ext: string
-//     counts: CountsWithSum
-//   }[]
-//   byExtCollapsed: readonly {
-//     ext: string
-//     counts: CountsWithSum
-//   }[]
-//   combined: CountsWithSum
-// }
-
-const computeSum = (
-  counts: readonly AccessCountForDate[],
-): readonly AccessCountForDateWithSum[] =>
-  Eff.Array.mapAccum(counts, 0, (acc, { value, date }) => [
-    acc + value,
-    // const sum = acc.total + value
-    {
-      value,
-      date,
-      sum: acc + value,
-    },
-  ])[1]
-
-interface Cursor {
-  // XXX: rename to row/col? date/band?
-  i: number | null
-  j: number
-}
-
 interface DownloadsProps extends M.BoxProps {
   bucket: string
   colorPool: ColorPool
@@ -456,69 +463,40 @@ export default function Downloads({
   chartHeight,
   ...props
 }: DownloadsProps) {
-  const classes = useDownloadsStyles()
+  const classes = useStyles()
   const ref = React.useRef(null)
   const { width } = useComponentSize(ref)
   const [window, setWindow] = React.useState(ANALYTICS_WINDOW_OPTIONS[0].value)
 
   const [cursor, setCursor] = React.useState<Cursor | null>(null)
 
-  const countsGql = GQL.useQuery(
+  const result = GQL.useQuery(
     BUCKET_ACCESS_COUNTS_QUERY,
     { bucket, window },
     { pause: !cfg.analyticsBucket },
   )
 
-  const dataGql = GQL.fold(countsGql, {
-    data: (d) => d.bucketAccessCounts,
-    fetching: () => null,
-    error: () => null,
-  })
-
-  const dataO = React.useMemo(
+  const processed = React.useMemo(
     () =>
       Eff.pipe(
-        countsGql,
+        result,
         GQL.getDataOption,
         Eff.Option.flatMap((d) => Eff.Option.fromNullable(d.bucketAccessCounts)),
-        // TODO: clean typename
-        Eff.Option.map(({ byExt, byExtCollapsed, combined }) => ({
-          byExt: Eff.Array.map(byExt, (e) =>
-            Eff.Struct.evolve(e, {
-              counts: (c) => Eff.Struct.evolve(c, { counts: computeSum }),
-            }),
-          ),
-          byExtCollapsed: Eff.Array.map(byExtCollapsed, (e) =>
-            Eff.Struct.evolve(e, {
-              counts: (c) => Eff.Struct.evolve(c, { counts: computeSum }),
-            }),
-          ),
-          combined: Eff.Struct.evolve(combined, { counts: computeSum }),
-        })),
+        Eff.Option.map(processBucketAccessCounts),
       ),
-    [countsGql],
+    [result],
   )
 
-  const computed = React.useMemo(
+  const processedWithCursor = React.useMemo(
     () =>
       Eff.pipe(
-        dataO,
-        Eff.Option.map((counts) => {
-          let cursorStats: CursorStats | null = null
-          if (cursor) {
-            const { date, ...combined } = counts.combined.counts[cursor.j]
-            const byExt = counts.byExtCollapsed.map((e) => ({
-              ext: e.ext,
-              ...e.counts.counts[cursor.j],
-            }))
-            const highlighted = cursor.i == null ? null : counts.byExtCollapsed[cursor.i]
-            const firstHalf = cursor.j < counts.combined.counts.length / 2
-            cursorStats = { date, combined, byExt, highlighted, firstHalf }
-          }
-          return { counts, cursorStats }
-        }),
+        processed,
+        Eff.Option.map((counts) => ({
+          counts,
+          cursorStats: getCursorStats(counts, cursor),
+        })),
       ),
-    [dataO, cursor],
+    [processed, cursor],
   )
 
   if (!cfg.analyticsBucket) {
@@ -536,13 +514,12 @@ export default function Downloads({
           value={window}
           onChange={setWindow}
           bucket={bucket}
-          data={dataGql}
+          data={processed}
         />
       </div>
       <div className={classes.heading}>
-        {Eff.Option.match(computed, {
+        {Eff.Option.match(processedWithCursor, {
           onSome: ({ counts, cursorStats: stats }) => {
-            // TODO: use flatmap or smth
             if (!counts?.byExtCollapsed.length) return 'Downloads'
 
             const hl = stats?.highlighted
@@ -559,7 +536,7 @@ export default function Downloads({
         })}
       </div>
       <div className={classes.chart}>
-        {Eff.Option.match(computed, {
+        {Eff.Option.match(processedWithCursor, {
           onSome: ({ counts, cursorStats: stats }) => {
             if (!counts.byExtCollapsed.length) {
               return (
@@ -574,7 +551,6 @@ export default function Downloads({
                 {/* @ts-expect-error */}
                 <StackedAreaChart
                   data={counts.byExtCollapsed.map((e) =>
-                    // FIXME
                     e.counts.counts.map((i) => Math.log(i.sum + 1)),
                   )}
                   onCursor={setCursor}
@@ -589,22 +565,18 @@ export default function Downloads({
                   px={10}
                 />
                 <Transition in={!!stats && stats.firstHalf}>
-                  {() => (
-                    <StatsTip
-                      stats={assertNonNull(stats)}
-                      colorPool={colorPool}
-                      className={cx(classes.dateStats, classes.right)}
-                    />
-                  )}
+                  <StatsTip
+                    stats={stats}
+                    colorPool={colorPool}
+                    className={cx(classes.dateStats, classes.right)}
+                  />
                 </Transition>
                 <Transition in={!!stats && !stats.firstHalf}>
-                  {() => (
-                    <StatsTip
-                      stats={assertNonNull(stats)}
-                      colorPool={colorPool}
-                      className={cx(classes.dateStats, classes.left)}
-                    />
-                  )}
+                  <StatsTip
+                    stats={stats}
+                    colorPool={colorPool}
+                    className={cx(classes.dateStats, classes.left)}
+                  />
                 </Transition>
               </>
             )
