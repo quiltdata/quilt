@@ -32,6 +32,9 @@ from quilt3.util import (
     validate_package_name,
 )
 
+from quilt3.exceptions import PackageException
+from quilt3.packages import PackageEntry
+
 from ..utils import QuiltTestCase
 
 DATA_DIR = Path(__file__).parent / 'data'
@@ -2220,3 +2223,56 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
         assert pkg['z.txt'].get() == 's3://bucket/bar/z.txt?versionId=123'
         assert list_object_versions_mock.call_count == 2
         list_object_versions_mock.assert_has_calls([call('bucket', 'foo/'), call('bucket', 'bar/')])
+
+def test_set_meta_error():
+    with pytest.raises(PackageException, match="set must specify either path or meta"):
+        PackageEntry(None, None, None, None)
+
+def test_duplicate_logical_key_error():
+    pkg = Package()
+    pkg.set('foo', 'bar.txt')
+    with pytest.raises(PackageException, match="Duplicate logical key foo while loading package"):
+        pkg.set('foo', 'baz.txt')
+
+def test_directory_not_exist_error():
+    pkg = Package()
+    with pytest.raises(PackageException, match="The specified directory .* doesn't exist"):
+        pkg.set_dir('foo', 'non_existent_directory')
+
+def test_key_not_point_to_package_entry_error():
+    pkg = Package()
+    pkg.set('foo', 'bar.txt')
+    with pytest.raises(ValueError, match="Key foo does not point to a PackageEntry"):
+        pkg['foo'].set_meta({'meta': 'data'})
+
+def test_commit_message_type_error():
+    pkg = Package()
+    with pytest.raises(ValueError, match="The package commit message must be a string, but the message provided is an instance of .*: .*"):
+        pkg.set_meta({'message': 123})
+
+def test_entry_type_error():
+    pkg = Package()
+    with pytest.raises(TypeError, match="Expected a string for entry, but got an instance of .*: .*"):
+        pkg.set('foo', 123)
+
+def test_overwrite_directory_error():
+    pkg = Package()
+    pkg.set_dir('foo', '.')
+    with pytest.raises(QuiltException, match="Cannot overwrite directory foo with PackageEntry"):
+        pkg.set('foo', 'bar.txt')
+
+def test_already_package_entry_error():
+    pkg = Package()
+    pkg.set('foo/bar', 'baz.txt')
+    with pytest.raises(QuiltException, match="Already a PackageEntry for bar along the path .*: .*"):
+        pkg.set('foo/bar/baz', 'qux.txt')
+
+def test_unexpected_scheme_error():
+    pkg = Package()
+    with pytest.raises(util.URLParseError, match="Unexpected scheme: 'file' for .*"):
+        pkg.set('foo', 'file:///bar.txt')
+
+def test_uri_version_id_error():
+    pkg = Package()
+    with pytest.raises(ValueError, match="URI must not include versionId"):
+        pkg.set('foo', 's3://bucket/key?versionId=123')
