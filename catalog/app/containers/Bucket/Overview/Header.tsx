@@ -1,6 +1,6 @@
 import type AWSSDK from 'aws-sdk'
 import cx from 'classnames'
-import * as R from 'ramda'
+import * as Eff from 'effect'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as redux from 'react-redux'
@@ -181,17 +181,14 @@ function ObjectsByExt({ data, colorPool, ...props }: ObjectsByExtProps) {
           },
           _: (r: $TSFixMe) => (
             <>
-              {R.times(
-                (i) => (
-                  <Skeleton
-                    key={`skeleton:${i}`}
-                    className={classes.skeleton}
-                    style={{ gridRow: i + 2 }}
-                    animate={!AsyncResult.Err.is(r)}
-                  />
-                ),
-                MAX_EXTS,
-              )}
+              {Eff.Array.makeBy(MAX_EXTS, (i) => (
+                <Skeleton
+                  key={`skeleton:${i}`}
+                  className={classes.skeleton}
+                  style={{ gridRow: i + 2 }}
+                  animate={!AsyncResult.Err.is(r)}
+                />
+              ))}
               {AsyncResult.Err.is(r) && (
                 <div className={classes.unavail}>Data unavailable</div>
               )}
@@ -264,11 +261,12 @@ interface StatDisplayProps {
 
 function StatDisplay({ value, label, format, fallback }: StatDisplayProps) {
   const classes = useStatDisplayStyles()
-  return R.pipe(
+  return Eff.pipe(
+    value,
     AsyncResult.case({
-      Ok: R.pipe(format || R.identity, AsyncResult.Ok),
-      Err: R.pipe(fallback || R.identity, AsyncResult.Ok),
-      _: R.identity,
+      Ok: Eff.flow(format || Eff.identity, AsyncResult.Ok),
+      Err: Eff.flow(fallback || Eff.identity, AsyncResult.Ok),
+      _: Eff.identity,
     }),
     AsyncResult.case({
       Ok: (v: $TSFixMe) =>
@@ -284,8 +282,7 @@ function StatDisplay({ value, label, format, fallback }: StatDisplayProps) {
         </div>
       ),
     }),
-    // @ts-expect-error
-  )(value) as JSX.Element
+  ) as JSX.Element
 }
 
 // use the same height as the bar chart: 20px per bar with 2px margin
