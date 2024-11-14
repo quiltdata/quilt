@@ -2245,14 +2245,25 @@ def test_set_meta_error():
         )
         entry.set()
 
-def test_duplicate_logical_key_error():
-    KEY = create_test_file('foo.txt')
-    KEY2 = create_test_file('bar.txt')
-    pkg = Package()
-    pkg.set(KEY, KEY)
-    with pytest.raises(PackageException, match=f"Duplicate logical key {KEY} while loading package"):
-        pkg.set(KEY, KEY2)
+def test_loading_duplicate_logical_key_error():
+    # Create a package with duplicate logical keys in the manifest
+    MANIFEST_FILE = 'manifest.jsonl'
+    KEY = 'duplicate_key'
+    ROW = {"logical_key": KEY, "physical_keys": [f"s3://bucket/{KEY}"], "size": 123, "hash": None, "meta": {}}
+    manifest_content = [{"version": "v0"}, ROW, ROW]
+    with open(MANIFEST_FILE, 'w', encoding='utf-8') as f:
+        writer = jsonlines.Writer(f)
+        writer.write_all(manifest_content)
+    # Print the manifest file
+    with open(MANIFEST_FILE, 'r', encoding='utf-8') as f:
+        print(f.read())
 
+    # Attempt to load the package, which should raise the error
+    with pytest.raises(PackageException,
+                           match=f"Duplicate logical key {KEY} while loading package"):
+        with open(MANIFEST_FILE, 'r', encoding='utf-8') as f:
+            Package.load(f)
+        
 def test_directory_not_exist_error():
     pkg = Package()
     with pytest.raises(PackageException, match="The specified directory .*/non_existent_directory doesn't exist"):
@@ -2287,3 +2298,4 @@ def test_unexpected_scheme_error(self):
     pkg.set(KEY)
     with pytest.raises(URLParseError, match="Unexpected scheme: 'file' for .*"):
         pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda lk, entry: 'file:///foo.txt', force=True)
+
