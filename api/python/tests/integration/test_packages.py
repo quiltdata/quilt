@@ -25,6 +25,8 @@ from quilt3.backends.local import (
     LocalPackageRegistryV2,
 )
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
+from quilt3.exceptions import PackageException
+from quilt3.packages import PackageEntry
 from quilt3.util import (
     PhysicalKey,
     QuiltConflictException,
@@ -32,9 +34,6 @@ from quilt3.util import (
     URLParseError,
     validate_package_name,
 )
-
-from quilt3.exceptions import PackageException
-from quilt3.packages import PackageEntry
 
 from ..utils import QuiltTestCase
 
