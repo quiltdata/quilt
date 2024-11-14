@@ -2225,15 +2225,21 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
         assert list_object_versions_mock.call_count == 2
         list_object_versions_mock.assert_has_calls([call('bucket', 'foo/'), call('bucket', 'bar/')])
 
-def create_test_file(file_path):
+def create_test_file(filename):
+    file_path = Path(filename)
     file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(file_path, 'w') as f:
         f.write('test')
-    return file_path
+    return filename
 
 def test_set_meta_error():
     with pytest.raises(PackageException, match="set must specify either path or meta"):
-        entry = PackageEntry()
+        entry =  PackageEntry(
+            PhysicalKey("test-bucket", "without-hash", "without-hash"),
+            42,
+            None,
+            {},
+        )
         entry.set()
 
 def test_duplicate_logical_key_error():
@@ -2252,10 +2258,9 @@ def test_directory_not_exist_error():
 def test_key_not_point_to_package_entry_error():
     KEY = create_test_file('foo.txt')
     pkg = Package()
-    pkg.set(KEY)
-    pkg[KEY].set_meta({'meta': 'data'})
-    with pytest.raises(ValueError, match="Key bar does not point to a PackageEntry"):
-        pkg['bar'].set_meta({'meta': 'data'})
+    pkg.set(KEY, entry=KEY)
+    with pytest.raises(ValueError, match=f"Key {KEY} does not point to a PackageEntry"):
+        pkg[KEY].set_meta({'meta': 'data'})
 
 def test_commit_message_type_error():
     pkg = Package()
@@ -2271,25 +2276,31 @@ def test_overwrite_directory_error():
     DIR = 'foo'
     KEY = create_test_file(f"{DIR}/foo.txt")
     pkg = Package()
-    pkg.set_dir('foo', '.')
+    pkg.set_dir(DIR, DIR)
     with pytest.raises(QuiltException, match="Cannot overwrite directory foo with PackageEntry"):
         pkg.set('foo')
 
 def test_already_package_entry_error():
+    DIR = 'foo'
+    KEY = create_test_file(f"{DIR}/foo.txt")
+    KEY2 = create_test_file(f"{DIR}/bar.txt")
+    pkg = Package()
+    pkg.set(DIR, KEY)
+    with pytest.raises(QuiltException, match=f"Already a PackageEntry for {DIR} along the path .*: .*"):
+        pkg.set(KEY2, KEY2)
+
+@patch('quilt3.workflows.validate', return_value=None)
+def test_unexpected_scheme_error(self):
     KEY = create_test_file('foo.txt')
     pkg = Package()
     pkg.set(KEY)
-    with pytest.raises(QuiltException, match="Already a PackageEntry for bar along the path .*: .*"):
-        pkg.set("{KEY}/bar")
-
-@pytest.mark.usefixtures('isolate_packages_cache')
-def test_unexpected_scheme_error():
-    pkg = Package()
     with pytest.raises(URLParseError, match="Unexpected scheme: 'file' for .*"):
         pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda lk, entry: 'file:///foo.txt', force=True)
 
-@pytest.mark.usefixtures('isolate_packages_cache')
-def test_uri_version_id_error():
+@patch('quilt3.workflows.validate', return_value=None)
+def test_uri_version_id_error(self):
+    KEY = create_test_file('foo.txt')
     pkg = Package()
+    pkg.set(KEY)
     with pytest.raises(ValueError, match="URI must not include versionId"):
         pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda lk, entry: 's3://bucket/ds?versionId=v', force=True)
