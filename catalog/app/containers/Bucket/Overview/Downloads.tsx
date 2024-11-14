@@ -9,6 +9,7 @@ import useComponentSize from '@rehooks/component-size'
 import StackedAreaChart from 'components/StackedAreaChart'
 import cfg from 'constants/config'
 import * as GQL from 'utils/GraphQL'
+import log from 'utils/Logging'
 import * as SVG from 'utils/SVG'
 import { readableQuantity } from 'utils/string'
 
@@ -480,8 +481,11 @@ export default function Downloads({
     () =>
       Eff.pipe(
         result,
-        GQL.getDataOption,
-        Eff.Option.flatMap((d) => Eff.Option.fromNullable(d.bucketAccessCounts)),
+        ({ fetching, data, error }) => {
+          if (fetching) return Eff.Option.none()
+          if (error) log.error('Failed to fetch bucket access counts:', error)
+          return Eff.Option.fromNullable(data?.bucketAccessCounts)
+        },
         Eff.Option.map(processBucketAccessCounts),
       ),
     [result],
