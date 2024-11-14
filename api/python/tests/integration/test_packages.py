@@ -835,8 +835,8 @@ class PackageTest(QuiltTestCase):
         """Verify an exception when setting a key with a path object."""
         pkg = Package()
         with pytest.raises(TypeError,
-                           match="Expected a string for entry, but got an instance of " +\
-                             r"<class 'quilt3\.packages\.Package'>: \(empty Package\)\."):
+                           match="Expected a string for entry, but got an instance of "
+                           r"<class 'quilt3\.packages\.Package'>: \(empty Package\)\."):
             pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
@@ -2227,6 +2227,7 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
         assert list_object_versions_mock.call_count == 2
         list_object_versions_mock.assert_has_calls([call('bucket', 'foo/'), call('bucket', 'bar/')])
 
+
 def create_test_file(filename):
     file_path = Path(filename)
     file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2234,15 +2235,17 @@ def create_test_file(filename):
         f.write('test')
     return filename
 
+
 def test_set_meta_error():
     with pytest.raises(PackageException, match="set must specify either path or meta"):
-        entry =  PackageEntry(
+        entry = PackageEntry(
             PhysicalKey("test-bucket", "without-hash", "without-hash"),
             42,
             None,
             {},
         )
         entry.set()
+
 
 def test_loading_duplicate_logical_key_error():
     # Create a package with duplicate logical keys in the manifest
@@ -2259,14 +2262,16 @@ def test_loading_duplicate_logical_key_error():
 
     # Attempt to load the package, which should raise the error
     with pytest.raises(PackageException,
-                           match=f"Duplicate logical key {KEY} while loading package"):
+                       match=f"Duplicate logical key {KEY} while loading package"):
         with open(MANIFEST_FILE, 'r', encoding='utf-8') as f:
             Package.load(f)
+
 
 def test_directory_not_exist_error():
     pkg = Package()
     with pytest.raises(PackageException, match="The specified directory .*non_existent_directory doesn't exist"):
         pkg.set_dir('foo', 'non_existent_directory')
+
 
 def test_key_not_point_to_package_entry_error():
     KEY = 'foo.txt'
@@ -2276,10 +2281,14 @@ def test_key_not_point_to_package_entry_error():
     with pytest.raises(ValueError, match=f"Key {KEY} does not point to a PackageEntry"):
         pkg.get(KEY)
 
+
 def test_commit_message_type_error():
     pkg = Package()
-    with pytest.raises(ValueError, match="The package commit message must be a string, but the message provided is an instance of <class 'int'>: 123"):
+    with pytest.raises(ValueError,
+                       match="The package commit message must be a string, "
+                       "but the message provided is an instance of <class 'int'>: 123"):
         pkg.build('test/pkg', message=123)
+
 
 def test_already_package_entry_error():
     DIR = 'foo'
@@ -2288,9 +2297,10 @@ def test_already_package_entry_error():
     pkg = Package()
     pkg.set(DIR, KEY)
     with pytest.raises(QuiltException,
-                           match=f"Already a PackageEntry for {DIR} along the path " +\
-                             rf"\['{DIR}'\]: .*/{KEY}"):
+                       match=f"Already a PackageEntry for {DIR} along the path "
+                       rf"\['{DIR}'\]: .*/{KEY}"):
         pkg.set(KEY2, KEY2)
+
 
 @patch('quilt3.workflows.validate', return_value=None)
 def test_unexpected_scheme_error(self):
@@ -2298,4 +2308,5 @@ def test_unexpected_scheme_error(self):
     pkg = Package()
     pkg.set(KEY)
     with pytest.raises(URLParseError, match="Unexpected scheme: 'file' for .*"):
-        pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda lk, entry: 'file:///foo.txt', force=True)
+        pkg.push('foo/bar', registry='s3://test-bucket',
+                 dest=lambda lk, entry: 'file:///foo.txt', force=True)

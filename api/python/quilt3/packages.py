@@ -1293,8 +1293,8 @@ class Package:
             if ensure_no_entry and key_fragment in pkg \
                     and isinstance(pkg[key_fragment], PackageEntry):
                 raise QuiltException(
-                    f"Already a PackageEntry for {key_fragment} "\
-                        + f"along the path {path}: {pkg[key_fragment].physical_key}",
+                    f"Already a PackageEntry for {key_fragment} "
+                    f"along the path {path}: {pkg[key_fragment].physical_key}",
                 )
             pkg = pkg._children.setdefault(key_fragment, Package())
         return pkg
