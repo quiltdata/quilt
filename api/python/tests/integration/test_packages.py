@@ -2270,11 +2270,12 @@ def test_directory_not_exist_error():
         pkg.set_dir('foo', 'non_existent_directory')
 
 def test_key_not_point_to_package_entry_error():
-    KEY = create_test_file('foo.txt')
-    pkg = Package()
-    pkg.set(KEY, entry=KEY)
+    KEY = 'foo.txt'
+    pkg_self = Package()
+    pkg = pkg_self._ensure_subpackage(KEY, ensure_no_entry=True)
+    pkg._children[KEY] = KEY
     with pytest.raises(ValueError, match=f"Key {KEY} does not point to a PackageEntry"):
-        pkg[KEY].set_meta({'meta': 'data'})
+        pkg.get(KEY)
 
 def test_commit_message_type_error():
     pkg = Package()
