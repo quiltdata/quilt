@@ -2289,7 +2289,7 @@ def test_already_package_entry_error():
     pkg.set(DIR, KEY)
     with pytest.raises(QuiltException,
                            match=f"Already a PackageEntry for {DIR} along the path " +\
-                             f"\['{DIR}'\]: .*/{KEY}"):  # pylint: disable=W1401
+                             rf"\['{DIR}'\]: .*/{KEY}"):
         pkg.set(KEY2, KEY2)
 
 @patch('quilt3.workflows.validate', return_value=None)
