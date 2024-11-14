@@ -41,7 +41,7 @@ export interface State {
   /** Database selected by user, or set initially */
   database: Model.ValueController<requests.Database>
   /** List of query executions, in other words, history of executions */
-  executions: Model.DataController<Model.List<requests.QueryExecution>>
+  executions: Model.DataController<Model.List<requests.QueryExecutionsItem>>
   /** Rows and columns of query results */
   results: Model.DataController<requests.QueryResults>
 

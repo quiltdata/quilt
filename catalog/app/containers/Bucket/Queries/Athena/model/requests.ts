@@ -136,12 +136,16 @@ export interface QueryExecution {
   completed?: Date
   created?: Date
   db?: string
-  error?: Error
   id?: string
   outputBucket?: string
   query?: string
   status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
   workgroup?: Athena.WorkGroupName
+}
+
+export interface QueryExecutionFailed {
+  id?: string
+  error: Error
 }
 
 function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecution {
@@ -158,23 +162,24 @@ function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecut
   }
 }
 
-// TODO: use another standalone type for such error/failed execution
 function parseQueryExecutionError(
   error: Athena.UnprocessedQueryExecutionId,
-): QueryExecution {
+): QueryExecutionFailed {
   return {
     error: new Error(error?.ErrorMessage || 'Unknown'),
     id: error?.QueryExecutionId,
   }
 }
 
+export type QueryExecutionsItem = QueryExecution | QueryExecutionFailed
+
 export function useExecutions(
   workgroup: Model.Data<Workgroup>,
   queryExecutionId?: string,
-): Model.DataController<Model.List<QueryExecution>> {
+): Model.DataController<Model.List<QueryExecutionsItem>> {
   const athena = AWS.Athena.use()
-  const [prev, setPrev] = React.useState<Model.List<QueryExecution> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<QueryExecution>>>()
+  const [prev, setPrev] = React.useState<Model.List<QueryExecutionsItem> | null>(null)
+  const [data, setData] = React.useState<Model.Data<Model.List<QueryExecutionsItem>>>()
 
   React.useEffect(() => {
     if (queryExecutionId) return

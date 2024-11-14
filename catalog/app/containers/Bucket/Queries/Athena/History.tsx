@@ -219,6 +219,12 @@ function Empty() {
   )
 }
 
+function isFailedExecution(
+  x: Model.QueryExecutionsItem,
+): x is Model.QueryExecutionFailed {
+  return !!(x as Model.QueryExecutionFailed).error
+}
+
 const useStyles = M.makeStyles((t) => ({
   header: {
     lineHeight: `${t.spacing(4.5)}px`,
@@ -236,7 +242,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface HistoryProps {
   bucket: string
-  executions: Model.QueryExecution[]
+  executions: Model.QueryExecutionsItem[]
   onLoadMore?: () => void
 }
 
@@ -257,8 +263,8 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
   const rowsSorted = React.useMemo(
     () =>
       R.sort(
-        (a: Model.QueryExecution, b: Model.QueryExecution) =>
-          b?.completed && a?.completed
+        (a: Model.QueryExecutionsItem, b: Model.QueryExecutionsItem) =>
+          !isFailedExecution(a) && !isFailedExecution(b) && b?.completed && a?.completed
             ? b.completed.valueOf() - a.completed.valueOf()
             : -1,
         executions,
@@ -282,7 +288,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
           <span>Date completed</span>
         </Row>
         {rowsPaginated.map((queryExecution) =>
-          queryExecution.error ? (
+          isFailedExecution(queryExecution) ? (
             <Lab.Alert key={queryExecution.id} severity="warning">
               {queryExecution.error.message}
             </Lab.Alert>
