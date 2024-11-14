@@ -13,6 +13,12 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
+# unreleased - YYYY-MM-DD
+
+## Python API
+
+* [Changed] More informative error messages when package construction fails. ([#4215](https://github.com/quiltdata/quilt/pull/4216))
+
 # 6.1.0 - 2024-10-14
 
 ## Python API
