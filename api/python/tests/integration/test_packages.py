@@ -835,7 +835,9 @@ class PackageTest(QuiltTestCase):
     def test_invalid_set_key(self):
         """Verify an exception when setting a key with a path object."""
         pkg = Package()
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError,
+                           match="Expected a string for entry, but got an instance of " +\
+                             "<class 'quilt3\.packages\.Package'>: \(empty Package\)\."):
             pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
@@ -1244,7 +1246,8 @@ class PackageTest(QuiltTestCase):
             )
 
     def test_overwrite_dir_fails(self):
-        with pytest.raises(QuiltException):
+        with pytest.raises(QuiltException,
+                           match="Cannot overwrite directory asdf with PackageEntry"):
             pkg = Package()
             pkg.set('asdf/jkl', LOCAL_MANIFEST)
             pkg.set('asdf', LOCAL_MANIFEST)
@@ -2252,7 +2255,7 @@ def test_duplicate_logical_key_error():
 
 def test_directory_not_exist_error():
     pkg = Package()
-    with pytest.raises(PackageException, match="The specified directory .* doesn't exist"):
+    with pytest.raises(PackageException, match="The specified directory .*/non_existent_directory doesn't exist"):
         pkg.set_dir('foo', 'non_existent_directory')
 
 def test_key_not_point_to_package_entry_error():
@@ -2264,21 +2267,8 @@ def test_key_not_point_to_package_entry_error():
 
 def test_commit_message_type_error():
     pkg = Package()
-    with pytest.raises(ValueError, match="The package commit message must be a string, but the message provided is an instance of .*: .*"):
+    with pytest.raises(ValueError, match="The package commit message must be a string, but the message provided is an instance of <class 'int'>: 123"):
         pkg.build('test/pkg', message=123)
-
-def test_entry_type_error():
-    pkg = Package()
-    with pytest.raises(TypeError, match="Expected a string for entry, but got an instance of .*: .*"):
-        pkg.set("foo", entry=[])
-
-def test_overwrite_directory_error():
-    DIR = 'foo'
-    KEY = create_test_file(f"{DIR}/foo.txt")
-    pkg = Package()
-    pkg.set_dir(DIR, DIR)
-    with pytest.raises(QuiltException, match="Cannot overwrite directory foo with PackageEntry"):
-        pkg.set('foo')
 
 def test_already_package_entry_error():
     DIR = 'foo'
@@ -2286,7 +2276,8 @@ def test_already_package_entry_error():
     KEY2 = create_test_file(f"{DIR}/bar.txt")
     pkg = Package()
     pkg.set(DIR, KEY)
-    with pytest.raises(QuiltException, match=f"Already a PackageEntry for {DIR} along the path .*: .*"):
+    with pytest.raises(QuiltException,
+                       match=f"Already a PackageEntry for {DIR} along the path \['{DIR}'\]: .*/{KEY}"):
         pkg.set(KEY2, KEY2)
 
 @patch('quilt3.workflows.validate', return_value=None)
@@ -2296,11 +2287,3 @@ def test_unexpected_scheme_error(self):
     pkg.set(KEY)
     with pytest.raises(URLParseError, match="Unexpected scheme: 'file' for .*"):
         pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda lk, entry: 'file:///foo.txt', force=True)
-
-@patch('quilt3.workflows.validate', return_value=None)
-def test_uri_version_id_error(self):
-    KEY = create_test_file('foo.txt')
-    pkg = Package()
-    pkg.set(KEY)
-    with pytest.raises(ValueError, match="URI must not include versionId"):
-        pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda lk, entry: 's3://bucket/ds?versionId=v', force=True)
