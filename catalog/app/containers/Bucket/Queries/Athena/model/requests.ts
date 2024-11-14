@@ -27,6 +27,10 @@ function parseNamedQuery(query: Athena.NamedQuery): Query {
   }
 }
 
+function listIncludes(list: string[], value: string): boolean {
+  return list.map((x) => x.toLowerCase()).includes(value.toLowerCase())
+}
+
 export type Workgroup = string
 
 interface WorkgroupArgs {
@@ -111,11 +115,11 @@ export function useWorkgroup(
     if (!Model.hasData(workgroups.data)) return
     setData((d) => {
       if (!Model.hasData(workgroups.data)) return d
-      if (requestedWorkgroup && workgroups.data.list.includes(requestedWorkgroup)) {
+      if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
         return requestedWorkgroup
       }
       const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
-      if (initialWorkgroup && workgroups.data.list.includes(initialWorkgroup)) {
+      if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
         return initialWorkgroup
       }
       return workgroups.data.list[0] || new Error('Workgroup not found')
@@ -509,15 +513,15 @@ export function useDatabase(
       if (
         Model.hasData(execution) &&
         execution.db &&
-        databases.list.includes(execution.db)
+        listIncludes(databases.list, execution.db)
       ) {
         return execution.db
       }
-      if (Model.hasData(v) && databases.list.includes(v)) {
+      if (Model.hasData(v) && listIncludes(databases.list, v)) {
         return v
       }
       const initialDatabase = storage.getDatabase()
-      if (initialDatabase && databases.list.includes(initialDatabase)) {
+      if (initialDatabase && listIncludes(databases.list, initialDatabase)) {
         return initialDatabase
       }
       return databases.list[0] || null
@@ -564,15 +568,15 @@ export function useCatalogName(
       if (
         Model.hasData(execution) &&
         execution.catalog &&
-        catalogNames.list.includes(execution.catalog)
+        listIncludes(catalogNames.list, execution.catalog)
       ) {
         return execution.catalog
       }
-      if (Model.hasData(v) && catalogNames.list.includes(v)) {
+      if (Model.hasData(v) && listIncludes(catalogNames.list, v)) {
         return v
       }
       const initialCatalogName = storage.getCatalog()
-      if (initialCatalogName && catalogNames.list.includes(initialCatalogName)) {
+      if (initialCatalogName && listIncludes(catalogNames.list, initialCatalogName)) {
         return initialCatalogName
       }
       return catalogNames.list[0] || null
