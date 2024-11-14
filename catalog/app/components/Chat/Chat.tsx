@@ -81,7 +81,7 @@ export default function Chat({ history, onSubmit, initializing }: ChatProps) {
       )}
       <Input
         className={classes.input}
-        disabled={state === Submitting}
+        disabled={state === Submitting || initializing}
         onChange={setValue}
         onSubmit={handleSubmit}
         value={value}

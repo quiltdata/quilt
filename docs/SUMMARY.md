@@ -13,6 +13,8 @@
 * [Document Previews](Catalog/Preview.md)
 * [Embeddable iFrames](Catalog/Embed.md)
 * [Search & Query](Catalog/SearchQuery.md)
+* [Quilt+ URIs](Catalog/URI.md)
+* [Qurator Omni](Catalog/Qurator.md) AI Assistant
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
 * **Advanced**
   * [Athena](advanced-features/athena.md)
@@ -31,6 +33,7 @@
   * [Restrict Access by Bucket Prefix](advanced-features/s3-prefix-permissions.md)
   * [S3 Events via EventBridge](EventBridge.md)
   * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
+  * [Tabulator](advanced-features/tabulator.md)
 * **Best Practices**
   * [GxP for Security & Compliance](advanced-features/good-practice.md)
   * [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)
