@@ -837,7 +837,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         with pytest.raises(TypeError,
                            match="Expected a string for entry, but got an instance of " +\
-                             "<class 'quilt3\.packages\.Package'>: \(empty Package\)\."):
+                             r"<class 'quilt3\.packages\.Package'>: \(empty Package\)\."):
             pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
@@ -2231,7 +2231,7 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
 def create_test_file(filename):
     file_path = Path(filename)
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, 'w') as f:
+    with open(file_path, 'w', encoding='utf-8') as f:
         f.write('test')
     return filename
 
@@ -2263,7 +2263,7 @@ def test_loading_duplicate_logical_key_error():
                            match=f"Duplicate logical key {KEY} while loading package"):
         with open(MANIFEST_FILE, 'r', encoding='utf-8') as f:
             Package.load(f)
-        
+
 def test_directory_not_exist_error():
     pkg = Package()
     with pytest.raises(PackageException, match="The specified directory .*/non_existent_directory doesn't exist"):
@@ -2289,7 +2289,8 @@ def test_already_package_entry_error():
     pkg = Package()
     pkg.set(DIR, KEY)
     with pytest.raises(QuiltException,
-                       match=f"Already a PackageEntry for {DIR} along the path \['{DIR}'\]: .*/{KEY}"):
+                           match=f"Already a PackageEntry for {DIR} along the path " +\
+                             f"\['{DIR}'\]: .*/{KEY}"):  # pylint: disable=W1401
         pkg.set(KEY2, KEY2)
 
 @patch('quilt3.workflows.validate', return_value=None)
@@ -2299,4 +2300,3 @@ def test_unexpected_scheme_error(self):
     pkg.set(KEY)
     with pytest.raises(URLParseError, match="Unexpected scheme: 'file' for .*"):
         pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda lk, entry: 'file:///foo.txt', force=True)
-
