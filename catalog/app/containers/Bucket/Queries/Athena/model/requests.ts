@@ -158,6 +158,7 @@ function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecut
   }
 }
 
+// TODO: use another standalone type for such error/failed execution
 function parseQueryExecutionError(
   error: Athena.UnprocessedQueryExecutionId,
 ): QueryExecution {

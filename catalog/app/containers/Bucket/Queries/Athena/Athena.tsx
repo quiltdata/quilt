@@ -237,18 +237,11 @@ function ResultsContainer({ className }: ResultsContainerProps) {
           <SeeDocsForCreatingPackage />
         )}
       </ResultsBreadcrumbs>
-      {!results.data.rows.length && execution?.error ? (
-        <Alert
-          error={execution?.error || new Error("Couldn't fetch query results")}
-          title="Query Results Data"
-        />
-      ) : (
-        <Results
-          rows={results.data.rows}
-          columns={results.data.columns}
-          onLoadMore={results.data.next ? results.loadMore : undefined}
-        />
-      )}
+      <Results
+        rows={results.data.rows}
+        columns={results.data.columns}
+        onLoadMore={results.data.next ? results.loadMore : undefined}
+      />
     </div>
   )
 }
