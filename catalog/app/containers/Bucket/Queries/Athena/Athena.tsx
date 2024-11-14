@@ -237,22 +237,16 @@ function ResultsContainer({ className }: ResultsContainerProps) {
           <SeeDocsForCreatingPackage />
         )}
       </ResultsBreadcrumbs>
-      {/* eslint-disable-next-line no-nested-ternary */}
-      {results.data.rows.length ? (
+      {!results.data.rows.length && execution?.error ? (
+        <Alert
+          error={execution?.error || new Error("Couldn't fetch query results")}
+          title="Query Results Data"
+        />
+      ) : (
         <Results
           rows={results.data.rows}
           columns={results.data.columns}
           onLoadMore={results.data.next ? results.loadMore : undefined}
-        />
-      ) : // eslint-disable-next-line no-nested-ternary
-      execution?.error ? (
-        <Alert error={execution.error} title="Query Results Data" />
-      ) : execution ? (
-        <History bucket={bucket} executions={[execution]} />
-      ) : (
-        <Alert
-          error={new Error("Couldn't fetch query results")}
-          title="Query Results Data"
         />
       )}
     </div>
