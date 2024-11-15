@@ -483,7 +483,7 @@ export default function Downloads({
         result,
         ({ fetching, data, error }) => {
           if (fetching) return Eff.Option.none()
-          if (error) log.error('Failed to fetch bucket access counts:', error)
+          if (error) log.error('Error fetching bucket access counts:', error)
           return Eff.Option.fromNullable(data?.bucketAccessCounts)
         },
         Eff.Option.map(processBucketAccessCounts),
