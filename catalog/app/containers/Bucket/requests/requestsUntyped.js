@@ -1,6 +1,5 @@
 import { join as pathJoin } from 'path'
 
-import * as dateFns from 'date-fns'
 import * as FP from 'fp-ts'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
@@ -9,7 +8,6 @@ import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import * as quiltConfigs from 'constants/quiltConfigs'
-import cfg from 'constants/config'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
@@ -556,8 +554,6 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
   }
 }
 
-const MANIFESTS_PREFIX = '.quilt/packages/'
-
 const withCalculatedRevisions = (s) => ({
   scripted_metric: {
     init_script: `
@@ -612,113 +608,33 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
     .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
+// const MANIFESTS_PREFIX = '.quilt/packages/'
+
 // TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
-const MAX_PACKAGE_ENTRIES = 500
+// const MAX_PACKAGE_ENTRIES = 500
 
-// TODO: remove
-export const getRevisionData = async ({
-  endpoint,
-  sign,
-  bucket,
-  hash,
-  maxKeys = MAX_PACKAGE_ENTRIES,
-}) => {
-  const url = sign({ bucket, key: `${MANIFESTS_PREFIX}${hash}` })
-  const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
-  const r = await fetch(
-    `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
-  )
-  const [header, ...entries] = await r
-    .json()
-    .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
-  const files = Math.min(maxKeys, entries.length)
-  const bytes = entries.slice(0, maxKeys).reduce((sum, i) => sum + i.size, 0)
-  const truncated = entries.length > maxKeys
-  return {
-    stats: { files, bytes, truncated },
-    message: header.message,
-    header,
-  }
-}
-
-const s3Select = ({
-  s3,
-  ExpressionType = 'SQL',
-  InputSerialization = { JSON: { Type: 'LINES' } },
-  ...rest
-}) =>
-  s3
-    .selectObjectContent({
-      ExpressionType,
-      InputSerialization,
-      OutputSerialization: { JSON: {} },
-      ...rest,
-    })
-    .promise()
-    .then(
-      R.pipe(
-        R.prop('Payload'),
-        R.reduce((acc, evt) => {
-          if (!evt.Records) return acc
-          const s = evt.Records.Payload.toString()
-          return acc + s
-        }, ''),
-        R.trim,
-        R.ifElse(R.isEmpty, R.always([]), R.pipe(R.split('\n'), R.map(JSON.parse))),
-      ),
-    )
-
-const sqlEscape = (arg) => arg.replace(/'/g, "''")
-
-const ACCESS_COUNTS_PREFIX = 'AccessCounts'
-
-const queryAccessCounts = async ({ s3, type, query, today, window = 365 }) => {
-  try {
-    const records = await s3Select({
-      s3,
-      Bucket: cfg.analyticsBucket,
-      Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
-      Expression: query,
-      InputSerialization: {
-        CSV: {
-          FileHeaderInfo: 'Use',
-          AllowQuotedRecordDelimiter: true,
-        },
-      },
-    })
-
-    const recordedCounts = records.length ? JSON.parse(records[0].counts) : {}
-
-    const counts = R.times((i) => {
-      const date = dateFns.subDays(today, window - i - 1)
-      return {
-        date,
-        value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
-      }
-    }, window)
-
-    const total = Object.values(recordedCounts).reduce(R.add, 0)
-
-    return { counts, total }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('queryAccessCounts: error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
-}
-
-export const objectAccessCounts = ({ s3, bucket, path, today }) =>
-  queryAccessCounts({
-    s3,
-    type: 'Objects',
-    query: `
-      SELECT counts FROM s3object
-      WHERE eventname = 'GetObject'
-      AND bucket = '${sqlEscape(bucket)}'
-      AND "key" = '${sqlEscape(path)}'
-    `,
-    today,
-    window: 365,
-  })
+// TODO: remove: used in a comented-out code in PackageList
+// export const getRevisionData = async ({
+//   endpoint,
+//   sign,
+//   bucket,
+//   hash,
+//   maxKeys = MAX_PACKAGE_ENTRIES,
+// }) => {
+//   const url = sign({ bucket, key: `${MANIFESTS_PREFIX}${hash}` })
+//   const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
+//   const r = await fetch(
+//     `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
+//   )
+//   const [header, ...entries] = await r
+//     .json()
+//     .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
+//   const files = Math.min(maxKeys, entries.length)
+//   const bytes = entries.slice(0, maxKeys).reduce((sum, i) => sum + i.size, 0)
+//   const truncated = entries.length > maxKeys
+//   return {
+//     stats: { files, bytes, truncated },
+//     message: header.message,
+//     header,
+//   }
+// }
