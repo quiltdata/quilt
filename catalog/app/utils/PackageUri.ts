@@ -108,5 +108,6 @@ export function stringify({ bucket, name, hash, tag, path }: PackageUri) {
     pkgSpec += `:${tag}`
   }
   const pathPart = path ? `&path=${encodeURIComponent(path)}` : ''
-  return `quilt+s3://${bucket}#package=${pkgSpec}${pathPart}`
+  const catalogPart = window.location.hostname
+  return `quilt+s3://${bucket}#package=${pkgSpec}${pathPart}&catalog=${catalogPart}`
 }
