@@ -17,6 +17,10 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Athena: improve loading state and errors visuals; fix minor bugs; alphabetize and persist selection in workgroups, catalog names and databases ([#4208](https://github.com/quiltdata/quilt/pull/4208))
+- [Changed] Show stack release version in footer ([#4200](https://github.com/quiltdata/quilt/pull/4200))
+- [Added] Selective package downloading ([#4173](https://github.com/quiltdata/quilt/pull/4173))
+- [Added] Qurator Omni: initial public release ([#4032](https://github.com/quiltdata/quilt/pull/4032), [#4181](https://github.com/quiltdata/quilt/pull/4181))
 - [Added] Admin: UI for configuring longitudinal queries (Tabulator) ([#4135](https://github.com/quiltdata/quilt/pull/4135), [#4164](https://github.com/quiltdata/quilt/pull/4164), [#4165](https://github.com/quiltdata/quilt/pull/4165))
 - [Changed] Admin: Move bucket settings to a separate page ([#4122](https://github.com/quiltdata/quilt/pull/4122))
 - [Changed] Athena: always show catalog name, simplify setting execution context ([#4123](https://github.com/quiltdata/quilt/pull/4123))

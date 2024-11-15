@@ -13,11 +13,12 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
-# unreleased - YYYY-MM-DD
+# 6.1.0 - 2024-10-14
 
 ## Python API
 
 * [Added] `quilt3.admin.tabulator` sub-module for managing Tabulator configuration ([#4136](https://github.com/quiltdata/quilt/pull/4136))
+* [Added] `quilt3.get_boto3_session()` function for creation of Boto3 sessions with Quilt credentials ([#4169](https://github.com/quiltdata/quilt/pull/4169))
 
 # 6.0.0 - 2024-08-19
 
@@ -92,8 +93,6 @@ Entries inside each section should be ordered by type:
 * [Changed] Set S3 client `max_pool_connections` to `QUILT_TRANSFER_MAX_CONCURRENCY` ([#3867](https://github.com/quiltdata/quilt/pull/3867))
 * [Changed] **BREAKING:** Switch from a regular SHA256 checksum to a hash list (`sha2-256-chunked`) to match S3's built-in checksums ([#2782](https://github.com/quiltdata/quilt/pull/2782))
 * [Changed] **BREAKING:** Delay object hashing until package push to take advantage of S3's hashing; as a result, `dest` functions no longer receive a `top_hash` ([#2782](https://github.com/quiltdata/quilt/pull/2782))
-
-## CLI
 
 ## Catalog, Lambdas
 

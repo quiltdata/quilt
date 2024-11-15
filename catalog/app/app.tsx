@@ -22,6 +22,7 @@ Sentry.init(cfg, history)
 import 'sanitize.css'
 
 // Import the rest of our modules
+import * as Assistant from 'components/Assistant'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
@@ -119,6 +120,8 @@ const render = () => {
       AWS.Config.Provider,
       AWS.Athena.Provider,
       AWS.S3.Provider,
+      Assistant.Provider,
+      Assistant.WithUI,
       Notifications.WithNotifications,
       WithGlobalDialogs,
       Errors.ErrorBoundary,

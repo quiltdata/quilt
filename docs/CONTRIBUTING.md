@@ -1,6 +1,5 @@
 <!--pytest-codeblocks:skipfile-->
-<!-- markdownlint-disable -->
-
+<!-- markdownlint-disable-next-line first-line-h1 -->
 Quilt is an open source project, and we welcome contributions from the community.
 
 Contributors must adhere to the [Code of Conduct](https://github.com/quiltdata/quilt/blob/master/docs/CODE_OF_CONDUCT.md).
@@ -16,15 +15,15 @@ Found a bug? File it in our [GitHub issues](https://github.com/quiltdata/quilt/i
 To work on `quilt` you will first need to clone the repository.
 
 ```bash
-$ git clone https://github.com/quiltdata/quilt
+git clone https://github.com/quiltdata/quilt
 ```
 
 You can then set up your own branch version of the code, and work
 on your changes for a pull request from there.
 
 ```bash
-$ cd quilt
-$ git checkout -B new-branch-name
+cd quilt
+git checkout -B new-branch-name
 ```
 
 ## Local package development
@@ -34,8 +33,8 @@ $ git checkout -B new-branch-name
 Use `pip` to install `quilt` locally (including development dependencies):
 
 ```bash
-$ cd api/python
-$ pip install -e '.[extra]'
+cd api/python
+pip install -e '.[extra]'
 ```
 
 This will create an [editable
@@ -52,8 +51,8 @@ Use `pytest` to test your changes during normal development. To run
 `pytest` on the entire codebase:
 
 ```bash
-$ cd api/python/tests
-$ pytest
+cd api/python/tests
+pytest
 ```
 
 ## Local catalog development
@@ -68,8 +67,8 @@ Elasticsearch Service) which cannot be run locally.
 Use `npm` to install the catalog (`quilt-navigator`) dependencies locally:
 
 ```bash
-$ cd catalog
-$ npm install
+cd catalog
+npm install
 ```
 
 There is one known issue with installation. At time of writing, the
@@ -83,8 +82,8 @@ To fix this, point `npm` to a Python 2 path on your machine. For
 example on macOS:
 
 ```bash
-$ npm config set python /usr/bin/python
-$ npm install
+npm config set python /usr/bin/python
+npm install
 ```
 
 Next, you need to create a `config.json` and `federation.json` file
@@ -137,13 +136,13 @@ For `config.json` use the following template:
 To build a static code bundle, as would be necessary in order to serve the catalog:
 
 ```bash
-$ npm run build
+npm run build
 ```
 
 To run the catalog in developer mode:
 
 ```bash
-$ npm start
+npm start
 ```
 
 This uses `webpack` under the hood to compile code changes on the
@@ -168,8 +167,8 @@ npm run test
 file and in [`CHANGELOG`](https://github.com/quiltdata/quilt/blob/master/docs/CHANGELOG.md).
 1. Create PR with these changes.
 1. Once PR is merged, create a tag from commit with merge: `git tag $VERSION $COMMIT_HASH`.
-1. Once you push the tag to GitHub with `git push origin $VERSION` a new CI build that makes
-PyPI release is triggered.
+1. Once you push the tag to GitHub with `git push origin $VERSION` a new CI build
+that makes PyPI release is triggered.
 
 ## Updating documentation
 

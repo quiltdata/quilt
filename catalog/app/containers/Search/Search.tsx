@@ -14,6 +14,7 @@ import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 
 import * as SearchUIModel from './model'
+import AssistantContext from './AssistantContext'
 import BucketSelector from './Buckets'
 import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
@@ -1040,6 +1041,7 @@ function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) 
   const loadMore = React.useCallback(() => {
     setMore(true)
   }, [])
+
   return (
     <div className={className}>
       {hits.map((hit) => (
@@ -1283,6 +1285,7 @@ function SearchLayout() {
 export default function Search() {
   return (
     <SearchUIModel.Provider>
+      <AssistantContext />
       <Layout pre={<SearchLayout />} />
     </SearchUIModel.Provider>
   )
