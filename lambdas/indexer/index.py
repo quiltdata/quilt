@@ -503,12 +503,13 @@ def select_package_stats(bucket, manifest_key) -> Optional[dict]:
     )
 
     payload = resp["Payload"].read()
-    # FIXME: error handling, return None on errors
     if "FunctionError" in resp:
-        raise Exception(payload.decode())
+        logger_.error("DuckDB select unhandled error: %s", payload)
+        return None
     parsed = json.loads(payload)
     if "error" in parsed:
-        raise Exception(parsed["error"])
+        logger_.error("DuckDB select error: %s", parsed["error"])
+        return None
 
     rows = parsed["rows"]
     return rows[0] if rows else None
