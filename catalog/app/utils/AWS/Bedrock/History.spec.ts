@@ -21,7 +21,7 @@ describe('utils/AWS/Bedrock/History', () => {
   })
 
   describe('foldMessages', () => {
-    it('Fold same-role messages', async () => {
+    it('Fold same-role messages', () => {
       const userFoo = Message.createMessage('foo')
       const userBar = Message.createMessage('bar')
       const assistantFoo = Message.createMessage('foo', 'assistant')
@@ -32,7 +32,7 @@ describe('utils/AWS/Bedrock/History', () => {
       expect(list[1].content).toBe('foo\nbaz')
     })
 
-    it('Fold system and user messages', async () => {
+    it('Fold system and user messages', () => {
       const userFoo = Message.createMessage('foo')
       const userBar = Message.createMessage('bar')
       const systemFoo = Message.createMessage('foo', 'system')
