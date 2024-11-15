@@ -135,7 +135,7 @@ describe('utils/PackageUri', () => {
           bucket: 'bucket-name',
           name: 'quilt/test',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test')
+      ).toBe('quilt+s3://bucket-name#package=quilt/test&catalog=quilt-tes')
     })
 
     it('should work for bucket, name and tag', () => {
@@ -145,7 +145,7 @@ describe('utils/PackageUri', () => {
           name: 'quilt/test',
           tag: 'latest',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test:latest')
+      ).toBe('quilt+s3://bucket-name#package=quilt/test:latest&catalog=quilt-tes')
     })
 
     it('should work for bucket, name and hash', () => {
@@ -155,7 +155,7 @@ describe('utils/PackageUri', () => {
           name: 'quilt/test',
           hash: 'abc1',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test@abc1')
+      ).toBe('quilt+s3://bucket-name#package=quilt/test@abc1&catalog=quilt-tes')
     })
 
     it('should work for bucket, name and path', () => {
@@ -165,7 +165,9 @@ describe('utils/PackageUri', () => {
           name: 'quilt/test',
           path: 'sub/path',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test&path=sub%2Fpath')
+      ).toBe(
+        'quilt+s3://bucket-name#package=quilt/test&path=sub%2Fpath&catalog=quilt-tes',
+      )
     })
 
     it('should work for bucket, name, hash and path', () => {
@@ -176,7 +178,9 @@ describe('utils/PackageUri', () => {
           hash: 'abc1',
           path: 'sub/path',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath')
+      ).toBe(
+        'quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath&catalog=quilt-test',
+      )
     })
   })
 })
