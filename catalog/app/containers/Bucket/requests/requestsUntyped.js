@@ -1,6 +1,6 @@
 import { join as pathJoin } from 'path'
 
-import * as FP from 'fp-ts'
+import * as Eff from 'effect'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
@@ -271,7 +271,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-      return FP.function.pipe(
+      return Eff.pipe(
         JSON.parse(r.Body.toString('utf-8')),
         R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
         R.map((b) => ({
@@ -301,7 +301,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     try {
       const qs = mkSearch({ action: 'sample', index: bucket })
       const result = await req(`/search${qs}`)
-      return FP.function.pipe(
+      return Eff.pipe(
         result,
         R.pathOr([], ['aggregations', 'objects', 'buckets']),
         R.map((h) => {
@@ -323,7 +323,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-    return FP.function.pipe(
+    return Eff.pipe(
       result,
       R.path(['Contents']),
       R.map(R.evolve({ Key: decodeS3Key })),
@@ -375,7 +375,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-      return FP.function.pipe(
+      return Eff.pipe(
         JSON.parse(r.Body.toString('utf-8')),
         R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
         R.map((b) => ({
@@ -396,7 +396,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     try {
       const qs = mkSearch({ action: 'images', index: bucket })
       const result = await req(`/search${qs}`)
-      return FP.function.pipe(
+      return Eff.pipe(
         result,
         R.pathOr([], ['aggregations', 'objects', 'buckets']),
         R.map((h) => {
@@ -417,7 +417,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-    return FP.function.pipe(
+    return Eff.pipe(
       result,
       R.path(['Contents']),
       R.map(R.evolve({ Key: decodeS3Key })),
