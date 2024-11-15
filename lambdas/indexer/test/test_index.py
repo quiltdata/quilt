@@ -23,7 +23,6 @@ import pytest
 import responses
 from botocore import UNSIGNED
 from botocore.client import Config
-from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
 from document_queue import EVENT_PREFIX, RetryError
