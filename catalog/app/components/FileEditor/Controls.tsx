@@ -18,46 +18,27 @@ export function AddFileButton({ onClick }: AddFileButtonProps) {
 
 interface PreviewButtonProps extends EditorState {
   className?: string
+  onPreview: NonNullable<EditorState['onPreview']>
 }
 
 export function PreviewButton({ className, preview, onPreview }: PreviewButtonProps) {
   const handleClick = React.useCallback(
     (event) => {
-      if (!onPreview) {
-        // eslint-disable-next-line no-console
-        console.error('Unsupported preview')
-        return
-      }
       event.stopPropagation()
       onPreview(!preview)
     },
     [onPreview, preview],
   )
-  if (!onPreview) return null
-  if (preview) {
-    return (
-      <M.Button
-        className={className}
-        color="primary"
-        size="small"
-        variant="contained"
-        onClick={handleClick}
-      >
-        Continue writing
-      </M.Button>
-    )
-  }
+
   return (
-    <M.Button
+    <M.FormControlLabel
       className={className}
-      color="default"
-      size="small"
-      startIcon={<M.Icon fontSize="inherit">visibility</M.Icon>}
-      variant="outlined"
-      onClick={handleClick}
-    >
-      Preview
-    </M.Button>
+      control={
+        <M.Switch checked={preview} onChange={handleClick} size="small" color="primary" />
+      }
+      label="Preview"
+      labelPlacement="end"
+    />
   )
 }
 
