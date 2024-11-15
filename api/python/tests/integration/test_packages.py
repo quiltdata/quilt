@@ -623,7 +623,16 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
+
+    def test_set_dir_root_folder_named_slash(self):
+        with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
+            list_object_versions_mock.return_value = ([
+                dict(Key='/foo/a.txt', VersionId='xyz', IsLatest=True, Size=10),
+            ], [])
+            pkg = Package()
             pkg.set_dir('bar', 's3://bucket//foo')  # top-level '/' folder
+            assert True, "No exception raised for top-level folder named '/'"
+
 
     def test_set_dir_wrong_update_policy(self):
         """Verify non existing update policy raises value error."""
