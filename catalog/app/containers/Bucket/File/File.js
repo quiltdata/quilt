@@ -26,16 +26,17 @@ import parseSearch from 'utils/parseSearch'
 import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
-import AssistButton from './AssistButton'
-import FileCodeSamples from './CodeSamples/File'
-import Analytics from './FileAnalytics'
-import * as AssistantContext from './FileAssistantContext'
-import FileProperties from './FileProperties'
-import * as FileView from './FileView'
-import Section from './Section'
-import renderPreview from './renderPreview'
-import * as requests from './requests'
-import { useViewModes, viewModeToSelectOption } from './viewModes'
+import AssistButton from '../AssistButton'
+import FileCodeSamples from '../CodeSamples/File'
+import FileProperties from '../FileProperties'
+import * as FileView from '../FileView'
+import Section from '../Section'
+import renderPreview from '../renderPreview'
+import * as requests from '../requests'
+import { useViewModes, viewModeToSelectOption } from '../viewModes'
+
+import Analytics from './Analytics'
+import * as AssistantContext from './AssistantContext'
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {

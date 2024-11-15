@@ -9,8 +9,8 @@ import { useData } from 'utils/Data'
 import * as SVG from 'utils/SVG'
 import { readableQuantity } from 'utils/string'
 
-import Section from './Section'
-import * as requests from './requests'
+import Section from '../Section'
+import * as requests from '../requests'
 
 interface CountsData {
   total: number
@@ -21,6 +21,7 @@ interface AnalyticsProps {
   bucket: string
   path: string
 }
+
 export default function Analytics({ bucket, path }: AnalyticsProps) {
   const [cursor, setCursor] = React.useState<number | null>(null)
   const s3 = AWS.S3.use()
