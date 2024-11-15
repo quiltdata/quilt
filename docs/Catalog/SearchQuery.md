@@ -129,10 +129,10 @@ run them. You must first set up you an Athena workgroup and Saved queries per
 
 ### Configuration
 You can hide the "Queries" tab by setting `ui > nav > queries: false`.
-It is also possible to set default workgroup in `ui > athena > defaultWorkgroup: 'you-default-workgroup'`.
+It is also possible to set the default workgroup in `ui > athena > defaultWorkgroup: 'your-default-workgroup'`.
 ([Learn more](./Preferences.md)).
 
-Workgroup, catalog name and database selects memorize the last selected value.
+The tab will remember the last workgroup, catalog name and database that was selected.
 
 ### Basics
 "Run query" executes the selected query and waits for the result.
