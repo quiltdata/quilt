@@ -1181,7 +1181,6 @@ class TestIndex(TestCase):
             assert self._get_contents('foo.txt', '.txt') == ""
             assert self._get_contents('foo.ipynb', '.ipynb') == ""
 
-
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
         (bucket versioning on)
