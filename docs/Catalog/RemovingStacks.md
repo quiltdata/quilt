@@ -30,13 +30,13 @@ control.
 ## Step 2: Attempt Stack Deletion in CloudFormation
 
 1. In the **CloudFormation** console for the appropriate AWS region, locate your
-   Quilt stack: Cloud Formation > Stacks -> Your Stack Name.
+   Quilt stack: CloudFormation > Stacks -> Your Stack Name.
 2. Select **Delete** to begin the stack deletion process. AWS will attempt to
    delete all resources managed by the stack.
 
 ### Non-Empty S3 Buckets
 
-CloudFormation cannot delete non-empty S3 buckets. If any buckets created by the
+### Nonempty S3 Buckets
 stack contain data, the initial deletion attempt will fail. You have two
 options:
 
