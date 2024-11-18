@@ -449,7 +449,7 @@ def _download_file(
 
 
 def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: str, src_version: Optional[str],
-                      dest_bucket: str, dest_key: str, extra_args: Optional[Iterable[Tuple[str, Any]]] = None, put_options=None):
+                      dest_bucket: str, dest_key: str, extra_args: Optional[Iterable[Tuple[str, Any]]] = None):
     src_params = dict(
         Bucket=src_bucket,
         Key=src_key
@@ -674,7 +674,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                     _download_file(ctx, size, src.bucket, src.path, src.version_id, dest.path)
                 else:
                     _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id,
-                                      dest.bucket, dest.path, put_options)
+                                      dest.bucket, dest.path, extra_args=put_options)
 
         try:
             for idx, (args, result) in enumerate(zip(file_list, results)):
