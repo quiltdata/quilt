@@ -41,7 +41,7 @@ __Arguments__
 
 * __key(str)__:  key in bucket to store file at
 * __path(str)__:  string representing local path to file
-* __put_options(dict)__:  options to pass to the underlying storage layer
+* __put_options(dict)__:  optional arguments to pass to the PutObject operation
 
 __Returns__
 
@@ -61,7 +61,7 @@ __Arguments__
 
 * __key(str)__:  prefix to store files under in bucket
 * __directory(str)__:  path to directory to grab files from
-* __put_options(dict)__:  options to pass to the underlying storage layer
+* __put_options(dict)__:  optional arguments to pass to the PutObject operation
 
 __Returns__
 
