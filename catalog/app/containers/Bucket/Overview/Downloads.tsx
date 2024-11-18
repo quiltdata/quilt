@@ -74,8 +74,8 @@ const processAccessCountsGroup = (
 const processBucketAccessCounts = (
   counts: GQLBucketAccessCounts,
 ): ProcessedBucketAccessCounts => ({
-  byExt: Eff.Array.map(counts.byExt, processAccessCountsGroup),
-  byExtCollapsed: Eff.Array.map(counts.byExtCollapsed, processAccessCountsGroup),
+  byExt: counts.byExt.map(processAccessCountsGroup),
+  byExtCollapsed: counts.byExtCollapsed.map(processAccessCountsGroup),
   combined: processAccessCounts(counts.combined),
 })
 
