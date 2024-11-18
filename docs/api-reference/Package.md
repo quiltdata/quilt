@@ -86,7 +86,7 @@ PackageEntry if prefix matches a logical_key exactly
 otherwise Package
 
 
-## Package.fetch(self, dest='./')  {#Package.fetch}
+## Package.fetch(self, dest='./', put\_options=None)  {#Package.fetch}
 
 Copy all descendants to `dest`. Descendants are written under their logical
 names _relative_ to self.
@@ -94,6 +94,7 @@ names _relative_ to self.
 __Arguments__
 
 * __dest__:  where to put the files (locally)
+* __put_options__:  optional arguments to pass to the PutObject operation
 
 __Returns__
 
@@ -272,7 +273,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False, put\_options=None)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -318,6 +319,7 @@ __Arguments__
 
 * __force__:  skip the top hash check and overwrite any existing package
 * __dedupe__:  don't push if the top hash matches the existing package top hash; return the current package
+* __put_options__:  optional arguments to pass to the PutObject operation
 
 __Returns__
 
@@ -507,7 +509,7 @@ hash verification fail
 when deserialization metadata is not present
 
 
-## PackageEntry.fetch(self, dest=None)  {#PackageEntry.fetch}
+## PackageEntry.fetch(self, dest=None, put\_options=None)  {#PackageEntry.fetch}
 
 Gets objects from entry and saves them to dest.
 
@@ -515,6 +517,7 @@ __Arguments__
 
 * __dest__:  where to put the files
     Defaults to the entry name
+* __put_options__:  optional arguments to pass to the PutObject operation
 
 __Returns__
 

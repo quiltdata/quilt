@@ -33,7 +33,7 @@ __Returns__
 search results
 
 
-## Bucket.put\_file(self, key, path)  {#Bucket.put\_file}
+## Bucket.put\_file(self, key, path, put\_options=None)  {#Bucket.put\_file}
 
 Stores file at path to key in bucket.
 
@@ -41,6 +41,7 @@ __Arguments__
 
 * __key(str)__:  key in bucket to store file at
 * __path(str)__:  string representing local path to file
+* __put_options(dict)__:  options to pass to the underlying storage layer
 
 __Returns__
 
@@ -52,7 +53,7 @@ __Raises__
 * if copy fails
 
 
-## Bucket.put\_dir(self, key, directory)  {#Bucket.put\_dir}
+## Bucket.put\_dir(self, key, directory, put\_options=None)  {#Bucket.put\_dir}
 
 Stores all files in the `directory` under the prefix `key`.
 
@@ -60,6 +61,7 @@ __Arguments__
 
 * __key(str)__:  prefix to store files under in bucket
 * __directory(str)__:  path to directory to grab files from
+* __put_options(dict)__:  options to pass to the underlying storage layer
 
 __Returns__
 
