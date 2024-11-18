@@ -176,7 +176,7 @@ class TestBucket(QuiltTestCase):
             bucket.put_file(key='README.md', path='./README')  # put local file to bucket
 
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path('README'), PhysicalKey.from_url('s3://test-bucket/README.md'), put_options={})
+                PhysicalKey.from_path('README'), PhysicalKey.from_url('s3://test-bucket/README.md'), put_options=None)
 
     def test_bucket_put_dir(self):
         path = pathlib.Path(__file__).parent / 'data'
@@ -185,17 +185,17 @@ class TestBucket(QuiltTestCase):
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('test', path)
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/'), put_options={})
+                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/'), put_options=None)
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('test/', path)
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/'), put_options={})
+                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/'), put_options=None)
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('', path)
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/'), put_options={})
+                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/'), put_options=None)
 
     def test_remote_delete(self):
         self.s3_stubber.add_response(

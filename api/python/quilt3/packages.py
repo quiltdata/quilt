@@ -351,7 +351,7 @@ class PackageEntry:
 
         return formats[0].deserialize(data, self._meta, pkey_ext, **format_opts)
 
-    def fetch(self, dest=None, put_options={}):
+    def fetch(self, dest=None, put_options=None):
         """
         Gets objects from entry and saves them to dest.
 
@@ -701,7 +701,7 @@ class Package:
         return pkg
 
     @ApiTelemetry("package.fetch")
-    def fetch(self, dest='./', put_options={}):
+    def fetch(self, dest='./', put_options=None):
         """
         Copy all descendants to `dest`. Descendants are written under their logical
         names _relative_ to self.
@@ -1357,7 +1357,7 @@ class Package:
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow=..., force: bool = False, dedupe: bool = False, put_options={}
+        workflow=..., force: bool = False, dedupe: bool = False, put_options=None
     ):
         """
         Copies objects to path, then creates a new package that points to those objects.
@@ -1413,7 +1413,7 @@ class Package:
     def _push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
         workflow, print_info, force: bool, dedupe: bool,
-        copy_file_list_fn: T.Optional[CopyFileListFn] = None, put_options={}
+        copy_file_list_fn: T.Optional[CopyFileListFn] = None, put_options=None
     ):
         if selector_fn is None:
             def selector_fn(*args):

@@ -301,7 +301,7 @@ def _copy_local_file(ctx: WorkerContext, size: int, src_path: str, dest_path: st
     ctx.done(PhysicalKey.from_path(dest_path), None)
 
 
-def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str, put_options={}):
+def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str, put_options=None):
     s3_client = ctx.s3_client_provider.standard_client
 
     if not is_mpu(size):
@@ -449,7 +449,7 @@ def _download_file(
 
 
 def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: str, src_version: Optional[str],
-                      dest_bucket: str, dest_key: str, extra_args: Optional[Iterable[Tuple[str, Any]]] = None, put_options={}):
+                      dest_bucket: str, dest_key: str, extra_args: Optional[Iterable[Tuple[str, Any]]] = None, put_options=None):
     src_params = dict(
         Bucket=src_bucket,
         Key=src_key
@@ -580,7 +580,7 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
     return None
 
 
-def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str, put_options={}):
+def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str, put_options=None):
     result = _reuse_remote_file(ctx, size, src_path, dest_bucket, dest_path)
     if result is not None:
         dest_version_id, checksum = result
@@ -602,7 +602,7 @@ def _copy_file_list_last_retry(retry_state):
        wait=wait_exponential(multiplier=1, min=1, max=10),
        retry=retry_if_not_result(all),
        retry_error_callback=_copy_file_list_last_retry)
-def _copy_file_list_internal(file_list, results, message, callback, exceptions_to_ignore=(ClientError,), put_options={}):
+def _copy_file_list_internal(file_list, results, message, callback, exceptions_to_ignore=(ClientError,), put_options=None):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     `results` is the list where results will be stored.
@@ -855,7 +855,7 @@ def delete_url(src: PhysicalKey):
         s3_client.delete_object(Bucket=src.bucket, Key=src.path)
 
 
-def copy_file_list(file_list, message=None, callback=None, put_options={}):
+def copy_file_list(file_list, message=None, callback=None, put_options=None):
     """
     Takes a list of tuples (src, dest, size) and copies them in parallel.
     URLs must be regular files, not directories.
@@ -865,10 +865,10 @@ def copy_file_list(file_list, message=None, callback=None, put_options={}):
         if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback, put_options={})
+    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback, put_options=None)
 
 
-def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None, put_options={}):
+def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None, put_options=None):
     """
     Copies a single file or directory.
     If src is a file, dest can be a file or a directory.
@@ -900,10 +900,10 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
                 src = PhysicalKey(src.bucket, src.path, version_id)
         url_list.append((src, dest, size))
 
-    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback, put_options={})
+    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback, put_options=None)
 
 
-def put_bytes(data: bytes, dest: PhysicalKey, put_options={}):
+def put_bytes(data: bytes, dest: PhysicalKey, put_options=None):
     if _looks_like_dir(dest):
         raise ValueError("Invalid path: %r" % dest.path)
 
@@ -915,13 +915,10 @@ def put_bytes(data: bytes, dest: PhysicalKey, put_options={}):
         if dest.version_id is not None:
             raise ValueError("Cannot set VersionId on destination")
         s3_client = S3ClientProvider().standard_client
-        s3_client.put_object(
-            Bucket=dest.bucket,
-            Key=dest.path,
-            Body=data,
-            **put_options
-        )
-
+        s3_params = dict(Bucket=dest.bucket, Key=dest.path, Body=data)
+        if put_options:
+            s3_params.update(put_options)
+        s3_client.put_object(**s3_params)
 
 def _local_get_bytes(pk: PhysicalKey):
     return pathlib.Path(pk.path).read_bytes()

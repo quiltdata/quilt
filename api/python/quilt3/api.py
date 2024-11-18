@@ -21,7 +21,7 @@ from .util import (
 )
 
 
-def copy(src, dest, put_options={}):
+def copy(src, dest, put_options=None):
     """
     Copies ``src`` object from QUILT to ``dest``.
 

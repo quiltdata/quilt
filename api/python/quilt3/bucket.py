@@ -55,7 +55,7 @@ class Bucket:
         """
         return search_api(query, index=f"{self._pk.bucket},{self._pk.bucket}_packages", limit=limit)["hits"]["hits"]
 
-    def put_file(self, key, path, put_options={}):
+    def put_file(self, key, path, put_options=None):
         """
         Stores file at path to key in bucket.
 
@@ -74,7 +74,7 @@ class Bucket:
         dest = self._pk.join(key)
         copy_file(PhysicalKey.from_url(fix_url(path)), dest, put_options=put_options)
 
-    def put_dir(self, key, directory, put_options={}):
+    def put_dir(self, key, directory, put_options=None):
         """
         Stores all files in the `directory` under the prefix `key`.
 
