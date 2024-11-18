@@ -3,11 +3,10 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import * as Sentry from 'utils/Sentry'
-
 const useSectionStyles = M.makeStyles((t) => ({
   header: {
-    margin: t.spacing(0, 0, 1),
+    ...t.typography.body1,
+    margin: t.spacing(2, 0, 1),
   },
 }))
 
@@ -20,36 +19,28 @@ interface SectionProps {
 
 export function Section({ className, empty, title, children }: SectionProps) {
   const classes = useSectionStyles()
-  if (!children && empty)
-    return <M.Typography className={cx(classes.header, className)}>{empty}</M.Typography>
+  if (!children && empty) {
+    return <div className={cx(classes.header, className)}>{empty}</div>
+  }
   return (
     <div className={className}>
-      <M.Typography className={classes.header}>{title}</M.Typography>
+      <div className={classes.header}>{title}</div>
       {children}
     </div>
   )
 }
 
 interface AlertProps {
+  className?: string
   error: Error
   title: string
 }
 
-export function Alert({ error, title }: AlertProps) {
-  const sentry = Sentry.use()
-
-  React.useEffect(() => {
-    sentry('captureException', error)
-  }, [error, sentry])
-
+export function Alert({ className, error, title }: AlertProps) {
   return (
-    <Lab.Alert severity="error">
+    <Lab.Alert severity="error" className={className}>
       <Lab.AlertTitle>{title}</Lab.AlertTitle>
       {error.message}
     </Lab.Alert>
   )
-}
-
-export function makeAsyncDataErrorHandler(title: string) {
-  return (error: Error) => <Alert error={error} title={title} />
 }
