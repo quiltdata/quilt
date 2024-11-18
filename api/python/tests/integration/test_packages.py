@@ -43,7 +43,7 @@ SERIALIZATION_DIR = Path('serialization_dir')
 LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
 
 
-def _mock_copy_file_list(file_list, callback=None, message=None):
+def _mock_copy_file_list(file_list, callback=None, message=None, **kwargs):
     return [(key, None) for _, key, _ in file_list]
 
 
@@ -449,7 +449,8 @@ class PackageTest(QuiltTestCase):
             filepath = os.path.join(os.path.dirname(__file__), 'data', 'foo.txt')
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path(filepath),
-                PhysicalKey.from_path('foo.txt')
+                PhysicalKey.from_path('foo.txt'),
+                put_options={}
             )
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
