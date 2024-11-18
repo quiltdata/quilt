@@ -12,7 +12,12 @@ Entries inside each section should be ordered by type:
 
 ## CLI
 !-->
+# unreleased - YYYY-MM-DD
 
+## Python API
+
+* [Added] Extend public methods that write to S3 to take optional arguments to pass to PutObject: `quilt3.push`, `quilt3.fetch`, `quilt3.copy`, `quilt3.put_file`, `quilt3.put_dir` ([#4219](https://github.com/quiltdata/quilt/pull/4219))
+  
 # 6.1.0 - 2024-10-14
 
 ## Python API
