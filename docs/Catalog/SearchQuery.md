@@ -128,10 +128,13 @@ run them. You must first set up you an Athena workgroup and Saved queries per
 [AWS's Athena documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).
 
 ### Configuration
-You can hide the "Queries" tab by setting `ui > nav > queries: false` ([learn more](./Preferences.md)).
+You can hide the "Queries" tab by setting `ui > nav > queries: false`.
+It is also possible to set the default workgroup in `ui > athena > defaultWorkgroup: 'your-default-workgroup'`.
+[Learn more](./Preferences.md).
+
+The tab will remember the last workgroup, catalog name and database that was selected.
 
 ### Basics
 "Run query" executes the selected query and waits for the result.
 
-![](../imgs/athena-ui.png)
-![](../imgs/athena-history.png)
+![Athena page](../imgs/athena-ui.png)
