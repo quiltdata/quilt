@@ -71,7 +71,7 @@ const processAccessCountsGroup = (
   counts: processAccessCounts(group.counts),
 })
 
-const processBucketAccessCounts = (
+export const processBucketAccessCounts = (
   counts: GQLBucketAccessCounts,
 ): ProcessedBucketAccessCounts => ({
   byExt: counts.byExt.map(processAccessCountsGroup),
