@@ -1,0 +1,91 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Overview/Downloads processBucketAccessCounts should normalize the data received from GQL and compute some missing data 1`] = `
+{
+  "byExt": [
+    {
+      "counts": {
+        "counts": [
+          {
+            "date": 2021-08-01T00:00:00.000Z,
+            "sum": 1,
+            "value": 1,
+          },
+          {
+            "date": 2021-08-02T00:00:00.000Z,
+            "sum": 3,
+            "value": 2,
+          },
+          {
+            "date": 2021-08-03T00:00:00.000Z,
+            "sum": 6,
+            "value": 3,
+          },
+          {
+            "date": 2021-08-04T00:00:00.000Z,
+            "sum": 10,
+            "value": 4,
+          },
+        ],
+        "total": 10,
+      },
+      "ext": ".csv",
+    },
+  ],
+  "byExtCollapsed": [
+    {
+      "counts": {
+        "counts": [
+          {
+            "date": 2021-08-01T00:00:00.000Z,
+            "sum": 1,
+            "value": 1,
+          },
+          {
+            "date": 2021-08-02T00:00:00.000Z,
+            "sum": 3,
+            "value": 2,
+          },
+          {
+            "date": 2021-08-03T00:00:00.000Z,
+            "sum": 6,
+            "value": 3,
+          },
+          {
+            "date": 2021-08-04T00:00:00.000Z,
+            "sum": 10,
+            "value": 4,
+          },
+        ],
+        "total": 10,
+      },
+      "ext": ".csv",
+    },
+  ],
+  "combined": {
+    "counts": [
+      {
+        "date": 2021-08-01T00:00:00.000Z,
+        "sum": 1,
+        "value": 1,
+      },
+      {
+        "date": 2021-08-02T00:00:00.000Z,
+        "sum": 3,
+        "value": 2,
+      },
+      {
+        "date": 2021-08-03T00:00:00.000Z,
+        "sum": 6,
+        "value": 3,
+      },
+      {
+        "date": 2021-08-04T00:00:00.000Z,
+        "sum": 10,
+        "value": 4,
+      },
+    ],
+    "total": 10,
+  },
+}
+`;
