@@ -351,13 +351,14 @@ class PackageEntry:
 
         return formats[0].deserialize(data, self._meta, pkey_ext, **format_opts)
 
-    def fetch(self, dest=None):
+    def fetch(self, dest=None, put_options={}):
         """
         Gets objects from entry and saves them to dest.
 
         Args:
             dest: where to put the files
                 Defaults to the entry name
+            put_options: optional arguments to pass to the PutObject operation
 
         Returns:
             None
@@ -368,7 +369,7 @@ class PackageEntry:
         else:
             dest = PhysicalKey.from_url(fix_url(dest))
 
-        copy_file(self.physical_key, dest)
+        copy_file(self.physical_key, dest, put_options=put_options)
 
         # return a package reroot package physical keys after the copy operation succeeds
         # see GH#388 for context
@@ -700,13 +701,14 @@ class Package:
         return pkg
 
     @ApiTelemetry("package.fetch")
-    def fetch(self, dest='./'):
+    def fetch(self, dest='./', put_options={}):
         """
         Copy all descendants to `dest`. Descendants are written under their logical
         names _relative_ to self.
 
         Args:
             dest: where to put the files (locally)
+            put_options: optional arguments to pass to the PutObject operation
 
         Returns:
             A new Package object with entries from self, but with physical keys
@@ -727,7 +729,7 @@ class Package:
             new_entry = entry.with_physical_key(new_physical_key)
             pkg._set(logical_key, new_entry)
 
-        copy_file_list(file_list, message="Copying objects")
+        copy_file_list(file_list, message="Copying objects", put_options=put_options)
 
         return pkg
 
@@ -1355,7 +1357,7 @@ class Package:
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow=..., force: bool = False, dedupe: bool = False
+        workflow=..., force: bool = False, dedupe: bool = False, put_options={}
     ):
         """
         Copies objects to path, then creates a new package that points to those objects.
@@ -1398,19 +1400,20 @@ class Package:
             %(workflow)s
             force: skip the top hash check and overwrite any existing package
             dedupe: don't push if the top hash matches the existing package top hash; return the current package
+            put_options: optional arguments to pass to the PutObject operation
 
         Returns:
             A new package that points to the copied objects.
         """
         return self._push(
             name, registry, dest, message, selector_fn, workflow=workflow,
-            print_info=True, force=force, dedupe=dedupe
+            print_info=True, force=force, dedupe=dedupe, put_options=put_options
         )
 
     def _push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
         workflow, print_info, force: bool, dedupe: bool,
-        copy_file_list_fn: T.Optional[CopyFileListFn] = None,
+        copy_file_list_fn: T.Optional[CopyFileListFn] = None, put_options={}
     ):
         if selector_fn is None:
             def selector_fn(*args):
@@ -1531,7 +1534,7 @@ class Package:
                 entries.append((logical_key, entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
-        results = copy_file_list_fn(file_list, message="Copying objects")
+        results = copy_file_list_fn(file_list, message="Copying objects", put_options=put_options)
 
         for (logical_key, entry), (versioned_key, checksum) in zip(entries, results):
             # Create a new package entry pointing to the new remote key.

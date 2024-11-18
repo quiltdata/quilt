@@ -55,13 +55,14 @@ class Bucket:
         """
         return search_api(query, index=f"{self._pk.bucket},{self._pk.bucket}_packages", limit=limit)["hits"]["hits"]
 
-    def put_file(self, key, path):
+    def put_file(self, key, path, put_options={}):
         """
         Stores file at path to key in bucket.
 
         Args:
             key(str): key in bucket to store file at
             path(str): string representing local path to file
+            put_options(dict): optional arguments to pass to the PutObject operation
 
         Returns:
             None
@@ -71,15 +72,16 @@ class Bucket:
             * if copy fails
         """
         dest = self._pk.join(key)
-        copy_file(PhysicalKey.from_url(fix_url(path)), dest)
+        copy_file(PhysicalKey.from_url(fix_url(path)), dest, put_options=put_options)
 
-    def put_dir(self, key, directory):
+    def put_dir(self, key, directory, put_options={}):
         """
         Stores all files in the `directory` under the prefix `key`.
 
         Args:
             key(str): prefix to store files under in bucket
             directory(str): path to directory to grab files from
+            put_options(dict): optional arguments to pass to the PutObject operation
 
         Returns:
             None
@@ -97,7 +99,7 @@ class Bucket:
 
         src = PhysicalKey.from_path(str(src_path) + '/')
         dest = self._pk.join(key)
-        copy_file(src, dest)
+        copy_file(src, dest, put_options=put_options)
 
     def keys(self):
         """
