@@ -580,7 +580,8 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
     return None
 
 
-def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str, put_options=None):
+def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
+                          dest_path: str, put_options=None):
     result = _reuse_remote_file(ctx, size, src_path, dest_bucket, dest_path)
     if result is not None:
         dest_version_id, checksum = result
@@ -602,7 +603,8 @@ def _copy_file_list_last_retry(retry_state):
        wait=wait_exponential(multiplier=1, min=1, max=10),
        retry=retry_if_not_result(all),
        retry_error_callback=_copy_file_list_last_retry)
-def _copy_file_list_internal(file_list, results, message, callback, exceptions_to_ignore=(ClientError,), put_options=None):
+def _copy_file_list_internal(file_list, results, message, callback,
+                             exceptions_to_ignore=(ClientError,), put_options=None):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     `results` is the list where results will be stored.
@@ -919,6 +921,7 @@ def put_bytes(data: bytes, dest: PhysicalKey, put_options=None):
         if put_options:
             s3_params.update(put_options)
         s3_client.put_object(**s3_params)
+
 
 def _local_get_bytes(pk: PhysicalKey):
     return pathlib.Path(pk.path).read_bytes()
