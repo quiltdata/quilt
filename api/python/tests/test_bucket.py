@@ -172,34 +172,37 @@ class TestBucket(QuiltTestCase):
 
     def test_bucket_put_file(self):
         with patch("quilt3.bucket.copy_file") as copy_mock:
+            opts = {'SSECustomerKey': 'FakeKey'}
             bucket = Bucket('s3://test-bucket')
-            bucket.put_file(key='README.md', path='./README')  # put local file to bucket
+            bucket.put_file(key='README.md', path='./README', put_options=opts)
+            # put local file to bucket
 
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path('README'),
-                PhysicalKey.from_url('s3://test-bucket/README.md'), put_options=None)
+                PhysicalKey.from_url('s3://test-bucket/README.md'), put_options=opts)
 
     def test_bucket_put_dir(self):
         path = pathlib.Path(__file__).parent / 'data'
         bucket = Bucket('s3://test-bucket')
+        opts = {'SSECustomerKey': 'FakeKey'}
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
-            bucket.put_dir('test', path)
+            bucket.put_dir('test', path, opts)
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path(str(path) + '/'),
-                PhysicalKey.from_url('s3://test-bucket/test/'), put_options=None)
+                PhysicalKey.from_url('s3://test-bucket/test/'), put_options=opts)
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
-            bucket.put_dir('test/', path)
+            bucket.put_dir('test/', path, opts)
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path(str(path) + '/'),
-                PhysicalKey.from_url('s3://test-bucket/test/'), put_options=None)
+                PhysicalKey.from_url('s3://test-bucket/test/'), put_options=opts)
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
-            bucket.put_dir('', path)
+            bucket.put_dir('', path, opts)
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path(str(path) + '/'),
-                PhysicalKey.from_url('s3://test-bucket/'), put_options=None)
+                PhysicalKey.from_url('s3://test-bucket/'), put_options=opts)
 
     def test_remote_delete(self):
         self.s3_stubber.add_response(
