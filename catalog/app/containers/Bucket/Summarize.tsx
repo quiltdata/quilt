@@ -258,7 +258,7 @@ interface FilePreviewProps {
   expanded?: boolean
   file?: SummarizeFile
   handle: LogicalKeyResolver.S3SummarizeHandle
-  headingOverride: React.ReactNode
+  headingOverride?: React.ReactNode
   packageHandle?: PackageHandle
 }
 
@@ -270,7 +270,7 @@ export function FilePreview({
   packageHandle,
 }: FilePreviewProps) {
   const description = file?.description ? <Markdown data={file.description} /> : null
-  const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
+  const heading = headingOverride ?? <Crumbs handle={handle} />
 
   const key = handle.logicalKey || handle.key
   const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])

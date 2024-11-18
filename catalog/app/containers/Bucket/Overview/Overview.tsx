@@ -42,13 +42,11 @@ function Readmes({ s3, overviewUrl, bucket }: ReadmesProps) {
               {!!rs.forced && (
                 <Summarize.FilePreview
                   key="readme:forced"
-                  headingOverride={false}
                   handle={rs.forced}
                   expanded
                 />
               )}
               {rs.discovered.map((h) => (
-                // @ts-expect-error
                 <Summarize.FilePreview
                   key={`readme:${h.bucket}/${h.key}`}
                   handle={h}
