@@ -2,15 +2,11 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import {
-  TextPreviewProps,
-  Skeleton as TextPreviewSkeleton,
-} from 'components/Preview/text'
-import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
+import * as PreviewUtils from 'components/Preview/loaders/utils'
+import TextPreview from 'components/Preview/text'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
-import * as RT from 'utils/reactTools'
 
 import Skeleton from './Skeleton'
 import { EditorState } from './State'
@@ -20,11 +16,6 @@ import { loadMode } from './loader'
 import { EditorInputType } from './types'
 
 export { detect, isSupportedFileType } from './loader'
-
-const TextPreview: React.FC<TextPreviewProps> = RT.mkLazy(
-  () => import('components/Preview/text'),
-  TextPreviewSkeleton,
-)
 
 interface EditorProps extends EditorState {
   className: string
@@ -126,7 +117,7 @@ export function Editor(props: EditorProps) {
       </div>
       {props.preview && (
         <div className={cx(classes.tab, classes.active)}>
-          <TextPreview type={props.editing} value={props.value} />
+          <TextPreview handle={props.handle} type={props.editing} value={props.value} />
         </div>
       )}
     </React.Suspense>

@@ -8,7 +8,6 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
-import pipeThru from 'utils/pipeThru'
 import { resolveKey } from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 
@@ -66,21 +65,29 @@ function useLinkProcessor(handle) {
   )
 }
 
+// result: AsyncResult<{Ok: {contents: string}>,
+// handle: Model.S3ObjectLocation
+export function useMarkdownRenderer(contentsResult, handle) {
+  const processImg = useImgProcessor(handle)
+  const processLink = useLinkProcessor(handle)
+  return utils.useProcessing(contentsResult, getRenderer({ processImg, processLink }), [
+    processImg,
+    processLink,
+  ])
+}
+
 export const detect = utils.extIn(['.md', '.rmd'])
 
 function MarkdownLoader({ gated, handle, children }) {
-  const processImg = useImgProcessor(handle)
-  const processLink = useLinkProcessor(handle)
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
-  const processed = utils.useProcessing(
-    data.result,
-    (r) => {
-      const contents = r.Body.toString('utf-8')
-      const rendered = getRenderer({ processImg, processLink })(contents)
-      return PreviewData.Markdown({ rendered, modes: [FileType.Markdown, FileType.Text] })
-    },
-    [processImg, processLink],
-  )
+  const contents = AsyncResult.mapCase({
+    Ok: (r) => r.Body.toString('utf-8'),
+  })(data.result)
+  const markdowned = useMarkdownRenderer(contents, handle)
+  const processed = AsyncResult.mapCase({
+    Ok: (rendered) =>
+      PreviewData.Markdown({ rendered, modes: [FileType.Markdown, FileType.Text] }),
+  })(markdowned)
   const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
   const result =
     gated && AsyncResult.Init.is(handled)
@@ -96,10 +103,8 @@ const SIZE_THRESHOLDS = {
 export const Loader = function GatedMarkdownLoader({ handle, children }) {
   const data = useGate(handle, SIZE_THRESHOLDS)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
-  return pipeThru(handled)(
-    AsyncResult.case({
-      _: children,
-      Ok: (gated) => <MarkdownLoader {...{ gated, handle, children }} />,
-    }),
-  )
+  return AsyncResult.case({
+    _: children,
+    Ok: (gated) => <MarkdownLoader {...{ gated, handle, children }} />,
+  })(handled)
 }
