@@ -61,7 +61,10 @@ function SuggestionsList({ items, selected }: SuggestionsProps) {
       ))}
       <div className={classes.help}>
         Learn the{' '}
-        <StyledLink href={`${docs}/catalog/searchquery#search-bar`} target="_blank">
+        <StyledLink
+          href={`${docs}/quilt-platform-catalog-user/searchquery#search-bar`}
+          target="_blank"
+        >
           advanced search syntax
         </StyledLink>{' '}
         for query string queries in ElasticSearch {ES_V}.

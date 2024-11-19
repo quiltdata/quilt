@@ -124,7 +124,7 @@ const defaultHandlers: ErrorHandler[] = [
         <br />
         <StyledLink
           target="_blank"
-          href={`${docs}/advanced/technical-reference#preparing-an-aws-role-for-use-with-quilt`}
+          href={`${docs}/quilt-platform-administrator/technical-reference#preparing-an-aws-role-for-use-with-quilt`}
         >
           Learn how to configure the bucket for Quilt
         </StyledLink>
@@ -167,7 +167,7 @@ const defaultHandlers: ErrorHandler[] = [
           <br />
           <StyledLink
             target="_blank"
-            href={`${docs}/walkthrough/working-with-the-catalog#access-control`}
+            href={`${docs}/quilt-platform-administrator/admin#users-and-roles`}
           >
             Learn about access control in Quilt
           </StyledLink>

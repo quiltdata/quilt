@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Fix some doc URLs in catalog ([#4205](https://github.com/quiltdata/quilt/pull/4205))
+- [Changed] S3 Select -> GQL API calls for getting access counts ([#4218](https://github.com/quiltdata/quilt/pull/4218))
 - [Changed] Athena: improve loading state and errors visuals; fix minor bugs; alphabetize and persist selection in workgroups, catalog names and databases ([#4208](https://github.com/quiltdata/quilt/pull/4208))
 - [Changed] Show stack release version in footer ([#4200](https://github.com/quiltdata/quilt/pull/4200))
 - [Added] Selective package downloading ([#4173](https://github.com/quiltdata/quilt/pull/4173))

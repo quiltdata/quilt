@@ -19,16 +19,16 @@ const TEMPLATES = {
     const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
     return dedent`
       import quilt3 as q3
-      # Browse [[${docs}/api-reference/package#package.browse]]
+      # Browse [[${docs}/quilt-python-sdk-developers/api-reference/package#package.browse]]
       p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-      # make changes to package adding individual files [[${docs}/api-reference/package#package.set]]
+      # make changes to package adding individual files [[${docs}/quilt-python-sdk-developers/api-reference/package#package.set]]
       p.set("data.csv", "data.csv")
-      # or whole directories [[${docs}/api-reference/package#package.set_dir]]
+      # or whole directories [[${docs}/quilt-python-sdk-developers/api-reference/package#package.set_dir]]
       p.set_dir("subdir", "subdir")
-      # and push changes [[${docs}/api-reference/package#package.push]]
+      # and push changes [[${docs}/quilt-python-sdk-developers/api-reference/package#package.push]]
       p.push("${name}", registry="s3://${bucket}", message="Hello World")
 
-      # Download (be mindful of large packages) [[${docs}/api-reference/package#package.push]]
+      # Download (be mindful of large packages) [[${docs}/quilt-python-sdk-developers/api-reference/package#package.install]]
       q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
     `
   },
@@ -36,13 +36,13 @@ const TEMPLATES = {
     const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
     const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
     return dedent`
-      # Download package [[${docs}/api-reference/cli#install]]
+      # Download package [[${docs}/quilt-python-sdk-developers/api-reference/cli#install]]
       quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
     `
   },
   CLI_UPLOAD: (bucket: string, name: string) =>
     dedent`
-      # Upload package [[${docs}/api-reference/cli#push]]
+      # Upload package [[${docs}/quilt-python-sdk-developers/api-reference/cli#push]]
       echo "Hello World" > README.md
       quilt3 push "${name}" --registry s3://${bucket} --dir .
     `,
