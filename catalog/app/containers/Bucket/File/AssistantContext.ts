@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as Assistant from 'components/Assistant'
 import * as XML from 'utils/XML'
 
-import { ObjectExistence } from './requests'
+import { ObjectExistence } from '../requests'
 
 interface VersionsContextProps {
   data: $TSFixMe
