@@ -71,7 +71,7 @@ export default function SelectWorkflow({
       </M.Select>
       <M.FormHelperText>
         {!!error && <span className={classes.error}>{error}</span>}
-        <M.Link href={`${docs}/advanced/workflows`} target="_blank">
+        <M.Link href={`${docs}/workflows`} target="_blank">
           Learn about data quality workflows
         </M.Link>
         , or edit{' '}
