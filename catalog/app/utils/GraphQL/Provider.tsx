@@ -90,6 +90,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
         keys: {
           AccessCountForDate: () => null,
           AccessCounts: () => null,
+          AccessCountsGroup: () => null,
+          BucketAccessCounts: () => null,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
           Collaborator: (c) => c.username as string,
