@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
+import { isPreviewAvailable } from 'components/Preview/text'
 import * as AddToPackage from 'containers/AddToPackage'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -83,8 +84,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       onCancel,
       onChange: setValue,
       onEdit: setEditing,
-      // TODO: use thin module from Preview/text
-      onPreview: editing?.brace === 'markdown' ? setPreview : null,
+      onPreview: isPreviewAvailable(editing) ? setPreview : null,
       onSave,
       preview,
       saving,

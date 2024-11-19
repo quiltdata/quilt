@@ -9,12 +9,12 @@ import AsyncResult from 'utils/AsyncResult'
 import Skeleton from './Skeleton'
 
 interface RenderProps {
-  contents: string
+  value: string
   handle: Model.S3.S3ObjectLocation
 }
 
-export default function Render({ contents, handle }: RenderProps) {
-  const result = useMarkdownRenderer(AsyncResult.Ok(contents), handle)
+export default function Render({ value, handle }: RenderProps) {
+  const result = useMarkdownRenderer(AsyncResult.Ok(value), handle)
   return AsyncResult.case({
     _: () => null,
     Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
