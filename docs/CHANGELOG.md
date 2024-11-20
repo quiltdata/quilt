@@ -17,7 +17,8 @@ Entries inside each section should be ordered by type:
 
 ## Python API
 
-* [Fixed] Allow S3 paths starting with `/` in `Package().set_dir()` ([#4207](https://github.com/quiltdata/quilt/pull/4207))
+* [Fixed] Allow S3 paths starting with `/` in `Package().set_dir()` and
+  `Package().set()` ([#4207](https://github.com/quiltdata/quilt/pull/4207))
 
 # 6.1.0 - 2024-10-14
 
