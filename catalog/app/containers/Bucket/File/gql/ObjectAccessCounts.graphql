@@ -1,0 +1,9 @@
+query ($bucket: String!, $key: String!) {
+  objectAccessCounts(bucket: $bucket, key: $key, window: 365) {
+    total
+    counts {
+      date
+      value
+    }
+  }
+}

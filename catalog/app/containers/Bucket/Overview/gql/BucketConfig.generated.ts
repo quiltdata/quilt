@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_OverviewBucketConfigQueryVariables = Types.Exact<{
+export type containers_Bucket_Overview_gql_BucketConfigQueryVariables = Types.Exact<{
   bucket: Types.Scalars['String']
 }>
 
-export type containers_Bucket_OverviewBucketConfigQuery = {
+export type containers_Bucket_Overview_gql_BucketConfigQuery = {
   readonly __typename: 'Query'
 } & {
   readonly bucketConfig: Types.Maybe<
@@ -17,13 +17,13 @@ export type containers_Bucket_OverviewBucketConfigQuery = {
   >
 }
 
-export const containers_Bucket_OverviewBucketConfigDocument = {
+export const containers_Bucket_Overview_gql_BucketConfigDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Bucket_OverviewBucketConfig' },
+      name: { kind: 'Name', value: 'containers_Bucket_Overview_gql_BucketConfig' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -61,8 +61,8 @@ export const containers_Bucket_OverviewBucketConfigDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Bucket_OverviewBucketConfigQuery,
-  containers_Bucket_OverviewBucketConfigQueryVariables
+  containers_Bucket_Overview_gql_BucketConfigQuery,
+  containers_Bucket_Overview_gql_BucketConfigQueryVariables
 >
 
-export { containers_Bucket_OverviewBucketConfigDocument as default }
+export { containers_Bucket_Overview_gql_BucketConfigDocument as default }
