@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 import PreviewDisplay from 'components/Preview/Display'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
-import TextPreview from 'components/Preview/text'
+import { QuickPreview } from 'components/Preview/quick'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 
@@ -117,7 +117,7 @@ export function Editor(props: EditorProps) {
       </div>
       {props.preview && (
         <div className={cx(classes.tab, classes.active)}>
-          <TextPreview handle={props.handle} type={props.editing} value={props.value} />
+          <QuickPreview handle={props.handle} type={props.editing} value={props.value} />
         </div>
       )}
     </React.Suspense>

@@ -41,11 +41,11 @@ function convertToTypeUnion(type: FileEditor.EditorInputType | null): HandledTyp
   }
 }
 
-export function isPreviewAvailable(type: FileEditor.EditorInputType | null) {
+export function isQuickPreviewAvailable(type: FileEditor.EditorInputType | null) {
   return convertToTypeUnion(type).tag !== 'none'
 }
 
-export default function TextPreview({ handle, type, value }: TextPreviewProps) {
+export function QuickPreview({ handle, type, value }: TextPreviewProps) {
   if (!value) return <NoValue />
 
   const previewType = convertToTypeUnion(type)

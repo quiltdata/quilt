@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import type * as Model from 'model'
-import { isPreviewAvailable } from 'components/Preview/text'
+import { isQuickPreviewAvailable } from 'components/Preview/quick'
 import * as AddToPackage from 'containers/AddToPackage'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -84,7 +84,7 @@ export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
       onCancel,
       onChange: setValue,
       onEdit: setEditing,
-      onPreview: isPreviewAvailable(editing) ? setPreview : null,
+      onPreview: isQuickPreviewAvailable(editing) ? setPreview : null,
       onSave,
       preview,
       saving,
