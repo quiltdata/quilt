@@ -222,6 +222,16 @@ type AccessCounts {
   counts: [AccessCountForDate!]!
 }
 
+type AccessCountsGroup {
+  ext: String!
+  counts: AccessCounts!
+}
+
+type BucketAccessCounts {
+  byExt(groups: Int): [AccessCountsGroup!]!
+  combined: AccessCounts!
+}
+
 type PackageDir {
   path: String!
   metadata: JsonRecord
@@ -555,6 +565,9 @@ type Query {
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
   subscription: SubscriptionState!
+
+  bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
+  objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
 
   admin: AdminQueries! @admin
 

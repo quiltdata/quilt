@@ -14,7 +14,7 @@ const TEMPLATES = {
     dedent`
       import quilt3 as q3
       b = q3.Bucket("s3://${bucket}")
-      # Download [[${docs}/api-reference/bucket#bucket.fetch]]
+      # Download [[${docs}/quilt-python-sdk-developers/api-reference/bucket#bucket.fetch]]
       b.fetch("${path}", "./${basename(path)}")
     `,
   CLI: (bucket: string, path: string) =>
