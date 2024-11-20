@@ -42,7 +42,7 @@ const errorDisplay = R.cond([
           Please fix the{' '}
           <WorkflowsConfigLink bucket={bucket}>workflows config</WorkflowsConfigLink>{' '}
           according to{' '}
-          <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
+          <StyledLink href={`${docs}/workflows`} target="_blank">
             the documentation
           </StyledLink>
           .
