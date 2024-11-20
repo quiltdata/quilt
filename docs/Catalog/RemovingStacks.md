@@ -65,17 +65,25 @@ that:
    - Terraform stops at the first resource it cannot delete (e.g., non-empty S3
      buckets).  
    - Dependencies of the failed resource are preserved.  
-   - To resolve:  
-       - Back up important files and clear the bucket contents.  
-       - Alternatively, configure Terraform to retain the resource by marking it
-         for retention in the configuration.  
+   - To resolve, back up important files and clear the bucket contents.  
+   - Alternatively, configure Terraform to retain the resource by marking it
+     for retention in the configuration.  For example:
+
+        ```hcl
+        resource "aws_s3_bucket" "logical_bucket_name" {
+          bucket = "actual-bucket-name"
+          lifecycle {
+            prevent_destroy = true
+          }
+        }
+        ```
+
    - Once addressed, resume deletion by re-running `terraform destroy`.
 
 ---
 
 ## III. Final Steps
 
-- Retry deletion after addressing any failed resources.  
 - Verify deletion of all non-retained resources.  
 - Confirm that the stack is no longer listed in CloudFormation or Terraform.  
 - Check for any orphaned resources or residual costs using the **AWS Cost
