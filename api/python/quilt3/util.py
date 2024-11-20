@@ -229,7 +229,11 @@ class PhysicalKey:
                 params = {}
             else:
                 params = {'versionId': self.version_id}
-            return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+            result = urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+            missing_slash = f"s3://{self.bucket}{quote(self.path)}"
+            if self.path and result.startswith(missing_slash):
+                result = result.replace(missing_slash, f"s3://{self.bucket}/{quote(self.path)}")
+            return result
 
 
 def fix_url(url):
