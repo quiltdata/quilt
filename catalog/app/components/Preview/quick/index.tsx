@@ -15,12 +15,6 @@ function NoPreview() {
   return <M.Typography>Quick preview is not available for this type</M.Typography>
 }
 
-interface TextPreviewProps {
-  handle: Model.S3.S3ObjectLocation
-  type: FileEditor.EditorInputType
-  value?: string
-}
-
 interface HandledMarkdown {
   tag: 'markdown'
 }
@@ -43,6 +37,12 @@ function convertToTypeUnion(type: FileEditor.EditorInputType | null): HandledTyp
 
 export function isQuickPreviewAvailable(type: FileEditor.EditorInputType | null) {
   return convertToTypeUnion(type).tag !== 'none'
+}
+
+interface TextPreviewProps {
+  handle: Model.S3.S3ObjectLocation
+  type: FileEditor.EditorInputType
+  value?: string
 }
 
 export function QuickPreview({ handle, type, value }: TextPreviewProps) {
