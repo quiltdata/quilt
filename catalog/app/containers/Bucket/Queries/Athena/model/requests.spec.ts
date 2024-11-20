@@ -852,6 +852,48 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         unmount()
       })
     })
+
+    it('return "not ready" if database is not ready', async () => {
+      startQueryExecution.mockImplementation(
+        reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
+      )
+      await act(async () => {
+        const { result, unmount, waitForNextUpdate } = renderHook(() =>
+          requests.useQueryRun({
+            workgroup: 'a',
+            catalogName: 'b',
+            database: Model.Loading,
+            queryBody: 'd',
+          }),
+        )
+        await waitForNextUpdate()
+        expect(result.current[0]).toBeUndefined()
+        unmount()
+      })
+    })
+
+    it('mark as ready to run but return error for confirmation if database is empty', async () => {
+      startQueryExecution.mockImplementation(
+        reqThen<A.StartQueryExecutionInput, A.StartQueryExecutionOutput>(() => ({})),
+      )
+      await act(async () => {
+        const { result, unmount, waitForValueToChange } = renderHook(() =>
+          requests.useQueryRun({
+            workgroup: 'a',
+            catalogName: 'b',
+            database: '',
+            queryBody: 'd',
+          }),
+        )
+        await waitForValueToChange(() => result.current)
+        await waitForValueToChange(() => result.current[0])
+        expect(result.current[0]).toBeNull()
+        const run = await result.current[1](false)
+        expect(run).toBeInstanceOf(Error)
+        expect(run).toBe(requests.NO_DATABASE)
+        unmount()
+      })
+    })
   })
 
   describe('useWorkgroup', () => {
@@ -1036,7 +1078,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       }
     })
 
-    it('does not change query if a valid query is already selected', async () => {
+    it('retains execution query when the list is changed', async () => {
       const queries = {
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
@@ -1063,8 +1105,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           {
             list: [
               { key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' },
-              { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
-              { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+              ...queries.list,
             ],
           },
           execution,
@@ -1073,6 +1114,45 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       })
       if (Model.hasData(result.current.value)) {
         expect(result.current.value.body).toBe('SELECT * FROM bar')
+      } else {
+        throw new Error('No data')
+      }
+    })
+
+    it('does not change query when list is updated if a valid query is already selected', async () => {
+      const queries = {
+        list: [
+          { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
+          { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+        ],
+      }
+      const execution = null
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (props: Parameters<typeof requests.useQuery>) => useWrapper(props),
+        {
+          initialProps: [queries, execution],
+        },
+      )
+
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value.body).toBe('SELECT * FROM foo')
+      } else {
+        throw new Error('No data')
+      }
+      await act(async () => {
+        rerender([
+          {
+            list: [
+              { key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' },
+              ...queries.list,
+            ],
+          },
+          execution,
+        ])
+        await waitForNextUpdate()
+      })
+      if (Model.hasData(result.current.value)) {
+        expect(result.current.value.body).toBe('SELECT * FROM foo')
       } else {
         throw new Error('No data')
       }
