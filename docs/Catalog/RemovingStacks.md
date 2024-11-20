@@ -1,6 +1,6 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 From time to time, you may need to remove a Quilt stack from your AWS account.
-To do this, you will need to delete the CloudFormation template that created the
+To do this, you will need to delete the CloudFormation stack that created the
 stack, which will remove all resources associated with the stack.
 
 ### NOTE: Pausing the Stack Instead of Deletion
@@ -22,7 +22,7 @@ control.
 1. **Backup of Analytics and Audit Logs**: If you need to retain any analytics
    or audit logs stored in stack-managed buckets, back up these files. Note that
    **you must delete these contents after backup** to allow CloudFormation to
-   delete the bucket.
+   delete the buckets.
 2. **Athena Configurations**: Athena databases and Glue resources associated
    with stack analytics data will be removed. To restore querying capabilities
    later, you may need to reconfigure these settings.
