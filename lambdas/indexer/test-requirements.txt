@@ -5,4 +5,5 @@ pluggy==0.9
 py==1.10.0
 pytest==4.4.0
 pytest-cov==2.6.1
+pytest-env==0.6.2
 responses==0.10.14

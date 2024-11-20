@@ -1,4 +1,5 @@
 <!-- markdownlint-disable -->
+
 # Querying package metadata with Athena
 Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file
 in a each bucket's `.quilt/` directory.
@@ -9,8 +10,10 @@ using predicates based on package or object-level metadata.
 
 Packages can be created from the resulting tabular data.
 To be able to create a package,
-the table must contain the columns `logical_key`, `physical_keys` and `size` as shown below.
+the table must contain the columns `logical_key`, `physical_keys` (or `physical_key`) and `size`.
 (See also [Mental Model](https://docs.quiltdata.com/mentalmodel))
+
+![Athena page with results ready to be packaged](../imgs/athena-package.png)
 
 ## Defining package tables and views in Athena
 
