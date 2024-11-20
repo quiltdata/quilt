@@ -1,80 +1,82 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-If you ever need to remove a Quilt stack from your AWS account,
-you will continue to have access to all the data stored in your S3 buckets.
-You can still use the Quilt SDK to read and write packages to these buckets.
+If you ever need to delete a Quilt stack from your AWS account, be aware that:
 
-However, you may lose access to resources created and managed by the Quilt
-stack, including the user database and service buckets containing audit logs and
-analytics data. Exactly how that happens depends on whether you created the stack using CloudFormation or Terraform.
+- Your data in S3 buckets remains accessible
+- You can continue to use the Quilt SDK continues to read and write packages
+- Stack-managed resources (Athena tables, user database, audit logs) will be affected
+- The deletion behavior varies between CloudFormation and Terraform deployments
 
-## Removing a Terraform Stack
+> **Consider Pausing Instead:** To temporarily suspend the stack, you can shut
+> down ECS services to reduce costs. Note that some charges may continue even
+> when ECS is inactive. The only way to completely eliminate all costs is to
+> delete the stack.
 
-1. In the terminal, navigate to the directory containing your Terraform
-   configuration.
-2. Run `terraform destroy` to remove the Quilt stack.  It will warn you that it
-   cannot remove any service buckets that are not empty.  
-3. You can either remove the buckets manually or run `terraform destroy` again
-   after emptying them.
+## I. Impact Assessment and Preparation
 
+### What May Be Deleted
 
- follow the steps
+- Stack-specific configurations
+- Analytics data in stack-managed buckets
+- Audit logs and Athena querying setups
+- User database configurations
 
-From time to time, you may need to remove a Quilt stack from your AWS account.
-To do this, you will need to delete the CloudFormation stack that created the
-stack, which will remove all resources associated with the stack.
+### Required Actions
 
-### NOTE: Pausing the Stack Instead of Deletion
+- Export analytics data you need to keep
+- Save important audit logs
+- Document existing Athena configurations if you'll need to recreate them
+- If using Terraform, you can use it to capture a snapshot of the user database
 
-If you prefer to suspend the Quilt stack temporarily, consider pausing services
-(e.g., shutting down ECS) to reduce costs. Note, however, that some charges may
-continue even with ECS inactive. To fully stop charges, you must delete the
-CloudFormation stack.
+## II. Stack Deletion Process
 
-## Step 1: Confirm Stack Deletion Readiness
+### Using CloudFormation
 
-Deleting the CloudFormation stack will permanently remove any stack-specific
-configurations, analytics data, audit logs, and Athena querying setups. Data in
-your own S3 buckets will remain intact, as they are outside of CloudFormation’s
-control.
+1. **Initiate Deletion**
+   - Navigate to CloudFormation console in your AWS region
+   - Select your stack under CloudFormation > Stacks
+   - Click Delete to begin the process
 
-### Important Considerations
+2. **Deletion Behavior**
+   - CloudFormation attempts to delete all stack-managed resources
+   - If a resource cannot be deleted (e.g., non-empty S3 bucket):
+     - Other independent resources will still be deleted
+     - Stack enters DELETE_FAILED state
+     - Failed resources remain intact
+     - Successfully deleted resources stay removed
 
-1. **Backup of Analytics and Audit Logs**: If you need to retain any analytics
-   or audit logs stored in stack-managed buckets, back up these files. Note that
-   **you must delete these contents after backup** to allow CloudFormation to
-   delete the buckets.
-2. **Athena Configurations**: Athena databases and Glue resources associated
-   with stack analytics data will be removed. To restore querying capabilities
-   later, you may need to reconfigure these settings.
+### Using Terraform
 
-## Step 2: Attempt Stack Deletion in CloudFormation
+1. **Initiate Deletion**
+   - Open terminal in your Terraform configuration directory
+   - Run `terraform destroy`
 
-1. In the **CloudFormation** console for the appropriate AWS region, locate your
-   Quilt stack: CloudFormation > Stacks -> Your Stack Name.
-2. Select **Delete** to begin the stack deletion process. AWS will attempt to
-   delete all resources managed by the stack.
+2. **Deletion Behavior**
+   - Terraform stops at the first resource it cannot delete
+   - Dependencies of the failed resource are preserved
+   - Successfully deleted resources remain removed
+   - Process can be resumed after addressing the failure
 
-### Non-Empty S3 Buckets
+## III. Handling Non-Empty Resources
 
-stack contain data, the initial deletion attempt will fail. You have two
-options:
+### Option 1: Empty and Delete
 
-1. **Manually Empty Buckets After Backup**:
-   - Go to the **S3 console**, locate the non-empty buckets, and back up any
-     important files to ensure they are preserved.
-   - After backing up, delete all files within these buckets to enable
-     CloudFormation to delete them on the next attempt.
+1. Back up important files via S3 console
+2. Remove all files from the buckets
+3. Retry stack deletion
 
-2. **Retain Buckets**:
-   - During deletion, AWS will list any resources that failed to delete.
-   - Select the **retain** option for non-empty buckets to keep the data intact,
-     leaving the bucket in your AWS account without deletion.
+### Option 2: Retain Resources
 
-## Step 3: Finalize Deletion and Resource Management
+1. Mark non-empty buckets for retention during deletion
+2. Complete stack deletion while preserving marked buckets
 
-Once buckets are emptied or retained, retry the stack deletion in
-CloudFormation. All resources aside from those marked for retention will be
-permanently removed.
+## IV. Final Steps
 
-By following these steps and carefully managing data retention, you can delete
-your Quilt stack while ensuring important information is preserved.
+- Retry deletion after handling any failed resources
+- Verify deletion of all non-retained resources
+- Confirm that the stack is no longer listed in CloudFormation or Terraform
+
+## V. After Stack Deletion
+
+- Your S3 bucket data remains intact and accessible
+- Quilt SDK continues to function for package operations
+- Recreate any necessary Athena/Glue configurations if needed
