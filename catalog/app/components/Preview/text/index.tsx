@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
 import * as FileEditor from 'components/FileEditor'
 import type * as Model from 'model'
@@ -6,14 +7,12 @@ import assertNever from 'utils/assertNever'
 
 import * as Markdown from './Markdown'
 
-// TODO: Better error message
 function NoValue() {
-  return <h1>No value</h1>
+  return <M.Typography>There is no content for quick preview</M.Typography>
 }
 
-// TODO: Better empty message
 function NoPreview() {
-  return <h1>No preview</h1>
+  return <M.Typography>Quick preview is not available for this type</M.Typography>
 }
 
 interface TextPreviewProps {
@@ -22,19 +21,41 @@ interface TextPreviewProps {
   value?: string
 }
 
+interface HandledMarkdown {
+  tag: 'markdown'
+}
+
+interface HandledNone {
+  tag: 'none'
+}
+
+type HandledType = HandledNone | HandledMarkdown // Json | Yaml
+
+function convertToTypeUnion(type: FileEditor.EditorInputType | null): HandledType {
+  if (!type) return { tag: 'none' }
+  switch (type.brace) {
+    case 'markdown':
+      return { tag: 'markdown' }
+    default:
+      return { tag: 'none' }
+  }
+}
+
 export function isPreviewAvailable(type: FileEditor.EditorInputType | null) {
-  return type?.brace === 'markdown'
+  return convertToTypeUnion(type).tag !== 'none'
 }
 
 export default function TextPreview({ handle, type, value }: TextPreviewProps) {
   if (!value) return <NoValue />
 
-  if (type?.brace !== 'markdown') return <NoPreview />
+  const previewType = convertToTypeUnion(type)
 
-  switch (type.brace) {
+  switch (previewType.tag) {
     case 'markdown':
       return <Markdown.Render value={value} handle={handle} />
+    case 'none':
+      return <NoPreview />
     default:
-      assertNever(type.brace)
+      assertNever(previewType)
   }
 }
