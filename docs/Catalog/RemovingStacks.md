@@ -1,5 +1,6 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-If you ever need to delete a Quilt stack from your AWS account, be aware that:
+If you ever need to delete a Quilt stack from your AWS account, you should know
+that:
 
 - Your data in S3 buckets remains accessible.
 - You can continue using the Quilt SDK for reading and writing packages.
@@ -8,7 +9,7 @@ If you ever need to delete a Quilt stack from your AWS account, be aware that:
 
 > **Consider Pausing Instead:** To temporarily suspend the stack, you can shut
 > down ECS services to reduce costs. Note that some charges may continue even
-> when ECS is inactive. The only way to completely eliminate all costs is to
+> when ECS is inactive, so the only way to completely eliminate all costs is to
 > delete the stack.
 
 ---
@@ -23,7 +24,7 @@ If you ever need to delete a Quilt stack from your AWS account, be aware that:
 - Audit logs and Athena querying setups.
 - User database configurations.
 
-### Required Actions
+### Recommended Actions
 
 - Export analytics data you need to keep.
 - Save important audit logs.
@@ -41,19 +42,18 @@ If you ever need to delete a Quilt stack from your AWS account, be aware that:
    - Select your stack under **CloudFormation > Stacks**.  
    - Click **Delete Stack** to begin the process.
 
-2. **Understand Deletion Behavior**  
+2. **Empty or Ignore Non-Deleted Resources**
    - CloudFormation attempts to delete all stack-managed resources.  
    - If a resource cannot be deleted (e.g., non-empty S3 bucket):  
      - Other independent resources will still be deleted.  
      - The stack enters the **DELETE_FAILED** state.  
      - Failed resources remain intact, including non-empty S3 buckets.  
-     - To resolve:  
+   - If you wish to remove those resources:
        - Back up any important files.  
        - Remove all files from the bucket via the S3 console or CLI.  
        - Retry the deletion process.
-
-   - Alternatively, you can mark non-empty buckets for retention during deletion
-     to preserve data, though this may require manual cleanup later.
+   - Alternatively, you can leave them undeleted, though that may require manual
+     cleanup later.
 
 ### Using Terraform
 
@@ -61,7 +61,7 @@ If you ever need to delete a Quilt stack from your AWS account, be aware that:
    - Open a terminal in your Terraform configuration directory.  
    - Run `terraform destroy`.
 
-2. **Understand Deletion Behavior**  
+2. **Empty or Retain Non-Deleted Resources**  
    - Terraform stops at the first resource it cannot delete (e.g., non-empty S3
      buckets).  
    - Dependencies of the failed resource are preserved.  
@@ -88,4 +88,4 @@ If you ever need to delete a Quilt stack from your AWS account, be aware that:
 - Your S3 bucket data remains intact and accessible.  
 - The Quilt SDK continues to function for package operations.  
 - Recreate any necessary Athena/Glue configurations if needed.
-- Rebuild the user database if using Terraform.
+- Rebuild the user database, if needed and using Terraform.
