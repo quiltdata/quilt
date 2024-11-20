@@ -96,4 +96,4 @@ that:
 - Your S3 bucket data remains intact and accessible.  
 - The Quilt SDK continues to function for package operations.  
 - Recreate any necessary Athena/Glue configurations if needed.
-- Rebuild the user database, if needed and using Terraform.
+Rebuild the user database, if needed, using Terraform.
