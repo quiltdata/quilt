@@ -46,8 +46,14 @@ If you ever need to delete a Quilt stack from your AWS account, be aware that:
    - If a resource cannot be deleted (e.g., non-empty S3 bucket):  
      - Other independent resources will still be deleted.  
      - The stack enters the **DELETE_FAILED** state.  
-     - Failed resources remain intact.  
-     - Successfully deleted resources stay removed.
+     - Failed resources remain intact, including non-empty S3 buckets.  
+     - To resolve:  
+       - Back up any important files.  
+       - Remove all files from the bucket via the S3 console or CLI.  
+       - Retry the deletion process.
+
+   - Alternatively, you can mark non-empty buckets for retention during deletion
+     to preserve data, though this may require manual cleanup later.
 
 ### Using Terraform
 
@@ -56,39 +62,28 @@ If you ever need to delete a Quilt stack from your AWS account, be aware that:
    - Run `terraform destroy`.
 
 2. **Understand Deletion Behavior**  
-   - Terraform stops at the first resource it cannot delete.  
+   - Terraform stops at the first resource it cannot delete (e.g., non-empty S3
+     buckets).  
    - Dependencies of the failed resource are preserved.  
-   - Successfully deleted resources remain removed.  
-   - Fix the failure and resume the process by re-running `terraform destroy`.
+   - To resolve:  
+       - Back up important files and clear the bucket contents.  
+       - Alternatively, configure Terraform to retain the resource by marking it
+         for retention in the configuration.  
+   - Once addressed, resume deletion by re-running `terraform destroy`.
 
 ---
 
-## III. Handling Non-Empty Resources
+## III. Final Steps
 
-### Option 1: Empty and Delete
-
-1. Back up important files via the S3 console.  
-2. Remove all files from the buckets.  
-3. Retry stack deletion.
-
-### Option 2: Retain Resources
-
-1. Mark non-empty buckets for retention during deletion.  
-2. Complete stack deletion while preserving marked buckets.  
-
----
-
-## IV. Final Steps
-
-- Retry deletion after handling any failed resources.  
+- Retry deletion after addressing any failed resources.  
 - Verify deletion of all non-retained resources.  
 - Confirm that the stack is no longer listed in CloudFormation or Terraform.  
 - Check for any orphaned resources or residual costs using the **AWS Cost
-  Explorer**.
+  Explorer**.  
 
 ---
 
-## V. After Stack Deletion
+## IV. After Stack Deletion
 
 - Your S3 bucket data remains intact and accessible.  
 - The Quilt SDK continues to function for package operations.  
