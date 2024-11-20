@@ -29,7 +29,8 @@ that:
 - Export analytics data you need to keep.
 - Save important audit logs.
 - Document existing Athena configurations if you'll need to recreate them.
-- If using Terraform, use it to capture a snapshot of the user database.
+- If using Terraform, use it to capture a snapshot of the user database for
+  possible use in future stacks.
 
 ---
 
@@ -45,9 +46,10 @@ that:
 2. **Empty or Ignore Non-Deleted Resources**
    - CloudFormation attempts to delete all stack-managed resources.  
    - If a resource cannot be deleted (e.g., non-empty S3 bucket):  
+     - It will show a **DELETE_FAILED** status in the **Events** tab.
+     - Failed resources remain intact, including non-empty S3 buckets.  
      - Other independent resources will still be deleted.  
      - The stack enters the **DELETE_FAILED** state.  
-     - Failed resources remain intact, including non-empty S3 buckets.  
    - If you wish to remove those resources:
        - Back up any important files.  
        - Remove all files from the bucket via the S3 console or CLI.  
@@ -96,4 +98,3 @@ that:
 - Your S3 bucket data remains intact and accessible.  
 - The Quilt SDK continues to function for package operations.  
 - Recreate any necessary Athena/Glue configurations if needed.
-- Rebuild the user database, if needed and using Terraform.
