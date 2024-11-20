@@ -15,7 +15,7 @@ Entries inside each section should be ordered by type:
 
 # unreleased - YYYY-MM-DD
 
-## Python API
+## Catalog
 
 * [Changed] Add `catalog` fragment to Quilt+ URIs (and to documentation). ([#4213](https://github.com/quiltdata/quilt/pull/4213))
 
