@@ -636,6 +636,14 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', '/foo/')
 
+    @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
+    def test_set_file_root_folder_named_slash(self):
+        pkg = Package()
+        pkg.set('bar.txt', 's3://bucket//foo/a.txt')
+
+        assert pkg['bar.txt'].get() == 's3://bucket//foo/a.txt?versionId=v1'
+        assert pkg['bar.txt'].size == 123
+
     def test_set_dir_wrong_update_policy(self):
         """Verify non existing update policy raises value error."""
         pkg = Package()
