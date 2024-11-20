@@ -6,7 +6,7 @@
 #
 aiobotocore==2.3.4
     # via t4_lambda_status_reports (setup.py)
-aiohttp==3.10.2
+aiohttp==3.10.11
     # via aiobotocore
 aioitertools==0.10.0
     # via aiobotocore
