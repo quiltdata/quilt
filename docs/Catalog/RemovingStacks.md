@@ -1,4 +1,24 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
+If you ever need to remove a Quilt stack from your AWS account,
+you will continue to have access to all the data stored in your S3 buckets.
+You can still use the Quilt SDK to read and write packages to these buckets.
+
+However, you may lose access to resources created and managed by the Quilt
+stack, including the user database and service buckets containing audit logs and
+analytics data. Exactly how that happens depends on whether you created the stack using CloudFormation or Terraform.
+
+## Removing a Terraform Stack
+
+1. In the terminal, navigate to the directory containing your Terraform
+   configuration.
+2. Run `terraform destroy` to remove the Quilt stack.  It will warn you that it
+   cannot remove any service buckets that are not empty.  
+3. You can either remove the buckets manually or run `terraform destroy` again
+   after emptying them.
+
+
+ follow the steps
+
 From time to time, you may need to remove a Quilt stack from your AWS account.
 To do this, you will need to delete the CloudFormation stack that created the
 stack, which will remove all resources associated with the stack.
@@ -36,7 +56,6 @@ control.
 
 ### Non-Empty S3 Buckets
 
-### Nonempty S3 Buckets
 stack contain data, the initial deletion attempt will fail. You have two
 options:
 

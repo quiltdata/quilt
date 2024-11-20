@@ -13,12 +13,6 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
-# unreleased - YYYY-MM-DD
-
-## Python API
-
-* [Docs] Document how to remove a stack. ([#4209](https://github.com/quiltdata/quilt/pull/4209))
-
 # 6.1.0 - 2024-10-14
 
 ## Python API
