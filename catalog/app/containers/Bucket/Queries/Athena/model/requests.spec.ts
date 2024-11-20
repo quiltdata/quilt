@@ -1086,7 +1086,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('sets query body from query if query is ready', () => {
       const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
-      const execution = {}
+      const execution = null
       const setQuery = jest.fn()
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
@@ -1098,7 +1098,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       }
     })
 
-    it('sets query body from execution if query is not ready', () => {
+    it('sets query body from execution if query is not selected', () => {
       const query = null
       const execution = { query: 'SELECT * FROM bar' }
       const setQuery = jest.fn()
@@ -1127,8 +1127,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('does not change value if query and execution are both not ready', async () => {
-      const query = null
-      const execution = null
+      const query = undefined
+      const execution = undefined
       const setQuery = jest.fn()
 
       const { result, rerender, waitForNextUpdate } = renderHook(
@@ -1139,11 +1139,15 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       expect(result.current.value).toBeUndefined()
+      // That's not possible from UI now,
+      // but let's pretend UI is ready to handle user input
       act(() => {
         result.current.setValue('foo')
       })
       expect(result.current.value).toBe('foo')
 
+      // We rerenderd hook but internal useEffect didn't rewrite the value
+      // to `undefined` as it was supposed to do on the first render
       await act(async () => {
         rerender([query, setQuery, execution])
         await waitForNextUpdate()
@@ -1166,7 +1170,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       expect(setQuery).toHaveBeenCalledWith(null)
     })
 
-    it('retains value when execution and query are initially empty but later updates', async () => {
+    it('obtains value when execution and query are initially empty but later update', async () => {
       const initialQuery = null
       const initialExecution = null
       const setQuery = jest.fn()
@@ -1178,8 +1182,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         },
       )
 
-      expect(result.current.value).toBeUndefined()
+      expect(result.current.value).toBeNull()
 
+      // Query was loaded with some value
+      // Execution is ready but it's still null
       await act(async () => {
         rerender([
           { key: 'up', name: 'Updated', body: 'SELECT * FROM updated' },
@@ -1193,6 +1199,69 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         expect(result.current.value).toBe('SELECT * FROM updated')
       } else {
         throw new Error('No data')
+      }
+    })
+
+    it('sets query body to null if query is null after being loaded', async () => {
+      const initialQuery = Model.Loading
+      const initialExecution = null
+      const setQuery = jest.fn()
+
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
+        {
+          initialProps: [
+            initialQuery as Model.Value<requests.Query>,
+            setQuery,
+            initialExecution,
+          ],
+        },
+      )
+
+      expect(result.current.value).toBe(Model.Loading)
+
+      await act(async () => {
+        rerender([null, setQuery, initialExecution])
+        await waitForNextUpdate()
+      })
+
+      if (Model.hasValue(result.current.value)) {
+        expect(result.current.value).toBeNull()
+      } else {
+        throw new Error('Unexpected state')
+      }
+    })
+
+    it('retains value if selected query is null and we switch from some execution', async () => {
+      // That's not ideal,
+      // but we don't know what chanded the query body: execution page or user.
+      // So, at least, it is documented here.
+      const initialQuery = null
+      const initialExecution = { id: 'any', query: 'SELECT * FROM updated' }
+      const setQuery = jest.fn()
+
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
+        {
+          initialProps: [
+            initialQuery as Model.Value<requests.Query>,
+            setQuery,
+            initialExecution,
+          ],
+        },
+      )
+
+      expect(result.current.value).toBe('SELECT * FROM updated')
+
+      await act(async () => {
+        rerender([initialQuery, setQuery, null])
+        await waitForNextUpdate()
+      })
+
+      if (Model.hasValue(result.current.value)) {
+        expect(result.current.value).toBe('SELECT * FROM updated')
+      } else {
+        throw new Error('Unexpected state')
       }
     })
   })
