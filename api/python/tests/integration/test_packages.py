@@ -630,7 +630,6 @@ class PackageTest(QuiltTestCase):
             ], [])
             pkg = Package()
             pkg.set_dir('bar', 's3://bucket//foo')  # top-level '/' folder
-            assert True, "No exception raised for top-level folder named '/'"
 
             assert pkg['bar']['a.txt'].get() == 's3://bucket//foo/a.txt?versionId=xyz'
             assert pkg['bar']['a.txt'].size == 10  # GH368
