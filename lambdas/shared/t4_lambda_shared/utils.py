@@ -2,7 +2,6 @@
 Helper functions.
 """
 import gzip
-import io
 import json
 import logging
 import os
@@ -96,13 +95,6 @@ def read_body(resp):
     return body
 
 
-class IncompleteResultException(Exception):
-    """
-    Exception indicating an incomplete response
-    (e.g., from S3 Select)
-    """
-
-
 def sql_escape(s):
     """
     Escape strings that might contain single quotes for use in Athena
@@ -110,60 +102,3 @@ def sql_escape(s):
     """
     escaped = s or ""
     return escaped.replace("'", "''")
-
-
-def buffer_s3response(s3response):
-    """
-    Read a streaming response (botocore.eventstream.EventStream) from s3 select
-    into a BytesIO buffer
-    """
-    logger_ = logging.getLogger(LOGGER_NAME)
-    response = io.BytesIO()
-    end_event_received = False
-    stats = None
-    found_records = False
-    for event in s3response['Payload']:
-        if 'Records' in event:
-            records = event['Records']['Payload']
-            response.write(records)
-            found_records = True
-        elif 'Progress' in event:
-            logger_.info("select progress: %s", event['Progress'].get('Details'))
-        elif 'Stats' in event:
-            logger_.info("select stats: %s", event['Stats'])
-        elif 'End' in event:
-            # End event indicates that the request finished successfully
-            end_event_received = True
-
-    if not end_event_received:
-        raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
-    response.seek(0)
-    return response if found_records else None
-
-
-def query_manifest_content(
-        s3_client: str,
-        *,
-        bucket: str,
-        key: str,
-        sql_stmt: str
-) -> io.BytesIO:
-    """
-    Call S3 Select to read only the logical keys from a
-    package manifest that match the desired folder path
-    prefix
-    """
-    logger_ = get_quilt_logger()
-    logger_.debug("utils.py: manifest_select: %s", sql_stmt)
-    response = s3_client.select_object_content(
-        Bucket=bucket,
-        Key=key,
-        ExpressionType='SQL',
-        Expression=sql_stmt,
-        InputSerialization={
-            'JSON': {'Type': 'LINES'},
-            'CompressionType': 'NONE'
-        },
-        OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
-    )
-    return buffer_s3response(response)
