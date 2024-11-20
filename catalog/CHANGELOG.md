@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Athena: fix minor UI bugs ([#4232](https://github.com/quiltdata/quilt/pull/4232))
 - [Fixed] Show Athena query editor when no named queries ([#4230](https://github.com/quiltdata/quilt/pull/4230))
 - [Fixed] Fix some doc URLs in catalog ([#4205](https://github.com/quiltdata/quilt/pull/4205))
 - [Changed] S3 Select -> GQL API calls for getting access counts ([#4218](https://github.com/quiltdata/quilt/pull/4218))
