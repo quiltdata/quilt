@@ -19,6 +19,7 @@
 * **Advanced**
   * [Athena](advanced-features/athena.md)
   * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
+  * [Removing Stacks](Catalog/RemovingStacks.md)
 
 ## Quilt Platform Administrator
 
