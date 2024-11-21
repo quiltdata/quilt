@@ -25,7 +25,12 @@ jest.mock(
     ),
 )
 
-jest.mock('./Skeleton', () => () => <span>Loading</span>)
+jest.mock(
+  '@material-ui/lab',
+  jest.fn(() => ({
+    Alert: ({ children }: { children: string }) => <div>Error: {children}</div>,
+  })),
+)
 
 const handle = {
   bucket: 'foo',
@@ -33,8 +38,14 @@ const handle = {
 }
 
 describe('app/components/Preview/quick/Render.spec.tsx', () => {
-  it('returns null on init or loading', () => {
+  it('it shows the error for Init state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Init())
+    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
+    expect(tree).toMatchSnapshot()
+  })
+
+  it('it shows the error for Pending state, because it is intended to run with already resolved value', () => {
+    useMarkdownRenderer.mockReturnValue(AsyncResult.Pending())
     const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
     expect(tree).toMatchSnapshot()
   })

@@ -15,11 +15,12 @@ interface RenderProps {
 
 export default function Render({ value, handle }: RenderProps) {
   const result = useMarkdownRenderer(AsyncResult.Ok(value), handle)
-  // `result` is never `Pending`, because we pass the `AsyncResult.Ok` value
+  // `result` is never `Pending` or `Init`, because we pass the `AsyncResult.Ok` value
   // but it can be `Err` if some post-processing fails
   return AsyncResult.case({
-    _: () => null,
-    Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
+    _: (x: { value?: Error }) => (
+      <Lab.Alert severity="error">{x.value?.message || 'Unexpected state'}</Lab.Alert>
+    ),
     Ok: (rendered: string) => (
       <React.Suspense fallback={<Skeleton />}>
         <Markdown rendered={rendered} />
