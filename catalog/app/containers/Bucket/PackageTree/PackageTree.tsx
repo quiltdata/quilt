@@ -923,8 +923,6 @@ interface PackageTreeProps {
   size?: number
 }
 
-// const catalog = window.location.hostname;
-
 function PackageTree({
   bucket,
   name,
@@ -1119,7 +1117,6 @@ function PackageTreeQueries({
 interface PackageTreeRouteParams {
   bucket: string
   name: string
-  catalog: string
   revision?: string
   path?: string
 }
@@ -1128,11 +1125,11 @@ export default function PackageTreeWrapper() {
   const {
     bucket,
     name,
-    catalog,
     revision: hashOrTag = 'latest',
     path: encodedPath = '',
   } = RRDom.useParams<PackageTreeRouteParams>()
   const location = RRDom.useLocation()
+  const catalog = window.location.hostname
   invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
 
