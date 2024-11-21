@@ -468,7 +468,14 @@ function DirDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples
+                          {...{
+                            ...packageHandle,
+                            hashOrTag,
+                            path,
+                            catalog: window.location.hostname,
+                          }}
+                        />
                       )}
                       {blocks.meta && (
                         <FileView.PackageMetaSection
@@ -821,7 +828,14 @@ function FileDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples
+                          {...{
+                            ...packageHandle,
+                            hashOrTag,
+                            path,
+                            catalog: window.location.hostname,
+                          }}
+                        />
                       )}
                       {blocks.meta && (
                         <>
