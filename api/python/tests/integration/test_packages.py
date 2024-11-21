@@ -450,7 +450,7 @@ class PackageTest(QuiltTestCase):
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path(filepath),
                 PhysicalKey.from_path('foo.txt'),
-                put_options=None
+                put_options=None,
             )
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))

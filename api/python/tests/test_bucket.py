@@ -179,7 +179,9 @@ class TestBucket(QuiltTestCase):
 
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path('README'),
-                PhysicalKey.from_url('s3://test-bucket/README.md'), put_options=opts)
+                PhysicalKey.from_url('s3://test-bucket/README.md'),
+                put_options=opts,
+            )
 
     def test_bucket_put_dir(self):
         path = pathlib.Path(__file__).parent / 'data'
