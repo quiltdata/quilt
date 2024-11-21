@@ -11,6 +11,12 @@
 ## User(name: str, email: str, date\_joined: datetime.datetime, last\_login: datetime.datetime, is\_active: bool, is\_admin: bool, is\_sso\_only: bool, is\_service: bool, role: Optional[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]], extra\_roles: List[Annotated[Union[quilt3.admin.types.ManagedRole, quilt3.admin.types.UnmanagedRole], FieldInfo(annotation=NoneType, required=True, discriminator='typename\_\_')]]) -> None  {#User}
 
 
+## SSOConfig(text: str, timestamp: datetime.datetime, uploader: quilt3.admin.types.User) -> None  {#SSOConfig}
+
+
+## TabulatorTable(name: str, config: str) -> None  {#TabulatorTable}
+
+
 # quilt3.admin.roles
 
 
@@ -127,4 +133,35 @@ __Arguments__
 * __name__:  Username of user to update.
 * __roles__:  Roles to remove from the user.
 * __fallback__:  If set, the role to assign to the user if the active role is removed.
+
+
+# quilt3.admin.sso_config
+
+
+## get() -> Optional[quilt3.admin.types.SSOConfig]  {#get}
+
+Get the current SSO configuration.
+
+
+## set(config: Optional[str]) -> Optional[quilt3.admin.types.SSOConfig]  {#set}
+
+Set the SSO configuration. Pass `None` to remove SSO configuration.
+
+
+# quilt3.admin.tabulator
+
+
+## list\_tables(bucket\_name: str) -> list[quilt3.admin.types.TabulatorTable]  {#list\_tables}
+
+List all tabulator tables in a bucket.
+
+
+## set\_table(bucket\_name: str, table\_name: str, config: Optional[str]) -> None  {#set\_table}
+
+Set the tabulator table configuration. Pass `None` to remove the table.
+
+
+## rename\_table(bucket\_name: str, table\_name: str, new\_table\_name: str) -> None  {#rename\_table}
+
+Rename tabulator table.
 

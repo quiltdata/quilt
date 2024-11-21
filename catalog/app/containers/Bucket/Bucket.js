@@ -14,6 +14,7 @@ import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
 import CatchNotFound from './CatchNotFound'
+import * as Selection from './Selection'
 import { displayError } from './errors'
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
@@ -103,7 +104,9 @@ export default function Bucket() {
               <File />
             </Route>
             <Route path={paths.bucketDir} exact>
-              <Dir />
+              <Selection.Provider>
+                <Dir />
+              </Selection.Provider>
             </Route>
             <Route path={paths.bucketOverview} exact>
               <Overview />

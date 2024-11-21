@@ -21,7 +21,6 @@ from enum import Enum
 from threading import Lock
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
-import boto3
 import jsonlines
 from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
@@ -43,7 +42,7 @@ from tenacity import (
 from tqdm import tqdm
 
 from . import util
-from .session import create_botocore_session
+from .session import get_boto3_session
 from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
 MAX_COPY_FILE_LIST_RETRIES = 3
@@ -152,9 +151,7 @@ class S3ClientProvider:
                     raise S3NoValidClientError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
 
     def get_boto_session(self):
-        botocore_session = create_botocore_session()
-        boto_session = boto3.Session(botocore_session=botocore_session)
-        return boto_session
+        return get_boto3_session()
 
     def _build_client(self, is_unsigned):
         session = self.get_boto_session()
@@ -614,7 +611,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
     if not file_list:
         return []
 
-    logger.info('copy files: started')
+    logger.debug('copy files: started')
 
     assert len(file_list) == len(results)
 
@@ -709,7 +706,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
             # Make sure all tasks exit quickly if the main thread exits before they're done.
             stopped = True
 
-    logger.info('copy files: finished')
+    logger.debug('copy files: finished')
 
     return results
 

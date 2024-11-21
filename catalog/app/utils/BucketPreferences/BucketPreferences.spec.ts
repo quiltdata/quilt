@@ -8,6 +8,8 @@ const expectedDefaults = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
+      downloadObject: true,
+      downloadPackage: true,
       openInDesktop: false,
       revisePackage: true,
       writeFile: true,

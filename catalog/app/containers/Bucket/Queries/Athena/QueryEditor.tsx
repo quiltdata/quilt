@@ -1,20 +1,18 @@
 import * as React from 'react'
 import AceEditor from 'react-ace'
-import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import 'ace-builds/src-noconflict/mode-sql'
 import 'ace-builds/src-noconflict/theme-eclipse'
 
+import Lock from 'components/Lock'
 import Skeleton from 'components/Skeleton'
-import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Dialogs from 'utils/GlobalDialogs'
 import StyledLink from 'utils/StyledLink'
 
-import * as requests from '../requests'
-
 import Database from './Database'
+import * as Model from './model'
 
 const ATHENA_REF_INDEX = 'https://aws.amazon.com/athena/'
 const ATHENA_REF_SQL =
@@ -45,23 +43,31 @@ function HelperText() {
 const useStyles = M.makeStyles((t) => ({
   editor: {
     padding: t.spacing(1),
+    position: 'relative',
   },
   header: {
-    margin: t.spacing(0, 0, 1),
+    margin: t.spacing(2, 0, 1),
   },
 }))
 
-interface EditorFieldProps {
-  className?: string
-  onChange: (value: string) => void
-  query: string
-}
-
-function EditorField({ className, query, onChange }: EditorFieldProps) {
+function EditorField() {
   const classes = useStyles()
+  const { queryBody, queryRun } = Model.use()
+
+  if (Model.isNone(queryBody.value)) {
+    return null
+  }
+
+  if (Model.isError(queryBody.value)) {
+    return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
+  }
+
+  if (!Model.hasValue(queryBody.value)) {
+    return <FormSkeleton />
+  }
 
   return (
-    <div className={className}>
+    <div>
       <M.Typography className={classes.header} variant="body1">
         Query body
       </M.Typography>
@@ -70,68 +76,19 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
           editorProps={{ $blockScrolling: true }}
           height="200px"
           mode="sql"
-          onChange={onChange}
+          onChange={queryBody.setValue}
           theme="eclipse"
-          value={query}
+          value={queryBody.value || ''}
           width="100%"
         />
+        {Model.isLoading(queryRun) && <Lock />}
       </M.Paper>
       <HelperText />
     </div>
   )
 }
 
-function useQueryRun(
-  bucket: string,
-  workgroup: requests.athena.Workgroup,
-  queryExecutionId?: string,
-) {
-  const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<Error | undefined>()
-  const runQuery = requests.athena.useQueryRun(workgroup)
-  const { push: notify } = Notifications.use()
-  const goToExecution = React.useCallback(
-    (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
-    [bucket, history, urls, workgroup],
-  )
-  const onSubmit = React.useCallback(
-    async (value: string, executionContext: requests.athena.ExecutionContext | null) => {
-      setLoading(true)
-      setError(undefined)
-      try {
-        const { id } = await runQuery(value, executionContext)
-        if (id === queryExecutionId) notify('Query execution results remain unchanged')
-        setLoading(false)
-        goToExecution(id)
-      } catch (e) {
-        setLoading(false)
-        if (e instanceof Error) {
-          setError(e)
-        } else {
-          throw e
-        }
-      }
-    },
-    [goToExecution, notify, runQuery, queryExecutionId],
-  )
-  return React.useMemo(
-    () => ({
-      loading,
-      error,
-      onSubmit,
-    }),
-    [loading, error, onSubmit],
-  )
-}
-
 const useFormSkeletonStyles = M.makeStyles((t) => ({
-  button: {
-    height: t.spacing(4),
-    marginTop: t.spacing(2),
-    width: t.spacing(14),
-  },
   canvas: {
     flexGrow: 1,
     height: t.spacing(27),
@@ -156,7 +113,7 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
 }))
 
 interface FormSkeletonProps {
-  className: string
+  className?: string
 }
 
 function FormSkeleton({ className }: FormSkeletonProps) {
@@ -169,8 +126,33 @@ function FormSkeleton({ className }: FormSkeletonProps) {
         <Skeleton className={classes.canvas} animate />
       </div>
       <HelperText />
-      <Skeleton className={classes.button} animate />
     </div>
+  )
+}
+
+interface FormConfirmProps {
+  close: () => void
+  submit: () => void
+}
+
+function FormConfirm({ close, submit }: FormConfirmProps) {
+  return (
+    <>
+      <M.DialogContent>
+        Database is not selected. Run the query without it?
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={close}>Close</M.Button>
+        <M.Button
+          onClick={() => {
+            close()
+            submit()
+          }}
+        >
+          Confirm, run without
+        </M.Button>
+      </M.DialogActions>
+    </>
   )
 }
 
@@ -178,10 +160,23 @@ export { FormSkeleton as Skeleton }
 
 const useFormStyles = M.makeStyles((t) => ({
   actions: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
     display: 'flex',
-    margin: t.spacing(2, 0),
+    justifyContent: 'space-between',
+    margin: t.spacing(2, 0, 4),
+    [t.breakpoints.up('sm')]: {
+      alignItems: 'center',
+    },
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
+  },
+  database: {
+    [t.breakpoints.up('sm')]: {
+      width: '50%',
+    },
+    [t.breakpoints.down('sm')]: {
+      marginBottom: t.spacing(2),
+    },
   },
   error: {
     margin: t.spacing(1, 0, 0),
@@ -189,56 +184,38 @@ const useFormStyles = M.makeStyles((t) => ({
 }))
 
 interface FormProps {
-  bucket: string
-  className?: string
-  onChange: (value: requests.athena.QueryExecution) => void
-  value: requests.athena.QueryExecution | null
-  workgroup: requests.athena.Workgroup
+  className: string
 }
 
-export function Form({ bucket, className, onChange, value, workgroup }: FormProps) {
+export function Form({ className }: FormProps) {
   const classes = useFormStyles()
 
-  const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
-    () =>
-      value?.catalog && value?.db
-        ? {
-            catalogName: value.catalog,
-            database: value.db,
-          }
-        : null,
-    [value],
-  )
-  const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, value?.id)
-  const handleSubmit = React.useCallback(() => {
-    if (!value?.query) return
-    onSubmit(value?.query, executionContext)
-  }, [executionContext, onSubmit, value])
+  const { submit, queryRun } = Model.use()
+
+  const openDialog = Dialogs.use()
+  const handleSubmit = React.useCallback(async () => {
+    const output = await submit(false)
+    if (output === Model.NO_DATABASE) {
+      openDialog(({ close }) => <FormConfirm close={close} submit={() => submit(true)} />)
+    }
+  }, [openDialog, submit])
 
   return (
     <div className={className}>
-      <EditorField
-        onChange={(query: string) => onChange({ ...value, query })}
-        query={value?.query || ''}
-      />
+      <EditorField />
 
-      {error && (
+      {Model.isError(queryRun) && (
         <Lab.Alert className={classes.error} severity="error">
-          {error.message}
+          {queryRun.message}
         </Lab.Alert>
       )}
 
       <div className={classes.actions}>
-        <Database
-          onChange={({ catalogName, database }) =>
-            onChange({ ...value, catalog: catalogName, db: database })
-          }
-          value={executionContext}
-        />
+        <Database className={classes.database} />
         <M.Button
           variant="contained"
           color="primary"
-          disabled={!value || loading}
+          disabled={!Model.isReady(queryRun)}
           onClick={handleSubmit}
         >
           Run query

@@ -5,11 +5,34 @@ from typing import Any, Dict, List, Optional, Union
 
 from .base_client import BaseClient
 from .base_model import UNSET, UnsetType
+from .bucket_tabulator_table_rename import (
+    BucketTabulatorTableRename,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput,
+    BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError,
+)
+from .bucket_tabulator_table_set import (
+    BucketTabulatorTableSet,
+    BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig,
+    BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput,
+    BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError,
+)
+from .bucket_tabulator_tables_list import (
+    BucketTabulatorTablesList,
+    BucketTabulatorTablesListBucketConfig,
+)
 from .input_types import UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
     RolesListRolesUnmanagedRole,
+)
+from .sso_config_get import SsoConfigGet, SsoConfigGetAdminSsoConfig
+from .sso_config_set import (
+    SsoConfigSet,
+    SsoConfigSetAdminSetSsoConfigInvalidInput,
+    SsoConfigSetAdminSetSsoConfigOperationError,
+    SsoConfigSetAdminSetSsoConfigSsoConfig,
 )
 from .users_add_roles import UsersAddRoles, UsersAddRolesAdminUserMutate
 from .users_create import (
@@ -852,3 +875,292 @@ class Client(BaseClient):
         )
         data = self.get_data(response)
         return UsersRemoveRoles.model_validate(data).admin.user.mutate
+
+    def sso_config_get(self, **kwargs: Any) -> Optional[SsoConfigGetAdminSsoConfig]:
+        query = gql(
+            """
+            query ssoConfigGet {
+              admin {
+                ssoConfig {
+                  ...SsoConfigSelection
+                }
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment SsoConfigSelection on SsoConfig {
+              text
+              timestamp
+              uploader {
+                ...UserSelection
+              }
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query, operation_name="ssoConfigGet", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SsoConfigGet.model_validate(data).admin.sso_config
+
+    def sso_config_set(
+        self, config: Union[Optional[str], UnsetType] = UNSET, **kwargs: Any
+    ) -> Optional[
+        Union[
+            SsoConfigSetAdminSetSsoConfigSsoConfig,
+            SsoConfigSetAdminSetSsoConfigInvalidInput,
+            SsoConfigSetAdminSetSsoConfigOperationError,
+        ]
+    ]:
+        query = gql(
+            """
+            mutation ssoConfigSet($config: String) {
+              admin {
+                setSsoConfig(config: $config) {
+                  __typename
+                  ...SsoConfigSelection
+                  ...InvalidInputSelection
+                  ...OperationErrorSelection
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment ManagedRoleSelection on ManagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+
+            fragment RoleSelection on Role {
+              __typename
+              ...UnmanagedRoleSelection
+              ...ManagedRoleSelection
+            }
+
+            fragment SsoConfigSelection on SsoConfig {
+              text
+              timestamp
+              uploader {
+                ...UserSelection
+              }
+            }
+
+            fragment UnmanagedRoleSelection on UnmanagedRole {
+              id
+              name
+              arn
+            }
+
+            fragment UserSelection on User {
+              name
+              email
+              dateJoined
+              lastLogin
+              isActive
+              isAdmin
+              isSsoOnly
+              isService
+              role {
+                ...RoleSelection
+              }
+              extraRoles {
+                ...RoleSelection
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"config": config}
+        response = self.execute(
+            query=query, operation_name="ssoConfigSet", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SsoConfigSet.model_validate(data).admin.set_sso_config
+
+    def bucket_tabulator_tables_list(
+        self, name: str, **kwargs: Any
+    ) -> Optional[BucketTabulatorTablesListBucketConfig]:
+        query = gql(
+            """
+            query bucketTabulatorTablesList($name: String!) {
+              bucketConfig(name: $name) {
+                tabulatorTables {
+                  name
+                  config
+                }
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"name": name}
+        response = self.execute(
+            query=query,
+            operation_name="bucketTabulatorTablesList",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return BucketTabulatorTablesList.model_validate(data).bucket_config
+
+    def bucket_tabulator_table_set(
+        self,
+        bucket_name: str,
+        table_name: str,
+        config: Union[Optional[str], UnsetType] = UNSET,
+        **kwargs: Any
+    ) -> Union[
+        BucketTabulatorTableSetAdminBucketSetTabulatorTableBucketConfig,
+        BucketTabulatorTableSetAdminBucketSetTabulatorTableInvalidInput,
+        BucketTabulatorTableSetAdminBucketSetTabulatorTableOperationError,
+    ]:
+        query = gql(
+            """
+            mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $config: String) {
+              admin {
+                bucketSetTabulatorTable(
+                  bucketName: $bucketName
+                  tableName: $tableName
+                  config: $config
+                ) {
+                  __typename
+                  ...InvalidInputSelection
+                  ...OperationErrorSelection
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "bucketName": bucket_name,
+            "tableName": table_name,
+            "config": config,
+        }
+        response = self.execute(
+            query=query,
+            operation_name="bucketTabulatorTableSet",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return BucketTabulatorTableSet.model_validate(
+            data
+        ).admin.bucket_set_tabulator_table
+
+    def bucket_tabulator_table_rename(
+        self, bucket_name: str, table_name: str, new_table_name: str, **kwargs: Any
+    ) -> Union[
+        BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig,
+        BucketTabulatorTableRenameAdminBucketRenameTabulatorTableInvalidInput,
+        BucketTabulatorTableRenameAdminBucketRenameTabulatorTableOperationError,
+    ]:
+        query = gql(
+            """
+            mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $newTableName: String!) {
+              admin {
+                bucketRenameTabulatorTable(
+                  bucketName: $bucketName
+                  tableName: $tableName
+                  newTableName: $newTableName
+                ) {
+                  __typename
+                  ...InvalidInputSelection
+                  ...OperationErrorSelection
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment OperationErrorSelection on OperationError {
+              message
+              name
+              context
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "bucketName": bucket_name,
+            "tableName": table_name,
+            "newTableName": new_table_name,
+        }
+        response = self.execute(
+            query=query,
+            operation_name="bucketTabulatorTableRename",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return BucketTabulatorTableRename.model_validate(
+            data
+        ).admin.bucket_rename_tabulator_table

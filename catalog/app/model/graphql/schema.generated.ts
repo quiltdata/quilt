@@ -84,6 +84,41 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'AccessCountsGroup',
+        fields: [
+          {
+            name: 'ext',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'counts',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'AccessCounts',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
+      },
+      {
+        kind: 'OBJECT',
         name: 'AdminMutations',
         fields: [
           {
@@ -97,6 +132,113 @@ export default {
               },
             },
             args: [],
+          },
+          {
+            name: 'setSsoConfig',
+            type: {
+              kind: 'UNION',
+              name: 'SetSsoConfigResult',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'config',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketSetTabulatorTable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketSetTabulatorTableResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucketName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'tableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'config',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'bucketRenameTabulatorTable',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BucketSetTabulatorTableResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucketName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'tableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'newTableName',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
           },
         ],
         interfaces: [],
@@ -117,8 +259,33 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'ssoConfig',
+            type: {
+              kind: 'OBJECT',
+              name: 'SsoConfig',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'isDefaultRoleSettingDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -143,14 +310,6 @@ export default {
             name: 'IPackageUserMetaFacet',
           },
         ],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -236,6 +395,52 @@ export default {
             name: 'OperationError',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'BucketAccessCounts',
+        fields: [
+          {
+            name: 'byExt',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'AccessCountsGroup',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'groups',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'combined',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'AccessCounts',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'UNION',
@@ -535,6 +740,24 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'tabulatorTables',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'TabulatorTable',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -675,6 +898,24 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'BucketSetTabulatorTableResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BucketConfig',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
       },
       {
         kind: 'UNION',
@@ -4025,6 +4266,81 @@ export default {
             args: [],
           },
           {
+            name: 'bucketAccessCounts',
+            type: {
+              kind: 'OBJECT',
+              name: 'BucketAccessCounts',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'window',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'objectAccessCounts',
+            type: {
+              kind: 'OBJECT',
+              name: 'AccessCounts',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'key',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'window',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'admin',
             type: {
               kind: 'NON_NULL',
@@ -4278,6 +4594,10 @@ export default {
           },
           {
             kind: 'OBJECT',
+            name: 'RoleNameUsedBySsoConfig',
+          },
+          {
+            kind: 'OBJECT',
             name: 'RoleAssigned',
           },
         ],
@@ -4411,6 +4731,22 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'RoleNameUsedBySsoConfig',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
         kind: 'UNION',
         name: 'RoleSetDefaultResult',
         possibleTypes: [
@@ -4421,6 +4757,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'RoleDoesNotExist',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'SsoConfigConflict',
           },
         ],
       },
@@ -4462,6 +4802,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'RoleNameInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameUsedBySsoConfig',
           },
           {
             kind: 'OBJECT',
@@ -4600,6 +4944,15 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'indexedContent',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -4722,8 +5075,85 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'UNION',
+        name: 'SetSsoConfigResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'SsoConfig',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
         kind: 'OBJECT',
         name: 'SnsInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SsoConfig',
+        fields: [
+          {
+            name: 'text',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'timestamp',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'uploader',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'User',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SsoConfigConflict',
         fields: [
           {
             name: '_',
@@ -5006,6 +5436,37 @@ export default {
             name: 'OperationError',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'TabulatorTable',
+        fields: [
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'config',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',
@@ -5317,6 +5778,30 @@ export default {
                     ofType: null,
                   },
                 },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'isRoleAssignmentDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'isAdminAssignmentDisabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
               },
             },
             args: [],

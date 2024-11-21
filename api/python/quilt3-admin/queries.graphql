@@ -47,6 +47,13 @@ fragment OperationErrorSelection on OperationError {
   name
   context
 }
+fragment SsoConfigSelection on SsoConfig {
+  text
+  timestamp
+  uploader {
+    ...UserSelection
+  }
+}
 
 query rolesList {
   roles {
@@ -184,6 +191,53 @@ mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String)
           ...OperationErrorSelection
         }
       }
+    }
+  }
+}
+
+query ssoConfigGet {
+  admin {
+    ssoConfig {
+      ...SsoConfigSelection
+    }
+  }
+}
+
+mutation ssoConfigSet($config: String) {
+  admin {
+    setSsoConfig(config: $config) {
+      ...SsoConfigSelection
+      ...InvalidInputSelection
+      ...OperationErrorSelection
+    }
+  }
+}
+
+query bucketTabulatorTablesList($name: String!) {
+  bucketConfig(name: $name) {
+    tabulatorTables {
+      name
+      config
+    }
+  }
+}
+
+mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $config: String) {
+  admin {
+    bucketSetTabulatorTable(bucketName: $bucketName, tableName: $tableName, config: $config) {
+      __typename
+      ...InvalidInputSelection
+      ...OperationErrorSelection
+    }
+  }
+}
+
+mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $newTableName: String!)  {
+  admin {
+    bucketRenameTabulatorTable(bucketName: $bucketName, tableName: $tableName, newTableName: $newTableName) {
+      __typename
+      ...InvalidInputSelection
+      ...OperationErrorSelection
     }
   }
 }

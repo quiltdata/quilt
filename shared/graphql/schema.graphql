@@ -122,6 +122,11 @@ type CollaboratorBucketConnection {
   permissionLevel: BucketPermissionLevel!
 }
 
+type TabulatorTable {
+  name: String!
+  config: String!
+}
+
 type BucketConfig {
   name: String!
   title: String!
@@ -141,6 +146,7 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   collaborators: [CollaboratorBucketConnection!]!
+  tabulatorTables: [TabulatorTable!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
@@ -202,6 +208,8 @@ type User {
   isService: Boolean!
   role: Role
   extraRoles: [Role!]!
+  isRoleAssignmentDisabled: Boolean!
+  isAdminAssignmentDisabled: Boolean!
 }
 
 type AccessCountForDate {
@@ -212,6 +220,16 @@ type AccessCountForDate {
 type AccessCounts {
   total: Int!
   counts: [AccessCountForDate!]!
+}
+
+type AccessCountsGroup {
+  ext: String!
+  counts: AccessCounts!
+}
+
+type BucketAccessCounts {
+  byExt(groups: Int): [AccessCountsGroup!]!
+  combined: AccessCounts!
 }
 
 type PackageDir {
@@ -467,6 +485,7 @@ type SearchHitObject {
   deleted: Boolean!
   # meta: JsonRecord! # String?
   # tags
+  indexedContent: String
 }
 
 # TODO: reuse package types?
@@ -497,8 +516,16 @@ type UserAdminQueries {
   get(name: String!): User
 }
 
+type SsoConfig {
+  text: String!
+  timestamp: Datetime!
+  uploader: User!
+}
+
 type AdminQueries {
   user: UserAdminQueries!
+  ssoConfig: SsoConfig
+  isDefaultRoleSettingDisabled: Boolean!
 }
 
 type MyRole {
@@ -538,6 +565,9 @@ type Query {
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
   subscription: SubscriptionState!
+
+  bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
+  objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
 
   admin: AdminQueries! @admin
 
@@ -693,6 +723,10 @@ type RoleNameInvalid {
   _: Boolean
 }
 
+type RoleNameUsedBySsoConfig {
+  _: Boolean
+}
+
 type RoleDoesNotExist {
   _: Boolean
 }
@@ -729,6 +763,7 @@ union RoleUpdateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
@@ -745,9 +780,14 @@ union RoleDeleteResult =
     RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
+  | RoleNameUsedBySsoConfig
   | RoleAssigned
 
-union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+type SsoConfigConflict {
+  _: Boolean
+}
+
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigConflict
 
 type RoleSetDefaultSuccess {
   role: Role!
@@ -860,8 +900,15 @@ type UserAdminMutations {
   mutate(name: String!): MutateUserAdminMutations
 }
 
+union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
+
+union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
+
 type AdminMutations {
   user: UserAdminMutations!
+  setSsoConfig(config: String): SetSsoConfigResult
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
 }
 
 type Mutation {

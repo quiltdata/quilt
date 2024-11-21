@@ -95,7 +95,11 @@
     },
     "qurator": {
       "type": "boolean",
-      "description": "Enable Qurator AI Assistant (powered by AWS Bedrock)"
+      "description": "Enable Qurator AI Assistant (powered by Amazon Bedrock)"
+    },
+    "stackVersion": {
+      "type": "string",
+      "description": "Stack release version"
     }
   },
   "required": [
@@ -109,7 +113,8 @@
     "s3Proxy",
     "serviceBucket",
     "ssoAuth",
-    "ssoProviders"
+    "ssoProviders",
+    "stackVersion"
   ],
   "definitions": {
     "Url": {

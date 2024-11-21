@@ -15,7 +15,6 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as Data from 'utils/Data'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
 import { readableBytes } from 'utils/string'
@@ -363,7 +362,6 @@ function Meta({ meta }: $TSFixMe) {
 
   return (
     <PreviewBox expanded={expanded} onToggle={onToggle}>
-      {/* @ts-expect-error */}
       <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
@@ -575,18 +573,14 @@ export function Alt({ className, ...props }: $TSFixMe) {
 export function Progress({ children }: $TSFixMe) {
   return (
     <Alt>
-      <Delay alwaysRender>
-        {(ready) => (
-          <M.Fade in={ready}>
-            <M.Box display="flex" alignItems="center">
-              <M.Box pr={2}>
-                <M.CircularProgress size={24} />
-              </M.Box>
-              <M.Typography variant="body1">{children}</M.Typography>
-            </M.Box>
-          </M.Fade>
-        )}
-      </Delay>
+      <M.Fade in style={{ transitionDelay: '1000ms' }}>
+        <M.Box display="flex" alignItems="center">
+          <M.Box pr={2}>
+            <M.CircularProgress size={24} />
+          </M.Box>
+          <M.Typography variant="body1">{children}</M.Typography>
+        </M.Box>
+      </M.Fade>
     </Alt>
   )
 }

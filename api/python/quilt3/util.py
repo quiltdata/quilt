@@ -81,6 +81,9 @@ binaryApiGatewayEndpoint:
 
 default_registry_version: 1
 
+# AWS region
+region:
+
 """.format(BASE_PATH.as_uri() + '/packages')
 
 
@@ -136,8 +139,6 @@ class PhysicalKey:
             assert version_id is None, "Local keys cannot have a version ID"
             if os.name == 'nt':
                 assert '\\' not in path, "Paths must use / as a separator"
-        else:
-            assert not path.startswith('/'), "S3 paths must not start with '/'"
 
         self.bucket = bucket
         self.path = path
@@ -228,7 +229,7 @@ class PhysicalKey:
                 params = {}
             else:
                 params = {'versionId': self.version_id}
-            return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+            return urlunparse(('s3', self.bucket, quote('/' + self.path), None, urlencode(params), None))
 
 
 def fix_url(url):
@@ -431,8 +432,10 @@ def load_config():
     Read the local config using defaults from CONFIG_TEMPLATE.
     """
     local_config = read_yaml(CONFIG_TEMPLATE)
-    if CONFIG_PATH.exists():
+    try:
         local_config.update(read_yaml(CONFIG_PATH))
+    except FileNotFoundError:
+        pass
     return local_config
 
 
