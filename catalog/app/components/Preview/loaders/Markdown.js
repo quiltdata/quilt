@@ -80,14 +80,22 @@ export const detect = utils.extIn(['.md', '.rmd'])
 
 function MarkdownLoader({ gated, handle, children }) {
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
-  const contents = AsyncResult.mapCase({
-    Ok: (r) => r.Body.toString('utf-8'),
-  })(data.result)
+  const contents = React.useMemo(
+    () =>
+      AsyncResult.mapCase({
+        Ok: (r) => r.Body.toString('utf-8'),
+      })(data.result),
+    [data.result],
+  )
   const markdowned = useMarkdownRenderer(contents, handle)
-  const processed = AsyncResult.mapCase({
-    Ok: (rendered) =>
-      PreviewData.Markdown({ rendered, modes: [FileType.Markdown, FileType.Text] }),
-  })(markdowned)
+  const processed = React.useMemo(
+    () =>
+      AsyncResult.mapCase({
+        Ok: (rendered) =>
+          PreviewData.Markdown({ rendered, modes: [FileType.Markdown, FileType.Text] }),
+      })(markdowned),
+    [markdowned],
+  )
   const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
   const result =
     gated && AsyncResult.Init.is(handled)
