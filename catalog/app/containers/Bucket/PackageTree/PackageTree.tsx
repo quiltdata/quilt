@@ -174,6 +174,7 @@ interface DirDisplayProps {
   hash: string
   hashOrTag: string
   path: string
+  catalog: string
   crumbs: BreadCrumbs.Crumb[]
   size?: number
 }
@@ -184,6 +185,7 @@ function DirDisplay({
   hash,
   hashOrTag,
   path,
+  catalog,
   crumbs,
   size,
 }: DirDisplayProps) {
@@ -468,7 +470,9 @@ function DirDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples
+                          {...{ ...packageHandle, hashOrTag, path, catalog }}
+                        />
                       )}
                       {blocks.meta && (
                         <FileView.PackageMetaSection
@@ -580,6 +584,7 @@ interface FileDisplayQueryProps {
   hash: string
   hashOrTag: string
   path: string
+  catalog: string
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
 }
@@ -682,6 +687,7 @@ function FileDisplay({
   hash,
   hashOrTag,
   path,
+  catalog,
   crumbs,
   file,
 }: FileDisplayProps) {
@@ -821,7 +827,9 @@ function FileDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples
+                          {...{ ...packageHandle, hashOrTag, path, catalog }}
+                        />
                       )}
                       {blocks.meta && (
                         <>
@@ -908,11 +916,14 @@ interface PackageTreeProps {
   hashOrTag: string
   hash?: string
   path: string
+  catalog: string
   mode?: string
   resolvedFrom?: string
   revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
   size?: number
 }
+
+// const catalog = window.location.hostname;
 
 function PackageTree({
   bucket,
@@ -920,6 +931,7 @@ function PackageTree({
   hashOrTag,
   hash,
   path,
+  catalog,
   mode,
   resolvedFrom,
   revisionListQuery,
@@ -1013,13 +1025,14 @@ function PackageTree({
                 hash,
                 path,
                 hashOrTag,
+                catalog,
                 crumbs,
                 size,
               }}
             />
           ) : (
             <FileDisplayQuery
-              {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
+              {...{ bucket, mode, name, hash, hashOrTag, path, catalog, crumbs }}
             />
           )}
         </ResolverProvider>
@@ -1050,6 +1063,7 @@ interface PackageTreeQueriesProps {
   name: string
   hashOrTag: string
   path: string
+  catalog: string
   resolvedFrom?: string
   mode?: string
 }
@@ -1059,6 +1073,7 @@ function PackageTreeQueries({
   name,
   hashOrTag,
   path,
+  catalog,
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
@@ -1089,6 +1104,7 @@ function PackageTreeQueries({
               hash: d.package.revision?.hash,
               size: d.package.revision?.totalBytes ?? undefined,
               path,
+              catalog,
               mode,
               resolvedFrom,
               revisionListQuery,
@@ -1103,6 +1119,7 @@ function PackageTreeQueries({
 interface PackageTreeRouteParams {
   bucket: string
   name: string
+  catalog: string
   revision?: string
   path?: string
 }
@@ -1111,6 +1128,7 @@ export default function PackageTreeWrapper() {
   const {
     bucket,
     name,
+    catalog,
     revision: hashOrTag = 'latest',
     path: encodedPath = '',
   } = RRDom.useParams<PackageTreeRouteParams>()
@@ -1125,7 +1143,9 @@ export default function PackageTreeWrapper() {
     <>
       <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageTreeQueries {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }} />
+        <PackageTreeQueries
+          {...{ bucket, name, hashOrTag, path, catalog, resolvedFrom, mode }}
+        />
       </WithPackagesSupport>
     </>
   )
