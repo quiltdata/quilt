@@ -40,11 +40,7 @@ function Readmes({ s3, overviewUrl, bucket }: ReadmesProps) {
           (rs.discovered.length > 0 || !!rs.forced) && (
             <>
               {!!rs.forced && (
-                <Summarize.FilePreview
-                  key="readme:forced"
-                  handle={rs.forced}
-                  expanded
-                />
+                <Summarize.FilePreview key="readme:forced" handle={rs.forced} expanded />
               )}
               {rs.discovered.map((h) => (
                 <Summarize.FilePreview
