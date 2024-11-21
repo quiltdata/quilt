@@ -54,6 +54,7 @@ interface PackageCodeSamplesProps extends Partial<SectionProps> {
   hash: string
   hashOrTag: string
   path: string
+  catalog: string
 }
 
 export default function PackageCodeSamples({
@@ -62,6 +63,7 @@ export default function PackageCodeSamples({
   hash,
   hashOrTag,
   path,
+  catalog,
   ...props
 }: PackageCodeSamplesProps) {
   const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
@@ -85,10 +87,10 @@ export default function PackageCodeSamples({
       {
         label: 'URI',
         hl: 'uri',
-        contents: PackageUri.stringify({ bucket, name, hash, path }),
+        contents: PackageUri.stringify({ bucket, name, hash, path, catalog }),
       },
     ],
-    [bucket, name, hashDisplay, hash, path],
+    [bucket, name, hashDisplay, hash, path, catalog],
   )
   return <Code {...props}>{code}</Code>
 }
