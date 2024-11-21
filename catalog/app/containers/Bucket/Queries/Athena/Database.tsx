@@ -205,15 +205,8 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
   },
   field: {
-    cursor: 'pointer',
     flexBasis: '50%',
     marginRight: t.spacing(2),
-    '& input': {
-      cursor: 'pointer',
-    },
-    '& > *': {
-      cursor: 'pointer',
-    },
   },
   button: {
     marginLeft: t.spacing(1),
