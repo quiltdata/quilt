@@ -18,6 +18,7 @@ import * as s3paths from 'utils/s3paths'
 import DirCodeSamples from 'containers/Bucket/CodeSamples/Dir'
 import * as FileView from 'containers/Bucket/FileView'
 import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
+import * as Selection from 'containers/Bucket/Selection'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
@@ -145,7 +146,7 @@ export default function Dir() {
           const locked = !AsyncResult.Ok.is(x)
 
           return (
-            <>
+            <Selection.Provider>
               <Listing
                 items={items}
                 locked={locked}
@@ -161,7 +162,7 @@ export default function Dir() {
                 }
               />
               <Summary files={res.files} path={path} />
-            </>
+            </Selection.Provider>
           )
         },
       })}
