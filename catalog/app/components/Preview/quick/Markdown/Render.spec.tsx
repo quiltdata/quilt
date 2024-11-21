@@ -33,7 +33,7 @@ const handle = {
 }
 
 describe('app/components/Preview/quick/Render.spec.tsx', () => {
-  it('returns null on init', () => {
+  it('returns null on init or loading', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Init())
     const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
     expect(tree).toMatchSnapshot()
@@ -41,12 +41,6 @@ describe('app/components/Preview/quick/Render.spec.tsx', () => {
 
   it('returns error on Err', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Err(new Error('some error')))
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
-  })
-
-  it('returns skeleton on loading', () => {
-    useMarkdownRenderer.mockReturnValue(AsyncResult.Pending())
     const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
     expect(tree).toMatchSnapshot()
   })

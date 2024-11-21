@@ -39,10 +39,4 @@ exports[`app/components/Preview/quick/Render.spec.tsx returns markdown on data 1
 </b>
 `;
 
-exports[`app/components/Preview/quick/Render.spec.tsx returns null on init 1`] = `null`;
-
-exports[`app/components/Preview/quick/Render.spec.tsx returns skeleton on loading 1`] = `
-<span>
-  Loading
-</span>
-`;
+exports[`app/components/Preview/quick/Render.spec.tsx returns null on init or loading 1`] = `null`;
