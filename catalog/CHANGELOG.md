@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Fix embed files listing ([#4236](https://github.com/quiltdata/quilt/pull/4236))
 - [Changed] Qurator: switch to Claude 3.5 Sonnet **v2** ([#4234](https://github.com/quiltdata/quilt/pull/4234))
 - [Changed] Add `catalog` fragment to Quilt+ URIs (and to documentation) ([#4213](https://github.com/quiltdata/quilt/pull/4213))
 - [Fixed] Athena: fix minor UI bugs ([#4232](https://github.com/quiltdata/quilt/pull/4232))
