@@ -18,6 +18,7 @@ where verb is one of
 ## Changes
 
 - [Added] Preview Markdown while editing ([#4153](https://github.com/quiltdata/quilt/pull/4153))
+- [Changed] Add `catalog` fragment to Quilt+ URIs (and to documentation) ([#4213](https://github.com/quiltdata/quilt/pull/4213))
 - [Fixed] Athena: fix minor UI bugs ([#4232](https://github.com/quiltdata/quilt/pull/4232))
 - [Fixed] Show Athena query editor when no named queries ([#4230](https://github.com/quiltdata/quilt/pull/4230))
 - [Fixed] Fix some doc URLs in catalog ([#4205](https://github.com/quiltdata/quilt/pull/4205))
