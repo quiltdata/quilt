@@ -59,6 +59,7 @@ function FileLink({ className, handle, packageHandle }: FileLinkProps) {
   const packageUri = PackageUri.stringify({
     ...packageHandle,
     path: handle.key,
+    catalog: window.location.hostname,
   })
   const children = decodeURIComponent(
     packageUri.slice(0, packageUri.indexOf('@') + 10) +
