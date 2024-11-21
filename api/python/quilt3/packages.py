@@ -831,7 +831,7 @@ class Package:
                     subpkg.set_meta(obj['meta'])
                     continue
                 if key in subpkg._children:
-                    raise PackageException(f"Duplicate logical key {key!r} while loading package {subpkg.path!r}")
+                    raise PackageException(f"Duplicate logical key {key!r} while loading package entry: {obj!r}")
                 subpkg._children[key] = PackageEntry(
                     PhysicalKey.from_url(obj['physical_keys'][0]),
                     obj['size'],
@@ -1114,7 +1114,7 @@ class Package:
                 lk = obj.get('logical_key')
                 entry_text = 'package metadata' if lk is None else f'entry with logical key {lk!r}'
                 raise QuiltException(
-                    f"Size of manifest record for {entry_text!r} is {encoded_size} bytes, "
+                    f"Size of manifest record for {entry_text} is {encoded_size} bytes, "
                     f"but must be less than {MANIFEST_MAX_RECORD_SIZE} bytes. "
                     'Quilt recommends less than 1 MB of metadata per object, '
                     'and less than 1 MB of package-level metadata. '
@@ -1190,7 +1190,7 @@ class Package:
     ):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
-                f"A package entry logical key cannot be a directory."
+                f"A package entry logical key {logical_key!r} must be a file."
             )
 
         validate_key(logical_key)
@@ -1237,7 +1237,7 @@ class Package:
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
-                    error_message += f' as a {ext} file.'
+                    error_message += f' as a {ext!r} file.'
                 error_message += '. If you think this should be supported, please open an issue or PR at ' \
                                  'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
@@ -1270,7 +1270,7 @@ class Package:
 
         pkg = self._ensure_subpackage(path[:-1], ensure_no_entry=True)
         if path[-1] in pkg and isinstance(pkg[path[-1]], Package):
-            raise QuiltException(f"Cannot overwrite directory {path[-1]} with PackageEntry")
+            raise QuiltException(f"Cannot overwrite directory {path[-1]!r} with PackageEntry")
         pkg._children[path[-1]] = entry
 
         return self

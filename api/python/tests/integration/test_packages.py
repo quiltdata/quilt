@@ -836,7 +836,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         with pytest.raises(TypeError,
                            match="Expected a string for entry, but got an instance of "
-                           r"<class 'quilt3\.packages\.Package'>: \(empty Package\)\."):
+                           r"<class 'quilt3\.packages\.Package'>\."):
             pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
@@ -1246,7 +1246,7 @@ class PackageTest(QuiltTestCase):
 
     def test_overwrite_dir_fails(self):
         with pytest.raises(QuiltException,
-                           match="Cannot overwrite directory asdf with PackageEntry"):
+                           match="Cannot overwrite directory 'asdf' with PackageEntry"):
             pkg = Package()
             pkg.set('asdf/jkl', LOCAL_MANIFEST)
             pkg.set('asdf', LOCAL_MANIFEST)
@@ -1997,7 +1997,7 @@ class PackageTest(QuiltTestCase):
             with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 1):
                 with pytest.raises(QuiltException) as excinfo:
                     Package().dump(buf)
-                assert 'Size of manifest record for package metadata' in str(excinfo.value)
+                assert "Size of manifest record for package metadata" in str(excinfo.value)
 
             with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 10_000):
                 with pytest.raises(QuiltException) as excinfo:
@@ -2237,7 +2237,7 @@ def create_test_file(filename):
 
 
 def test_set_meta_error():
-    with pytest.raises(PackageException, match="set must specify either path or meta"):
+    with pytest.raises(PackageException, match="Must specify either path or meta"):
         entry = PackageEntry(
             PhysicalKey("test-bucket", "without-hash", "without-hash"),
             42,
@@ -2262,14 +2262,14 @@ def test_loading_duplicate_logical_key_error():
 
     # Attempt to load the package, which should raise the error
     with pytest.raises(PackageException,
-                       match=f"Duplicate logical key {KEY} while loading package"):
+                       match=f"Duplicate logical key {KEY!r} while loading package entry: .*"):
         with open(MANIFEST_FILE, 'r', encoding='utf-8') as f:
             Package.load(f)
 
 
 def test_directory_not_exist_error():
     pkg = Package()
-    with pytest.raises(PackageException, match="The specified directory .*non_existent_directory doesn't exist"):
+    with pytest.raises(PackageException, match="The specified directory .*non_existent_directory\'\) doesn't exist"):
         pkg.set_dir('foo', 'non_existent_directory')
 
 
@@ -2278,7 +2278,7 @@ def test_key_not_point_to_package_entry_error():
     pkg_self = Package()
     pkg = pkg_self._ensure_subpackage(KEY, ensure_no_entry=True)
     pkg._children[KEY] = KEY
-    with pytest.raises(ValueError, match=f"Key {KEY} does not point to a PackageEntry"):
+    with pytest.raises(ValueError, match=f"Key {KEY!r} does not point to a PackageEntry"):
         pkg.get(KEY)
 
 
@@ -2286,7 +2286,7 @@ def test_commit_message_type_error():
     pkg = Package()
     with pytest.raises(ValueError,
                        match="The package commit message must be a string, "
-                       "but the message provided is an instance of <class 'int'>: 123"):
+                       "but the message provided is an instance of <class 'int'>."):
         pkg.build('test/pkg', message=123)
 
 
@@ -2297,7 +2297,7 @@ def test_already_package_entry_error():
     pkg = Package()
     pkg.set(DIR, KEY)
     with pytest.raises(QuiltException,
-                       match=f"Already a PackageEntry for {DIR} along the path "
+                       match=f"Already a PackageEntry for {DIR!r} along the path "
                        rf"\['{DIR}'\]: .*/{KEY}"):
         pkg.set(KEY2, KEY2)
 
