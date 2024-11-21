@@ -277,6 +277,13 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
   const { workgroup } = Model.use()
   if (!Model.hasValue(workgroup)) return null
 
+  if (!executions.length)
+    return (
+      <M.Paper>
+        <Empty />
+      </M.Paper>
+    )
+
   return (
     <>
       <M.Paper>
@@ -304,7 +311,6 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
             />
           ),
         )}
-        {!executions.length && <Empty />}
         {(hasPagination || !!onLoadMore) && (
           <div className={classes.footer}>
             {hasPagination && (
