@@ -4,7 +4,8 @@ that:
 
 - Your data in S3 buckets remains accessible.
 - You can continue using the Quilt SDK for reading and writing packages.
-- Stack-managed resources (Athena tables, user database, audit logs) will be affected.
+- Stack-managed resources (Athena tables, Postgres database, audit logs) will be
+  affected.
 - The deletion behavior varies between CloudFormation and Terraform deployments.
 
 ---
@@ -17,15 +18,15 @@ that:
   mappings, permissions).
 - Analytics data in stack-managed buckets.
 - Audit logs and Athena querying setups.
-- User database configurations.
+- User account and tabulator configurations.
 
 ### Recommended Actions
 
 - Export analytics data you need to keep.
 - Save important audit logs.
 - Document existing Athena configurations if you'll need to recreate them.
-- Export the Postgres database of user accounts if you want to retain it for
-  possible use in future stacks.
+- Export the Postgres database (containing user accounts and tabulator
+  configuration) in case you want to reuse it for future stacks.
 
 ---
 
@@ -63,17 +64,6 @@ that:
      buckets created by CloudFormation).  
    - Dependencies of the failed resource are preserved.  
    - To resolve, back up important files and clear the bucket contents.  
-   - Alternatively, configure Terraform to retain the resource by marking it
-     for retention in the configuration.  For example:
-
-        ```hcl
-        resource "aws_s3_bucket" "logical_bucket_name" {
-          bucket = "actual-bucket-name"
-          lifecycle {
-            prevent_destroy = true
-          }
-        }
-        ```
 
    - Once addressed, resume deletion by re-running `terraform destroy`.
 
