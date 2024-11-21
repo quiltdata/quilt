@@ -7,7 +7,6 @@ that:
 - Stack-managed resources (Athena tables, user database, audit logs) will be affected.
 - The deletion behavior varies between CloudFormation and Terraform deployments.
 
-
 ---
 
 ## I. Impact Assessment and Preparation
