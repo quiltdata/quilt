@@ -25,10 +25,13 @@ from quilt3.backends.local import (
     LocalPackageRegistryV2,
 )
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
+from quilt3.exceptions import PackageException
+from quilt3.packages import PackageEntry
 from quilt3.util import (
     PhysicalKey,
     QuiltConflictException,
     QuiltException,
+    URLParseError,
     validate_package_name,
 )
 
@@ -623,6 +626,30 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
+    @patch("quilt3.packages.list_object_versions")
+    def test_set_dir_root_folder_named_slash(self, list_object_versions_mock):
+        list_object_versions_mock.return_value = (
+            [dict(Key="/foo/a.txt", VersionId="xyz", IsLatest=True, Size=10)],
+            [],
+        )
+        pkg = Package()
+        pkg.set_dir("bar", "s3://bucket//foo")  # top-level '/' folder
+
+        assert pkg["bar"]["a.txt"].get() == "s3://bucket//foo/a.txt?versionId=xyz"
+        assert pkg["bar"]["a.txt"].size == 10
+
+        list_object_versions_mock.assert_called_once_with("bucket", "/foo/")
+
+    @patch("quilt3.packages.get_size_and_version", return_value=(123, "v1"))
+    def test_set_file_root_folder_named_slash(self, get_size_and_version_mock):
+        pkg = Package()
+        pkg.set("bar.txt", "s3://bucket//foo/a.txt")
+
+        assert pkg["bar.txt"].get() == "s3://bucket//foo/a.txt?versionId=v1"
+        assert pkg["bar.txt"].size == 123
+
+        get_size_and_version_mock.assert_called_once_with(PhysicalKey("bucket", "/foo/a.txt", "v1"))
+
     def test_set_dir_wrong_update_policy(self):
         """Verify non existing update policy raises value error."""
         pkg = Package()
@@ -831,7 +858,9 @@ class PackageTest(QuiltTestCase):
     def test_invalid_set_key(self):
         """Verify an exception when setting a key with a path object."""
         pkg = Package()
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError,
+                           match="Expected a string for entry, but got an instance of "
+                           r"<class 'quilt3\.packages\.Package'>\."):
             pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
@@ -1240,7 +1269,8 @@ class PackageTest(QuiltTestCase):
             )
 
     def test_overwrite_dir_fails(self):
-        with pytest.raises(QuiltException):
+        with pytest.raises(QuiltException,
+                           match="Cannot overwrite directory 'asdf' with PackageEntry"):
             pkg = Package()
             pkg.set('asdf/jkl', LOCAL_MANIFEST)
             pkg.set('asdf', LOCAL_MANIFEST)
@@ -1991,7 +2021,7 @@ class PackageTest(QuiltTestCase):
             with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 1):
                 with pytest.raises(QuiltException) as excinfo:
                     Package().dump(buf)
-                assert 'Size of manifest record for package metadata' in str(excinfo.value)
+                assert "Size of manifest record for package metadata" in str(excinfo.value)
 
             with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 10_000):
                 with pytest.raises(QuiltException) as excinfo:
@@ -2220,3 +2250,78 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
         assert pkg['z.txt'].get() == 's3://bucket/bar/z.txt?versionId=123'
         assert list_object_versions_mock.call_count == 2
         list_object_versions_mock.assert_has_calls([call('bucket', 'foo/'), call('bucket', 'bar/')])
+
+
+def create_test_file(filename):
+    file_path = Path(filename)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text("test")
+    return filename
+
+
+def test_set_meta_error():
+    with pytest.raises(PackageException, match="Must specify either path or meta"):
+        entry = PackageEntry(
+            PhysicalKey("test-bucket", "without-hash", "without-hash"),
+            42,
+            None,
+            {},
+        )
+        entry.set()
+
+
+def test_loading_duplicate_logical_key_error():
+    # Create a manifest with duplicate logical keys
+    KEY = "duplicate_key"
+    ROW = {"logical_key": KEY, "physical_keys": [f"s3://bucket/{KEY}"], "size": 123, "hash": None, "meta": {}}
+    buf = io.BytesIO()
+    jsonlines.Writer(buf).write_all([{"version": "v0"}, ROW, ROW])
+    buf.seek(0)
+
+    # Attempt to load the package, which should raise the error
+    with pytest.raises(PackageException, match=f"Duplicate logical key {KEY!r} while loading package entry: .*"):
+        Package.load(buf)
+
+
+def test_directory_not_exist_error():
+    pkg = Package()
+    with pytest.raises(PackageException, match="The specified directory .*non_existent_directory'. doesn't exist"):
+        pkg.set_dir("foo", "non_existent_directory")
+
+
+def test_key_not_point_to_package_entry_error():
+    DIR = "foo"
+    KEY = create_test_file(f"{DIR}/foo.txt")
+    pkg = Package().set(KEY)
+
+    with pytest.raises(ValueError, match=f"Key {DIR!r} does not point to a PackageEntry"):
+        pkg.get(DIR)
+
+
+def test_commit_message_type_error():
+    pkg = Package()
+    with pytest.raises(
+        ValueError,
+        match="The package commit message must be a string, "
+        "but the message provided is an instance of <class 'int'>.",
+    ):
+        pkg.build("test/pkg", message=123)
+
+
+def test_already_package_entry_error():
+    DIR = "foo"
+    KEY = create_test_file(f"{DIR}/foo.txt")
+    KEY2 = create_test_file(f"{DIR}/bar.txt")
+    pkg = Package().set(DIR, KEY)
+    with pytest.raises(
+        QuiltException, match=f"Already a PackageEntry for {DIR!r} along the path " rf"\['{DIR}'\]: .*/{KEY}"
+    ):
+        pkg.set(KEY2)
+
+
+@patch("quilt3.workflows.validate", return_value=None)
+def test_unexpected_scheme_error(workflow_validate_mock):
+    KEY = create_test_file("foo.txt")
+    pkg = Package().set(KEY)
+    with pytest.raises(URLParseError, match="Unexpected scheme: 'file' for .*"):
+        pkg.push("foo/bar", registry="s3://test-bucket", dest=lambda lk, entry: "file:///foo.txt", force=True)

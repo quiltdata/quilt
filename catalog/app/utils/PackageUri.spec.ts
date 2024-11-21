@@ -178,5 +178,18 @@ describe('utils/PackageUri', () => {
         }),
       ).toBe('quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath')
     })
+    it('should work for bucket, name, hash, path & catalog', () => {
+      expect(
+        PackageUri.stringify({
+          bucket: 'bucket-name',
+          name: 'quilt/test',
+          hash: 'abc1',
+          path: 'sub/path',
+          catalog: 'quilt-test',
+        }),
+      ).toBe(
+        'quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath&catalog=quilt-test',
+      )
+    })
   })
 })

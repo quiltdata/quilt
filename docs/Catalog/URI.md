@@ -50,3 +50,6 @@ A Quilt+ URI contains the following components:
 - `&path=<path>`: An optional fragment after the package, specifying the path to
   a particular subpackage (i.e., folder or entry) within the package. This is
   always a relative path, e.g. `CORD19.ipynb` in the example.
+- `&catalog=<catalog>`: An optional fragment specifying the DNS name of the
+  catalog that generated the URI. This is used to help clients generate the
+  human-readable URL for that package.
