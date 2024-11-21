@@ -262,7 +262,7 @@ class PackageEntry:
         elif meta is not None:
             self.set_meta(meta)
         else:
-            raise PackageException('PackageEntry.set must specify either path or meta')
+            raise PackageException('Must specify either path or meta')
 
     def get(self):
         """
@@ -831,7 +831,7 @@ class Package:
                     subpkg.set_meta(obj['meta'])
                     continue
                 if key in subpkg._children:
-                    raise PackageException(f"Duplicate logical key {key} while loading package {subpkg}")
+                    raise PackageException(f"Duplicate logical key '{key}' while loading package '{subpkg.path}'")
                 subpkg._children[key] = PackageEntry(
                     PhysicalKey.from_url(obj['physical_keys'][0]),
                     obj['size'],
@@ -1019,7 +1019,7 @@ class Package:
         if msg is not None and not isinstance(msg, str):
             raise ValueError(
                 f"The package commit message must be a string, but the message provided is an "
-                f"instance of {type(msg)}: {msg}."
+                f"instance of {type(msg)}."
             )
 
         self._meta.update({'message': msg})
@@ -1262,7 +1262,7 @@ class Package:
             entry = PackageEntry(write_pk, size, hash_obj=None, meta=new_meta)
 
         else:
-            raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}: {entry}.")
+            raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}.")
 
         if meta is not None:
             entry.set_meta(meta)
