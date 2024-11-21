@@ -2231,8 +2231,7 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
 def create_test_file(filename):
     file_path = Path(filename)
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write("test")
+    file_path.write_text("test")
     return filename
 
 
@@ -2248,22 +2247,16 @@ def test_set_meta_error():
 
 
 def test_loading_duplicate_logical_key_error():
-    # Create a package with duplicate logical keys in the manifest
-    MANIFEST_FILE = "manifest.jsonl"
+    # Create a manifest with duplicate logical keys
     KEY = "duplicate_key"
     ROW = {"logical_key": KEY, "physical_keys": [f"s3://bucket/{KEY}"], "size": 123, "hash": None, "meta": {}}
-    manifest_content = [{"version": "v0"}, ROW, ROW]
-    with open(MANIFEST_FILE, "w", encoding="utf-8") as f:
-        writer = jsonlines.Writer(f)
-        writer.write_all(manifest_content)
-    # Print the manifest file
-    with open(MANIFEST_FILE, "r", encoding="utf-8") as f:
-        print(f.read())
+    buf = io.BytesIO()
+    jsonlines.Writer(buf).write_all([{"version": "v0"}, ROW, ROW])
+    buf.seek(0)
 
     # Attempt to load the package, which should raise the error
     with pytest.raises(PackageException, match=f"Duplicate logical key {KEY!r} while loading package entry: .*"):
-        with open(MANIFEST_FILE, "r", encoding="utf-8") as f:
-            Package.load(f)
+        Package.load(buf)
 
 
 def test_directory_not_exist_error():
@@ -2273,12 +2266,12 @@ def test_directory_not_exist_error():
 
 
 def test_key_not_point_to_package_entry_error():
-    KEY = "foo.txt"
-    pkg_self = Package()
-    pkg = pkg_self._ensure_subpackage(KEY, ensure_no_entry=True)
-    pkg._children[KEY] = KEY
-    with pytest.raises(ValueError, match=f"Key {KEY!r} does not point to a PackageEntry"):
-        pkg.get(KEY)
+    DIR = "foo"
+    KEY = create_test_file(f"{DIR}/foo.txt")
+    pkg = Package().set(KEY)
+
+    with pytest.raises(ValueError, match=f"Key {DIR!r} does not point to a PackageEntry"):
+        pkg.get(DIR)
 
 
 def test_commit_message_type_error():
@@ -2295,18 +2288,16 @@ def test_already_package_entry_error():
     DIR = "foo"
     KEY = create_test_file(f"{DIR}/foo.txt")
     KEY2 = create_test_file(f"{DIR}/bar.txt")
-    pkg = Package()
-    pkg.set(DIR, KEY)
+    pkg = Package().set(DIR, KEY)
     with pytest.raises(
         QuiltException, match=f"Already a PackageEntry for {DIR!r} along the path " rf"\['{DIR}'\]: .*/{KEY}"
     ):
-        pkg.set(KEY2, KEY2)
+        pkg.set(KEY2)
 
 
 @patch("quilt3.workflows.validate", return_value=None)
-def test_unexpected_scheme_error(self):
+def test_unexpected_scheme_error(workflow_validate_mock):
     KEY = create_test_file("foo.txt")
-    pkg = Package()
-    pkg.set(KEY)
+    pkg = Package().set(KEY)
     with pytest.raises(URLParseError, match="Unexpected scheme: 'file' for .*"):
         pkg.push("foo/bar", registry="s3://test-bucket", dest=lambda lk, entry: "file:///foo.txt", force=True)
