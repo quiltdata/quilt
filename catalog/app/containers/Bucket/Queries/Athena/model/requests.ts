@@ -630,6 +630,9 @@ export function useQueryBody(
       if (Model.isError(query)) return null
       if (Model.hasData(query)) return query.body
       if (Model.hasData(execution) && execution.query) return execution.query
+      if (!Model.isReady(v) && Model.isReady(query) && Model.isReady(execution)) {
+        return null
+      }
       return v
     })
   }, [execution, query])
