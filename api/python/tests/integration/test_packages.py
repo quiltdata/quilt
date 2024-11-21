@@ -2269,7 +2269,7 @@ def test_loading_duplicate_logical_key_error():
 
 def test_directory_not_exist_error():
     pkg = Package()
-    with pytest.raises(PackageException, match="The specified directory .*non_existent_directory'\) doesn't exist"):
+    with pytest.raises(PackageException, match="The specified directory .*non_existent_directory'. doesn't exist"):
         pkg.set_dir('foo', 'non_existent_directory')
 
 
