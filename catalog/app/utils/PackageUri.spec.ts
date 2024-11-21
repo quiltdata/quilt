@@ -135,7 +135,7 @@ describe('utils/PackageUri', () => {
           bucket: 'bucket-name',
           name: 'quilt/test',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test&catalog=quilt-test')
+      ).toBe('quilt+s3://bucket-name#package=quilt/test')
     })
 
     it('should work for bucket, name and tag', () => {
@@ -145,7 +145,7 @@ describe('utils/PackageUri', () => {
           name: 'quilt/test',
           tag: 'latest',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test:latest&catalog=quilt-test')
+      ).toBe('quilt+s3://bucket-name#package=quilt/test:latest')
     })
 
     it('should work for bucket, name and hash', () => {
@@ -155,7 +155,7 @@ describe('utils/PackageUri', () => {
           name: 'quilt/test',
           hash: 'abc1',
         }),
-      ).toBe('quilt+s3://bucket-name#package=quilt/test@abc1&catalog=quilt-test')
+      ).toBe('quilt+s3://bucket-name#package=quilt/test@abc1')
     })
 
     it('should work for bucket, name and path', () => {
@@ -165,9 +165,7 @@ describe('utils/PackageUri', () => {
           name: 'quilt/test',
           path: 'sub/path',
         }),
-      ).toBe(
-        'quilt+s3://bucket-name#package=quilt/test&path=sub%2Fpath&catalog=quilt-test',
-      )
+      ).toBe('quilt+s3://bucket-name#package=quilt/test&path=sub%2Fpath')
     })
 
     it('should work for bucket, name, hash and path', () => {
@@ -177,6 +175,17 @@ describe('utils/PackageUri', () => {
           name: 'quilt/test',
           hash: 'abc1',
           path: 'sub/path',
+        }),
+      ).toBe('quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath')
+    })
+    it('should work for bucket, name, hash, path & catalog', () => {
+      expect(
+        PackageUri.stringify({
+          bucket: 'bucket-name',
+          name: 'quilt/test',
+          hash: 'abc1',
+          path: 'sub/path',
+          catalog: 'quilt-test',
         }),
       ).toBe(
         'quilt+s3://bucket-name#package=quilt/test@abc1&path=sub%2Fpath&catalog=quilt-test',

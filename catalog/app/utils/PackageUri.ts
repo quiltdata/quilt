@@ -19,6 +19,7 @@ export interface PackageUri {
   path?: string
   hash?: string
   tag?: string
+  catalog?: string
 }
 
 function parsePackageSpec(spec: string, uri: string) {
@@ -95,7 +96,7 @@ export function parse(uri: string): PackageUri {
   return R.reject(R.isNil, { bucket, name, hash, tag, path }) as unknown as PackageUri
 }
 
-export function stringify({ bucket, name, hash, tag, path }: PackageUri) {
+export function stringify({ bucket, name, hash, tag, path, catalog }: PackageUri) {
   if (!bucket) throw new Error('PackageUri.stringify: missing "bucket"')
   if (!name) throw new Error('PackageUri.stringify: missing "name"')
   if (hash && tag) {
@@ -108,6 +109,6 @@ export function stringify({ bucket, name, hash, tag, path }: PackageUri) {
     pkgSpec += `:${tag}`
   }
   const pathPart = path ? `&path=${encodeURIComponent(path)}` : ''
-  const catalogPart = window.location.hostname
-  return `quilt+s3://${bucket}#package=${pkgSpec}${pathPart}&catalog=${catalogPart}`
+  const catalogPart = catalog ? `&catalog=${encodeURIComponent(catalog)}` : ''
+  return `quilt+s3://${bucket}#package=${pkgSpec}${pathPart}${catalogPart}`
 }
