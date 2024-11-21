@@ -548,7 +548,7 @@ class Package:
 
         if subpkg_key is not None:
             if subpkg_key not in pkg:
-                raise QuiltException(f"Package {name} doesn't contain {subpkg_key!r}.")
+                raise QuiltException(f"Package {name!r} doesn't contain {subpkg_key!r}.")
             entry = pkg[subpkg_key]
             entries = entry.walk() if isinstance(entry, Package) else ((subpkg_key.split('/')[-1], entry),)
         else:
@@ -831,7 +831,7 @@ class Package:
                     subpkg.set_meta(obj['meta'])
                     continue
                 if key in subpkg._children:
-                    raise PackageException(f"Duplicate logical key '{key}' while loading package '{subpkg.path}'")
+                    raise PackageException(f"Duplicate logical key {key!r} while loading package {subpkg.path!r}")
                 subpkg._children[key] = PackageEntry(
                     PhysicalKey.from_url(obj['physical_keys'][0]),
                     obj['size'],
@@ -869,7 +869,7 @@ class Package:
             ValueError: When `update_policy` is invalid.
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
-            raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
+            raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY!r}, not {update_policy!r}")
 
         lkey = lkey.strip("/")
 
@@ -890,7 +890,7 @@ class Package:
         if src.is_local():
             src_path = pathlib.Path(src.path)
             if not src_path.is_dir():
-                raise PackageException(f"The specified directory {src_path} doesn't exist")
+                raise PackageException(f"The specified directory {src_path!r} doesn't exist")
 
             files = src_path.rglob('*')
             ignore = src_path / '.quiltignore'
@@ -951,7 +951,7 @@ class Package:
         """
         obj = self[logical_key]
         if not isinstance(obj, PackageEntry):
-            raise ValueError(f"Key {logical_key} does not point to a PackageEntry")
+            raise ValueError(f"Key {logical_key!r} does not point to a PackageEntry")
         return obj.get()
 
     def readme(self):
@@ -1114,7 +1114,7 @@ class Package:
                 lk = obj.get('logical_key')
                 entry_text = 'package metadata' if lk is None else f'entry with logical key {lk!r}'
                 raise QuiltException(
-                    f"Size of manifest record for {entry_text} is {encoded_size} bytes, "
+                    f"Size of manifest record for {entry_text!r} is {encoded_size} bytes, "
                     f"but must be less than {MANIFEST_MAX_RECORD_SIZE} bytes. "
                     'Quilt recommends less than 1 MB of metadata per object, '
                     'and less than 1 MB of package-level metadata. '
@@ -1190,7 +1190,6 @@ class Package:
     ):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
-                f"Invalid logical key {logical_key!r}. "
                 f"A package entry logical key cannot be a directory."
             )
 
@@ -1293,8 +1292,8 @@ class Package:
             if ensure_no_entry and key_fragment in pkg \
                     and isinstance(pkg[key_fragment], PackageEntry):
                 raise QuiltException(
-                    f"Already a PackageEntry for {key_fragment} "
-                    f"along the path {path}: {pkg[key_fragment].physical_key}",
+                    f"Already a PackageEntry for {key_fragment!r} "
+                    f"along the path {path!r}: {pkg[key_fragment].physical_key!r}",
                 )
             pkg = pkg._children.setdefault(key_fragment, Package())
         return pkg
@@ -1345,7 +1344,7 @@ class Package:
         for logical_key, entry in entries:
             if entry.hash is None or entry.size is None:
                 raise QuiltException(
-                    "PackageEntry missing hash and/or size: %s" % entry.physical_key
+                    "PackageEntry missing hash and/or size: %r" % entry.physical_key
                 )
             yield {
                 'hash': entry.hash,
@@ -1456,7 +1455,7 @@ class Package:
                     raise TypeError(f'{dest!r} returned {url!r}, but str is expected')
                 pk = PhysicalKey.from_url(url)
                 if pk.is_local():
-                    raise util.URLParseError(f"Unexpected scheme: 'file' for {pk}")
+                    raise util.URLParseError(f"Unexpected scheme: 'file' for {pk!r}")
                 if pk.version_id:
                     raise ValueError(f'{dest!r} returned {url!r}, but URI must not include versionId')
                 return pk
@@ -1491,8 +1490,8 @@ class Package:
 
             if self._origin is None or latest_hash != self._origin.top_hash:
                 raise QuiltConflictException(
-                    f"Package with hash {latest_hash} already exists at the destination; "
-                    f"expected {None if self._origin is None else self._origin.top_hash}. "
+                    f"Package with hash {latest_hash!r} already exists at the destination; "
+                    f"expected {None if self._origin is None else self._origin.top_hash!r}. "
                     "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 
