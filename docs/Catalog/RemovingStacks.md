@@ -7,10 +7,6 @@ that:
 - Stack-managed resources (Athena tables, user database, audit logs) will be affected.
 - The deletion behavior varies between CloudFormation and Terraform deployments.
 
-> **Consider Pausing Instead:** To temporarily suspend the stack, you can shut
-> down ECS services to reduce costs. Note that some charges may continue even
-> when ECS is inactive, so the only way to completely eliminate all costs is to
-> delete the stack.
 
 ---
 
@@ -29,7 +25,7 @@ that:
 - Export analytics data you need to keep.
 - Save important audit logs.
 - Document existing Athena configurations if you'll need to recreate them.
-- If using Terraform, use it to capture a snapshot of the user database for
+- Export the Postgres database of user accounts if you want to retain it for
   possible use in future stacks.
 
 ---
@@ -65,7 +61,7 @@ that:
 
 2. **Empty or Retain Non-Deleted Resources**  
    - Terraform stops at the first resource it cannot delete (e.g., non-empty S3
-     buckets).  
+     buckets created by CloudFormation).  
    - Dependencies of the failed resource are preserved.  
    - To resolve, back up important files and clear the bucket contents.  
    - Alternatively, configure Terraform to retain the resource by marking it
