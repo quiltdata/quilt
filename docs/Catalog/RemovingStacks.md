@@ -25,7 +25,7 @@ that:
 - Export analytics data you need to keep.
 - Save important audit logs.
 - Document existing Athena configurations if you'll need to recreate them.
-- Export the Postgres database (containing user accounts and tabulator
+- Export the Postgres database (containing, e.g., user accounts and tabulator
   configuration) in case you want to reuse it for future stacks.
 
 ---
