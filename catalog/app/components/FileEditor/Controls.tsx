@@ -28,13 +28,7 @@ export function PreviewButton({ className, preview, onPreview }: PreviewButtonPr
       onClick={(event) => event.stopPropagation()}
       className={className}
       control={
-        <M.Switch
-          onClick={stop}
-          checked={preview}
-          onChange={handleClick}
-          size="small"
-          color="primary"
-        />
+        <M.Switch checked={preview} onChange={handleClick} size="small" color="primary" />
       }
       label="Preview"
       labelPlacement="end"
