@@ -1,0 +1,4 @@
+-c requirements.txt
+boto3 ~= 1.17
+pytest ~= 8.0
+pytest-cov
