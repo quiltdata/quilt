@@ -214,6 +214,7 @@ export default function Dir() {
   }, [data.result])
 
   const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const handleSelection = React.useCallback(
     (ids) => slt.merge(ids, bucket, path, prefix),
     [bucket, path, prefix, slt],

@@ -282,6 +282,7 @@ function DirDisplay({
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const handleSelection = React.useCallback(
     (ids) => slt.merge(ids, bucket, path),
     [bucket, path, slt],
@@ -960,6 +961,7 @@ function PackageTree({
   })
 
   const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const guardNavigation = React.useCallback(
     (location) =>
       isStillBrowsingPackage(urls, location.pathname, {
