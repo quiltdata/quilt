@@ -18,6 +18,7 @@ where verb is one of
 ## Changes
 
 - [Added] Preview Markdown while editing ([#4153](https://github.com/quiltdata/quilt/pull/4153))
+- [Changed] Athena: hide data catalogs user doesn't have access to ([#4239](https://github.com/quiltdata/quilt/pull/4239))
 - [Added] Enable MixPanel tracking in Embed mode ([#4237](https://github.com/quiltdata/quilt/pull/4237))
 - [Fixed] Fix embed files listing ([#4236](https://github.com/quiltdata/quilt/pull/4236))
 - [Changed] Qurator: switch to Claude 3.5 Sonnet **v2** ([#4234](https://github.com/quiltdata/quilt/pull/4234))
