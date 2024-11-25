@@ -17,6 +17,7 @@ export default function WorkflowsConfigLink({
   bucket,
   children,
 }: WorkflowsConfigLinkProps) {
+  // TODO: get bucket from RRDom.useParams()
   const { urls } = NamedRoutes.use()
   const { pathname, search } = RRDom.useLocation()
   const next = pathname + search

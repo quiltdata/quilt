@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import * as Dialog from 'components/Dialog'
 import * as urls from 'constants/urls'
@@ -1431,7 +1430,7 @@ interface FilesInputProps {
     loaded: number
     percent: number
   }
-  bucket: string
+  bucket: string // It is the bucket __selected__ in __S3FilePicker__, not the bucket for the current page
   buckets?: string[]
   selectBucket?: (bucket: string) => void
   delayHashing?: boolean
@@ -1588,6 +1587,7 @@ export function FilesInput({
 
   const isS3FilePickerEnabled = !!buckets?.length
 
+  // TODO: get bucket from RRDom.useParams()
   return (
     <Root className={className}>
       {isS3FilePickerEnabled && (
@@ -1754,11 +1754,17 @@ export function FilesInput({
             Add files from bucket
           </M.Button>
         ) : (
-          <Lab.Alert className={classes.warning} severity="info">
+          <M.Typography variant="caption" className={classes.warning}>
             <StyledLink href={DOCS_URL_SOURCE_BUCKETS} target="_blank">
               Learn how to add files from a bucket
             </StyledLink>
-          </Lab.Alert>
+            ,<br />
+            or{' '}
+            <StyledLink to={`/b/${bucket}/tree/.quilt/catalog/config.yaml?edit`}>
+              edit bucket settings to enable this feature
+            </StyledLink>
+            .
+          </M.Typography>
         )}
       </div>
     </Root>
