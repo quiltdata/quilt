@@ -6,6 +6,15 @@ import Log from 'utils/Logging'
 import * as Model from './utils'
 import * as requests from './requests'
 
+class AWSError extends Error {
+  code: string
+
+  constructor(code: string, message?: string) {
+    super(message)
+    this.code = code
+  }
+}
+
 jest.mock(
   'utils/Logging',
   jest.fn(() => ({
@@ -171,9 +180,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       getDataCatalog.mockImplementation(
-        reqThrowWith({
-          code: 'AccessDeniedException',
-        }),
+        reqThrowWith(new AWSError('AccessDeniedException')),
       )
       const { result, waitForValueToChange } = renderHook(() =>
         requests.useCatalogNames('any'),
@@ -647,9 +654,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('handle access denied for workgroup list', async () => {
       await act(async () => {
         getWorkGroup.mockImplementation(
-          reqThrowWith({
-            code: 'AccessDeniedException',
-          }),
+          reqThrowWith(new AWSError('AccessDeniedException')),
         )
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => typeof result.current.data === 'object')

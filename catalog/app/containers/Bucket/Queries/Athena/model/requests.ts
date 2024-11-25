@@ -1,4 +1,4 @@
-import type Athena from 'aws-sdk/clients/athena'
+import type { Athena, AWSError } from 'aws-sdk'
 import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
@@ -48,8 +48,8 @@ async function fetchWorkgroup(
     }
     return null
   } catch (error) {
-    if ((error as $TSFixMe).code === 'AccessDeniedException') {
-      Log.info(`Fetching "${workgroup}" workgroup failed: ${(error as $TSFixMe).code}`)
+    if (isAwsErrorAccessDenied(error)) {
+      Log.info(`Fetching "${workgroup}" workgroup failed: ${error.code}`)
     } else {
       Log.error(`Fetching "${workgroup}" workgroup failed:`, error)
     }
@@ -531,21 +531,26 @@ export function useDatabase(
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
+function isAwsErrorAccessDenied(e: unknown): e is AWSError {
+  return (
+    e instanceof Error &&
+    (e as Error & { code?: string }).code === 'AccessDeniedException'
+  )
+}
+
 async function fetchCatalogName(
   athena: Athena,
   workgroup: Workgroup,
   catalogName: CatalogName,
 ): Promise<CatalogName | null> {
   try {
-    const catalogOutput = await athena
-      .getDataCatalog({ Name: catalogName, WorkGroup: workgroup })
-      .promise()
-    return catalogOutput?.DataCatalog?.Name || null
+    return (
+      (await athena.getDataCatalog({ Name: catalogName, WorkGroup: workgroup }).promise())
+        ?.DataCatalog?.Name || null
+    )
   } catch (error) {
-    if ((error as $TSFixMe).code === 'AccessDeniedException') {
-      Log.info(
-        `Fetching "${catalogName}" catalog name failed: ${(error as $TSFixMe).code}`,
-      )
+    if (isAwsErrorAccessDenied(error)) {
+      Log.info(`Fetching "${catalogName}" catalog name failed: ${error.code}`)
     } else {
       Log.error(`Fetching "${catalogName}" catalog name failed:`, error)
     }
