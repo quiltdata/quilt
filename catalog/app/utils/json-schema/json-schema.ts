@@ -282,19 +282,21 @@ function scanSchemaAndPrefillValues(
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
-    if (schemaItem.properties)
-      return R.assoc(
-        key,
-        scanSchemaAndPrefillValues(getValue, valueItem, schemaItem),
-        memo,
-      )
+    if (schemaItem.properties) {
+      const properties = scanSchemaAndPrefillValues(getValue, valueItem, schemaItem)
+      if (properties) {
+        return R.assoc(key, properties, memo)
+      }
+    }
 
-    if (schemaItem.items && Array.isArray(valueItem))
-      return R.assoc(
-        key,
-        valueItem.map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items)),
-        memo,
-      )
+    if (schemaItem.items && Array.isArray(valueItem)) {
+      const items = valueItem
+        .map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items))
+        .filter((x) => x !== undefined)
+      if (items.length) {
+        return R.assoc(key, items, memo)
+      }
+    }
 
     const preDefinedValue = getValue(schemaItem)
     if (preDefinedValue) return R.assoc(key, preDefinedValue, memo)

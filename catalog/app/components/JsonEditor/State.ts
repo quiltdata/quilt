@@ -165,11 +165,9 @@ function getDefaultValue(jsonDictItem?: SchemaItem): Json | typeof EMPTY_VALUE {
   const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
   if (defaultFromSchema !== undefined) return defaultFromSchema
 
-  // TODO:
-  // get defaults from nested objects
-  // const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
-  // const nestedDefaultFromSchema = setDefaults()
-  // if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
+  const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
+  const nestedDefaultFromSchema = setDefaults(undefined)
+  if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
 
   return EMPTY_VALUE
 }
