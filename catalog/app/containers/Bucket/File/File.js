@@ -251,6 +251,15 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
     flexWrap: 'wrap',
   },
+  editTitle: {
+    alignItems: 'center',
+    display: 'flex',
+    flexGrow: 1,
+  },
+  editButton: {
+    margin: '0 0 0 auto',
+    textTransform: 'none',
+  },
   preview: {
     width: '100%',
   },
@@ -481,7 +490,21 @@ export default function File() {
                 prefs,
               )}
               {editorState.editing ? (
-                <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                <Section
+                  icon="text_fields"
+                  heading={
+                    <div className={classes.editTitle}>
+                      Edit content
+                      {editorState.onPreview && (
+                        <FileEditor.PreviewButton
+                          className={classes.editButton}
+                          {...editorState}
+                        />
+                      )}
+                    </div>
+                  }
+                  expandable={false}
+                >
                   <FileEditor.Editor
                     {...editorState}
                     className={classes.editor}

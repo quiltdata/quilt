@@ -1,7 +1,10 @@
+import cx from 'classnames'
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
-import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
+import * as PreviewUtils from 'components/Preview/loaders/utils'
+import { QuickPreview } from 'components/Preview/quick'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 
@@ -95,10 +98,28 @@ function EditorSuspended({
   })
 }
 
+const useStyles = M.makeStyles({
+  tab: {
+    display: 'none',
+    width: '100%',
+  },
+  active: {
+    display: 'block',
+  },
+})
+
 export function Editor(props: EditorProps) {
+  const classes = useStyles()
   return (
     <React.Suspense fallback={<Skeleton />}>
-      <EditorSuspended {...props} />
+      <div className={cx(classes.tab, { [classes.active]: !props.preview })}>
+        <EditorSuspended {...props} />
+      </div>
+      {props.preview && (
+        <div className={cx(classes.tab, classes.active)}>
+          <QuickPreview handle={props.handle} type={props.editing} value={props.value} />
+        </div>
+      )}
     </React.Suspense>
   )
 }
