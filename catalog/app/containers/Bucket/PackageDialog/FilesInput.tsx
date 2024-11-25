@@ -1405,8 +1405,8 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, 1),
   },
   warning: {
-    flexBasis: '50%',
-    marginLeft: t.spacing(1),
+    flexBasis: `calc(50% - ${t.spacing(4)}px)`,
+    marginLeft: t.spacing(4),
   },
 }))
 
