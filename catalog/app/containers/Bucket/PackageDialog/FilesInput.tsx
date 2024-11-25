@@ -5,10 +5,9 @@ import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as Dialog from 'components/Dialog'
-import * as urls from 'constants/urls'
 import type * as Model from 'model'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import computeFileChecksum from 'utils/checksums'
 import useDragging from 'utils/dragging'
@@ -16,6 +15,7 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
+import { BucketPreferencesConfigLink } from '../HelpLinks'
 import * as Selection from '../Selection'
 
 import EditFileMeta from './EditFileMeta'
@@ -1379,8 +1379,6 @@ function DndProvider({ children }: DndProviderProps) {
   )
 }
 
-const DOCS_URL_SOURCE_BUCKETS = `${urls.docsMaster}/catalog/preferences#properties`
-
 const useFilesInputStyles = M.makeStyles((t) => ({
   hashing: {
     marginLeft: t.spacing(1),
@@ -1407,6 +1405,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, 1),
   },
   warning: {
+    flexBasis: '50%',
     marginLeft: t.spacing(1),
   },
 }))
@@ -1755,14 +1754,10 @@ export function FilesInput({
           </M.Button>
         ) : (
           <M.Typography variant="caption" className={classes.warning}>
-            <StyledLink href={DOCS_URL_SOURCE_BUCKETS} target="_blank">
-              Learn how to add files from a bucket
-            </StyledLink>
-            ,<br />
-            or{' '}
-            <StyledLink to={`/b/${bucket}/tree/.quilt/catalog/config.yaml?edit`}>
-              edit bucket settings to enable this feature
-            </StyledLink>
+            <BucketPreferencesConfigLink>
+              Edit <Code>ui.sourceBuckets</Code> config property to enable adding files
+              from this bucket
+            </BucketPreferencesConfigLink>
             .
           </M.Typography>
         )}
