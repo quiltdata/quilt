@@ -6,6 +6,15 @@ import Log from 'utils/Logging'
 import * as Model from './utils'
 import * as requests from './requests'
 
+class AWSError extends Error {
+  code: string
+
+  constructor(code: string, message?: string) {
+    super(message)
+    this.code = code
+  }
+}
+
 jest.mock(
   'utils/Logging',
   jest.fn(() => ({
@@ -61,16 +70,17 @@ const reqThrowWith = (o: unknown) =>
     },
   }))
 
+const batchGetNamedQuery = jest.fn()
 const batchGetQueryExecution = jest.fn()
+const getDataCatalog = jest.fn()
+const getQueryExecution = jest.fn()
+const getQueryResults = jest.fn()
 const getWorkGroup = jest.fn()
 const listDataCatalogs = jest.fn()
 const listDatabases = jest.fn()
+const listNamedQueries = jest.fn()
 const listQueryExecutions = jest.fn()
 const listWorkGroups = jest.fn()
-const getQueryExecution = jest.fn()
-const listNamedQueries = jest.fn()
-const batchGetNamedQuery = jest.fn()
-const getQueryResults = jest.fn()
 const startQueryExecution = jest.fn()
 
 jest.mock('utils/AWS', () => ({
@@ -78,6 +88,7 @@ jest.mock('utils/AWS', () => ({
     use: () => ({
       batchGetNamedQuery,
       batchGetQueryExecution,
+      getDataCatalog,
       getQueryExecution,
       getQueryResults,
       getWorkGroup,
@@ -93,63 +104,143 @@ jest.mock('utils/AWS', () => ({
 
 describe('containers/Bucket/Queries/Athena/model/requests', () => {
   describe('useCatalogNames', () => {
-    it('return catalog names', async () => {
-      listDataCatalogs.mockImplementationOnce(
-        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
-          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+    getDataCatalog.mockImplementation(
+      reqThen<A.GetDataCatalogInput, A.GetDataCatalogOutput>(
+        ({ Name }: { Name: string }) => ({
+          DataCatalog: {
+            Name,
+            Type: 'any',
+          },
         }),
+      ),
+    )
+    it('return catalog names', async () => {
+      listDataCatalogs.mockImplementation(
+        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+        })),
       )
-      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
+      const { result, waitForValueToChange } = renderHook(() =>
+        requests.useCatalogNames('any'),
+      )
       expect(result.current.data).toBe(undefined)
 
-      await act(async () => {
-        await waitForNextUpdate()
-      })
-      expect(result.current.data).toMatchObject({ list: ['foo', 'bar'] })
+      await waitForValueToChange(() => result.current)
+      expect(result.current.data).toMatchObject({ list: ['bar', 'foo'] })
     })
 
     it('return empty list', async () => {
-      listDataCatalogs.mockImplementationOnce(
-        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
+      listDataCatalogs.mockImplementation(
+        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
           DataCatalogsSummary: [],
-        }),
+        })),
       )
-      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
+      const { result, waitForValueToChange } = renderHook(() =>
+        requests.useCatalogNames('any'),
+      )
 
-      await act(async () => {
-        await waitForNextUpdate()
-      })
+      await waitForValueToChange(() => result.current)
       expect(result.current.data).toMatchObject({ list: [] })
     })
 
-    it('return unknowns on invalid data', async () => {
-      listDataCatalogs.mockImplementationOnce(
-        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
+    it('return empty list on invalid catalog data', async () => {
+      listDataCatalogs.mockImplementation(
+        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
           // @ts-expect-error
           DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
-        }),
+        })),
       )
-      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
+      const { result, waitForValueToChange } = renderHook(() =>
+        requests.useCatalogNames('any'),
+      )
 
-      await act(async () => {
-        await waitForNextUpdate()
-      })
-      expect(result.current.data).toMatchObject({ list: ['Unknown', 'Unknown'] })
+      await waitForValueToChange(() => result.current)
+      expect(result.current.data).toMatchObject({ list: [] })
     })
 
-    it('return empty list on invalid data', async () => {
-      listDataCatalogs.mockImplementationOnce(
-        req<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>({
-          // @ts-expect-error
+    it('return empty list on invalid list data', async () => {
+      listDataCatalogs.mockImplementation(
+        // @ts-expect-error
+        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
           Invalid: [],
-        }),
+        })),
       )
-      const { result, waitForNextUpdate } = renderHook(() => requests.useCatalogNames())
+      const { result, waitForValueToChange } = renderHook(() =>
+        requests.useCatalogNames('any'),
+      )
+
+      await waitForValueToChange(() => result.current)
+      expect(result.current.data).toMatchObject({ list: [] })
+    })
+
+    it('doesnt return catalogs with denied access', async () => {
+      listDataCatalogs.mockImplementation(
+        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+        })),
+      )
+      getDataCatalog.mockImplementation(
+        reqThrowWith(new AWSError('AccessDeniedException')),
+      )
+      const { result, waitForValueToChange } = renderHook(() =>
+        requests.useCatalogNames('any'),
+      )
+
+      await waitForValueToChange(() => result.current)
+      expect(result.current.data).toMatchObject({ list: [] })
+    })
+
+    it('doesnt return failed catalogs', async () => {
+      listDataCatalogs.mockImplementation(
+        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+        })),
+      )
+      getDataCatalog.mockImplementation(reqThrow)
+      const { result, waitForValueToChange } = renderHook(() =>
+        requests.useCatalogNames('any'),
+      )
+
+      await waitForValueToChange(() => result.current)
+      expect(result.current.data).toMatchObject({ list: [] })
+    })
+
+    it('handle fail in requesting list', async () => {
+      await act(async () => {
+        listDataCatalogs.mockImplementation(reqThrow)
+        const { result, unmount, waitFor } = renderHook(() =>
+          requests.useCatalogNames('any'),
+        )
+        await waitFor(() => result.current.data instanceof Error)
+        expect(Log.error).toBeCalledWith(expect.any(Error))
+        expect(result.current.data).toBeInstanceOf(Error)
+        unmount()
+      })
+    })
+
+    function useWrapper(props: Parameters<typeof requests.useCatalogNames>) {
+      return requests.useCatalogNames(...props)
+    }
+
+    it('wait until workgroup is ready', async () => {
+      const { result, rerender, waitForValueToChange, unmount } = renderHook(
+        (x: Parameters<typeof requests.useCatalogNames>) => useWrapper(x),
+        { initialProps: [null] },
+      )
 
       await act(async () => {
-        await waitForNextUpdate()
+        rerender([Model.Loading])
+        await waitForValueToChange(() => result.current)
       })
-      expect(result.current.data).toMatchObject({ list: [] })
+      expect(result.current.data).toBe(Model.Loading)
+
+      const error = new Error('foo')
+      await act(async () => {
+        rerender([error])
+        await waitForValueToChange(() => result.current)
+      })
+      expect(result.current.data).toBe(error)
+      unmount()
     })
   })
 
@@ -563,9 +654,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('handle access denied for workgroup list', async () => {
       await act(async () => {
         getWorkGroup.mockImplementation(
-          reqThrowWith({
-            code: 'AccessDeniedException',
-          }),
+          reqThrowWith(new AWSError('AccessDeniedException')),
         )
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => typeof result.current.data === 'object')
