@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -174,6 +175,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within an Selection.Provider')
 
   const [locked, setLocked] = React.useState(false)
 
