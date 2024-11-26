@@ -233,9 +233,8 @@ exports[`components/JsonEditor/State iterateJsonDict should return one state obj
         "required": true,
         "sortIndex": -9007199254740988,
         "type": "string",
-        "value": "Barcelona",
+        "value": Symbol(empty),
         "valueSchema": {
-          "default": "Barcelona",
           "type": "string",
         },
       },
@@ -254,9 +253,11 @@ exports[`components/JsonEditor/State iterateJsonDict should return one state obj
           "items": {
             "properties": {
               "id": {
+                "default": 123,
                 "type": "number",
               },
               "name": {
+                "default": "Abcdef",
                 "type": "string",
               },
             },
@@ -464,9 +465,8 @@ exports[`components/JsonEditor/State iterateJsonDict should return one state obj
         "required": true,
         "sortIndex": 3,
         "type": "string",
-        "value": "Barcelona",
+        "value": Symbol(empty),
         "valueSchema": {
-          "default": "Barcelona",
           "type": "string",
         },
       },
@@ -485,9 +485,11 @@ exports[`components/JsonEditor/State iterateJsonDict should return one state obj
           "items": {
             "properties": {
               "id": {
+                "default": 123,
                 "type": "number",
               },
               "name": {
+                "default": "Abcdef",
                 "type": "string",
               },
             },

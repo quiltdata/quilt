@@ -137,9 +137,11 @@ export const regular = {
         properties: {
           id: {
             type: 'number',
+            default: 123,
           },
           name: {
             type: 'string',
+            default: 'Abcdef',
           },
         },
       },
@@ -149,7 +151,6 @@ export const regular = {
       type: 'number',
     },
     b: {
-      default: 'Barcelona',
       type: 'string',
     },
     optEnum: {
@@ -200,4 +201,54 @@ export const regular = {
     },
   },
   required: ['a', 'b'],
+}
+
+export const incorrect = {
+  id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-incorrect.json',
+  type: 'object',
+  properties: {
+    enumBool: {
+      type: 'enum',
+      enum: [true, false],
+    },
+  },
+}
+
+export const anyOf = {
+  id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-any-of.json',
+  type: 'object',
+  properties: {
+    numOrString: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'string',
+        },
+      ],
+    },
+    intOrNonNumberOrLess3: {
+      oneOf: [{ maximum: 3, type: 'number' }, { type: 'integer' }],
+    },
+    intLessThan3: {
+      allOf: [{ maximum: 3, type: 'number' }, { type: 'integer' }],
+    },
+  },
+}
+
+export const typeArray = {
+  id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema-type-array.json',
+  type: 'object',
+  properties: {
+    strOrNum: {
+      type: ['string', 'number'],
+    },
+    strOrNumList: {
+      type: 'array',
+      items: {
+        type: ['string', 'number'],
+      },
+    },
+  },
 }

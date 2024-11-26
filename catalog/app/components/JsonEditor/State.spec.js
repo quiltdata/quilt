@@ -1,11 +1,11 @@
+import * as stubs from 'utils/json-schema/__stubs__'
+
 import {
   getJsonDictItemRecursively,
   iterateJsonDict,
   iterateSchema,
   mergeSchemaAndObjRootKeys,
 } from './State'
-
-import * as stubs from './__stubs__'
 
 describe('components/JsonEditor/State', () => {
   describe('mergeSchemaAndObjRootKeys', () => {
