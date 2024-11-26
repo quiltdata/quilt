@@ -1586,7 +1586,6 @@ export function FilesInput({
 
   const isS3FilePickerEnabled = !!buckets?.length
 
-  // TODO: get bucket from RRDom.useParams()
   return (
     <Root className={className}>
       {isS3FilePickerEnabled && (

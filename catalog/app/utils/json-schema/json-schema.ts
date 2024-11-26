@@ -282,6 +282,9 @@ function scanSchemaAndPrefillValues(
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
+    // We can use defaults in `properties` and `items`,
+    // and not in conditionals like `oneOf`, `anyOf`, `if` etc.
+
     if (schemaItem.properties) {
       const properties = scanSchemaAndPrefillValues(getValue, valueItem, schemaItem)
       if (properties) {
