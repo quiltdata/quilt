@@ -21,7 +21,7 @@ import {
   JsonSchema,
   makeSchemaDefaultsSetter,
   makeSchemaValidator,
-} from 'utils/json-schema'
+} from 'utils/JSONSchema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { JsonRecord } from 'utils/types'

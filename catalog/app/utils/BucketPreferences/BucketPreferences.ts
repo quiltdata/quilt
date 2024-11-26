@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react'
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import * as bucketErrors from 'containers/Bucket/errors'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator } from 'utils/JSONSchema'
 import * as tagged from 'utils/taggedV2'
 import * as YAML from 'utils/yaml'
 

@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { JsonSchema } from 'utils/json-schema'
+import { JsonSchema } from 'utils/JSONSchema'
 
 import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
 import { parseJSON, stringifyJSON } from './utils'
@@ -19,7 +19,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function getNormalizedValue(value: JsonValue, optSchema?: JsonSchema): JsonValue {
-  // TODO: use json-schema#getEmptyValueFromSchema
+  // TODO: use JSONSchema#getEmptyValueFromSchema
   if (!optSchema && value === '') return EMPTY_VALUE // FIXME: think more on this
 
   if (value !== EMPTY_VALUE) return value

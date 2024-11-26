@@ -1,7 +1,7 @@
 import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 
-import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
+import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/JSONSchema'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'

@@ -3,11 +3,11 @@ import {
   findTypeInCompoundSchema,
   makeSchemaDefaultsSetter,
   makeSchemaValidator,
-} from './json-schema'
+} from './JSONSchema'
 
 import * as stubs from './__stubs__'
 
-describe('utils/json-schema', () => {
+describe('utils/JSONSchema', () => {
   describe('makeSchemaValidator', () => {
     it('should return error, when keyword is required but is not provided', () => {
       const validate = makeSchemaValidator(stubs.regular)

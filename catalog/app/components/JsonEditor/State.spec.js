@@ -1,4 +1,4 @@
-import * as stubs from 'utils/json-schema/__stubs__'
+import * as stubs from 'utils/JSONSchema/__stubs__'
 
 import {
   getJsonDictItemRecursively,
