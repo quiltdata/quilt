@@ -210,7 +210,19 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     [selectBucket],
   )
 
-  const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
+  const data = useData(
+    bucketListing,
+    {
+      bucket,
+      path,
+      prefix,
+      prev,
+      drain: true,
+    },
+    {
+      noAutoFetch: !open,
+    },
+  )
 
   const loadMore = React.useCallback(() => {
     AsyncResult.case(
