@@ -105,8 +105,11 @@ const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
     )
   }
 
+  // TODO: also return `versionExists.key`
   return s3
     .getObject({
+      // TODO
+      // ResponseCacheControl: 'max-age=0',
       Bucket: bucket,
       Key: versionExists.key,
       VersionId: version,
