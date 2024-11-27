@@ -1,43 +1,59 @@
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
+import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
 import * as requests from './requests'
 
-interface WrapperProps {
-  children: React.ReactNode
-  edit?: boolean
-}
+// TODO: move it to components/FileEditor directory because purpose of this link is to edit file
 
-interface EditLinkProps extends WrapperProps {
-  path: string
-}
-
-// TODO: add any file rather than specific add workflows config file
-//       move it to components/FileEditor directory because purpose of this link is to edit file
-export function EditLink({ children, edit, path }: EditLinkProps) {
-  const { bucket } = RRDom.useParams<{ bucket: string }>()
+function useRouteToEditFile(bucket: string, path: string) {
   const { urls } = NamedRoutes.use()
   const { pathname, search } = RRDom.useLocation()
   const next = pathname + search
-  const toConfig = urls.bucketFile(bucket, path, { edit, next })
+  return urls.bucketFile(bucket, path, { edit: true, next })
+}
+
+interface WrapperProps {
+  children: React.ReactNode
+}
+
+export function WorkflowsConfigLink({ children }: WrapperProps) {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  const toConfig = useRouteToEditFile(bucket, requests.WORKFLOWS_CONFIG_PATH)
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }
 
-export function WorkflowsConfigLink({ children, edit = false }: WrapperProps) {
-  return (
-    <EditLink edit={edit} path={requests.WORKFLOWS_CONFIG_PATH}>
-      {children}
-    </EditLink>
-  )
+interface MissingSourceBucketProps {
+  className?: string
 }
 
-export function BucketPreferencesConfigLink({ children, edit = false }: WrapperProps) {
+export function MissingSourceBucket({ className }: MissingSourceBucketProps) {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  const prefs = BucketPreferences.use()
+
+  const toConfig = useRouteToEditFile(bucket, '.quilt/catalog/config.yaml')
+
+  const handleAutoAdd = React.useCallback(() => {
+    alert('Not implemented')
+  }, [])
+
+  if (!BucketPreferences.Result.Ok.is(prefs)) return null
+
   return (
-    <EditLink edit={edit} path={'.quilt/catalog/config.yaml'}>
-      {children}
-    </EditLink>
+    <div className={className}>
+      <M.Typography variant="caption" component="p">
+        <Code>{bucket}</Code> bucket is missing from <Code>ui.sourceBuckets</Code>{' '}
+        in the config.
+      </M.Typography>
+      <M.Typography variant="caption" component="p">
+        <StyledLink to={toConfig}>Edit manually</StyledLink> or{' '}
+        <StyledLink onClick={handleAutoAdd}>auto-add it</StyledLink>
+      </M.Typography>
+    </div>
   )
 }

@@ -5,7 +5,6 @@ import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
 import * as Dialog from 'components/Dialog'
 import type * as Model from 'model'
 import assertNever from 'utils/assertNever'
@@ -15,7 +14,7 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
-import { BucketPreferencesConfigLink } from '../HelpLinks'
+import { MissingSourceBucket } from '../HelpLinks'
 import * as Selection from '../Selection'
 
 import EditFileMeta from './EditFileMeta'
@@ -1384,11 +1383,13 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(1),
   },
   actions: {
+    alignItems: 'flex-start',
     display: 'flex',
     marginTop: t.spacing(1),
   },
   action: {
     flexGrow: 1,
+    flexShrink: 0,
     '& + &': {
       marginLeft: t.spacing(1),
     },
@@ -1400,13 +1401,16 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   buttons: {
     display: 'flex',
     marginLeft: 'auto',
+    alignItems: 'flex-start',
   },
   btnDivider: {
     margin: t.spacing(0, 1),
   },
   warning: {
-    flexBasis: `calc(50% - ${t.spacing(4)}px)`,
-    marginLeft: t.spacing(4),
+    marginLeft: t.spacing(2),
+  },
+  warningItem: {
+    ...t.typography.caption,
   },
 }))
 
@@ -1752,13 +1756,7 @@ export function FilesInput({
             Add files from bucket
           </M.Button>
         ) : (
-          <M.Typography variant="caption" className={classes.warning}>
-            <BucketPreferencesConfigLink>
-              Edit <Code>ui.sourceBuckets</Code> config property to enable adding files
-              from this bucket
-            </BucketPreferencesConfigLink>
-            .
-          </M.Typography>
+          <MissingSourceBucket className={classes.warning} />
         )}
       </div>
     </Root>
