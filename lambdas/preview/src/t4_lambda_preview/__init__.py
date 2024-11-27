@@ -178,7 +178,7 @@ def extract_csv(head, separator):
         html - html version of *first sheet only* in workbook
         info - metadata
     """
-    warnings_ = io.StringIO()
+    warnings_ = []
     # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:
         data = pandas.read_csv(
@@ -187,8 +187,7 @@ def extract_csv(head, separator):
         )
 
     except pandas.errors.ParserError:
-        # temporarily redirect stderr to capture warnings (usually errors)
-        with warnings.catch_warnings(record=True, category=pandas.errors.ParserWarning) as ws:
+        with warnings.catch_warnings(record=True, category=pandas.errors.ParserWarning) as warnings_:
             data = pandas.read_csv(
                 io.StringIO('\n'.join(head)),
                 on_bad_lines="warn",
@@ -200,7 +199,7 @@ def extract_csv(head, separator):
 
     return html, {
         'note': TRUNCATED,
-        'warnings': "\n".join(map(str, ws))
+        'warnings': "\n".join(map(str, warnings_))
     }
 
 
