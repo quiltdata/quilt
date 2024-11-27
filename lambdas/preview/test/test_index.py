@@ -68,7 +68,12 @@ class TestIndex():
         extended = False
         if (
                 set(os.path.split(f)[1] for f in fcs_files)
-                != set(['accuri-ao1.fcs', 'bad.fcs', '3215apc 100004.fcs'])
+                != {
+                    'accuri-ao1.fcs',
+                    'bad.fcs',
+                    '3215apc 100004.fcs',
+                    'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs',
+                }
          ):
             extended = True
         first = True
@@ -98,7 +103,7 @@ class TestIndex():
             assert 'info' in body
             if 'warnings' not in body['info']:
                 if not extended:
-                    assert name == 'accuri-ao1.fcs'
+                    assert name in ('accuri-ao1.fcs', '3215apc 100004.fcs')
                 assert body['html'].startswith('<div>')
                 assert body['html'].endswith('</div>')
                 assert body['info']['metadata'].keys()
@@ -110,7 +115,7 @@ class TestIndex():
                         assert name == 'bad.fcs'
                 else:
                     if not extended:
-                        assert name == '3215apc 100004.fcs'
+                        assert name == 'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs'
 
     def test_bad(self):
         """send a known bad event (no input query parameter)"""
