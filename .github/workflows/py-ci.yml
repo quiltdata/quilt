@@ -196,7 +196,12 @@ jobs:
           # - Run "strip" on shared libraries
           python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
           find deps -name tests -type d -exec rm -r \{} \+
-          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+          # find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+
+          if [ ${{ matrix.path }} == "tabular_preview" ]
+          then
+            python -c 'import numpy; print(numpy.__version__)'
+          fi
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
