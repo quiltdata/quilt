@@ -6,7 +6,7 @@ Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
 import io
 import os
-from contextlib import redirect_stderr
+import warnings
 from urllib.parse import urlparse
 
 import pandas
@@ -188,14 +188,15 @@ def extract_csv(head, separator):
 
     except pandas.errors.ParserError:
         # temporarily redirect stderr to capture warnings (usually errors)
-        with redirect_stderr(warnings_):
+        with warnings.catch_warnings(record=True, category=pandas.errors.ParserWarning) as ws:
             data = pandas.read_csv(
                 io.StringIO('\n'.join(head)),
-                error_bad_lines=False,
-                warn_bad_lines=True,
+                on_bad_lines="warn",
                 # sep=None is slower (doesn't use C), deduces the separator
                 sep=None
             )
+        for w in ws:
+            print(w, file=warnings_)
 
     html = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
 
