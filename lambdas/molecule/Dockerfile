@@ -1,6 +1,6 @@
 ARG FUNCTION_DIR="/function"
 
-FROM python:3.8-slim-bullseye@sha256:5c769978386f958886d1301435b77b9921859d0c2216d6b3beadeece51264c76 AS base-image
+FROM python:3.11-slim-bullseye@sha256:d910a25afa706e0b2da4b59990fb59c0495eeab597b5cd777bbdcda8b6530b7e AS base-image
 
 FROM base-image as build-image
 
@@ -18,9 +18,8 @@ COPY molecule/requirements.txt /requirements/molecule.txt
 RUN pip install -U pip setuptools
 RUN pip install --target /deps -r /requirements/molecule.txt
 
-COPY shared/ /src/shared/
 COPY molecule/ /src/molecule/
-RUN pip install --target /lambda --no-deps /src/shared/ /src/molecule/
+RUN pip install --target /lambda --no-deps /src/molecule/
 
 FROM base-image
 
