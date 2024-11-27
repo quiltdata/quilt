@@ -1407,6 +1407,8 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, 1),
   },
   warning: {
+    display: 'flex',
+    flexBasis: `calc(50% - ${t.spacing(2)}px)`,
     marginLeft: t.spacing(2),
   },
   warningItem: {
@@ -1756,7 +1758,11 @@ export function FilesInput({
             Add files from bucket
           </M.Button>
         ) : (
-          <MissingSourceBucket className={classes.warning} />
+          <MissingSourceBucket className={classes.warning}>
+            <M.Button disabled className={classes.action} variant="outlined" size="small">
+              Add files from bucket
+            </M.Button>
+          </MissingSourceBucket>
         )}
       </div>
     </Root>

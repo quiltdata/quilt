@@ -2,10 +2,13 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Skeleton from 'components/Skeleton'
 import Code from 'components/Code'
+import * as quiltConfigs from 'constants/quiltConfigs'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import StyledTooltip from 'utils/StyledTooltip'
 
 import * as requests from './requests'
 
@@ -28,32 +31,55 @@ export function WorkflowsConfigLink({ children }: WrapperProps) {
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }
 
+const useMissingSourceBucketStyles = M.makeStyles({
+  nowrap: {
+    whiteSpace: 'nowrap',
+  },
+})
+
 interface MissingSourceBucketProps {
   className?: string
+  children: React.ReactNode
 }
 
-export function MissingSourceBucket({ className }: MissingSourceBucketProps) {
+export function MissingSourceBucket({ className, children }: MissingSourceBucketProps) {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  const prefs = BucketPreferences.use()
+  const classes = useMissingSourceBucketStyles()
 
-  const toConfig = useRouteToEditFile(bucket, '.quilt/catalog/config.yaml')
+  // TODO: save the path where we get the config
+  //       and use it from BucketPreferences
+  const toConfig = useRouteToEditFile(bucket, quiltConfigs.bucketPreferences[0])
+  const upload = BucketPreferences.useUploadBucketPreferences(bucket)
 
-  const handleAutoAdd = React.useCallback(() => {
-    alert('Not implemented')
-  }, [])
+  const [loading, setLoading] = React.useState(false)
+  const handleAutoAdd = React.useCallback(async () => {
+    setLoading(true)
+    await upload()
+    setLoading(false)
+  }, [upload])
 
-  if (!BucketPreferences.Result.Ok.is(prefs)) return null
+  if (loading) return <Skeleton height={32} className={className} />
 
   return (
-    <div className={className}>
-      <M.Typography variant="caption" component="p">
-        <Code>{bucket}</Code> bucket is missing from <Code>ui.sourceBuckets</Code>{' '}
-        in the config.
-      </M.Typography>
-      <M.Typography variant="caption" component="p">
-        <StyledLink to={toConfig}>Edit manually</StyledLink> or{' '}
-        <StyledLink onClick={handleAutoAdd}>auto-add it</StyledLink>
-      </M.Typography>
-    </div>
+    <StyledTooltip
+      className={className}
+      interactive
+      title={
+        <>
+          <M.Typography variant="body2" gutterBottom>
+            Config property <Code>ui.sourceBuckets</Code> is empty.
+          </M.Typography>
+          <M.Typography variant="body2">
+            <StyledLink to={toConfig}>Edit manually</StyledLink> or{' '}
+            <StyledLink onClick={handleAutoAdd}>
+              <span className={classes.nowrap}>auto-add</span> current bucket (
+              <span className={classes.nowrap}>s3://{bucket}</span>)
+            </StyledLink>
+          </M.Typography>
+        </>
+      }
+    >
+      <div>{children}</div>
+    </StyledTooltip>
   )
 }

@@ -6,6 +6,7 @@ import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 import { makeSchemaValidator } from 'utils/JSONSchema'
 import * as tagged from 'utils/taggedV2'
+import type { JsonRecord } from 'utils/types'
 import * as YAML from 'utils/yaml'
 
 export type ActionPreferences = Record<
@@ -76,7 +77,7 @@ interface PackagesListPreferences {
 
 type DefaultSourceBucketInput = string
 type PackageDescriptionMultiline = boolean
-type SourceBucketsInput = Record<string, null>
+type SourceBucketsInput = Record<string, {}>
 
 interface AthenaPreferencesInput {
   defaultWorkflow?: string // @deprecated, was used by mistake
@@ -323,3 +324,28 @@ export const Result = tagged.create('app/utils/BucketPreferences:Result' as cons
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type Result = tagged.InstanceOf<typeof Result>
+
+export function merge(bucketPreferencesYaml: string, update: BucketPreferencesInput) {
+  try {
+    const prefs = YAML.parse(bucketPreferencesYaml) as JsonRecord
+    return YAML.stringify(R.mergeDeepRight(prefs, update))
+  } catch (e) {
+    return YAML.stringify(update as JsonRecord)
+  }
+}
+
+export const sourceBucket = (bucket: string): BucketPreferencesInput => ({
+  ui: {
+    sourceBuckets: {
+      [bucket]: {},
+    },
+  },
+})
+
+export const openInDesktop = (): BucketPreferencesInput => ({
+  ui: {
+    actions: {
+      openInDesktop: true,
+    },
+  },
+})
