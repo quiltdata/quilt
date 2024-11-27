@@ -8,9 +8,9 @@ attrs==24.2.0
     # via jsonschema
 aws-requests-auth==0.4.3
     # via es_indexer (setup.py)
-boto3==1.35.67
+boto3==1.35.70
     # via es_indexer (setup.py)
-botocore==1.35.67
+botocore==1.35.70
     # via
     #   boto3
     #   s3transfer
@@ -22,7 +22,7 @@ charset-normalizer==3.4.0
     # via
     #   pdfminer-six
     #   requests
-cryptography==43.0.3
+cryptography==44.0.0
     # via pdfminer-six
 elasticsearch==6.8.2
     # via es_indexer (setup.py)
@@ -69,7 +69,7 @@ platformdirs==4.3.6
     # via jupyter-core
 psutil==6.1.0
     # via t4-lambda-shared
-pyarrow==18.0.0
+pyarrow==18.1.0
     # via t4-lambda-shared
 pycparser==2.22
     # via cffi
