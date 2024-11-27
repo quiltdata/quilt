@@ -591,7 +591,7 @@ function PackageCreationForm({
                   {cfg.desktop ? (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       component={Upload.LocalFolderInput}
                       initialValue={defaultLocalFolder}
@@ -605,7 +605,7 @@ function PackageCreationForm({
                   ) : (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       // @ts-expect-error
                       component={FI.FilesInput}
