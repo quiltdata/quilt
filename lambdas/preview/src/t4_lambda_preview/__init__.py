@@ -195,14 +195,12 @@ def extract_csv(head, separator):
                 # sep=None is slower (doesn't use C), deduces the separator
                 sep=None
             )
-        for w in ws:
-            print(w, file=warnings_)
 
     html = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
 
     return html, {
         'note': TRUNCATED,
-        'warnings': warnings_.getvalue()
+        'warnings': "\n".join(map(str, ws))
     }
 
 
