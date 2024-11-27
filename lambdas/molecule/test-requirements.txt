@@ -4,17 +4,17 @@
 #
 #    pip-compile test-requirements.in
 #
-certifi==2024.7.4
+certifi==2024.8.30
     # via
     #   -c requirements.txt
     #   requests
-charset-normalizer==2.0.12
+charset-normalizer==3.4.0
     # via
     #   -c requirements.txt
     #   requests
 coverage[toml]==7.6.8
     # via pytest-cov
-idna==3.7
+idna==3.10
     # via
     #   -c requirements.txt
     #   requests
@@ -38,13 +38,13 @@ pytest-raises==0.11
     # via -r test-requirements.in
 pyyaml==6.0.2
     # via responses
-requests==2.32.2
+requests==2.32.3
     # via
     #   -c requirements.txt
     #   responses
 responses==0.25.3
     # via -r test-requirements.in
-urllib3==1.26.19
+urllib3==2.2.3
     # via
     #   -c requirements.txt
     #   requests
