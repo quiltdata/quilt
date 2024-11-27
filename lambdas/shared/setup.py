@@ -1,6 +1,5 @@
 from setuptools import setup
 
-
 mem_deps = [
     "psutil ~= 6.1",
 ]
