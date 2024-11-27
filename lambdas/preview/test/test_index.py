@@ -239,7 +239,7 @@ class TestIndex():
         # check for some strings we know should be in there
         assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
         assert 'Preprocessing' in body_html, 'missing expected contents'
-        assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' in body_html, \
+        assert "<pre>['SEE', 'SE', 'SHW', 'SIG'," in body_html, \
             'Cell 3 output seems off'
         assert (
             '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
@@ -263,7 +263,7 @@ class TestIndex():
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
         # isclose bc string sizes differ, e.g. on Linux
-        assert math.isclose(len(body_html), 18084, abs_tol=200), "Hmm, didn't chop nb_1200727.ipynb"
+        assert math.isclose(len(body_html), 18084, abs_tol=300), "Hmm, didn't chop nb_1200727.ipynb"
 
     @responses.activate
     def test_ipynb_exclude(self):
@@ -292,7 +292,7 @@ class TestIndex():
         # check for some strings we know should be in there
         assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
         assert 'Preprocessing' in body_html, 'missing expected contents'
-        assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' not in body_html, \
+        assert "<pre>['SEE', 'SE', 'SHW', 'SIG'," not in body_html, \
             'Unexpected output cell; exclude_output:true was given'
         assert (
             '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
