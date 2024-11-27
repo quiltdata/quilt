@@ -18,7 +18,7 @@ cd out
 pip3 install -U pip setuptools
 
 # install everything into a temporary directory
-pip3 install --no-compile --no-deps -t . /lambda/shared/ -r /lambda/function/requirements.txt /lambda/function/
+pip3 install --no-compile --no-deps -t . -r /lambda/function/requirements.txt /lambda/function/
 python3 -m compileall -b .
 
 # add binaries
