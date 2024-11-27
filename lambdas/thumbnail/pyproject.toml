@@ -1,7 +1,7 @@
 [project]
 name = "t4_lambda_thumbnail"
 version = "0.0.1"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 
 dependencies = [
   "aicsimageio>=3,<3.1",
@@ -11,4 +11,5 @@ dependencies = [
   "Pillow>=9.0.1,<11",
   "python-pptx>=0.6.21,<0.7",
   "requests>=2.26.0,<3",
+  "t4_lambda_shared[lambda] @ https://github.com/quiltdata/quilt/archive/f45d8ab51f2d60e98efda7510322f94d822e4eb4.zip#subdirectory=lambdas/shared",
 ]
