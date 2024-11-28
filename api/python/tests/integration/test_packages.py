@@ -1390,7 +1390,7 @@ class PackageTest(QuiltTestCase):
         pkg['b'].set_meta({'foo': 'bar'})
 
         p_copy = pkg.filter(lambda lk, entry: lk == 'a/', include_directories=True)
-        assert list(p_copy) == []
+        assert not list(p_copy)
 
         p_copy = pkg.filter(lambda lk, entry: lk in ('a/', 'a/df'), include_directories=True)
         assert list(p_copy) == ['a'] and list(p_copy['a']) == ['df']
@@ -1872,7 +1872,8 @@ class PackageTest(QuiltTestCase):
             with self.subTest(value=val):
                 with pytest.raises(TypeError) as excinfo:
                     pkg.push('foo/bar', registry='s3://test-bucket',
-                             dest=(lambda v: lambda *args, **kwargs: v)(val), force=True)
+                             # pylint: disable=cell-var-from-loop
+                             dest=lambda *args, **kwargs: val, force=True)
                 assert 'str is expected' in str(excinfo.value)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
@@ -1882,7 +1883,8 @@ class PackageTest(QuiltTestCase):
             with self.subTest(value=val):
                 with pytest.raises(quilt3.util.URLParseError):
                     pkg.push('foo/bar', registry='s3://test-bucket',
-                             dest=(lambda v: lambda *args, **kwargs: v)(val), force=True)
+                             # pylint: disable=cell-var-from-loop
+                             dest=lambda *args, **kwargs: val, force=True)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_push_dest_fn_s3_uri_with_version_id(self):
