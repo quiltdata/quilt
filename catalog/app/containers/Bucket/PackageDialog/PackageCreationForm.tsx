@@ -752,7 +752,7 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,

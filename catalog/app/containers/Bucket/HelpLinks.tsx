@@ -45,18 +45,18 @@ interface MissingSourceBucketProps {
 export function MissingSourceBucket({ className, children }: MissingSourceBucketProps) {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
   const classes = useMissingSourceBucketStyles()
+  const { update } = BucketPreferences.use()
 
   // TODO: save the path where we get the config
   //       and use it from BucketPreferences
   const toConfig = useRouteToEditFile(bucket, quiltConfigs.bucketPreferences[0])
-  const upload = BucketPreferences.useUploadBucketPreferences(bucket)
 
   const [loading, setLoading] = React.useState(false)
   const handleAutoAdd = React.useCallback(async () => {
     setLoading(true)
-    await upload()
+    await update(BucketPreferences.sourceBucket(bucket))
     setLoading(false)
-  }, [upload])
+  }, [bucket, update])
 
   if (loading) return <Skeleton height={32} className={className} />
 

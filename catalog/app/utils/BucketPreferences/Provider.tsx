@@ -9,19 +9,28 @@ import * as AWS from 'utils/AWS'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import { useData } from 'utils/Data'
 
-import { sourceBucket, openInDesktop, merge, Result, parse } from './BucketPreferences'
+import {
+  BucketPreferences,
+  BucketPreferencesInput,
+  Result,
+  merge,
+  openInDesktop,
+  parse,
+} from './BucketPreferences'
 import LocalProvider from './LocalProvider'
 
 interface FetchBucketPreferencesArgs {
   s3: S3
   bucket: string
+  counter: number
 }
 
 // TODO: return path
 async function fetchBucketPreferences({
   s3,
-  bucket,
+  bucket, // counter,
 }: FetchBucketPreferencesArgs): Promise<string> {
+  // TODO: if counter, reset Cache-Control
   try {
     const response = await requests.fetchFile({
       s3,
@@ -40,36 +49,56 @@ async function fetchBucketPreferences({
   }
 }
 
-async function uploadBucketPreferences(s3: S3, bucket: string) {
+async function uploadBucketPreferences(
+  s3: S3,
+  bucket: string,
+  update: BucketPreferencesInput,
+) {
   const response = await fetchBucketPreferences({
     s3,
     bucket,
+    counter: 1,
   })
-  const updatedConfig = merge(response, sourceBucket(bucket))
-  return s3
+  const updatedConfig = merge(response, update)
+  // TODO: validate before uploading
+  await s3
     .putObject({
       Bucket: bucket,
       Key: quiltConfigs.bucketPreferences[0],
       Body: updatedConfig,
     })
     .promise()
+  return parse(updatedConfig)
 }
 
-export function useUploadBucketPreferences(bucket: string) {
-  const s3 = AWS.S3.use()
-  return React.useCallback(() => uploadBucketPreferences(s3, bucket), [bucket, s3])
+interface State {
+  prefs: Result
+  update: (upd: BucketPreferencesInput) => Promise<BucketPreferences>
 }
 
-const Ctx = React.createContext<Result>(Result.Init())
+const Ctx = React.createContext<State>({
+  prefs: Result.Init(),
+  update: () => Promise.reject(new Error('Bucket preferences context not initialized')),
+})
 
 type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
 function CatalogProvider({ bucket, children }: ProviderProps) {
   const s3 = AWS.S3.use()
   const settings = CatalogSettings.use()
-  const data = useData(fetchBucketPreferences, { s3, bucket })
+  const [counter, setCounter] = React.useState(0)
+  const data = useData(fetchBucketPreferences, { s3, bucket, counter })
 
-  const preferences = data.case({
+  const update = React.useCallback(
+    async (upd: BucketPreferencesInput) => {
+      const preferences = uploadBucketPreferences(s3, bucket, upd)
+      setCounter((prev) => prev + 1)
+      return preferences
+    },
+    [s3, bucket],
+  )
+
+  const prefs = data.case({
     Ok: (raw: string) => {
       try {
         const input = settings?.beta ? merge(raw, openInDesktop()) : raw
@@ -86,7 +115,7 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
     Pending: Result.Pending,
     Init: Result.Init,
   })
-  return <Ctx.Provider value={preferences}> {children} </Ctx.Provider>
+  return <Ctx.Provider value={{ prefs, update }}> {children} </Ctx.Provider>
 }
 
 export function Provider({ bucket, children }: ProviderProps) {

@@ -99,7 +99,7 @@ interface UiPreferencesInput {
   sourceBuckets?: SourceBucketsInput
 }
 
-interface BucketPreferencesInput {
+export interface BucketPreferencesInput {
   ui?: UiPreferencesInput
 }
 
@@ -117,7 +117,7 @@ interface UiPreferences {
   sourceBuckets: SourceBuckets
 }
 
-interface BucketPreferences {
+export interface BucketPreferences {
   ui: UiPreferences
 }
 

@@ -1063,7 +1063,7 @@ export function Listing({
   const classes = useStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
