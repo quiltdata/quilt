@@ -184,7 +184,7 @@ const normalizeBucketName = (input: string) =>
 
 const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 
-function validate(data: unknown): asserts data is BucketPreferencesInput {
+export function validate(data: unknown): asserts data is BucketPreferencesInput {
   const errors = bucketPreferencesValidator(data)
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }

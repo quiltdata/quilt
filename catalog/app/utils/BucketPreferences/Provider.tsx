@@ -17,6 +17,7 @@ import {
   merge,
   openInDesktop,
   parse,
+  validate,
 } from './BucketPreferences'
 import LocalProvider from './LocalProvider'
 
@@ -66,7 +67,9 @@ async function uploadBucketPreferences(
   })
   const updatedConfig = merge(response.body, update)
   const handle = response.handle || { bucket, key: quiltConfigs.bucketPreferences[0] }
-  // FIXME: validate before uploading
+
+  validate(updatedConfig)
+
   await s3
     .putObject({
       Bucket: handle.bucket,
