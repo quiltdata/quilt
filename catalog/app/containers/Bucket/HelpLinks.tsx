@@ -11,10 +11,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 
-import * as requests from './requests'
-
-// TODO: move it to components/FileEditor directory because purpose of this link is to edit file
-
 function useRouteToEditFile(handle: Model.S3.S3ObjectLocation) {
   const { urls } = NamedRoutes.use()
   const { pathname, search } = RRDom.useLocation()
@@ -28,7 +24,7 @@ interface WrapperProps {
 
 export function WorkflowsConfigLink({ children }: WrapperProps) {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  const toConfig = useRouteToEditFile({ bucket, key: requests.WORKFLOWS_CONFIG_PATH })
+  const toConfig = useRouteToEditFile({ bucket, key: quiltConfigs.workflows })
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }
 
