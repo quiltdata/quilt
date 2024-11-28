@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Remain default Intercom launcher closed when closing Package Dialog ([#4244](https://github.com/quiltdata/quilt/pull/4244))
 - [Added] Preview Markdown while editing ([#4153](https://github.com/quiltdata/quilt/pull/4153))
 - [Changed] Athena: hide data catalogs user doesn't have access to ([#4239](https://github.com/quiltdata/quilt/pull/4239))
 - [Added] Enable MixPanel tracking in Embed mode ([#4237](https://github.com/quiltdata/quilt/pull/4237))
