@@ -1,3 +1,4 @@
+import type { AWSError } from 'aws-sdk'
 import invariant from 'invariant'
 import cx from 'classnames'
 import * as R from 'ramda'
@@ -210,7 +211,19 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     [selectBucket],
   )
 
-  const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
+  const data = useData(
+    bucketListing,
+    {
+      bucket,
+      path,
+      prefix,
+      prev,
+      drain: true,
+    },
+    {
+      noAutoFetch: !open,
+    },
+  )
 
   const loadMore = React.useCallback(() => {
     AsyncResult.case(
@@ -275,7 +288,16 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       </div>
       {data.case({
         // TODO: customized error display?
-        Err: displayError(),
+        Err: displayError([
+          [
+            (e: unknown) => (e as AWSError)?.code === 'InvalidBucketName',
+            (e: AWSError) => (
+              <M.Box m={2}>
+                <M.Typography>{e.message}</M.Typography>
+              </M.Box>
+            ),
+          ],
+        ]),
         Init: () => null,
         _: (x: $TSFixMe) => {
           const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
