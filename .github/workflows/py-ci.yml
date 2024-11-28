@@ -196,7 +196,7 @@ jobs:
           # - Run "strip" on shared libraries
           python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
-          find deps \! -path '*/numpy.libs/*' \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
           if [ ${{ matrix.path }} == "tabular_preview" ]
           then
