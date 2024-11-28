@@ -40,7 +40,9 @@ find . \( -name 'test_*' -o -name '*.py' -o -name '*.h' -o -name '*.c' -o -name 
 for lib in pyarrow/*.so.*; do rm -f "${lib%%.*}.so"; done
 
 find . -name tests -type d -exec rm -r \{} \+
-find . \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+# Stripping numpy.libs results in libscipy_openblas64_-ff651d7f.so: ELF load command address/offset not properly aligned
+# which is probably caused by some bug in glibc (it happens on Ubuntu 22.04, Amazon Linux 2/2023, but not on Ubuntu 24.04).
+find . \! -path '*/numpy.libs/*' \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
 MAX_SIZE=262144000
 size=$(du -b -s . | cut -f 1)

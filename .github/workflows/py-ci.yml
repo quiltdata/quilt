@@ -167,7 +167,7 @@ jobs:
           - tabular_preview
           - thumbnail
           - transcode
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
       PYTHONPATH: deps
@@ -196,7 +196,7 @@ jobs:
           # - Run "strip" on shared libraries
           python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
-          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+          find deps \! -path '*/numpy.libs/*' \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
           if [ ${{ matrix.path }} == "tabular_preview" ]
           then
