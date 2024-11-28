@@ -12,11 +12,11 @@ import { fetchFile } from './object'
 export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: string }) => {
   if (!schemaUrl) return null
 
-  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
+  const handle = s3paths.parseS3Url(schemaUrl)
 
   try {
-    const response = await fetchFile({ s3, bucket, path: key, version })
-    return JSON.parse(response.Body.toString('utf-8'))
+    const response = await fetchFile({ s3, handle })
+    return JSON.parse(response.Body?.toString('utf-8') || '{}')
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
 

@@ -32,12 +32,11 @@ async function fetchBucketPreferences({
 }: FetchBucketPreferencesArgs): Promise<string> {
   // TODO: if counter, reset Cache-Control
   try {
-    const response = await requests.fetchFile({
+    const response = await requests.fetchFileInCollection({
       s3,
-      bucket,
-      path: quiltConfigs.bucketPreferences,
+      handles: quiltConfigs.bucketPreferences.map((key) => ({ bucket, key })),
     })
-    return response.Body.toString('utf-8')
+    return response.Body?.toString('utf-8') || ''
   } catch (e) {
     if (e instanceof FileNotFound || e instanceof VersionNotFound) return ''
 

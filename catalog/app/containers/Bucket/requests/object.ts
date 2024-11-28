@@ -51,72 +51,47 @@ export const objectMeta = ({
     // @ts-expect-error
     .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
+type ExistingObject = Model.S3.S3ObjectLocation & { size?: number; lastModified?: Date }
+
 interface EnsureObjectIsPresentInCollectionArgs {
   s3: S3
-  bucket: string
-  keys: string[]
-  version?: string
+  handles: Model.S3.S3ObjectLocation[]
 }
 
 const ensureObjectIsPresentInCollection = async ({
   s3,
-  bucket,
-  keys,
-  version,
-}: EnsureObjectIsPresentInCollectionArgs): Promise<Model.S3.S3ObjectLocation | null> => {
-  if (!keys.length) return null
+  handles,
+}: EnsureObjectIsPresentInCollectionArgs): Promise<ExistingObject | null> => {
+  if (!handles.length) return null
 
-  const [key, ...keysTail] = keys
+  const [handle, ...handlesTail] = handles
   const existingObject = await ensureObjectIsPresent({
     s3,
-    bucket,
-    key,
-    version,
+    ...handle,
   })
 
   return (
     existingObject ||
-    (await ensureObjectIsPresentInCollection({ s3, bucket, keys: keysTail }))
+    (await ensureObjectIsPresentInCollection({ s3, handles: handlesTail }))
   )
 }
 
-interface FetchFileVersionedArgs {
+interface GetObjectArgs {
   s3: S3
-  bucket: string
-  path: string
-  version?: string
+  handle: Model.S3.S3ObjectLocation
 }
 
-const fetchFileVersioned = async ({
-  s3,
-  bucket,
-  path,
-  version,
-}: FetchFileVersionedArgs) => {
-  const keys = Array.isArray(path) ? path : [path]
-  const versionExists = await ensureObjectIsPresentInCollection({
-    s3,
-    bucket,
-    keys,
-    version,
-  })
-  if (!versionExists) {
-    throw new VersionNotFound(
-      `${path} for ${bucket} and version ${version} does not exist`,
-    )
-  }
-
-  // TODO: also return `versionExists.key`
-  return s3
+// TODO: also return `versionExists.key`
+const getObject = ({ s3, handle }: GetObjectArgs) =>
+  s3
     .getObject({
       // TODO
       // ResponseCacheControl: 'max-age=0',
-      Bucket: bucket,
-      Key: versionExists.key,
-      VersionId: version,
+      Bucket: handle.bucket,
+      Key: handle.key,
+      VersionId: handle.version,
     })
     .promise()
-}
 
 interface ObjectVersionsArgs {
   s3: S3
@@ -160,35 +135,34 @@ export const objectVersions = ({ s3, bucket, path }: ObjectVersionsArgs) =>
     )
     .then(R.sort(R.descend(R.prop('lastModified'))))
 
-interface FetchFileLatestArgs {
+interface FetchFileInCollectionArgs {
   s3: S3
-  bucket: string
-  path: string
+  handles: Model.S3.S3ObjectLocation[]
 }
 
-const fetchFileLatest = async ({ s3, bucket, path }: FetchFileLatestArgs) => {
-  const keys = Array.isArray(path) ? path : [path]
-  const fileExists = await ensureObjectIsPresentInCollection({
-    s3,
-    bucket,
-    keys,
-  })
-  if (!fileExists) {
-    throw new FileNotFound(`${path} for ${bucket} does not exist`)
+export async function fetchFileInCollection({ s3, handles }: FetchFileInCollectionArgs) {
+  const existingObject = await ensureObjectIsPresentInCollection({ s3, handles })
+  if (!existingObject) {
+    throw new FileNotFound(`No object in ${JSON.stringify(handles)} exist`)
   }
-
-  const versions = await objectVersions({
-    s3,
-    bucket,
-    path: fileExists.key,
-  })
-  const latest = R.find(R.prop('isLatest'), versions)
-  const version = latest && latest.id !== 'null' ? latest.id : undefined
-
-  return fetchFileVersioned({ s3, bucket, path: fileExists.key, version })
+  return getObject({ s3, handle: existingObject })
 }
 
-export const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
+interface FetchFile {
+  s3: S3
+  handle: Model.S3.S3ObjectLocation
+}
+
+export async function fetchFile({ s3, handle }: FetchFile) {
+  const existingObject: ExistingObject | null = await ensureObjectIsPresent({
+    s3,
+    ...handle,
+  })
+  if (!existingObject) {
+    throw new FileNotFound(`Object ${JSON.stringify(handle)} doesn't exist`)
+  }
+  return getObject({ s3, handle: existingObject })
+}
 
 interface MetadataSchemaArgs {
   s3: S3
@@ -198,10 +172,10 @@ interface MetadataSchemaArgs {
 export const metadataSchema = async ({ s3, schemaUrl }: MetadataSchemaArgs) => {
   if (!schemaUrl) return null
 
-  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
+  const handle = s3paths.parseS3Url(schemaUrl)
 
-  const response = await fetchFile({ s3, bucket, path: key, version })
-  return JSON.parse(response.Body.toString('utf-8'))
+  const response = await fetchFile({ s3, handle })
+  return JSON.parse(response.Body?.toString('utf-8') || '{}')
 }
 
 export const WORKFLOWS_CONFIG_PATH = quiltConfigs.workflows
@@ -218,8 +192,11 @@ interface WorkflowsConfigArgs {
 
 export const workflowsConfig = async ({ s3, bucket }: WorkflowsConfigArgs) => {
   try {
-    const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
-    return workflows.parse(response.Body.toString('utf-8'))
+    const response = await fetchFile({
+      s3,
+      handle: { bucket, key: WORKFLOWS_CONFIG_PATH },
+    })
+    return workflows.parse(response.Body?.toString('utf-8') || '')
   } catch (e) {
     if (e instanceof FileNotFound || e instanceof VersionNotFound)
       return workflows.emptyConfig

@@ -22,10 +22,12 @@ export type ElasticSearchQuery = {
 } | null
 
 export const query = async ({ s3, queryUrl }: QueryArgs): Promise<ElasticSearchQuery> => {
-  const { bucket, key, version } = s3paths.parseS3Url(queryUrl)
+  const handle = s3paths.parseS3Url(queryUrl)
   try {
-    const response = await requests.fetchFile({ s3, bucket, path: key, version })
-    return JSON.parse(response.Body.toString('utf-8'))
+    const response = await requests.fetchFile({ s3, handle })
+    return JSON.parse(
+      response.Body?.toString('utf-8') || '{ "body": { "query": {} }, "index": "" }',
+    )
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return null
