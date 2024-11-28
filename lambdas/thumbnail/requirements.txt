@@ -18,7 +18,7 @@ charset-normalizer==3.4.0
     # via requests
 idna==3.10
     # via requests
-imageio==2.31.2
+imageio==2.25.0
     # via
     #   aicsimageio
     #   t4_lambda_thumbnail (pyproject.toml)
