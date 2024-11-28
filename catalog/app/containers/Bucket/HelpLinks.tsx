@@ -56,7 +56,9 @@ export function MissingSourceBucket({ className, children }: MissingSourceBucket
   const handleAutoAdd = React.useCallback(async () => {
     setLoading(true)
     await update(BucketPreferences.sourceBucket(bucket))
-    setLoading(false)
+    // Update triggers `handle` reset to `null`,
+    // and `setLoading` applies to the unmounted component.
+    // setLoading(false)
   }, [bucket, update])
 
   if (loading) return <Skeleton height={32} className={className} />

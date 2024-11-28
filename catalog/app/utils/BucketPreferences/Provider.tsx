@@ -71,7 +71,7 @@ async function uploadBucketPreferences(
   await s3
     .putObject({
       Bucket: handle.bucket,
-      Key: handle.bucket,
+      Key: handle.key,
       Body: updatedConfig,
     })
     .promise()
@@ -85,8 +85,8 @@ interface State {
 }
 
 const Ctx = React.createContext<State>({
-  prefs: Result.Init(),
   handle: null,
+  prefs: Result.Init(),
   update: () => Promise.reject(new Error('Bucket preferences context not initialized')),
 })
 
@@ -100,7 +100,7 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
 
   const update = React.useCallback(
     async (upd: BucketPreferencesInput) => {
-      const preferences = uploadBucketPreferences(s3, bucket, upd)
+      const preferences = await uploadBucketPreferences(s3, bucket, upd)
       setCounter((prev) => prev + 1)
       return preferences
     },
@@ -128,6 +128,7 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
     Ok: (r: FetchBucketPreferencesOutput) => r.handle,
     _: () => null,
   })
+
   return <Ctx.Provider value={{ handle, prefs, update }}> {children} </Ctx.Provider>
 }
 
