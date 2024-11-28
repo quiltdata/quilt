@@ -33,9 +33,8 @@ interface FetchBucketPreferencesOutput {
 
 async function fetchBucketPreferences({
   s3,
-  bucket, // counter,
+  bucket,
 }: FetchBucketPreferencesArgs): Promise<FetchBucketPreferencesOutput> {
-  // TODO: if counter, reset Cache-Control
   try {
     const { handle, body } = await requests.fetchFileInCollection({
       s3,

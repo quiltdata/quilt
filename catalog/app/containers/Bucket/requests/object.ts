@@ -84,8 +84,6 @@ interface GetObjectArgs {
 const getObject = ({ s3, handle }: GetObjectArgs) =>
   s3
     .getObject({
-      // TODO
-      // ResponseCacheControl: 'max-age=0',
       Bucket: handle.bucket,
       Key: handle.key,
       VersionId: handle.version,
