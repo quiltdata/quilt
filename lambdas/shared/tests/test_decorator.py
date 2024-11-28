@@ -184,6 +184,7 @@ class TestDecorator(TestCase):
         code, body, headers = handler(Request(self._make_get({'foo': 'bar'}, None), None))
         assert code == 200
         assert body == 'blah'
+        # pylint: disable=use-implicit-booleaness-not-comparison
         assert headers == {}
 
         code, _, headers = handler(Request(self._make_get(None, None), None))

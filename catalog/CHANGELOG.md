@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Keep default Intercom launcher closed when closing Package Dialog ([#4244](https://github.com/quiltdata/quilt/pull/4244))
+- [Fixed] Handle invalid bucket name in `ui.sourceBuckets` in bucket config ([#4242](https://github.com/quiltdata/quilt/pull/4242))
 - [Added] Preview Markdown while editing ([#4153](https://github.com/quiltdata/quilt/pull/4153))
 - [Changed] Athena: hide data catalogs user doesn't have access to ([#4239](https://github.com/quiltdata/quilt/pull/4239))
 - [Added] Enable MixPanel tracking in Embed mode ([#4237](https://github.com/quiltdata/quilt/pull/4237))
