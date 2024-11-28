@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Buttons from 'components/Buttons'
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
@@ -10,7 +11,6 @@ import { useData } from 'utils/Data'
 import StyledLink from 'utils/StyledLink'
 import * as workflows from 'utils/workflows'
 
-import { WorkflowsConfigLink } from './HelpLinks'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 

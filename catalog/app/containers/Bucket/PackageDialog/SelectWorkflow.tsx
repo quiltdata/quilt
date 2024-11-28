@@ -1,10 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
 import * as workflows from 'utils/workflows'
-
-import { WorkflowsConfigLink } from '../HelpLinks'
 
 const useStyles = M.makeStyles((t) => ({
   crop: {

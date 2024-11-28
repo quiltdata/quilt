@@ -6,6 +6,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
+import { MissingSourceBucket } from 'components/FileEditor/HelpLinks'
 import type * as Model from 'model'
 import assertNever from 'utils/assertNever'
 import computeFileChecksum from 'utils/checksums'
@@ -14,7 +15,6 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
-import { MissingSourceBucket } from '../HelpLinks'
 import * as Selection from '../Selection'
 
 import EditFileMeta from './EditFileMeta'
