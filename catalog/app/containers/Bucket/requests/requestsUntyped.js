@@ -7,13 +7,11 @@ import * as R from 'ramda'
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-import * as quiltConfigs from 'constants/quiltConfigs'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/JSONSchema'
 import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
-import * as workflows from 'utils/workflows'
 
 import * as errors from '../errors'
 
@@ -72,105 +70,6 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   throw new Error('Stats unavailable')
-}
-
-const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) => {
-  if (!keys.length) return null
-
-  const [key, ...keysTail] = keys
-  const fileExists = await ensureObjectIsPresent({
-    s3,
-    bucket,
-    key,
-    version,
-  })
-
-  return (
-    fileExists ||
-    (await ensureObjectIsPresentInCollection({ s3, bucket, keys: keysTail }))
-  )
-}
-
-const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
-  const keys = Array.isArray(path) ? path : [path]
-  const versionExists = await ensureObjectIsPresentInCollection({
-    s3,
-    bucket,
-    keys,
-    version,
-  })
-  if (!versionExists) {
-    throw new errors.VersionNotFound(
-      `${path} for ${bucket} and version ${version} does not exist`,
-    )
-  }
-
-  // TODO: also return `versionExists.key`
-  return s3
-    .getObject({
-      // TODO
-      // ResponseCacheControl: 'max-age=0',
-      Bucket: bucket,
-      Key: versionExists.key,
-      VersionId: version,
-    })
-    .promise()
-}
-
-const fetchFileLatest = async ({ s3, bucket, path }) => {
-  const keys = Array.isArray(path) ? path : [path]
-  const fileExists = await ensureObjectIsPresentInCollection({
-    s3,
-    bucket,
-    keys,
-  })
-  if (!fileExists) {
-    throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
-  }
-
-  const versions = await objectVersions({
-    s3,
-    bucket,
-    path: fileExists.key,
-  })
-  const latest = R.find(R.prop('isLatest'), versions)
-  const version = latest && latest.id !== 'null' ? latest.id : undefined
-
-  return fetchFileVersioned({ s3, bucket, path: fileExists.key, version })
-}
-
-export const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
-
-export const metadataSchema = async ({ s3, schemaUrl }) => {
-  if (!schemaUrl) return null
-
-  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
-
-  const response = await fetchFile({ s3, bucket, path: key, version })
-  return JSON.parse(response.Body.toString('utf-8'))
-}
-
-export const WORKFLOWS_CONFIG_PATH = quiltConfigs.workflows
-// TODO: enable this when backend is ready
-// const WORKFLOWS_CONFIG_PATH = [
-//   '.quilt/workflows/config.yaml',
-//   '.quilt/workflows/config.yml',
-// ]
-
-export const workflowsConfig = async ({ s3, bucket }) => {
-  try {
-    const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
-    return workflows.parse(response.Body.toString('utf-8'))
-  } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return workflows.emptyConfig
-
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
@@ -442,27 +341,6 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   }
   return []
 }
-
-export const objectVersions = ({ s3, bucket, path }) =>
-  s3
-    .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
-    .promise()
-    .then(
-      R.pipe(
-        ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
-        R.map(R.evolve({ Key: decodeS3Key })),
-        R.filter((v) => v.Key === path),
-        R.map((v) => ({
-          isLatest: v.IsLatest || false,
-          lastModified: v.LastModified,
-          size: v.Size,
-          id: v.VersionId,
-          deleteMarker: v.Size == null,
-          archived: v.StorageClass === 'GLACIER' || v.StorageClass === 'DEEP_ARCHIVE',
-        })),
-        R.sort(R.descend(R.prop('lastModified'))),
-      ),
-    )
 
 const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
 
