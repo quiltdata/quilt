@@ -77,7 +77,7 @@ type SortOrder = React.MutableRefObject<{
   dict: Record<JSONPointer.Pointer, number>
 }>
 
-// TODO: consider to use 'JSONSchema-traverse'
+// TODO: consider to use 'json-schema-traverse'
 // NOTE: memo is mutated, sortOrder is React.ref and mutated too
 export function iterateSchema(
   schema: JsonSchema,

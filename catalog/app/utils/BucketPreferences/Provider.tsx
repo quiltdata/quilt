@@ -66,7 +66,7 @@ async function uploadBucketPreferences(
   })
   const updatedConfig = merge(response.body, update)
   const handle = response.handle || { bucket, key: quiltConfigs.bucketPreferences[0] }
-  // TODO: validate before uploading
+  // FIXME: validate before uploading
   await s3
     .putObject({
       Bucket: handle.bucket,
