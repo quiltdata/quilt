@@ -1,6 +1,7 @@
 import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 
+import type * as Model from 'model'
 import cfg from 'constants/config'
 import * as quiltConfigs from 'constants/quiltConfigs'
 import { FileNotFound, VersionNotFound } from 'containers/Bucket/errors'
@@ -25,20 +26,26 @@ interface FetchBucketPreferencesArgs {
   counter: number
 }
 
-// TODO: return path
+interface FetchBucketPreferencesOutput {
+  body: string
+  handle: Model.S3.S3ObjectLocation | null
+}
+
 async function fetchBucketPreferences({
   s3,
   bucket, // counter,
-}: FetchBucketPreferencesArgs): Promise<string> {
+}: FetchBucketPreferencesArgs): Promise<FetchBucketPreferencesOutput> {
   // TODO: if counter, reset Cache-Control
   try {
-    const response = await requests.fetchFileInCollection({
+    const { handle, body } = await requests.fetchFileInCollection({
       s3,
       handles: quiltConfigs.bucketPreferences.map((key) => ({ bucket, key })),
     })
-    return response.Body?.toString('utf-8') || ''
+    return { body: body?.toString('utf-8') || '', handle }
   } catch (e) {
-    if (e instanceof FileNotFound || e instanceof VersionNotFound) return ''
+    if (e instanceof FileNotFound || e instanceof VersionNotFound) {
+      return { body: '', handle: null }
+    }
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -58,12 +65,13 @@ async function uploadBucketPreferences(
     bucket,
     counter: 1,
   })
-  const updatedConfig = merge(response, update)
+  const updatedConfig = merge(response.body, update)
+  const handle = response.handle || { bucket, key: quiltConfigs.bucketPreferences[0] }
   // TODO: validate before uploading
   await s3
     .putObject({
-      Bucket: bucket,
-      Key: quiltConfigs.bucketPreferences[0],
+      Bucket: handle.bucket,
+      Key: handle.bucket,
       Body: updatedConfig,
     })
     .promise()
@@ -71,12 +79,14 @@ async function uploadBucketPreferences(
 }
 
 interface State {
+  handle: Model.S3.S3ObjectLocation | null
   prefs: Result
   update: (upd: BucketPreferencesInput) => Promise<BucketPreferences>
 }
 
 const Ctx = React.createContext<State>({
   prefs: Result.Init(),
+  handle: null,
   update: () => Promise.reject(new Error('Bucket preferences context not initialized')),
 })
 
@@ -98,9 +108,9 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
   )
 
   const prefs = data.case({
-    Ok: (raw: string) => {
+    Ok: ({ body }: FetchBucketPreferencesOutput) => {
       try {
-        const input = settings?.beta ? merge(raw, openInDesktop()) : raw
+        const input = settings?.beta ? merge(body, openInDesktop()) : body
         return Result.Ok(parse(input))
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -114,7 +124,11 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
     Pending: Result.Pending,
     Init: Result.Init,
   })
-  return <Ctx.Provider value={{ prefs, update }}> {children} </Ctx.Provider>
+  const handle = data.case({
+    Ok: (r: FetchBucketPreferencesOutput) => r.handle,
+    _: () => null,
+  })
+  return <Ctx.Provider value={{ handle, prefs, update }}> {children} </Ctx.Provider>
 }
 
 export function Provider({ bucket, children }: ProviderProps) {

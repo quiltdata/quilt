@@ -1,5 +1,7 @@
 import * as React from 'react'
 
+import type * as Model from 'model'
+
 import {
   BucketPreferences,
   BucketPreferencesInput,
@@ -8,6 +10,7 @@ import {
 } from './BucketPreferences'
 
 const localModePreferences = {
+  handle: null,
   prefs: Result.Ok(
     extendDefaults({
       ui: {
@@ -33,6 +36,7 @@ const localModePreferences = {
 
 interface LocalProviderProps {
   context: React.Context<{
+    handle: Model.S3.S3ObjectLocation | null
     prefs: Result
     update: (upd: BucketPreferencesInput) => Promise<BucketPreferences>
   }>

@@ -52,7 +52,7 @@ export const queriesConfig = async ({
       handle: { bucket, key: quiltConfigs.esQueries },
     })
     // TODO: validate config with JSON Schema
-    return parseQueriesList(YAML.parse(response.Body?.toString('utf-8') || ''))
+    return parseQueriesList(YAML.parse(response.body?.toString('utf-8') || ''))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) return []
 

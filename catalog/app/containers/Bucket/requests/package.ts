@@ -16,7 +16,7 @@ export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: strin
 
   try {
     const response = await fetchFile({ s3, handle })
-    return JSON.parse(response.Body?.toString('utf-8') || '{}')
+    return JSON.parse(response.body?.toString('utf-8') || '{}')
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
 

@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import Skeleton from 'components/Skeleton'
 import Code from 'components/Code'
 import * as quiltConfigs from 'constants/quiltConfigs'
+import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -14,11 +15,11 @@ import * as requests from './requests'
 
 // TODO: move it to components/FileEditor directory because purpose of this link is to edit file
 
-function useRouteToEditFile(bucket: string, path: string) {
+function useRouteToEditFile(handle: Model.S3.S3ObjectLocation) {
   const { urls } = NamedRoutes.use()
   const { pathname, search } = RRDom.useLocation()
   const next = pathname + search
-  return urls.bucketFile(bucket, path, { edit: true, next })
+  return urls.bucketFile(handle.bucket, handle.key, { edit: true, next })
 }
 
 interface WrapperProps {
@@ -27,7 +28,7 @@ interface WrapperProps {
 
 export function WorkflowsConfigLink({ children }: WrapperProps) {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  const toConfig = useRouteToEditFile(bucket, requests.WORKFLOWS_CONFIG_PATH)
+  const toConfig = useRouteToEditFile({ bucket, key: requests.WORKFLOWS_CONFIG_PATH })
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }
 
@@ -45,11 +46,11 @@ interface MissingSourceBucketProps {
 export function MissingSourceBucket({ className, children }: MissingSourceBucketProps) {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
   const classes = useMissingSourceBucketStyles()
-  const { update } = BucketPreferences.use()
+  const { handle, update } = BucketPreferences.use()
 
-  // TODO: save the path where we get the config
-  //       and use it from BucketPreferences
-  const toConfig = useRouteToEditFile(bucket, quiltConfigs.bucketPreferences[0])
+  const toConfig = useRouteToEditFile(
+    handle || { bucket, key: quiltConfigs.bucketPreferences[0] },
+  )
 
   const [loading, setLoading] = React.useState(false)
   const handleAutoAdd = React.useCallback(async () => {

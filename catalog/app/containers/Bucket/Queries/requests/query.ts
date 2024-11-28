@@ -26,7 +26,7 @@ export const query = async ({ s3, queryUrl }: QueryArgs): Promise<ElasticSearchQ
   try {
     const response = await requests.fetchFile({ s3, handle })
     return JSON.parse(
-      response.Body?.toString('utf-8') || '{ "body": { "query": {} }, "index": "" }',
+      response.body?.toString('utf-8') || '{ "body": { "query": {} }, "index": "" }',
     )
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)

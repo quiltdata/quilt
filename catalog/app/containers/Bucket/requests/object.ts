@@ -81,7 +81,6 @@ interface GetObjectArgs {
   handle: Model.S3.S3ObjectLocation
 }
 
-// TODO: also return `versionExists.key`
 const getObject = ({ s3, handle }: GetObjectArgs) =>
   s3
     .getObject({
@@ -92,6 +91,10 @@ const getObject = ({ s3, handle }: GetObjectArgs) =>
       VersionId: handle.version,
     })
     .promise()
+    .then(({ Body }) => ({
+      handle,
+      body: Body,
+    }))
 
 interface ObjectVersionsArgs {
   s3: S3
@@ -175,7 +178,7 @@ export const metadataSchema = async ({ s3, schemaUrl }: MetadataSchemaArgs) => {
   const handle = s3paths.parseS3Url(schemaUrl)
 
   const response = await fetchFile({ s3, handle })
-  return JSON.parse(response.Body?.toString('utf-8') || '{}')
+  return JSON.parse(response.body?.toString('utf-8') || '{}')
 }
 
 export const WORKFLOWS_CONFIG_PATH = quiltConfigs.workflows
@@ -196,7 +199,7 @@ export const workflowsConfig = async ({ s3, bucket }: WorkflowsConfigArgs) => {
       s3,
       handle: { bucket, key: WORKFLOWS_CONFIG_PATH },
     })
-    return workflows.parse(response.Body?.toString('utf-8') || '')
+    return workflows.parse(response.body?.toString('utf-8') || '')
   } catch (e) {
     if (e instanceof FileNotFound || e instanceof VersionNotFound)
       return workflows.emptyConfig
