@@ -10,7 +10,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    maxHeight: '100%',
+    height: '100%',
   },
   heading: {
     ...t.typography.h5,
@@ -23,10 +23,8 @@ const useStyles = M.makeStyles((t) => ({
     overflow: 'auto',
   },
   json: {
-    padding: t.spacing(2),
-    '& + &': {
-      paddingTop: 0,
-    },
+    margin: t.spacing(2, 0),
+    padding: t.spacing(0, 2),
   },
 }))
 
