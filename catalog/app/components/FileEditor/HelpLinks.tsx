@@ -31,6 +31,8 @@ export function WorkflowsConfigLink({ children }: WrapperProps) {
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }
 
+const Loading = Symbol('loading')
+
 interface AddMissingSourceBucketProps {
   bucket: string
   close: Dialogs.Close
@@ -42,14 +44,13 @@ function AddMissingSourceBucket({
   close,
   onSubmit,
 }: AddMissingSourceBucketProps) {
-  // Loading, Error or idle
-  const [state, setState] = React.useState<true | Error | null>(null)
+  const [state, setState] = React.useState<typeof Loading | Error | void>()
   const handleSubmit = React.useCallback(async () => {
-    setState(true)
+    setState(Loading)
     try {
       await onSubmit()
 
-      setState(null)
+      setState()
       close()
     } catch (error) {
       Log.error(error)
@@ -64,18 +65,18 @@ function AddMissingSourceBucket({
           <Lab.Alert severity="error">{state.message}</Lab.Alert>
         </M.DialogContent>
       )}
-      {state === true && (
+      {state === Loading && (
         <Lock>
           <M.CircularProgress size={32} />
         </Lock>
       )}
       <M.DialogActions>
-        <M.Button onClick={close} disabled={state === true}>
+        <M.Button onClick={close} disabled={state === Loading}>
           Cancel
         </M.Button>
         <M.Button
           color="primary"
-          disabled={state === true}
+          disabled={state === Loading}
           onClick={handleSubmit}
           variant="contained"
         >
@@ -92,6 +93,7 @@ const DIALOG_PROPS = {
 }
 
 const useMissingSourceBucketStyles = M.makeStyles({
+  // browsers break the word on '-'
   nowrap: {
     whiteSpace: 'nowrap',
   },
