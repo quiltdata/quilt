@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -27,6 +28,8 @@ interface WrapperProps {
 
 export function WorkflowsConfigLink({ children }: WrapperProps) {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
+  invariant(bucket, '`bucket` must be defined')
+
   const toConfig = useRouteToEditFile({ bucket, key: quiltConfigs.workflows })
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }
@@ -39,7 +42,7 @@ interface AddMissingSourceBucketProps {
   onSubmit: () => Promise<void>
 }
 
-function AddMissingSourceBucket({
+function MissingSourceBucketAddConfirmation({
   bucket,
   close,
   onSubmit,
@@ -92,21 +95,19 @@ const DIALOG_PROPS = {
   fullWidth: true,
 }
 
-const useMissingSourceBucketStyles = M.makeStyles({
+const useMissingSourceBucketTooltipStyles = M.makeStyles({
   // browsers break the word on '-'
   nowrap: {
     whiteSpace: 'nowrap',
   },
 })
 
-interface MissingSourceBucketProps {
-  className?: string
-  children: React.ReactNode
-}
-
-export function MissingSourceBucket({ className, children }: MissingSourceBucketProps) {
+function MissingSourceBucketTooltip() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  const classes = useMissingSourceBucketStyles()
+  invariant(bucket, '`bucket` must be defined')
+
+  const classes = useMissingSourceBucketTooltipStyles()
+
   const { handle, update } = BucketPreferences.use()
 
   const toConfig = useRouteToEditFile(
@@ -122,30 +123,43 @@ export function MissingSourceBucket({ className, children }: MissingSourceBucket
   const showConfirmation = React.useCallback(() => {
     open(
       ({ close }) => (
-        <AddMissingSourceBucket bucket={bucket} close={close} onSubmit={autoAdd} />
+        <MissingSourceBucketAddConfirmation
+          bucket={bucket}
+          close={close}
+          onSubmit={autoAdd}
+        />
       ),
       DIALOG_PROPS,
     )
   }, [autoAdd, bucket, open])
 
   return (
+    <>
+      <M.Typography variant="body2" gutterBottom>
+        Config property <Code>ui.sourceBuckets</Code> is empty.
+      </M.Typography>
+      <M.Typography variant="body2">
+        <StyledLink to={toConfig}>Edit manually</StyledLink> or{' '}
+        <StyledLink onClick={showConfirmation}>
+          <span className={classes.nowrap}>auto-add</span> current bucket (
+          <span className={classes.nowrap}>s3://{bucket}</span>)
+        </StyledLink>
+      </M.Typography>
+    </>
+  )
+}
+
+interface MissingSourceBucketProps {
+  className?: string
+  children: React.ReactNode
+}
+
+export function MissingSourceBucket({ className, children }: MissingSourceBucketProps) {
+  return (
     <StyledTooltip
       className={className}
       interactive
-      title={
-        <>
-          <M.Typography variant="body2" gutterBottom>
-            Config property <Code>ui.sourceBuckets</Code> is empty.
-          </M.Typography>
-          <M.Typography variant="body2">
-            <StyledLink to={toConfig}>Edit manually</StyledLink> or{' '}
-            <StyledLink onClick={showConfirmation}>
-              <span className={classes.nowrap}>auto-add</span> current bucket (
-              <span className={classes.nowrap}>s3://{bucket}</span>)
-            </StyledLink>
-          </M.Typography>
-        </>
-      }
+      title={<MissingSourceBucketTooltip />}
     >
       <div>{children}</div>
     </StyledTooltip>
