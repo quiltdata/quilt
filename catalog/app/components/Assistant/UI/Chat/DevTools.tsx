@@ -6,13 +6,37 @@ import JsonDisplay from 'components/JsonDisplay'
 
 import * as Model from '../../Model'
 
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    maxHeight: '100%',
+  },
+  heading: {
+    ...t.typography.h5,
+    borderBottom: `1px solid ${t.palette.divider}`,
+    lineHeight: '64px',
+    paddingLeft: t.spacing(2),
+  },
+  contents: {
+    flexGrow: 1,
+    overflow: 'auto',
+  },
+  json: {
+    padding: t.spacing(2),
+    '& + &': {
+      paddingTop: 0,
+    },
+  },
+}))
+
 interface DevToolsProps {
   state: Model.Assistant.API['state']
-  dispatch: Model.Assistant.API['dispatch']
-  onToggle: () => void
 }
 
-export default function DevTools({ state, dispatch, onToggle }: DevToolsProps) {
+export default function DevTools({ state }: DevToolsProps) {
+  const classes = useStyles()
+
   const context = Model.Context.useAggregatedContext()
 
   const prompt = React.useMemo(
@@ -27,12 +51,13 @@ export default function DevTools({ state, dispatch, onToggle }: DevToolsProps) {
   )
 
   return (
-    <>
-      <JsonDisplay name="Context" value={context} />
-      <JsonDisplay name="State" value={state} />
-      <JsonDisplay name="Prompt" value={prompt} />
-
-      <M.Button onClick={onToggle}>Close</M.Button>
-    </>
+    <section className={classes.root}>
+      <h1 className={classes.heading}>Qurator Developer Tools</h1>
+      <div className={classes.contents}>
+        <JsonDisplay className={classes.json} name="Context" value={context} />
+        <JsonDisplay className={classes.json} name="State" value={state} />
+        <JsonDisplay className={classes.json} name="Prompt" value={prompt} />
+      </div>
+    </section>
   )
 }

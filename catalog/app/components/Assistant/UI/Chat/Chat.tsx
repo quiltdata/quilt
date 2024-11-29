@@ -284,10 +284,11 @@ interface MenuProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
   onToggleDevTools: () => void
+  devToolsOpen: boolean
   className?: string
 }
 
-function Menu({ state, dispatch, onToggleDevTools, className }: MenuProps) {
+function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: MenuProps) {
   const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
 
   const isIdle = state._tag === 'Idle'
@@ -304,11 +305,6 @@ function Menu({ state, dispatch, onToggleDevTools, className }: MenuProps) {
     closeMenu()
   }, [closeMenu, isIdle, dispatch])
 
-  // const showSettings = React.useCallback(() => {
-  //   console.log('show settings')
-  //   closeMenu()
-  // }, [closeMenu])
-
   const showDevTools = React.useCallback(() => {
     onToggleDevTools()
     closeMenu()
@@ -316,21 +312,31 @@ function Menu({ state, dispatch, onToggleDevTools, className }: MenuProps) {
 
   return (
     <>
-      <M.IconButton
-        aria-label="menu"
-        aria-haspopup="true"
-        onClick={toggleMenu}
-        className={className}
-      >
-        <M.Icon>menu</M.Icon>
-      </M.IconButton>
+      <M.Fade in={!devToolsOpen}>
+        <M.IconButton
+          aria-label="menu"
+          aria-haspopup="true"
+          onClick={toggleMenu}
+          className={className}
+        >
+          <M.Icon>menu</M.Icon>
+        </M.IconButton>
+      </M.Fade>
+      <M.Fade in={devToolsOpen}>
+        <M.Tooltip title="Close Developer Tools">
+          <M.IconButton
+            aria-label="close"
+            onClick={onToggleDevTools}
+            className={className}
+          >
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </M.Tooltip>
+      </M.Fade>
       <M.Menu anchorEl={menuOpen} open={!!menuOpen} onClose={closeMenu}>
         <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
           New session
         </M.MenuItem>
-        {/*
-        <M.MenuItem onClick={showSettings}>Settings</M.MenuItem>
-        */}
         <M.MenuItem onClick={showDevTools}>Developer Tools</M.MenuItem>
       </M.Menu>
     </>
@@ -348,11 +354,10 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: t.spacing(1),
     top: t.spacing(1),
+    zIndex: 1,
   },
   devTools: {
     height: '50%',
-    overflow: 'auto',
-    padding: t.spacing(1),
   },
   historyContainer: {
     flexGrow: 1,
@@ -420,11 +425,12 @@ export default function Chat({ state, dispatch }: ChatProps) {
         state={state}
         dispatch={dispatch}
         onToggleDevTools={toggleDevTools}
+        devToolsOpen={devToolsOpen}
         className={classes.menu}
       />
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
-          <DevTools state={state} dispatch={dispatch} onToggle={toggleDevTools} />
+          <DevTools state={state} />
         </M.Paper>
       </M.Slide>
       <div className={classes.historyContainer}>
