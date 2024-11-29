@@ -11,10 +11,6 @@ const MODULE = 'Bedrock'
 
 const MODEL_ID = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
 
-function getModelId() {
-  return (window as any).QUILT_BEDROCK_MODEL_ID || MODEL_ID
-}
-
 const mapContent = (contentBlocks: BedrockRuntime.ContentBlocks | undefined) =>
   Eff.pipe(
     contentBlocks,
@@ -127,7 +123,7 @@ export function LLMBedrock(bedrock: BedrockRuntime) {
       enter: [
         Log.br,
         'model id:',
-        getModelId(),
+        MODEL_ID,
         Log.br,
         'prompt:',
         prompt,
@@ -140,7 +136,7 @@ export function LLMBedrock(bedrock: BedrockRuntime) {
         try: () =>
           bedrock
             .converse({
-              modelId: getModelId(),
+              modelId: MODEL_ID,
               system: [{ text: prompt.system }],
               messages: messagesToBedrock(prompt.messages),
               toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
