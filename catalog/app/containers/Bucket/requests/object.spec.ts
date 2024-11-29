@@ -1,6 +1,17 @@
 import type { S3 } from 'aws-sdk'
 
-import { objectVersions } from './object'
+import { FileNotFound } from '../errors'
+
+import { fetchFile, objectVersions } from './object'
+
+class AWSError extends Error {
+  code: string
+
+  constructor(code: string, message?: string) {
+    super(message)
+    this.code = code
+  }
+}
 
 jest.mock(
   'constants/config',
@@ -59,6 +70,63 @@ describe('app/containers/Bucket/requests/object', () => {
       expect(
         objectVersions({ s3: s3 as S3, bucket: 'any', path: 'foo' }),
       ).resolves.toMatchSnapshot()
+    })
+  })
+
+  describe('fetchFile', () => {
+    const s3 = {
+      getObject: () => ({
+        promise: () =>
+          Promise.resolve({
+            Body: Buffer.from('{"foo": "bar"}'),
+          } as S3.Types.GetObjectOutput),
+      }),
+      headObject: ({ Key }: S3.Types.HeadObjectRequest) => ({
+        response: { httpResponse: { headers: {} } },
+        promise: () => {
+          switch (Key) {
+            case 'does-not-exist':
+              return Promise.reject(new AWSError('NotFound'))
+            case 'exist':
+              return Promise.resolve({
+                VersionId: 'resolved',
+              } as S3.Types.HeadObjectOutput)
+            default:
+              return Promise.reject(new Error())
+          }
+        },
+      }),
+    }
+    it('fetches existing file', async () => {
+      const result = await fetchFile({
+        // @ts-expect-error
+        s3: s3 as S3,
+        handle: { bucket: 'b', key: 'exist' },
+      })
+      expect(result.handle).toMatchObject({
+        bucket: 'b',
+        key: 'exist',
+        version: 'resolved',
+      })
+      expect(result.body?.toString()).toBe('{"foo": "bar"}')
+    })
+
+    it('throws when file not found', async () => {
+      const result = fetchFile({
+        // @ts-expect-error
+        s3: s3 as S3,
+        handle: { bucket: 'b', key: 'does-not-exist' },
+      })
+      expect(result).rejects.toThrow(FileNotFound)
+    })
+
+    it('re-throws on error', async () => {
+      const result = fetchFile({
+        // @ts-expect-error
+        s3: s3 as S3,
+        handle: { bucket: 'b', key: 'error' },
+      })
+      expect(result).rejects.toThrow(Error)
     })
   })
 })
