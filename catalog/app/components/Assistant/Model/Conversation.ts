@@ -98,7 +98,7 @@ export type Action = Eff.Data.TaggedEnum<{
     readonly content: string
   }
   LLMError: {
-    readonly error: Eff.Cause.UnknownException
+    readonly error: LLM.LLMError
   }
   LLMResponse: {
     readonly content: Exclude<Content.ResponseMessageContentBlock, { _tag: 'ToolUse' }>[]
@@ -144,8 +144,8 @@ const llmRequest = (events: Event[]) =>
       const response = yield* llm.converse(prompt)
 
       if (Eff.Option.isNone(response.content)) {
-        return yield* new Eff.Cause.UnknownException(
-          new Error('No content in LLM response'),
+        return yield* Eff.Effect.fail(
+          new LLM.LLMError({ message: 'No content in LLM response' }),
         )
       }
 
@@ -193,8 +193,8 @@ export const ConversationActor = Eff.Effect.succeed(
       WaitingForAssistant: {
         LLMError: ({ events }, { error }) =>
           idle(events, {
-            message: 'Error while interacting with LLM. Please try again.',
-            details: `${error}`,
+            message: 'Error while interacting with LLM.',
+            details: error.message,
           }),
         LLMResponse: (state, { content, toolUses }, dispatch) =>
           Eff.Effect.gen(function* () {

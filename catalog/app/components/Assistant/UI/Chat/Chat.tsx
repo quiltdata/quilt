@@ -465,8 +465,9 @@ export default function Chat({ state, dispatch }: ChatProps) {
               Eff.Option.match(s.error, {
                 onSome: (e) => (
                   <MessageContainer timestamp={s.timestamp}>
-                    Error occurred: {e.message}
-                    <div>{e.details}</div>
+                    <b>{e.message}</b>
+                    <br />
+                    {e.details}
                   </MessageContainer>
                   // TODO: retry / discard
                 ),

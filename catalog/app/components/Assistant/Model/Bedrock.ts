@@ -1,3 +1,4 @@
+import type * as AWSSDK from 'aws-sdk'
 import BedrockRuntime from 'aws-sdk/clients/bedrockruntime'
 import * as Eff from 'effect'
 
@@ -114,6 +115,10 @@ const toolConfigToBedrock = (
     }),
 })
 
+function isAWSError(e: any): e is AWSSDK.AWSError {
+  return e.code !== undefined && e.message !== undefined
+}
+
 // a layer providing the service over aws.bedrock
 export function LLMBedrock(bedrock: BedrockRuntime) {
   const converse = (prompt: LLM.Prompt, opts?: LLM.Options) =>
@@ -131,21 +136,28 @@ export function LLMBedrock(bedrock: BedrockRuntime) {
         opts,
       ],
     })(
-      Eff.Effect.tryPromise(() =>
-        bedrock
-          .converse({
-            modelId: getModelId(),
-            system: [{ text: prompt.system }],
-            messages: messagesToBedrock(prompt.messages),
-            toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
-            ...opts,
-          })
-          .promise()
-          .then((backendResponse) => ({
-            backendResponse,
-            content: mapContent(backendResponse.output.message?.content),
-          })),
-      ),
+      Eff.Effect.tryPromise({
+        try: () =>
+          bedrock
+            .converse({
+              modelId: getModelId(),
+              system: [{ text: prompt.system }],
+              messages: messagesToBedrock(prompt.messages),
+              toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
+              ...opts,
+            })
+            .promise()
+            .then((backendResponse) => ({
+              backendResponse,
+              content: mapContent(backendResponse.output.message?.content),
+            })),
+        catch: (e) =>
+          new LLM.LLMError({
+            message: isAWSError(e)
+              ? `Bedrock error (${e.code}): ${e.message}`
+              : `Unexpected error: ${e}`,
+          }),
+      }),
     )
 
   return Eff.Layer.succeed(LLM.LLM, { converse })
