@@ -75,7 +75,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
-        run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile ..
+        run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:

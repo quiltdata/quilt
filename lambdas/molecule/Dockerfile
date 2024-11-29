@@ -14,11 +14,11 @@ RUN apt-get update && \
         gcc \
         libc6-dev
 
-COPY molecule/requirements.txt /requirements/molecule.txt
+COPY requirements.txt /requirements/molecule.txt
 RUN pip install -U pip setuptools
 RUN pip install --target /deps -r /requirements/molecule.txt
 
-COPY molecule/ /src/molecule/
+COPY . /src/molecule/
 RUN pip install --target /lambda --no-deps /src/molecule/
 
 FROM base-image
