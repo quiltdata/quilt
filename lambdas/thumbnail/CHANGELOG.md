@@ -16,4 +16,5 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Regenerate requirements.txt ([#4241](https://github.com/quiltdata/quilt/pull/4241))
 - [Added] Allow overriding PIL.Image.MAX_IMAGE_PIXELS using env var ([#4100](https://github.com/quiltdata/quilt/pull/4100))
