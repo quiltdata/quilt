@@ -134,7 +134,11 @@ export const objectVersions = ({ s3, bucket, path }: ObjectVersionsArgs) =>
           : false,
       })),
     )
-    .then(R.sort(R.descend(R.prop('lastModified'))))
+    .then(
+      R.sort<{ lastModified?: Date }>(
+        R.descend(R.propOr(new Date('1970-01-01'), 'lastModified')),
+      ),
+    )
 
 interface FetchFileInCollectionArgs {
   s3: S3
