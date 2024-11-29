@@ -185,7 +185,8 @@ const normalizeBucketName = (input: string) =>
 const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 
 export function validate(data: unknown): asserts data is BucketPreferencesInput {
-  const errors = bucketPreferencesValidator(data)
+  const obj = typeof data === 'string' ? YAML.parse(data) : data
+  const errors = bucketPreferencesValidator(obj)
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
 
