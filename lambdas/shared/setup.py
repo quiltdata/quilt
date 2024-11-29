@@ -8,6 +8,7 @@ setup(
     name="t4-lambda-shared",
     version="0.0.3",
     packages=["t4_lambda_shared"],
+    python_requires=">=3.9",
     install_requires=[
         "jsonschema>=2.6.0",
     ],
