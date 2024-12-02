@@ -7,6 +7,7 @@ import * as Lab from '@material-ui/lab'
 import Code from 'components/Code'
 import Lock from 'components/Lock'
 import * as quiltConfigs from 'constants/quiltConfigs'
+import { docsMaster } from 'constants/urls'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { createBoundary } from 'utils/ErrorBoundary'
@@ -137,7 +138,11 @@ function MissingSourceBucketTooltip() {
   return (
     <>
       <M.Typography variant="body2" gutterBottom>
-        Config property <Code>ui.sourceBuckets</Code> is empty.
+        Config property <Code>ui.sourceBuckets</Code> is empty.{' '}
+        <StyledLink href={`${docsMaster}/catalog/preferences`} target="_blank">
+          Learn more
+        </StyledLink>
+        .
       </M.Typography>
       <M.Typography variant="body2">
         <StyledLink to={toConfig}>Edit manually</StyledLink> or{' '}
@@ -164,10 +169,18 @@ interface MissingSourceBucketProps {
   children: React.ReactNode
 }
 
+const tooltipStyles = M.makeStyles((t) => ({
+  tooltip: {
+    maxWidth: t.spacing(36),
+  },
+}))
+
 export function MissingSourceBucket({ className, children }: MissingSourceBucketProps) {
+  const classes = tooltipStyles()
   return (
     <StyledTooltip
       className={className}
+      classes={classes}
       interactive
       title={
         <ErrorBoundary>
