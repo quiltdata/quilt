@@ -88,8 +88,10 @@ describe('components/FileEditor/HelpLinks', () => {
     it('should throw outside bucket', () => {
       jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
       useParams.mockImplementationOnce(() => ({}))
-      const tree = () => renderer.create(<MissingSourceBucket>Any</MissingSourceBucket>)
-      expect(tree).toThrowError('`bucket` must be defined')
+      const tree = renderer
+        .create(<MissingSourceBucket>Any</MissingSourceBucket>)
+        .toJSON()
+      expect(tree).toMatchSnapshot()
     })
   })
 })
