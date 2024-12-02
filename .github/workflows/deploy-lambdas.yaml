@@ -64,7 +64,6 @@ jobs:
     strategy:
       matrix:
         path:
-          - molecule
           - thumbnail
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
