@@ -1,28 +1,45 @@
 import * as React from 'react'
 
-import { Result, extendDefaults } from './BucketPreferences'
+import type * as Model from 'model'
 
-const localModePreferences = Result.Ok(
-  extendDefaults({
-    ui: {
-      actions: {
-        copyPackage: false,
-        createPackage: false,
-        deleteRevision: false,
-        revisePackage: false,
+import {
+  BucketPreferences,
+  BucketPreferencesInput,
+  Result,
+  extendDefaults,
+} from './BucketPreferences'
+
+const localModePreferences = {
+  handle: null,
+  prefs: Result.Ok(
+    extendDefaults({
+      ui: {
+        actions: {
+          copyPackage: false,
+          createPackage: false,
+          deleteRevision: false,
+          revisePackage: false,
+        },
+        blocks: {
+          analytics: false,
+        },
+        nav: {
+          queries: false,
+        },
       },
-      blocks: {
-        analytics: false,
-      },
-      nav: {
-        queries: false,
-      },
-    },
-  }),
-)
+    }),
+  ),
+  update: () => {
+    throw new Error('Bucket config for local mode cannot be updated')
+  },
+}
 
 interface LocalProviderProps {
-  context: React.Context<Result>
+  context: React.Context<{
+    handle: Model.S3.S3ObjectLocation | null
+    prefs: Result
+    update: (upd: BucketPreferencesInput) => Promise<BucketPreferences>
+  }>
   children: React.ReactNode
 }
 

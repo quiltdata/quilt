@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Resolve caching issues where changes in `.quilt/{workflows,catalog}` were not applied ([#4245](https://github.com/quiltdata/quilt/pull/4245))
+- [Added] A shortcut to enable adding files to a package from the current bucket ([#4245](https://github.com/quiltdata/quilt/pull/4245))
 - [Changed] Qurator: propagate error messages from Bedrock ([#4192](https://github.com/quiltdata/quilt/pull/4192))
 - [Added] Qurator Developer Tools ([#4192](https://github.com/quiltdata/quilt/pull/4192))
 - [Changed] JsonDisplay: handle dates and functions ([#4192](https://github.com/quiltdata/quilt/pull/4192))

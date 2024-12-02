@@ -4,12 +4,10 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import * as Dialog from 'components/Dialog'
-import * as urls from 'constants/urls'
+import { MissingSourceBucket } from 'components/FileEditor/HelpLinks'
 import type * as Model from 'model'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import computeFileChecksum from 'utils/checksums'
 import useDragging from 'utils/dragging'
@@ -1380,18 +1378,18 @@ function DndProvider({ children }: DndProviderProps) {
   )
 }
 
-const DOCS_URL_SOURCE_BUCKETS = `${urls.docsMaster}/catalog/preferences#properties`
-
 const useFilesInputStyles = M.makeStyles((t) => ({
   hashing: {
     marginLeft: t.spacing(1),
   },
   actions: {
+    alignItems: 'flex-start',
     display: 'flex',
     marginTop: t.spacing(1),
   },
   action: {
     flexGrow: 1,
+    flexShrink: 0,
     '& + &': {
       marginLeft: t.spacing(1),
     },
@@ -1403,12 +1401,18 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   buttons: {
     display: 'flex',
     marginLeft: 'auto',
+    alignItems: 'flex-start',
   },
   btnDivider: {
     margin: t.spacing(0, 1),
   },
   warning: {
-    marginLeft: t.spacing(1),
+    display: 'flex',
+    flexBasis: `calc(50% - ${t.spacing(2)}px)`,
+    marginLeft: t.spacing(2),
+  },
+  warningItem: {
+    ...t.typography.caption,
   },
 }))
 
@@ -1431,7 +1435,7 @@ interface FilesInputProps {
     loaded: number
     percent: number
   }
-  bucket: string
+  bucket: string // It is the bucket __selected__ in __S3FilePicker__, not the bucket for the current page
   buckets?: string[]
   selectBucket?: (bucket: string) => void
   delayHashing?: boolean
@@ -1754,11 +1758,11 @@ export function FilesInput({
             Add files from bucket
           </M.Button>
         ) : (
-          <Lab.Alert className={classes.warning} severity="info">
-            <StyledLink href={DOCS_URL_SOURCE_BUCKETS} target="_blank">
-              Learn how to add files from a bucket
-            </StyledLink>
-          </Lab.Alert>
+          <MissingSourceBucket className={classes.warning}>
+            <M.Button disabled className={classes.action} variant="outlined" size="small">
+              Add files from bucket
+            </M.Button>
+          </MissingSourceBucket>
         )}
       </div>
     </Root>

@@ -4,8 +4,9 @@ import * as Sentry from '@sentry/react'
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import * as bucketErrors from 'containers/Bucket/errors'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator } from 'utils/JSONSchema'
 import * as tagged from 'utils/taggedV2'
+import type { JsonRecord } from 'utils/types'
 import * as YAML from 'utils/yaml'
 
 export type ActionPreferences = Record<
@@ -76,7 +77,7 @@ interface PackagesListPreferences {
 
 type DefaultSourceBucketInput = string
 type PackageDescriptionMultiline = boolean
-type SourceBucketsInput = Record<string, null>
+type SourceBucketsInput = Record<string, {}>
 
 interface AthenaPreferencesInput {
   defaultWorkflow?: string // @deprecated, was used by mistake
@@ -98,7 +99,7 @@ interface UiPreferencesInput {
   sourceBuckets?: SourceBucketsInput
 }
 
-interface BucketPreferencesInput {
+export interface BucketPreferencesInput {
   ui?: UiPreferencesInput
 }
 
@@ -116,7 +117,7 @@ interface UiPreferences {
   sourceBuckets: SourceBuckets
 }
 
-interface BucketPreferences {
+export interface BucketPreferences {
   ui: UiPreferences
 }
 
@@ -183,8 +184,9 @@ const normalizeBucketName = (input: string) =>
 
 const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 
-function validate(data: unknown): asserts data is BucketPreferencesInput {
-  const errors = bucketPreferencesValidator(data)
+export function validate(data: unknown): asserts data is BucketPreferencesInput {
+  const obj = typeof data === 'string' ? YAML.parse(data) : data
+  const errors = bucketPreferencesValidator(obj)
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
 
@@ -323,3 +325,28 @@ export const Result = tagged.create('app/utils/BucketPreferences:Result' as cons
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type Result = tagged.InstanceOf<typeof Result>
+
+export function merge(bucketPreferencesYaml: string, update: BucketPreferencesInput) {
+  try {
+    const prefs = YAML.parse(bucketPreferencesYaml) as JsonRecord
+    return YAML.stringify(R.mergeDeepRight(prefs, update))
+  } catch (e) {
+    return YAML.stringify(update as JsonRecord)
+  }
+}
+
+export const sourceBucket = (bucket: string): BucketPreferencesInput => ({
+  ui: {
+    sourceBuckets: {
+      [bucket]: {},
+    },
+  },
+})
+
+export const openInDesktop = (): BucketPreferencesInput => ({
+  ui: {
+    actions: {
+      openInDesktop: true,
+    },
+  },
+})

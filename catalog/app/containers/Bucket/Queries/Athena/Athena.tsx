@@ -365,7 +365,7 @@ function AthenaContainer() {
 }
 
 export default function Wrapper() {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui }) => (

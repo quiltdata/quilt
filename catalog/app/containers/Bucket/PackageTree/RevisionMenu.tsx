@@ -18,7 +18,7 @@ export default function RevisionMenu({
   onDelete,
   onDesktop,
 }: RevisionMenuProps) {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const items = React.useMemo(
     () =>

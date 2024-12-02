@@ -1,10 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
 import * as workflows from 'utils/workflows'
-
-import WorkflowsConfigLink from '../WorkflowsConfigLink'
 
 const useStyles = M.makeStyles((t) => ({
   crop: {
@@ -21,7 +20,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface SelectWorkflowProps {
-  bucket: string
   disabled?: boolean
   error?: React.ReactNode
   items: workflows.Workflow[]
@@ -30,7 +28,6 @@ interface SelectWorkflowProps {
 }
 
 export default function SelectWorkflow({
-  bucket,
   disabled,
   error,
   items,
@@ -74,10 +71,7 @@ export default function SelectWorkflow({
         <M.Link href={`${docs}/workflows`} target="_blank">
           Learn about data quality workflows
         </M.Link>
-        , or edit{' '}
-        <WorkflowsConfigLink bucket={bucket}>
-          your workflows config file
-        </WorkflowsConfigLink>
+        , or edit <WorkflowsConfigLink>your workflows config file</WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
   )

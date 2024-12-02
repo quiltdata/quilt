@@ -3,18 +3,14 @@ import {
   findTypeInCompoundSchema,
   makeSchemaDefaultsSetter,
   makeSchemaValidator,
-} from './json-schema'
+} from './JSONSchema'
 
-import * as booleansNulls from './mocks/booleans-nulls'
-import * as compound from './mocks/compound'
-import * as deeplyNestedArray from './mocks/deeply-nested-array'
-import * as incorrect from './mocks/incorrect'
-import * as regular from './mocks/regular'
+import * as stubs from './__stubs__'
 
-describe('utils/json-schema', () => {
+describe('utils/JSONSchema', () => {
   describe('makeSchemaValidator', () => {
     it('should return error, when keyword is required but is not provided', () => {
-      const validate = makeSchemaValidator(regular.schema)
+      const validate = makeSchemaValidator(stubs.regular)
 
       const obj = { optList: [{ id: 1, name: 'Name' }], optEnum: 'one' }
       const errors = validate(obj)
@@ -26,13 +22,13 @@ describe('utils/json-schema', () => {
     })
 
     it('should return an error when schema is incorrect', () => {
-      expect(makeSchemaValidator(incorrect.schema)()[0].message).toMatch(
+      expect(makeSchemaValidator(stubs.incorrect)()[0].message).toMatch(
         /schema is invalid/,
       )
     })
 
     describe('validator for Schema with enum types', () => {
-      const validate = makeSchemaValidator(regular.schema)
+      const validate = makeSchemaValidator(stubs.regular)
 
       it("should return error, when value doesn't match enum", () => {
         const invalid = { a: 123, b: 'value', optEnum: 'value' }
@@ -48,7 +44,7 @@ describe('utils/json-schema', () => {
     })
 
     describe('validator for Schema with deeply nested array', () => {
-      const validate = makeSchemaValidator(deeplyNestedArray.schema)
+      const validate = makeSchemaValidator(stubs.deeplyNestedArray)
 
       it("should return error, when value doesn't match this array structure", () => {
         const invalid = { longNestedList: [{}] }
@@ -87,7 +83,7 @@ describe('utils/json-schema', () => {
     })
 
     describe('validator for Schema with number and string types', () => {
-      const validate = makeSchemaValidator(regular.schema)
+      const validate = makeSchemaValidator(stubs.regular)
 
       it('should return error, when number is expected but string is provided', () => {
         const invalidNumber = { a: 'b', b: 'b' }
@@ -110,7 +106,7 @@ describe('utils/json-schema', () => {
     })
 
     describe('validator for Schema with boolean and null types', () => {
-      const validate = makeSchemaValidator(booleansNulls.schema)
+      const validate = makeSchemaValidator(stubs.booleansNulls)
 
       it("should return error, when value doesn't match null", () => {
         const invalidNull = { nullValue: 123 }
@@ -158,7 +154,7 @@ describe('utils/json-schema', () => {
     })
 
     describe('validator for Schema with compound types', () => {
-      const validate = makeSchemaValidator(compound.schemaAnyOf)
+      const validate = makeSchemaValidator(stubs.anyOf)
 
       it("shouldn't return error, when value is empty", () => {
         const emptyObject = {}
@@ -241,7 +237,7 @@ describe('utils/json-schema', () => {
     })
 
     describe('validator for Schema with types as array', () => {
-      const validate = makeSchemaValidator(compound.schemaTypeArray, [], {
+      const validate = makeSchemaValidator(stubs.typeArray, [], {
         allowUnionTypes: true,
       })
 
@@ -304,11 +300,11 @@ describe('utils/json-schema', () => {
   })
 
   describe('makeSchemaDefaultsSetter', () => {
-    const setDefaults = makeSchemaDefaultsSetter(regular.schema)
+    const setDefaults = makeSchemaDefaultsSetter(stubs.regular)
 
     it('should set default value from Schema, when value is empty', () => {
       expect(setDefaults({})).toMatchObject({
-        a: 3.14,
+        a: 10000000000,
       })
     })
 
