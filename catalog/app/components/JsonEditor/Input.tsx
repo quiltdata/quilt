@@ -20,7 +20,9 @@ const useStyles = M.makeStyles((t) => ({
 
 function getNormalizedValue(value: JsonValue, optSchema?: JsonSchema): JsonValue {
   // TODO: use JSONSchema#getEmptyValueFromSchema
-  if (!optSchema && value === '') return EMPTY_VALUE // FIXME: think more on this
+  // TODO: return empty with some clue on what value should be here
+  // TODO: it would be nicer to compare with absence of value instead of empty string
+  if (!optSchema && value === '') return EMPTY_VALUE
 
   if (value !== EMPTY_VALUE) return value
 
