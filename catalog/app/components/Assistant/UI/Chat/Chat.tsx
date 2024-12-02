@@ -9,6 +9,7 @@ import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
 
+import DevTools from './DevTools'
 import Input from './Input'
 
 const BG = {
@@ -145,10 +146,8 @@ function MessageAction({ children, onClick }: MessageActionProps) {
   )
 }
 
-type ConversationDispatch = (action: Model.Conversation.Action) => void
-
 interface ConversationDispatchProps {
-  dispatch: ConversationDispatch
+  dispatch: Model.Assistant.API['dispatch']
 }
 
 interface ConversationStateProps {
@@ -281,12 +280,84 @@ function WaitingState({ timestamp, dispatch }: WaitingStateProps) {
   )
 }
 
-const useChatStyles = M.makeStyles((t) => ({
+interface MenuProps {
+  state: Model.Assistant.API['state']
+  dispatch: Model.Assistant.API['dispatch']
+  onToggleDevTools: () => void
+  devToolsOpen: boolean
+  className?: string
+}
+
+function Menu({ state, dispatch, devToolsOpen, onToggleDevTools, className }: MenuProps) {
+  const [menuOpen, setMenuOpen] = React.useState<HTMLElement | null>(null)
+
+  const isIdle = state._tag === 'Idle'
+
+  const toggleMenu = React.useCallback(
+    (e: React.BaseSyntheticEvent) =>
+      setMenuOpen((prev) => (prev ? null : e.currentTarget)),
+    [setMenuOpen],
+  )
+  const closeMenu = React.useCallback(() => setMenuOpen(null), [setMenuOpen])
+
+  const startNewSession = React.useCallback(() => {
+    if (isIdle) dispatch(Model.Conversation.Action.Clear())
+    closeMenu()
+  }, [closeMenu, isIdle, dispatch])
+
+  const showDevTools = React.useCallback(() => {
+    onToggleDevTools()
+    closeMenu()
+  }, [closeMenu, onToggleDevTools])
+
+  return (
+    <>
+      <M.Fade in={!devToolsOpen}>
+        <M.IconButton
+          aria-label="menu"
+          aria-haspopup="true"
+          onClick={toggleMenu}
+          className={className}
+        >
+          <M.Icon>menu</M.Icon>
+        </M.IconButton>
+      </M.Fade>
+      <M.Fade in={devToolsOpen}>
+        <M.Tooltip title="Close Developer Tools">
+          <M.IconButton
+            aria-label="close"
+            onClick={onToggleDevTools}
+            className={className}
+          >
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </M.Tooltip>
+      </M.Fade>
+      <M.Menu anchorEl={menuOpen} open={!!menuOpen} onClose={closeMenu}>
+        <M.MenuItem onClick={startNewSession} disabled={!isIdle}>
+          New session
+        </M.MenuItem>
+        <M.MenuItem onClick={showDevTools}>Developer Tools</M.MenuItem>
+      </M.Menu>
+    </>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
   chat: {
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
     overflow: 'hidden',
+  },
+  menu: {
+    position: 'absolute',
+    right: t.spacing(1),
+    top: t.spacing(1),
+    zIndex: 1,
+  },
+  devTools: {
+    height: '50%',
   },
   historyContainer: {
     flexGrow: 1,
@@ -313,15 +384,15 @@ const useChatStyles = M.makeStyles((t) => ({
 }))
 
 interface ChatProps {
-  state: Model.Conversation.State
-  dispatch: ConversationDispatch
+  state: Model.Assistant.API['state']
+  dispatch: Model.Assistant.API['dispatch']
 }
 
 export default function Chat({ state, dispatch }: ChatProps) {
-  const classes = useChatStyles()
+  const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  const inputDisabled = state._tag != 'Idle'
+  const inputDisabled = state._tag !== 'Idle'
 
   const stateFingerprint = `${state._tag}:${state.timestamp.getTime()}`
 
@@ -341,8 +412,27 @@ export default function Chat({ state, dispatch }: ChatProps) {
     [dispatch],
   )
 
+  const [devToolsOpen, setDevToolsOpen] = React.useState(false)
+
+  const toggleDevTools = React.useCallback(
+    () => setDevToolsOpen((prev) => !prev),
+    [setDevToolsOpen],
+  )
+
   return (
     <div className={classes.chat}>
+      <Menu
+        state={state}
+        dispatch={dispatch}
+        onToggleDevTools={toggleDevTools}
+        devToolsOpen={devToolsOpen}
+        className={classes.menu}
+      />
+      <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
+        <M.Paper square className={classes.devTools}>
+          <DevTools state={state} />
+        </M.Paper>
+      </M.Slide>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
@@ -375,8 +465,9 @@ export default function Chat({ state, dispatch }: ChatProps) {
               Eff.Option.match(s.error, {
                 onSome: (e) => (
                   <MessageContainer timestamp={s.timestamp}>
-                    Error occurred: {e.message}
-                    <div>{e.details}</div>
+                    <b>{e.message}</b>
+                    <br />
+                    {e.details}
                   </MessageContainer>
                   // TODO: retry / discard
                 ),

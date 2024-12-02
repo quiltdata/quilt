@@ -104,4 +104,4 @@ export type PromptMessageContentBlock = Eff.Data.TaggedEnum<{
 export const PromptMessageContentBlock = Eff.Data.taggedEnum<PromptMessageContentBlock>()
 
 export const text = (first: string, ...rest: string[]) =>
-  PromptMessageContentBlock.Text({ text: [first, ...rest].join('') })
+  PromptMessageContentBlock.Text({ text: [first, ...rest].join('\n') })

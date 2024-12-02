@@ -157,7 +157,6 @@ jobs:
         path:
           - access_counts
           - indexer
-          - molecule
           - pkgevents
           - pkgpush
           - preview
