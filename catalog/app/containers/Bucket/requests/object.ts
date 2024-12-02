@@ -37,19 +37,21 @@ interface ObjectMetaArgs {
   handle: Model.S3.S3ObjectLocation
 }
 
-export const objectMeta = ({
+export const objectMeta = async ({
   s3,
   handle: { bucket, key, version },
-}: ObjectMetaArgs): Promise<JsonRecord> =>
-  s3
+}: ObjectMetaArgs): Promise<JsonRecord | undefined> => {
+  const r = await s3
     .headObject({
       Bucket: bucket,
       Key: key,
       VersionId: version,
     })
     .promise()
-    // @ts-expect-error
-    .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
+  if (r.Metadata?.helium) {
+    return JSON.parse(r.Metadata?.helium)
+  }
+}
 
 type ExistingObject = Model.S3.S3ObjectLocation & { size?: number; lastModified?: Date }
 
