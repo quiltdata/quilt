@@ -10,6 +10,13 @@ exports[`components/FileEditor/HelpLinks MissingSourceBucket should render 1`] =
       ui.sourceBuckets
     </code>
      is empty.
+     
+    <a
+      href="https://docs.quiltdata.com/v/master/catalog/preferences"
+    >
+      Learn more
+    </a>
+    .
   </p>
   <p
     className="MuiTypography-root MuiTypography-body2"
@@ -23,13 +30,13 @@ exports[`components/FileEditor/HelpLinks MissingSourceBucket should render 1`] =
      
     <a>
       <span
-        className="makeStyles-nowrap-1"
+        className="makeStyles-nowrap-2"
       >
         auto-add
       </span>
        current bucket (
       <span
-        className="makeStyles-nowrap-1"
+        className="makeStyles-nowrap-2"
       >
         s3://
         buck

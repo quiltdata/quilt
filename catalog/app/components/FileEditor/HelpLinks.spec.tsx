@@ -11,8 +11,8 @@ jest.mock(
 jest.mock(
   'utils/StyledLink',
   () =>
-    ({ to, children }: React.PropsWithChildren<{ to: string }>) => (
-      <a href={to}>{children}</a>
+    ({ href, to, children }: React.PropsWithChildren<{ href: string; to: string }>) => (
+      <a href={to || href}>{children}</a>
     ),
 )
 
