@@ -1,5 +1,4 @@
 import type { S3 } from 'aws-sdk'
-import * as R from 'ramda'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
 import type * as Model from 'model'
@@ -110,37 +109,29 @@ const isDeleteMarker = (v: ListItem): v is S3.DeleteMarkerEntry =>
 const isObjectVersion = (v: ListItem): v is S3.ObjectVersion =>
   (v as S3.ObjectVersion).Size != null
 
-export const objectVersions = ({ s3, bucket, path }: ObjectVersionsArgs) =>
-  s3
+export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) => {
+  const { Versions, DeleteMarkers } = await s3
     .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
     .promise()
-    .then(
-      ({ Versions, DeleteMarkers }) =>
-        [...(Versions || []), ...(DeleteMarkers || [])] as ListItem[],
-    )
-    .then((x) => {
-      const z = x.map((y) => ({ ...y, Key: decodeS3Key(y.Key || '') }))
-      return z
+  return ([...(Versions || []), ...(DeleteMarkers || [])] as ListItem[])
+    .filter(({ Key }) => decodeS3Key(Key || '') === path)
+    .map((v) => ({
+      isLatest: v.IsLatest || false,
+      lastModified: v.LastModified,
+      size: isObjectVersion(v) ? v.Size : undefined,
+      id: v.VersionId,
+      deleteMarker: isDeleteMarker(v),
+      archived: isObjectVersion(v)
+        ? v.StorageClass === 'GLACIER' || v.StorageClass === 'DEEP_ARCHIVE'
+        : false,
+    }))
+    .toSorted(({ lastModified: left }, { lastModified: right }) => {
+      if (left && right) return right.getTime() - left.getTime()
+      if (left) return -1
+      if (right) return 1
+      return 0
     })
-    .then(R.map<ListItem, ListItem>(R.evolve({ Key: decodeS3Key })))
-    .then(R.filter<ListItem>((v) => v.Key === path))
-    .then(
-      R.map((v) => ({
-        isLatest: v.IsLatest || false,
-        lastModified: v.LastModified,
-        size: isObjectVersion(v) ? v.Size : undefined,
-        id: v.VersionId,
-        deleteMarker: isDeleteMarker(v),
-        archived: isObjectVersion(v)
-          ? v.StorageClass === 'GLACIER' || v.StorageClass === 'DEEP_ARCHIVE'
-          : false,
-      })),
-    )
-    .then(
-      R.sort<{ lastModified?: Date }>(
-        R.descend(R.propOr(new Date('1970-01-01'), 'lastModified')),
-      ),
-    )
+}
 
 interface FetchFileInCollectionArgs {
   s3: S3

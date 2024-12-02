@@ -82,6 +82,8 @@ describe('app/containers/Bucket/requests/object', () => {
           } as S3.Types.GetObjectOutput),
       }),
       headObject: ({ Key }: S3.Types.HeadObjectRequest) => ({
+        // AWS Request has no `.response` field type
+        // but it has this in practice, and we use it
         response: { httpResponse: { headers: {} } },
         promise: () => {
           switch (Key) {
@@ -97,8 +99,10 @@ describe('app/containers/Bucket/requests/object', () => {
         },
       }),
     }
+
     it('fetches existing file', async () => {
       const result = await fetchFile({
+        // `.response` is absent in type
         // @ts-expect-error
         s3: s3 as S3,
         handle: { bucket: 'b', key: 'exist' },
@@ -113,6 +117,7 @@ describe('app/containers/Bucket/requests/object', () => {
 
     it('throws when file not found', async () => {
       const result = fetchFile({
+        // `.response` is absent in type
         // @ts-expect-error
         s3: s3 as S3,
         handle: { bucket: 'b', key: 'does-not-exist' },
@@ -122,6 +127,7 @@ describe('app/containers/Bucket/requests/object', () => {
 
     it('re-throws on error', async () => {
       const result = fetchFile({
+        // `.response` is absent in type
         // @ts-expect-error
         s3: s3 as S3,
         handle: { bucket: 'b', key: 'error' },
