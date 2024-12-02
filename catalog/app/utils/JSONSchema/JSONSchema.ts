@@ -5,7 +5,6 @@ import * as R from 'ramda'
 
 type CompoundCondition = 'anyOf' | 'oneOf' | 'not' | 'allOf'
 
-// TODO: use more detailed `Ajv.JSONSchemaType` instead
 export type JsonSchema = SchemaObject
 
 export function isSchemaCompound(optSchema?: JsonSchema) {
@@ -282,8 +281,9 @@ function scanSchemaAndPrefillValues(
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
-    // We can use defaults in `properties` and `items`,
+    // We can use defaults in `properties` and `items` only,
     // and not in conditionals like `oneOf`, `anyOf`, `if` etc.
+    // https://github.com/ajv-validator/ajv/issues/42#issuecomment-170250113
 
     if (schemaItem.properties) {
       const properties = scanSchemaAndPrefillValues(getValue, valueItem, schemaItem)
