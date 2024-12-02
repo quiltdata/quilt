@@ -9,6 +9,7 @@ import Lock from 'components/Lock'
 import * as quiltConfigs from 'constants/quiltConfigs'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import { createBoundary } from 'utils/ErrorBoundary'
 import * as Dialogs from 'utils/GlobalDialogs'
 import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -149,6 +150,15 @@ function MissingSourceBucketTooltip() {
   )
 }
 
+const ErrorBoundary = createBoundary(
+  (props: Lab.AlertProps) => (error: Error) => (
+    <Lab.Alert severity="error" {...props}>
+      {error.message || 'Unexpected Error'}
+    </Lab.Alert>
+  ),
+  'MissingSourceBucketErrorBoundary',
+)
+
 interface MissingSourceBucketProps {
   className?: string
   children: React.ReactNode
@@ -159,7 +169,11 @@ export function MissingSourceBucket({ className, children }: MissingSourceBucket
     <StyledTooltip
       className={className}
       interactive
-      title={<MissingSourceBucketTooltip />}
+      title={
+        <ErrorBoundary>
+          <MissingSourceBucketTooltip />
+        </ErrorBoundary>
+      }
     >
       <div>{children}</div>
     </StyledTooltip>
