@@ -118,6 +118,7 @@ export const objectVersions = async ({ s3, bucket, path }: ObjectVersionsArgs) =
     .map((v) => ({
       isLatest: v.IsLatest || false,
       lastModified: v.LastModified,
+      // TODO: make two separate maps, object version can be without `Size`
       size: isObjectVersion(v) ? v.Size : undefined,
       id: v.VersionId,
       deleteMarker: isDeleteMarker(v),
