@@ -7,7 +7,7 @@ import * as Lab from '@material-ui/lab'
 import Code from 'components/Code'
 import Lock from 'components/Lock'
 import * as quiltConfigs from 'constants/quiltConfigs'
-import { docsMaster } from 'constants/urls'
+import { docs } from 'constants/urls'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { createBoundary } from 'utils/ErrorBoundary'
@@ -139,7 +139,7 @@ function MissingSourceBucketTooltip() {
     <>
       <M.Typography variant="body2" gutterBottom>
         Config property <Code>ui.sourceBuckets</Code> is empty.{' '}
-        <StyledLink href={`${docsMaster}/catalog/preferences`} target="_blank">
+        <StyledLink href={`${docs}/catalog/preferences`} target="_blank">
           Learn more
         </StyledLink>
         .
