@@ -11,5 +11,5 @@ dependencies = [
   "Pillow>=9.0.1,<11",
   "python-pptx>=0.6.21,<0.7",
   "requests>=2.26.0,<3",
-  "t4_lambda_shared[lambda] @ https://github.com/quiltdata/quilt/archive/f45d8ab51f2d60e98efda7510322f94d822e4eb4.zip#subdirectory=lambdas/shared",
+  "t4_lambda_shared[lambda] @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared",
 ]

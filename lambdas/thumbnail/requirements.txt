@@ -59,7 +59,7 @@ scipy==1.13.1
     # via aicsimageio
 simplejson==3.19.3
     # via awslambdaric
-t4-lambda-shared[lambda] @ https://github.com/quiltdata/quilt/archive/f45d8ab51f2d60e98efda7510322f94d822e4eb4.zip#subdirectory=lambdas/shared
+t4-lambda-shared[lambda] @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared
     # via t4_lambda_thumbnail (pyproject.toml)
 tifffile==0.15.1
     # via aicsimageio
