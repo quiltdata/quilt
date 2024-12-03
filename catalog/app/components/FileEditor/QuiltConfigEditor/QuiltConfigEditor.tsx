@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
 import JsonValidationErrors from 'components/JsonValidationErrors'
-import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import { JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
 import * as YAML from 'utils/yaml'
 
 const useStyles = M.makeStyles((t) => ({

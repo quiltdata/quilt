@@ -274,7 +274,7 @@ export default function File() {
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const s3 = AWS.S3.use()
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const path = decode(encodedPath)
 

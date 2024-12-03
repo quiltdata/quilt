@@ -254,7 +254,6 @@ function DialogForm({
 
               <RF.Field
                 component={PD.WorkflowInput}
-                bucket={bucket}
                 name="workflow"
                 workflowsConfig={workflowsConfig}
                 initialValue={selectedWorkflow}
@@ -362,7 +361,6 @@ function DialogError({ bucket, error, onCancel }: DialogErrorProps) {
 
   return (
     <PD.DialogError
-      bucket={bucket}
       error={error}
       skeletonElement={<FormSkeleton animate={false} />}
       title={

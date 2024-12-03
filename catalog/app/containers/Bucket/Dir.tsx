@@ -38,7 +38,7 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   const prompt = FileEditor.useCreateFileInBucket(bucket, path)
   const menuItems = React.useMemo(
     () =>
@@ -181,7 +181,7 @@ export default function Dir() {
 
   const classes = useStyles()
   const s3 = AWS.S3.use()
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search, true)
   const path = s3paths.decode(encodedPath)
 

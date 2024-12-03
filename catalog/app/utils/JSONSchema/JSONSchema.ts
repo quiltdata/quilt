@@ -5,7 +5,6 @@ import * as R from 'ramda'
 
 type CompoundCondition = 'anyOf' | 'oneOf' | 'not' | 'allOf'
 
-// TODO: use more detailed `Ajv.JSONSchemaType` instead
 export type JsonSchema = SchemaObject
 
 export function isSchemaCompound(optSchema?: JsonSchema) {
@@ -282,19 +281,25 @@ function scanSchemaAndPrefillValues(
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
-    if (schemaItem.properties)
-      return R.assoc(
-        key,
-        scanSchemaAndPrefillValues(getValue, valueItem, schemaItem),
-        memo,
-      )
+    // We can use defaults in `properties` and `items` only,
+    // and not in conditionals like `oneOf`, `anyOf`, `if` etc.
+    // https://github.com/ajv-validator/ajv/issues/42#issuecomment-170250113
 
-    if (schemaItem.items && Array.isArray(valueItem))
-      return R.assoc(
-        key,
-        valueItem.map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items)),
-        memo,
-      )
+    if (schemaItem.properties) {
+      const properties = scanSchemaAndPrefillValues(getValue, valueItem, schemaItem)
+      if (properties) {
+        return R.assoc(key, properties, memo)
+      }
+    }
+
+    if (schemaItem.items && Array.isArray(valueItem)) {
+      const items = valueItem
+        .map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items))
+        .filter((x) => x !== undefined)
+      if (items.length) {
+        return R.assoc(key, items, memo)
+      }
+    }
 
     const preDefinedValue = getValue(schemaItem)
     if (preDefinedValue) return R.assoc(key, preDefinedValue, memo)

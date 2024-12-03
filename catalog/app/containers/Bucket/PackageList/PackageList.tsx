@@ -226,7 +226,7 @@ interface RevisionMetaProps {
 
 function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   return (
     <div className={classes.root}>
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
@@ -276,7 +276,7 @@ function filterObjectByJsonPaths(obj: JsonRecord, jsonPaths: readonly string[]) 
 function usePackageDescription(
   name: string,
 ): BucketPreferences.PackagePreferences | null {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   return React.useMemo(
     () =>
       BucketPreferences.Result.match(
@@ -613,7 +613,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     }
   })
 
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const createDialog = PD.usePackageCreationDialog({
     bucket,

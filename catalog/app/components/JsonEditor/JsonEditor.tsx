@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import * as JSONPointer from 'utils/JSONPointer'
-import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
+import { EMPTY_SCHEMA, JsonSchema } from 'utils/JSONSchema'
 
 import illustrationEnterValues from './enter-values.webm'
 import illustrationObjectExpand from './object-expand.webm'

@@ -278,6 +278,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           ) : (
             bucket
           )}
+          {/* TODO: Add link to the documentation: how to add buckets to `ui.sourceBuckets` */}
         </M.Typography>
       </M.DialogTitle>
       <div className={classes.header}>

@@ -9,7 +9,7 @@ import tabulatorTableSchema from 'schemas/tabulatorTable.yml.json'
 import TextEditor from 'components/FileEditor/TextEditor'
 import { loadMode } from 'components/FileEditor/loader'
 import { JsonInvalidAgainstSchema } from 'utils/error'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator } from 'utils/JSONSchema'
 import * as yaml from 'utils/yaml'
 
 const TEXT_EDITOR_TYPE = { brace: 'yaml' as const }

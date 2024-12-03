@@ -529,7 +529,6 @@ function PackageCreationForm({
                 <Layout.LeftColumn>
                   <RF.Field
                     component={PD.WorkflowInput}
-                    bucket={bucket}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
@@ -592,7 +591,7 @@ function PackageCreationForm({
                   {cfg.desktop ? (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       component={Upload.LocalFolderInput}
                       initialValue={defaultLocalFolder}
@@ -606,7 +605,7 @@ function PackageCreationForm({
                   ) : (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       // @ts-expect-error
                       component={FI.FilesInput}
@@ -753,7 +752,7 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,
@@ -887,7 +886,6 @@ export function usePackageCreationDialog({
           ),
           Error: (e) => (
             <DialogError
-              bucket={bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}
