@@ -20,5 +20,5 @@ rpds-py==0.21.0
     # via
     #   jsonschema
     #   referencing
-t4-lambda-shared @ https://github.com/quiltdata/quilt/archive/f45d8ab51f2d60e98efda7510322f94d822e4eb4.zip#subdirectory=lambdas/shared
+t4-lambda-shared @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared
     # via lambda_function (setup.py)

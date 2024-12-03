@@ -93,7 +93,7 @@ six==1.16.0
     #   python-dateutil
 strict-rfc3339==0.7
     # via es_indexer (setup.py)
-t4-lambda-shared[mem,preview] @ https://github.com/quiltdata/quilt/archive/f45d8ab51f2d60e98efda7510322f94d822e4eb4.zip#subdirectory=lambdas/shared
+t4-lambda-shared[mem,preview] @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared
     # via es_indexer (setup.py)
 tenacity==9.0.0
     # via es_indexer (setup.py)
