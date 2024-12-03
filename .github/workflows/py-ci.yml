@@ -187,23 +187,15 @@ jobs:
             python -m pip install wheel 'numpy<2'
           fi
 
-          # XXX: something fishy is going on with this "if [ ] X then Y" syntax
-          if [ ${{ matrix.path }} == "shared" ]
-            python -m pip install -e lambdas/shared[tests]
-          then
-            python -m pip install -e lambdas/shared
-            python -m pip install -e lambdas/${{ matrix.path }}
-          fi
-
-          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
-
           # Try to simulate the lambda .zip file:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
           # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+
+          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}

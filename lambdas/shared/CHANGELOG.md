@@ -18,5 +18,5 @@ where verb is one of
 ## Changes
 
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
-- [Changed] Stop using S3 select ([#4212](https://github.com/quiltdata/quilt/pull/4212))
-- [Added] Bootstrap the change log ([#4212](https://github.com/quiltdata/quilt/pull/4212))
+- [Changed] Specify dependencies explicitly ([#4241](https://github.com/quiltdata/quilt/pull/4241))
+- [Added] Bootstrap the change log ([#4241](https://github.com/quiltdata/quilt/pull/4241))
