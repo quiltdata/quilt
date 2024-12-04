@@ -20,7 +20,6 @@ function getConfigDetailsFetcher(handle: Model.S3.S3ObjectLocation) {
   )
     return BucketPreferences
   if (quiltConfigs.workflows.includes(handle.key)) return Workflows
-  if (quiltConfigs.quiltSummarize.includes(handle.key)) return QuiltSummarize
   return Dummy
 }
 
@@ -28,7 +27,12 @@ export default ({
   handle,
   ...props
 }: QuiltConfigEditorProps & { handle: Model.S3.S3ObjectLocation }) => {
+  if (quiltConfigs.quiltSummarize.includes(handle.key)) {
+    return <QuiltSummarize {...props} />
+  }
+
   const ConfigDetailsFetcher = getConfigDetailsFetcher(handle)
+
   return (
     <React.Suspense fallback={<Skeleton />}>
       <ConfigDetailsFetcher>
