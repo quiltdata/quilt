@@ -139,6 +139,9 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
     animation: '$show 0.15s ease-out',
     display: 'flex',
+    '&:last-child $divider': {
+      marginLeft: t.spacing(4),
+    },
   },
   inner: {
     flexGrow: 1,
@@ -146,7 +149,11 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
   },
   settings: {
-    marginRight: t.spacing(1),
+    margin: t.spacing(0, 1, -1, -0.5),
+    transition: 'transform 0.15s ease-out',
+    '&:hover': {
+      transform: 'rotate(180deg)',
+    },
   },
   extended: {
     animation: '$slide 0.15s ease-out',
@@ -155,25 +162,30 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
   },
   expanded: {
+    background: t.palette.background.paper,
     position: 'absolute',
     right: '16px',
     top: '4px',
   },
   path: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
   field: {
     marginTop: t.spacing(1),
+    minWidth: t.spacing(10),
   },
   divider: {
-    marginLeft: t.spacing(4),
+    marginLeft: t.spacing(2),
   },
   render: {
     border: `1px solid ${t.palette.divider}`,
     borderRadius: t.shape.borderRadius,
-    marginTop: t.spacing(2),
+    marginTop: t.spacing(3),
     padding: t.spacing(2),
+  },
+  select: {
+    marginTop: t.spacing(2),
   },
   toggle: {
     padding: t.spacing(1, 0, 0),
@@ -315,7 +327,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                 <M.FormControl className={classes.field} fullWidth size="small">
                   <M.InputLabel>Renderer</M.InputLabel>
                   <M.Select
-                    displayEmpty
+                    className={classes.select}
                     value={file.type?.name || ''}
                     onChange={(event) =>
                       onChangeType('name', event.target.value as Summarize.TypeShorthand)
@@ -392,79 +404,64 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
 }
 
 const usePlaceholderStyles = M.makeStyles((t) => ({
+  disabled: {},
+  expanded: {},
+  horizontal: {},
+  vertical: {},
   root: {
-    padding: t.spacing(4),
+    padding: t.spacing(2),
     position: 'relative',
-    '&:hover:not($expanded):not($disabled) $inner': {
-      outlineOffset: '-4px',
-    },
     '&:hover:not($expanded):not($disabled) $icon': {
       display: 'block',
     },
-    '&$horizontal:hover:not($expanded):not($disabled) $inner': {
-      left: 0,
-      right: 0,
-      top: t.spacing(2),
-      bottom: t.spacing(2),
-    },
-    '&$vertical:hover:not($expanded):not($disabled) $inner': {
-      top: 0,
-      bottom: 0,
-      left: t.spacing(2),
-      right: t.spacing(2),
+    '&:hover:not($expanded):not($disabled) $inner': {
+      outlineOffset: '-4px',
     },
   },
-  expanded: {},
-  disabled: {},
   icon: {
     display: 'none',
+    transition: 'transform 0.15s ease-out',
     '$expanded &': {
       display: 'block',
     },
+    '$root:hover &': {
+      transform: 'rotate(90deg)',
+    },
   },
   inner: {
+    alignItems: 'center',
     background: t.palette.divider,
     borderRadius: t.shape.borderRadius,
-    outline: `2px dashed ${t.palette.background.paper}`,
-    outlineOffset: '-2px',
-    position: 'absolute',
-    transition:
-      'top 0.15s ease-out, bottom 0.15s ease-out,left 0.15s ease-out, right 0.15s ease-out',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    bottom: 0,
     color: t.palette.background.paper,
     cursor: 'pointer',
-    '$vertical$expanded &': {
-      top: 0,
-      bottom: 0,
+    display: 'flex',
+    justifyContent: 'center',
+    left: 0,
+    outline: `2px dashed ${t.palette.background.paper}`,
+    outlineOffset: '-2px',
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    transition:
+      'top 0.15s ease-out, bottom 0.15s ease-out,left 0.15s ease-out, right 0.15s ease-out',
+    '$expanded &:hover': {
+      opacity: 1,
+    },
+    '$horizontal:not($expanded):not(:hover) &': {
+      bottom: `calc(${t.spacing(2)}px - 1px)`,
+      top: `calc(${t.spacing(2)}px - 1px)`,
+    },
+    '$vertical:not($expanded):not(:hover) &': {
+      left: `calc(${t.spacing(2)}px - 1px)`,
+      right: `calc(${t.spacing(2)}px - 1px)`,
+    },
+    '$expanded &': {
+      opacity: 0.7,
       outlineOffset: '-4px',
-      left: 0,
-      right: 0,
-    },
-    '$horizontal$expanded &': {
-      top: t.spacing(2),
-      bottom: t.spacing(2),
-      outlineOffset: '-4px',
-      left: 0,
-      right: 0,
-    },
-    '$horizontal &': {
-      bottom: `calc(${t.spacing(4)}px - 1px)`,
-      left: `calc(${t.spacing(4)}px - 1px)`,
-      right: `calc(${t.spacing(4)}px - 1px)`,
-      top: `calc(${t.spacing(4)}px - 1px)`,
-    },
-    '$vertical &': {
-      bottom: 0,
-      left: `calc(${t.spacing(4)}px - 1px)`,
-      right: `calc(${t.spacing(4)}px - 1px)`,
-      top: 0,
     },
   },
-  horizontal: {},
-  vertical: {},
 }))
 
 interface PlaceholderProps {
@@ -505,6 +502,11 @@ function Placeholder({
 
 const useAddRowStyles = M.makeStyles((t) => ({
   root: {
+    '&:last-child $divider': {
+      marginTop: t.spacing(4),
+    },
+  },
+  inner: {
     display: 'flex',
   },
   add: {
@@ -520,19 +522,21 @@ const useAddRowStyles = M.makeStyles((t) => ({
 }))
 
 interface AddRowProps {
+  className: string
   disabled?: boolean
   row: Row
-  onAdd: (row: Row) => void
   onChange: React.Dispatch<React.SetStateAction<Layout>>
   last: boolean
 }
 
-function AddRow({ onAdd, onChange, disabled, row, last }: AddRowProps) {
+function AddRow({ className, onChange, disabled, row, last }: AddRowProps) {
   const classes = useAddRowStyles()
 
+  const onAdd = React.useCallback(() => onChange(addRowAfter(row.id)), [onChange, row.id])
+
   return (
-    <div>
-      <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
+      <div className={classes.inner}>
         {row.columns.map((column, index) => (
           <AddColumn
             className={classes.column}
@@ -549,7 +553,7 @@ function AddRow({ onAdd, onChange, disabled, row, last }: AddRowProps) {
         variant="horizontal"
         className={classes.divider}
         expanded={last}
-        onClick={() => onAdd(row)}
+        onClick={onAdd}
         disabled={disabled}
       />
     </div>
@@ -561,9 +565,8 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
   },
-  add: {
+  row: {
     marginTop: t.spacing(2),
-    height: t.spacing(8),
   },
   actions: {
     display: 'flex',
@@ -600,24 +603,24 @@ export default function QuiltSummarize({
     }
   }, [layout, onChange])
 
-  const onAddRow = React.useCallback((row: Row) => setLayout(addRowAfter(row.id)), [])
-
   return (
     <div className={cx(classes.root, className)}>
       {state instanceof Error ? (
         <M.Typography color="error">{state.message}</M.Typography>
       ) : null}
 
-      {layout.rows.map((row, index) => (
-        <AddRow
-          disabled={disabled}
-          key={row.id}
-          last={index === layout.rows.length - 1}
-          onAdd={onAddRow}
-          onChange={setLayout}
-          row={row}
-        />
-      ))}
+      <div>
+        {layout.rows.map((row, index) => (
+          <AddRow
+            className={classes.row}
+            disabled={disabled}
+            key={row.id}
+            last={index === layout.rows.length - 1}
+            onChange={setLayout}
+            row={row}
+          />
+        ))}
+      </div>
 
       <div className={classes.actions}>
         <M.Button onClick={handleSubmit} disabled={disabled}>
