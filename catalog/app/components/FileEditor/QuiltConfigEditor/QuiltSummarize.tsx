@@ -2,30 +2,315 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import type { FileExtended } from 'components/Preview/loaders/summarize'
-// import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
+import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
+
+import type * as Summarize from 'components/Preview/loaders/summarize'
 
 // import { docs } from 'constants/urls'
 // import StyledLink from 'utils/StyledLink'
+
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
+
+interface FileExtended extends Omit<Summarize.FileExtended, 'types'> {
+  isExtended: boolean
+  type?: Summarize.TypeExtended
+}
 
 type Row = FileExtended[]
 
 type Layout = Row[]
+
+const emptyFile: FileExtended = { path: '', isExtended: false }
+
+const init = (payload?: Layout) => (): Layout => payload || [[emptyFile]]
+
+const addRow = (layout: Layout): Layout => [...layout, [emptyFile]]
+
+const addColumn =
+  (rowIndex: number) =>
+  (file: FileExtended) =>
+  (layout: Layout): Layout =>
+    layout.toSpliced(rowIndex, 1, [...layout[rowIndex], file])
+
+const changeValue =
+  (rowIndex: number, columnIndex: number) =>
+  (file: FileExtended) =>
+  (layout: Layout): Layout =>
+    layout.toSpliced(rowIndex, 1, layout[rowIndex].toSpliced(columnIndex, 1, file))
+
+function parseFile(fileOrPath: Summarize.File): FileExtended {
+  if (typeof fileOrPath === 'string') return { path: fileOrPath, isExtended: false }
+  const { types, ...file } = fileOrPath
+  if (!types || !types.length) return { ...fileOrPath, isExtended: true }
+  return {
+    ...file,
+    isExtended: true,
+    type: typeof types[0] === 'string' ? { name: types[0] } : types[0],
+  }
+}
 
 function parse(str: string): Layout {
   const permissive = JSON.parse(str)
   // TODO: validate with JSON Schema
   if (!permissive) return []
   if (!Array.isArray(permissive)) throw new Error('Expected array')
-  return permissive.map((row) => {
-    const columns = Array.isArray(row) ? row : [row]
-    return columns.map((file) => (typeof file === 'object' ? file : { path: file }))
-  })
+  return permissive.map((row) =>
+    Array.isArray(row) ? row.map(parseFile) : [parseFile(row)],
+  )
 }
 
 function stringify(layout: Layout) {
-  return JSON.stringify(layout.map((row) => row.map((file) => file.path)))
+  // TODO: validate with JSON Schema
+  return JSON.stringify(
+    layout.map((row) => {
+      const columns = row.map((file) =>
+        Object.keys(file).length === 1 && file.path ? file.path : file,
+      )
+      return columns.length === 1 ? columns[0] : columns
+    }),
+  )
+}
+
+const useAddFileStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    animation: '$show 0.15s ease-out',
+  },
+  settings: {
+    marginRight: t.spacing(1),
+  },
+  extended: {
+    animation: '$slide 0.15s ease-out',
+    paddingLeft: t.spacing(7),
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  expanded: {
+    position: 'absolute',
+    right: '16px',
+    top: '4px',
+  },
+  path: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  field: {
+    marginTop: t.spacing(1),
+  },
+  render: {
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    marginTop: t.spacing(2),
+    padding: t.spacing(2),
+  },
+  toggle: {
+    padding: t.spacing(1, 0, 0),
+  },
+  '@keyframes slide': {
+    from: {
+      opacity: 0,
+      transform: 'translateY(-8px)',
+    },
+    to: {
+      opacity: 1,
+      transform: 'translateY(0)',
+    },
+  },
+  '@keyframes show': {
+    from: {
+      opacity: 0,
+      transform: 'scale(0.9)',
+    },
+    to: {
+      opacity: 1,
+      transform: 'scale(1)',
+    },
+  },
+}))
+
+interface AddFileProps {
+  className: string
+  disabled?: boolean
+  file: FileExtended
+  onChange: (file: FileExtended) => void
+  single: boolean
+}
+
+function AddFile({ className, disabled, file, onChange, single }: AddFileProps) {
+  const classes = useAddFileStyles()
+  // TODO: simple mode instead of advanced
+  //       save to simple entered fields, and restore them
+  const [advanced, setAdvanced] = React.useState(file.isExtended)
+  return (
+    <div className={cx(classes.root, className)}>
+      <div className={classes.path}>
+        <M.IconButton
+          className={classes.settings}
+          onClick={() => setAdvanced((a) => !a)}
+          color={advanced ? 'primary' : 'default'}
+        >
+          <M.Icon>settings</M.Icon>
+        </M.IconButton>
+        <M.TextField
+          disabled={disabled}
+          label="Path"
+          name="path"
+          onChange={(event) => onChange({ ...file, path: event.currentTarget.value })}
+          value={file.path}
+          fullWidth
+        />
+      </div>
+      {advanced && (
+        <div className={classes.extended}>
+          <M.TextField
+            disabled={disabled}
+            label="Title"
+            name="title"
+            onChange={(event) => onChange({ ...file, title: event.currentTarget.value })}
+            value={file.title}
+            fullWidth
+            className={classes.field}
+            size="small"
+          />
+          <M.TextField
+            disabled={disabled}
+            label="Description"
+            name="description"
+            onChange={(event) =>
+              onChange({ ...file, description: event.currentTarget.value })
+            }
+            value={file.description}
+            fullWidth
+            className={classes.field}
+            size="small"
+          />
+
+          <M.FormControl className={classes.render}>
+            <M.FormLabel>Preview</M.FormLabel>
+            <M.FormControlLabel
+              className={classes.expanded}
+              control={
+                <M.Checkbox
+                  checked={file.expand}
+                  onChange={(_e, expand) => onChange({ ...file, expand })}
+                  size="small"
+                />
+              }
+              labelPlacement="start"
+              label="Expanded"
+            />
+            <M.FormGroup>
+              {!single && (
+                <M.TextField
+                  disabled={disabled}
+                  label="Width"
+                  name="width"
+                  onChange={(event) =>
+                    onChange({ ...file, width: event.currentTarget.value })
+                  }
+                  value={file.width}
+                  fullWidth
+                  className={classes.field}
+                  size="small"
+                />
+              )}
+
+              <M.FormControl className={classes.field} fullWidth size="small">
+                <M.InputLabel>Renderer</M.InputLabel>
+                <M.Select
+                  displayEmpty
+                  value={file.type?.name || ''}
+                  onChange={(event) =>
+                    onChange({
+                      ...file,
+                      type: {
+                        ...(file.type || {}),
+                        name: event.target.value as Summarize.TypeShorthand,
+                      },
+                    })
+                  }
+                >
+                  <M.MenuItem value="">
+                    <i>Default</i>
+                  </M.MenuItem>
+                  {quiltSummarizeSchema.definitions.typeShorthand.enum.map((type) => (
+                    <M.MenuItem key={type} value={type}>
+                      {type}
+                    </M.MenuItem>
+                  ))}
+                </M.Select>
+              </M.FormControl>
+
+              {file.type && (
+                <M.TextField
+                  disabled={disabled}
+                  label="Height"
+                  name="height"
+                  onChange={(event) =>
+                    onChange({
+                      ...file,
+                      type: {
+                        ...((file.type || {}) as Summarize.TypeExtended),
+                        style: { height: event.currentTarget.value },
+                      },
+                    })
+                  }
+                  value={file.type.style?.height}
+                  fullWidth
+                  className={classes.field}
+                  size="small"
+                />
+              )}
+
+              {file.type?.name === 'perspective' && (
+                <M.TextField
+                  disabled={disabled}
+                  label="Perspective config"
+                  name="config"
+                  onChange={(event) =>
+                    onChange({
+                      ...file,
+                      type: {
+                        ...((file.type || {}) as Summarize.TypeExtended),
+                        config: JSON.parse(event.currentTarget.value),
+                      },
+                    })
+                  }
+                  value={file.type.config}
+                  fullWidth
+                  className={classes.field}
+                  size="small"
+                />
+              )}
+
+              {file.type?.name === 'perspective' && (
+                <M.FormControlLabel
+                  control={
+                    <M.Checkbox
+                      onChange={(_e, checked) =>
+                        onChange({
+                          ...file,
+                          type: {
+                            ...((file.type || {}) as Summarize.TypeExtended),
+                            settings: checked,
+                          },
+                        })
+                      }
+                      checked={file.type.settings}
+                      size="small"
+                    />
+                  }
+                  label="Show perspective toolbar"
+                  className={cx(classes.field, classes.toggle)}
+                />
+              )}
+            </M.FormGroup>
+          </M.FormControl>
+        </div>
+      )}
+    </div>
+  )
 }
 
 const usePlaceholderStyles = M.makeStyles((t) => ({
@@ -78,7 +363,7 @@ const useAddRowStyles = M.makeStyles((t) => ({
   },
   add: {
     marginLeft: t.spacing(4),
-    width: t.spacing(20),
+    width: t.spacing(10),
   },
   column: {
     flexGrow: 1,
@@ -94,7 +379,7 @@ interface AddRowProps {
   className: string
   disabled?: boolean
   onAddColumn: (file: FileExtended) => void
-  onChange: (columnIndex: number, file: FileExtended) => void
+  onChange: (columnIndex: number) => (file: FileExtended) => void
   row: Row
 }
 
@@ -107,111 +392,19 @@ function AddRow({ className, disabled, row, onChange, onAddColumn }: AddRowProps
           className={classes.column}
           key={j}
           file={file}
-          onChange={(f) => onChange(j, f)}
+          onChange={onChange(j)}
           disabled={disabled}
+          single={row.length === 1}
         />
       ))}
       <Placeholder
         className={classes.add}
-        onClick={() => onAddColumn({ path: '' })}
+        onClick={() => onAddColumn(emptyFile)}
         disabled={disabled}
       />
     </div>
   )
 }
-
-const useAddFileStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    animation: '$show 0.3s ease-out',
-  },
-  extended: {
-    marginRight: t.spacing(1),
-  },
-  path: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  '@keyframes show': {
-    from: {
-      opacity: 0,
-      transform: 'scale(0.9)',
-    },
-    to: {
-      opacity: 1,
-      transform: 'scale(1)',
-    },
-  },
-}))
-
-interface AddFileProps {
-  className: string
-  disabled?: boolean
-  file: FileExtended
-  onChange: (file: FileExtended) => void
-}
-
-function AddFile({ className, disabled, file, onChange }: AddFileProps) {
-  const classes = useAddFileStyles()
-  // TODO: simple mode instead of advanced
-  //       save to simple entered fields, and restore them
-  const [advanced, setAdvanced] = React.useState(false)
-  return (
-    <div className={cx(classes.root, className)}>
-      <div className={classes.path}>
-        <M.IconButton
-          className={classes.extended}
-          onClick={() => setAdvanced((a) => !a)}
-          color={advanced ? 'primary' : 'default'}
-        >
-          <M.Icon>tune</M.Icon>
-        </M.IconButton>
-        <M.TextField
-          disabled={disabled}
-          label="Path"
-          name="path"
-          onChange={(event) => onChange({ ...file, path: event.currentTarget.value })}
-          value={file.path}
-          fullWidth
-        />
-      </div>
-      {advanced && (
-        <>
-          <M.TextField
-            disabled={disabled}
-            label="Description"
-            name="description"
-            onChange={(event) =>
-              onChange({ ...file, description: event.currentTarget.value })
-            }
-            value={file.description}
-            fullWidth
-          />
-          <M.TextField
-            disabled={disabled}
-            label="Title"
-            name="title"
-            onChange={(event) => onChange({ ...file, title: event.currentTarget.value })}
-            value={file.title}
-            fullWidth
-          />
-        </>
-      )}
-    </div>
-  )
-}
-
-const init = (payload?: Layout) => () => payload || ([] as Layout)
-
-const addRow = (file: FileExtended) => (layout: Layout) => [...layout, [file]]
-
-const addColumn = (rowIndex: number) => (file: FileExtended) => (layout: Layout) =>
-  layout.toSpliced(rowIndex, 1, [...layout[rowIndex], file])
-
-const changeValue =
-  (rowIndex: number, columnIndex: number) => (file: FileExtended) => (layout: Layout) =>
-    layout.toSpliced(rowIndex, 1, layout[rowIndex].toSpliced(columnIndex, 1, file))
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -242,19 +435,18 @@ export default function QuiltSummarize({
   onChange,
 }: QuiltConfigEditorProps) {
   const classes = useStyles()
-  const [layout, setLayout] = React.useState<Layout>([[{ path: '' }]])
+  const [layout, setLayout] = React.useState<Layout>(init())
+
   React.useEffect(() => {
-    if (!initialValue) return setLayout(init())
+    if (!initialValue) return
     try {
       setLayout(init(parse(initialValue)))
     } catch (e) {
       setState(e instanceof Error ? e : new Error(`${e}`))
     }
   }, [initialValue])
+
   const [state, setState] = React.useState<Error | null>(error)
-  const handleAddRow = React.useCallback(() => {
-    setLayout(addRow({ path: '' }))
-  }, [])
   const handleSubmit = React.useCallback(() => {
     try {
       const summarize = stringify(layout)
@@ -263,6 +455,27 @@ export default function QuiltSummarize({
       setState(e instanceof Error ? e : new Error(`${e}`))
     }
   }, [layout, onChange])
+
+  const onAddColumn = React.useMemo(
+    () => (rowIndex: number) => {
+      const dispatch = addColumn(rowIndex)
+      return (f: FileExtended) => setLayout(dispatch(f))
+    },
+    [],
+  )
+
+  const onChangeValue = React.useMemo(
+    () => (rowIndex: number) => (columnIndex: number) => {
+      const dispatch = changeValue(rowIndex, columnIndex)
+      return (f: FileExtended) => setLayout(dispatch(f))
+    },
+    [],
+  )
+
+  const onAddRow = React.useCallback(() => {
+    setLayout(addRow)
+  }, [])
+
   return (
     <div className={cx(classes.root, className)}>
       {state instanceof Error ? (
@@ -274,14 +487,14 @@ export default function QuiltSummarize({
           className={classes.row}
           row={row}
           key={i}
-          onAddColumn={(f) => setLayout(addColumn(i)(f))}
-          onChange={(j, f) => setLayout(changeValue(i, j)(f))}
+          onAddColumn={onAddColumn(i)}
+          onChange={onChangeValue(i)}
           disabled={disabled}
         />
       ))}
 
       <div className={classes.row}>
-        <Placeholder className={classes.add} onClick={handleAddRow} disabled={disabled} />
+        <Placeholder className={classes.add} onClick={onAddRow} disabled={disabled} />
       </div>
 
       <div className={classes.actions}>
