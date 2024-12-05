@@ -8,6 +8,7 @@ import Skeleton from '../Skeleton'
 import Dummy from './Dummy'
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
 
+const QuiltSummarize = React.lazy(() => import('./QuiltSummarize'))
 const BucketPreferences = React.lazy(() => import('./BucketPreferences'))
 const Workflows = React.lazy(() => import('./Workflows'))
 
@@ -26,7 +27,12 @@ export default ({
   handle,
   ...props
 }: QuiltConfigEditorProps & { handle: Model.S3.S3ObjectLocation }) => {
+  if (quiltConfigs.quiltSummarize.includes(handle.key)) {
+    return <QuiltSummarize {...props} />
+  }
+
   const ConfigDetailsFetcher = getConfigDetailsFetcher(handle)
+
   return (
     <React.Suspense fallback={<Skeleton />}>
       <ConfigDetailsFetcher>
