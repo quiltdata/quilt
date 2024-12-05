@@ -11,8 +11,6 @@ import type * as Summarize from 'components/Preview/loaders/summarize'
 // import { docs } from 'constants/urls'
 // import StyledLink from 'utils/StyledLink'
 
-// TODO: remove column, remove row
-
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
 
 interface FileExtended extends Omit<Summarize.FileExtended, 'types'> {
@@ -97,6 +95,23 @@ const changeValue =
     })),
   })
 
+const removeColumn =
+  (rowId: string, columnId: string) =>
+  (layout: Layout): Layout => {
+    const rowIndex = layout.rows.findIndex((r) => r.id === rowId)
+    if (layout.rows[rowIndex].columns.length === 1) {
+      return {
+        rows: layout.rows.toSpliced(rowIndex, 1),
+      }
+    }
+    return {
+      rows: replace(layout.rows, rowId, (row) => ({
+        ...row,
+        columns: row.columns.filter((c) => c.id !== columnId),
+      })),
+    }
+  }
+
 function parseColumn(fileOrPath: Summarize.File): Column {
   if (typeof fileOrPath === 'string') {
     return createColumn(pathToFile(fileOrPath))
@@ -147,6 +162,13 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     display: 'flex',
     flexDirection: 'column',
+    position: 'relative',
+    '&:has($close:hover) $path': {
+      opacity: 0.3,
+    },
+    '&:has($close:hover) $extended': {
+      opacity: 0.3,
+    },
   },
   settings: {
     margin: t.spacing(0, 1, -1, -0.5),
@@ -157,6 +179,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   },
   extended: {
     animation: '$slide 0.15s ease-out',
+    transition: 'opacity 0.3s ease-out',
     paddingLeft: t.spacing(7),
     display: 'flex',
     flexDirection: 'column',
@@ -168,6 +191,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     top: '4px',
   },
   path: {
+    transition: 'opacity 0.3s ease-out',
     display: 'flex',
     alignItems: 'flex-end',
   },
@@ -189,6 +213,11 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   },
   toggle: {
     padding: t.spacing(1, 0, 0),
+  },
+  close: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   '@keyframes slide': {
     from: {
@@ -248,6 +277,10 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
     },
     [onChangeValue, file],
   )
+
+  const onRemove = React.useCallback(() => {
+    onChange(removeColumn(row.id, column.id))
+  }, [onChange, row.id, column.id])
 
   return (
     <div className={cx(classes.root, className)}>
@@ -391,6 +424,9 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
             </M.FormControl>
           </div>
         )}
+        <M.IconButton size="small" className={classes.close} onClick={onRemove}>
+          <M.Icon fontSize="inherit">close</M.Icon>
+        </M.IconButton>
       </div>
       <Placeholder
         className={classes.divider}
