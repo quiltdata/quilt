@@ -20,54 +20,97 @@ interface FileExtended extends Omit<Summarize.FileExtended, 'types'> {
   type?: Summarize.TypeExtended
 }
 
-type Row = FileExtended[]
+interface Column {
+  id: number
+  file: FileExtended
+}
 
-type Layout = Row[]
+interface Row {
+  id: number
+  columns: Column[]
+}
+
+interface Layout {
+  rows: Row[]
+}
 
 const emptyFile: FileExtended = { path: '', isExtended: false }
 
-const init = (payload?: Layout) => (): Layout => payload || [[emptyFile]]
+const createRow = (id: number, file: FileExtended): Row => ({
+  id,
+  columns: [{ id: 0, file }],
+})
 
-const addRow = (layout: Layout): Layout => [...layout, [emptyFile]]
+// const createColumn TODO
+
+const init = (payload?: Layout) => (): Layout =>
+  payload || {
+    rows: [createRow(0, emptyFile)],
+  }
+
+const addRow = (layout: Layout): Layout => ({
+  rows: [...layout.rows, createRow(layout.rows.length + 1, emptyFile)],
+})
 
 const addColumn =
   (rowIndex: number) =>
   (file: FileExtended) =>
-  (layout: Layout): Layout =>
-    layout.toSpliced(rowIndex, 1, [...layout[rowIndex], file])
+  (layout: Layout): Layout => ({
+    rows: layout.rows.toSpliced(rowIndex, 1, {
+      id: rowIndex,
+      columns: [
+        ...layout.rows[rowIndex].columns,
+        { id: layout.rows[rowIndex].columns.length, file },
+      ],
+    }),
+  })
 
 const changeValue =
   (rowIndex: number, columnIndex: number) =>
   (file: FileExtended) =>
-  (layout: Layout): Layout =>
-    layout.toSpliced(rowIndex, 1, layout[rowIndex].toSpliced(columnIndex, 1, file))
+  (layout: Layout): Layout => ({
+    rows: layout.rows.toSpliced(rowIndex, 1, {
+      id: rowIndex,
+      columns: layout.rows[rowIndex].columns.toSpliced(columnIndex, 1, {
+        id: columnIndex,
+        file,
+      }),
+    }),
+  })
 
-function parseFile(fileOrPath: Summarize.File): FileExtended {
-  if (typeof fileOrPath === 'string') return { path: fileOrPath, isExtended: false }
+function parseColumn(fileOrPath: Summarize.File, id: number): Column {
+  if (typeof fileOrPath === 'string')
+    return { id, file: { path: fileOrPath, isExtended: false } }
   const { types, ...file } = fileOrPath
-  if (!types || !types.length) return { ...fileOrPath, isExtended: true }
+  if (!types || !types.length) return { id, file: { ...fileOrPath, isExtended: true } }
   return {
-    ...file,
-    isExtended: true,
-    type: typeof types[0] === 'string' ? { name: types[0] } : types[0],
+    id,
+    file: {
+      ...file,
+      isExtended: true,
+      type: typeof types[0] === 'string' ? { name: types[0] } : types[0],
+    },
   }
 }
 
 function parse(str: string): Layout {
   const permissive = JSON.parse(str)
   // TODO: validate with JSON Schema
-  if (!permissive) return []
+  if (!permissive) return { rows: [] }
   if (!Array.isArray(permissive)) throw new Error('Expected array')
-  return permissive.map((row) =>
-    Array.isArray(row) ? row.map(parseFile) : [parseFile(row)],
-  )
+  return {
+    rows: permissive.map((row, index) => ({
+      id: index,
+      columns: Array.isArray(row) ? row.map(parseColumn) : [parseColumn(row, 0)],
+    })),
+  }
 }
 
 function stringify(layout: Layout) {
   // TODO: validate with JSON Schema
   return JSON.stringify(
-    layout.map((row) => {
-      const columns = row.map((file) =>
+    layout.rows.map((row) => {
+      const columns = row.columns.map(({ file }) =>
         Object.keys(file).length === 1 && file.path ? file.path : file,
       )
       return columns.length === 1 ? columns[0] : columns
@@ -75,7 +118,7 @@ function stringify(layout: Layout) {
   )
 }
 
-const useAddFileStyles = M.makeStyles((t) => ({
+const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
@@ -133,38 +176,42 @@ const useAddFileStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface AddFileProps {
+interface AddColumnProps {
   className: string
+  column: Column
   disabled?: boolean
-  file: FileExtended
-  single: boolean
-
-  rowIndex: number
-  columnIndex: number
   onChange: React.Dispatch<React.SetStateAction<Layout>>
+  row: Row
 }
 
-function AddFile({
-  rowIndex,
-  columnIndex,
-  onChange,
-  className,
-  disabled,
-  file,
-  single,
-}: AddFileProps) {
-  const classes = useAddFileStyles()
+function AddColumn({ className, column, disabled, onChange, row }: AddColumnProps) {
+  const classes = useAddColumnStyles()
+  const { file } = column
   // TODO: simple mode instead of advanced
   //       save to simple entered fields, and restore them
   const [advanced, setAdvanced] = React.useState(file.isExtended)
 
   const onChangeValue = React.useCallback(
     (key: keyof FileExtended, value: FileExtended[keyof FileExtended]) => {
-      const dispatch = changeValue(rowIndex, columnIndex)
+      const dispatch = changeValue(row.id, column.id)
       onChange(dispatch({ ...file, [key]: value }))
     },
-    [onChange, rowIndex, columnIndex, file],
+    [onChange, row.id, column.id, file],
   )
+
+  const onChangeType = React.useCallback(
+    (
+      key: keyof Summarize.TypeExtended,
+      value: Summarize.TypeExtended[keyof Summarize.TypeExtended],
+    ) => {
+      onChangeValue('type', {
+        ...((file.type || {}) as Summarize.TypeExtended),
+        [key]: value,
+      })
+    },
+    [onChangeValue, file],
+  )
+
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.path}>
@@ -213,7 +260,7 @@ function AddFile({
               className={classes.expanded}
               control={
                 <M.Checkbox
-                  checked={file.expand}
+                  checked={file.expand || false}
                   onChange={(_e, expand) => onChangeValue('expand', expand)}
                   size="small"
                 />
@@ -222,7 +269,7 @@ function AddFile({
               label="Expanded"
             />
             <M.FormGroup>
-              {!single && (
+              {row.columns.length > 1 && (
                 <M.TextField
                   disabled={disabled}
                   label="Width"
@@ -241,10 +288,7 @@ function AddFile({
                   displayEmpty
                   value={file.type?.name || ''}
                   onChange={(event) =>
-                    onChangeValue('type', {
-                      ...(file.type || {}),
-                      name: event.target.value as Summarize.TypeShorthand,
-                    })
+                    onChangeType('name', event.target.value as Summarize.TypeShorthand)
                   }
                 >
                   <M.MenuItem value="">
@@ -264,10 +308,7 @@ function AddFile({
                   label="Height"
                   name="height"
                   onChange={(event) =>
-                    onChangeValue('type', {
-                      ...((file.type || {}) as Summarize.TypeExtended),
-                      style: { height: event.currentTarget.value },
-                    })
+                    onChangeType('style', { height: event.currentTarget.value })
                   }
                   value={file.type.style?.height}
                   fullWidth
@@ -282,10 +323,7 @@ function AddFile({
                   label="Perspective config"
                   name="config"
                   onChange={(event) =>
-                    onChangeValue('type', {
-                      ...((file.type || {}) as Summarize.TypeExtended),
-                      config: JSON.parse(event.currentTarget.value),
-                    })
+                    onChangeType('config', JSON.parse(event.currentTarget.value))
                   }
                   value={file.type.config}
                   fullWidth
@@ -298,13 +336,8 @@ function AddFile({
                 <M.FormControlLabel
                   control={
                     <M.Checkbox
-                      onChange={(_e, checked) =>
-                        onChangeValue('type', {
-                          ...((file.type || {}) as Summarize.TypeExtended),
-                          settings: checked,
-                        })
-                      }
-                      checked={file.type.settings}
+                      onChange={(_e, checked) => onChangeType('settings', checked)}
+                      checked={file.type.settings || false}
                       size="small"
                     />
                   }
@@ -386,30 +419,27 @@ interface AddRowProps {
   className: string
   disabled?: boolean
   row: Row
-  index: number
   onChange: React.Dispatch<React.SetStateAction<Layout>>
 }
 
-function AddRow({ index, onChange, className, disabled, row }: AddRowProps) {
+function AddRow({ onChange, className, disabled, row }: AddRowProps) {
   const classes = useAddRowStyles()
 
   const onAddColumn = React.useCallback(
-    () => onChange(addColumn(index)(emptyFile)),
-    [index, onChange],
+    () => onChange(addColumn(row.id)(emptyFile)),
+    [row.id, onChange],
   )
 
   return (
     <div className={cx(classes.root, className)}>
-      {row.map((file, j) => (
-        <AddFile
+      {row.columns.map((column) => (
+        <AddColumn
           className={classes.column}
-          key={j}
-          rowIndex={index}
-          columnIndex={j}
-          file={file}
+          key={column.id}
+          row={row}
+          column={column}
           onChange={onChange}
           disabled={disabled}
-          single={row.length === 1}
         />
       ))}
       <Placeholder className={classes.add} onClick={onAddColumn} disabled={disabled} />
@@ -475,12 +505,11 @@ export default function QuiltSummarize({
         <M.Typography color="error">{state.message}</M.Typography>
       ) : null}
 
-      {layout.map((row, i) => (
+      {layout.rows.map((row) => (
         <AddRow
           className={classes.row}
           disabled={disabled}
-          index={i}
-          key={i}
+          key={row.id}
           row={row}
           onChange={setLayout}
         />
