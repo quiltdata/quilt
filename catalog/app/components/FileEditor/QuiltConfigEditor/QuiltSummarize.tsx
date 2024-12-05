@@ -6,8 +6,12 @@ import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import type * as Summarize from 'components/Preview/loaders/summarize'
 
+// TODO: link to docs
 // import { docs } from 'constants/urls'
 // import StyledLink from 'utils/StyledLink'
+
+// TODO: remove column, remove row
+//       add column in-between, add row in-between
 
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
 
@@ -133,15 +137,34 @@ interface AddFileProps {
   className: string
   disabled?: boolean
   file: FileExtended
-  onChange: (file: FileExtended) => void
   single: boolean
+
+  rowIndex: number
+  columnIndex: number
+  onChange: React.Dispatch<React.SetStateAction<Layout>>
 }
 
-function AddFile({ className, disabled, file, onChange, single }: AddFileProps) {
+function AddFile({
+  rowIndex,
+  columnIndex,
+  onChange,
+  className,
+  disabled,
+  file,
+  single,
+}: AddFileProps) {
   const classes = useAddFileStyles()
   // TODO: simple mode instead of advanced
   //       save to simple entered fields, and restore them
   const [advanced, setAdvanced] = React.useState(file.isExtended)
+
+  const onChangeValue = React.useCallback(
+    (key: keyof FileExtended, value: FileExtended[keyof FileExtended]) => {
+      const dispatch = changeValue(rowIndex, columnIndex)
+      onChange(dispatch({ ...file, [key]: value }))
+    },
+    [onChange, rowIndex, columnIndex, file],
+  )
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.path}>
@@ -156,7 +179,7 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
           disabled={disabled}
           label="Path"
           name="path"
-          onChange={(event) => onChange({ ...file, path: event.currentTarget.value })}
+          onChange={(event) => onChangeValue('path', event.currentTarget.value)}
           value={file.path}
           fullWidth
         />
@@ -167,7 +190,7 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
             disabled={disabled}
             label="Title"
             name="title"
-            onChange={(event) => onChange({ ...file, title: event.currentTarget.value })}
+            onChange={(event) => onChangeValue('title', event.currentTarget.value)}
             value={file.title}
             fullWidth
             className={classes.field}
@@ -177,9 +200,7 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
             disabled={disabled}
             label="Description"
             name="description"
-            onChange={(event) =>
-              onChange({ ...file, description: event.currentTarget.value })
-            }
+            onChange={(event) => onChangeValue('description', event.currentTarget.value)}
             value={file.description}
             fullWidth
             className={classes.field}
@@ -193,7 +214,7 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
               control={
                 <M.Checkbox
                   checked={file.expand}
-                  onChange={(_e, expand) => onChange({ ...file, expand })}
+                  onChange={(_e, expand) => onChangeValue('expand', expand)}
                   size="small"
                 />
               }
@@ -206,9 +227,7 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
                   disabled={disabled}
                   label="Width"
                   name="width"
-                  onChange={(event) =>
-                    onChange({ ...file, width: event.currentTarget.value })
-                  }
+                  onChange={(event) => onChangeValue('width', event.currentTarget.value)}
                   value={file.width}
                   fullWidth
                   className={classes.field}
@@ -222,12 +241,9 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
                   displayEmpty
                   value={file.type?.name || ''}
                   onChange={(event) =>
-                    onChange({
-                      ...file,
-                      type: {
-                        ...(file.type || {}),
-                        name: event.target.value as Summarize.TypeShorthand,
-                      },
+                    onChangeValue('type', {
+                      ...(file.type || {}),
+                      name: event.target.value as Summarize.TypeShorthand,
                     })
                   }
                 >
@@ -248,12 +264,9 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
                   label="Height"
                   name="height"
                   onChange={(event) =>
-                    onChange({
-                      ...file,
-                      type: {
-                        ...((file.type || {}) as Summarize.TypeExtended),
-                        style: { height: event.currentTarget.value },
-                      },
+                    onChangeValue('type', {
+                      ...((file.type || {}) as Summarize.TypeExtended),
+                      style: { height: event.currentTarget.value },
                     })
                   }
                   value={file.type.style?.height}
@@ -269,12 +282,9 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
                   label="Perspective config"
                   name="config"
                   onChange={(event) =>
-                    onChange({
-                      ...file,
-                      type: {
-                        ...((file.type || {}) as Summarize.TypeExtended),
-                        config: JSON.parse(event.currentTarget.value),
-                      },
+                    onChangeValue('type', {
+                      ...((file.type || {}) as Summarize.TypeExtended),
+                      config: JSON.parse(event.currentTarget.value),
                     })
                   }
                   value={file.type.config}
@@ -289,12 +299,9 @@ function AddFile({ className, disabled, file, onChange, single }: AddFileProps) 
                   control={
                     <M.Checkbox
                       onChange={(_e, checked) =>
-                        onChange({
-                          ...file,
-                          type: {
-                            ...((file.type || {}) as Summarize.TypeExtended),
-                            settings: checked,
-                          },
+                        onChangeValue('type', {
+                          ...((file.type || {}) as Summarize.TypeExtended),
+                          settings: checked,
                         })
                       }
                       checked={file.type.settings}
@@ -378,30 +385,34 @@ const useAddRowStyles = M.makeStyles((t) => ({
 interface AddRowProps {
   className: string
   disabled?: boolean
-  onAddColumn: (file: FileExtended) => void
-  onChange: (columnIndex: number) => (file: FileExtended) => void
   row: Row
+  index: number
+  onChange: React.Dispatch<React.SetStateAction<Layout>>
 }
 
-function AddRow({ className, disabled, row, onChange, onAddColumn }: AddRowProps) {
+function AddRow({ index, onChange, className, disabled, row }: AddRowProps) {
   const classes = useAddRowStyles()
+
+  const onAddColumn = React.useCallback(
+    () => onChange(addColumn(index)(emptyFile)),
+    [index, onChange],
+  )
+
   return (
     <div className={cx(classes.root, className)}>
       {row.map((file, j) => (
         <AddFile
           className={classes.column}
           key={j}
+          rowIndex={index}
+          columnIndex={j}
           file={file}
-          onChange={onChange(j)}
+          onChange={onChange}
           disabled={disabled}
           single={row.length === 1}
         />
       ))}
-      <Placeholder
-        className={classes.add}
-        onClick={() => onAddColumn(emptyFile)}
-        disabled={disabled}
-      />
+      <Placeholder className={classes.add} onClick={onAddColumn} disabled={disabled} />
     </div>
   )
 }
@@ -456,25 +467,7 @@ export default function QuiltSummarize({
     }
   }, [layout, onChange])
 
-  const onAddColumn = React.useMemo(
-    () => (rowIndex: number) => {
-      const dispatch = addColumn(rowIndex)
-      return (f: FileExtended) => setLayout(dispatch(f))
-    },
-    [],
-  )
-
-  const onChangeValue = React.useMemo(
-    () => (rowIndex: number) => (columnIndex: number) => {
-      const dispatch = changeValue(rowIndex, columnIndex)
-      return (f: FileExtended) => setLayout(dispatch(f))
-    },
-    [],
-  )
-
-  const onAddRow = React.useCallback(() => {
-    setLayout(addRow)
-  }, [])
+  const onAddRow = React.useCallback(() => setLayout(addRow), [])
 
   return (
     <div className={cx(classes.root, className)}>
@@ -485,11 +478,11 @@ export default function QuiltSummarize({
       {layout.map((row, i) => (
         <AddRow
           className={classes.row}
-          row={row}
-          key={i}
-          onAddColumn={onAddColumn(i)}
-          onChange={onChangeValue(i)}
           disabled={disabled}
+          index={i}
+          key={i}
+          row={row}
+          onChange={setLayout}
         />
       ))}
 
