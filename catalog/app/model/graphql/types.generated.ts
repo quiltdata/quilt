@@ -48,6 +48,7 @@ export interface AdminMutations {
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
+  readonly setTabulatorUnrestricted: TabulatorUnrestrictedResult
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -66,11 +67,16 @@ export interface AdminMutationsbucketRenameTabulatorTableArgs {
   newTableName: Scalars['String']
 }
 
+export interface AdminMutationssetTabulatorUnrestrictedArgs {
+  value: Scalars['Boolean']
+}
+
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
   readonly ssoConfig: Maybe<SsoConfig>
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
+  readonly tabulatorUnrestricted: Scalars['Boolean']
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -1171,6 +1177,11 @@ export interface TabulatorTable {
   readonly __typename: 'TabulatorTable'
   readonly name: Scalars['String']
   readonly config: Scalars['String']
+}
+
+export interface TabulatorUnrestrictedResult {
+  readonly __typename: 'TabulatorUnrestrictedResult'
+  readonly tabulatorUnrestricted: Scalars['Boolean']
 }
 
 export interface TestStats {

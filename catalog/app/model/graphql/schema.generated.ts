@@ -240,8 +240,36 @@ export default {
               },
             ],
           },
+          {
+            name: 'setTabulatorUnrestricted',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'TabulatorUnrestrictedResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'value',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -280,12 +308,20 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'tabulatorUnrestricted',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -5460,6 +5496,25 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'TabulatorUnrestrictedResult',
+        fields: [
+          {
+            name: 'tabulatorUnrestricted',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
