@@ -12,6 +12,7 @@ import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
 import SearchSettings from './SearchSettings'
+import TabulatorSettings from './TabulatorSettings'
 import ThemeEditor from './ThemeEditor'
 
 function useBeta(): [boolean, (b: boolean) => Promise<void>] {
@@ -273,6 +274,10 @@ const useStyles = M.makeStyles((t) => ({
   title: {
     margin: t.spacing(0, 0, 2),
     padding: t.spacing(0, 2),
+
+    '* + &': {
+      marginTop: t.spacing(2),
+    },
   },
 }))
 
@@ -324,6 +329,13 @@ export default function Settings() {
           </M.Paper>
         </M.Grid>
       </M.Grid>
+
+      <M.Typography variant="h5" className={classes.title}>
+        Tabulator Settings
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <TabulatorSettings />
+      </M.Paper>
     </div>
   )
 }

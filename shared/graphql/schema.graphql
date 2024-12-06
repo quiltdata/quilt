@@ -526,6 +526,7 @@ type AdminQueries {
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
+  tabulatorUnrestricted: Boolean!
 }
 
 type MyRole {
@@ -904,11 +905,16 @@ union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
 
 union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
 
+type TabulatorUnrestrictedResult {
+  tabulatorUnrestricted: Boolean!
+}
+
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
   bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
+  setTabulatorUnrestricted(value: Boolean!): TabulatorUnrestrictedResult!
 }
 
 type Mutation {
