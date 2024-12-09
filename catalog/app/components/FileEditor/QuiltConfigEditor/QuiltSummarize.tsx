@@ -46,12 +46,12 @@ const pathToFile = (path: string): FileExtended => ({ path, isExtended: false })
 const emptyFile: FileExtended = pathToFile('')
 
 const createColumn = (file: FileExtended): Column => ({
-  id: nanoid(2),
+  id: nanoid(3),
   file,
 })
 
 const createRow = (file: FileExtended): Row => ({
-  id: nanoid(2),
+  id: nanoid(3),
   columns: [createColumn(file)],
 })
 
@@ -93,13 +93,16 @@ const addColumn =
 
 const changeValue =
   (rowId: string, columnId: string) =>
-  (file: FileExtended) =>
+  (file: Partial<FileExtended>) =>
   (layout: Layout): Layout => ({
     rows: replace(layout.rows, rowId, (row) => ({
       ...row,
       columns: replace(row.columns, columnId, (column) => ({
         ...column,
-        file,
+        file: {
+          ...column.file,
+          ...file,
+        },
       })),
     })),
   })
@@ -380,16 +383,16 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
 
   const classes = useAddColumnStyles()
   const { file } = column
-  // TODO: simple mode instead of advanced
-  //       save to simple entered fields, and restore them
+  // TODO: [simple, setSimple] mode instead of advanced
+  //       save entered fields to `simple`, and restore them
   const [advanced, setAdvanced] = React.useState(file.isExtended)
 
   const onChangeValue = React.useCallback(
     (key: keyof FileExtended, value: FileExtended[keyof FileExtended]) => {
       const dispatch = changeValue(row.id, column.id)
-      onChange(dispatch({ ...file, [key]: value }))
+      onChange(dispatch({ [key]: value }))
     },
-    [onChange, row.id, column.id, file],
+    [onChange, row.id, column.id],
   )
 
   const onChangeType = React.useCallback(
@@ -402,7 +405,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
         [key]: value,
       })
     },
-    [onChangeValue, file],
+    [onChangeValue, file.type],
   )
 
   const onRemove = React.useCallback(() => {
@@ -450,7 +453,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
             label="Path"
             name="path"
             onChange={(event) => onChangeValue('path', event.currentTarget.value)}
-            value={file.path}
+            value={file.path || ''}
             fullWidth
             InputProps={{
               startAdornment: (
@@ -470,7 +473,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
               label="Title"
               name="title"
               onChange={(event) => onChangeValue('title', event.currentTarget.value)}
-              value={file.title}
+              value={file.title || ''}
               fullWidth
               className={classes.field}
               size="small"
@@ -482,7 +485,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
               onChange={(event) =>
                 onChangeValue('description', event.currentTarget.value)
               }
-              value={file.description}
+              value={file.description || ''}
               fullWidth
               className={classes.field}
               size="small"
@@ -511,7 +514,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     onChange={(event) =>
                       onChangeValue('width', event.currentTarget.value)
                     }
-                    value={file.width}
+                    value={file.width || ''}
                     fullWidth
                     className={classes.field}
                     size="small"
@@ -546,7 +549,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     onChange={(event) =>
                       onChangeType('style', { height: event.currentTarget.value })
                     }
-                    value={file.type.style?.height}
+                    value={file.type.style?.height || ''}
                     fullWidth
                     className={classes.field}
                     size="small"
@@ -561,7 +564,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     onChange={(event) =>
                       onChangeType('config', JSON.parse(event.currentTarget.value))
                     }
-                    value={file.type.config}
+                    value={file.type.config || '{}'}
                     fullWidth
                     className={classes.field}
                     size="small"
@@ -776,6 +779,7 @@ export default function QuiltSummarize({
 }: QuiltConfigEditorProps) {
   const classes = useStyles()
   const [layout, setLayout] = React.useState<Layout>(init())
+  const [state, setState] = React.useState<Error | null>(error)
 
   React.useEffect(() => {
     if (!initialValue) return
@@ -785,8 +789,6 @@ export default function QuiltSummarize({
       setState(e instanceof Error ? e : new Error(`${e}`))
     }
   }, [initialValue])
-
-  const [state, setState] = React.useState<Error | null>(error)
 
   const [value] = useDebounce(layout, 300)
   React.useEffect(() => onChange(stringify(value)), [onChange, value])
