@@ -1,11 +1,19 @@
+import invariant from 'invariant'
 import cx from 'classnames'
-import * as React from 'react'
 import { nanoid } from 'nanoid'
+import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import type * as Summarize from 'components/Preview/loaders/summarize'
+import Skeleton from 'components/Skeleton'
+import * as Dialogs from 'utils/GlobalDialogs'
+import * as Listing from 'containers/Bucket/Listing'
+
+import * as requests from 'containers/Bucket/requests'
+import { useData } from 'utils/Data'
 
 // TODO: link to docs
 // import { docs } from 'constants/urls'
@@ -150,6 +158,122 @@ function stringify(layout: Layout) {
   )
 }
 
+function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
+  return React.useMemo(() => {
+    const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
+    const f = r.files.map(Listing.Entry.File)
+    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path })
+  }, [r])
+}
+
+interface FilePickerProps {
+  res: requests.BucketListingResult
+  onCell: (item: Listing.Item) => void
+}
+
+function FilePicker({ res, onCell }: FilePickerProps) {
+  const items = useFormattedListing(res)
+  const CellComponent = React.useCallback(
+    ({ item, ...props }) => (
+      <div
+        role="button"
+        style={{ cursor: 'pointer' }}
+        onClick={() => onCell(item)}
+        {...props}
+      />
+    ),
+    [onCell],
+  )
+  return <Listing.Listing {...{ CellComponent, RootComponent: 'div', items }} />
+}
+
+const useFilePickerSkeletonStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  toolbar: {
+    display: 'flex',
+  },
+  toolbarSkeleton: {
+    width: t.spacing(20),
+    height: t.spacing(4.5) - 20 /*margin*/,
+    margin: '10px 0 10px auto',
+  },
+  divided: {
+    height: t.spacing(4.5) - 2 /*border*/ - 20 /*margin*/,
+    margin: '10px 0',
+  },
+  item: {
+    height: t.spacing(4.5) - 20 /*margin*/,
+    margin: '10px 0',
+  },
+}))
+
+function FilePickerSkeleton() {
+  const classes = useFilePickerSkeletonStyles()
+  return (
+    <div className={classes.root}>
+      <div className={classes.toolbar}>
+        <Skeleton className={classes.toolbarSkeleton} />
+      </div>
+      <M.Divider />
+      <Skeleton className={classes.divided} />
+      <M.Divider />
+      {Array.from({ length: 25 }).map((_, i) => (
+        <Skeleton
+          width={`${Math.min(75, Math.max(25, Math.ceil(Math.random() * 100)))}%`}
+          className={classes.item}
+          key={i}
+        />
+      ))}
+      <M.Divider />
+      <Skeleton className={classes.divided} />
+      <M.Divider />
+      <div className={classes.toolbar}>
+        <Skeleton className={classes.toolbarSkeleton} />
+      </div>
+    </div>
+  )
+}
+
+interface FilePickerDialogProps {
+  bucket: string
+  submit: (path: string) => void
+}
+
+function FilePickerDialog({ bucket, submit }: FilePickerDialogProps) {
+  const [path, setPath] = React.useState('')
+  const bucketListing = requests.useBucketListing()
+  const data = useData(bucketListing, {
+    bucket,
+    path,
+    prefix: '',
+    prev: null,
+    drain: true,
+  })
+  const handleCellClick = React.useCallback(
+    (item: Listing.Item) => {
+      if (item.type === 'dir') {
+        setPath(item.to)
+      } else {
+        submit(item.to)
+      }
+    },
+    [submit],
+  )
+  return (
+    <>
+      {data.case({
+        _: () => <FilePickerSkeleton />,
+        Ok: (res: requests.BucketListingResult) => (
+          <FilePicker res={res} onCell={handleCellClick} />
+        ),
+      })}
+    </>
+  )
+}
+
 const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
     animation: '$show 0.15s ease-out',
@@ -251,6 +375,9 @@ interface AddColumnProps {
 }
 
 function AddColumn({ className, column, disabled, last, onChange, row }: AddColumnProps) {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  invariant(bucket, '`bucket` must be defined')
+
   const classes = useAddColumnStyles()
   const { file } = column
   // TODO: simple mode instead of advanced
@@ -282,6 +409,31 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
     onChange(removeColumn(row.id, column.id))
   }, [onChange, row.id, column.id])
 
+  const pickPath = React.useCallback(
+    (path: string, close: () => void) => {
+      onChangeValue('path', path)
+      close()
+    },
+    [onChangeValue],
+  )
+
+  const openDialog = Dialogs.use()
+  const handlePicker = React.useCallback(() => {
+    openDialog(
+      ({ close }) => (
+        <>
+          <M.DialogContent>
+            <FilePickerDialog bucket={bucket} submit={(path) => pickPath(path, close)} />
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button onClick={close}>Cancel</M.Button>
+          </M.DialogActions>
+        </>
+      ),
+      { maxWidth: 'xl' as const, fullWidth: true },
+    )
+  }, [bucket, openDialog, pickPath])
+
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.inner}>
@@ -300,6 +452,15 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
             onChange={(event) => onChangeValue('path', event.currentTarget.value)}
             value={file.path}
             fullWidth
+            InputProps={{
+              startAdornment: (
+                <M.InputAdornment position="start">
+                  <M.IconButton size="small" onClick={handlePicker}>
+                    <M.Icon fontSize="inherit">attach_file</M.Icon>
+                  </M.IconButton>
+                </M.InputAdornment>
+              ),
+            }}
           />
         </div>
         {advanced && (
