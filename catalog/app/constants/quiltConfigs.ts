@@ -14,4 +14,4 @@ export const workflows = '.quilt/workflows/config.yml'
 
 export const quiltSummarize = 'quilt_summarize.json'
 
-export const all = [...bucketPreferences, esQueries, workflows, quiltSummarize]
+export const all = [...bucketPreferences, esQueries, workflows]
