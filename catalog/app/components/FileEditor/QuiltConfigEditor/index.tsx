@@ -27,7 +27,6 @@ export default ({
   ...props
 }: QuiltConfigEditorProps & { handle: Model.S3.S3ObjectLocation }) => {
   const ConfigDetailsFetcher = getConfigDetailsFetcher(handle)
-
   return (
     <React.Suspense fallback={<Skeleton />}>
       <ConfigDetailsFetcher>
