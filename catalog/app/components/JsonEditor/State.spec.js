@@ -163,9 +163,9 @@ describe('components/JsonEditor/State', () => {
   describe.skip('getJsonDictItemRecursively', () => {
     const dict = {
       '/c': 'found C',
-      '/c/__items*': 'found additional',
-      '/c/__items*/b': 'found B',
-      '/c/__items*/b/__items*': 'found item',
+      '/c/__*': 'found additional',
+      '/c/__*/b': 'found B',
+      '/c/__*/b/__*': 'found item',
     }
     expect(getJsonDictItemRecursively(dict, ['c'])).toBe('found C')
     expect(getJsonDictItemRecursively(dict, ['c', 'foo'])).toBe('found additional')

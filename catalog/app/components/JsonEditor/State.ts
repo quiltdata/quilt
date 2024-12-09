@@ -12,8 +12,6 @@ import {
   COLUMN_IDS,
   EMPTY_VALUE,
   JSON_POINTER_PLACEHOLDER,
-  JSON_POINTER_ANY_OF,
-  JSON_POINTER_ONE_OF,
   ValidationErrors,
 } from './constants'
 
@@ -102,36 +100,6 @@ export function iterateSchema(
     sortOrder.current.counter += 1
     iterateSchema(rawItem, sortOrder, item.address, memo)
   }
-
-  if (schema.anyOf) {
-    const item = getSchemaItem({
-      item: schema,
-      key: JSON_POINTER_ANY_OF,
-      parentPath,
-      required: false,
-      sortIndex: sortOrder.current.counter,
-    })
-    memo[JSONPointer.stringify(item.address)] = item
-    sortOrder.current.counter += 1
-    schema.anyOf.forEach((rawItem: any) => {
-      iterateSchema(rawItem, sortOrder, item.address, memo)
-    })
-  }
-  if (schema.oneOf) {
-    const item = getSchemaItem({
-      item: schema,
-      key: JSON_POINTER_ONE_OF,
-      parentPath,
-      required: false,
-      sortIndex: sortOrder.current.counter,
-    })
-    memo[JSONPointer.stringify(item.address)] = item
-    sortOrder.current.counter += 1
-    schema.oneOf.forEach((rawItem: any) => {
-      iterateSchema(rawItem, sortOrder, item.address, memo)
-    })
-  }
-  // TODO: schema.not and schema.allOf
 
   if (!schema.properties) return memo
 
@@ -227,14 +195,9 @@ function collectErrors(
 }
 
 function doesPlaceholderPathMatch(
-  placeholderRaw: JSONPointer.Path,
+  placeholder: JSONPointer.Path,
   path: JSONPointer.Path,
 ): boolean {
-  const placeholder = placeholderRaw.filter(
-    (item, index, all) =>
-      index === all.length - 1 ||
-      (item !== JSON_POINTER_ANY_OF && item !== JSON_POINTER_ONE_OF),
-  )
   if (placeholder.length !== path.length) return false
   return placeholder.every(
     (item, index) => item === path[index] || item === JSON_POINTER_PLACEHOLDER,
@@ -419,9 +382,8 @@ export default function JsonEditorState({
   children,
   errors,
   jsonObject,
-  schema: schemaWithRefs,
+  schema,
 }: JsonEditorStateProps) {
-  const schema = JSONSchema.resolveRefs(schemaWithRefs, schemaWithRefs.definitions)
   // NOTE: fieldPath is like URL for editor columns
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
   const [fieldPath, setFieldPath] = React.useState<JSONPointer.Path>([])
