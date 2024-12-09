@@ -164,8 +164,8 @@ function doesTypeMatchCompoundSchema(
 
   if (!isSchemaCompound(optSchema)) return false
 
-  return optSchema[condition]!.filter((s: JsonSchema) => s.type || s.$ref).some(
-    (subSchema: JsonSchema) => doesTypeMatchSchema(value, subSchema),
+  return optSchema[condition]!.some((subSchema: JsonSchema) =>
+    doesTypeMatchSchema(value, subSchema),
   )
 }
 
@@ -326,4 +326,49 @@ export function getDefaultValue(optSchema?: JsonSchema): any {
 
 export function makeSchemaDefaultsSetter(optSchema?: JsonSchema) {
   return (obj: any) => scanSchemaAndPrefillValues(getDefaultValue, obj, optSchema)
+}
+
+export function resolveRefs(schema: any, definitions: any) {
+  const result: Record<string, any> = {}
+  if (Array.isArray(schema)) {
+    return schema.map((value): any => {
+      if (value.$ref) {
+        const defKey = value.$ref.split('/').pop()
+        if (defKey) {
+          if (typeof definitions[defKey] === 'object') {
+            return resolveRefs(definitions[defKey], definitions)
+          } else {
+            return definitions[defKey]
+          }
+        }
+      } else {
+        if (typeof value === 'object') {
+          return resolveRefs(value, definitions)
+        } else {
+          return value
+        }
+      }
+    })
+  }
+
+  Object.entries(schema).forEach(([key, value]: [any, any]) => {
+    if (key === 'definitions') return
+    if (value.$ref) {
+      const defKey = value.$ref.split('/').pop()
+      if (defKey) {
+        if (typeof definitions[defKey] === 'object') {
+          result[key] = resolveRefs(definitions[defKey], definitions)
+        } else {
+          result[key] = definitions[defKey]
+        }
+      }
+    } else {
+      if (typeof value === 'object') {
+        result[key] = resolveRefs(value, definitions)
+      } else {
+        result[key] = value
+      }
+    }
+  })
+  return result
 }
