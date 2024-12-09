@@ -399,18 +399,18 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
     (
       key: keyof Summarize.TypeExtended,
       value: Summarize.TypeExtended[keyof Summarize.TypeExtended],
-    ) => {
+    ) =>
       onChangeValue('type', {
         ...((file.type || {}) as Summarize.TypeExtended),
         [key]: value,
-      })
-    },
+      }),
     [onChangeValue, file.type],
   )
 
-  const onRemove = React.useCallback(() => {
-    onChange(removeColumn(row.id, column.id))
-  }, [onChange, row.id, column.id])
+  const onRemove = React.useCallback(
+    () => onChange(removeColumn(row.id, column.id)),
+    [onChange, row.id, column.id],
+  )
 
   const pickPath = React.useCallback(
     (path: string, close: () => void) => {
@@ -810,6 +810,15 @@ export default function QuiltSummarize({
             row={row}
           />
         ))}
+        {!layout.rows.length && (
+          <Placeholder
+            variant="horizontal"
+            className={classes.row}
+            expanded
+            onClick={() => setLayout(init())}
+            disabled={disabled}
+          />
+        )}
       </div>
     </div>
   )
