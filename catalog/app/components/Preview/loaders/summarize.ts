@@ -12,6 +12,7 @@ export type TypeShorthand =
   | typeof FileType.Vega
   | typeof FileType.Voila
   | typeof FileType.Text
+  | typeof FileType.Html
 
 export type FileShortcut = string
 
