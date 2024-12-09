@@ -3,14 +3,15 @@ import cx from 'classnames'
 import { nanoid } from 'nanoid'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
+import { useDebounce } from 'use-debounce'
 import * as M from '@material-ui/core'
 
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import type * as Summarize from 'components/Preview/loaders/summarize'
 import Skeleton from 'components/Skeleton'
-import * as Dialogs from 'utils/GlobalDialogs'
 import * as Listing from 'containers/Bucket/Listing'
+import * as Dialogs from 'utils/GlobalDialogs'
 
 import * as requests from 'containers/Bucket/requests'
 import { useData } from 'utils/Data'
@@ -148,14 +149,13 @@ function parse(str: string): Layout {
 
 function stringify(layout: Layout) {
   // TODO: validate with JSON Schema
-  return JSON.stringify(
-    layout.rows.map((row) => {
-      const columns = row.columns.map(({ file }) =>
-        Object.keys(file).length === 1 && file.path ? file.path : file,
-      )
-      return columns.length === 1 ? columns[0] : columns
-    }),
-  )
+  const converted = layout.rows.map((row) => {
+    const columns = row.columns.map(({ file }) =>
+      Object.keys(file).length === 1 && file.path ? file.path : file,
+    )
+    return columns.length === 1 ? columns[0] : columns
+  })
+  return JSON.stringify(converted, null, 2)
 }
 
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
@@ -765,10 +765,6 @@ const useStyles = M.makeStyles((t) => ({
   row: {
     marginTop: t.spacing(2),
   },
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
 }))
 
 export default function QuiltSummarize({
@@ -791,14 +787,9 @@ export default function QuiltSummarize({
   }, [initialValue])
 
   const [state, setState] = React.useState<Error | null>(error)
-  const handleSubmit = React.useCallback(() => {
-    try {
-      const summarize = stringify(layout)
-      onChange(summarize)
-    } catch (e) {
-      setState(e instanceof Error ? e : new Error(`${e}`))
-    }
-  }, [layout, onChange])
+
+  const [value] = useDebounce(layout, 300)
+  React.useEffect(() => onChange(stringify(value)), [onChange, value])
 
   return (
     <div className={cx(classes.root, className)}>
@@ -817,12 +808,6 @@ export default function QuiltSummarize({
             row={row}
           />
         ))}
-      </div>
-
-      <div className={classes.actions}>
-        <M.Button onClick={handleSubmit} disabled={disabled}>
-          Submit
-        </M.Button>
       </div>
     </div>
   )
