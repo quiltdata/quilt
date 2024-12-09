@@ -41,40 +41,21 @@ function EditorSuspended({
   }
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
+  const initialProps = {
+    className,
+    disabled,
+    error,
+    onChange,
+    initialValue: '',
+  }
   if (empty)
     switch (editing.brace) {
       case '__quiltConfig':
-        return (
-          <QuiltConfigEditor
-            className={className}
-            handle={handle}
-            disabled={disabled}
-            error={error}
-            onChange={onChange}
-            initialValue=""
-          />
-        )
+        return <QuiltConfigEditor {...initialProps} handle={handle} />
       case '__quiltSummarize':
-        return (
-          <QuiltSummarize
-            className={className}
-            disabled={disabled}
-            error={error}
-            initialValue=""
-            onChange={onChange}
-          />
-        )
+        return <QuiltSummarize {...initialProps} />
       default:
-        return (
-          <TextEditor
-            autoFocus
-            className={className}
-            error={error}
-            initialValue=""
-            onChange={onChange}
-            type={editing}
-          />
-        )
+        return <TextEditor {...initialProps} autoFocus type={editing} />
     }
   return data.case({
     _: () => <Skeleton />,
@@ -87,41 +68,18 @@ function EditorSuspended({
       </div>
     ),
     Ok: (response: { Body: Buffer }) => {
-      const value = response.Body.toString('utf-8')
+      const initialValue = response.Body.toString('utf-8')
+      const props = {
+        ...initialProps,
+        initialValue,
+      }
       switch (editing.brace) {
         case '__quiltConfig':
-          return (
-            <QuiltConfigEditor
-              className={className}
-              handle={handle}
-              disabled={disabled}
-              error={error}
-              onChange={onChange}
-              initialValue={value}
-            />
-          )
+          return <QuiltConfigEditor {...props} handle={handle} />
         case '__quiltSummarize':
-          return (
-            <QuiltSummarize
-              className={className}
-              disabled={disabled}
-              error={error}
-              initialValue={value}
-              onChange={onChange}
-            />
-          )
+          return <QuiltSummarize {...props} />
         default:
-          return (
-            <TextEditor
-              autoFocus
-              className={className}
-              disabled={disabled}
-              error={error}
-              onChange={onChange}
-              type={editing}
-              initialValue={value}
-            />
-          )
+          return <TextEditor {...props} autoFocus type={editing} />
       }
     },
   })
