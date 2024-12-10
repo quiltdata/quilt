@@ -19,7 +19,7 @@ import { makeSchemaValidator } from 'utils/JSONSchema'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 
-import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
+import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
 interface FileExtended extends Omit<Summarize.FileExtended, 'types'> {
   isExtended: boolean
@@ -835,7 +835,13 @@ export default function QuiltSummarize({
   }, [initialValue])
 
   const [value] = useDebounce(layout, 300)
-  React.useEffect(() => onChange(stringify(value)), [onChange, value])
+  React.useEffect(() => {
+    try {
+      onChange(stringify(value))
+    } catch (e) {
+      setState(e instanceof Error ? e : new Error(`${e}`))
+    }
+  }, [onChange, value])
 
   return (
     <div className={cx(classes.root, className)}>
