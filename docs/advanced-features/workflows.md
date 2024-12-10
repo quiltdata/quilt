@@ -1,48 +1,52 @@
 <!--pytest-codeblocks:skipfile-->
-<!-- markdownlint-disable -->
-
+<!-- markdownlint-disable-next-line first-line-h1 -->
 > This feature requires the `quilt3` API version 3.3 or higher.
 
 ## Overview
-A Quilt *workflow* is a quality gate that you set to ensure the quality of your
-data and metadata *before* it becomes a Quilt package. You can create as many
-workflows as you like to accommodate all of your data creation patterns.
 
-> By default, workflows are **required**.
+A Quilt *workflow* is a quality gate that you set on a bucket to ensure the
+quality of your data and metadata *before* it becomes a Quilt package. You can
+create as many workflows as you like to accommodate all of your data creation
+patterns.
 
-## On data quality
-Under the hood, Quilt workflows use [JSON Schema](https://json-schema.org) to check that
-package metadata have the right *shape*. Metadata shape determines which keys are
-defined, their values, and the types of the values.
+## Why metadata quality matters
+
+Under the hood, Quilt workflows use [JSON Schema](https://json-schema.org) to
+check that package metadata have the right *shape*. Metadata shape determines
+which keys are defined, their values, and the types of the values.
 
 Ensuring the quality of your data has long-lasting implications:
-1. *Consistency* — if labels and other metadata don't use a consistent, controlled
-vocabulary, reuse becomes difficult and trust in data declines
-1. *Completeness* — if your workflows do not require users to include files,
-documentation, labels, etc. then your data is on its way towards becoming mystery
-data and ultimately junk data that no one can use
-1. *Context* — data can only be reused if users know where it came from, what it means,
-who touched it, and what the related datasets are
 
-From the standpoint of querying engines like Amazon Athena, data that lacks
+1. *Consistency* — if labels and other metadata don't use a consistent,
+controlled vocabulary, reuse becomes difficult and trust in data declines
+1. *Completeness* — if your workflows do not require users to include files,
+documentation, labels, etc. then your data is on its way towards becoming
+mystery data and ultimately junk data that no one can use
+1. *Context* — data can only be reused if users know where it came from, what it
+means, who touched it, and what the related datasets are
+
+From the standpoint of querying engines like Amazon Athena, metadata that lacks
 consistency and completeness is extremely difficult to query longitudinally and
-depreciates over time (as team members change, platforms change,
-and tribal knowledge is lost).
+depreciates over time (as team members change, platforms change, and tribal
+knowledge is lost).
 
 ## Use cases
+
 * Ensure that labels are correct and drawn from a controlled vocabulary (e.g.
-ensure that the only labels in a package of images are either "bird" or "not bird";
-avoid data entry errors like "birb")
+ensure that the only labels in a package of images are either "bird" or "not
+bird"; avoid data entry errors like "birb")
 * Ensure that users provide a `README.md` for every new package
 * Ensure that included files are non-empty
 * Ensure that every new package (or dataset) has enough labels so that it can be
 reused (e.g. Date, Creator, Type, etc.)
 
 ## Get started
+
 To get started, create a configuration file in your Quilt S3 bucket
 at `s3://BUCKET-NAME/.quilt/workflows/config.yml`.
 
-Here's an example:
+Here's a complex example:
+
 ```yaml
 version:
   base: "1"
@@ -74,7 +78,9 @@ schemas:
     url: s3://quilt-dev-metadata/schemas/validate-secrets.schema.json
 ```
 
-With the above configuration, you must specify a workflow before you can push:
+Once you add a configuration that defines workflows, you must specify a workflow
+before you can push (unless you explicitly set `is_workflow_required: False` in
+your `config.yml`).
 
 <!--pytest-codeblocks:cont-->
 <!--pytest.mark.xfail-->
@@ -85,7 +91,7 @@ quilt3.Package().push('test/package', registry='s3://quilt-dev-metadata')
 # QuiltException: Workflow required, but none specified.
 ```
 
-Let's try with the `workflow=` parameter:
+Let's try again, adding the `workflow=` parameter:
 
 <!--pytest-codeblocks:cont-->
 <!--pytest.mark.xfail-->
@@ -125,8 +131,9 @@ quilt3.Package().push(
 We encountered another exception because the `beta` workflow specifies
 `metadata_schema: superheroes`.
 Therefore, the `test/package` metadata must validate against the
-[JSON Schema](https://json-schema.org/) at
+[JSON Schema](https://json-schema.org/) located at
 `s3://quilt-dev-metadata/schemas/superheroes.schema.json`:
+
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -146,7 +153,8 @@ Therefore, the `test/package` metadata must validate against the
 }
 ```
 
-Note that `superhero` is a required property:
+Note that `superhero` is a required property of the package metadata, which is
+specified using `set_meta`.
 
 <!--pytest-codeblocks:cont-->
 ```python
@@ -188,10 +196,11 @@ quilt3.Package().set_meta({'answer': 42}).push(
 ```
 
 ## Bypassing workflow validation and setting a default workflow
-As stated above, by default workflows are **required**. If you wish
-for your users to be able to skip workflow validation altogether, you can
-make workflow validation optional with `is_workflow_required: False`
-at the top-level in your `config.yml` file:
+
+As stated above, by default workflows are **required** if a configuration file
+exists. If you wish for your users to be able to skip workflow validation
+altogether, you can make workflow validation optional with
+`is_workflow_required: False` at the top-level in your `config.yml` file:
 
 ```yaml
 version:
@@ -236,16 +245,19 @@ This specifies which workflow will be used (`experiment`) if a
 `workflow` parameter in the `Package.push()` API call or CLI is not provided.
 
 ## JSON Schema
-- Quilt workflows support the [Draft 7 JSON Schema](https://json-schema.org/specification-links.html#draft-7).
-- JSON schemas can be stored anywhere in your Amazon S3 bucket. 
-Provided the path to the file is accessible in `config.yml`, the
-schema will successfully validate your package metadata shape.
+
+* Quilt workflows support the [Draft 7 JSON Schema](https://json-schema.org/specification-links.html#draft-7).
+* JSON schemas can be stored anywhere in any accessible Amazon S3 bucket.
+Provided the path to the file is accessible in `config.yml`, the schema will
+successfully validate your package metadata shape.
 
 ### Default values
+
 Quilt supports the
 [`default` keyword](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=default).
 
 ### Auto-fill dates
+
 If you wish to pre-populate dates in the Quilt catalog, you can use the custom
 keyword `dateformat` in your schemas. For example:
 
@@ -256,13 +268,16 @@ keyword `dateformat` in your schemas. For example:
     "dateformat": "yyyy-MM-dd"
 }
 ```
+
 The `dateformat` template follows
 [Unicode Technical Standard #35](https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table).
 
 ### Arrays, tuples and enums
-Quilt supports the [`array` data type](https://json-schema.org/understanding-json-schema/reference/array.html). 
-You can use `array` if you need to define a list of metadata values for a metadata key.
-These elements can be of any type.
+
+Quilt supports the [`array` data
+type](https://json-schema.org/understanding-json-schema/reference/array.html).
+You can use `array` if you need to define a list of metadata values for a
+metadata key. These elements can be of any type.
 
 If the order in the list is not significant, use "arrays" (using `"items"` and `"anyOf"`):
 
@@ -340,7 +355,8 @@ with predefined values, such as `["Fixed 1", "Fixed 2", "Fixed 1"]`.
 }
 ```
 
-With this Schema users are allowed to create tuples like `["Fixed 1"]` or `["Fixed 2"]`.
+With this Schema users are allowed to create tuples like `["Fixed 1"]` or
+`["Fixed 2"]`.
 
 If you want to provide users with a list of predefined metadata values but
 additionally let them add any values outside of this list, you can use the `anyOf`
@@ -363,8 +379,9 @@ keyword:
 }
 ```
 
-Metadata lists such as 
-`["Fixed 1", "Fixed 2"]`, `["Fixed 1", "Any string"]` or `["Any string 1", "Any string 2"]` 
+Metadata lists such as
+`["Fixed 1", "Fixed 2"]`, `["Fixed 1", "Any string"]` or `["Any string 1", "Any
+string 2"]`
 are all valid.
 
 In certain use cases you may want to define metadata lists that
@@ -384,11 +401,12 @@ tuples with `"additionalItems": true`:
 }
 ```
 
-With this Schema lists such as 
-`["Fixed 1", "Any string", 123]` 
+With this Schema lists such as
+`["Fixed 1", "Any string", 123]`
 are valid but `["Any string", 123]` are invalid.
 
 ### Example properties
+
 The following examples show how you can specify complex `properties`
 such as `object`, `array`, and compound `enum` types.
 
@@ -466,26 +484,34 @@ validated with `items`, and not `prefixItems`.
 The `prefixItems` keyword was added in Draft 2020-12, and is not currently supported.
 
 ## Data quality controls
+
 In addition to package-level metadata. Quilt workflows enable you to validate
 package names, and basic file metadata.
-> You must include the following schema version at the root of your config.yml in order for
-> any catalog-specific features to function:
+> You must include the following schema version at the root of your config.yml
+> in order for any catalog-specific features to function:
 
 ```yaml
 version:
   base: "1"
   catalog: "1"
 ```
+
 ### Package name defaults (Quilt catalog)
-By default the Quilt catalog auto-fills the package handle **prefix** according to the following logic:
+
+By default the Quilt catalog auto-fills the package handle **prefix** when
+creating or revising a package according to the following logic:
+
 * Packages tab: username (everything before the @ in your sign-in email).
 Equivalent to
+
 ```yaml
 catalog:
   package_handle:
     packages: <%= username %>
 ```
+
 * Files tab: parent directory name. Equivalent to
+
 ```yaml
 catalog:
   package_handle:
@@ -494,9 +520,12 @@ catalog:
 
 You can customize the default prefix with `package_handle` key in one or both of
 the following places:
-* Set `catalog.package_handle.(files|packages)` at the root of config.yml to affect all workflows
-* Set `workflows.WORKFLOW.catalog.package_handle.(files|packages)` to affect the tabs
-and workflow in question
+
+* Set `catalog.package_handle.(files|packages)` at the root of config.yml to
+affect all workflows
+
+* Set `workflows.WORKFLOW.catalog.package_handle.(files|packages)` to affect the
+tabs and workflow in question
 
 #### Example
 
@@ -516,8 +545,10 @@ workflows:
 ```
 
 ### Package name validation
+
 You can validate package names with `WORKFLOW.handle_pattern`, which accepts
-[JavaScript regular expression](https://datatracker.ietf.org/doc/html/draft-handrews-json-schema-validation-01#section-6.3.3).
+[JavaScript regular
+expression](https://datatracker.ietf.org/doc/html/draft-handrews-json-schema-validation-01#section-6.3.3).
 
 > By default, patterns are not anchored.
 > You can explicitly add start (`^`) and end (`$`) markers as needed.
@@ -532,6 +563,7 @@ workflows:
 ```
 
 ### Package file validation
+
 You can validate the names, sizes and metadata of files in the package with
 `WORKFLOW.entries_schema`. The provided schema runs against an array of
 objects known as *package entries*. Each package entry defines a logical key
@@ -547,11 +579,12 @@ workflows:
   myworkflow-2:
     name: 'My workflow #2'
     entries_schema: must-contain-readme-summarize-at-least-1byte
-    description: Must contain non-empty README.md and quilt_summarize.json at package root; no more than 4 files
+    description: Must contain non-empty README.md and quilt_summarize.json 
+        at package root; no more than 4 files
   myworkflow-3:
     name: 'My workflow #3'
     entries_schema: must-have-foo-bar-meta
-    description: Must contain at least one file with { foo: bar } metadata object
+    description: Must contain at least one file with { foo: bar } metadata  object
 schemas:
   must-contain-readme:
     url: s3://bucket/must-contain-readme.json
@@ -659,6 +692,7 @@ Requires `{ "foo": "bar" }` object as user specified metadata in README.md
 ```
 
 ### Cross-bucket package push (Quilt catalog)
+
 In Quilt, S3 buckets are like git branches but for data. With `quilt3` you can
 `browse` any package and then `push` it to any bucket that you choose.
 
@@ -690,14 +724,17 @@ destination bucket. If `copy_data` is `false`, all entries will remain in their
 current locations.
 
 ## `config.yml` JSON Schema
+
 See
 [workflows-config_catalog-1.0.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config_catalog-1.0.0.json)
 and
 [workflows-config-1.1.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config-1.1.0.json).
 
-
 ## Known limitations
-* Only [Draft 7 Json Schemas](https://json-schema.org/specification-links.html#draft-7) are supported
+
+* Only [Draft 7 Json
+  Schemas](https://json-schema.org/specification-links.html#draft-7) are
+  supported
   * If a workflow schema includes a non-supported keyword, the user
   interface displays an `unknown keyword: <non-supported keyword>`
   error
