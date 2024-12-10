@@ -10,13 +10,13 @@ import * as AWS from 'utils/AWS'
 
 import { Mode, EditorInputType } from './types'
 
-const cache: { [index in Mode]?: Promise<void> | 'fullfilled' } = {}
+const cache: { [index in Mode]?: Promise<void> | 'fulfilled' } = {}
 export const loadMode = (mode: Mode) => {
-  if (cache[mode] === 'fullfilled') return cache[mode]
+  if (cache[mode] === 'fulfilled') return cache[mode]
   if (cache[mode]) throw cache[mode]
 
   cache[mode] = import(`brace/mode/${mode}`).then(() => {
-    cache[mode] = 'fullfilled'
+    cache[mode] = 'fulfilled'
   })
   throw cache[mode]
 }
