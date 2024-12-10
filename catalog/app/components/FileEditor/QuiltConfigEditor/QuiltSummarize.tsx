@@ -1,5 +1,5 @@
-import invariant from 'invariant'
 import cx from 'classnames'
+import invariant from 'invariant'
 import { nanoid } from 'nanoid'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -10,13 +10,11 @@ import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import type * as Summarize from 'components/Preview/loaders/summarize'
 import Skeleton from 'components/Skeleton'
-import * as Listing from 'containers/Bucket/Listing'
-import * as Dialogs from 'utils/GlobalDialogs'
-
-import * as requests from 'containers/Bucket/requests'
-import { useData } from 'utils/Data'
-
 import { docs } from 'constants/urls'
+import * as requests from 'containers/Bucket/requests'
+import * as Listing from 'containers/Bucket/Listing'
+import { useData } from 'utils/Data'
+import * as Dialogs from 'utils/GlobalDialogs'
 import StyledLink from 'utils/StyledLink'
 
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
