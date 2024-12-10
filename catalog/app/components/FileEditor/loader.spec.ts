@@ -1,10 +1,35 @@
-import { isSupportedFileType } from './loader'
+import { renderHook } from '@testing-library/react-hooks'
+
+import { detect, isSupportedFileType, loadMode, useWriteData } from './loader'
+
+const putObject = jest.fn(async () => ({ VersionId: 'bar' }))
+
+const headObject = jest.fn(async () => ({ VersionId: 'foo', ContentLength: 999 }))
+
+jest.mock(
+  'utils/AWS',
+  jest.fn(() => ({
+    S3: {
+      use: jest.fn(() => ({
+        putObject: () => ({
+          promise: putObject,
+        }),
+        headObject: () => ({
+          promise: headObject,
+        }),
+      })),
+    },
+  })),
+)
 
 jest.mock(
   'constants/config',
-  jest.fn(() => ({
-    apiGatewayEndpoint: '',
-  })),
+  jest.fn(() => ({})),
+)
+
+jest.mock(
+  'brace/mode/json',
+  jest.fn(() => Promise.resolve(undefined)),
 )
 
 describe('components/FileEditor/loader', () => {
@@ -34,6 +59,64 @@ describe('components/FileEditor/loader', () => {
       expect(isSupportedFileType('../relative/file.bam')).toBe(false)
       expect(isSupportedFileType('https://example.com/path/file.bam')).toBe(false)
       expect(isSupportedFileType('s3://bucket/path/file.bam')).toBe(false)
+    })
+  })
+
+  describe('detect', () => {
+    it('should detect quilt_summarize.json', () => {
+      expect(detect('quilt_summarize.json').map((x) => x.brace)).toEqual([
+        '__quiltSummarize',
+        'json',
+      ])
+      expect(detect('nes/ted/quilt_summarize.json').map((x) => x.brace)).toEqual([
+        '__quiltSummarize',
+        'json',
+      ])
+    })
+    it('should detect bucket preferences config', () => {
+      expect(detect('.quilt/catalog/config.yml').map((x) => x.brace)).toEqual([
+        '__quiltConfig',
+        'yaml',
+      ])
+      expect(detect('.quilt/catalog/config.yaml').map((x) => x.brace)).toEqual([
+        '__quiltConfig',
+        'yaml',
+      ])
+      expect(
+        detect('not/in/root/.quilt/catalog/config.yaml').map((x) => x.brace),
+      ).toEqual(['yaml'])
+    })
+  })
+
+  describe('useWriteData', () => {
+    it('rejects when revision is outdated', () => {
+      const { result } = renderHook(() =>
+        useWriteData({ bucket: 'a', key: 'b', version: 'c' }),
+      )
+      return expect(result.current('any')).rejects.toThrow('Revision is outdated')
+    })
+    it('returns new version', () => {
+      const { result } = renderHook(() =>
+        useWriteData({ bucket: 'a', key: 'b', version: 'foo' }),
+      )
+      return expect(result.current('any')).resolves.toEqual({
+        bucket: 'a',
+        key: 'b',
+        size: 999,
+        version: 'bar',
+      })
+    })
+  })
+
+  describe('loadMode', () => {
+    it('throws on the first call and resolves on the second', () => {
+      expect(() => loadMode('json')).toThrow()
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          expect(loadMode('json')).toBe('fulfilled')
+          resolve(null)
+        })
+      })
     })
   })
 })
