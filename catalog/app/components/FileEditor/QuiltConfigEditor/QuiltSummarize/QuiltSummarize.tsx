@@ -113,10 +113,11 @@ function FilePickerSkeleton() {
 interface FilePickerDialogProps {
   bucket: string
   submit: (path: string) => void
+  initialPath: string
 }
 
-function FilePickerDialog({ bucket, submit }: FilePickerDialogProps) {
-  const [path, setPath] = React.useState('')
+function FilePickerDialog({ bucket, initialPath, submit }: FilePickerDialogProps) {
+  const [path, setPath] = React.useState(initialPath)
   const bucketListing = requests.useBucketListing()
   const data = useData(bucketListing, {
     bucket,
@@ -248,7 +249,10 @@ interface AddColumnProps {
 }
 
 function AddColumn({ className, column, disabled, last, onChange, row }: AddColumnProps) {
-  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  const { bucket, path: initialPath } = RRDom.useParams<{
+    bucket: string
+    path: string
+  }>()
   invariant(bucket, '`bucket` must be defined')
 
   const classes = useAddColumnStyles()
@@ -296,7 +300,11 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
       ({ close }) => (
         <>
           <M.DialogContent>
-            <FilePickerDialog bucket={bucket} submit={(path) => pickPath(path, close)} />
+            <FilePickerDialog
+              bucket={bucket}
+              initialPath={initialPath.replace(/quilt_summarize.json$/, '')}
+              submit={(path) => pickPath(path, close)}
+            />
           </M.DialogContent>
           <M.DialogActions>
             <M.Button onClick={close}>Cancel</M.Button>
@@ -305,7 +313,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
       ),
       { maxWidth: 'xl' as const, fullWidth: true },
     )
-  }, [bucket, openDialog, pickPath])
+  }, [bucket, initialPath, openDialog, pickPath])
 
   return (
     <div className={cx(classes.root, className)}>
