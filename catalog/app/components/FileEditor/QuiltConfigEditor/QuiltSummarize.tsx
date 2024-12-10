@@ -16,9 +16,8 @@ import * as Dialogs from 'utils/GlobalDialogs'
 import * as requests from 'containers/Bucket/requests'
 import { useData } from 'utils/Data'
 
-// TODO: link to docs
-// import { docs } from 'constants/urls'
-// import StyledLink from 'utils/StyledLink'
+import { docs } from 'constants/urls'
+import StyledLink from 'utils/StyledLink'
 
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
 
@@ -768,6 +767,11 @@ const useStyles = M.makeStyles((t) => ({
   row: {
     marginTop: t.spacing(2),
   },
+  caption: {
+    ...t.typography.body2,
+    marginTop: t.spacing(2),
+    textAlign: 'center',
+  },
 }))
 
 export default function QuiltSummarize({
@@ -820,6 +824,16 @@ export default function QuiltSummarize({
           />
         )}
       </div>
+
+      <p className={classes.caption}>
+        Configuration for quilt_summarize.json. See{' '}
+        <StyledLink
+          href={`${docs}/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json`}
+          target="_blank"
+        >
+          the docs
+        </StyledLink>
+      </p>
     </div>
   )
 }
