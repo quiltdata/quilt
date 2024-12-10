@@ -347,7 +347,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 cache.invalidate({ __typename: 'Query' }, 'admin')
                 cache.invalidate({ __typename: 'Query' }, 'roles')
               }
-              if (result.admin?.setTabulatorUnrestricted.tabulatorUnrestricted != null) {
+              if (result.admin?.setTabulatorUnrestricted?.tabulatorUnrestricted != null) {
                 cache.updateQuery(
                   { query: urql.gql`{ admin { tabulatorUnrestricted } }` },
                   ({ admin }) => ({
