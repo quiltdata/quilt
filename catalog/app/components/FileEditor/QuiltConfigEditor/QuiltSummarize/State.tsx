@@ -66,7 +66,7 @@ export const addRowAfter =
     rows: insertAfter(layout.rows, rowId, createRow(emptyFile)),
   })
 
-export const addColumn =
+export const addColumnAfter =
   (rowId: string, columnId: string) =>
   (file: FileExtended) =>
   (layout: Layout): Layout => ({
@@ -122,6 +122,17 @@ function parseColumn(fileOrPath: Summarize.File): Column {
   })
 }
 
+function preStringifyType(type: Summarize.TypeExtended): [Summarize.Type] {
+  const { name, ...rest } = type
+  if (!Object.keys(rest).length) return [name]
+  return [
+    {
+      name,
+      ...rest,
+    },
+  ]
+}
+
 function preStringifyColumn(column: Column): Summarize.File {
   const {
     file: { isExtended, type, path, ...file },
@@ -134,7 +145,7 @@ function preStringifyColumn(column: Column): Summarize.File {
     }
   }
   return {
-    types: [type],
+    types: preStringifyType(type),
     path,
     ...file,
   }
@@ -143,7 +154,7 @@ function preStringifyColumn(column: Column): Summarize.File {
 function validate(config: any) {
   const errors = makeSchemaValidator(quiltSummarizeSchema)(config)
   if (errors.length) {
-    throw new Error(errors.map((e) => e.message).join('\n'))
+    throw new Error(`Validation error: ${errors.map((e) => e.message).join('\n')}`)
   }
   return undefined
 }
