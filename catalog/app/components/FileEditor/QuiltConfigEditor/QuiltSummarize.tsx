@@ -15,6 +15,8 @@ import * as requests from 'containers/Bucket/requests'
 import * as Listing from 'containers/Bucket/Listing'
 import { useData } from 'utils/Data'
 import * as Dialogs from 'utils/GlobalDialogs'
+import { makeSchemaValidator } from 'utils/JSONSchema'
+import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
 
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
@@ -134,13 +136,42 @@ function parseColumn(fileOrPath: Summarize.File): Column {
   })
 }
 
-function parse(str: string): Layout {
-  const permissive = JSON.parse(str)
-  // TODO: validate with JSON Schema
-  if (!permissive) return { rows: [] }
-  if (!Array.isArray(permissive)) throw new Error('Expected array')
+function preStringifyColumn(column: Column): Summarize.File {
+  const {
+    file: { isExtended, type, path, ...file },
+  } = column
+  if (!type) {
+    if (!Object.keys(file).length) return path
+    return {
+      path,
+      ...file,
+    }
+  }
   return {
-    rows: permissive.map((row) => ({
+    types: [type],
+    path,
+    ...file,
+  }
+}
+
+function validate(config: any) {
+  const errors = makeSchemaValidator(quiltSummarizeSchema)(config)
+  if (errors.length) {
+    throw new Error(errors.map((e) => e.message).join('\n'))
+  }
+  return undefined
+}
+
+function parse(str: string): Layout {
+  const config = JSON.parse(str)
+
+  if (!config) return { rows: [] }
+  if (!Array.isArray(config)) throw new Error('Expected array')
+
+  validate(config)
+
+  return {
+    rows: config.map((row) => ({
       id: nanoid(2),
       columns: Array.isArray(row) ? row.map(parseColumn) : [parseColumn(row)],
     })),
@@ -148,13 +179,15 @@ function parse(str: string): Layout {
 }
 
 function stringify(layout: Layout) {
-  // TODO: validate with JSON Schema
-  const converted = layout.rows.map((row) => {
-    const columns = row.columns.map(({ file }) =>
-      Object.keys(file).length === 1 && file.path ? file.path : file,
-    )
-    return columns.length === 1 ? columns[0] : columns
-  })
+  const converted = layout.rows
+    .map((row) => {
+      const columns = row.columns.filter(({ file }) => file.path).map(preStringifyColumn)
+      return columns.length > 1 ? columns : columns[0]
+    })
+    .filter(Boolean)
+
+  validate(converted)
+
   return JSON.stringify(converted, null, 2)
 }
 
@@ -500,7 +533,8 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                   />
                 }
                 labelPlacement="start"
-                label="Expanded"
+                label="Expand"
+                title="Whether preview is expanded by default or not"
               />
               <M.FormGroup>
                 {row.columns.length > 1 && (
@@ -515,6 +549,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     fullWidth
                     className={classes.field}
                     size="small"
+                    helperText="Width in pixels or percents"
                   />
                 )}
 
@@ -550,6 +585,8 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     fullWidth
                     className={classes.field}
                     size="small"
+                    placeholder="Ex., 1000px"
+                    helperText="Height as an absolute value (in `px`, `vh`, `em` etc.)"
                   />
                 )}
 
@@ -558,9 +595,14 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     disabled={disabled}
                     label="Perspective config"
                     name="config"
-                    onChange={(event) =>
-                      onChangeType('config', JSON.parse(event.currentTarget.value))
-                    }
+                    onChange={(event) => {
+                      try {
+                        onChangeType('config', JSON.parse(event.currentTarget.value))
+                      } catch (error) {
+                        Log.error(error)
+                      }
+                    }}
+                    helperText="Restores renderer to a state previously returned by saving config. Should be valid JSON object"
                     value={file.type.config || '{}'}
                     fullWidth
                     className={classes.field}
