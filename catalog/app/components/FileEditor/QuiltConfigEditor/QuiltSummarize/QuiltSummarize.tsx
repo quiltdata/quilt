@@ -18,7 +18,7 @@ import StyledLink from 'utils/StyledLink'
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
 import {
-  addColumn,
+  addColumnAfter,
   addRowAfter,
   changeValue,
   emptyFile,
@@ -475,7 +475,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
         className={classes.divider}
         disabled={disabled}
         expanded={last}
-        onClick={() => onChange(addColumn(row.id, column.id)(emptyFile))}
+        onClick={() => onChange(addColumnAfter(row.id, column.id)(emptyFile))}
         variant="vertical"
       />
     </div>
