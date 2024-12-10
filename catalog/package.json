@@ -97,7 +97,6 @@
     "mime-types": "^2.1.35",
     "mixpanel-browser": "^2.49.0",
     "monocle-ts": "^2.3.13",
-    "nanoid": "^3.3.8",
     "newtype-ts": "^0.3.5",
     "ngl": "^2.2.2",
     "openchemlib": "^8.3.0",

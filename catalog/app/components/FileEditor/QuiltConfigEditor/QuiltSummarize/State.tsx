@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid'
 import * as React from 'react'
 
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
@@ -32,12 +31,12 @@ const pathToFile = (path: string): FileExtended => ({ path, isExtended: false })
 export const emptyFile: FileExtended = pathToFile('')
 
 const createColumn = (file: FileExtended): Column => ({
-  id: nanoid(3),
+  id: crypto.randomUUID(),
   file,
 })
 
 const createRow = (file: FileExtended): Row => ({
-  id: nanoid(3),
+  id: crypto.randomUUID(),
   columns: [createColumn(file)],
 })
 
@@ -159,7 +158,7 @@ export function parse(str: string): Layout {
 
   return {
     rows: config.map((row) => ({
-      id: nanoid(2),
+      id: crypto.randomUUID(),
       columns: Array.isArray(row) ? row.map(parseColumn) : [parseColumn(row)],
     })),
   }
@@ -180,5 +179,5 @@ export function stringify(layout: Layout) {
 
 export function useState() {
   const [layout, setLayout] = React.useState<Layout>(init())
-  return [layout, setLayout]
+  return { layout, setLayout }
 }
