@@ -154,7 +154,7 @@ function preStringifyColumn(column: Column): Summarize.File {
 function validate(config: any) {
   const errors = makeSchemaValidator(quiltSummarizeSchema)(config)
   if (errors.length) {
-    throw new Error(`Validation error: ${errors.map((e) => e.message).join('\n')}`)
+    throw errors
   }
   return undefined
 }

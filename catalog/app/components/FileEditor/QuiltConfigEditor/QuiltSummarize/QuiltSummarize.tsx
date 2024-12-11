@@ -1,10 +1,12 @@
 import { relative } from 'path'
+import type { ErrorObject } from 'ajv'
 
 import cx from 'classnames'
 import * as React from 'react'
 import { useDebounce } from 'use-debounce'
 import * as M from '@material-ui/core'
 
+import JsonValidationErrors from 'components/JsonValidationErrors'
 import type * as Summarize from 'components/Preview/loaders/summarize'
 import Skeleton from 'components/Skeleton'
 import { docs } from 'constants/urls'
@@ -650,13 +652,16 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
   },
-  row: {
-    marginTop: t.spacing(2),
+  error: {
+    marginBottom: t.spacing(2),
   },
   caption: {
     ...t.typography.body2,
     marginTop: t.spacing(2),
     textAlign: 'center',
+  },
+  row: {
+    marginTop: t.spacing(2),
   },
 }))
 
@@ -669,14 +674,20 @@ export default function QuiltSummarize({
 }: QuiltConfigEditorProps) {
   const classes = useStyles()
   const { layout, setLayout } = useState()
-  const [state, setState] = React.useState<Error | null>(error)
+  const [errors, setErrors] = React.useState<[Error] | ErrorObject[]>(
+    error ? [error] : [],
+  )
 
   React.useEffect(() => {
     if (!initialValue) return
     try {
       setLayout(init(parse(initialValue)))
     } catch (e) {
-      setState(e instanceof Error ? e : new Error(`${e}`))
+      if (Array.isArray(e)) {
+        setErrors(e)
+      } else {
+        setErrors([e instanceof Error ? e : new Error(`${e}`)])
+      }
     }
   }, [initialValue, setLayout])
 
@@ -685,15 +696,17 @@ export default function QuiltSummarize({
     try {
       onChange(stringify(value))
     } catch (e) {
-      setState(e instanceof Error ? e : new Error(`${e}`))
+      if (Array.isArray(e)) {
+        setErrors(e)
+      } else {
+        setErrors([e instanceof Error ? e : new Error(`${e}`)])
+      }
     }
   }, [onChange, value])
 
   return (
     <div className={cx(classes.root, className)}>
-      {state instanceof Error ? (
-        <M.Typography color="error">{state.message}</M.Typography>
-      ) : null}
+      {errors.length && <JsonValidationErrors className={classes.error} error={errors} />}
 
       <div>
         {layout.rows.map((row, index) => (
