@@ -111,10 +111,10 @@ This can be done by users via the per-bucket
 ### Unrestricted Access
 
 By default, Tabulator is only accessible via a session provided by the Quilt Catalog,
-and the access is scoped to the permissions of the Catalog user associated with that session.
-However, an admin can enable **unrestricted access** to Tabulator, deferring
-all access control to AWS. The underlying data in S3 is accessed using the
-Tabulator's dedicated "unrestricted" role, which has read-only access to all
+and the access is scoped to the permissions of the Catalog user associated with
+that session. However, an admin can enable **unrestricted access** to Tabulator,
+deferring all access control to AWS. The underlying data in S3 is accessed using
+the Tabulator's dedicated "unrestricted" role, which has read-only access to all
 the S3 buckets attached to the given stack. This allows querying the data directly
 from the AWS Console or Athena views, given the caller has the necessary permissions
 to access Athena resources associated with Tabulator.
