@@ -163,7 +163,9 @@ export function parse(str: string): Layout {
   const config = JSON.parse(str)
 
   if (!config) return { rows: [] }
-  if (!Array.isArray(config)) throw new Error('Expected array')
+  if (!Array.isArray(config)) {
+    throw new Error('Expected array')
+  }
 
   validate(config)
 
