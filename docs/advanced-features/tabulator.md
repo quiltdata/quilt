@@ -49,10 +49,10 @@ parser:
    column names in the document. For Parquet, they must match except for case.
    However, if column names are present in a CSV/TSV, you must set `header` to
    `true` in the parser configuration.
-1. **Types**:  Must be uppercase and match the [Apache Arrow Data
-Types](https://docs.aws.amazon.com/athena/latest/ug/data-types.html)
-used by Amazon Athena.  Valid types are BOOLEAN, TINYINT, SMALLINT, INT, BIGINT,
-FLOAT, DOUBLE, STRING, BINARY, DATE, TIMESTAMP.
+1. **Types**: Must be uppercase and match the
+   [Apache Arrow Data Types](https://docs.aws.amazon.com/athena/latest/ug/data-types.html)
+   used by Amazon Athena. Valid types are BOOLEAN, TINYINT, SMALLINT, INT,
+   BIGINT, FLOAT, DOUBLE, STRING, BINARY, DATE, TIMESTAMP.
 1. **Source**: The source defines the packages and objects to query. The `type`
    must be `quilt-packages`. The `package_name` is a regular expression that
    matches the package names to include. The `logical_key` is a regular
@@ -78,8 +78,8 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 ### Using Athena to Access Tabulator
 
-Due to the way permissions are configured, Tabulator cannot be accessed from the
-AWS Console or Athena views by default
+Due to the way permissions are configured, Tabulator cannot be accessed from
+the AWS Console or Athena views by default
 (unless [unrestricted access](#unrestricted-access) is enabled).
 You must access Tabulator via the Quilt stack in order to query those tables.
 This can be done by users via the per-bucket
@@ -164,8 +164,8 @@ page from which you must paste in the appropriate access token. Use
 `get_boto3_session()` to get a session with the same permissions as your Quilt
 Catalog user, then use the `boto3` Athena client to run queries.
 
-> If [unrestricted access](#unrestricted-access) is on, you can just use any
-  AWS credentials with access to Athena resources associated with Tabulator.
+> If [unrestricted access](#unrestricted-access) is enabled, you can use any
+> AWS credentials providing access to Athena resources associated with Tabulator.
 
 Here is a complete example:
 
