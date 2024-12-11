@@ -1,63 +1,96 @@
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
+import * as Sentry from '@sentry/react'
 
-// import * as Notifications from 'containers/Notifications'
+import Skeleton from 'components/Skeleton'
+import { docs } from 'constants/urls'
+import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
+import StyledLink from 'utils/StyledLink'
 
 import UNRESTRICTED_QUERY from './gql/TabulatorUnrestricted.generated'
 import SET_UNRESTRICTED_MUTATION from './gql/SetTabulatorUnrestricted.generated'
 
-type DisabledReason = Eff.Data.TaggedEnum<{
-  Loading: {}
-  Error: { readonly error: string }
-}>
+interface ToggleProps {
+  checked: boolean
+}
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-const DisabledReason = Eff.Data.taggedEnum<DisabledReason>()
+const NONE = Eff.Option.none<{ value: boolean }>()
 
-export default function TabulatorSettings() {
-  const query = GQL.useQuery(UNRESTRICTED_QUERY)
-
+function Toggle({ checked }: ToggleProps) {
+  const { push: notify } = Notifications.use()
   const mutate = GQL.useMutation(SET_UNRESTRICTED_MUTATION)
+  const [mutationState, setMutationState] = React.useState(NONE)
 
   const handleChange = React.useCallback(
-    async (event, value: boolean) => {
-      await mutate({ value })
+    async (_event, value: boolean) => {
+      if (Eff.Option.isSome(mutationState)) return
+      setMutationState(Eff.Option.some({ value }))
+      try {
+        await mutate({ value })
+      } catch (e) {
+        Sentry.captureException(e)
+        notify(`Failed to update tabulator settings: ${e}`)
+      } finally {
+        setMutationState(NONE)
+      }
     },
-    [mutate],
+    [mutate, notify, mutationState, setMutationState],
   )
 
-  const checked = GQL.fold(query, {
-    data: ({ admin }) => admin.tabulatorUnrestricted,
-    fetching: () => false,
-    error: () => false,
-  })
+  const value = Eff.pipe(
+    mutationState,
+    Eff.Option.map((x) => x.value),
+    Eff.Option.getOrElse(() => checked),
+  )
 
-  const disabledReason: Eff.Option.Option<DisabledReason> = GQL.fold(query, {
-    data: () => Eff.Option.none(),
-    fetching: () => Eff.Option.some(DisabledReason.Loading()),
-    error: (e) => Eff.Option.some(DisabledReason.Error({ error: e.message })),
-  })
-
-  // TODO: show a spinner when disabledReason is Loading
-  // TODO: show an error message when disabledReason is Error
   return (
-    <M.FormGroup>
+    <>
       <M.FormControlLabel
         control={
           <M.Switch
-            checked={checked}
+            checked={value}
             onChange={handleChange}
-            disabled={Eff.Option.isSome(disabledReason)}
+            disabled={Eff.Option.isSome(mutationState)}
           />
         }
         label="Enable unrestricted access"
       />
       <M.FormHelperText>
-        When enabled, all athena users will have access to all the configured tables. doc
-        link tbd
+        <b>CAUTION:</b> When enabled, Tabulator defers all access control to AWS and does
+        not enforce any extra restrictions.{' '}
+        <StyledLink href={`${docs}/advanced-features/tabulator`} target="_blank">
+          Learn more
+        </StyledLink>{' '}
+        in the documentation.
       </M.FormHelperText>
+    </>
+  )
+}
+
+export default function TabulatorSettings() {
+  const query = GQL.useQuery(UNRESTRICTED_QUERY)
+
+  return (
+    <M.FormGroup>
+      {GQL.fold(query, {
+        data: ({ admin }) => <Toggle checked={admin.tabulatorUnrestricted} />,
+        fetching: () => (
+          <>
+            <Skeleton width="40%" height={38} />
+            <Skeleton width="80%" height={20} mt="3px" />
+          </>
+        ),
+        error: (e) => (
+          <Lab.Alert severity="error">
+            Could not fetch tabulator settings:
+            <br />
+            {e.message}
+          </Lab.Alert>
+        ),
+      })}
     </M.FormGroup>
   )
 }
