@@ -64,7 +64,7 @@ workflows:
     is_message_required: true
     metadata_schema: top-secret
     handle_pattern: ^(employee1|employee2)/(staging|production)$
-    entries_schema: validate-secrets
+    entries_schema: must-have-foo-bar-meta
     catalog:
       package_handle:
         files: <%= username %>/<%= directory %>
@@ -74,8 +74,8 @@ schemas:
     url: s3://quilt-dev-metadata/schemas/superheroes.schema.json
   top-secret:
     url: s3://quilt-dev-metadata/schemas/top-secret.schema.json
-  validate-secrets:
-    url: s3://quilt-dev-metadata/schemas/validate-secrets.schema.json
+  must-have-foo-bar-meta:
+    url: s3://quilt-dev-metadata/schemas/must-have-foo-bar-meta.schema.json
 ```
 
 ### Setting a default workflow
@@ -133,6 +133,8 @@ quilt3.Package().push(
 
 ### Specifying a workflow
 
+Otherwise, once you have a configuration you must specify a workflow when
+pushing a package:
 
 <!--pytest-codeblocks:cont-->
 <!--pytest.mark.xfail-->
@@ -251,6 +253,7 @@ quilt3.Package().set_meta({'answer': 42}).push(
 
 In addition to package-level metadata. Quilt workflows enable you to validate
 package names, and basic file metadata.
+
 > You must include the following schema version at the root of your config.yml
 > in order for any catalog-specific features to function:
 
@@ -722,9 +725,9 @@ such as `object`, `array`, and compound `enum` types.
 This allows for flexible and extensible schema definition, and hence
 validation, of complex metadata schemas to any depth.
 
-> Quilt currently uses the Draft 4 Json Schema where tuples are
-validated with `items`, and not `prefixItems`.
-The `prefixItems` keyword was added in Draft 2020-12, and is not currently supported.
+> Quilt currently uses the Draft 7 Json Schema where tuples are validated with
+`items`, and not `prefixItems`. The `prefixItems` keyword was added in Draft
+2020-12, and is not currently supported.
 
 ## `config.yml` JSON Schema
 
