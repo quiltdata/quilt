@@ -79,6 +79,7 @@ to the topic resource policy:
       "Resource": "SNS_TOPIC_ARN"
 }
 ```
+
 You can now set the SNS topic in the [Catalog Admin Panel](catalog/Admin.md) in bucket
 properties under "Indexing and notifications".
 
