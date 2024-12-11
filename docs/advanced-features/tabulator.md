@@ -80,7 +80,7 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 Due to the way permissions are configured, Tabulator cannot be accessed from the
 AWS Console or Athena views. You must access Tabulator via the Quilt stack in
-order to query those tables.  This can be done by users via the per-bucket
+order to query those tables. This can be done by users via the per-bucket
 "Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
 "Usage" below for more details.
 
@@ -106,6 +106,10 @@ order to query those tables.  This can be done by users via the per-bucket
 5. **Athena VPC**: If you are using a VPC endpoint for Athena, you must ensure
    it is accessible from the Quilt stack and Tabulator lambda.
 
+### Unrestricted Access
+
+![Tabulator Settings](../imgs/admin-tabulator-settings.png)
+
 ## Usage
 
 Once the configuration is set, users can query the tables using the Athena tab
@@ -128,7 +132,7 @@ SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
 LIMIT 10
 ```
 
-We can then join on PKG_NAME to add the `user_meta` field from the package
+We can then join on `PKG_NAME` to add the `user_meta` field from the package
 metadata to the tabulated results:
 
 ```sql
