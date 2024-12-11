@@ -79,8 +79,10 @@ In addition to the columns defined in the schema, Tabulator will add:
 ### Using Athena to Access Tabulator
 
 Due to the way permissions are configured, Tabulator cannot be accessed from the
-AWS Console or Athena views. You must access Tabulator via the Quilt stack in
-order to query those tables. This can be done by users via the per-bucket
+AWS Console or Athena views by default
+(unless [unrestricted access](#unrestricted-access) is enabled).
+You must access Tabulator via the Quilt stack in order to query those tables.
+This can be done by users via the per-bucket
 "Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
 "Usage" below for more details.
 
@@ -108,13 +110,23 @@ order to query those tables. This can be done by users via the per-bucket
 
 ### Unrestricted Access
 
+By default, Tabulator is only accessible via a session provided by the Quilt Catalog,
+and the access is scoped to the permissions of the Catalog user associated with that session.
+However, an admin can enable **unrestricted access** to Tabulator, deferring
+all access control to AWS. The underlying data in S3 is accessed using the
+Tabulator's dedicated "unrestricted" role, which has read-only access to all
+the S3 buckets attached to the given stack. This allows querying the data directly
+from the AWS Console or Athena views, given the caller has the necessary permissions
+to access Athena resources associated with Tabulator.
+
 ![Tabulator Settings](../imgs/admin-tabulator-settings.png)
 
 ## Usage
 
 Once the configuration is set, users can query the tables using the Athena tab
 from the Quilt Catalog. Note that because Tabulator runs with elevated
-permissions, it cannot be accessed from the AWS Console.
+permissions, it cannot be accessed from the AWS Console by default
+(unless [unrestricted access](#unrestricted-access) is enabled).
 
 For example, to query the `ccle_tsv` table from the appropriate workgroup in
 the `quilt-tf-stable` stack, where the database (bucket name) is `udp-spec`:
@@ -151,6 +163,9 @@ authenticate against the stack using `config()` and `login()`, which opens a web
 page from which you must paste in the appropriate access token. Use
 `get_boto3_session()` to get a session with the same permissions as your Quilt
 Catalog user, then use the `boto3` Athena client to run queries.
+
+> If [unrestricted access](#unrestricted-access) is on, you can just use any
+  AWS credentials with access to Athena resources associated with Tabulator.
 
 Here is a complete example:
 
