@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/FileEditor/FileEditor Editor Show TextEditor 1`] = `
+<div
+  className="makeStyles-tab-1 makeStyles-active-2"
+>
+  <h1>
+    Text Editor
+  </h1>
+</div>
+`;
+
+exports[`components/FileEditor/FileEditor Editor Show skeleton 1`] = `
+<div>
+  Skeleton
+</div>
+`;
