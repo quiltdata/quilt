@@ -99,11 +99,14 @@ ui:
   defaultSourceBucket: s3://bucket-b
 ```
 
-Note that the `ui.sourceBuckets` is empty by default. So, when the users create a new package they can't add files from any bucket including the current one.
+Note that the `ui.sourceBuckets` is empty by default.
+So, when the users create a new package they can't add files from any bucket
+including the current one.
 
-However, we have a shortcut for adding the current bucket to the list of `ui.sourceBuckets` from the UI.
+However, we have a shortcut for adding the current bucket
+to the list of `ui.sourceBuckets` from the UI.
 
-![](../imgs/auto-add-source-bucket.png)
+![Users can auto-add the current bucket to ui.sourceBuckets](../imgs/auto-add-source-bucket.png)
 
 #### `ui.package_description` example
 
