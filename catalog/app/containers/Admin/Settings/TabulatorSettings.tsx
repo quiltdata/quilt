@@ -61,7 +61,10 @@ function Toggle({ checked }: ToggleProps) {
       <M.FormHelperText>
         <b>CAUTION:</b> When enabled, Tabulator defers all access control to AWS and does
         not enforce any extra restrictions.{' '}
-        <StyledLink href={`${docs}/advanced-features/tabulator`} target="_blank">
+        <StyledLink
+          href={`${docs}/advanced-features/tabulator#unrestricted-access`}
+          target="_blank"
+        >
           Learn more
         </StyledLink>{' '}
         in the documentation.
