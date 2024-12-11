@@ -15,6 +15,7 @@ function useRedirect() {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
+  // TODO: put this into FileEditor/routes
   const { add, next } = parseSearch(location.search, true)
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {

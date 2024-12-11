@@ -1,7 +1,7 @@
+import { relative } from 'path'
+
 import cx from 'classnames'
-import invariant from 'invariant'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
 import { useDebounce } from 'use-debounce'
 import * as M from '@material-ui/core'
 
@@ -14,6 +14,8 @@ import { useData } from 'utils/Data'
 import * as Dialogs from 'utils/GlobalDialogs'
 import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
+
+import { useParams } from '../../routes'
 
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
@@ -249,11 +251,7 @@ interface AddColumnProps {
 }
 
 function AddColumn({ className, column, disabled, last, onChange, row }: AddColumnProps) {
-  const { bucket, path: initialPath } = RRDom.useParams<{
-    bucket: string
-    path: string
-  }>()
-  invariant(bucket, '`bucket` must be defined')
+  const { bucket, initialPath } = useParams()
 
   const classes = useAddColumnStyles()
   const { file } = column
@@ -288,10 +286,10 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
 
   const pickPath = React.useCallback(
     (path: string, close: () => void) => {
-      onChangeValue('path', path)
+      onChangeValue('path', relative(initialPath, path))
       close()
     },
-    [onChangeValue],
+    [initialPath, onChangeValue],
   )
 
   const openDialog = Dialogs.use()
@@ -302,7 +300,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
           <M.DialogContent>
             <FilePickerDialog
               bucket={bucket}
-              initialPath={initialPath.replace(/quilt_summarize.json$/, '')}
+              initialPath={initialPath}
               submit={(path) => pickPath(path, close)}
             />
           </M.DialogContent>
