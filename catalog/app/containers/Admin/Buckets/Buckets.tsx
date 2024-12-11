@@ -1,4 +1,4 @@
-import * as dateFns from 'date-fns'
+import cx from 'classnames'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
 import * as IO from 'io-ts'
@@ -6,18 +6,17 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
+import { useDebounce } from 'use-debounce'
+import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import BucketIcon from 'components/BucketIcon'
+import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
-import * as Pagination from 'components/Pagination'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
-import Delay from 'utils/Delay'
-import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -30,14 +29,192 @@ import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
-import * as Table from '../Table'
+import * as OnDirty from './OnDirty'
+import TabulatorForm from './Tabulator'
+
+import ListPage, { ListSkeleton as ListPageSkeleton } from './List'
 
 import BUCKET_CONFIGS_QUERY from './gql/BucketConfigs.generated'
 import ADD_MUTATION from './gql/BucketsAdd.generated'
 import UPDATE_MUTATION from './gql/BucketsUpdate.generated'
-import REMOVE_MUTATION from './gql/BucketsRemove.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
 import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
+import TABULATOR_TABLES_QUERY from './gql/TabulatorTables.generated'
+
+const bucketToPrimaryValues = (bucket: BucketConfig) => ({
+  title: bucket.title,
+  iconUrl: bucket.iconUrl || '',
+  description: bucket.description || '',
+})
+
+const bucketToMetadataValues = (bucket: BucketConfig) => ({
+  relevanceScore: bucket.relevanceScore.toString(),
+  overviewUrl: bucket.overviewUrl || '',
+  tags: (bucket.tags || []).join(', '),
+  linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
+})
+
+const bucketToIndexingAndNotificationsValues = (bucket: BucketConfig) => ({
+  enableDeepIndexing:
+    !R.equals(bucket.fileExtensionsToIndex, []) && bucket.indexContentBytes !== 0,
+  fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
+  indexContentBytes: bucket.indexContentBytes,
+  scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
+  snsNotificationArn:
+    bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
+      ? DO_NOT_SUBSCRIBE_SYM
+      : bucket.snsNotificationArn,
+  skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
+})
+
+const bucketToPreviewValues = (bucket: BucketConfig) => ({
+  browsable: bucket.browsable ?? false,
+})
+
+const bucketToFormValues = (bucket: BucketConfig) => ({
+  ...bucketToPrimaryValues(bucket),
+  ...bucketToMetadataValues(bucket),
+  ...bucketToIndexingAndNotificationsValues(bucket),
+  ...bucketToPreviewValues(bucket),
+})
+
+const useStickyActionsStyles = M.makeStyles((t) => ({
+  actions: {
+    animation: `$show 150ms ease-out`,
+    padding: t.spacing(3, 0, 0),
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    '& > * + *': {
+      // Spacing between direct children
+      marginLeft: t.spacing(2),
+    },
+  },
+  sticky: {
+    animation: `$sticking 150ms ease-out`,
+    bottom: 0,
+    left: '50%',
+    position: 'fixed',
+    transform: `translateX(-50%)`,
+    '& $actions': {
+      padding: t.spacing(2),
+    },
+  },
+  '@keyframes show': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: '1',
+    },
+  },
+  '@keyframes sticking': {
+    '0%': {
+      transform: 'translate(-50%, 10%)',
+    },
+    '100%': {
+      transform: 'translate(-50%, 0)',
+    },
+  },
+}))
+
+interface StickyActionsProps {
+  children: React.ReactNode
+  parentRef: React.RefObject<HTMLElement>
+}
+
+function StickyActions({ children, parentRef }: StickyActionsProps) {
+  const classes = useStickyActionsStyles()
+
+  const [size, setSize] = React.useState<DOMRect | null>(null)
+  const [parentSize, setParentSize] = React.useState<DOMRect | null>(null)
+  const ref = React.useRef<HTMLDivElement>(null)
+  const handleScroll = React.useCallback(() => {
+    const rect = ref.current?.getBoundingClientRect()
+    if (!rect || !rect.height) return
+    setSize(rect)
+    const parent = parentRef.current?.getBoundingClientRect()
+    if (!parent || !parent.height) return
+    setParentSize(parent)
+  }, [parentRef])
+  React.useEffect(() => {
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
+  const { height: parentHeight } = useResizeObserver({ ref: parentRef })
+  React.useEffect(() => handleScroll(), [handleScroll, parentHeight])
+
+  const DEBOUNCE_TIMEOUT = 50
+  const [debouncedSize] = useDebounce(size, DEBOUNCE_TIMEOUT)
+  const [debouncedParentSize] = useDebounce(parentSize, DEBOUNCE_TIMEOUT)
+  const sticky = React.useMemo(() => {
+    const winHeight = window.innerHeight || document.documentElement.clientHeight
+
+    const containerBottom = debouncedSize?.bottom || 0
+    const containerHeight = debouncedSize?.height || 0
+    const parentTop = debouncedParentSize?.top || 0
+
+    return (
+      // Container's bottom (relative to viewport) is below the viewport's bottom
+      containerBottom >= winHeight + containerHeight &&
+      // Parent's top is inside the viewport
+      parentTop >= 0 &&
+      parentTop <= winHeight - containerHeight
+    )
+  }, [debouncedSize, debouncedParentSize])
+
+  return (
+    <div ref={ref}>
+      {sticky ? (
+        <>
+          <M.Container className={classes.sticky} maxWidth="lg">
+            <M.Paper className={classes.actions} elevation={8}>
+              {children}
+            </M.Paper>
+          </M.Container>
+          <div style={{ height: debouncedSize?.height }}>{/* height placeholder */}</div>
+        </>
+      ) : (
+        <div className={classes.actions}>{children}</div>
+      )}
+    </div>
+  )
+}
+
+const useSubPageHeaderStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  back: {
+    marginRight: t.spacing(2),
+  },
+}))
+
+interface SubPageHeaderProps {
+  back: () => void
+  children: React.ReactNode
+  disabled?: boolean
+}
+
+function SubPageHeader({ disabled, back, children }: SubPageHeaderProps) {
+  const classes = useSubPageHeaderStyles()
+  return (
+    <div className={classes.root}>
+      <M.IconButton
+        className={classes.back}
+        disabled={disabled}
+        onClick={back}
+        size="small"
+      >
+        <M.Icon>arrow_back</M.Icon>
+      </M.IconButton>
+      <M.Typography variant="h5" color="textPrimary">
+        {children}
+      </M.Typography>
+    </div>
+  )
+}
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
@@ -87,9 +264,22 @@ const usePFSCheckboxStyles = M.makeStyles({
     marginTop: -9,
   },
 })
-function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
+
+interface PFSCheckboxProps extends Form.CheckboxProps, M.CheckboxProps {
+  onToggle?: () => void
+}
+
+function PFSCheckbox({ input, meta, onToggle, ...props }: PFSCheckboxProps) {
   const classes = usePFSCheckboxStyles()
-  const confirm = React.useCallback((checked) => input?.onChange(checked), [input])
+  const confirm = React.useCallback(
+    (checked) => {
+      input?.onChange(checked)
+      if (onToggle) {
+        onToggle()
+      }
+    },
+    [input, onToggle],
+  )
   const dialog = Dialog.useConfirm({
     submitTitle: 'I agree',
     title:
@@ -97,14 +287,14 @@ function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
     onSubmit: confirm,
   })
   const handleCheckbox = React.useCallback(
-    (event, checked: boolean) => {
+    (_event, checked: boolean) => {
       if (checked) {
         dialog.open()
       } else {
-        input?.onChange(checked)
+        confirm(checked)
       }
     },
-    [dialog, input],
+    [dialog, confirm],
   )
   return (
     <>
@@ -116,12 +306,22 @@ function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
       )}
       <M.FormControlLabel
         control={
-          <M.Checkbox
-            classes={classes}
-            disabled={meta.submitting || meta.submitSucceeded}
-            checked={!!input?.checked}
-            onChange={handleCheckbox}
-          />
+          onToggle ? (
+            <M.Switch
+              disabled={meta.submitting || meta.submitSucceeded}
+              checked={!!input?.checked}
+              onChange={handleCheckbox}
+              {...props}
+            />
+          ) : (
+            <M.Checkbox
+              classes={classes}
+              disabled={meta.submitting || meta.submitSucceeded}
+              checked={!!input?.checked}
+              onChange={handleCheckbox}
+              {...props}
+            />
+          )
         }
         label={
           <>
@@ -136,6 +336,9 @@ function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
           </>
         }
       />
+      {meta.submitFailed && !!(meta.error || meta.submitError) && (
+        <M.FormHelperText error>{meta.error || meta.submitError}</M.FormHelperText>
+      )}
     </>
   )
 }
@@ -334,25 +537,520 @@ function Hint({ children }: HintProps) {
   )
 }
 
-const useBucketFieldsStyles = M.makeStyles((t) => ({
-  group: {
-    '& > *:first-child': {
-      marginTop: 0,
+const useCardActionsStyles = M.makeStyles((t) => ({
+  actions: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  button: {
+    marginLeft: t.spacing(1),
+  },
+  helper: {
+    flexGrow: 1,
+  },
+}))
+
+interface CardActionsProps<T> {
+  action?: React.ReactNode
+  disabled: boolean
+  form: FF.FormApi<T>
+}
+
+function CardActions<T>({ action, disabled, form }: CardActionsProps<T>) {
+  const { onChange } = OnDirty.use()
+  const classes = useCardActionsStyles()
+  const state = form.getState()
+  const { reset, submit } = form
+  const error = React.useMemo(() => {
+    if (!state.submitFailed) return
+    if (state.error || state.submitError) return state.error || state.submitError
+    // This could happen only if we forgot to handle an error in fields
+    return `Unhandled error: ${JSON.stringify(state.submitErrors)}`
+  }, [state])
+  return (
+    <>
+      <OnDirty.Spy onChange={onChange} />
+      {action}
+      <div className={classes.helper}>
+        {error && (
+          <Form.FormError
+            error={error}
+            errors={{
+              unexpected: 'Something went wrong',
+              notificationConfigurationError: 'Notification configuration error',
+              bucketNotFound: 'Bucket not found',
+            }}
+            margin="none"
+          />
+        )}
+      </div>
+      {state.submitting && (
+        <M.Fade in style={{ transitionDelay: '1000ms' }}>
+          <M.CircularProgress size={24} />
+        </M.Fade>
+      )}
+      <M.Button
+        className={classes.button}
+        onClick={() => reset()}
+        color="primary"
+        disabled={state.pristine || state.submitting || disabled}
+      >
+        Reset
+      </M.Button>
+      <M.Button
+        className={classes.button}
+        onClick={() => submit()}
+        color="primary"
+        disabled={
+          state.pristine ||
+          state.submitting ||
+          (state.submitFailed && state.hasValidationErrors) ||
+          disabled
+        }
+        variant="contained"
+      >
+        Save
+      </M.Button>
+    </>
+  )
+}
+
+interface PrimaryFormProps {
+  bucket?: BucketConfig
+}
+
+function PrimaryForm({ bucket }: PrimaryFormProps) {
+  return (
+    <>
+      {!bucket && (
+        <RF.Field
+          component={Form.Field}
+          name="name"
+          label="Name"
+          placeholder="Enter an S3 bucket name"
+          parse={R.pipe(
+            R.toLower,
+            R.replace(/[^a-z0-9-.]/g, ''),
+            R.take(63) as (s: string) => string,
+          )}
+          validate={validators.required as FF.FieldValidator<any>}
+          errors={{
+            required: 'Enter a bucket name',
+            conflict: 'Bucket already added',
+            noSuchBucket: 'No such bucket',
+          }}
+          fullWidth
+        />
+      )}
+      <RF.Field
+        component={Form.Field}
+        name="title"
+        label="Title"
+        placeholder='e.g. "Production analytics data"'
+        parse={R.pipe(R.replace(/^\s+/g, ''), R.take(256) as (s: string) => string)}
+        validate={validators.required as FF.FieldValidator<any>}
+        errors={{
+          required: 'Enter a bucket title',
+        }}
+        fullWidth
+        margin={bucket ? 'none' : 'normal'}
+      />
+      <RF.Field
+        component={Form.Field}
+        name="iconUrl"
+        label="Icon URL (optional)"
+        placeholder="e.g. https://some-cdn.com/icon.png"
+        helperText="Recommended size: 80x80px"
+        parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
+        fullWidth
+        margin="normal"
+      />
+      <RF.Field
+        component={Form.Field}
+        name="description"
+        label="Description (optional)"
+        placeholder="Enter description if required"
+        parse={R.pipe(R.replace(/^\s+/g, ''), R.take(1024) as (s: string) => string)}
+        multiline
+        rows={1}
+        rowsMax={3}
+        fullWidth
+        margin="normal"
+      />
+      <input type="submit" style={{ display: 'none' }} />
+    </>
+  )
+}
+
+const useCardStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2, 3),
+    position: 'relative',
+  },
+  disabled: {
+    position: 'relative',
+    opacity: 0.3,
+    '&::after': {
+      content: '""',
+      bottom: 0,
+      cursor: 'not-allowed',
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      zIndex: 1,
     },
   },
-  panel: {
-    margin: '0 !important',
-    '&::before': {
-      content: 'none',
+  icon: {},
+  error: {
+    outline: `1px solid ${t.palette.error.main}`,
+  },
+  title: {
+    alignItems: 'center',
+    display: 'flex',
+    marginBottom: t.spacing(2),
+  },
+  content: {
+    // XXX: Fixed in some future MUI versions https://github.com/mui/material-ui/issues/10464
+    '& textarea[rows]': {
+      minHeight: '19px',
     },
   },
-  panelSummary: {
-    padding: 0,
-    minHeight: 'auto !important',
-  },
-  panelSummaryContent: {
-    margin: `${t.spacing(1)}px 0 !important`,
-  },
+}))
+
+interface CardProps {
+  children: React.ReactNode
+  className: string
+  disabled?: boolean
+  error?: boolean
+  title?: React.ReactNode
+}
+
+const Card = React.forwardRef<HTMLElement, CardProps>(function Card(
+  { children, className, disabled, error, title },
+  ref,
+) {
+  const classes = useCardStyles()
+  return (
+    <M.Paper
+      className={cx(
+        classes.root,
+        {
+          [classes.disabled]: disabled,
+          [classes.error]: error,
+        },
+        className,
+      )}
+      ref={ref}
+    >
+      {title && (
+        <div className={classes.title}>
+          <M.Typography variant="h6">{title}</M.Typography>
+        </div>
+      )}
+      <div className={classes.content}>{children}</div>
+    </M.Paper>
+  )
+})
+
+type PrimaryFormValues = ReturnType<typeof bucketToPrimaryValues>
+
+interface PrimaryCardProps {
+  bucket: BucketConfig
+  className: string
+  disabled: boolean
+  onSubmit: FF.Config<PrimaryFormValues>['onSubmit']
+}
+
+function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps) {
+  const initialValues = bucketToPrimaryValues(bucket)
+  const ref = React.useRef<HTMLElement>(null)
+  return (
+    <RF.Form<PrimaryFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+      {({ handleSubmit, form, submitFailed }) => (
+        <Card
+          className={className}
+          disabled={disabled}
+          error={submitFailed}
+          ref={ref}
+          title="Display settings"
+        >
+          <form onSubmit={handleSubmit}>
+            <PrimaryForm bucket={bucket} />
+          </form>
+          <StickyActions parentRef={ref}>
+            <CardActions<PrimaryFormValues> disabled={disabled} form={form} />
+          </StickyActions>
+        </Card>
+      )}
+    </RF.Form>
+  )
+}
+
+function MetadataForm() {
+  return (
+    <>
+      <RF.Field
+        component={Form.Field}
+        name="relevanceScore"
+        label="Relevance score"
+        placeholder="Higher numbers appear first, -1 to hide"
+        parse={R.pipe(
+          R.replace(/[^0-9-]/g, ''),
+          R.replace(/(.+)-+$/g, '$1'),
+          R.take(16) as (s: string) => string,
+        )}
+        validate={validators.integer as FF.FieldValidator<any>}
+        errors={{
+          integer: 'Enter a valid integer',
+        }}
+        fullWidth
+      />
+      <RF.Field
+        component={Form.Field}
+        name="tags"
+        label="Tags (comma-separated)"
+        placeholder='e.g. "geospatial", for bucket discovery'
+        fullWidth
+        margin="normal"
+        multiline
+        rows={1}
+        rowsMax={3}
+      />
+      <RF.Field
+        component={Form.Field}
+        name="overviewUrl"
+        label="Overview URL"
+        parse={R.trim}
+        fullWidth
+        margin="normal"
+      />
+      <RF.Field
+        component={Form.Field}
+        name="linkedData"
+        label="Structured data (JSON-LD)"
+        validate={validators.jsonObject as FF.FieldValidator<any>}
+        errors={{
+          jsonObject: 'Must be a valid JSON object',
+        }}
+        fullWidth
+        multiline
+        rows={1}
+        rowsMax={10}
+        margin="normal"
+      />
+    </>
+  )
+}
+
+type MetadataFormValues = ReturnType<typeof bucketToMetadataValues>
+
+interface MetadataCardProps {
+  bucket: BucketConfig
+  className: string
+  disabled: boolean
+  onSubmit: FF.Config<MetadataFormValues>['onSubmit']
+}
+
+function MetadataCard({ bucket, className, disabled, onSubmit }: MetadataCardProps) {
+  const initialValues = bucketToMetadataValues(bucket)
+  const ref = React.useRef<HTMLElement>(null)
+  return (
+    <RF.Form<MetadataFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+      {({ handleSubmit, form, submitFailed }) => (
+        <Card
+          className={className}
+          disabled={disabled}
+          error={submitFailed}
+          ref={ref}
+          title="Metadata"
+        >
+          <form onSubmit={handleSubmit}>
+            <MetadataForm />
+          </form>
+          <StickyActions parentRef={ref}>
+            <CardActions<MetadataFormValues> disabled={disabled} form={form} />
+          </StickyActions>
+        </Card>
+      )}
+    </RF.Form>
+  )
+}
+
+interface IndexingAndNotificationsFormProps {
+  bucket?: BucketConfig
+  settings: Model.GQLTypes.ContentIndexingSettings
+}
+
+function IndexingAndNotificationsForm({
+  bucket,
+  settings,
+}: IndexingAndNotificationsFormProps) {
+  const classes = useIndexingAndNotificationsFormStyles()
+  return (
+    <>
+      <RF.Field
+        component={Form.Checkbox}
+        type="checkbox"
+        name="enableDeepIndexing"
+        label={
+          <>
+            Enable deep indexing
+            <Hint>
+              Deep indexing adds the <em>contents</em> of an object to your search index,
+              while shallow indexing only covers object metadata. Deep indexing may
+              require more disk in ElasticSearch. Enable deep indexing when you want your
+              users to find files by their contents.
+            </Hint>
+          </>
+        }
+      />
+
+      <RF.FormSpy subscription={{ modified: true, values: true }}>
+        {({ modified, values }) => {
+          // don't need this while adding a bucket
+          if (!bucket) return null
+          if (
+            !modified?.enableDeepIndexing &&
+            !modified?.fileExtensionsToIndex &&
+            !modified?.indexContentBytes
+          )
+            return null
+          try {
+            if (
+              R.equals(
+                bucket.fileExtensionsToIndex,
+                editFormSpec.fileExtensionsToIndex(values),
+              ) &&
+              R.equals(bucket.indexContentBytes, editFormSpec.indexContentBytes(values))
+            )
+              return null
+          } catch {
+            return null
+          }
+
+          return (
+            <Lab.Alert
+              className={classes.warning}
+              icon={
+                <M.Icon fontSize="inherit" className={classes.warningIcon}>
+                  error
+                </M.Icon>
+              }
+              severity="warning"
+            >
+              Changing these settings affects files that are indexed after the change. If
+              you wish to deep index existing files, click{' '}
+              <strong>&quot;Re-index and repair&quot;</strong>.
+            </Lab.Alert>
+          )
+        }}
+      </RF.FormSpy>
+
+      <RF.FormSpy subscription={{ values: true }}>
+        {({ values }) => {
+          if (!values.enableDeepIndexing) return null
+          return (
+            <>
+              <RF.Field
+                component={Form.Field}
+                name="fileExtensionsToIndex"
+                label={
+                  <>
+                    File extensions to deep index (comma-separated)
+                    <Hint>
+                      Default extensions:
+                      <ul>
+                        {settings.extensions.map((ext) => (
+                          <li key={ext}>{ext}</li>
+                        ))}
+                      </ul>
+                    </Hint>
+                  </>
+                }
+                placeholder='e.g. ".txt, .md", leave blank to use default settings'
+                validate={validateExtensions}
+                errors={{
+                  validExtensions: (
+                    <>
+                      Enter a comma-separated list of{' '}
+                      <abbr title="Must start with the dot and contain only alphanumeric characters thereafter">
+                        valid
+                      </abbr>{' '}
+                      file extensions
+                    </>
+                  ),
+                }}
+                fullWidth
+                margin="normal"
+                multiline
+                rows={1}
+                rowsMax={3}
+              />
+              <RF.Field
+                component={Form.Field}
+                name="indexContentBytes"
+                label={
+                  <>
+                    Content bytes to deep index
+                    <Hint>Defaults to {settings.bytesDefault}</Hint>
+                  </>
+                }
+                placeholder='e.g. "1024", leave blank to use default settings'
+                parse={R.replace(/[^0-9]/g, '')}
+                validate={integerInRange(settings.bytesMin, settings.bytesMax)}
+                errors={{
+                  integerInRange: (
+                    <>
+                      Enter an integer from {settings.bytesMin} to {settings.bytesMax}
+                    </>
+                  ),
+                }}
+                fullWidth
+                margin="normal"
+              />
+            </>
+          )
+        }}
+      </RF.FormSpy>
+      <RF.Field
+        component={Form.Field}
+        name="scannerParallelShardsDepth"
+        label="Scanner parallel shards depth"
+        placeholder="Leave blank to use default settings"
+        validate={validators.integer as FF.FieldValidator<any>}
+        errors={{
+          integer: 'Enter a valid integer',
+        }}
+        parse={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16) as (s: string) => string)}
+        fullWidth
+        margin="normal"
+      />
+      <RF.Field component={SnsField} name="snsNotificationArn" validate={validateSns} />
+      <M.Box mt={2}>
+        <RF.Field
+          component={Form.Checkbox}
+          type="checkbox"
+          name="skipMetaDataIndexing"
+          label="Skip metadata indexing"
+        />
+      </M.Box>
+      {!bucket && (
+        <M.Box mt={1}>
+          <RF.Field
+            component={Form.Checkbox}
+            type="checkbox"
+            name="delayScan"
+            label="Delay scan"
+          />
+        </M.Box>
+      )}
+    </>
+  )
+}
+
+const useIndexingAndNotificationsFormStyles = M.makeStyles((t) => ({
   warning: {
     background: t.palette.warning.main,
     marginBottom: t.spacing(1),
@@ -363,411 +1061,240 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketFieldsProps {
-  bucket?: BucketConfig
-  reindex?: () => void
+type IndexingAndNotificationsFormValues = ReturnType<
+  typeof bucketToIndexingAndNotificationsValues
+>
+
+interface IndexingAndNotificationsCardProps {
+  bucket: BucketConfig
+  className: string
+  disabled: boolean
+  onSubmit: FF.Config<IndexingAndNotificationsFormValues>['onSubmit']
+  onReindex: () => void
 }
 
-function BucketFields({ bucket, reindex }: BucketFieldsProps) {
-  const classes = useBucketFieldsStyles()
-
+function IndexingAndNotificationsCard({
+  bucket,
+  className,
+  disabled,
+  onSubmit,
+  onReindex,
+}: IndexingAndNotificationsCardProps) {
   const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
   const settings = data.config.contentIndexingSettings
 
+  const initialValues = bucketToIndexingAndNotificationsValues(bucket)
+  const ref = React.useRef<HTMLFormElement>(null)
+
   return (
-    <M.Box>
-      <M.Box className={classes.group} mt={-1} pb={2}>
-        {bucket ? (
-          <M.TextField
-            label="Name"
-            value={bucket.name}
-            fullWidth
-            margin="normal"
-            disabled
-          />
-        ) : (
-          <RF.Field
-            component={Form.Field}
-            name="name"
-            label="Name"
-            placeholder="Enter an S3 bucket name"
-            parse={R.pipe(
-              R.toLower,
-              R.replace(/[^a-z0-9-.]/g, ''),
-              R.take(63) as (s: string) => string,
-            )}
-            validate={validators.required as FF.FieldValidator<any>}
-            errors={{
-              required: 'Enter a bucket name',
-              conflict: 'Bucket already added',
-              noSuchBucket: 'No such bucket',
-            }}
-            fullWidth
-            margin="normal"
-          />
-        )}
-        <RF.Field
-          component={Form.Field}
-          name="title"
-          label="Title"
-          placeholder='e.g. "Production analytics data"'
-          parse={R.pipe(R.replace(/^\s+/g, ''), R.take(256) as (s: string) => string)}
-          validate={validators.required as FF.FieldValidator<any>}
-          errors={{
-            required: 'Enter a bucket title',
-          }}
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="iconUrl"
-          label="Icon URL (optional)"
-          placeholder="e.g. https://some-cdn.com/icon.png"
-          helperText="Recommended size: 80x80px"
-          parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="description"
-          label="Description (optional)"
-          placeholder="Enter description if required"
-          parse={R.pipe(R.replace(/^\s+/g, ''), R.take(1024) as (s: string) => string)}
-          multiline
-          rows={1}
-          rowsMax={3}
-          fullWidth
-          margin="normal"
-        />
-      </M.Box>
-      <M.Accordion elevation={0} className={classes.panel}>
-        <M.AccordionSummary
-          expandIcon={<M.Icon>expand_more</M.Icon>}
-          classes={{
-            root: classes.panelSummary,
-            content: classes.panelSummaryContent,
-          }}
+    <RF.Form<IndexingAndNotificationsFormValues>
+      onSubmit={onSubmit}
+      initialValues={initialValues}
+    >
+      {({ handleSubmit, form, submitFailed }) => (
+        <Card
+          className={className}
+          disabled={disabled}
+          error={submitFailed}
+          ref={ref}
+          title="Indexing and notifications"
         >
-          <M.Typography variant="h6">Metadata</M.Typography>
-        </M.AccordionSummary>
-        <M.Box className={classes.group} pt={1} pb={2}>
-          <RF.Field
-            component={Form.Field}
-            name="relevanceScore"
-            label="Relevance score"
-            placeholder="Higher numbers appear first, -1 to hide"
-            parse={R.pipe(
-              R.replace(/[^0-9-]/g, ''),
-              R.replace(/(.+)-+$/g, '$1'),
-              R.take(16) as (s: string) => string,
-            )}
-            validate={validators.integer as FF.FieldValidator<any>}
-            errors={{
-              integer: 'Enter a valid integer',
-            }}
-            fullWidth
-            margin="normal"
-          />
-          <RF.Field
-            component={Form.Field}
-            name="tags"
-            label="Tags (comma-separated)"
-            placeholder='e.g. "geospatial", for bucket discovery'
-            fullWidth
-            margin="normal"
-            multiline
-            rows={1}
-            rowsMax={3}
-          />
-          <RF.Field
-            component={Form.Field}
-            name="overviewUrl"
-            label="Overview URL"
-            parse={R.trim}
-            fullWidth
-            margin="normal"
-          />
-          <RF.Field
-            component={Form.Field}
-            name="linkedData"
-            label="Structured data (JSON-LD)"
-            validate={validators.jsonObject as FF.FieldValidator<any>}
-            errors={{
-              jsonObject: 'Must be a valid JSON object',
-            }}
-            fullWidth
-            multiline
-            rows={1}
-            rowsMax={10}
-            margin="normal"
-          />
-        </M.Box>
-      </M.Accordion>
-      <M.Accordion elevation={0} className={classes.panel}>
-        <M.AccordionSummary
-          expandIcon={<M.Icon>expand_more</M.Icon>}
-          classes={{
-            root: classes.panelSummary,
-            content: classes.panelSummaryContent,
-          }}
-        >
-          <M.Typography variant="h6">Indexing and notifications</M.Typography>
-        </M.AccordionSummary>
-        <M.Box className={classes.group} pt={1}>
-          {!!reindex && (
-            <M.Box pb={2.5}>
-              <M.Button variant="outlined" fullWidth onClick={reindex}>
-                Re-index and repair
-              </M.Button>
-            </M.Box>
-          )}
-
-          <RF.Field
-            component={Form.Checkbox}
-            type="checkbox"
-            name="enableDeepIndexing"
-            label={
-              <>
-                Enable deep indexing
-                <Hint>
-                  Deep indexing adds the <em>contents</em> of an object to your search
-                  index, while shallow indexing only covers object metadata. Deep indexing
-                  may require more disk in ElasticSearch. Enable deep indexing when you
-                  want your users to find files by their contents.
-                </Hint>
-              </>
-            }
-          />
-
-          <RF.FormSpy subscription={{ modified: true, values: true }}>
-            {({ modified, values }) => {
-              // don't need this while adding a bucket
-              if (!bucket) return null
-              if (
-                !modified?.enableDeepIndexing &&
-                !modified?.fileExtensionsToIndex &&
-                !modified?.indexContentBytes
-              )
-                return null
-              try {
-                if (
-                  R.equals(
-                    bucket.fileExtensionsToIndex,
-                    editFormSpec.fileExtensionsToIndex(values),
-                  ) &&
-                  R.equals(
-                    bucket.indexContentBytes,
-                    editFormSpec.indexContentBytes(values),
-                  )
-                )
-                  return null
-              } catch {
-                return null
-              }
-
-              return (
-                <Lab.Alert
-                  className={classes.warning}
-                  icon={
-                    <M.Icon fontSize="inherit" className={classes.warningIcon}>
-                      error
-                    </M.Icon>
-                  }
-                  severity="warning"
+          <form onSubmit={handleSubmit}>
+            <IndexingAndNotificationsForm bucket={bucket} settings={settings} />
+          </form>
+          <StickyActions parentRef={ref}>
+            <CardActions<IndexingAndNotificationsFormValues>
+              action={
+                <M.Button
+                  disabled={disabled}
+                  onClick={onReindex}
+                  variant="outlined"
+                  size="small"
                 >
-                  Changing these settings affects files that are indexed after the change.
-                  If you wish to deep index existing files, click{' '}
-                  <strong>&quot;Re-index and repair&quot;</strong>.
-                </Lab.Alert>
-              )
-            }}
-          </RF.FormSpy>
-
-          <RF.FormSpy subscription={{ values: true }}>
-            {({ values }) => {
-              if (!values.enableDeepIndexing) return null
-              return (
-                <>
-                  <RF.Field
-                    component={Form.Field}
-                    name="fileExtensionsToIndex"
-                    label={
-                      <>
-                        File extensions to deep index (comma-separated)
-                        <Hint>
-                          Default extensions:
-                          <ul>
-                            {settings.extensions.map((ext) => (
-                              <li key={ext}>{ext}</li>
-                            ))}
-                          </ul>
-                        </Hint>
-                      </>
-                    }
-                    placeholder='e.g. ".txt, .md", leave blank to use default settings'
-                    validate={validateExtensions}
-                    errors={{
-                      validExtensions: (
-                        <>
-                          Enter a comma-separated list of{' '}
-                          <abbr title="Must start with the dot and contain only alphanumeric characters thereafter">
-                            valid
-                          </abbr>{' '}
-                          file extensions
-                        </>
-                      ),
-                    }}
-                    fullWidth
-                    margin="normal"
-                    multiline
-                    rows={1}
-                    rowsMax={3}
-                  />
-                  <RF.Field
-                    component={Form.Field}
-                    name="indexContentBytes"
-                    label={
-                      <>
-                        Content bytes to deep index
-                        <Hint>Defaults to {settings.bytesDefault}</Hint>
-                      </>
-                    }
-                    placeholder='e.g. "1024", leave blank to use default settings'
-                    parse={R.replace(/[^0-9]/g, '')}
-                    validate={integerInRange(settings.bytesMin, settings.bytesMax)}
-                    errors={{
-                      integerInRange: (
-                        <>
-                          Enter an integer from {settings.bytesMin} to {settings.bytesMax}
-                        </>
-                      ),
-                    }}
-                    fullWidth
-                    margin="normal"
-                  />
-                </>
-              )
-            }}
-          </RF.FormSpy>
-          <RF.Field
-            component={Form.Field}
-            name="scannerParallelShardsDepth"
-            label="Scanner parallel shards depth"
-            placeholder="Leave blank to use default settings"
-            validate={validators.integer as FF.FieldValidator<any>}
-            errors={{
-              integer: 'Enter a valid integer',
-            }}
-            parse={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16) as (s: string) => string)}
-            fullWidth
-            margin="normal"
-          />
-          <RF.Field
-            component={SnsField}
-            name="snsNotificationArn"
-            validate={validateSns}
-          />
-          <M.Box mt={2}>
-            <RF.Field
-              component={Form.Checkbox}
-              type="checkbox"
-              name="skipMetaDataIndexing"
-              label="Skip metadata indexing"
+                  Re-index and repair
+                </M.Button>
+              }
+              disabled={disabled}
+              form={form}
             />
-          </M.Box>
-          {!bucket && (
-            <M.Box mt={1}>
-              <RF.Field
-                component={Form.Checkbox}
-                type="checkbox"
-                name="delayScan"
-                label="Delay scan"
-              />
-            </M.Box>
-          )}
-        </M.Box>
-      </M.Accordion>
-      <M.Accordion elevation={0} className={classes.panel}>
-        <M.AccordionSummary
-          expandIcon={<M.Icon>expand_more</M.Icon>}
-          classes={{
-            root: classes.panelSummary,
-            content: classes.panelSummaryContent,
-          }}
-        >
-          <M.Typography variant="h6">File preview options</M.Typography>
-        </M.AccordionSummary>
-        <M.Box className={classes.group} pt={1}>
-          <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
-        </M.Box>
-      </M.Accordion>
-    </M.Box>
+          </StickyActions>
+        </Card>
+      )}
+    </RF.Form>
   )
 }
 
-function BucketFieldsPlaceholder() {
+function PreviewForm() {
+  return <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
+}
+
+type PreviewFormValues = ReturnType<typeof bucketToPreviewValues>
+
+interface PreviewCardProps {
+  bucket: BucketConfig
+  className: string
+  disabled: boolean
+  onSubmit: FF.Config<PreviewFormValues>['onSubmit']
+}
+
+function PreviewCard({ bucket, className, disabled, onSubmit }: PreviewCardProps) {
+  const initialValues = bucketToPreviewValues(bucket)
   return (
-    <>
-      {R.times(
-        (i) => (
-          <Skeleton key={i} height={48} mt={i ? 3 : 0} />
-        ),
-        5,
+    <RF.Form<PreviewFormValues> onSubmit={onSubmit} initialValues={initialValues}>
+      {({ handleSubmit, submitting, form, error, submitError, submitFailed }) => (
+        <Card className={className} disabled={disabled} error={submitFailed}>
+          <form onSubmit={handleSubmit}>
+            <RF.Field
+              component={PFSCheckbox}
+              disabled={submitting || disabled}
+              name="browsable"
+              type="checkbox"
+              onToggle={() => form.submit()}
+            />
+            <Form.FormError
+              error={error || submitError}
+              errors={{
+                unexpected: 'Something went wrong',
+              }}
+              margin="none"
+            />
+          </form>
+        </Card>
       )}
-    </>
+    </RF.Form>
   )
+}
+
+interface TabulatorCardProps {
+  bucket: string
+  className: string
+  disabled: boolean
+  /** Have to be memoized */
+  onDirty: (dirty: boolean) => void
+  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
+}
+
+function TabulatorCard({
+  bucket,
+  className,
+  disabled,
+  onDirty,
+  tabulatorTables,
+}: TabulatorCardProps) {
+  const { dirty } = OnDirty.use()
+  React.useEffect(() => onDirty(dirty), [dirty, onDirty])
+  return (
+    <Card
+      className={className}
+      disabled={disabled}
+      title="Tabulator (Longitudinal Querying)"
+    >
+      <TabulatorForm bucket={bucket} tables={tabulatorTables} />
+    </Card>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
+  card: {
+    marginTop: t.spacing(2),
+    '&:first-child': {
+      marginTop: 0,
+    },
+  },
+  formTitle: {
+    ...t.typography.subtitle2,
+    marginBottom: t.spacing(2),
+  },
+  error: {
+    flexGrow: 1,
+  },
+  fields: {
+    marginTop: t.spacing(2),
+  },
+}))
+
+interface AddPageSkeletonProps {
+  back: () => void
+}
+
+function AddPageSkeleton({ back }: AddPageSkeletonProps) {
+  const classes = useStyles()
+  const formRef = React.useRef<HTMLDivElement>(null)
+  return (
+    <div ref={formRef}>
+      <SubPageHeader back={back}>Add a bucket</SubPageHeader>
+      <CardsPlaceholder className={classes.fields} />
+      <StickyActions parentRef={formRef}>
+        <Buttons.Skeleton />
+        <Buttons.Skeleton />
+      </StickyActions>
+    </div>
+  )
+}
+
+function parseResponseError(
+  r:
+    | Exclude<Model.GQLTypes.BucketAddResult, Model.GQLTypes.BucketAddSuccess>
+    | Exclude<Model.GQLTypes.BucketUpdateResult, Model.GQLTypes.BucketUpdateSuccess>,
+): FF.SubmissionErrors | undefined {
+  switch (r.__typename) {
+    case 'BucketAlreadyAdded':
+      return { name: 'conflict' }
+    case 'BucketDoesNotExist':
+      return { name: 'noSuchBucket' }
+    case 'SnsInvalid':
+      // shouldnt happen since we're validating it
+      return { snsNotificationArn: 'invalidArn' }
+    case 'NotificationTopicNotFound':
+      return { snsNotificationArn: 'topicNotFound' }
+    case 'NotificationConfigurationError':
+      return {
+        snsNotificationArn: 'configurationError',
+        [FF.FORM_ERROR]: 'notificationConfigurationError',
+      }
+    case 'InsufficientPermissions':
+      return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+    case 'SubscriptionInvalid':
+      return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
+    case 'BucketIndexContentBytesInvalid':
+      // shouldnt happen since we valide input
+      return { indexContentBytes: 'integerInRange' }
+    case 'BucketFileExtensionsToIndexInvalid':
+      // shouldnt happen since we valide input
+      return { fileExtensionsToIndex: 'validExtensions' }
+    case 'BucketNotFound':
+      return { [FF.FORM_ERROR]: 'bucketNotFound' }
+    default:
+      return assertNever(r)
+  }
 }
 
 interface AddProps {
-  close: (reason?: string) => void
+  back: (reason?: string) => void
+  settings: Model.GQLTypes.ContentIndexingSettings
+  submit: (
+    input: Model.GQLTypes.BucketAddInput,
+  ) => Promise<
+    | Exclude<Model.GQLTypes.BucketAddResult, Model.GQLTypes.BucketAddSuccess>
+    | Error
+    | undefined
+  >
 }
 
-function Add({ close }: AddProps) {
-  const { push } = Notifications.use()
-  const t = useTracker()
-  const add = GQL.useMutation(ADD_MUTATION)
+function Add({ back, settings, submit }: AddProps) {
+  const classes = useStyles()
   const onSubmit = React.useCallback(
-    async (values) => {
+    async (values, form) => {
       try {
         const input = R.applySpec(addFormSpec)(values)
-        const { bucketAdd: r } = await add({ input })
-        switch (r.__typename) {
-          case 'BucketAddSuccess':
-            push(`Bucket "${r.bucketConfig.name}" added`)
-            t.track('WEB', {
-              type: 'admin',
-              action: 'bucket add',
-              bucket: r.bucketConfig.name,
-            })
-            close()
-            return undefined
-          case 'BucketAlreadyAdded':
-            return { name: 'conflict' }
-          case 'BucketDoesNotExist':
-            return { name: 'noSuchBucket' }
-          case 'SnsInvalid':
-            // shouldnt happen since we're validating it
-            return { snsNotificationArn: 'invalidArn' }
-          case 'NotificationTopicNotFound':
-            return { snsNotificationArn: 'topicNotFound' }
-          case 'NotificationConfigurationError':
-            return {
-              snsNotificationArn: 'configurationError',
-              [FF.FORM_ERROR]: 'notificationConfigurationError',
-            }
-          case 'InsufficientPermissions':
-            return { [FF.FORM_ERROR]: 'insufficientPermissions' }
-          case 'BucketIndexContentBytesInvalid':
-            // shouldnt happen since we valide input
-            return { indexContentBytes: 'integerInRange' }
-          case 'BucketFileExtensionsToIndexInvalid':
-            // shouldnt happen since we valide input
-            return { fileExtensionsToIndex: 'validExtensions' }
-          default:
-            return assertNever(r)
+        const error = await submit(input)
+        if (!error) {
+          form.reset(values)
+          back()
+          return
         }
+        if (error instanceof Error) throw error
+        return parseResponseError(error)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
@@ -776,12 +1303,17 @@ function Add({ close }: AddProps) {
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [add, push, close, t],
+    [back, submit],
   )
-
+  const scrollingRef = React.useRef<HTMLFormElement>(null)
+  const guardNavigation = React.useCallback(
+    () => 'You have unsaved changes. Discard changes and leave the page?',
+    [],
+  )
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
+        dirty,
         handleSubmit,
         submitting,
         submitFailed,
@@ -790,37 +1322,53 @@ function Add({ close }: AddProps) {
         hasValidationErrors,
       }) => (
         <>
-          <M.DialogTitle>Add a bucket</M.DialogTitle>
-          <M.DialogContent>
-            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
-              <form onSubmit={handleSubmit}>
-                <BucketFields />
-                {submitFailed && (
-                  <Form.FormError
-                    error={error || submitError}
-                    errors={{
-                      unexpected: 'Something went wrong',
-                      notificationConfigurationError: 'Notification configuration error',
-                      insufficientPermissions: 'Insufficient permissions',
-                    }}
-                  />
-                )}
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-            </React.Suspense>
-          </M.DialogContent>
-          <M.DialogActions>
+          <RRDom.Prompt when={!!dirty} message={guardNavigation} />
+          <SubPageHeader back={back} disabled={submitting}>
+            Add a bucket
+          </SubPageHeader>
+          <form className={classes.fields} onSubmit={handleSubmit} ref={scrollingRef}>
+            <Card className={classes.card} title="Display settings">
+              <PrimaryForm />
+            </Card>
+            <Card className={classes.card} title="Metadata">
+              <MetadataForm />
+            </Card>
+            <Card className={classes.card} title="Indexing and notifications">
+              <IndexingAndNotificationsForm settings={settings} />
+            </Card>
+            <Card className={classes.card}>
+              <PreviewForm />
+            </Card>
+            <Card className={classes.card}>
+              <M.Typography>
+                Longitudinal query configs will be available after creating the bucket
+              </M.Typography>
+            </Card>
+            <input type="submit" style={{ display: 'none' }} />
+          </form>
+          <StickyActions parentRef={scrollingRef}>
+            {submitFailed && (
+              <Form.FormError
+                className={classes.error}
+                error={error || submitError}
+                errors={{
+                  unexpected: 'Something went wrong',
+                  notificationConfigurationError: 'Notification configuration error',
+                  insufficientPermissions: 'Insufficient permissions',
+                  subscriptionInvalid: 'Subscription invalid',
+                }}
+                margin="none"
+              />
+            )}
             {submitting && (
-              <Delay>
-                {() => (
-                  <M.Box flexGrow={1} display="flex" pl={2}>
-                    <M.CircularProgress size={24} />
-                  </M.Box>
-                )}
-              </Delay>
+              <M.Fade in style={{ transitionDelay: '1000ms' }}>
+                <M.Box flexGrow={1} display="flex" pl={2}>
+                  <M.CircularProgress size={24} />
+                </M.Box>
+              </M.Fade>
             )}
             <M.Button
-              onClick={() => close('cancel')}
+              onClick={() => back('cancel')}
               color="primary"
               disabled={submitting}
             >
@@ -830,10 +1378,11 @@ function Add({ close }: AddProps) {
               onClick={handleSubmit}
               color="primary"
               disabled={submitting || (submitFailed && hasValidationErrors)}
+              variant="contained"
             >
               Add
             </M.Button>
-          </M.DialogActions>
+          </StickyActions>
         </>
       )}
     </RF.Form>
@@ -930,13 +1479,11 @@ function Reindex({ bucket, open, close }: ReindexProps) {
       )}
       <M.DialogActions>
         {submitting && (
-          <Delay>
-            {() => (
-              <M.Box flexGrow={1} display="flex" pl={2}>
-                <M.CircularProgress size={24} />
-              </M.Box>
-            )}
-          </Delay>
+          <M.Fade in style={{ transitionDelay: '1000ms' }}>
+            <M.Box flexGrow={1} display="flex" pl={2}>
+              <M.CircularProgress size={24} />
+            </M.Box>
+          </M.Fade>
         )}
         {!submitting && !!error && (
           <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
@@ -970,430 +1517,298 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
-interface EditProps {
-  bucket: BucketConfig
-  close: (reason?: string) => void
+interface BucketFieldSkeletonProps {
+  className: string
 }
 
-function Edit({ bucket, close }: EditProps) {
-  const update = GQL.useMutation(UPDATE_MUTATION)
+function BucketFieldSkeleton({ className }: BucketFieldSkeletonProps) {
+  return (
+    <Card className={className} title={<Skeleton height={16} width={240} />}>
+      <Skeleton height={48} />
+      <Skeleton height={48} mt={2} />
+    </Card>
+  )
+}
 
+interface CardsPlaceholderProps {
+  className: string
+}
+
+function CardsPlaceholder({ className }: CardsPlaceholderProps) {
+  const classes = useStyles()
+  return (
+    <div className={className}>
+      <BucketFieldSkeleton className={classes.card} />
+      <BucketFieldSkeleton className={classes.card} />
+      <BucketFieldSkeleton className={classes.card} />
+      <BucketFieldSkeleton className={classes.card} />
+    </div>
+  )
+}
+
+interface EditPageSkeletonProps {
+  back: () => void
+}
+
+function EditPageSkeleton({ back }: EditPageSkeletonProps) {
+  const classes = useStyles()
+  return (
+    <>
+      <SubPageHeader back={back}>
+        <Skeleton height={32} width={240} />
+      </SubPageHeader>
+      <CardsPlaceholder className={classes.fields} />
+    </>
+  )
+}
+
+interface EditProps {
+  bucket: BucketConfig
+  back: (reason?: string) => void
+  submit: (
+    input: Model.GQLTypes.BucketUpdateInput,
+  ) => Promise<
+    | Exclude<Model.GQLTypes.BucketUpdateResult, Model.GQLTypes.BucketUpdateSuccess>
+    | Error
+    | undefined
+  >
+  tabulatorTables: Model.GQLTypes.BucketConfig['tabulatorTables']
+}
+
+function Edit({ bucket, back, submit, tabulatorTables }: EditProps) {
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
   const closeReindex = React.useCallback(() => setReindexOpen(false), [])
+  const { push: notify } = Notifications.use()
 
-  const onSubmit = React.useCallback(
-    async (values) => {
+  const classes = useStyles()
+  const [disabled, setDisabled] = React.useState(false)
+
+  type OnSubmit = FF.Config<PrimaryFormValues>['onSubmit'] &
+    FF.Config<MetadataFormValues>['onSubmit'] &
+    FF.Config<IndexingAndNotificationsFormValues>['onSubmit'] &
+    FF.Config<PreviewFormValues>['onSubmit']
+
+  const onSubmit: OnSubmit = React.useCallback(
+    async (values, form) => {
       try {
-        const input = R.applySpec(editFormSpec)(values)
-        const { bucketUpdate: r } = await update({ name: bucket.name, input })
-        switch (r.__typename) {
-          case 'BucketUpdateSuccess':
-            close()
-            return undefined
-          case 'SnsInvalid':
-            // shouldnt happen since we're validating it
-            return { snsNotificationArn: 'invalidArn' }
-          case 'NotificationTopicNotFound':
-            return { snsNotificationArn: 'topicNotFound' }
-          case 'NotificationConfigurationError':
-            return {
-              snsNotificationArn: 'configurationError',
-              [FF.FORM_ERROR]: 'notificationConfigurationError',
-            }
-          case 'BucketNotFound':
-            return { [FF.FORM_ERROR]: 'bucketNotFound' }
-          case 'BucketIndexContentBytesInvalid':
-            // shouldnt happen since we valide input
-            return { indexContentBytes: 'integerInRange' }
-          case 'BucketFileExtensionsToIndexInvalid':
-            // shouldnt happen since we valide input
-            return { fileExtensionsToIndex: 'validExtensions' }
-          default:
-            return assertNever(r)
+        setDisabled(true)
+        const input = R.applySpec(editFormSpec)({
+          ...bucketToFormValues(bucket),
+          ...values,
+        })
+        const error = await submit(input)
+        if (!error) {
+          notify(`Successfully updated ${bucket.name} bucket`)
+          form.reset(values)
+          setDisabled(false)
+          return
         }
+        if (error instanceof Error) throw error
+        setDisabled(false)
+        return parseResponseError(error)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error updating bucket')
         // eslint-disable-next-line no-console
         console.error(e)
+        setDisabled(false)
         return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [update, close, bucket.name],
+    [bucket, notify, submit],
   )
 
-  const initialValues = {
-    title: bucket.title,
-    iconUrl: bucket.iconUrl || '',
-    description: bucket.description || '',
-    relevanceScore: bucket.relevanceScore.toString(),
-    overviewUrl: bucket.overviewUrl || '',
-    tags: (bucket.tags || []).join(', '),
-    linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
-    enableDeepIndexing:
-      !R.equals(bucket.fileExtensionsToIndex, []) && bucket.indexContentBytes !== 0,
-    fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
-    indexContentBytes: bucket.indexContentBytes,
-    scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
-    snsNotificationArn:
-      bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
-        ? DO_NOT_SUBSCRIBE_SYM
-        : bucket.snsNotificationArn,
-    skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
-    browsable: bucket.browsable ?? false,
-  }
-
-  return (
-    <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
-      {({
-        handleSubmit,
-        submitting,
-        submitFailed,
-        error,
-        submitError,
-        hasValidationErrors,
-        pristine,
-        form,
-      }) => (
-        <>
-          <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
-          <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
-          <M.DialogContent>
-            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
-              <form onSubmit={handleSubmit}>
-                <BucketFields bucket={bucket} reindex={openReindex} />
-                {submitFailed && (
-                  <Form.FormError
-                    error={error || submitError}
-                    errors={{
-                      unexpected: 'Something went wrong',
-                      notificationConfigurationError: 'Notification configuration error',
-                      bucketNotFound: 'Bucket not found',
-                    }}
-                  />
-                )}
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-            </React.Suspense>
-          </M.DialogContent>
-          <M.DialogActions>
-            {submitting && (
-              <Delay>
-                {() => (
-                  <M.Box flexGrow={1} display="flex" pl={2}>
-                    <M.CircularProgress size={24} />
-                  </M.Box>
-                )}
-              </Delay>
-            )}
-            <M.Button
-              onClick={() => form.reset()}
-              color="primary"
-              disabled={pristine || submitting}
-            >
-              Reset
-            </M.Button>
-            <M.Button
-              onClick={() => close('cancel')}
-              color="primary"
-              disabled={submitting}
-            >
-              Cancel
-            </M.Button>
-            <M.Button
-              onClick={handleSubmit}
-              color="primary"
-              disabled={pristine || submitting || (submitFailed && hasValidationErrors)}
-            >
-              Save
-            </M.Button>
-          </M.DialogActions>
-        </>
-      )}
-    </RF.Form>
+  const guardNavigation = () =>
+    'You have unsaved changes. Discard changes and leave the page?'
+  const { dirty, onChange } = OnDirty.use()
+  const onTabulatorDirty = React.useCallback(
+    (d) => onChange({ modified: { tabulator: true }, dirty: d }),
+    [onChange],
   )
-}
 
-interface DeleteProps {
-  bucket: BucketConfig
-  close: (reason?: string) => void
-}
-
-function Delete({ bucket, close }: DeleteProps) {
-  const { push } = Notifications.use()
-  const t = useTracker()
-  const rm = GQL.useMutation(REMOVE_MUTATION)
-  const doDelete = React.useCallback(async () => {
-    close()
-    try {
-      const { bucketRemove: r } = await rm({ name: bucket.name })
-      switch (r.__typename) {
-        case 'BucketRemoveSuccess':
-          t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
-          return
-        case 'IndexingInProgress':
-          push(`Can't delete bucket "${bucket.name}" while it's being indexed`)
-          return
-        case 'BucketNotFound':
-          push(`Can't delete bucket "${bucket.name}": not found`)
-          return
-        default:
-          assertNever(r)
-      }
-    } catch (e) {
-      push(`Error deleting bucket "${bucket.name}"`)
-      // eslint-disable-next-line no-console
-      console.error('Error deleting bucket')
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }, [bucket, close, rm, push, t])
-
+  const scrollingRef = React.useRef<HTMLDivElement>(null)
   return (
     <>
-      <M.DialogTitle>Delete a bucket</M.DialogTitle>
-      <M.DialogContent>
-        You are about to disconnect &quot;{bucket.name}&quot; from Quilt. The search index
-        will be deleted. Bucket contents will remain unchanged.
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={() => close('cancel')} color="primary">
-          Cancel
-        </M.Button>
-        <M.Button onClick={doDelete} color="primary">
-          Delete
-        </M.Button>
-      </M.DialogActions>
+      <RRDom.Prompt when={dirty} message={guardNavigation} />
+      <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
+      <SubPageHeader back={back} disabled={disabled}>
+        {`s3://${bucket.name}`}
+      </SubPageHeader>
+      <React.Suspense fallback={<CardsPlaceholder className={classes.fields} />}>
+        <div className={classes.fields} ref={scrollingRef}>
+          <div className={classes.card}>
+            <PrimaryCard
+              bucket={bucket}
+              className={classes.card}
+              disabled={disabled}
+              onSubmit={onSubmit}
+            />
+            <MetadataCard
+              bucket={bucket}
+              className={classes.card}
+              disabled={disabled}
+              onSubmit={onSubmit}
+            />
+            <IndexingAndNotificationsCard
+              bucket={bucket}
+              className={classes.card}
+              disabled={disabled}
+              onSubmit={onSubmit}
+              onReindex={openReindex}
+            />
+            <PreviewCard
+              bucket={bucket}
+              className={classes.card}
+              disabled={disabled}
+              onSubmit={onSubmit}
+            />
+          </div>
+          <OnDirty.Provider>
+            <TabulatorCard
+              bucket={bucket.name}
+              className={classes.card}
+              disabled={disabled}
+              tabulatorTables={tabulatorTables}
+              onDirty={onTabulatorDirty}
+            />
+          </OnDirty.Provider>
+        </div>
+      </React.Suspense>
     </>
   )
 }
 
-const useCustomBucketIconStyles = M.makeStyles({
-  stub: {
-    opacity: 0.7,
-  },
-})
-
-interface CustomBucketIconProps {
-  src: string
+interface EditRouteParams {
+  bucketName: string
 }
 
-function CustomBucketIcon({ src }: CustomBucketIconProps) {
-  const classes = useCustomBucketIconStyles()
-
-  return <BucketIcon alt="" classes={classes} src={src} title="Default icon" />
+interface EditPageProps {
+  back: () => void
 }
 
-const columns: Table.Column<BucketConfig>[] = [
-  {
-    id: 'name',
-    label: 'Name (relevance)',
-    getValue: R.prop('name'),
-    getDisplay: (v: string, b: BucketConfig) => (
-      <span>
-        <M.Box fontFamily="monospace.fontFamily" component="span">
-          {v}
-        </M.Box>{' '}
-        <M.Box color="text.secondary" component="span">
-          ({b.relevanceScore})
-        </M.Box>
-      </span>
-    ),
-  },
-  {
-    id: 'icon',
-    label: 'Icon',
-    sortable: false,
-    align: 'center',
-    getValue: R.prop('iconUrl'),
-    getDisplay: (v: string) => <CustomBucketIcon src={v} />,
-  },
-  {
-    id: 'title',
-    label: 'Title',
-    getValue: R.prop('title'),
-    getDisplay: (v: string) => (
-      <M.Box
-        component="span"
-        maxWidth={240}
-        textOverflow="ellipsis"
-        overflow="hidden"
-        whiteSpace="nowrap"
-        display="inline-block"
-      >
-        {v}
-      </M.Box>
-    ),
-  },
-  {
-    id: 'description',
-    label: 'Description',
-    getValue: R.prop('description'),
-    getDisplay: (v: string | undefined) =>
-      v ? (
-        <M.Box
-          component="span"
-          maxWidth={240}
-          textOverflow="ellipsis"
-          overflow="hidden"
-          whiteSpace="nowrap"
-          display="inline-block"
-        >
-          {v}
-        </M.Box>
-      ) : (
-        <M.Box color="text.secondary" component="span">
-          {'<Empty>'}
-        </M.Box>
-      ),
-  },
-  {
-    id: 'lastIndexed',
-    label: 'Last indexed',
-    getValue: R.prop('lastIndexed'),
-    getDisplay: (v: Date | undefined) =>
-      v ? (
-        <span title={v.toLocaleString()}>
-          {dateFns.formatDistanceToNow(v, { addSuffix: true })}
-        </span>
-      ) : (
-        <M.Box color="text.secondary" component="span">
-          {'<N/A>'}
-        </M.Box>
-      ),
-  },
-]
-
-interface CRUDProps {
-  bucketName?: string
-}
-
-function CRUD({ bucketName }: CRUDProps) {
-  const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
-  const filtering = Table.useFiltering({
-    rows,
-    filterBy: ({ name, title }) => name + title,
-  })
-  const ordering = Table.useOrdering({
-    rows: filtering.filtered,
-    column: columns[0],
-  })
-  const pagination = Pagination.use(ordering.ordered, {
-    // @ts-expect-error
-    getItemId: R.prop('name'),
-  })
-  const { open: openDialog, render: renderDialogs } = Dialogs.use()
-
+function EditPage({ back }: EditPageProps) {
+  const { bucketName } = RRDom.useParams<EditRouteParams>()
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
-
-  const toolbarActions = [
-    {
-      title: 'Add bucket',
-      icon: <M.Icon>add</M.Icon>,
-      fn: React.useCallback(() => {
-        // @ts-expect-error
-        openDialog(({ close }) => <Add {...{ close }} />)
-      }, [openDialog]),
-    },
-  ]
-
-  const edit = (bucket: BucketConfig) => () => {
-    history.push(urls.adminBuckets(bucket.name))
-  }
-
-  const inlineActions = (bucket: BucketConfig) => [
-    {
-      title: 'Delete',
-      icon: <M.Icon>delete</M.Icon>,
-      fn: () => {
-        // @ts-expect-error
-        openDialog(({ close }) => <Delete {...{ bucket, close }} />)
-      },
-    },
-    {
-      title: 'Edit',
-      icon: <M.Icon>edit</M.Icon>,
-      fn: edit(bucket),
-    },
-  ]
-
-  const editingBucket = React.useMemo(
+  const update = GQL.useMutation(UPDATE_MUTATION)
+  const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
+  const bucket = React.useMemo(
     () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
     [bucketName, rows],
   )
-
-  const onBucketClose = React.useCallback(() => {
-    history.push(urls.adminBuckets())
-  }, [history, urls])
-
-  if (bucketName && !editingBucket) {
-    // Bucket name set in URL, but it was not found in buckets list
-    return <RRDom.Redirect to={urls.adminBuckets()} />
-  }
-
+  const tabulatorTables =
+    GQL.useQueryS(TABULATOR_TABLES_QUERY, { bucket: bucketName }).bucketConfig
+      ?.tabulatorTables || []
+  const submit = React.useCallback(
+    async (input: Model.GQLTypes.BucketUpdateInput) => {
+      if (!bucket) return new Error('Submit form without bucket')
+      try {
+        const { bucketUpdate: r } = await update({ name: bucket.name, input })
+        if (r.__typename !== 'BucketUpdateSuccess') {
+          // Generated `InputError` lacks optional properties and not infered correctly
+          return r as Exclude<
+            Model.GQLTypes.BucketUpdateResult,
+            Model.GQLTypes.BucketUpdateSuccess
+          >
+        }
+      } catch (e) {
+        return e instanceof Error ? e : new Error('Error updating bucket')
+      }
+    },
+    [bucket, update],
+  )
+  if (!bucket) return <RRDom.Redirect to={urls.adminBuckets()} />
   return (
-    <M.Paper>
-      {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
-
-      <M.Dialog open={!!editingBucket} fullWidth maxWidth="xs">
-        {editingBucket && <Edit bucket={editingBucket} close={onBucketClose} />}
-      </M.Dialog>
-
-      <Table.Toolbar heading="Buckets" actions={toolbarActions}>
-        <Table.Filter {...filtering} />
-      </Table.Toolbar>
-      <Table.Wrapper>
-        <M.Table size="small">
-          <Table.Head columns={columns} ordering={ordering} withInlineActions />
-          <M.TableBody>
-            {pagination.paginated.map((i: BucketConfig) => (
-              <M.TableRow
-                hover
-                key={i.name}
-                onClick={edit(i)}
-                style={{ cursor: 'pointer' }}
-              >
-                {columns.map((col) => (
-                  <M.TableCell key={col.id} align={col.align} {...col.props}>
-                    {(col.getDisplay || R.identity)(col.getValue(i), i)}
-                  </M.TableCell>
-                ))}
-                <M.TableCell
-                  align="right"
-                  padding="none"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Table.InlineActions actions={inlineActions(i)} />
-                </M.TableCell>
-              </M.TableRow>
-            ))}
-          </M.TableBody>
-        </M.Table>
-      </Table.Wrapper>
-      <Table.Pagination pagination={pagination} />
-    </M.Paper>
+    <OnDirty.Provider>
+      <Edit
+        bucket={bucket}
+        back={back}
+        submit={submit}
+        tabulatorTables={tabulatorTables}
+      />
+    </OnDirty.Provider>
   )
 }
 
-export default function Buckets() {
+interface AddPageProps {
+  back: () => void
+}
+
+function AddPage({ back }: AddPageProps) {
+  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
+  const settings = data.config.contentIndexingSettings
+  const add = GQL.useMutation(ADD_MUTATION)
+  const { push } = Notifications.use()
+  const { track } = useTracker()
+  const submit = React.useCallback(
+    async (input: Model.GQLTypes.BucketAddInput) => {
+      try {
+        const { bucketAdd: r } = await add({ input })
+        if (r.__typename !== 'BucketAddSuccess') {
+          // TS infered shape but not the actual type
+          return r as Exclude<
+            Model.GQLTypes.BucketAddResult,
+            Model.GQLTypes.BucketAddSuccess
+          >
+        }
+        push(`Bucket "${r.bucketConfig.name}" added`)
+        track('WEB', {
+          type: 'admin',
+          action: 'bucket add',
+          bucket: r.bucketConfig.name,
+        })
+      } catch (e) {
+        return e instanceof Error ? e : new Error('Error adding bucket')
+      }
+    },
+    [add, push, track],
+  )
+  return <Add settings={settings} back={back} submit={submit} />
+}
+
+function useIsAddPage() {
   const location = RRDom.useLocation()
-  const { bucket } = parseSearch(location.search)
-  const bucketName = Array.isArray(bucket) ? bucket[0] : bucket
+  const params = parseSearch(location.search)
+  return !!params.add
+}
+
+interface BucketsProps {
+  back: () => void
+}
+
+function Buckets({ back }: BucketsProps) {
+  const isAddPage = useIsAddPage()
+  if (isAddPage) {
+    return (
+      <React.Suspense fallback={<AddPageSkeleton back={back} />}>
+        <AddPage back={back} />
+      </React.Suspense>
+    )
+  }
+  return (
+    <React.Suspense fallback={<ListPageSkeleton />}>
+      <ListPage />
+    </React.Suspense>
+  )
+}
+
+export default function BucketsRouter() {
+  const history = RRDom.useHistory()
+  const { paths, urls } = NamedRoutes.use()
+  const back = React.useCallback(() => history.push(urls.adminBuckets()), [history, urls])
   return (
     <M.Box mt={2} mb={2}>
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
-      <React.Suspense
-        fallback={
-          <M.Paper>
-            <Table.Toolbar heading="Buckets" />
-            <Table.Progress />
-          </M.Paper>
-        }
-      >
-        <CRUD bucketName={bucketName} />
-      </React.Suspense>
+      <RRDom.Switch>
+        <RRDom.Route path={paths.adminBucketEdit} exact strict>
+          <React.Suspense fallback={<EditPageSkeleton back={back} />}>
+            <EditPage back={back} />
+          </React.Suspense>
+        </RRDom.Route>
+        <RRDom.Route>
+          <Buckets back={back} />
+        </RRDom.Route>
+      </RRDom.Switch>
     </M.Box>
   )
 }

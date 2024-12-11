@@ -103,6 +103,7 @@ export function useIntercom() {
 
 export { IntercomProvider as Provider, useIntercom as use }
 
+// Hides or shows __default__ Intercom launcher when the `condition` changes
 export function usePauseVisibilityWhen(condition) {
   const intercom = useIntercom()
   const [isVisible, setVisible] = React.useState(true)
@@ -117,7 +118,8 @@ export function usePauseVisibilityWhen(condition) {
     [intercom, isVisible, setVisible],
   )
   React.useEffect(() => {
+    if (intercom.isCustom) return
     if (condition) showIntercom(false)
     return () => showIntercom(true)
-  }, [condition, showIntercom])
+  }, [condition, intercom.isCustom, showIntercom])
 }

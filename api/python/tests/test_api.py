@@ -17,7 +17,8 @@ class TestAPI(QuiltTestCase):
             'telemetry_disabled': False,
             's3Proxy': None,
             'apiGatewayEndpoint': None,
-            'binaryApiGatewayEndpoint': None
+            'binaryApiGatewayEndpoint': None,
+            "region": "us-west-2",
         }
         self.requests_mock.add(responses.GET, 'https://foo.bar/config.json', json=content, status=200)
 
@@ -42,18 +43,3 @@ class TestAPI(QuiltTestCase):
         # present.  ..but, a bad port causes an error..
         with pytest.raises(util.QuiltException, match='Port must be a number'):
             he.config('https://fliff:fluff')
-
-    def test_set_role(self):
-        self.requests_mock.add(responses.POST, DEFAULT_URL + '/api/users/set_role',
-                               json={}, status=200)
-
-        not_found_result = {
-            'message': "No user exists by the provided name."
-        }
-        self.requests_mock.add(responses.POST, DEFAULT_URL + '/api/users/set_role',
-                               json=not_found_result, status=400)
-
-        he.admin.set_role(username='test_user', role_name='test_role')
-
-        with pytest.raises(util.QuiltException):
-            he.admin.set_role(username='not_found', role_name='test_role')

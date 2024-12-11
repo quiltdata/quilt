@@ -8,7 +8,7 @@ import {
   JsonSchema,
   doesTypeMatchSchema,
   schemaTypeToHumanString,
-} from 'utils/json-schema'
+} from 'utils/JSONSchema'
 import { printObject } from 'utils/string'
 
 import {

@@ -369,7 +369,6 @@ function Revision({
       meta={
         !!userMeta &&
         !R.isEmpty(userMeta) && (
-          // @ts-expect-error
           <JsonDisplay
             name="User metadata"
             value={userMeta}
@@ -420,7 +419,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1

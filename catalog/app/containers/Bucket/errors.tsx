@@ -33,6 +33,7 @@ export interface BucketPreferencesInvalidProps {
   errors: { instancePath?: string; message?: string }[]
 }
 
+// TODO: re-use JsonInvalidAgainstSchema
 export class BucketPreferencesInvalid extends BucketError {
   static displayName = 'BucketPreferencesInvalid'
 
@@ -46,6 +47,7 @@ export class BucketPreferencesInvalid extends BucketError {
   }
 }
 
+// TODO: re-use JsonInvalidAgainstSchema
 export interface WorkflowsConfigInvalidProps {
   errors: { instancePath?: string; message?: string }[]
 }
@@ -122,7 +124,7 @@ const defaultHandlers: ErrorHandler[] = [
         <br />
         <StyledLink
           target="_blank"
-          href={`${docs}/advanced/technical-reference#preparing-an-aws-role-for-use-with-quilt`}
+          href={`${docs}/quilt-platform-administrator/technical-reference#preparing-an-aws-role-for-use-with-quilt`}
         >
           Learn how to configure the bucket for Quilt
         </StyledLink>
@@ -165,7 +167,7 @@ const defaultHandlers: ErrorHandler[] = [
           <br />
           <StyledLink
             target="_blank"
-            href={`${docs}/walkthrough/working-with-the-catalog#access-control`}
+            href={`${docs}/quilt-platform-administrator/admin#users-and-roles`}
           >
             Learn about access control in Quilt
           </StyledLink>

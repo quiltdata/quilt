@@ -20,6 +20,7 @@ import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
 import DirCodeSamples from './CodeSamples/Dir'
+import * as AssistantContext from './DirAssistantContext'
 import * as FileView from './FileView'
 import * as Listing from './Listing'
 import Menu from './Menu'
@@ -37,17 +38,29 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
+  const { prefs } = BucketPreferences.use()
   const prompt = FileEditor.useCreateFileInBucket(bucket, path)
   const menuItems = React.useMemo(
-    () => [
-      {
-        onClick: prompt.open,
-        title: 'Create file',
-      },
-    ],
-    [prompt.open],
+    () =>
+      BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) => {
+            const menu = []
+            if (actions.writeFile) {
+              menu.push({
+                onClick: prompt.open,
+                title: 'Create file',
+              })
+            }
+            return menu
+          },
+          _: () => [],
+        },
+        prefs,
+      ),
+    [prefs, prompt.open],
   )
-
+  if (!menuItems.length) return null
   return (
     <>
       {prompt.render()}
@@ -76,8 +89,8 @@ interface DirContentsProps {
   bucket: string
   path: string
   loadMore?: () => void
-  selection: string[]
-  onSelection: (ids: string[]) => void
+  selection: Selection.SelectionItem[]
+  onSelection: (ids: Selection.SelectionItem[]) => void
 }
 
 function DirContents({
@@ -129,75 +142,6 @@ function DirContents({
   )
 }
 
-const useSelectionWidgetStyles = M.makeStyles({
-  close: {
-    marginLeft: 'auto',
-  },
-  title: {
-    alignItems: 'center',
-    display: 'flex',
-  },
-  badge: {
-    right: '4px',
-  },
-})
-
-interface SelectionWidgetProps {
-  className: string
-  selection: Selection.PrefixedKeysMap
-  onSelection: (changed: Selection.PrefixedKeysMap) => void
-}
-
-function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
-  const classes = useSelectionWidgetStyles()
-  const location = RRDom.useLocation()
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-  const [opened, setOpened] = React.useState(false)
-  const open = React.useCallback(() => setOpened(true), [])
-  const close = React.useCallback(() => setOpened(false), [])
-  React.useEffect(() => close(), [close, location])
-  const badgeClasses = React.useMemo(() => ({ badge: classes.badge }), [classes])
-  return (
-    <>
-      <M.Badge
-        badgeContent={count}
-        classes={badgeClasses}
-        className={className}
-        color="primary"
-        max={999}
-        showZero
-      >
-        <M.Button onClick={open} size="small">
-          Selected items
-        </M.Button>
-      </M.Badge>
-
-      <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
-        <M.DialogTitle disableTypography>
-          <M.Typography className={classes.title} variant="h6">
-            {count} items selected
-            <M.IconButton size="small" className={classes.close} onClick={close}>
-              <M.Icon>close</M.Icon>
-            </M.IconButton>
-          </M.Typography>
-        </M.DialogTitle>
-        <M.DialogContent>
-          <Selection.Dashboard
-            onSelection={onSelection}
-            onDone={close}
-            selection={selection}
-          />
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.Button onClick={close} variant="contained" color="primary" size="small">
-            Close
-          </M.Button>
-        </M.DialogActions>
-      </M.Dialog>
-    </>
-  )
-}
-
 const useStyles = M.makeStyles((t) => ({
   crumbs: {
     ...t.typography.body1,
@@ -237,7 +181,7 @@ export default function Dir() {
 
   const classes = useStyles()
   const s3 = AWS.S3.use()
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search, true)
   const path = s3paths.decode(encodedPath)
 
@@ -269,12 +213,11 @@ export default function Dir() {
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState<Record<string, string[]>>(
-    Selection.EMPTY_MAP,
-  )
+  const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix],
+    (ids) => slt.merge(ids, bucket, path, prefix),
+    [bucket, path, prefix, slt],
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
@@ -289,10 +232,10 @@ export default function Dir() {
       packageDirectoryDialog.open({
         path,
         successor,
-        selection,
+        selection: slt.selection,
       })
     },
-    [packageDirectoryDialog, path, selection],
+    [packageDirectoryDialog, path, slt.selection],
   )
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
@@ -302,7 +245,6 @@ export default function Dir() {
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
-  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
   const guardNavigation = React.useCallback(
     (location) => {
       if (
@@ -322,7 +264,9 @@ export default function Dir() {
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
-      <RRDom.Prompt when={hasSelection} message={guardNavigation} />
+      <AssistantContext.ListingContext data={data} />
+
+      <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
 
       {packageDirectoryDialog.render({
         successTitle: 'Package created',
@@ -337,39 +281,43 @@ export default function Dir() {
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
-          <SelectionWidget
-            className={cx(classes.button)}
-            selection={selection}
-            onSelection={setSelection}
-          />
+          <Selection.Control className={cx(classes.button)} />
           {BucketPreferences.Result.match(
             {
-              Ok: ({ ui: { actions } }) =>
-                actions.createPackage && (
-                  <Successors.Button
-                    bucket={bucket}
-                    className={classes.button}
-                    onChange={openPackageCreationDialog}
-                    variant={hasSelection ? 'contained' : 'outlined'}
-                    color={hasSelection ? 'primary' : 'default'}
-                  >
-                    Create package
-                  </Successors.Button>
-                ),
-              Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
+              Ok: ({ ui: { actions } }) => (
+                <>
+                  {actions.createPackage && (
+                    <Successors.Button
+                      bucket={bucket}
+                      className={classes.button}
+                      onChange={openPackageCreationDialog}
+                      variant={slt.isEmpty ? 'outlined' : 'contained'}
+                      color={slt.isEmpty ? 'default' : 'primary'}
+                    >
+                      Create package
+                    </Successors.Button>
+                  )}
+                  {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
+                    <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
+                      <Buttons.Iconized
+                        className={classes.button}
+                        label="Download directory"
+                        icon="archive"
+                        type="submit"
+                      />
+                    </FileView.ZipDownloadForm>
+                  )}
+                </>
+              ),
+              Pending: () => (
+                <>
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                </>
+              ),
               Init: () => null,
             },
             prefs,
-          )}
-          {!cfg.noDownload && !cfg.desktop && (
-            <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
-              <Buttons.Iconized
-                className={classes.button}
-                label="Download directory"
-                icon="archive"
-                type="submit"
-              />
-            </FileView.ZipDownloadForm>
           )}
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>
@@ -397,7 +345,11 @@ export default function Dir() {
               bucket={bucket}
               path={path}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              selection={Selection.getDirectorySelection(
+                slt.selection,
+                res.bucket,
+                res.path,
+              )}
               onSelection={handleSelection}
             />
           ) : (

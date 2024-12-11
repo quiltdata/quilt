@@ -12,9 +12,8 @@ import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import MetadataEditor from 'components/MetadataEditor'
 import * as Notifications from 'containers/Notifications'
-import Delay from 'utils/Delay'
 import useDragging from 'utils/dragging'
-import { JsonSchema } from 'utils/json-schema'
+import type { JsonSchema } from 'utils/JSONSchema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import { JsonRecord } from 'utils/types'
@@ -377,16 +376,12 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
           {locked && (
             <div className={classes.overlay}>
-              <Delay ms={500} alwaysRender>
-                {(ready) => (
-                  <M.Fade in={ready}>
-                    <div className={classes.overlayContents}>
-                      <M.CircularProgress size={20} className={classes.overlayProgress} />
-                      <div className={classes.overlayText}>Reading file contents</div>
-                    </div>
-                  </M.Fade>
-                )}
-              </Delay>
+              <M.Fade in style={{ transitionDelay: '500ms' }}>
+                <div className={classes.overlayContents}>
+                  <M.CircularProgress size={20} className={classes.overlayProgress} />
+                  <div className={classes.overlayText}>Reading file contents</div>
+                </div>
+              </M.Fade>
             </div>
           )}
 

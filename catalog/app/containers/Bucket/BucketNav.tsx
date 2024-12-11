@@ -1,8 +1,10 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
@@ -56,6 +58,7 @@ interface TabsProps {
 }
 
 function Tabs({ bucket, preferences, section = false }: TabsProps) {
+  const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
@@ -73,7 +76,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
       {preferences.packages && (
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
       )}
-      {preferences.queries && (
+      {preferences.queries && authenticated && (
         <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
       )}
       {preferences.queries && (section === 'queries' || section === 'es') && (
@@ -84,7 +87,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
 }
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { nav } }) => (

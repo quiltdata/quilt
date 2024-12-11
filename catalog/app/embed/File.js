@@ -1,7 +1,5 @@
 import { basename } from 'path'
 
-import * as dateFns from 'date-fns'
-import * as R from 'ramda'
 import * as React from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -9,22 +7,21 @@ import * as M from '@material-ui/core'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
-import Sparkline from 'components/Sparkline'
 import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import { readableBytes, readableQuantity } from 'utils/string'
+import { readableBytes } from 'utils/string'
 
 import FileCodeSamples from 'containers/Bucket/CodeSamples/File'
+import Analytics from 'containers/Bucket/File/Analytics'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
@@ -226,74 +223,6 @@ function VersionInfo({ bucket, path, version }) {
         })}
       </M.Popover>
     </>
-  )
-}
-
-function Analytics({ bucket, path }) {
-  const [cursor, setCursor] = React.useState(null)
-  const s3 = AWS.S3.use()
-  const today = React.useMemo(() => new Date(), [])
-  const formatDate = (date) =>
-    dateFns.format(
-      date,
-      today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
-    )
-  const data = useData(requests.objectAccessCounts, {
-    s3,
-    bucket,
-    path,
-    today,
-  })
-
-  const defaultExpanded = data.case({
-    Ok: ({ total }) => !!total,
-    _: () => false,
-  })
-
-  return (
-    <Section icon="bar_charts" heading="Analytics" defaultExpanded={defaultExpanded}>
-      {data.case({
-        Ok: ({ counts, total }) =>
-          total ? (
-            <M.Box
-              display="flex"
-              width="100%"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <M.Box>
-                <M.Typography variant="h5">Downloads</M.Typography>
-                <M.Typography variant="h4" component="div">
-                  {readableQuantity(cursor === null ? total : counts[cursor].value)}
-                </M.Typography>
-                <M.Typography variant="overline" component="span">
-                  {cursor === null
-                    ? `${counts.length} days`
-                    : formatDate(counts[cursor].date)}
-                </M.Typography>
-              </M.Box>
-              <M.Box width="calc(100% - 7rem)">
-                <Sparkline
-                  data={R.pluck('value', counts)}
-                  onCursor={setCursor}
-                  width={1000}
-                  height={60}
-                  stroke={SVG.Paint.Server(
-                    <linearGradient x2="0" y2="100%" gradientUnits="userSpaceOnUse">
-                      <stop offset="0" stopColor={M.colors.blueGrey[800]} />
-                      <stop offset="100%" stopColor={M.colors.blueGrey[100]} />
-                    </linearGradient>,
-                  )}
-                />
-              </M.Box>
-            </M.Box>
-          ) : (
-            <M.Typography>No analytics available</M.Typography>
-          ),
-        Err: () => <M.Typography>No analytics available</M.Typography>,
-        _: () => <M.CircularProgress />,
-      })}
-    </Section>
   )
 }
 

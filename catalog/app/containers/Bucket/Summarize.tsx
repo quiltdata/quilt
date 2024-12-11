@@ -258,7 +258,7 @@ interface FilePreviewProps {
   expanded?: boolean
   file?: SummarizeFile
   handle: LogicalKeyResolver.S3SummarizeHandle
-  headingOverride: React.ReactNode
+  headingOverride?: React.ReactNode
   packageHandle?: PackageHandle
 }
 
@@ -270,7 +270,7 @@ export function FilePreview({
   packageHandle,
 }: FilePreviewProps) {
   const description = file?.description ? <Markdown data={file.description} /> : null
-  const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
+  const heading = headingOverride ?? <Crumbs handle={handle} />
 
   const key = handle.logicalKey || handle.key
   const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])
@@ -566,7 +566,7 @@ interface SummaryRootProps {
   s3: S3
   bucket: string
   inStack: boolean
-  overviewUrl: string
+  overviewUrl?: string | null
 }
 
 export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootProps) {
@@ -618,7 +618,9 @@ function SummaryFailed({ error }: SummaryFailedProps) {
       <M.Typography>Check your quilt_summarize.json file for errors.</M.Typography>
       <M.Typography>
         See the{' '}
-        <Link href={`${docs}/catalog/visualizationdashboards#quilt_summarize.json`}>
+        <Link
+          href={`${docs}/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json`}
+        >
           summarize docs
         </Link>{' '}
         for more.

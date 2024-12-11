@@ -8,6 +8,7 @@ import * as redux from 'react-redux'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
@@ -20,7 +21,7 @@ import {
   JsonSchema,
   makeSchemaDefaultsSetter,
   makeSchemaValidator,
-} from 'utils/json-schema'
+} from 'utils/JSONSchema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { JsonRecord } from 'utils/types'
@@ -31,27 +32,16 @@ import SelectWorkflow from './SelectWorkflow'
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
-export const MAX_S3_SIZE = 50 * 1000 * 1000 * 1000 // 50GB
+// XXX: keep in sync w/ the backend
+// NOTE: these limits are lower than the actual "hard" limits on the backend
+export const MAX_S3_SIZE = cfg.chunkedChecksums
+  ? 5 * 10 ** 12 // 5 TB
+  : 50 * 10 ** 9 // 50 GB
 export const MAX_FILE_COUNT = 1000
 
 export const ERROR_MESSAGES = {
   UPLOAD: 'Error uploading files',
   MANIFEST: 'Error creating manifest',
-}
-
-export const getNormalizedPath = (f: { path?: string; name: string }) => {
-  const p = f.path || f.name
-  return p.startsWith('/') ? p.substring(1) : p
-}
-
-export async function hashFile(file: File) {
-  if (!window.crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
-  const buf = await file.arrayBuffer()
-  // XXX: consider using hashwasm for stream-based hashing to support larger files
-  const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
-  return Array.from(new Uint8Array(hashBuf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
 }
 
 function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
@@ -318,7 +308,6 @@ export function CommitMessageInput({
 }
 
 interface WorkflowInputProps {
-  bucket: string
   input: RF.FieldInputProps<workflows.Workflow>
   meta: RF.FieldMetaState<workflows.Workflow>
   workflowsConfig?: workflows.WorkflowsConfig
@@ -326,7 +315,6 @@ interface WorkflowInputProps {
 }
 
 export function WorkflowInput({
-  bucket,
   input,
   meta,
   workflowsConfig,
@@ -337,7 +325,6 @@ export function WorkflowInput({
 
   return (
     <SelectWorkflow
-      bucket={bucket}
       items={workflowsConfig ? workflowsConfig.workflows : []}
       onChange={input.onChange}
       value={input.value}
@@ -347,8 +334,8 @@ export function WorkflowInput({
   )
 }
 
-export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
-  cfg && cfg.workflows.find((item) => item.isDefault)
+export const defaultWorkflowFromConfig = (wcfg?: workflows.WorkflowsConfig) =>
+  wcfg?.workflows.find((item) => item.isDefault)
 
 export function useWorkflowValidator(workflowsConfig?: workflows.WorkflowsConfig) {
   return React.useMemo(

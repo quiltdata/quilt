@@ -74,6 +74,8 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),
     Object.entries,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    R.filter(([path, file]) => file !== FI.EMPTY_DIR_MARKER),
     R.map(([path, file]) => ({
       logical_key: path,
       meta: file.meta?.user_meta || {},
@@ -93,12 +95,11 @@ function createReadmeFile(name: string) {
   return FI.computeHash(f) as FI.LocalFile
 }
 
-// XXX: move to dialogs module
-interface DialogsOpenProps {
-  close: (reason?: string) => void
+interface ConfirmReadmeProps {
+  close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
 }
 
-function ConfirmReadme({ close }: DialogsOpenProps) {
+function ConfirmReadme({ close }: ConfirmReadmeProps) {
   return (
     <>
       <M.DialogTitle>Add a README file?</M.DialogTitle>
@@ -145,6 +146,7 @@ function FormError({ submitting, error }: FormErrorProps) {
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
+    overflowY: 'auto',
   },
   filesWithError: {
     height: `calc(90% - ${t.spacing()}px)`,
@@ -296,6 +298,7 @@ function PackageCreationForm({
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
+      if (file === FI.EMPTY_DIR_MARKER) return
       if (isS3File(file)) {
         addedS3Entries.push({ path, file })
       } else {
@@ -305,13 +308,13 @@ function PackageCreationForm({
 
     const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]
-      return !e || e.hash !== file.hash.value
+      return !e || !R.equals(e.hash, file.hash.value)
     })
 
     const entries = filesStateToEntries(files)
 
     if (!entries.length) {
-      const reason = await dialogs.open((props: DialogsOpenProps) => (
+      const reason = await dialogs.open<'cancel' | 'empty' | 'readme'>((props) => (
         <ConfirmReadme {...props} />
       ))
       if (reason === 'cancel') return mkFormError(CANCEL)
@@ -440,7 +443,6 @@ function PackageCreationForm({
     [nameWarning, nameExistence],
   )
 
-  const [filesDisabled, setFilesDisabled] = React.useState(false)
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
@@ -453,11 +455,9 @@ function PackageCreationForm({
       const hashihgError = delayHashing && FI.validateHashingComplete(files)
       if (hashihgError) return hashihgError
 
-      setFilesDisabled(true)
       const entries = filesStateToEntries(files)
       const errors = await validateEntries(entries)
       setEntriesError(errors || null)
-      setFilesDisabled(false)
       if (errors?.length) {
         return 'schema'
       }
@@ -529,7 +529,6 @@ function PackageCreationForm({
                 <Layout.LeftColumn>
                   <RF.Field
                     component={PD.WorkflowInput}
-                    bucket={bucket}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
@@ -592,7 +591,7 @@ function PackageCreationForm({
                   {cfg.desktop ? (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       component={Upload.LocalFolderInput}
                       initialValue={defaultLocalFolder}
@@ -606,7 +605,7 @@ function PackageCreationForm({
                   ) : (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       // @ts-expect-error
                       component={FI.FilesInput}
@@ -633,7 +632,6 @@ function PackageCreationForm({
                       validationErrors={
                         submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
                       }
-                      disabled={filesDisabled}
                     />
                   )}
 
@@ -754,7 +752,7 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,
@@ -807,7 +805,7 @@ export function usePackageCreationDialog({
     async (initial?: {
       successor?: workflows.Successor
       path?: string
-      selection?: Selection.PrefixedKeysMap
+      selection?: Selection.ListingSelection
     }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)
@@ -888,7 +886,6 @@ export function usePackageCreationDialog({
           ),
           Error: (e) => (
             <DialogError
-              bucket={bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}

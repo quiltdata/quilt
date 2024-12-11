@@ -1,12 +1,6 @@
 #!/bin/bash
 set -exo pipefail
 
-if [ -z "$REGISTRY_HOST" ]
-then
-    echo "REGISTRY_HOST not set"
-    exit 1
-fi
-
 if [ -z "$INTERNAL_REGISTRY_URL" ]
 then
     echo "INTERNAL_REGISTRY_URL not set"
@@ -26,6 +20,6 @@ fi
 
 export NAMESERVER=$nameserver
 
-envsubst '$INTERNAL_REGISTRY_URL $NAMESERVER' < /root/nginx.conf.tmpl > /etc/nginx/nginx.conf
+envsubst '$INTERNAL_REGISTRY_URL $NAMESERVER' < /root/nginx.conf.tmpl > /tmp/nginx.conf
 
 exec nginx -g 'daemon off;'

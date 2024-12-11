@@ -3,12 +3,18 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { JsonSchema, isNestedType } from 'utils/json-schema'
+import { JsonSchema, isNestedType } from 'utils/JSONSchema'
 
 import ButtonExpand from './ButtonExpand'
 import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
+import {
+  COLUMN_IDS,
+  EMPTY_VALUE,
+  JSON_POINTER_PLACEHOLDER,
+  JsonValue,
+  RowData,
+} from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -50,17 +56,14 @@ const useStyles = M.makeStyles((t) => ({
 const isExpandable = (value: JsonValue, schema?: JsonSchema) =>
   value === EMPTY_VALUE ? isNestedType(schema) : R.is(Object, value)
 
-const hasDeleteButton = (
-  columnId: 'key' | 'value',
-  value: JsonValue,
-  schema?: JsonSchema,
-) => {
+const hasDeleteButton = (columnId: 'key' | 'value', value: JsonValue, data: RowData) => {
   // Remove button is shown in key field
   if (columnId !== COLUMN_IDS.KEY) return false
   // Remove button is shown only when key is set
   if (value === EMPTY_VALUE) return false
-  // No button if key is a placeholder from Schema and it's not array index
-  if (schema && typeof value !== 'number') return false
+  // No button if key is a placeholder from Schema,
+  // but not a placeholder for key in arrays (via `items`) or maps (via `additionalProperties`)
+  if (data.valueSchema && R.last(data.address) !== JSON_POINTER_PLACEHOLDER) return false
   return true
 }
 
@@ -107,7 +110,7 @@ export default function Preview({
 
       <Note {...{ columnId, data, value }} />
 
-      {hasDeleteButton(columnId, value, data.valueSchema) && (
+      {hasDeleteButton(columnId, value, data) && (
         <M.IconButton
           className={classes.button}
           onClick={onRemove}

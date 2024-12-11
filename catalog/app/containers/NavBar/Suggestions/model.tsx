@@ -30,7 +30,7 @@ function what(searchString: string, resultType: SearchUIModel.ResultType) {
     resultType === SearchUIModel.ResultType.QuiltPackage ? 'packages' : 'objects'
   return searchString ? (
     <>
-      <b>"{searchString}"</b> in <b>{typeDisplay}</b>
+      &laquo;<b>{searchString}</b>&raquo; in <b>{typeDisplay}</b>
     </>
   ) : (
     <b>all {typeDisplay}</b>
@@ -42,7 +42,7 @@ const inAllBuckets = (
     in <b>all buckets</b>
   </>
 )
-const inSelectedBuckets = (buckets: string[]) => {
+const inSelectedBuckets = (buckets: readonly string[]) => {
   const bucketsDisplay = buckets.length === 1 ? `s3://${buckets[0]}` : 'selected buckets'
   return (
     <>

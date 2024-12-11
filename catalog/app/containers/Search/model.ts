@@ -60,7 +60,7 @@ export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 
 interface SearchUrlStateBase {
   searchString: string | null
-  buckets: string[]
+  buckets: readonly string[]
   order: Model.GQLTypes.SearchResultOrder
 }
 
@@ -408,7 +408,7 @@ export const PackagesSearchFilterIO = Filter({
 
 type UserMetaFilterMap = Map<string, PredicateState<KnownPredicate>>
 
-class UserMetaFilters {
+export class UserMetaFilters {
   filters: UserMetaFilterMap
 
   static typeMap: Record<string, KnownPredicate> = {
@@ -532,9 +532,9 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
   return DEFAULT_RESULT_TYPE
 }
 
-const META_PREFIX = 'meta.'
+export const META_PREFIX = 'meta.'
 
-// XXX: use io-ts or @effect/schema for morphisms between url (querystring) and search state
+// XXX: use @effect/schema for morphisms between url (querystring) and search state
 export function parseSearchParams(qs: string): SearchUrlState {
   const params = new URLSearchParams(qs)
   const searchString = params.get('q')
@@ -1042,10 +1042,12 @@ export type SearhHitPackage = Extract<
 
 export type SearchHit = SearhHitObject | SearhHitPackage
 
-export type PackageUserMetaFacet = Extract<
+type PackageUserMetaFacetFull = Extract<
   GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
 >['stats']['userMeta'][number]
+
+export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
 
 const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,
@@ -1270,7 +1272,7 @@ function useSearchUIModel() {
   )
 
   const setBuckets = React.useCallback(
-    (buckets: string[]) => {
+    (buckets: readonly string[]) => {
       // XXX: reset filters or smth?
       updateUrlState((s) => ({ ...s, buckets }))
     },
@@ -1373,17 +1375,51 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
-  const clearFilter = React.useCallback(() => {
-    const defaultParams = parseSearchParams('')
-    updateUrlState(
-      (s) =>
-        ({
-          ...defaultParams,
-          buckets: s.buckets,
-          order: s.order,
-          resultType: s.resultType,
-        }) as SearchUrlState,
-    )
+  const clearFilters = React.useCallback(() => {
+    updateUrlState((s) => {
+      switch (s.resultType) {
+        case ResultType.QuiltPackage:
+          return {
+            ...s,
+            filter: PackagesSearchFilterIO.initialState,
+            userMetaFilters: new UserMetaFilters(),
+          }
+        case ResultType.S3Object:
+          return {
+            ...s,
+            filter: ObjectsSearchFilterIO.initialState,
+          }
+        default:
+          return assertNever(s)
+      }
+    })
+  }, [updateUrlState])
+
+  const reset = React.useCallback(() => {
+    updateUrlState(({ resultType, order }) => {
+      const base = {
+        searchString: null,
+        buckets: [],
+        order,
+      }
+      switch (resultType) {
+        case ResultType.QuiltPackage:
+          return {
+            ...base,
+            resultType,
+            filter: PackagesSearchFilterIO.initialState,
+            userMetaFilters: new UserMetaFilters(),
+          }
+        case ResultType.S3Object:
+          return {
+            ...base,
+            resultType,
+            filter: ObjectsSearchFilterIO.initialState,
+          }
+        default:
+          return assertNever(resultType)
+      }
+    })
   }, [updateUrlState])
 
   return useMemoEq(
@@ -1400,13 +1436,19 @@ function useSearchUIModel() {
         activateObjectsFilter,
         deactivateObjectsFilter,
         setObjectsFilter,
+
         activatePackagesFilter,
         deactivatePackagesFilter,
         setPackagesFilter,
+
         activatePackagesMetaFilter,
         deactivatePackagesMetaFilter,
         setPackagesMetaFilter,
-        clearFilter,
+
+        clearFilters,
+        reset,
+
+        updateUrlState,
       },
       baseSearchQuery,
       firstPageQuery,
