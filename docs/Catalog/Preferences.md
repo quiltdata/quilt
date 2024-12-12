@@ -100,7 +100,12 @@ ui:
 ```
 
 Note that the `ui.sourceBuckets` is empty by default.
-As a result, when users create or revise a package in a new bucket they can't add files from any bucket, including that one.  Instead, you need to manually add a configuration file, or click "auto-add current bucket" (which will create or edit the configuration file to add the current bucket to the list of `ui.sourceBuckets`)
+As a result, when users create or revise a package in a new bucket
+they can't add files from any bucket, including that one.
+Instead, you need to manually add a configuration file,
+or click "auto-add current bucket"
+(which will create or edit the configuration file to add
+the current bucket to the list of `ui.sourceBuckets`)
 
 ![Users can auto-add the current bucket to ui.sourceBuckets](../imgs/auto-add-source-bucket.png)
 
