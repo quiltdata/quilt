@@ -706,7 +706,9 @@ export default function QuiltSummarize({
 
   return (
     <div className={cx(classes.root, className)}>
-      {errors.length && <JsonValidationErrors className={classes.error} error={errors} />}
+      {!!errors.length && (
+        <JsonValidationErrors className={classes.error} error={errors} />
+      )}
 
       <div>
         {layout.rows.map((row, index) => (
