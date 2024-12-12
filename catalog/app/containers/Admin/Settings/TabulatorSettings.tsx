@@ -1,4 +1,3 @@
-import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -17,33 +16,25 @@ interface ToggleProps {
   checked: boolean
 }
 
-const NONE = Eff.Option.none<{ value: boolean }>()
-
 function Toggle({ checked }: ToggleProps) {
   const { push: notify } = Notifications.use()
   const mutate = GQL.useMutation(SET_UNRESTRICTED_MUTATION)
-  const [mutationState, setMutationState] = React.useState(NONE)
+  const [mutation, setMutation] = React.useState<{ value: boolean } | null>(null)
 
   const handleChange = React.useCallback(
     async (_event, value: boolean) => {
-      if (Eff.Option.isSome(mutationState)) return
-      setMutationState(Eff.Option.some({ value }))
+      if (mutation) return
+      setMutation({ value })
       try {
         await mutate({ value })
       } catch (e) {
         Sentry.captureException(e)
         notify(`Failed to update tabulator settings: ${e}`)
       } finally {
-        setMutationState(NONE)
+        setMutation(null)
       }
     },
-    [mutate, notify, mutationState, setMutationState],
-  )
-
-  const value = Eff.pipe(
-    mutationState,
-    Eff.Option.map((x) => x.value),
-    Eff.Option.getOrElse(() => checked),
+    [mutate, notify, mutation],
   )
 
   return (
@@ -51,9 +42,9 @@ function Toggle({ checked }: ToggleProps) {
       <M.FormControlLabel
         control={
           <M.Switch
-            checked={value}
+            checked={mutation?.value ?? checked}
             onChange={handleChange}
-            disabled={Eff.Option.isSome(mutationState)}
+            disabled={!!mutation}
           />
         }
         label="Enable unrestricted access"
