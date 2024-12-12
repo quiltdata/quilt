@@ -145,7 +145,7 @@ quilt3.Package().push('test/package', registry='s3://quilt-dev-metadata')
 # QuiltException: Workflow required, but none specified.
 ```
 
-Let's try again, adding the `workflow=` parameter:
+Let's retry, adding the `workflow=` parameter:
 
 <!--pytest-codeblocks:cont-->
 <!--pytest.mark.xfail-->
@@ -464,7 +464,7 @@ In Quilt, S3 buckets are like git branches but for data. With `quilt3` you can
 `browse` any package and then `push` it to any bucket that you choose.
 
 As a rule, cross-bucket pushes or "merges" reflect change in a package's
-lifecycle. For example, you might push a package from  *my-staging-bucket*
+lifecycle. For example, you might push a package from *my-staging-bucket*
 to *my-production-bucket* as it matures and becomes trusted.
 
 The catalog's
