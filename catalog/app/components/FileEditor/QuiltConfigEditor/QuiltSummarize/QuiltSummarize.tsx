@@ -35,21 +35,26 @@ import {
 } from './State'
 import type { Column, FileExtended, Row, Layout } from './State'
 
-function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
+function useFormattedListing(
+  r: requests.BucketListingResult,
+  initialPath: string,
+): Listing.Item[] {
   return React.useMemo(() => {
     const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path })
-  }, [r])
+    const prefix = initialPath === r.path ? '' : r.path
+    return Listing.format([...d, ...f], { bucket: r.bucket, prefix })
+  }, [initialPath, r])
 }
 
 interface FilePickerProps {
+  initialPath: string
   res: requests.BucketListingResult
   onCell: (item: Listing.Item) => void
 }
 
-function FilePicker({ res, onCell }: FilePickerProps) {
-  const items = useFormattedListing(res)
+function FilePicker({ initialPath, res, onCell }: FilePickerProps) {
+  const items = useFormattedListing(res, initialPath)
   const CellComponent = React.useCallback(
     ({ item, ...props }) => (
       <div
@@ -145,7 +150,7 @@ function FilePickerDialog({ bucket, initialPath, submit }: FilePickerDialogProps
       {data.case({
         _: () => <FilePickerSkeleton />,
         Ok: (res: requests.BucketListingResult) => (
-          <FilePicker res={res} onCell={handleCellClick} />
+          <FilePicker initialPath={initialPath} res={res} onCell={handleCellClick} />
         ),
       })}
     </>
