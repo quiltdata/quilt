@@ -28,14 +28,13 @@ interface EditorProps extends EditorState {
 
 function EditorSuspended({
   className,
-  saving,
+  saving: disabled,
   empty,
   error,
   handle,
   onChange,
   editing,
 }: EditorProps) {
-  const disabled = saving
   if (editing.brace !== '__quiltConfig' && editing.brace !== '__quiltSummarize') {
     loadMode(editing.brace || 'plain_text') // TODO: loaders#typeText.brace
   }
