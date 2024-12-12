@@ -110,6 +110,8 @@ This can be done by users via the per-bucket
 
 ### Unrestricted Access
 
+> Available since Quilt Platform version 1.57
+
 By default, Tabulator is only accessible via a session provided by the Quilt Catalog,
 and the access is scoped to the permissions of the Catalog user associated with
 that session. However, an admin can enable **unrestricted access** to Tabulator,
