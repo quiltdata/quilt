@@ -1,17 +1,61 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`components/FileEditor/FileEditor Editor Show TextEditor 1`] = `
+exports[`components/FileEditor/FileEditor Editor shows Error when loading failed 1`] = `
 <div
   className="makeStyles-tab-1 makeStyles-active-2"
 >
-  <h1>
-    Text Editor
-  </h1>
+  <div>
+    <div
+      id="error"
+    />
+  </div>
 </div>
 `;
 
-exports[`components/FileEditor/FileEditor Editor Show skeleton 1`] = `
-<div>
-  Skeleton
+exports[`components/FileEditor/FileEditor Editor shows Skeleton while loading data 1`] = `
+<div
+  className="makeStyles-tab-1 makeStyles-active-2"
+>
+  <div
+    id="Skeleton"
+  />
 </div>
+`;
+
+exports[`components/FileEditor/FileEditor Editor shows TextEditor 1`] = `
+<div
+  className="makeStyles-tab-1 makeStyles-active-2"
+>
+  <div
+    id="Text Editor"
+  >
+    <span
+      id="initialValue"
+    >
+      body
+    </span>
+  </div>
+</div>
+`;
+
+exports[`components/FileEditor/FileEditor Editor shows an empty TextEditor 1`] = `
+<div
+  className="makeStyles-tab-1 makeStyles-active-2"
+>
+  <div
+    id="Text Editor"
+  >
+    <span
+      id="initialValue"
+    >
+      
+    </span>
+  </div>
+</div>
+`;
+
+exports[`components/FileEditor/FileEditor Editor shows skeleton when loadMode is not resolved yet 1`] = `
+<div
+  id="Skeleton"
+/>
 `;

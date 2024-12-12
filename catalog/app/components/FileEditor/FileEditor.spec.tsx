@@ -9,7 +9,7 @@ import { Editor } from './FileEditor'
 
 jest.mock('utils/AWS', () => ({ S3: { use: () => {} } }))
 
-jest.mock('./Skeleton', () => () => <div>Skeleton</div>)
+jest.mock('./Skeleton', () => () => <div id="Skeleton" />)
 
 jest.mock('utils/NamedRoutes', () => ({
   ...jest.requireActual('utils/NamedRoutes'),
@@ -27,7 +27,11 @@ jest.mock(
 
 jest.mock(
   'components/Preview/Display',
-  jest.fn(() => () => <h1>Display error</h1>),
+  jest.fn(() => () => <div id="error" />),
+)
+
+const getObjectData = jest.fn((cases: any) =>
+  AsyncResult.case(cases, AsyncResult.Ok({ Body: 'body' })),
 )
 
 jest.mock(
@@ -35,14 +39,18 @@ jest.mock(
   jest.fn(() => ({
     ...jest.requireActual('components/Preview/loaders/utils'),
     useObjectGetter: () => ({
-      case: (cases: any) => AsyncResult.case(cases, AsyncResult.Ok({ Body: 'body' })),
+      case: getObjectData,
     }),
   })),
 )
 
 jest.mock(
   './TextEditor',
-  jest.fn(() => () => <h1>Text Editor</h1>),
+  jest.fn(() => ({ initialValue }: { initialValue: string }) => (
+    <div id="Text Editor">
+      <span id="initialValue">{initialValue}</span>
+    </div>
+  )),
 )
 
 jest.mock(
@@ -50,9 +58,7 @@ jest.mock(
   jest.fn(() => ({})),
 )
 
-const loadMode = jest.fn((): 'fulfilled' => {
-  throw Promise.resolve(null)
-})
+const loadMode = jest.fn(() => 'fulfilled')
 
 jest.mock(
   './loader',
@@ -66,8 +72,59 @@ jest.mock(
 describe('components/FileEditor/FileEditor', () => {
   describe('Editor', () => {
     const handle = { bucket: 'b', key: 'k' }
-    const { result } = renderHook(() => useState(handle))
-    it('Show skeleton', () => {
+    const hookData = renderHook(() => useState(handle))
+    const state = hookData.result.current
+    it('shows skeleton when loadMode is not resolved yet', () => {
+      loadMode.mockImplementationOnce(() => {
+        throw Promise.resolve(null)
+      })
+      const tree = renderer
+        .create(
+          <Editor
+            {...state}
+            className="root"
+            editing={{ brace: 'json' }}
+            handle={handle}
+          />,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('shows TextEditor', () => {
+      const tree = renderer
+        .create(
+          <Editor
+            {...state}
+            className="root"
+            editing={{ brace: 'json' }}
+            handle={handle}
+          />,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('shows an empty TextEditor', () => {
+      const tree = renderer
+        .create(
+          <Editor
+            {...state}
+            empty
+            className="root"
+            editing={{ brace: 'json' }}
+            handle={handle}
+          />,
+        )
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
+
+    it('shows Skeleton while loading data', () => {
+      getObjectData.mockImplementationOnce((cases: any) =>
+        AsyncResult.case(cases, AsyncResult.Pending()),
+      )
+      const { result } = renderHook(() => useState(handle))
       const tree = renderer
         .create(
           <Editor
@@ -81,8 +138,11 @@ describe('components/FileEditor/FileEditor', () => {
       expect(tree).toMatchSnapshot()
     })
 
-    it('Show TextEditor', () => {
-      loadMode.mockImplementation(() => 'fulfilled')
+    it('shows Error when loading failed', () => {
+      getObjectData.mockImplementationOnce((cases: any) =>
+        AsyncResult.case(cases, AsyncResult.Err(new Error('Fail'))),
+      )
+      const { result } = renderHook(() => useState(handle))
       const tree = renderer
         .create(
           <Editor
