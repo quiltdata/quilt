@@ -47,6 +47,12 @@ function useFormattedListing(
   }, [initialPath, r])
 }
 
+const useFilePickerStyles = M.makeStyles({
+  root: {
+    flexGrow: 1,
+  },
+})
+
 interface FilePickerProps {
   initialPath: string
   res: requests.BucketListingResult
@@ -54,6 +60,7 @@ interface FilePickerProps {
 }
 
 function FilePicker({ initialPath, res, onCell }: FilePickerProps) {
+  const classes = useFilePickerStyles()
   const items = useFormattedListing(res, initialPath)
   const CellComponent = React.useCallback(
     ({ item, ...props }) => (
@@ -66,7 +73,15 @@ function FilePicker({ initialPath, res, onCell }: FilePickerProps) {
     ),
     [onCell],
   )
-  return <Listing.Listing {...{ CellComponent, RootComponent: 'div', items }} />
+  return (
+    <Listing.Listing
+      CellComponent={CellComponent}
+      RootComponent="div"
+      className={classes.root}
+      dataGridProps={{ autoHeight: false }}
+      items={items}
+    />
+  )
 }
 
 const useFilePickerSkeletonStyles = M.makeStyles((t) => ({
@@ -119,13 +134,28 @@ function FilePickerSkeleton() {
   )
 }
 
+const useFilePickerDialogStyles = M.makeStyles({
+  dialog: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '80vh',
+  },
+})
+
 interface FilePickerDialogProps {
   bucket: string
-  submit: (path: string) => void
   initialPath: string
+  onClose: () => void
+  submit: (path: string) => void
 }
 
-function FilePickerDialog({ bucket, initialPath, submit }: FilePickerDialogProps) {
+function FilePickerDialog({
+  bucket,
+  initialPath,
+  onClose,
+  submit,
+}: FilePickerDialogProps) {
+  const classes = useFilePickerDialogStyles()
   const [path, setPath] = React.useState(initialPath)
   const bucketListing = requests.useBucketListing()
   const data = useData(bucketListing, {
@@ -147,12 +177,19 @@ function FilePickerDialog({ bucket, initialPath, submit }: FilePickerDialogProps
   )
   return (
     <>
-      {data.case({
-        _: () => <FilePickerSkeleton />,
-        Ok: (res: requests.BucketListingResult) => (
-          <FilePicker initialPath={initialPath} res={res} onCell={handleCellClick} />
-        ),
-      })}
+      <M.DialogContent>
+        <div className={classes.dialog}>
+          {data.case({
+            _: () => <FilePickerSkeleton />,
+            Ok: (res: requests.BucketListingResult) => (
+              <FilePicker initialPath={initialPath} res={res} onCell={handleCellClick} />
+            ),
+          })}
+        </div>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose}>Cancel</M.Button>
+      </M.DialogActions>
     </>
   )
 }
@@ -303,18 +340,12 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
   const handlePicker = React.useCallback(() => {
     openDialog(
       ({ close }) => (
-        <>
-          <M.DialogContent>
-            <FilePickerDialog
-              bucket={bucket}
-              initialPath={initialPath}
-              submit={(path) => pickPath(path, close)}
-            />
-          </M.DialogContent>
-          <M.DialogActions>
-            <M.Button onClick={close}>Cancel</M.Button>
-          </M.DialogActions>
-        </>
+        <FilePickerDialog
+          bucket={bucket}
+          initialPath={initialPath}
+          onClose={close}
+          submit={(path) => pickPath(path, close)}
+        />
       ),
       { maxWidth: 'xl' as const, fullWidth: true },
     )
