@@ -123,6 +123,115 @@ to access Athena resources associated with Tabulator.
 
 ![Tabulator Settings](../imgs/admin-tabulator-settings.png)
 
+#### Permissions & Configuration
+
+In order to access Tabulator in unrestricted mode, the caller must:
+
+1. Provide a workgroup with output location set and compatible with that of the
+   Tabulator (`s3://${UserAthenaResultsBucket}/athena-results/non-managed-roles/`).
+
+2. Have the following permissions:
+
+   - Athena query execution on the designated workgroup
+   - Access to the Tabulator data catalog
+   - Invoking the Tabulator Lambda function
+   - Read access to the Tabulator bucket for spill files
+   - Read/write access to the Athena results bucket
+
+Here is an example CloudFormation template that creates the necessary resources:
+
+```yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Resources for accessing Tabulator in unrestricted mode"
+
+Parameters:
+  UserAthenaResultsBucket:
+    Type: String
+    Description: "UserAthenaResultsBucket from the Quilt stack hosting the Tabulator"
+  TabulatorBucket:
+    Type: String
+    Description: "TabulatorBucket from the Quilt stack hosting the Tabulator"
+  TabulatorDataCatalogArn:
+    Type: String
+    Description: "ARN of the TabulatorDataCatalog from the Quilt stack hosting the Tabulator"
+  TabulatorLambdaArn:
+    Type: String
+    Description: "ARN of the TabulatorLambda from the Quilt stack hosting the Tabulator"
+
+Resources:
+  AthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: "TabulatorUnrestrictedAccessDogfood"
+      Description: "Workgroup for testing Tabulator with unrestricted access"
+      WorkGroupConfiguration:
+        EnforceWorkGroupConfiguration: true
+        ResultConfiguration:
+          OutputLocation: !Sub "s3://${UserAthenaResultsBucket}/athena-results/non-managed-roles/"
+  TabulatorAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TabulatorAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - athena:BatchGetNamedQuery
+                  - athena:BatchGetQueryExecution
+                  - athena:GetNamedQuery
+                  - athena:GetQueryExecution
+                  - athena:GetQueryResults
+                  - athena:GetWorkGroup
+                  - athena:StartQueryExecution
+                  - athena:StopQueryExecution
+                  - athena:ListNamedQueries
+                  - athena:ListQueryExecutions
+                Resource: !Sub "arn:${AWS::Partition}:athena:${AWS::Region}:${AWS::AccountId}:workgroup/${AthenaWorkGroup}"
+              - Effect: Allow
+                Action:
+                  - athena:ListWorkGroups
+                  - athena:ListDataCatalogs
+                  - athena:ListDatabases
+                Resource: "*"
+              - Effect: Allow
+                Action: athena:GetDataCatalog
+                Resource: !Ref TabulatorDataCatalogArn
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Ref TabulatorLambdaArn
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:AbortMultipartUpload
+                  - s3:ListMultipartUploadParts
+                Resource:
+                  - !Sub "arn:aws:s3:::${UserAthenaResultsBucket}"
+                  - !Sub "arn:aws:s3:::${UserAthenaResultsBucket}/athena-results/non-managed-roles/*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::${TabulatorBucket}"
+                  - !Sub "arn:aws:s3:::${TabulatorBucket}/spill/unrestricted/*"
+
+Outputs:
+  RoleArn:
+    Description: "ARN of the created IAM role"
+    Value: !GetAtt TabulatorAccessRole.Arn
+```
+
 ## Usage
 
 Once the configuration is set, users can query the tables using the Athena tab
