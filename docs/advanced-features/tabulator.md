@@ -240,7 +240,8 @@ Parameters:
     Description: "TabulatorBucket from the Quilt stack hosting the Tabulator"
   TabulatorDataCatalogArn:
     Type: String
-    Description: "ARN of the TabulatorDataCatalog from the Quilt stack hosting the Tabulator"
+    Description: |
+      ARN of the TabulatorDataCatalog from the Quilt stack hosting the Tabulator
   TabulatorLambdaArn:
     Type: String
     Description: "ARN of the TabulatorLambda from the Quilt stack hosting the Tabulator"
