@@ -433,7 +433,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     fullWidth
                     className={classes.field}
                     size="small"
-                    helperText="Width in pixels or percents"
+                    helperText="Width in pixels or percent"
                   />
                 )}
 
