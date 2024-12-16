@@ -1,4 +1,5 @@
 export type Mode =
+  | '__bucketPreferences'
   | '__quiltConfig'
   | '__quiltSummarize'
   | 'less'

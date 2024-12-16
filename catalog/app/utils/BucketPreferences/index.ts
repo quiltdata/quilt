@@ -1,7 +1,10 @@
 export type {
   ActionPreferences,
   AthenaPreferences,
+  BucketPreferences,
+  BucketPreferencesInput,
   MetaBlockPreferences,
+  MetaBlockPreferencesInput,
   NavPreferences,
   PackagePreferences,
   SourceBuckets,
