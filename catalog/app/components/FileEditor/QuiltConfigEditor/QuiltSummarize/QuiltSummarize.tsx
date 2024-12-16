@@ -486,7 +486,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                         Log.error(error)
                       }
                     }}
-                    helperText="Restores renderer to a state previously returned by saving config. Should be valid JSON object"
+                    helperText="Restores renderer state using a previously saved configuration. Configuration must be a valid JSON object."
                     value={file.type.config || '{}'}
                     fullWidth
                     className={classes.field}
