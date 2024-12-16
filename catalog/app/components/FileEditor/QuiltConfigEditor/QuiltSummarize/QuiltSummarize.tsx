@@ -302,8 +302,6 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
 
   const classes = useAddColumnStyles()
   const { file } = column
-  // TODO: [simple, setSimple] mode instead of advanced
-  //       save entered fields to `simple`, and restore them
   const [advanced, setAdvanced] = React.useState(file.isExtended)
 
   const onChangeValue = React.useCallback(
