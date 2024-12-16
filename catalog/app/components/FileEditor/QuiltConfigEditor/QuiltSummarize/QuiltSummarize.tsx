@@ -14,26 +14,48 @@ import * as requests from 'containers/Bucket/requests'
 import * as Listing from 'containers/Bucket/Listing'
 import { useData } from 'utils/Data'
 import * as Dialogs from 'utils/GlobalDialogs'
-import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
+import type { JsonRecord } from 'utils/types'
 
 import { useParams } from '../../routes'
 
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
-import {
-  addColumnAfter,
-  addRowAfter,
-  changeValue,
-  emptyFile,
-  init,
-  parse,
-  removeColumn,
-  schema,
-  stringify,
-  useState,
-} from './State'
+import * as State from './State'
 import type { Column, FileExtended, Row, Layout } from './State'
+
+type JsonTextFieldProps = Omit<M.TextFieldProps, 'onChange' | 'value'> & {
+  value?: JsonRecord // TODO: validate TypesExtended['config']
+  onChange: (v: JsonRecord) => void
+}
+
+function JsonTextField({ helperText, onChange, value, ...props }: JsonTextFieldProps) {
+  const [str, setStr] = React.useState(JSON.stringify(value) || '{}')
+  const [error, setError] = React.useState<Error | null>(null)
+  const handleChange = React.useCallback(
+    (event) => {
+      setStr(event.currentTarget.value)
+      try {
+        const json = JSON.parse(event.currentTarget.value)
+        onChange(json)
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(`${err}`))
+      }
+    },
+    [onChange],
+  )
+
+  return (
+    <M.TextField
+      {...props}
+      error={!!error}
+      helperText={error?.message ?? helperText}
+      onChange={handleChange}
+      value={str}
+    />
+  )
+}
 
 function useFormattedListing(
   r: requests.BucketListingResult,
@@ -109,6 +131,13 @@ const useFilePickerSkeletonStyles = M.makeStyles((t) => ({
 
 function FilePickerSkeleton() {
   const classes = useFilePickerSkeletonStyles()
+  const widths = React.useMemo(
+    () =>
+      Array.from({ length: 25 }).map(
+        () => `${Math.min(75, Math.max(25, Math.ceil(Math.random() * 100)))}%`,
+      ),
+    [],
+  )
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
@@ -117,12 +146,8 @@ function FilePickerSkeleton() {
       <M.Divider />
       <Skeleton className={classes.divided} />
       <M.Divider />
-      {Array.from({ length: 25 }).map((_, i) => (
-        <Skeleton
-          width={`${Math.min(75, Math.max(25, Math.ceil(Math.random() * 100)))}%`}
-          className={classes.item}
-          key={i}
-        />
+      {widths.map((width, i) => (
+        <Skeleton width={width} className={classes.item} key={i} />
       ))}
       <M.Divider />
       <Skeleton className={classes.divided} />
@@ -299,13 +324,11 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
 
   const classes = useAddColumnStyles()
   const { file } = column
-  // TODO: [simple, setSimple] mode instead of advanced
-  //       save entered fields to `simple`, and restore them
   const [advanced, setAdvanced] = React.useState(file.isExtended)
 
   const onChangeValue = React.useCallback(
     (key: keyof FileExtended, value: FileExtended[keyof FileExtended]) => {
-      const dispatch = changeValue(row.id, column.id)
+      const dispatch = State.changeValue(row.id, column.id)
       onChange(dispatch({ [key]: value }))
     },
     [onChange, row.id, column.id],
@@ -324,7 +347,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
   )
 
   const onRemove = React.useCallback(
-    () => onChange(removeColumn(row.id, column.id)),
+    () => onChange(State.removeColumn(row.id, column.id)),
     [onChange, row.id, column.id],
   )
 
@@ -433,7 +456,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     fullWidth
                     className={classes.field}
                     size="small"
-                    helperText="Width in pixels or percents"
+                    helperText="Width in pixels or percent"
                   />
                 )}
 
@@ -449,7 +472,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     <M.MenuItem value="">
                       <i>Default</i>
                     </M.MenuItem>
-                    {schema.definitions.typeShorthand.enum.map((type) => (
+                    {State.schema.definitions.typeShorthand.enum.map((type) => (
                       <M.MenuItem key={type} value={type}>
                         {type}
                       </M.MenuItem>
@@ -475,19 +498,13 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                 )}
 
                 {file.type?.name === 'perspective' && (
-                  <M.TextField
+                  <JsonTextField
                     disabled={disabled}
                     label="Perspective config"
                     name="config"
-                    onChange={(event) => {
-                      try {
-                        onChangeType('config', JSON.parse(event.currentTarget.value))
-                      } catch (error) {
-                        Log.error(error)
-                      }
-                    }}
-                    helperText="Restores renderer to a state previously returned by saving config. Should be valid JSON object"
-                    value={file.type.config || '{}'}
+                    onChange={(c) => onChangeType('config', c)}
+                    helperText="Restores renderer state using a previously saved configuration. Configuration must be a valid JSON object."
+                    value={file.type.config as JsonRecord}
                     fullWidth
                     className={classes.field}
                     size="small"
@@ -519,7 +536,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
         className={classes.divider}
         disabled={disabled}
         expanded={last}
-        onClick={() => onChange(addColumnAfter(row.id, column.id)(emptyFile))}
+        onClick={() => onChange(State.addColumnAfter(row.id, column.id)(State.emptyFile))}
         variant="vertical"
       />
     </div>
@@ -655,7 +672,10 @@ interface AddRowProps {
 function AddRow({ className, onChange, disabled, row, last }: AddRowProps) {
   const classes = useAddRowStyles()
 
-  const onAdd = React.useCallback(() => onChange(addRowAfter(row.id)), [onChange, row.id])
+  const onAdd = React.useCallback(
+    () => onChange(State.addRowAfter(row.id)),
+    [onChange, row.id],
+  )
 
   return (
     <div className={cx(classes.root, className)}>
@@ -709,7 +729,7 @@ export default function QuiltSummarize({
   onChange,
 }: QuiltConfigEditorProps) {
   const classes = useStyles()
-  const { layout, setLayout } = useState()
+  const { layout, setLayout } = State.use()
   const [errors, setErrors] = React.useState<[Error] | ErrorObject[]>(
     error ? [error] : [],
   )
@@ -717,7 +737,7 @@ export default function QuiltSummarize({
   React.useEffect(() => {
     if (!initialValue) return
     try {
-      setLayout(init(parse(initialValue)))
+      setLayout(State.init(State.parse(initialValue)))
     } catch (e) {
       if (Array.isArray(e)) {
         setErrors(e)
@@ -730,7 +750,7 @@ export default function QuiltSummarize({
   const [value] = useDebounce(layout, 300)
   React.useEffect(() => {
     try {
-      onChange(stringify(value))
+      onChange(State.stringify(value))
     } catch (e) {
       if (Array.isArray(e)) {
         setErrors(e)
@@ -762,7 +782,7 @@ export default function QuiltSummarize({
             variant="horizontal"
             className={classes.row}
             expanded
-            onClick={() => setLayout(init())}
+            onClick={() => setLayout(State.init())}
             disabled={disabled}
           />
         )}
