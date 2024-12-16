@@ -14,8 +14,8 @@ import * as requests from 'containers/Bucket/requests'
 import * as Listing from 'containers/Bucket/Listing'
 import { useData } from 'utils/Data'
 import * as Dialogs from 'utils/GlobalDialogs'
-import Log from 'utils/Logging'
 import StyledLink from 'utils/StyledLink'
+import type { JsonRecord } from 'utils/types'
 
 import { useParams } from '../../routes'
 
@@ -34,6 +34,39 @@ import {
   useState,
 } from './State'
 import type { Column, FileExtended, Row, Layout } from './State'
+
+type JsonTextFieldProps = Omit<M.TextFieldProps, 'onChange' | 'value'> & {
+  value?: JsonRecord // TODO: validate TypesExtended['config']
+  onChange: (v: JsonRecord) => void
+}
+
+function JsonTextField({ helperText, onChange, value, ...props }: JsonTextFieldProps) {
+  const [str, setStr] = React.useState(JSON.stringify(value) || '{}')
+  const [error, setError] = React.useState<Error | null>(null)
+  const handleChange = React.useCallback(
+    (event) => {
+      setStr(event.currentTarget.value)
+      try {
+        const json = JSON.parse(event.currentTarget.value)
+        onChange(json)
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(`${err}`))
+      }
+    },
+    [onChange],
+  )
+
+  return (
+    <M.TextField
+      {...props}
+      error={!!error}
+      helperText={error?.message ?? helperText}
+      onChange={handleChange}
+      value={str}
+    />
+  )
+}
 
 function useFormattedListing(
   r: requests.BucketListingResult,
@@ -476,19 +509,13 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                 )}
 
                 {file.type?.name === 'perspective' && (
-                  <M.TextField
+                  <JsonTextField
                     disabled={disabled}
                     label="Perspective config"
                     name="config"
-                    onChange={(event) => {
-                      try {
-                        onChangeType('config', JSON.parse(event.currentTarget.value))
-                      } catch (error) {
-                        Log.error(error)
-                      }
-                    }}
+                    onChange={(c) => onChangeType('config', c)}
                     helperText="Restores renderer to a state previously returned by saving config. Should be valid JSON object"
-                    value={file.type.config || '{}'}
+                    value={file.type.config as JsonRecord}
                     fullWidth
                     className={classes.field}
                     size="small"
