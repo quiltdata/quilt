@@ -190,7 +190,9 @@ export function stringify(layout: Layout) {
   return JSON.stringify(converted, null, 2)
 }
 
-export function useState() {
+function useState() {
   const [layout, setLayout] = React.useState<Layout>(init())
   return { layout, setLayout }
 }
+
+export const use = useState

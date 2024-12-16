@@ -21,18 +21,7 @@ import { useParams } from '../../routes'
 
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
-import {
-  addColumnAfter,
-  addRowAfter,
-  changeValue,
-  emptyFile,
-  init,
-  parse,
-  removeColumn,
-  schema,
-  stringify,
-  useState,
-} from './State'
+import * as State from './State'
 import type { Column, FileExtended, Row, Layout } from './State'
 
 type JsonTextFieldProps = Omit<M.TextFieldProps, 'onChange' | 'value'> & {
@@ -339,7 +328,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
 
   const onChangeValue = React.useCallback(
     (key: keyof FileExtended, value: FileExtended[keyof FileExtended]) => {
-      const dispatch = changeValue(row.id, column.id)
+      const dispatch = State.changeValue(row.id, column.id)
       onChange(dispatch({ [key]: value }))
     },
     [onChange, row.id, column.id],
@@ -358,7 +347,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
   )
 
   const onRemove = React.useCallback(
-    () => onChange(removeColumn(row.id, column.id)),
+    () => onChange(State.removeColumn(row.id, column.id)),
     [onChange, row.id, column.id],
   )
 
@@ -483,7 +472,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     <M.MenuItem value="">
                       <i>Default</i>
                     </M.MenuItem>
-                    {schema.definitions.typeShorthand.enum.map((type) => (
+                    {State.schema.definitions.typeShorthand.enum.map((type) => (
                       <M.MenuItem key={type} value={type}>
                         {type}
                       </M.MenuItem>
@@ -547,7 +536,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
         className={classes.divider}
         disabled={disabled}
         expanded={last}
-        onClick={() => onChange(addColumnAfter(row.id, column.id)(emptyFile))}
+        onClick={() => onChange(State.addColumnAfter(row.id, column.id)(State.emptyFile))}
         variant="vertical"
       />
     </div>
@@ -683,7 +672,10 @@ interface AddRowProps {
 function AddRow({ className, onChange, disabled, row, last }: AddRowProps) {
   const classes = useAddRowStyles()
 
-  const onAdd = React.useCallback(() => onChange(addRowAfter(row.id)), [onChange, row.id])
+  const onAdd = React.useCallback(
+    () => onChange(State.addRowAfter(row.id)),
+    [onChange, row.id],
+  )
 
   return (
     <div className={cx(classes.root, className)}>
@@ -737,7 +729,7 @@ export default function QuiltSummarize({
   onChange,
 }: QuiltConfigEditorProps) {
   const classes = useStyles()
-  const { layout, setLayout } = useState()
+  const { layout, setLayout } = State.use()
   const [errors, setErrors] = React.useState<[Error] | ErrorObject[]>(
     error ? [error] : [],
   )
@@ -745,7 +737,7 @@ export default function QuiltSummarize({
   React.useEffect(() => {
     if (!initialValue) return
     try {
-      setLayout(init(parse(initialValue)))
+      setLayout(State.init(State.parse(initialValue)))
     } catch (e) {
       if (Array.isArray(e)) {
         setErrors(e)
@@ -758,7 +750,7 @@ export default function QuiltSummarize({
   const [value] = useDebounce(layout, 300)
   React.useEffect(() => {
     try {
-      onChange(stringify(value))
+      onChange(State.stringify(value))
     } catch (e) {
       if (Array.isArray(e)) {
         setErrors(e)
@@ -790,7 +782,7 @@ export default function QuiltSummarize({
             variant="horizontal"
             className={classes.row}
             expanded
-            onClick={() => setLayout(init())}
+            onClick={() => setLayout(State.init())}
             disabled={disabled}
           />
         )}
