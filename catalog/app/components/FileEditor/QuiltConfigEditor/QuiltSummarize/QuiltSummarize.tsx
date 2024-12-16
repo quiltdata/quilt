@@ -109,6 +109,13 @@ const useFilePickerSkeletonStyles = M.makeStyles((t) => ({
 
 function FilePickerSkeleton() {
   const classes = useFilePickerSkeletonStyles()
+  const widths = React.useMemo(
+    () =>
+      Array.from({ length: 25 }).map(
+        () => `${Math.min(75, Math.max(25, Math.ceil(Math.random() * 100)))}%`,
+      ),
+    [],
+  )
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
@@ -117,12 +124,8 @@ function FilePickerSkeleton() {
       <M.Divider />
       <Skeleton className={classes.divided} />
       <M.Divider />
-      {Array.from({ length: 25 }).map((_, i) => (
-        <Skeleton
-          width={`${Math.min(75, Math.max(25, Math.ceil(Math.random() * 100)))}%`}
-          className={classes.item}
-          key={i}
-        />
+      {widths.map((width, i) => (
+        <Skeleton width={width} className={classes.item} key={i} />
       ))}
       <M.Divider />
       <Skeleton className={classes.divided} />
