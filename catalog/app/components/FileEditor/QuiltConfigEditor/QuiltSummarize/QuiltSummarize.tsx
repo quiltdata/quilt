@@ -456,7 +456,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     fullWidth
                     className={classes.field}
                     size="small"
-                    helperText="Width in pixels or percents"
+                    helperText="Width in pixels or percent"
                   />
                 )}
 
@@ -503,7 +503,7 @@ function AddColumn({ className, column, disabled, last, onChange, row }: AddColu
                     label="Perspective config"
                     name="config"
                     onChange={(c) => onChangeType('config', c)}
-                    helperText="Restores renderer to a state previously returned by saving config. Should be valid JSON object"
+                    helperText="Restores renderer state using a previously saved configuration. Configuration must be a valid JSON object."
                     value={file.type.config as JsonRecord}
                     fullWidth
                     className={classes.field}
