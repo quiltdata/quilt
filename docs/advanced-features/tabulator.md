@@ -229,33 +229,15 @@ Here is an example CloudFormation template that creates the necessary resources:
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Resources for accessing Tabulator in unrestricted mode"
+Description: "Resources for accessing Tabulator in open query mode"
 
 Parameters:
-  UserAthenaResultsBucket:
-    Type: String
-    Description: "UserAthenaResultsBucket from the Quilt stack hosting the Tabulator"
-  TabulatorBucket:
-    Type: String
-    Description: "TabulatorBucket from the Quilt stack hosting the Tabulator"
-  TabulatorDataCatalogArn:
+  TabulatorOpenQueryPolicyArn:
     Type: String
     Description: |
-      ARN of the TabulatorDataCatalog from the Quilt stack hosting the Tabulator
-  TabulatorLambdaArn:
-    Type: String
-    Description: "ARN of the TabulatorLambda from the Quilt stack hosting the Tabulator"
+      TabulatorOpenQueryPolicyArn output from the Quilt stack hosting the Tabulator
 
 Resources:
-  AthenaWorkGroup:
-    Type: AWS::Athena::WorkGroup
-    Properties:
-      Name: "TabulatorUnrestrictedAccessDogfood"
-      Description: "Workgroup for testing Tabulator with unrestricted access"
-      WorkGroupConfiguration:
-        EnforceWorkGroupConfiguration: true
-        ResultConfiguration:
-          OutputLocation: !Sub "s3://${UserAthenaResultsBucket}/athena-results/non-managed-roles/"
   TabulatorAccessRole:
     Type: AWS::IAM::Role
     Properties:
@@ -266,53 +248,8 @@ Resources:
             Principal:
               AWS: "*"
             Action: sts:AssumeRole
-      Policies:
-        - PolicyName: TabulatorAccess
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - athena:BatchGetNamedQuery
-                  - athena:BatchGetQueryExecution
-                  - athena:GetNamedQuery
-                  - athena:GetQueryExecution
-                  - athena:GetQueryResults
-                  - athena:GetWorkGroup
-                  - athena:StartQueryExecution
-                  - athena:StopQueryExecution
-                  - athena:ListNamedQueries
-                  - athena:ListQueryExecutions
-                Resource: !Sub "arn:${AWS::Partition}:athena:${AWS::Region}:${AWS::AccountId}:workgroup/${AthenaWorkGroup}"
-              - Effect: Allow
-                Action:
-                  - athena:ListWorkGroups
-                  - athena:ListDataCatalogs
-                  - athena:ListDatabases
-                Resource: "*"
-              - Effect: Allow
-                Action: athena:GetDataCatalog
-                Resource: !Ref TabulatorDataCatalogArn
-              - Effect: Allow
-                Action: lambda:InvokeFunction
-                Resource: !Ref TabulatorLambdaArn
-              - Effect: Allow
-                Action:
-                  - s3:GetBucketLocation
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:AbortMultipartUpload
-                  - s3:ListMultipartUploadParts
-                Resource:
-                  - !Sub "arn:aws:s3:::${UserAthenaResultsBucket}"
-                  - !Sub "arn:aws:s3:::${UserAthenaResultsBucket}/athena-results/non-managed-roles/*"
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                Resource:
-                  - !Sub "arn:aws:s3:::${TabulatorBucket}"
-                  - !Sub "arn:aws:s3:::${TabulatorBucket}/spill/unrestricted/*"
+      ManagedPolicyArns:
+        - !Ref TabulatorOpenQueryPolicyArn
 
 Outputs:
   RoleArn:
