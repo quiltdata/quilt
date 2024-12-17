@@ -2,28 +2,26 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Settings_gql_TabulatorUnrestrictedQueryVariables =
-  Types.Exact<{ [key: string]: never }>
+export type containers_Admin_Settings_gql_TabulatorOpenQueryQueryVariables = Types.Exact<{
+  [key: string]: never
+}>
 
-export type containers_Admin_Settings_gql_TabulatorUnrestrictedQuery = {
+export type containers_Admin_Settings_gql_TabulatorOpenQueryQuery = {
   readonly __typename: 'Query'
 } & {
   readonly admin: { readonly __typename: 'AdminQueries' } & Pick<
     Types.AdminQueries,
-    'tabulatorUnrestricted'
+    'tabulatorOpenQuery'
   >
 }
 
-export const containers_Admin_Settings_gql_TabulatorUnrestrictedDocument = {
+export const containers_Admin_Settings_gql_TabulatorOpenQueryDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: {
-        kind: 'Name',
-        value: 'containers_Admin_Settings_gql_TabulatorUnrestricted',
-      },
+      name: { kind: 'Name', value: 'containers_Admin_Settings_gql_TabulatorOpenQuery' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -33,7 +31,7 @@ export const containers_Admin_Settings_gql_TabulatorUnrestrictedDocument = {
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
-                { kind: 'Field', name: { kind: 'Name', value: 'tabulatorUnrestricted' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'tabulatorOpenQuery' } },
               ],
             },
           },
@@ -42,8 +40,8 @@ export const containers_Admin_Settings_gql_TabulatorUnrestrictedDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Settings_gql_TabulatorUnrestrictedQuery,
-  containers_Admin_Settings_gql_TabulatorUnrestrictedQueryVariables
+  containers_Admin_Settings_gql_TabulatorOpenQueryQuery,
+  containers_Admin_Settings_gql_TabulatorOpenQueryQueryVariables
 >
 
-export { containers_Admin_Settings_gql_TabulatorUnrestrictedDocument as default }
+export { containers_Admin_Settings_gql_TabulatorOpenQueryDocument as default }

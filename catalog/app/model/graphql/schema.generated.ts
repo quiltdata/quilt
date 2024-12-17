@@ -241,18 +241,18 @@ export default {
             ],
           },
           {
-            name: 'setTabulatorUnrestricted',
+            name: 'setTabulatorOpenQuery',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'OBJECT',
-                name: 'TabulatorUnrestrictedResult',
+                name: 'TabulatorOpenQueryResult',
                 ofType: null,
               },
             },
             args: [
               {
-                name: 'value',
+                name: 'enabled',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
@@ -309,7 +309,7 @@ export default {
             args: [],
           },
           {
-            name: 'tabulatorUnrestricted',
+            name: 'tabulatorOpenQuery',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -5475,6 +5475,25 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'TabulatorOpenQueryResult',
+        fields: [
+          {
+            name: 'tabulatorOpenQuery',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'TabulatorTable',
         fields: [
           {
@@ -5496,25 +5515,6 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
-        name: 'TabulatorUnrestrictedResult',
-        fields: [
-          {
-            name: 'tabulatorUnrestricted',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
                 ofType: null,
               },
             },
