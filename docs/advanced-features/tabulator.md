@@ -78,13 +78,15 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 ### Using Athena to Access Tabulator
 
-Due to the way permissions are configured, Tabulator cannot be accessed from
-the AWS Console or Athena views by default
-(unless [open query](#open-query) is enabled).
-You must access Tabulator via the Quilt stack in order to query those tables.
-This can be done by users via the per-bucket
-"Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
-"Usage" below for more details.
+The primary way of accessing Tabulator is using the Quilt stack to query those
+tables. This can be done by users via the per-bucket "Queries" tab in the Quilt
+Catalog, or programmatically via `quilt3`. See "Usage" below for more details.
+
+As of Quilt Platform version 1.57, admins can enable [open query](#open-query)
+(below) to allow external users to access Tabulator tables directly from the AWS
+Console, Athena views, or JDBC connectors. This is especially useful for
+customers who want to access Tabulator from external services, such as Tableau
+and Spotfire.
 
 ### Caveats
 
