@@ -205,129 +205,27 @@ By default, Tabulator is only accessible via a session provided by the Quilt
 Catalog, and the access is scoped to the permissions of the Catalog user
 associated with that session. However, admins can choose to enable **open
 query** to Tabulator tables, deferring all access control to AWS, thus enabling
-access from external services.
+access from external services. This allows querying Tabulator from the AWS
+Console, Athena views or JDBC connectors -- as long as the caller has been
+granted the necessary permissions to access Athena resources associated with
+Tabulator.
 
-In this case, the underlying data in S3 is accessed using the Tabulator's
-dedicated "open query" role, which has read-only access to all the S3 buckets
-attached to that stack. This allows querying Tabulator from the AWS Console,
-Athena views or JDBC connectors -- as long as the caller has been granted the
-necessary permissions to access Athena resources associated with Tabulator.
+### 1. Enable Open Query
+
+To enable open query, an admin must set the `open_query` field to `true` in
+Tabulator configuration. This can be done via the Admin UI or the
+`quilt3.admin.tabulator` API.
 
 ![Tabulator Settings](../imgs/admin-tabulator-settings.png)
 
-### Permissions & Configuration
+### 2. Configure Permissions
 
-In order to access Tabulator in open query mode, the caller must have
-permissions to:
+In order to access Tabulator in open query mode, the caller must use a special
+workgroup, and have permissions to use that workgroup and access tabulator
+resources. Both of these are created by the Quilt stack, and must be added to to
+the new or existing role used by the caller.
 
-- use a new or existing Athena workgroup
-- read and write to that workgroup's output location, e.g.
-  `s3://${UserAthenaResultsBucket}`
-- invoke the Tabulator Lambda function
-- read from the relevant Tabulator bucket (in order to access spill files, if
-  any)
+You can find the ARNs for that workgroup and access policy in the
+Resources tab, then copy them into the relevant IAM role.
 
-In addition, Tabulator itself must be able to write to the workgroup's output
-location. The easiest way to do this is by adding that bucket to the Quilt
-stack.
-
-The simplest way to do this is for your AWS Admin to grant an existing IAM role
-access to the stack's `UserAthenaNonManagedRoleWorkgroup` and `TabulatorLambda`,
-as described in the stack's `Resources` tab.
-
-However, you can also create a new workgroup and role with the necessary
-permissions.  Here is an example CloudFormation template that creates those
-resources:
-
-```yaml
-AWSTemplateFormatVersion: 2010-09-09
-Description: "Resources for accessing Tabulator in open query mode"
-
-Parameters:
-  UserAthenaResultsBucket:
-    Type: String
-    Description: "UserAthenaResultsBucket from the Quilt stack hosting the Tabulator"
-  TabulatorBucket:
-    Type: String
-    Description: "TabulatorBucket from the Quilt stack hosting the Tabulator"
-  TabulatorDataCatalogArn:
-    Type: String
-    Description: |
-      ARN of the TabulatorDataCatalog from the Quilt stack hosting the Tabulator
-  TabulatorLambdaArn:
-    Type: String
-    Description: "ARN of the TabulatorLambda from the Quilt stack hosting the Tabulator"
-
-Resources:
-  AthenaWorkGroup:
-    Type: AWS::Athena::WorkGroup
-    Properties:
-      Name: "TabulatorUnrestrictedAccessDogfood"
-      Description: "Workgroup for testing Tabulator with open query"
-      WorkGroupConfiguration:
-        EnforceWorkGroupConfiguration: true
-        ResultConfiguration:
-          OutputLocation: !Sub "s3://${UserAthenaResultsBucket}/athena-results/non-managed-roles/"
-  TabulatorAccessRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: "*"
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: TabulatorAccess
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - athena:BatchGetNamedQuery
-                  - athena:BatchGetQueryExecution
-                  - athena:GetNamedQuery
-                  - athena:GetQueryExecution
-                  - athena:GetQueryResults
-                  - athena:GetWorkGroup
-                  - athena:StartQueryExecution
-                  - athena:StopQueryExecution
-                  - athena:ListNamedQueries
-                  - athena:ListQueryExecutions
-                Resource: !Sub "arn:${AWS::Partition}:athena:${AWS::Region}:${AWS::AccountId}:workgroup/${AthenaWorkGroup}"
-              - Effect: Allow
-                Action:
-                  - athena:ListWorkGroups
-                  - athena:ListDataCatalogs
-                  - athena:ListDatabases
-                Resource: "*"
-              - Effect: Allow
-                Action: athena:GetDataCatalog
-                Resource: !Ref TabulatorDataCatalogArn
-              - Effect: Allow
-                Action: lambda:InvokeFunction
-                Resource: !Ref TabulatorLambdaArn
-              - Effect: Allow
-                Action:
-                  - s3:GetBucketLocation
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:AbortMultipartUpload
-                  - s3:ListMultipartUploadParts
-                Resource:
-                  - !Sub "arn:aws:s3:::${UserAthenaResultsBucket}"
-                  - !Sub "arn:aws:s3:::${UserAthenaResultsBucket}/athena-results/non-managed-roles/*"
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                Resource:
-                  - !Sub "arn:aws:s3:::${TabulatorBucket}"
-                  - !Sub "arn:aws:s3:::${TabulatorBucket}/spill/unrestricted/*"
-
-Outputs:
-  RoleArn:
-    Description: "ARN of the created IAM role"
-    Value: !GetAtt TabulatorAccessRole.Arn
-```
+![Tabulator Resources](../imgs/admin-tabulator-resources.png)
