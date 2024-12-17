@@ -1,5 +1,4 @@
-import * as R from 'ramda'
-
+import type { Json, JsonRecord } from 'utils/types'
 import * as YAML from 'utils/yaml'
 import type {
   BucketPreferencesInput,
@@ -135,11 +134,30 @@ export function parse(config: string, sys: Defaults, ext: Partial<Defaults>) {
 
 export type Config = ReturnType<typeof parse>
 
+const isJsonRecord = (obj: Json): obj is JsonRecord =>
+  obj != null && typeof obj === 'object' && !Array.isArray(obj)
+
+function assocPath(obj: JsonRecord, value: Json, path: string[]): JsonRecord {
+  const [head, ...parts] = path
+  if (parts.length === 0) return { ...obj, [head]: value }
+  const nested = obj[head]
+  if (isJsonRecord(nested)) {
+    return {
+      ...obj,
+      [head]: assocPath(nested, value, parts),
+    }
+  }
+  return {
+    ...obj,
+    [head]: assocPath({}, value, parts),
+  }
+}
+
 export function stringify(config: Config): string {
-  let out = {}
-  Object.entries(config).forEach(([key, value]) => {
-    if (value.isDefault) return
-    out = R.assocPath(key.split('.'), value.value, out)
-  })
-  return JSON.stringify(out)
+  const aux = Object.entries(config).reduce(
+    (memo, [key, value]) =>
+      value.isDefault ? memo : assocPath(memo, value.value as Json, key.split('.')),
+    {},
+  )
+  return JSON.stringify(aux)
 }
