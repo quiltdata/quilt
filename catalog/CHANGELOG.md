@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Visual editor for `quilt_summarize.json` ([#4254](https://github.com/quiltdata/quilt/pull/4254))
 - [Added] Support "html" type in `quilt_summarize.json` ([#4252](https://github.com/quiltdata/quilt/pull/4252))
 - [Fixed] Resolve caching issues where changes in `.quilt/{workflows,catalog}` were not applied ([#4245](https://github.com/quiltdata/quilt/pull/4245))
 - [Added] A shortcut to enable adding files to a package from the current bucket ([#4245](https://github.com/quiltdata/quilt/pull/4245))
