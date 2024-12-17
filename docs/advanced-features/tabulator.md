@@ -80,7 +80,7 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 Due to the way permissions are configured, Tabulator cannot be accessed from
 the AWS Console or Athena views by default
-(unless [unrestricted access](#unrestricted-access) is enabled).
+(unless [open query](#open-query) is enabled).
 You must access Tabulator via the Quilt stack in order to query those tables.
 This can be done by users via the per-bucket
 "Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
@@ -113,7 +113,7 @@ This can be done by users via the per-bucket
 Once the configuration is set, users can query the tables using the Athena tab
 from the Quilt Catalog. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console by default
-(unless [unrestricted access](#unrestricted-access) is enabled).
+(unless [open query](#open-query) is enabled).
 
 For example, to query the `ccle_tsv` table from the appropriate workgroup in
 the `quilt-tf-stable` stack, where the database (bucket name) is `udp-spec`:
@@ -151,7 +151,7 @@ page from which you must paste in the appropriate access token. Use
 `get_boto3_session()` to get a session with the same permissions as your Quilt
 Catalog user, then use the `boto3` Athena client to run queries.
 
-> If [unrestricted access](#unrestricted-access) is enabled, you can use any
+> If [open query](#open-query) is enabled, you can use any
 > AWS credentials providing access to Athena resources associated with Tabulator.
 
 Here is a complete example:
@@ -195,41 +195,50 @@ else:
     print(f'Query did not succeed. Final state: {state}')
 ```
 
-## Unrestricted Access
+## open query
 
 > Available since Quilt Platform version 1.57
 
-By default, Tabulator is only accessible via a session provided by the Quilt Catalog,
-and the access is scoped to the permissions of the Catalog user associated with
-that session. However, an admin can enable **unrestricted access** to Tabulator,
-deferring all access control to AWS. The underlying data in S3 is accessed using
-the Tabulator's dedicated "unrestricted" role, which has read-only access to all
-the S3 buckets attached to the given stack. This allows querying the data directly
-from the AWS Console or Athena views, given the caller has the necessary permissions
-to access Athena resources associated with Tabulator.
+By default, Tabulator is only accessible via a session provided by the Quilt
+Catalog, and the access is scoped to the permissions of the Catalog user
+associated with that session. However, an admin can enable **open query** to
+Tabulator tables, deferring all access control to AWS.
+
+In this case, the underlying data in S3 is accessed using the Tabulator's
+dedicated "open query" role, which has read-only access to all the S3 buckets
+attached to that stack. This allows querying Tabulator from the AWS Console,
+Athena views or JDBC connectors -- as long as the caller has been granted the
+necessary permissions to access Athena resources associated with Tabulator.
 
 ![Tabulator Settings](../imgs/admin-tabulator-settings.png)
 
 ### Permissions & Configuration
 
-In order to access Tabulator in unrestricted mode, the caller must:
+In order to access Tabulator in open query mode, the caller must have
+permissions to:
 
-1. Provide a workgroup with output location set and compatible with that of the
-   Tabulator (`s3://${UserAthenaResultsBucket}/athena-results/non-managed-roles/`).
+- use a new or existing Athena workgroup
+- read and write to that workgroup's output location, e.g.
+  `s3://${UserAthenaResultsBucket}`
+- invoke the Tabulator Lambda function
+- read from the relevant Tabulator bucket (in order to access spill files, if
+  any)
 
-2. Have the following permissions:
+In addition, Tabulator itself must be able to write to the workgroup's output
+location. The easiest way to do this is by adding that bucket to the Quilt
+stack.
 
-   - Athena query execution on the designated workgroup
-   - Access to the Tabulator data catalog
-   - Invoking the Tabulator Lambda function
-   - Read access to the Tabulator bucket for spill files
-   - Read/write access to the Athena results bucket
+The simplest way to do this is for your AWS Admin to grant an existing IAM role
+access to the stack's `UserAthenaNonManagedRoleWorkgroup` and `TabulatorLambda`,
+as described in the stack's `Resources` tab.
 
-Here is an example CloudFormation template that creates the necessary resources:
+However, you can also create a new workgroup and role with the necessary
+permissions.  Here is an example CloudFormation template that creates those
+resources:
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
-Description: "Resources for accessing Tabulator in unrestricted mode"
+Description: "Resources for accessing Tabulator in open query mode"
 
 Parameters:
   UserAthenaResultsBucket:
@@ -251,7 +260,7 @@ Resources:
     Type: AWS::Athena::WorkGroup
     Properties:
       Name: "TabulatorUnrestrictedAccessDogfood"
-      Description: "Workgroup for testing Tabulator with unrestricted access"
+      Description: "Workgroup for testing Tabulator with open query"
       WorkGroupConfiguration:
         EnforceWorkGroupConfiguration: true
         ResultConfiguration:
