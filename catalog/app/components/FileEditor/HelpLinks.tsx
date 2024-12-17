@@ -17,6 +17,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 
+// TODO: put this into FileEditor/routes
 function useRouteToEditFile(handle: Model.S3.S3ObjectLocation) {
   const { urls } = NamedRoutes.use()
   const { pathname, search } = RRDom.useLocation()

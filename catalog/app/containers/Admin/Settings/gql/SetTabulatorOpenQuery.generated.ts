@@ -2,22 +2,22 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Settings_gql_SetTabulatorUnrestrictedMutationVariables =
+export type containers_Admin_Settings_gql_SetTabulatorOpenQueryMutationVariables =
   Types.Exact<{
-    value: Types.Scalars['Boolean']
+    enabled: Types.Scalars['Boolean']
   }>
 
-export type containers_Admin_Settings_gql_SetTabulatorUnrestrictedMutation = {
+export type containers_Admin_Settings_gql_SetTabulatorOpenQueryMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly setTabulatorUnrestricted: {
-      readonly __typename: 'TabulatorUnrestrictedResult'
-    } & Pick<Types.TabulatorUnrestrictedResult, 'tabulatorUnrestricted'>
+    readonly setTabulatorOpenQuery: {
+      readonly __typename: 'TabulatorOpenQueryResult'
+    } & Pick<Types.TabulatorOpenQueryResult, 'tabulatorOpenQuery'>
   }
 }
 
-export const containers_Admin_Settings_gql_SetTabulatorUnrestrictedDocument = {
+export const containers_Admin_Settings_gql_SetTabulatorOpenQueryDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -25,12 +25,12 @@ export const containers_Admin_Settings_gql_SetTabulatorUnrestrictedDocument = {
       operation: 'mutation',
       name: {
         kind: 'Name',
-        value: 'containers_Admin_Settings_gql_SetTabulatorUnrestricted',
+        value: 'containers_Admin_Settings_gql_SetTabulatorOpenQuery',
       },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'value' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'enabled' } },
           type: {
             kind: 'NonNullType',
             type: { kind: 'NamedType', name: { kind: 'Name', value: 'Boolean' } },
@@ -48,12 +48,15 @@ export const containers_Admin_Settings_gql_SetTabulatorUnrestrictedDocument = {
               selections: [
                 {
                   kind: 'Field',
-                  name: { kind: 'Name', value: 'setTabulatorUnrestricted' },
+                  name: { kind: 'Name', value: 'setTabulatorOpenQuery' },
                   arguments: [
                     {
                       kind: 'Argument',
-                      name: { kind: 'Name', value: 'value' },
-                      value: { kind: 'Variable', name: { kind: 'Name', value: 'value' } },
+                      name: { kind: 'Name', value: 'enabled' },
+                      value: {
+                        kind: 'Variable',
+                        name: { kind: 'Name', value: 'enabled' },
+                      },
                     },
                   ],
                   selectionSet: {
@@ -61,7 +64,7 @@ export const containers_Admin_Settings_gql_SetTabulatorUnrestrictedDocument = {
                     selections: [
                       {
                         kind: 'Field',
-                        name: { kind: 'Name', value: 'tabulatorUnrestricted' },
+                        name: { kind: 'Name', value: 'tabulatorOpenQuery' },
                       },
                     ],
                   },
@@ -74,8 +77,8 @@ export const containers_Admin_Settings_gql_SetTabulatorUnrestrictedDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Settings_gql_SetTabulatorUnrestrictedMutation,
-  containers_Admin_Settings_gql_SetTabulatorUnrestrictedMutationVariables
+  containers_Admin_Settings_gql_SetTabulatorOpenQueryMutation,
+  containers_Admin_Settings_gql_SetTabulatorOpenQueryMutationVariables
 >
 
-export { containers_Admin_Settings_gql_SetTabulatorUnrestrictedDocument as default }
+export { containers_Admin_Settings_gql_SetTabulatorOpenQueryDocument as default }

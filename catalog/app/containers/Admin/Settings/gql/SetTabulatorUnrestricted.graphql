@@ -1,7 +1,0 @@
-mutation($value: Boolean!) {
-  admin {
-    setTabulatorUnrestricted(value: $value) {
-      tabulatorUnrestricted
-    }
-  }
-}

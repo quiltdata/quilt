@@ -32,6 +32,7 @@ function SchemaField({
   ...rest
 }: FieldProps & M.TextFieldProps) {
   const { urls } = NamedRoutes.use()
+  // TODO: put this into FileEditor/routes
   const href = React.useMemo(
     () =>
       input.value
@@ -290,6 +291,7 @@ function addWorkflow(workflow: WorkflowYaml): (j: JsonRecord) => JsonRecord {
 
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
   const { paths } = NamedRoutes.use()
+  // TODO: RRDom.useParams<{ bucket: string }>() seems enough
   const match = useRouteMatch<{ bucket: string }>({ path: paths.bucketFile, exact: true })
   const bucket = match?.params?.bucket
 

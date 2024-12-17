@@ -347,14 +347,14 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
                 cache.invalidate({ __typename: 'Query' }, 'admin')
                 cache.invalidate({ __typename: 'Query' }, 'roles')
               }
-              if (result.admin?.setTabulatorUnrestricted?.tabulatorUnrestricted != null) {
+              if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
                 cache.updateQuery(
-                  { query: urql.gql`{ admin { tabulatorUnrestricted } }` },
+                  { query: urql.gql`{ admin { tabulatorOpenQuery } }` },
                   ({ admin }) => ({
                     admin: {
                       ...admin,
-                      tabulatorUnrestricted:
-                        result.admin.setTabulatorUnrestricted.tabulatorUnrestricted,
+                      tabulatorOpenQuery:
+                        result.admin.setTabulatorOpenQuery.tabulatorOpenQuery,
                     },
                   }),
                 )

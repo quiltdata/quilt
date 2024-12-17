@@ -9,8 +9,8 @@ import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
-import UNRESTRICTED_QUERY from './gql/TabulatorUnrestricted.generated'
-import SET_UNRESTRICTED_MUTATION from './gql/SetTabulatorUnrestricted.generated'
+import OPEN_QUERY_QUERY from './gql/TabulatorOpenQuery.generated'
+import SET_OPEN_QUERY_MUTATION from './gql/SetTabulatorOpenQuery.generated'
 
 interface ToggleProps {
   checked: boolean
@@ -18,15 +18,15 @@ interface ToggleProps {
 
 function Toggle({ checked }: ToggleProps) {
   const { push: notify } = Notifications.use()
-  const mutate = GQL.useMutation(SET_UNRESTRICTED_MUTATION)
-  const [mutation, setMutation] = React.useState<{ value: boolean } | null>(null)
+  const mutate = GQL.useMutation(SET_OPEN_QUERY_MUTATION)
+  const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
 
   const handleChange = React.useCallback(
-    async (_event, value: boolean) => {
+    async (_event, enabled: boolean) => {
       if (mutation) return
-      setMutation({ value })
+      setMutation({ enabled })
       try {
-        await mutate({ value })
+        await mutate({ enabled })
       } catch (e) {
         Sentry.captureException(e)
         notify(`Failed to update tabulator settings: ${e}`)
@@ -42,7 +42,7 @@ function Toggle({ checked }: ToggleProps) {
       <M.FormControlLabel
         control={
           <M.Switch
-            checked={mutation?.value ?? checked}
+            checked={mutation?.enabled ?? checked}
             onChange={handleChange}
             disabled={!!mutation}
           />
@@ -65,12 +65,12 @@ function Toggle({ checked }: ToggleProps) {
 }
 
 export default function TabulatorSettings() {
-  const query = GQL.useQuery(UNRESTRICTED_QUERY)
+  const query = GQL.useQuery(OPEN_QUERY_QUERY)
 
   return (
     <M.FormGroup>
       {GQL.fold(query, {
-        data: ({ admin }) => <Toggle checked={admin.tabulatorUnrestricted} />,
+        data: ({ admin }) => <Toggle checked={admin.tabulatorOpenQuery} />,
         fetching: () => (
           <>
             <Skeleton width="40%" height={38} />

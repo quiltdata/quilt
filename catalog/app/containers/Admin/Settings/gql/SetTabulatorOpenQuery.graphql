@@ -1,0 +1,7 @@
+mutation($enabled: Boolean!) {
+  admin {
+    setTabulatorOpenQuery(enabled: $enabled) {
+      tabulatorOpenQuery
+    }
+  }
+}
