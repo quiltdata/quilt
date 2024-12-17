@@ -225,6 +225,9 @@ const I18N = {
   'ui.nav.queries': '"QUERIES" tab',
 
   'ui.source_buckets': 'List of buckets allowed to be as source for packages',
+  'ui.package_description': 'Configure the packages list appearance',
+  'ui.package_description.multiline':
+    'Make package description in the packages list multiline',
 }
 
 function i18n(key: string): string {
