@@ -195,14 +195,15 @@ else:
     print(f'Query did not succeed. Final state: {state}')
 ```
 
-## open query
+## Open Query
 
 > Available since Quilt Platform version 1.57
 
 By default, Tabulator is only accessible via a session provided by the Quilt
 Catalog, and the access is scoped to the permissions of the Catalog user
-associated with that session. However, an admin can enable **open query** to
-Tabulator tables, deferring all access control to AWS.
+associated with that session. However, admins can choose to enable **open
+query** to Tabulator tables, deferring all access control to AWS, thus enabling
+access from external services.
 
 In this case, the underlying data in S3 is accessed using the Tabulator's
 dedicated "open query" role, which has read-only access to all the S3 buckets
