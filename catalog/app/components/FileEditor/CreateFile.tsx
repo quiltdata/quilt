@@ -23,6 +23,7 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
+  // TODO: put this into FileEditor/routes
   const toFile = React.useCallback(
     (name: string) => urls.bucketFile(bucket, join(path, name), { edit: true }),
     [bucket, path, urls],
@@ -48,6 +49,7 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?:
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
+  // TODO: put this into FileEditor/routes
   const toFile = React.useCallback(
     (fileName: string) => {
       const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })

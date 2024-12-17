@@ -713,17 +713,6 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
-  const handleEdit = React.useCallback(() => {
-    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-    const physicalHandle = s3paths.parseS3Url(file.physicalKey)
-    const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
-      add: path,
-      edit: true,
-      next,
-    })
-    history.push(editUrl)
-  }, [file, bucket, history, name, path, urls])
-
   const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
     () => ({
       ...s3paths.parseS3Url(file.physicalKey),
@@ -732,6 +721,9 @@ function FileDisplay({
     }),
     [file, packageHandle],
   )
+
+  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle, path)
+  const handleEdit = React.useCallback(() => history.push(editUrl), [editUrl, history])
 
   return (
     // @ts-expect-error

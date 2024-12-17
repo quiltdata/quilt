@@ -66,11 +66,10 @@ describe('app/containers/Bucket/requests/object', () => {
           } as S3.Types.ListObjectVersionsOutput),
       }),
     }
-    it('return object versions', () => {
+    it('return object versions', () =>
       expect(
         objectVersions({ s3: s3 as S3, bucket: 'any', path: 'foo' }),
-      ).resolves.toMatchSnapshot()
-    })
+      ).resolves.toMatchSnapshot())
   })
 
   describe('fetchFile', () => {
@@ -122,7 +121,7 @@ describe('app/containers/Bucket/requests/object', () => {
         s3: s3 as S3,
         handle: { bucket: 'b', key: 'does-not-exist' },
       })
-      expect(result).rejects.toThrow(FileNotFound)
+      return expect(result).rejects.toThrow(FileNotFound)
     })
 
     it('re-throws on error', async () => {
@@ -132,7 +131,7 @@ describe('app/containers/Bucket/requests/object', () => {
         s3: s3 as S3,
         handle: { bucket: 'b', key: 'error' },
       })
-      expect(result).rejects.toThrow(Error)
+      return expect(result).rejects.toThrow(Error)
     })
   })
 })

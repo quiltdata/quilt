@@ -22,6 +22,7 @@ export interface StyleOptions {
 
 export interface PerspectiveOptions {
   config?: ViewConfig
+  settings?: boolean
 }
 
 interface TypeExtendedEssentials {
@@ -40,6 +41,9 @@ export interface FileExtended {
   description?: string
   title?: string
   types?: Type[]
+
+  expand?: boolean
+  width?: string | number
 }
 
 export type File = FileShortcut | FileExtended
