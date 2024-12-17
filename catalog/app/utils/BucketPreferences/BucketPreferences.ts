@@ -61,8 +61,8 @@ interface BlocksPreferences {
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
-interface PackagePreferencesInput {
-  message?: true
+export interface PackagePreferencesInput {
+  message?: boolean
   user_meta?: ReadonlyArray<string>
 }
 export interface PackagePreferences {
