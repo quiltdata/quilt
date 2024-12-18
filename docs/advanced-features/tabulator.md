@@ -223,11 +223,10 @@ workgroup, and have permissions to use that workgroup and access tabulator
 resources. For convenience, Quilt Stack provides a pre-configured workgroup and
 policy for open query -- they can be found in the stack outputs:
 
-1. `TabulatorOpenQueryPolicyArn`: the ARN of the managed policy --
-   attach this to a relevant IAM role (or copy the statements to your own policy).
+1. `TabulatorOpenQueryPolicyArn`: attach this managed policy to a relevant IAM
+   role (or copy the statements directly to your own role/policy).
 
-2. `TabulatorOpenQueryWorkGroup`: the name of the workgroup --
-   configure your Athena client or connector to use that
-   (or create your own with the same results output configuration).
+2. `TabulatorOpenQueryWorkGroup`: configure your Athena client or connector to
+   use this workgroup (or create your own with the same results output configuration).
 
 ![Tabulator Resources](../imgs/admin-tabulator-resources.png)
