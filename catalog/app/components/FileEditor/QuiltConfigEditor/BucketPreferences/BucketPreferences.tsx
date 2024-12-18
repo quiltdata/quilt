@@ -132,6 +132,7 @@ function PackageDescription({
   onChange,
 }: PackageDescriptionProps) {
   const classes = usePackageDescriptionStyles()
+
   const handleJson = React.useCallback(
     (json) => {
       onChange({
@@ -142,6 +143,7 @@ function PackageDescription({
     },
     [onChange, value],
   )
+
   // const handleKeyChange = React.useCallback(
   //   (oldKey: string, newKey: string) => {
   //     const { [oldKey]: val, ...rest } = value.value
@@ -169,6 +171,7 @@ function PackageDescription({
   //   },
   //   [onChange, value],
   // )
+
   return (
     <div className={cx(classes.root, className)}>
       <JsonEditor
@@ -178,6 +181,7 @@ function PackageDescription({
         schema={schema.properties.ui.properties.package_description}
         value={value.value}
       />
+
       {/*Object.entries(value.value).map(([k, v]) => (
         <PackageDescriptionItem
           disabled={disabled}
