@@ -78,13 +78,15 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 ### Using Athena to Access Tabulator
 
-Due to the way permissions are configured, Tabulator cannot be accessed from
-the AWS Console or Athena views by default
-(unless [unrestricted access](#unrestricted-access) is enabled).
-You must access Tabulator via the Quilt stack in order to query those tables.
-This can be done by users via the per-bucket
-"Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
-"Usage" below for more details.
+The primary way of accessing Tabulator is using the Quilt stack to query those
+tables. This can be done by users via the per-bucket "Queries" tab in the Quilt
+Catalog, or programmatically via `quilt3`. See "Usage" below for more details.
+
+As of Quilt Platform version 1.57, admins can enable [open query](#open-query)
+(below) to allow external users to access Tabulator tables directly from the AWS
+Console, Athena views, or JDBC connectors. This is especially useful for
+customers who want to access Tabulator from external services, such as Tableau
+and Spotfire.
 
 ### Caveats
 
@@ -113,7 +115,7 @@ This can be done by users via the per-bucket
 Once the configuration is set, users can query the tables using the Athena tab
 from the Quilt Catalog. Note that because Tabulator runs with elevated
 permissions, it cannot be accessed from the AWS Console by default
-(unless [unrestricted access](#unrestricted-access) is enabled).
+(unless [open query](#open-query) is enabled).
 
 For example, to query the `ccle_tsv` table from the appropriate workgroup in
 the `quilt-tf-stable` stack, where the database (bucket name) is `udp-spec`:
@@ -151,7 +153,7 @@ page from which you must paste in the appropriate access token. Use
 `get_boto3_session()` to get a session with the same permissions as your Quilt
 Catalog user, then use the `boto3` Athena client to run queries.
 
-> If [unrestricted access](#unrestricted-access) is enabled, you can use any
+> If [open query](#open-query) is enabled, you can use any
 > AWS credentials providing access to Athena resources associated with Tabulator.
 
 Here is a complete example:
@@ -195,64 +197,37 @@ else:
     print(f'Query did not succeed. Final state: {state}')
 ```
 
-## Unrestricted Access
+## Open Query
 
 > Available since Quilt Platform version 1.57
 
-By default, Tabulator is only accessible via a session provided by the Quilt Catalog,
-and the access is scoped to the permissions of the Catalog user associated with
-that session. However, an admin can enable **unrestricted access** to Tabulator,
-deferring all access control to AWS. The underlying data in S3 is accessed using
-the Tabulator's dedicated "unrestricted" role, which has read-only access to all
-the S3 buckets attached to the given stack. This allows querying the data directly
-from the AWS Console or Athena views, given the caller has the necessary permissions
-to access Athena resources associated with Tabulator.
+By default, Tabulator is only accessible via a session provided by the Quilt
+Catalog, and the access is scoped to the permissions of the Catalog user
+associated with that session. However, admins can choose to enable **open
+query** to Tabulator tables, deferring all access control to AWS, thus enabling
+access from external services. This allows querying Tabulator from the AWS
+Console, Athena views or JDBC connectors -- as long as the caller has been
+granted the necessary permissions to access Athena resources associated with
+Tabulator.
+
+### 1. Enable Open Query
+
+To enable open query, an admin must set the `open_query` field to `true` in
+Tabulator configuration. This can be done via the Admin UI or the
+`quilt3.admin.tabulator` API.
 
 ![Tabulator Settings](../imgs/admin-tabulator-settings.png)
 
-### Permissions & Configuration
+### 2. Configure Permissions
 
-In order to access Tabulator in unrestricted mode, the caller must:
+In order to access Tabulator in open query mode, the caller must use a special
+workgroup, and have permissions to use that workgroup and access tabulator
+resources. Both of these are created by the Quilt stack, and are available in
+the "Resources" tab.
 
-1. Provide a workgroup with output location set and compatible with that of the
-   Tabulator (`s3://${UserAthenaResultsBucket}/athena-results/non-managed-roles/`).
+1. Find the ARN for the Tabulator Open Query Policy, then copy that into the
+   relevant IAM role.
+2. Find the name of the Tabulator Open Query Workgroup, and configure your
+   Athena client or connector to use that workgroup.
 
-2. Have the following permissions:
-
-   - Athena query execution on the designated workgroup
-   - Access to the Tabulator data catalog
-   - Invoking the Tabulator Lambda function
-   - Read access to the Tabulator bucket for spill files
-   - Read/write access to the Athena results bucket
-
-Here is an example CloudFormation template that creates the necessary resources:
-
-```yaml
-AWSTemplateFormatVersion: 2010-09-09
-Description: "Resources for accessing Tabulator in open query mode"
-
-Parameters:
-  TabulatorOpenQueryPolicyArn:
-    Type: String
-    Description: |
-      TabulatorOpenQueryPolicyArn output from the Quilt stack hosting the Tabulator
-
-Resources:
-  TabulatorAccessRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: "*"
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - !Ref TabulatorOpenQueryPolicyArn
-
-Outputs:
-  RoleArn:
-    Description: "ARN of the created IAM role"
-    Value: !GetAtt TabulatorAccessRole.Arn
-```
+![Tabulator Resources](../imgs/admin-tabulator-resources.png)
