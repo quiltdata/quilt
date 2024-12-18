@@ -212,9 +212,7 @@ Tabulator.
 
 ### 1. Enable Open Query
 
-To enable open query, an admin must set the `open_query` field to `true` in
-Tabulator configuration. This can be done via the Admin UI or the
-`quilt3.admin.tabulator` API.
+An admin can enable open query via the Admin UI:
 
 ![Tabulator Settings](../imgs/admin-tabulator-settings.png)
 
@@ -222,12 +220,14 @@ Tabulator configuration. This can be done via the Admin UI or the
 
 In order to access Tabulator in open query mode, the caller must use a special
 workgroup, and have permissions to use that workgroup and access tabulator
-resources. Both of these are created by the Quilt stack, and are available in
-the "Resources" tab.
+resources. For convenience, Quilt Stack provides a pre-configured workgroup and
+policy for open query -- they can be found in the stack outputs:
 
-1. Find the ARN for the Tabulator Open Query Policy, then copy that into the
-   relevant IAM role.
-2. Find the name of the Tabulator Open Query Workgroup, and configure your
-   Athena client or connector to use that workgroup.
+1. `TabulatorOpenQueryPolicyArn`: the ARN of the managed policy --
+   attach this to a relevant IAM role (or copy the statements to your own policy).
+
+2. `TabulatorOpenQueryWorkGroup`: the name of the workgroup --
+   configure your Athena client or connector to use that
+   (or create your own with the same results output configuration).
 
 ![Tabulator Resources](../imgs/admin-tabulator-resources.png)
