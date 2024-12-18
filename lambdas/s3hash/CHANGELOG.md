@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
 - [Fixed] Fix invalid checksum for some non-canonical objects with existing checksum ([#4062](https://github.com/quiltdata/quilt/pull/4062))
 - [Changed] Use per-region scratch buckets ([#3923](https://github.com/quiltdata/quilt/pull/3923))
 - [Changed] Always stream bytes in legacy mode ([#3903](https://github.com/quiltdata/quilt/pull/3903))

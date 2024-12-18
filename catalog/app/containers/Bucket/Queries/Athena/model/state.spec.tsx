@@ -90,12 +90,21 @@ describe('app/containers/Queries/Athena/model/state', () => {
           },
         }),
     }))
+    listNamedQueries.mockImplementation((_x, cb) => {
+      cb(undefined, { NamedQueryIds: [] })
+      return {
+        abort: jest.fn(),
+      }
+    })
     listQueryExecutions.mockImplementation((_x, cb) => {
       cb(undefined, { QueryExecutionIds: [] })
       return {
         abort: jest.fn(),
       }
     })
+    listDataCatalogs.mockImplementation(() => ({
+      promise: () => Promise.resolve({ DataCatalogsSummary: [] }),
+    }))
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <Model.Provider preferences={{}}>{children}</Model.Provider>
     )

@@ -1504,8 +1504,7 @@ class TestIndex(TestCase):
     @pytest.mark.extended
     @patch('document_queue.ELASTIC_LIMIT_BYTES', 64_000)
     def test_get_contents_extended(self):
-        directory = (BASE_DIR / 'extended')
-        files = directory.glob('**/*-c000')
+        files = (BASE_DIR / 'extended').glob('**/*-c000')
         for f in files:
             parquet = f.read_bytes()
             size = len(parquet)
@@ -1657,8 +1656,7 @@ class TestIndex(TestCase):
     # see PRE conditions in conftest.py
     @pytest.mark.extended
     def test_parquet_extended(self):
-        directory = (BASE_DIR / 'extended')
-        files = directory.glob('**/*.parquet')
+        files = (BASE_DIR / 'extended').glob('**/*.parquet')
         for f in files:
             print(f"Testing {f}")
             parquet = f.read_bytes()

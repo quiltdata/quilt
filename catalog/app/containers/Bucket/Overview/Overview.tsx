@@ -40,11 +40,7 @@ function Readmes({ s3, overviewUrl, bucket }: ReadmesProps) {
           (rs.discovered.length > 0 || !!rs.forced) && (
             <>
               {!!rs.forced && (
-                <Summarize.FilePreview
-                  key="readme:forced"
-                  handle={rs.forced}
-                  expanded
-                />
+                <Summarize.FilePreview key="readme:forced" handle={rs.forced} expanded />
               )}
               {rs.discovered.map((h) => (
                 <Summarize.FilePreview
@@ -124,7 +120,7 @@ export default function Overview() {
   const inStack = !!bucketConfig
   const overviewUrl = bucketConfig?.overviewUrl
   const description = bucketConfig?.description
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
       {inStack && (

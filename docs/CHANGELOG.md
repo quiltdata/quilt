@@ -12,12 +12,14 @@ Entries inside each section should be ordered by type:
 
 ## CLI
 !-->
-# unreleased - YYYY-MM-DD
+
+# 6.1.1 - 2024-11-21
 
 ## Python API
 
-* [Added] Extend public methods that write to S3 to take optional `put_options` argument to pass to PutObject: `quilt3.Package.push`, `quilt3.Package.fetch`, `quilt3.PackageEntry.fetch`, `quilt3.Bucket.put_file`, `quilt3.Bucket.put_dir` ([#4219](https://github.com/quiltdata/quilt/pull/4219))
-  
+* [Changed] More informative error messages when package construction fails ([#4216](https://github.com/quiltdata/quilt/pull/4216))
+* [Fixed] Allow S3 paths starting with `/` in `Package.set_dir()` and `Package.set()` ([#4207](https://github.com/quiltdata/quilt/pull/4207))
+
 # 6.1.0 - 2024-10-14
 
 ## Python API

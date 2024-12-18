@@ -1038,8 +1038,8 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
-  selection: Selection.SelectionItem[]
-  onSelectionChange: (newSelection: Selection.SelectionItem[]) => void
+  selection?: Selection.SelectionItem[]
+  onSelectionChange?: (newSelection: Selection.SelectionItem[]) => void
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
@@ -1063,7 +1063,7 @@ export function Listing({
   const classes = useStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
@@ -1233,7 +1233,7 @@ export function Listing({
   )
 
   const selectionModel = React.useMemo(
-    () => selection.map(({ logicalKey }) => s3paths.ensureNoSlash(logicalKey)),
+    () => selection?.map(({ logicalKey }) => s3paths.ensureNoSlash(logicalKey)),
     [selection],
   )
 
@@ -1267,7 +1267,7 @@ export function Listing({
         disableMultipleSelection
         disableMultipleColumnsSorting
         localeText={{ noRowsLabel, ...localeText }}
-        checkboxSelection
+        checkboxSelection={!!selectionModel}
         selectionModel={selectionModel}
         onSelectionModelChange={handleSelectionModelChange}
         {...dataGridProps}

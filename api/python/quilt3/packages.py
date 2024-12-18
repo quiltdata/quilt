@@ -549,7 +549,7 @@ class Package:
 
         if subpkg_key is not None:
             if subpkg_key not in pkg:
-                raise QuiltException(f"Package {name} doesn't contain {subpkg_key!r}.")
+                raise QuiltException(f"Package {name!r} doesn't contain {subpkg_key!r}.")
             entry = pkg[subpkg_key]
             entries = entry.walk() if isinstance(entry, Package) else ((subpkg_key.split('/')[-1], entry),)
         else:
@@ -833,7 +833,7 @@ class Package:
                     subpkg.set_meta(obj['meta'])
                     continue
                 if key in subpkg._children:
-                    raise PackageException("Duplicate logical key while loading package")
+                    raise PackageException(f"Duplicate logical key {key!r} while loading package entry: {obj!r}")
                 subpkg._children[key] = PackageEntry(
                     PhysicalKey.from_url(obj['physical_keys'][0]),
                     obj['size'],
@@ -871,7 +871,7 @@ class Package:
             ValueError: When `update_policy` is invalid.
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
-            raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
+            raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY!r}, not {update_policy!r}")
 
         lkey = lkey.strip("/")
 
@@ -892,7 +892,7 @@ class Package:
         if src.is_local():
             src_path = pathlib.Path(src.path)
             if not src_path.is_dir():
-                raise PackageException("The specified directory doesn't exist")
+                raise PackageException(f"The specified directory {src_path!r} doesn't exist")
 
             files = src_path.rglob('*')
             ignore = src_path / '.quiltignore'
@@ -953,7 +953,7 @@ class Package:
         """
         obj = self[logical_key]
         if not isinstance(obj, PackageEntry):
-            raise ValueError("Key does not point to a PackageEntry")
+            raise ValueError(f"Key {logical_key!r} does not point to a PackageEntry")
         return obj.get()
 
     def readme(self):
@@ -1192,8 +1192,7 @@ class Package:
     ):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
-                f"Invalid logical key {logical_key!r}. "
-                f"A package entry logical key cannot be a directory."
+                f"A package entry logical key {logical_key!r} must be a file."
             )
 
         validate_key(logical_key)
@@ -1240,7 +1239,7 @@ class Package:
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
-                    error_message += f' as a {ext} file.'
+                    error_message += f' as a {ext!r} file.'
                 error_message += '. If you think this should be supported, please open an issue or PR at ' \
                                  'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
@@ -1273,7 +1272,7 @@ class Package:
 
         pkg = self._ensure_subpackage(path[:-1], ensure_no_entry=True)
         if path[-1] in pkg and isinstance(pkg[path[-1]], Package):
-            raise QuiltException("Cannot overwrite directory with PackageEntry")
+            raise QuiltException(f"Cannot overwrite directory {path[-1]!r} with PackageEntry")
         pkg._children[path[-1]] = entry
 
         return self
@@ -1294,7 +1293,10 @@ class Package:
         for key_fragment in path:
             if ensure_no_entry and key_fragment in pkg \
                     and isinstance(pkg[key_fragment], PackageEntry):
-                raise QuiltException("Already a PackageEntry along the path.")
+                raise QuiltException(
+                    f"Already a PackageEntry for {key_fragment!r} "
+                    f"along the path {path!r}: {pkg[key_fragment].physical_key!r}",
+                )
             pkg = pkg._children.setdefault(key_fragment, Package())
         return pkg
 
@@ -1344,7 +1346,7 @@ class Package:
         for logical_key, entry in entries:
             if entry.hash is None or entry.size is None:
                 raise QuiltException(
-                    "PackageEntry missing hash and/or size: %s" % entry.physical_key
+                    "PackageEntry missing hash and/or size: %r" % entry.physical_key
                 )
             yield {
                 'hash': entry.hash,
@@ -1456,7 +1458,7 @@ class Package:
                     raise TypeError(f'{dest!r} returned {url!r}, but str is expected')
                 pk = PhysicalKey.from_url(url)
                 if pk.is_local():
-                    raise util.URLParseError("Unexpected scheme: 'file'")
+                    raise util.URLParseError(f"Unexpected scheme: 'file' for {pk!r}")
                 if pk.version_id:
                     raise ValueError(f'{dest!r} returned {url!r}, but URI must not include versionId')
                 return pk
@@ -1491,8 +1493,8 @@ class Package:
 
             if self._origin is None or latest_hash != self._origin.top_hash:
                 raise QuiltConflictException(
-                    f"Package with hash {latest_hash} already exists at the destination; "
-                    f"expected {None if self._origin is None else self._origin.top_hash}. "
+                    f"Package with hash {latest_hash!r} already exists at the destination; "
+                    f"expected {None if self._origin is None else self._origin.top_hash!r}. "
                     "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 

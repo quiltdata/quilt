@@ -48,6 +48,7 @@ export interface AdminMutations {
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
+  readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -66,11 +67,16 @@ export interface AdminMutationsbucketRenameTabulatorTableArgs {
   newTableName: Scalars['String']
 }
 
+export interface AdminMutationssetTabulatorOpenQueryArgs {
+  enabled: Scalars['Boolean']
+}
+
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
   readonly ssoConfig: Maybe<SsoConfig>
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
+  readonly tabulatorOpenQuery: Scalars['Boolean']
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -1166,6 +1172,11 @@ export interface SubscriptionState {
 }
 
 export type SwitchRoleResult = Me | InvalidInput | OperationError
+
+export interface TabulatorOpenQueryResult {
+  readonly __typename: 'TabulatorOpenQueryResult'
+  readonly tabulatorOpenQuery: Scalars['Boolean']
+}
 
 export interface TabulatorTable {
   readonly __typename: 'TabulatorTable'

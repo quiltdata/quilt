@@ -42,6 +42,8 @@ key that the user is not allowed to access will display an _Access Denied_ messa
 * Prefix-aware search performs a head request on every object result; this may slow
 search performance in the Catalog
 
+* Number of search results is not available with prefix-aware search
+
 ## Requirements and recommendations
 
 * Manage all Quilt roles and policies for prefixes

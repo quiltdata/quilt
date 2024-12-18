@@ -240,8 +240,36 @@ export default {
               },
             ],
           },
+          {
+            name: 'setTabulatorOpenQuery',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'TabulatorOpenQueryResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'enabled',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -280,12 +308,20 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'tabulatorOpenQuery',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Boolean',
       },
       {
         kind: 'OBJECT',
@@ -5436,6 +5472,25 @@ export default {
             name: 'OperationError',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'TabulatorOpenQueryResult',
+        fields: [
+          {
+            name: 'tabulatorOpenQuery',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',

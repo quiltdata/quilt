@@ -21,7 +21,7 @@ import {
   JsonSchema,
   makeSchemaDefaultsSetter,
   makeSchemaValidator,
-} from 'utils/json-schema'
+} from 'utils/JSONSchema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { JsonRecord } from 'utils/types'
@@ -308,7 +308,6 @@ export function CommitMessageInput({
 }
 
 interface WorkflowInputProps {
-  bucket: string
   input: RF.FieldInputProps<workflows.Workflow>
   meta: RF.FieldMetaState<workflows.Workflow>
   workflowsConfig?: workflows.WorkflowsConfig
@@ -316,7 +315,6 @@ interface WorkflowInputProps {
 }
 
 export function WorkflowInput({
-  bucket,
   input,
   meta,
   workflowsConfig,
@@ -327,7 +325,6 @@ export function WorkflowInput({
 
   return (
     <SelectWorkflow
-      bucket={bucket}
       items={workflowsConfig ? workflowsConfig.workflows : []}
       onChange={input.onChange}
       value={input.value}

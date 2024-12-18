@@ -57,6 +57,14 @@ interface ConverseResponse {
   backendResponse: BedrockRuntime.ConverseResponse
 }
 
+export class LLMError {
+  message: string
+
+  constructor({ message }: { message: string }) {
+    this.message = message
+  }
+}
+
 // a service
 export class LLM extends Eff.Context.Tag('LLM')<
   LLM,
@@ -64,6 +72,6 @@ export class LLM extends Eff.Context.Tag('LLM')<
     converse: (
       prompt: Prompt,
       opts?: Options,
-    ) => Eff.Effect.Effect<ConverseResponse, Eff.Cause.UnknownException>
+    ) => Eff.Effect.Effect<ConverseResponse, LLMError>
   }
 >() {}
