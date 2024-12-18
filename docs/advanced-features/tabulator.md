@@ -222,10 +222,12 @@ Tabulator configuration. This can be done via the Admin UI or the
 
 In order to access Tabulator in open query mode, the caller must use a special
 workgroup, and have permissions to use that workgroup and access tabulator
-resources. Both of these are created by the Quilt stack, and must be added to to
-the new or existing role used by the caller.
+resources. Both of these are created by the Quilt stack, and are available in
+the "Resources" tab.
 
-You can find the ARNs for that workgroup and access policy in the
-Resources tab, then copy them into the relevant IAM role.
+1. Find the ARN for the Tabulator Open Query Policy, then copy that into the
+   relevant IAM role.
+2. Find the name of the Tabulator Open Query Workgroup, and configure your
+   Athena client or connector to use that workgroup.
 
 ![Tabulator Resources](../imgs/admin-tabulator-resources.png)
