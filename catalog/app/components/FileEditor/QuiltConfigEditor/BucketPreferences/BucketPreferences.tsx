@@ -6,106 +6,12 @@ import * as Lab from '@material-ui/lab'
 
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import * as BucketConfig from 'utils/BucketConfig'
-import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
 
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
 import PackageDescription from './PackageDescription'
 import { parse, stringify } from './State'
 import type { Config, Value } from './State'
-
-const usePackageDescriptionStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    rowGap: t.spacing(2),
-    columnGap: t.spacing(2),
-  },
-}))
-
-interface PackageDescriptionProps extends Omit<FieldProps, 'value' | 'onChange'> {
-  value: Value<'ui.package_description'>
-  onChange: (v: Value<'ui.package_description'>) => void
-}
-
-function PackageDescriptions({
-  className,
-  disabled,
-  size,
-  value,
-  onChange,
-}: PackageDescriptionProps) {
-  const classes = usePackageDescriptionStyles()
-
-  const handleKeyChange = React.useCallback(
-    (oldKey: string, newKey: string) => {
-      const { [oldKey]: val, ...rest } = value.value
-      onChange({
-        isDefault: false,
-        key: value.key,
-        value: {
-          ...rest,
-          [newKey]: val,
-        },
-      })
-    },
-    [onChange, value],
-  )
-  const handleValueChange = React.useCallback(
-    (key: string, val: PackagePreferencesInput) => {
-      onChange({
-        isDefault: false,
-        key: value.key,
-        value: {
-          ...value.value,
-          [key]: val,
-        },
-      })
-    },
-    [onChange, value],
-  )
-
-  const handleNewKey = React.useCallback(
-    (_, key: string) => {
-      onChange({
-        isDefault: false,
-        key: value.key,
-        value: {
-          ...value.value,
-          [key]: {},
-        },
-      })
-    },
-    [onChange, value],
-  )
-
-  const packageHandles = React.useMemo(() => Object.entries(value.value), [value.value])
-
-  return (
-    <div className={cx(classes.root, className)}>
-      {packageHandles.map(([k, v]) => (
-        <PackageDescription
-          disabled={disabled}
-          key={k}
-          handlePattern={k}
-          value={v}
-          size={size}
-          onRename={handleKeyChange}
-          onChange={handleValueChange}
-        />
-      ))}
-      <PackageDescription
-        key={`${packageHandles.length}`}
-        disabled={disabled}
-        handlePattern=""
-        value={{}}
-        size={size}
-        onRename={handleNewKey}
-        onChange={handleValueChange}
-      />
-    </div>
-  )
-}
 
 const I18N = {
   'ui.actions': 'Toggle buttons visibility',
@@ -220,15 +126,12 @@ function Field({
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   if (key === 'ui.package_description') {
     return (
-      <PackageDescriptions
-        {...{
-          className,
-          config,
-          disabled,
-          onChange,
-          size,
-          value: { isDefault, key, value } as Value<'ui.package_description'>,
-        }}
+      <PackageDescription
+        className={className}
+        disabled={disabled}
+        onChange={(v) => onChange({ isDefault: false, key, value: v })}
+        size={size}
+        value={value as Value<'ui.package_description'>['value']}
       />
     )
   }

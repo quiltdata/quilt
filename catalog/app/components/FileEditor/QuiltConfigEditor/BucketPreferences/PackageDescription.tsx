@@ -5,6 +5,8 @@ import * as Lab from '@material-ui/lab'
 
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
 
+import type { Value } from './State'
+
 interface LabelsProps {
   disabled?: boolean
   onChange: (value: string[]) => void
@@ -112,7 +114,7 @@ interface PackageDescriptionProps {
   value: PackagePreferencesInput
 }
 
-export default function PackageDescription({
+function PackageDescription({
   className,
   disabled,
   handlePattern,
@@ -153,6 +155,90 @@ export default function PackageDescription({
         onChange={handleLabels}
         size={size}
         value={value.user_meta}
+      />
+    </div>
+  )
+}
+
+const usePackageDescriptionStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    rowGap: t.spacing(2),
+    columnGap: t.spacing(2),
+  },
+}))
+
+interface PackageDescriptionsListProps {
+  className: string
+  disabled?: boolean
+  onChange: (v: Value<'ui.package_description'>['value']) => void
+  size: 'small' | 'medium'
+  value: Value<'ui.package_description'>['value']
+}
+
+export default function PackageDescriptionsList({
+  className,
+  disabled,
+  size,
+  value,
+  onChange,
+}: PackageDescriptionsListProps) {
+  const classes = usePackageDescriptionStyles()
+
+  const handleKeyChange = React.useCallback(
+    (oldKey: string, newKey: string) => {
+      const { [oldKey]: val, ...rest } = value
+      onChange({
+        ...rest,
+        [newKey]: val,
+      })
+    },
+    [onChange, value],
+  )
+  const handleValueChange = React.useCallback(
+    (key: string, val: PackagePreferencesInput) => {
+      onChange({
+        ...value,
+        [key]: val,
+      })
+    },
+    [onChange, value],
+  )
+
+  const handleNewKey = React.useCallback(
+    (_, key: string) => {
+      onChange({
+        ...value,
+        [key]: {},
+      })
+    },
+    [onChange, value],
+  )
+
+  const packageHandles = React.useMemo(() => Object.entries(value), [value])
+
+  return (
+    <div className={cx(classes.root, className)}>
+      {packageHandles.map(([k, v]) => (
+        <PackageDescription
+          disabled={disabled}
+          key={k}
+          handlePattern={k}
+          value={v}
+          size={size}
+          onRename={handleKeyChange}
+          onChange={handleValueChange}
+        />
+      ))}
+      <PackageDescription
+        key={`${packageHandles.length}`}
+        disabled={disabled}
+        handlePattern=""
+        value={{}}
+        size={size}
+        onRename={handleNewKey}
+        onChange={handleValueChange}
       />
     </div>
   )
