@@ -4,119 +4,22 @@ import React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import schema from 'schemas/bucketConfig.yml.json'
-
-import JsonEditor from 'components/JsonEditor'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import * as BucketConfig from 'utils/BucketConfig'
-// import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
+import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
 
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
+import PackageDescription from './PackageDescription'
 import { parse, stringify } from './State'
 import type { Config, Value } from './State'
 
-// const usePackageDescriptionItemStyles = M.makeStyles((t) => ({
-//   root: {
-//     display: 'grid',
-//     gridTemplateRows: '1fr 1fr 1fr',
-//     rowGap: t.spacing(1),
-//   },
-// }))
-//
-// interface PackageDescriptionItemProps {
-//   disabled?: boolean
-//   onChange: (key: string, v: PackagePreferencesInput) => void
-//   onRename: (oldKey: string, newKey: string) => void
-//   regexp: string
-//   size: 'medium' | 'small'
-//   value: PackagePreferencesInput
-// }
-//
-// function PackageDescriptionItem({
-//   disabled,
-//   onChange,
-//   onRename,
-//   regexp: initialRegexp,
-//   size,
-//   value: { message: initialMessage, user_meta: initialUserMeta },
-// }: PackageDescriptionItemProps) {
-//   const classes = usePackageDescriptionItemStyles()
-//
-//   const [regexp, setRegexp] = React.useState(initialRegexp)
-//   const [message, setMessage] = React.useState(initialMessage || false)
-//   const [userMeta, setUserMeta] = React.useState(initialUserMeta || [])
-//
-//   const handleRegexp: React.ChangeEventHandler<HTMLInputElement> = React.useCallback(
-//     (event) => {
-//       setRegexp(event.target.value)
-//       onRename(initialRegexp, event.target.value)
-//     },
-//     [initialRegexp, onRename],
-//   )
-//
-//   const handleUserMeta = React.useCallback(
-//     (_e, labels: string[]) => {
-//       setUserMeta(labels)
-//       onChange(initialRegexp, {
-//         message,
-//         user_meta: labels,
-//       })
-//     },
-//     [onChange, initialRegexp, message],
-//   )
-//
-//   const handleMessage = React.useCallback(
-//     (_e, checked: boolean) => {
-//       setMessage(checked)
-//       onChange(initialRegexp, {
-//         message: checked,
-//         user_meta: userMeta,
-//       })
-//     },
-//     [onChange, initialRegexp, userMeta],
-//   )
-//
-//   return (
-//     <div className={classes.root}>
-//       <M.TextField
-//         label="RegExp for the package handle"
-//         onChange={handleRegexp}
-//         size={size}
-//         value={regexp}
-//       />
-//       <M.FormControl>
-//         <M.FormControlLabel
-//           control={
-//             <M.Checkbox checked={message || false} size={size} onChange={handleMessage} />
-//           }
-//           disabled={disabled}
-//           label="Show the last commit message in the package list"
-//         />
-//       </M.FormControl>
-//       <Lab.Autocomplete
-//         multiple
-//         freeSolo
-//         options={userMeta?.map((x) => x) || []}
-//         renderInput={(params) => (
-//           <M.TextField {...params} placeholder="Keys from `user_meta`" />
-//         )}
-//         onChange={handleUserMeta}
-//         size={size}
-//       />
-//     </div>
-//   )
-// }
-
 const usePackageDescriptionStyles = M.makeStyles((t) => ({
   root: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  item: {
     display: 'grid',
-    gridTemplateRows: '1fr 1fr 1fr',
-    rowGap: t.spacing(1),
+    gridTemplateColumns: '1fr 1fr',
+    rowGap: t.spacing(2),
+    columnGap: t.spacing(2),
   },
 }))
 
@@ -125,74 +28,81 @@ interface PackageDescriptionProps extends Omit<FieldProps, 'value' | 'onChange'>
   onChange: (v: Value<'ui.package_description'>) => void
 }
 
-function PackageDescription({
+function PackageDescriptions({
   className,
   disabled,
+  size,
   value,
   onChange,
 }: PackageDescriptionProps) {
   const classes = usePackageDescriptionStyles()
 
-  const handleJson = React.useCallback(
-    (json) => {
+  const handleKeyChange = React.useCallback(
+    (oldKey: string, newKey: string) => {
+      const { [oldKey]: val, ...rest } = value.value
       onChange({
         isDefault: false,
         key: value.key,
-        value: json,
+        value: {
+          ...rest,
+          [newKey]: val,
+        },
+      })
+    },
+    [onChange, value],
+  )
+  const handleValueChange = React.useCallback(
+    (key: string, val: PackagePreferencesInput) => {
+      onChange({
+        isDefault: false,
+        key: value.key,
+        value: {
+          ...value.value,
+          [key]: val,
+        },
       })
     },
     [onChange, value],
   )
 
-  // const handleKeyChange = React.useCallback(
-  //   (oldKey: string, newKey: string) => {
-  //     const { [oldKey]: val, ...rest } = value.value
-  //     onChange({
-  //       isDefault: false,
-  //       key: value.key,
-  //       value: {
-  //         ...rest,
-  //         [newKey]: val,
-  //       },
-  //     })
-  //   },
-  //   [onChange, value],
-  // )
-  // const handleValueChange = React.useCallback(
-  //   (key: string, val: PackagePreferencesInput) => {
-  //     onChange({
-  //       isDefault: false,
-  //       key: value.key,
-  //       value: {
-  //         ...value.value,
-  //         [key]: val,
-  //       },
-  //     })
-  //   },
-  //   [onChange, value],
-  // )
+  const handleNewKey = React.useCallback(
+    (_, key: string) => {
+      onChange({
+        isDefault: false,
+        key: value.key,
+        value: {
+          ...value.value,
+          [key]: {},
+        },
+      })
+    },
+    [onChange, value],
+  )
+
+  const packageHandles = React.useMemo(() => Object.entries(value.value), [value.value])
 
   return (
     <div className={cx(classes.root, className)}>
-      <JsonEditor
-        disabled={disabled}
-        errors={[]}
-        onChange={handleJson}
-        schema={schema.properties.ui.properties.package_description}
-        value={value.value}
-      />
-
-      {/*Object.entries(value.value).map(([k, v]) => (
-        <PackageDescriptionItem
+      {packageHandles.map(([k, v]) => (
+        <PackageDescription
           disabled={disabled}
           key={k}
-          regexp={k}
+          handlePattern={k}
           value={v}
           size={size}
           onRename={handleKeyChange}
           onChange={handleValueChange}
         />
-      ))*/}
+      ))}
+      <PackageDescription
+        key={`${packageHandles.length}`}
+        disabled={disabled}
+        handlePattern=""
+        value={{}}
+        size={size}
+        onRename={handleNewKey}
+        onChange={handleValueChange}
+      />
     </div>
   )
 }
@@ -231,7 +141,7 @@ const I18N = {
   'ui.source_buckets': 'List of buckets allowed to be as source for packages',
   'ui.package_description': 'Configure the packages list appearance',
   'ui.package_description.multiline':
-    'Make package description in the packages list multiline',
+    "Show package's `user_meta` as a multiline list of keys",
 }
 
 function i18n(key: string): string {
@@ -310,7 +220,7 @@ function Field({
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   if (key === 'ui.package_description') {
     return (
-      <PackageDescription
+      <PackageDescriptions
         {...{
           className,
           config,
