@@ -430,7 +430,7 @@ def test_tabulator_get_open_query():
         _make_nested_dict("admin.tabulator_open_query", True),
         "tabulatorGetOpenQuery",
     ):
-        assert admin.tabulator.get_open_query() == True
+        assert admin.tabulator.get_open_query() is True
 
 
 def test_tabulator_set_open_query():
@@ -439,4 +439,4 @@ def test_tabulator_set_open_query():
         "tabulatorSetOpenQuery",
         variables={"enabled": True},
     ):
-        assert admin.tabulator.set_open_query(True) == None
+        assert admin.tabulator.set_open_query(True) is None
