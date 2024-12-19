@@ -423,3 +423,20 @@ def test_tabulator_rename(data, result):
                 admin.tabulator.rename_table("test", "table", "new_table")
         else:
             assert admin.tabulator.rename_table("test", "table", "new_table") == result
+
+
+def test_tabulator_get_open_query():
+    with mock_client(
+        _make_nested_dict("admin.tabulator_open_query", True),
+        "tabulatorGetOpenQuery",
+    ):
+        assert admin.tabulator.get_open_query() == True
+
+
+def test_tabulator_set_open_query():
+    with mock_client(
+        _make_nested_dict("admin.set_tabulator_open_query.tabulator_open_query", True),
+        "tabulatorSetOpenQuery",
+        variables={"enabled": True},
+    ):
+        assert admin.tabulator.set_open_query(True) == None
