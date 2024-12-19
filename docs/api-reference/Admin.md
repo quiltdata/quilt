@@ -165,3 +165,13 @@ Set the tabulator table configuration. Pass `None` to remove the table.
 
 Rename tabulator table.
 
+
+## get\_open\_query() -> bool  {#get\_open\_query}
+
+Get the **open query** status.
+
+
+## set\_open\_query(enabled: bool) -> None  {#set\_open\_query}
+
+Set the **open query** status.
+
