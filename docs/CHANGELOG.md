@@ -17,7 +17,7 @@ Entries inside each section should be ordered by type:
 
 ## Python API
 
-* [Added] `quilt3.admin.tabulator`: `get_open_query` and `set_open_query` functions for managing Tabulator open query mode ([#4260](https://github.com/quiltdata/quilt/pull/4260))
+* [Added] `quilt3.admin.tabulator`: `get_open_query()` and `set_open_query()` functions for managing Tabulator open query mode ([#4260](https://github.com/quiltdata/quilt/pull/4260))
 
 # 6.1.1 - 2024-11-21
 
