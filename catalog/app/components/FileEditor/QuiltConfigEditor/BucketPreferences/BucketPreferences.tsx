@@ -168,45 +168,6 @@ function i18n(key: string): string {
   return I18N[key as keyof typeof I18N] ?? key
 }
 
-const sys = {
-  'ui.actions.copyPackage': true,
-  'ui.actions.createPackage': true,
-  'ui.actions.deleteRevision': false,
-  'ui.actions.revisePackage': true,
-
-  'ui.athena.defaultWorkgroup': '',
-
-  'ui.blocks.analytics': true,
-  'ui.blocks.browser': true,
-  'ui.blocks.code': true,
-
-  'ui.blocks.meta': true,
-  'ui.blocks.meta.user_meta.expanded': false,
-  'ui.blocks.meta.workflows.expanded': false,
-
-  'ui.blocks.gallery.files': true,
-  'ui.blocks.gallery.overview': true,
-  'ui.blocks.gallery.packages': true,
-  'ui.blocks.gallery.summarize': true,
-
-  'ui.blocks.qurator': true,
-
-  'ui.nav.files': true,
-  'ui.nav.packages': true,
-  'ui.nav.queries': true,
-
-  'ui.package_description': {
-    '.*': {
-      message: true as const,
-      user_meta: [] as ReadonlyArray<string>,
-    },
-  },
-  'ui.package_description.multiline': false,
-
-  'ui.source_buckets': [],
-  'ui.source_buckets.default': '',
-}
-
 interface FieldProps<V = Value> {
   className: string
   disabled?: boolean
