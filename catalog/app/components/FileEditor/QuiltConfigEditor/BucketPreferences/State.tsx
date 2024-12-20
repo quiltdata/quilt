@@ -75,10 +75,48 @@ function parseUser(config: string) {
 
 type Defaults = Required<ReturnType<typeof parseUser>>
 
+const sys: Defaults = {
+  'ui.actions.copyPackage': true,
+  'ui.actions.createPackage': true,
+  'ui.actions.deleteRevision': false,
+  'ui.actions.revisePackage': true,
+
+  'ui.athena.defaultWorkgroup': '',
+
+  'ui.blocks.analytics': true,
+  'ui.blocks.browser': true,
+  'ui.blocks.code': true,
+
+  'ui.blocks.meta': true,
+  'ui.blocks.meta.user_meta.expanded': false,
+  'ui.blocks.meta.workflows.expanded': false,
+
+  'ui.blocks.gallery.files': true,
+  'ui.blocks.gallery.overview': true,
+  'ui.blocks.gallery.packages': true,
+  'ui.blocks.gallery.summarize': true,
+
+  'ui.blocks.qurator': true,
+
+  'ui.nav.files': true,
+  'ui.nav.packages': true,
+  'ui.nav.queries': true,
+
+  'ui.package_description': {
+    '.*': {
+      message: true as const,
+      user_meta: [] as ReadonlyArray<string>,
+    },
+  },
+  'ui.package_description.multiline': false,
+
+  'ui.source_buckets': [],
+  'ui.source_buckets.default': '',
+}
+
 function val<K extends Key>(
   key: K,
   user: Partial<Defaults>,
-  sys: Defaults,
   ext: Partial<Defaults>,
 ): Value<K> {
   return {
@@ -88,55 +126,52 @@ function val<K extends Key>(
   }
 }
 
-export function parse(config: string, sys: Defaults, ext: Partial<Defaults>) {
+export function parse(config: string, ext: Partial<Defaults>) {
   const user = parseUser(config)
   return {
-    'ui.actions.copyPackage': val('ui.actions.copyPackage', user, sys, ext),
-    'ui.actions.createPackage': val('ui.actions.createPackage', user, sys, ext),
-    'ui.actions.deleteRevision': val('ui.actions.deleteRevision', user, sys, ext),
-    'ui.actions.revisePackage': val('ui.actions.revisePackage', user, sys, ext),
+    'ui.actions.copyPackage': val('ui.actions.copyPackage', user, ext),
+    'ui.actions.createPackage': val('ui.actions.createPackage', user, ext),
+    'ui.actions.deleteRevision': val('ui.actions.deleteRevision', user, ext),
+    'ui.actions.revisePackage': val('ui.actions.revisePackage', user, ext),
 
-    'ui.blocks.analytics': val('ui.blocks.analytics', user, sys, ext),
-    'ui.blocks.browser': val('ui.blocks.browser', user, sys, ext),
-    'ui.blocks.code': val('ui.blocks.code', user, sys, ext),
+    'ui.blocks.analytics': val('ui.blocks.analytics', user, ext),
+    'ui.blocks.browser': val('ui.blocks.browser', user, ext),
+    'ui.blocks.code': val('ui.blocks.code', user, ext),
 
-    'ui.blocks.meta': val('ui.blocks.meta', user, sys, ext),
+    'ui.blocks.meta': val('ui.blocks.meta', user, ext),
     'ui.blocks.meta.user_meta.expanded': val(
       'ui.blocks.meta.user_meta.expanded',
       user,
-      sys,
       ext,
     ),
     'ui.blocks.meta.workflows.expanded': val(
       'ui.blocks.meta.workflows.expanded',
       user,
-      sys,
       ext,
     ),
 
-    'ui.blocks.gallery.files': val('ui.blocks.gallery.files', user, sys, ext),
-    'ui.blocks.gallery.overview': val('ui.blocks.gallery.overview', user, sys, ext),
-    'ui.blocks.gallery.packages': val('ui.blocks.gallery.packages', user, sys, ext),
-    'ui.blocks.gallery.summarize': val('ui.blocks.gallery.summarize', user, sys, ext),
+    'ui.blocks.gallery.files': val('ui.blocks.gallery.files', user, ext),
+    'ui.blocks.gallery.overview': val('ui.blocks.gallery.overview', user, ext),
+    'ui.blocks.gallery.packages': val('ui.blocks.gallery.packages', user, ext),
+    'ui.blocks.gallery.summarize': val('ui.blocks.gallery.summarize', user, ext),
 
-    'ui.blocks.qurator': val('ui.blocks.qurator', user, sys, ext),
+    'ui.blocks.qurator': val('ui.blocks.qurator', user, ext),
 
-    'ui.nav.files': val('ui.nav.files', user, sys, ext),
-    'ui.nav.packages': val('ui.nav.packages', user, sys, ext),
-    'ui.nav.queries': val('ui.nav.queries', user, sys, ext),
+    'ui.nav.files': val('ui.nav.files', user, ext),
+    'ui.nav.packages': val('ui.nav.packages', user, ext),
+    'ui.nav.queries': val('ui.nav.queries', user, ext),
 
-    'ui.source_buckets': val('ui.source_buckets', user, sys, ext),
-    'ui.source_buckets.default': val('ui.source_buckets.default', user, sys, ext),
+    'ui.source_buckets': val('ui.source_buckets', user, ext),
+    'ui.source_buckets.default': val('ui.source_buckets.default', user, ext),
 
-    'ui.package_description': val('ui.package_description', user, sys, ext),
+    'ui.package_description': val('ui.package_description', user, ext),
     'ui.package_description.multiline': val(
       'ui.package_description.multiline',
       user,
-      sys,
       ext,
     ),
 
-    'ui.athena.defaultWorkgroup': val('ui.athena.defaultWorkgroup', user, sys, ext),
+    'ui.athena.defaultWorkgroup': val('ui.athena.defaultWorkgroup', user, ext),
   }
 }
 
