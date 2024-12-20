@@ -14,13 +14,15 @@ interface LabelsProps {
   value?: readonly string[]
 }
 
+const options: string[] = []
+
 function Labels({ disabled, onChange, size, value = [] }: LabelsProps) {
   return (
     <Lab.Autocomplete
       disabled={disabled}
       freeSolo
       multiple
-      options={[]}
+      options={options}
       onChange={(_e, labels) => onChange(labels)}
       value={[...(value || [])]}
       renderInput={(params) => (
@@ -181,6 +183,8 @@ interface PackageDescriptionsListProps {
   value: Value<'ui.package_description'>['value']
 }
 
+const empty = {}
+
 export default function PackageDescriptionsList({
   className,
   disabled,
@@ -239,7 +243,7 @@ export default function PackageDescriptionsList({
         key={`${packageHandles.length}`}
         disabled={disabled}
         handlePattern=""
-        value={{}}
+        value={empty}
         size={size}
         onRename={handleNewKey}
         onChange={handleValueChange}
