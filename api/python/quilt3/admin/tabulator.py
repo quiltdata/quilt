@@ -27,3 +27,17 @@ def rename_table(bucket_name: str, table_name: str, new_table_name: str) -> None
     """
     result = util.get_client().bucket_tabulator_table_rename(bucket_name, table_name, new_table_name)
     util.handle_errors(result)
+
+
+def get_open_query() -> bool:
+    """
+    Get the **open query** status.
+    """
+    return util.get_client().tabulator_get_open_query()
+
+
+def set_open_query(enabled: bool) -> None:
+    """
+    Set the **open query** status.
+    """
+    util.get_client().tabulator_set_open_query(enabled)
