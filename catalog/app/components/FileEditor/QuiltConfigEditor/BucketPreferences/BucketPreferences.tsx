@@ -265,7 +265,7 @@ export default function QuiltSummarize({
     error ? [error] : [],
   )
 
-  const [config, setConfig] = React.useState(parse(initialValue || '', sys, {}))
+  const [config, setConfig] = React.useState(parse(initialValue || '', {}))
   const classes = useStyles()
   const grouped = React.useMemo(
     () =>
