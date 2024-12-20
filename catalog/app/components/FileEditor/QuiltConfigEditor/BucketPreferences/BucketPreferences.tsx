@@ -11,7 +11,121 @@ import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
 import PackageDescription from './PackageDescription'
 import { parse, stringify } from './State'
-import type { Config, Value } from './State'
+import type { Config, TypedValue, Value } from './State'
+
+function InputBoolean({
+  className,
+  disabled,
+  onChange,
+  size,
+  value: { key, value },
+}: FieldProps<TypedValue<boolean>>) {
+  const handleChange = React.useCallback(
+    (_e, checked: boolean) => onChange({ isDefault: false, key, value: checked }),
+    [key, onChange],
+  )
+  return (
+    <M.FormControl className={className}>
+      <M.FormControlLabel
+        control={<M.Checkbox checked={value} size={size} onChange={handleChange} />}
+        disabled={disabled}
+        label={i18n(key)}
+      />
+    </M.FormControl>
+  )
+}
+
+function InputValue({
+  className,
+  onChange,
+  value: { key, value },
+  ...props
+}: FieldProps<TypedValue<string>>) {
+  const handleChange = React.useCallback(
+    (event) => onChange({ isDefault: false, key, value: event.target.value }),
+    [key, onChange],
+  )
+  return (
+    <M.TextField
+      {...props}
+      className={className}
+      label={i18n(key)}
+      value={value}
+      onChange={handleChange}
+    />
+  )
+}
+
+function InputDefaultSourceBucket({
+  config,
+  onChange,
+  value: { key, value },
+  size,
+  className,
+}: FieldProps<TypedValue<string>>) {
+  const options = config['ui.source_buckets'].value
+  const handleChange = React.useCallback(
+    (event) => onChange({ isDefault: false, value: event.target.value as string, key }),
+    [key, onChange],
+  )
+  return (
+    <M.FormControl className={className} fullWidth size={size}>
+      <M.InputLabel>Default source bucket</M.InputLabel>
+      <M.Select value={value || options[0]} onChange={handleChange}>
+        {options.map((bucket) => (
+          <M.MenuItem key={bucket} value={bucket}>
+            {bucket}
+          </M.MenuItem>
+        ))}
+      </M.Select>
+    </M.FormControl>
+  )
+}
+
+const useInputSourceBucketsStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(2),
+  },
+}))
+
+function InputSourceBuckets({
+  className,
+  value: { key, value },
+  onChange,
+  ...props
+}: FieldProps<TypedValue<string[]>>) {
+  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const options = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  const classes = useInputSourceBucketsStyles()
+  const handleChange = React.useCallback(
+    (_e, buckets: string[]) => onChange({ isDefault: false, key, value: buckets }),
+    [key, onChange],
+  )
+  return (
+    <Lab.Autocomplete
+      className={cx(className, classes.root)}
+      multiple
+      onChange={handleChange}
+      options={options}
+      renderInput={(params) => <M.TextField {...params} placeholder="Source buckets" />}
+      value={value}
+      {...props}
+    />
+  )
+}
+
+function InputPackageDescription({
+  value: { key, value },
+  onChange,
+  ...props
+}: FieldProps<Value<'ui.package_description'>>) {
+  const handleChange = React.useCallback(
+    (v: Value<'ui.package_description'>['value']) =>
+      onChange({ isDefault: false, key, value: v }),
+    [key, onChange],
+  )
+  return <PackageDescription {...props} onChange={handleChange} value={value} />
+}
 
 const I18N = {
   'ui.actions': 'Toggle buttons visibility',
@@ -93,127 +207,51 @@ const sys = {
   'ui.source_buckets.default': '',
 }
 
-const useFieldStyles = M.makeStyles((t) => ({
-  autocomplete: {
-    marginTop: t.spacing(2),
-  },
-  default: {
-    opacity: 0.3,
-    '&:hover': {
-      opacity: 1,
-    },
-  },
-}))
-
-interface FieldProps {
+interface FieldProps<V = Value> {
   className: string
   disabled?: boolean
-  value: Value
+  value: V
   size: 'small' | 'medium'
-  onChange: (v: Value) => void
+  onChange: (v: V) => void
   config: Config
 }
 
-function Field({
-  className,
-  disabled,
-  size,
-  value: { isDefault, key, value },
-  onChange,
-  config,
-}: FieldProps) {
-  const classes = useFieldStyles()
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  if (key === 'ui.package_description') {
+function Field({ value, ...props }: FieldProps) {
+  if (value.key === 'ui.package_description') {
     return (
-      <PackageDescription
-        className={className}
-        disabled={disabled}
-        onChange={(v) => onChange({ isDefault: false, key, value: v })}
-        size={size}
-        value={value as Value<'ui.package_description'>['value']}
+      <InputPackageDescription
+        {...props}
+        value={value as Value<'ui.package_description'>}
       />
     )
   }
 
-  if (key === 'ui.source_buckets') {
+  if (value.key === 'ui.source_buckets') {
+    return <InputSourceBuckets {...props} value={value as Value<'ui.source_buckets'>} />
+  }
+
+  if (value.key === 'ui.source_buckets.default') {
     return (
-      <Lab.Autocomplete
-        className={cx(className, classes.autocomplete)}
-        disabled={disabled}
-        multiple
-        onChange={(_e, buckets) => onChange({ isDefault: false, key, value: buckets })}
-        options={(bucketConfigs || []).map((b) => b.name)}
-        renderInput={(params) => <M.TextField {...params} placeholder="Source buckets" />}
-        size={size}
-        value={value as string[]}
+      <InputDefaultSourceBucket
+        {...props}
+        value={value as Value<'ui.source_buckets.default'>}
       />
     )
   }
 
-  if (key === 'ui.source_buckets.default') {
-    const options = config['ui.source_buckets'].value
-    return (
-      <M.FormControl
-        className={cx(isDefault && classes.default, className)}
-        fullWidth
-        size={size}
-      >
-        <M.InputLabel>Default source bucket</M.InputLabel>
-        <M.Select
-          value={value || options[0]}
-          onChange={(event) =>
-            onChange({ isDefault: false, value: event.target.value as string, key })
-          }
-        >
-          {options.map((bucket) => (
-            <M.MenuItem key={bucket} value={bucket}>
-              {bucket}
-            </M.MenuItem>
-          ))}
-        </M.Select>
-      </M.FormControl>
-    )
+  if (typeof value.value === 'string') {
+    return <InputValue {...props} value={value as TypedValue<string>} />
   }
 
-  if (typeof value === 'string' || typeof value === 'number') {
-    return (
-      <M.TextField
-        className={className}
-        disabled={disabled}
-        label={i18n(key)}
-        placeholder={isDefault ? value.toString() : ''}
-        size={size}
-        value={isDefault ? '' : value}
-        onChange={(event) =>
-          onChange({ isDefault: false, key, value: event.target.value })
-        }
-      />
-    )
+  if (
+    typeof value.value === 'boolean' ||
+    value.key === 'ui.blocks.meta.user_meta.expanded' ||
+    value.key === 'ui.blocks.meta.workflows.expanded'
+  ) {
+    return <InputBoolean {...props} value={value as TypedValue<boolean>} />
   }
 
-  if (typeof value === 'boolean') {
-    return (
-      <M.FormControl className={className}>
-        <M.FormControlLabel
-          control={
-            <M.Checkbox
-              className={cx(isDefault && classes.default)}
-              checked={value}
-              size={size}
-              onChange={(_e, checked) =>
-                onChange({ isDefault: false, key, value: checked })
-              }
-            />
-          }
-          disabled={disabled}
-          label={i18n(key)}
-        />
-      </M.FormControl>
-    )
-  }
-
-  return null
+  throw new Error('Unsupported field')
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -226,6 +264,14 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
   },
   field: {},
+  pristine: {
+    '&:not(:hover) .MuiCheckbox-root': {
+      opacity: 0.3,
+    },
+    '&:not(:hover) .MuiInput-root': {
+      opacity: 0.3,
+    },
+  },
   group: {
     display: 'grid',
     gridColumnGap: t.spacing(2),
@@ -308,7 +354,7 @@ export default function QuiltSummarize({
           >
             {groupValues.map((value) => (
               <Field
-                className={classes.field}
+                className={cx(classes.field, value.isDefault && classes.pristine)}
                 disabled={disabled}
                 key={value.key}
                 value={value}

@@ -5,10 +5,18 @@ import type {
   MetaBlockPreferencesInput,
 } from 'utils/BucketPreferences'
 
-export interface Value<K extends keyof Defaults = keyof Defaults> {
+type Key = keyof Defaults
+
+export interface Value<K extends Key = Key> {
   isDefault: boolean
   key: K
   value: NonNullable<Defaults[K]>
+}
+
+export interface TypedValue<V extends Value['value']> {
+  isDefault: boolean
+  key: Key
+  value: V
 }
 
 function childOfBool<T>(parent: undefined | boolean | Record<string, T>, key: string) {
@@ -67,7 +75,7 @@ function parseUser(config: string) {
 
 type Defaults = Required<ReturnType<typeof parseUser>>
 
-function val<K extends keyof Defaults>(
+function val<K extends Key>(
   key: K,
   user: Partial<Defaults>,
   sys: Defaults,

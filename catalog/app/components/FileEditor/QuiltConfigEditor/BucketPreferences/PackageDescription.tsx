@@ -94,8 +94,11 @@ function PackageHandle({
 const useStyles = M.makeStyles((t) => ({
   root: {
     animation: '$appear 0.3s ease-out',
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
     display: 'grid',
     gridTemplateRows: '1fr 1fr 1fr',
+    padding: t.spacing(2),
     rowGap: t.spacing(1),
   },
   '@keyframes appear': {
@@ -160,7 +163,7 @@ function PackageDescription({
   )
 }
 
-const usePackageDescriptionStyles = M.makeStyles((t) => ({
+const usePackageDescriptionsListStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
@@ -170,6 +173,7 @@ const usePackageDescriptionStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageDescriptionsListProps {
+  pristine?: boolean
   className: string
   disabled?: boolean
   onChange: (v: Value<'ui.package_description'>['value']) => void
@@ -184,7 +188,7 @@ export default function PackageDescriptionsList({
   value,
   onChange,
 }: PackageDescriptionsListProps) {
-  const classes = usePackageDescriptionStyles()
+  const classes = usePackageDescriptionsListStyles()
 
   const handleKeyChange = React.useCallback(
     (oldKey: string, newKey: string) => {
