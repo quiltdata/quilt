@@ -3,6 +3,7 @@ import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Icon from 'components/Icon'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
@@ -191,7 +192,7 @@ function LicenseError({ restore }: LicenseErrorProps) {
   return (
     <M.Tooltip title="This Quilt stack is unlicensed. Contact your Quilt administrator.">
       <M.IconButton className={classes.licenseError} onClick={restore} size="small">
-        <M.Icon>error_outline</M.Icon>
+        <Icon.ErrorOutlined />
       </M.IconButton>
     </M.Tooltip>
   )

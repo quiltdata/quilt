@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Icon from 'components/Icon'
+
 const DOM_ID = 'intercom-mount-point'
 
 export const SELECTOR = `#${DOM_ID}`
@@ -28,11 +30,7 @@ export function Launcher({ className }: LauncherProps) {
         className={cx(classes.root, className)}
         color="primary"
         id={DOM_ID}
-        startIcon={
-          <M.Icon fontSize="small" className={classes.img}>
-            chat_bubble_outline
-          </M.Icon>
-        }
+        startIcon={<Icon.ChatBubbleOutline fontSize="small" className={classes.img} />}
         variant="contained"
         size="small"
       />
