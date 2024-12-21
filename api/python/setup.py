@@ -85,6 +85,9 @@ setup(
             'pytest-subtests',
             'responses',
             'git-pylint-commit-hook',
+            'ipython',
+            'jupyter',
+            'watchdog'
         ],
         'catalog': [
             'quilt3_local>=1,<2',
