@@ -62,7 +62,7 @@ function InputDefaultSourceBucket({
   value: { key, value },
   size,
   className,
-}: FieldProps<TypedValue<string>>) {
+}: FieldPropsWithConfig<TypedValue<string>>) {
   const options = config['ui.source_buckets'].value
   const handleChange = React.useCallback(
     (event) => onChange({ isDefault: false, value: event.target.value as string, key }),
@@ -174,10 +174,13 @@ interface FieldProps<V = Value> {
   value: V
   size: 'small' | 'medium'
   onChange: (v: V) => void
+}
+
+interface FieldPropsWithConfig<V = Value> extends FieldProps<V> {
   config: Config
 }
 
-function Field({ value, ...props }: FieldProps) {
+function Field({ config, value, ...props }: FieldPropsWithConfig) {
   if (value.key === 'ui.package_description') {
     return (
       <InputPackageDescription
@@ -195,6 +198,7 @@ function Field({ value, ...props }: FieldProps) {
     return (
       <InputDefaultSourceBucket
         {...props}
+        config={config}
         value={value as Value<'ui.source_buckets.default'>}
       />
     )
@@ -254,7 +258,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function QuiltSummarize({
+export default function BucketPreferences({
   className,
   disabled,
   error,
