@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render 1`] = `
+exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form with default values 1`] = `
 <div
   className="makeStyles-root-1 root"
 >
