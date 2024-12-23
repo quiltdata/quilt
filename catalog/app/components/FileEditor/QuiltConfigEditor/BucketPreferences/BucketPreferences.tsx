@@ -11,7 +11,7 @@ import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
 import PackageDescription from './PackageDescription'
 import { parse, stringify } from './State'
-import type { Config, TypedValue, Value } from './State'
+import type { Config, TypedValue, KeyedValue } from './State'
 
 function InputBoolean({
   className,
@@ -118,9 +118,9 @@ function InputPackageDescription({
   value: { key, value },
   onChange,
   ...props
-}: FieldProps<Value<'ui.package_description'>>) {
+}: FieldProps<KeyedValue<'ui.package_description'>>) {
   const handleChange = React.useCallback(
-    (v: Value<'ui.package_description'>['value']) =>
+    (v: KeyedValue<'ui.package_description'>['value']) =>
       onChange({ isDefault: false, key, value: v }),
     [key, onChange],
   )
@@ -168,7 +168,7 @@ function i18n(key: string): string {
   return I18N[key as keyof typeof I18N] ?? key
 }
 
-interface FieldProps<V = Value> {
+interface FieldProps<V = KeyedValue> {
   className: string
   disabled?: boolean
   value: V
@@ -176,7 +176,7 @@ interface FieldProps<V = Value> {
   onChange: (v: V) => void
 }
 
-interface FieldPropsWithConfig<V = Value> extends FieldProps<V> {
+interface FieldPropsWithConfig<V = KeyedValue> extends FieldProps<V> {
   config: Config
 }
 
@@ -185,13 +185,15 @@ function Field({ config, value, ...props }: FieldPropsWithConfig) {
     return (
       <InputPackageDescription
         {...props}
-        value={value as Value<'ui.package_description'>}
+        value={value as KeyedValue<'ui.package_description'>}
       />
     )
   }
 
   if (value.key === 'ui.source_buckets') {
-    return <InputSourceBuckets {...props} value={value as Value<'ui.source_buckets'>} />
+    return (
+      <InputSourceBuckets {...props} value={value as KeyedValue<'ui.source_buckets'>} />
+    )
   }
 
   if (value.key === 'ui.source_buckets.default') {
@@ -199,7 +201,7 @@ function Field({ config, value, ...props }: FieldPropsWithConfig) {
       <InputDefaultSourceBucket
         {...props}
         config={config}
-        value={value as Value<'ui.source_buckets.default'>}
+        value={value as KeyedValue<'ui.source_buckets.default'>}
       />
     )
   }
@@ -283,13 +285,13 @@ export default function BucketPreferences({
             [groupKey]: [...(memo[groupKey] || []), value],
           }
         },
-        {} as Record<string, Value[]>,
+        {} as Record<string, KeyedValue[]>,
       ),
     [config],
   )
 
   const handleChange = React.useCallback(
-    (v: Value) => setConfig((c) => ({ ...c, [v.key]: v })),
+    (v: KeyedValue) => setConfig((c) => ({ ...c, [v.key]: v })),
     [],
   )
 

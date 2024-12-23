@@ -5,7 +5,7 @@ import * as Lab from '@material-ui/lab'
 
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
 
-import type { Value } from './State'
+import type { KeyedValue } from './State'
 
 interface LabelsProps {
   disabled?: boolean
@@ -178,9 +178,9 @@ interface PackageDescriptionsListProps {
   pristine?: boolean
   className: string
   disabled?: boolean
-  onChange: (v: Value<'ui.package_description'>['value']) => void
+  onChange: (v: KeyedValue<'ui.package_description'>['value']) => void
   size: 'small' | 'medium'
-  value: Value<'ui.package_description'>['value']
+  value: KeyedValue<'ui.package_description'>['value']
 }
 
 const empty = {}

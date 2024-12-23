@@ -7,17 +7,13 @@ import type {
 
 type Key = keyof Defaults
 
-export interface Value<K extends Key = Key> {
-  isDefault: boolean
-  key: K
-  value: NonNullable<Defaults[K]>
-}
-
-export interface TypedValue<V extends Value['value']> {
+export interface TypedValue<V extends KeyedValue['value']> {
   isDefault: boolean
   key: Key
   value: V
 }
+
+export type KeyedValue<K extends Key = Key> = TypedValue<NonNullable<Defaults[K]>>
 
 function childOfBool<T>(parent: undefined | boolean | Record<string, T>, key: string) {
   return typeof parent === 'boolean' ? parent : parent?.[key]
@@ -66,7 +62,6 @@ function parseUser(config: string) {
     'ui.package_description.multiline': json?.ui?.package_description_multiline,
 
     'ui.source_buckets': json?.ui?.sourceBuckets && Object.keys(json?.ui?.sourceBuckets),
-    // TODO: taking the first from `source_buckets` is "system default"
     'ui.source_buckets.default': json?.ui?.defaultSourceBucket,
 
     'ui.athena.defaultWorkgroup': json?.ui?.athena?.defaultWorkgroup,
@@ -118,7 +113,7 @@ function val<K extends Key>(
   key: K,
   user: Partial<Defaults>,
   ext: Partial<Defaults>,
-): Value<K> {
+): KeyedValue<K> {
   return {
     isDefault: !user[key],
     key,
