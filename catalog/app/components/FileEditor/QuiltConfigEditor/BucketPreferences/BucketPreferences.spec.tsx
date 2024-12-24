@@ -1,10 +1,10 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
-// import { createMuiTheme } from '@material-ui/core'
+import { createMuiTheme } from '@material-ui/core'
 
 import BucketPreferences from './BucketPreferences'
 
-// const theme = createMuiTheme()
+const theme = createMuiTheme()
 const noop = () => {}
 
 jest.mock(
@@ -34,6 +34,16 @@ jest.mock(
         {value} from [{options?.join(', ')}]
       </div>
     )),
+    makeStyles: jest.fn((cb: any) => () => {
+      const classes = typeof cb === 'function' ? cb(theme) : cb
+      return Object.keys(classes).reduce(
+        (acc, key) => ({
+          [key]: key,
+          ...acc,
+        }),
+        {},
+      )
+    }),
   })),
 )
 

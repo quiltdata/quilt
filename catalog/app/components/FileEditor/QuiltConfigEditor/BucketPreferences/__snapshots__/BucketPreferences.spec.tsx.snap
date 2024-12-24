@@ -2,21 +2,21 @@
 
 exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form with default values 1`] = `
 <div
-  className="makeStyles-root-1 root"
+  className="root root"
 >
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <h6
-      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+      className="MuiTypography-root groupTitle MuiTypography-h6"
     >
       Toggle buttons visibility
     </h6>
     <div
-      className="makeStyles-group-5 makeStyles-group2Columns-6"
+      className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -32,7 +32,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -48,7 +48,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -64,7 +64,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -82,18 +82,18 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <h6
-      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+      className="MuiTypography-root groupTitle MuiTypography-h6"
     >
       Toggle blocks visibility
     </h6>
     <div
-      className="makeStyles-group-5 makeStyles-group2Columns-6"
+      className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -109,7 +109,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -125,7 +125,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -141,7 +141,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -157,7 +157,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -175,18 +175,18 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <h6
-      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+      className="MuiTypography-root groupTitle MuiTypography-h6"
     >
       Toggle expanded JSON blocks in METADATA section
     </h6>
     <div
-      className="makeStyles-group-5 makeStyles-group2Columns-6"
+      className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -202,7 +202,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -220,18 +220,18 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <h6
-      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+      className="MuiTypography-root groupTitle MuiTypography-h6"
     >
       Toggle galleries visibility
     </h6>
     <div
-      className="makeStyles-group-5 makeStyles-group2Columns-6"
+      className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -247,7 +247,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -263,7 +263,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -279,7 +279,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -297,18 +297,18 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <h6
-      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+      className="MuiTypography-root groupTitle MuiTypography-h6"
     >
       Toggle navigation items
     </h6>
     <div
-      className="makeStyles-group-5 makeStyles-group2Columns-6 makeStyles-group3Columns-7"
+      className="group group2Columns group3Columns"
     >
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -324,7 +324,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -340,7 +340,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -358,15 +358,15 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <h6
-      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+      className="MuiTypography-root groupTitle MuiTypography-h6"
     >
       List of buckets allowed to be as source for packages
     </h6>
     <div
-      className="makeStyles-group-5 makeStyles-group2Columns-6"
+      className="group group2Columns"
     >
       <div
         id="autocomplete"
@@ -376,7 +376,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         ]
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4 MuiFormControl-fullWidth"
+        className="MuiFormControl-root field pristine MuiFormControl-fullWidth"
       >
         <label
           className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
@@ -394,21 +394,21 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <h6
-      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+      className="MuiTypography-root groupTitle MuiTypography-h6"
     >
       Configure the packages list appearance
     </h6>
     <div
-      className="makeStyles-group-5"
+      className="group"
     >
       <div
-        className="makeStyles-root-11 makeStyles-field-3 makeStyles-pristine-4"
+        className="root field pristine"
       >
         <div
-          className="makeStyles-root-12"
+          className="root"
         >
           <div
             id="text-field"
@@ -440,7 +440,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           </div>
         </div>
         <div
-          className="makeStyles-root-12"
+          className="root"
         >
           <div
             id="text-field"
@@ -473,7 +473,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </div>
       </div>
       <div
-        className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
+        className="MuiFormControl-root field pristine"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -491,10 +491,10 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="makeStyles-groupWrapper-9"
+    className="groupWrapper"
   >
     <div
-      className="makeStyles-group-5"
+      className="group"
     >
       <div
         id="text-field"
