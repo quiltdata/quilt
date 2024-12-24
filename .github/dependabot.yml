@@ -9,18 +9,22 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    target-branch: "dependabot-updates"
 
   - package-ecosystem: "docker"
     directory: "/lambdas/thumbnail"
     schedule:
       interval: "daily"
+    target-branch: "dependabot-updates"
 
   - package-ecosystem: "docker"
     directory: "/catalog"
     schedule:
       interval: "daily"
+    target-branch: "dependabot-updates"
 
   - package-ecosystem: "docker"
     directory: "/s3-proxy"
     schedule:
       interval: "daily"
+    target-branch: "dependabot-updates"
