@@ -2,26 +2,51 @@ import dedent from 'dedent'
 
 import { extendDefaults, parse } from './BucketPreferences'
 
-const sentryMock = () => {}
-
 const expectedDefaults = {
   ui: {
     actions: {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
+      downloadObject: true,
+      downloadPackage: true,
+      openInDesktop: false,
       revisePackage: true,
+      writeFile: true,
     },
+    athena: {},
     blocks: {
       analytics: true,
       browser: true,
       code: true,
-      meta: true,
+      meta: {
+        userMeta: {
+          expanded: false,
+        },
+        workflows: {
+          expanded: false,
+        },
+      },
+      gallery: {
+        files: true,
+        overview: true,
+        packages: true,
+        summarize: true,
+      },
+      qurator: true,
     },
     nav: {
       files: true,
       packages: true,
       queries: true,
+    },
+    packageDescription: {
+      packages: {
+        '.*': {
+          message: true,
+        },
+      },
+      userMetaMultiline: false,
     },
     sourceBuckets: {
       list: [],
@@ -31,71 +56,83 @@ const expectedDefaults = {
 
 describe('utils/BucketPreferences', () => {
   describe('parse', () => {
-    test('Empty config returns default preferences', () => {
-      expect(parse('', sentryMock)).toMatchObject(expectedDefaults)
+    it('Empty config returns default preferences', () => {
+      expect(parse('')).toMatchObject(expectedDefaults)
     })
 
-    test('If one action is overwritten, others should be default', () => {
+    it('If one action is overwritten, others should be default', () => {
       const config = dedent`
             ui:
                 actions:
                     copyPackage: False
       `
-      expect(parse(config, sentryMock).ui.actions).toMatchObject({
+      expect(parse(config).ui.actions).toEqual({
         ...expectedDefaults.ui.actions,
         copyPackage: false,
       })
     })
 
-    test('If one block is overwritten, others should be default', () => {
+    it('If one block is overwritten, others should be default', () => {
       const config = dedent`
             ui:
                 blocks:
                     analytics: False
       `
-      expect(parse(config, sentryMock).ui.blocks).toMatchObject({
+      expect(parse(config).ui.blocks).toEqual({
         ...expectedDefaults.ui.blocks,
         analytics: false,
       })
     })
 
-    test('If one nav is overwritten, others should be default', () => {
+    it('If one nav is overwritten, others should be default', () => {
       const config = dedent`
             ui:
                 nav:
                     queries: False
       `
-      expect(parse(config, sentryMock).ui.nav).toMatchObject({
+      expect(parse(config).ui.nav).toEqual({
         ...expectedDefaults.ui.nav,
         queries: false,
       })
     })
 
-    test('Additional config structures returns defaults', () => {
+    it('Additional config structures returns defaults and those additonal fields', () => {
       const config = dedent`
             ui:
                 blocks:
                     queries: QUERY
       `
-      expect(parse(config, sentryMock)).toMatchObject(expectedDefaults)
+      expect(parse(config)).toMatchObject(expectedDefaults)
+      expect(parse(config).ui.blocks).toEqual({
+        ...expectedDefaults.ui.blocks,
+        queries: 'QUERY',
+      })
     })
 
-    test('Invalid config values throws error', () => {
+    it('Invalid config values throws error', () => {
       const config = dedent`
             ui:
                 nav:
                     queries: QUERY
       `
-      expect(() => parse(config, sentryMock)).toThrowError()
+      expect(() => parse(config)).toThrowError()
+    })
+
+    it('Actions = false disables all actions', () => {
+      const config = dedent`
+            ui:
+                actions: False
+      `
+      expect(parse(config).ui.actions).toMatchSnapshot()
     })
   })
 
   describe('extendDefaults', () => {
-    test('Empty config returns default preferences', () => {
-      expect(extendDefaults({}, sentryMock)).toMatchObject(expectedDefaults)
+    it('Empty config returns default preferences', () => {
+      expect(extendDefaults({})).toMatchObject(expectedDefaults)
     })
 
-    test('If one action is overwritten, others should be default', () => {
+    it('If one action is overwritten, others should be default', () => {
       const config = {
         ui: {
           actions: {
@@ -103,13 +140,13 @@ describe('utils/BucketPreferences', () => {
           },
         },
       }
-      expect(extendDefaults(config, sentryMock).ui.actions).toMatchObject({
+      expect(extendDefaults(config).ui.actions).toEqual({
         ...expectedDefaults.ui.actions,
         deleteRevision: true,
       })
     })
 
-    test('If one block is overwritten, others should be default', () => {
+    it('If one block is overwritten, others should be default', () => {
       const config = {
         ui: {
           blocks: {
@@ -117,13 +154,13 @@ describe('utils/BucketPreferences', () => {
           },
         },
       }
-      expect(extendDefaults(config, sentryMock).ui.blocks).toMatchObject({
+      expect(extendDefaults(config).ui.blocks).toEqual({
         ...expectedDefaults.ui.blocks,
         browser: false,
       })
     })
 
-    test('If one nav is overwritten, others should be default', () => {
+    it('If one nav is overwritten, others should be default', () => {
       const config = {
         ui: {
           nav: {
@@ -131,7 +168,7 @@ describe('utils/BucketPreferences', () => {
           },
         },
       }
-      expect(extendDefaults(config, sentryMock).ui.nav).toMatchObject({
+      expect(extendDefaults(config).ui.nav).toEqual({
         ...expectedDefaults.ui.nav,
         files: false,
       })

@@ -4,16 +4,29 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 // import Message from 'components/Message'
+import * as Buttons from 'components/Buttons'
 import SelectDropdown from 'components/SelectDropdown'
-import * as Auth from 'containers/Auth'
+import cfg from 'constants/config'
+import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 
 export * from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
-const useDownloadButtonStyles = M.makeStyles((t) => ({
+export function DownloadButton({ className, handle }) {
+  return AWS.Signer.withDownloadUrl(handle, (url) => (
+    <Buttons.Iconized
+      className={className}
+      href={url}
+      download
+      label="Download file"
+      icon="arrow_downward"
+    />
+  ))
+}
+
+const useViewModeSelectorStyles = M.makeStyles((t) => ({
   root: {
     flexShrink: 0,
     marginBottom: -3,
@@ -24,47 +37,8 @@ const useDownloadButtonStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function DownloadButtonLayout({ className, label, icon, ...props }) {
-  const classes = useDownloadButtonStyles()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-
-  return sm ? (
-    <M.IconButton
-      className={cx(classes.root, className)}
-      edge="end"
-      size="small"
-      {...props}
-    >
-      <M.Icon>{icon}</M.Icon>
-    </M.IconButton>
-  ) : (
-    <M.Button
-      className={cx(classes.root, className)}
-      variant="outlined"
-      size="small"
-      startIcon={<M.Icon>{icon}</M.Icon>}
-      {...props}
-    >
-      {label}
-    </M.Button>
-  )
-}
-
-export function DownloadButton({ className, handle }) {
-  return AWS.Signer.withDownloadUrl(handle, (url) => (
-    <DownloadButtonLayout
-      className={className}
-      href={url}
-      download
-      label="Download file"
-      icon="arrow_downward"
-    />
-  ))
-}
-
 export function ViewModeSelector({ className, ...props }) {
-  const classes = useDownloadButtonStyles()
+  const classes = useViewModeSelectorStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
@@ -74,25 +48,30 @@ export function ViewModeSelector({ className, ...props }) {
   )
 }
 
-export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
-  const { s3Proxy, noDownload } = Config.use()
-  const { token } = redux.useSelector(Auth.selectors.tokens) || {}
-  if (!token || noDownload) return null
-  const action = `${s3Proxy}/zip/${suffix}`
+/** Child button must have `type="submit"` */
+export function ZipDownloadForm({
+  className = '',
+  suffix,
+  children,
+  newTab = false,
+  files = [],
+}) {
+  const { token } = redux.useSelector(tokensSelector) || {}
+  if (!token || cfg.noDownload) return null
+  const action = `${cfg.s3Proxy}/zip/${suffix}`
   return (
     <form
+      className={className}
       action={action}
       target={newTab ? '_blank' : undefined}
       method="POST"
       style={{ flexShrink: 0 }}
     >
       <input type="hidden" name="token" value={token} />
-      <DownloadButtonLayout
-        className={className}
-        label={label}
-        icon="archive"
-        type="submit"
-      />
+      {files.map((file) => (
+        <input type="hidden" name="file" value={file} key={file} />
+      ))}
+      {children}
     </form>
   )
 }
@@ -119,7 +98,7 @@ const renderDownload = (handle) => !!handle && <DownloadButton {...{ handle }} /
 
 function FileView({
   header,
-  subheader, 
+  subheader,
 }) {
   return (
     <Root>

@@ -5,10 +5,10 @@ import * as R from 'ramda'
 import workflowsConfigSchema from 'schemas/workflows-config-1.1.0.json'
 import workflowsCatalogConfigSchema from 'schemas/workflows-config_catalog-1.0.0.json'
 
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator } from 'utils/JSONSchema'
 import type * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
-import yaml from 'utils/yaml'
+import * as YAML from 'utils/yaml'
 import * as bucketErrors from 'containers/Bucket/errors'
 
 interface WorkflowsVersion {
@@ -28,7 +28,7 @@ interface WorkflowsYaml {
   workflows: Record<string, WorkflowYaml>
 }
 
-interface WorkflowYaml {
+export interface WorkflowYaml {
   description?: string
   entries_schema?: string
   handle_pattern?: string
@@ -153,6 +153,13 @@ const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   url,
 })
 
+export const bucketToSuccessor = (bucket: string) => ({
+  copyData: COPY_DATA_DEFAULT,
+  name: bucket,
+  slug: bucket,
+  url: `s3://${bucket}`,
+})
+
 function validateConfigVersion(
   objectVersion: string,
   schemaVersion: string,
@@ -217,7 +224,7 @@ function prepareData(data: unknown): WorkflowsYaml {
 }
 
 export function parse(workflowsYaml: string): WorkflowsConfig {
-  const rawData = yaml(workflowsYaml)
+  const rawData = YAML.parse(workflowsYaml)
   if (!rawData) return emptyConfig
 
   const data = prepareData(rawData)

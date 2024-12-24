@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import sys
 import tempfile
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -22,7 +23,7 @@ def pytest_sessionstart(session):
     This runs *before* import and collection of tests.
 
     This is *THE* place to do mocking of things that are global,
-    such as `appdirs`.
+    such as `platformdirs`.
 
     Do teardown in `pytest_sessionfinish()`
     """
@@ -30,15 +31,18 @@ def pytest_sessionstart(session):
     # Looks like there's no public API to get the resolved value of pytest base temp dir
     # (https://docs.pytest.org/en/6.2.x/tmpdir.html#the-default-base-temporary-directory).
     Vars.tmpdir_home = pathlib.Path(tempfile.mkdtemp(prefix='pytest-fake_home'))
-    Vars.tmpdir_data = Vars.tmpdir_home / 'appdirs_datadir'
+    Vars.tmpdir_data = Vars.tmpdir_home / 'platformdirs_datadir'
     Vars.tmpdir_data.mkdir()
-    Vars.tmpdir_cache = Vars.tmpdir_home / 'appdirs_cachedir'
+    Vars.tmpdir_cache = Vars.tmpdir_home / 'platformdirs_cachedir'
     Vars.tmpdir_cache.mkdir()
+
+    def get_dir(*args, d):
+        return str(d / args[0] if args else d)
 
     # Mockers that need to be loaded before any of our code
     Vars.extrasession_mockers.extend([
-        mock.patch('appdirs.user_data_dir', lambda *x: str(Vars.tmpdir_data / x[0] if x else Vars.tmpdir_data)),
-        mock.patch('appdirs.user_cache_dir', lambda *x: str(Vars.tmpdir_cache / x[0] if x else Vars.tmpdir_cache)),
+        mock.patch('platformdirs.user_data_dir', partial(get_dir, d=Vars.tmpdir_data)),
+        mock.patch('platformdirs.user_cache_dir', partial(get_dir, d=Vars.tmpdir_cache)),
     ])
 
     for mocker in Vars.extrasession_mockers:

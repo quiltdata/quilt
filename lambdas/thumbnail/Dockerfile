@@ -1,7 +1,8 @@
-ARG base_image="debian:bullseye-slim"
 ARG FUNCTION_DIR="/function"
 
-FROM ${base_image} as build-image
+FROM debian:bullseye-20241202-slim@sha256:8118d0da5204dcc2f648d416b4c25f97255a823797aeb17495a01f2eb9c1b487 as base-image
+
+FROM base-image as build-image
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
@@ -15,18 +16,17 @@ RUN apt-get update && \
         python3-dev \
         python3-pip
 
-COPY shared/requirements.txt /requirements/shared.txt
-COPY thumbnail/requirements.txt /requirements/thumbnail.txt
-RUN pip install -U pip setuptools
-RUN pip install --target /deps awslambdaric -r /requirements/shared.txt -r /requirements/thumbnail.txt
+COPY requirements.txt /requirements/thumbnail.txt
+# HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
+RUN pip install -U pip setuptools 'numpy<2'
+RUN pip install --target /deps -r /requirements/thumbnail.txt
 RUN curl --output /deps/unoconv \
     https://raw.githubusercontent.com/unoconv/unoconv/be5301a757552f4ecac5d73187ce4d8e18341306/unoconv
 
-COPY shared/ /src/shared/
-COPY thumbnail/ /src/thumbnail/
-RUN pip install --target /lambda --no-deps /src/shared/ /src/thumbnail/
+COPY . /src/thumbnail/
+RUN pip install --target /lambda --no-deps /src/thumbnail/
 
-FROM ${base_image}
+FROM base-image
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends\
@@ -38,6 +38,8 @@ RUN apt-get update && \
         fonts-crosextra-caladea \
         fonts-crosextra-carlito \
         fonts-liberation \
+        # WebP support
+        libfreeimage3 \
     && \
     apt-get clean
 

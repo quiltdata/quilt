@@ -20,7 +20,6 @@ function Image({ handle, className, ...props }) {
       size="lg"
       className={cx(className, classes.root)}
       alt=""
-      skeletonProps={{ width: '100%' }}
       {...props}
     />
   )

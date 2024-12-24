@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 Every data package is backed by a **manifest**. A manifest is a self-contained reference sheet for a package, containing all of the files data and metadata necessary to work with a package.
 
 Every time you save a data package to a registry you also save its manifest. You can inspect the manifest yourself using the `manifest` property:
@@ -6,7 +7,6 @@ Every time you save a data package to a registry you also save its manifest. You
 
 ```python
 import quilt3
-import os
 
 # create test file
 with open("data.csv", "w") as f:
@@ -47,7 +47,7 @@ The manifest fields are as follows:
 * `logical_key` - The path to the entry within the package.
 * `physical_keys` - A list of files. Currently this field will always have a single entry. This field is omitted if the entry is a directory.
 * `size` - The size of the entry in raw bytes. This field is omitted if the entry is a directory.
-* `hash` - [Materialized packages](./Materialization.md) record a content hash for every entry in the package. This field is used to ensure package immutability (the tophash is partly a hash of these hashes).
+* `hash` - [Materialized packages](./materialization.md) record a content hash for every entry in the package. This field is used to ensure package immutability (the tophash is partly a hash of these hashes).
 
   If the hash is present it will be a `dict` fragment of the form `{'type': 'SHA256',
    'value': '...'}`. Un-materialized package entries have a `hash` of `None`, as in our example. Directory entries omit this field.
@@ -55,11 +55,12 @@ The manifest fields are as follows:
 
 ## Saving and loading manifests
 
-In almost all cases you should be using registries, `build`, and `push` to handle sending manifests to and fro. However, there may be advanced use cases where you want to save or load a manifest directly. For that, you can use the low-level manifest API:
+In almost all cases you should be using registries and `push` to handle sending manifests to and fro. However, there may be advanced use cases where you want to save or load a manifest directly. For that, you can use the low-level manifest API:
 
 
 
 ```python
+import quilt3
 p = quilt3.Package().set("data.csv", "data.csv")
 p.set_meta({"key": "value"})
 
@@ -67,7 +68,7 @@ p.set_meta({"key": "value"})
 with open("example.jsonl", "w") as f:
     p.dump(f)
 
-# Loading maifest 
+# Loading manifest
 p.load(open("example.jsonl", "r"))
 ```
 

@@ -20,6 +20,10 @@ query (
           value
         }
       }
+      revision {
+        message
+        userMeta
+      }
     }
   }
 }

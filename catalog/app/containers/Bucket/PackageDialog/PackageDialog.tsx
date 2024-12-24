@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
 import type * as RF from 'react-final-form'
@@ -7,15 +8,23 @@ import * as redux from 'react-redux'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import * as JSONPointer from 'utils/JSONPointer'
+import log from 'utils/Logging'
 import * as Sentry from 'utils/Sentry'
 import { mkFormError } from 'utils/formTools'
-import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import {
+  JsonSchema,
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+} from 'utils/JSONSchema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
+import { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
@@ -23,27 +32,16 @@ import SelectWorkflow from './SelectWorkflow'
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
-export const MAX_S3_SIZE = 50 * 1000 * 1000 * 1000 // 50GB
+// XXX: keep in sync w/ the backend
+// NOTE: these limits are lower than the actual "hard" limits on the backend
+export const MAX_S3_SIZE = cfg.chunkedChecksums
+  ? 5 * 10 ** 12 // 5 TB
+  : 50 * 10 ** 9 // 50 GB
 export const MAX_FILE_COUNT = 1000
 
 export const ERROR_MESSAGES = {
   UPLOAD: 'Error uploading files',
   MANIFEST: 'Error creating manifest',
-}
-
-export const getNormalizedPath = (f: { path?: string; name: string }) => {
-  const p = f.path || f.name
-  return p.startsWith('/') ? p.substring(1) : p
-}
-
-export async function hashFile(file: File) {
-  if (!window.crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
-  const buf = await file.arrayBuffer()
-  // XXX: consider using hashwasm for stream-based hashing to support larger files
-  const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
-  return Array.from(new Uint8Array(hashBuf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
 }
 
 function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
@@ -169,7 +167,8 @@ export function mkMetaValidator(schema?: JsonSchema) {
     }
 
     if (schema) {
-      const errors = schemaValidator(value || {})
+      const setDefaults = makeSchemaDefaultsSetter(schema)
+      const errors = schemaValidator(setDefaults(value || {}))
       if (errors.length) return errors
     }
 
@@ -192,6 +191,7 @@ const useFieldInputStyles = M.makeStyles({
   },
 })
 
+// TODO: re-use components/Form/TextField
 export function Field({
   error,
   helperText,
@@ -334,8 +334,8 @@ export function WorkflowInput({
   )
 }
 
-export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
-  cfg && cfg.workflows.find((item) => item.isDefault)
+export const defaultWorkflowFromConfig = (wcfg?: workflows.WorkflowsConfig) =>
+  wcfg?.workflows.find((item) => item.isDefault)
 
 export function useWorkflowValidator(workflowsConfig?: workflows.WorkflowsConfig) {
   return React.useMemo(
@@ -425,20 +425,20 @@ export function SchemaFetcher({
             schemaLoading: false,
             selectedWorkflow,
             validate: mkMetaValidator(schema),
-          } as SchemaFetcherRenderPropsSuccess),
+          }) as SchemaFetcherRenderPropsSuccess,
         Err: (responseError: Error) =>
           ({
             responseError,
             schemaLoading: false,
             selectedWorkflow,
             validate: mkMetaValidator(),
-          } as SchemaFetcherRenderPropsError),
+          }) as SchemaFetcherRenderPropsError,
         _: () =>
           ({
             schemaLoading: true,
             selectedWorkflow,
             validate: noopValidator,
-          } as SchemaFetcherRenderPropsLoading),
+          }) as SchemaFetcherRenderPropsLoading,
       }),
     [data, selectedWorkflow],
   )
@@ -544,19 +544,70 @@ export function DialogWrapper({
   return <M.Dialog {...props} />
 }
 
-export function useEntriesValidator(workflow?: workflows.Workflow) {
+function isAjvError(e: Error | ErrorObject): e is ErrorObject {
+  return !!(e as ErrorObject).instancePath
+}
+
+export function isEntryError(e: Error | ErrorObject): e is EntryValidationError {
+  return !!(e as EntryValidationError)?.data?.logical_key
+}
+
+function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
+  return React.useMemo(async () => {
+    const schemaUrl = workflow?.entriesSchema
+    if (!schemaUrl) return null
+    return requests.objectSchema({ s3, schemaUrl })
+  }, [s3, workflow])
+}
+
+export interface ValidationEntry {
+  logical_key: string
+  size: number
+  meta?: JsonRecord
+}
+
+interface EntryValidationError extends ErrorObject {
+  data: ValidationEntry
+}
+
+export type EntriesValidationErrors = (Error | EntryValidationError)[]
+
+export const EMPTY_ENTRIES_ERRORS: EntriesValidationErrors = []
+
+function injectEntryIntoErrors(
+  errors: (Error | ErrorObject)[],
+  entries: ValidationEntry[],
+): EntriesValidationErrors {
+  if (!errors?.length) return errors as Error[]
+  return errors.map((error) => {
+    if (!isAjvError(error)) return error
+    try {
+      const pointer = JSONPointer.parse(error.instancePath)
+      // `entries` value is an array,
+      // so the first item of the pointer is an index
+      const index: number = Number(pointer[0] as string)
+      error.data = entries[index]
+      return error as EntryValidationError
+    } catch (e) {
+      log.debug(e)
+      return error instanceof Error ? error : new Error('Unknown error')
+    }
+  })
+}
+
+export function useEntriesValidator(workflow?: workflows.Workflow) {
+  const entriesSchemaAsync = useFetchEntriesSchema(workflow)
 
   return React.useCallback(
-    async (entries: $TSFixMe) => {
-      const schemaUrl = workflow?.entriesSchema
-      if (!schemaUrl) return undefined
-      const entriesSchema = await requests.objectSchema({ s3, schemaUrl })
+    async (entries: ValidationEntry[]) => {
+      const entriesSchema = await entriesSchemaAsync
       // TODO: Show error if there is network error
       if (!entriesSchema) return undefined
 
-      return makeSchemaValidator(entriesSchema)(entries)
+      const errors = makeSchemaValidator(entriesSchema)(entries)
+      return injectEntryIntoErrors(errors, entries)
     },
-    [workflow, s3],
+    [entriesSchemaAsync],
   )
 }

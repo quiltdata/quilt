@@ -13,4 +13,5 @@ fragment BucketConfigSelection on BucketConfig {
   snsNotificationArn
   skipMetaDataIndexing
   lastIndexed
+  browsable
 }

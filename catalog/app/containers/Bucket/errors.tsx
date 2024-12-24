@@ -1,11 +1,11 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Message from 'components/Message'
-import * as Auth from 'containers/Auth'
+import { authenticated as authenticatedSelector } from 'containers/Auth/selectors'
 import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -33,6 +33,7 @@ export interface BucketPreferencesInvalidProps {
   errors: { instancePath?: string; message?: string }[]
 }
 
+// TODO: re-use JsonInvalidAgainstSchema
 export class BucketPreferencesInvalid extends BucketError {
   static displayName = 'BucketPreferencesInvalid'
 
@@ -46,6 +47,7 @@ export class BucketPreferencesInvalid extends BucketError {
   }
 }
 
+// TODO: re-use JsonInvalidAgainstSchema
 export interface WorkflowsConfigInvalidProps {
   errors: { instancePath?: string; message?: string }[]
 }
@@ -92,7 +94,7 @@ interface WhenAuthProps {
 }
 
 function WhenAuth({ cases }: WhenAuthProps) {
-  const authenticated = redux.useSelector(Auth.selectors.authenticated)
+  const authenticated = redux.useSelector(authenticatedSelector)
   return cases[`${authenticated}` as 'true' | 'false']()
 }
 
@@ -100,19 +102,16 @@ const whenAuth = (cases: WhenAuthCases) => () => <WhenAuth cases={cases} />
 
 function SignIn() {
   const { urls } = NamedRoutes.use()
+  const l = useLocation()
   return (
-    <Route>
-      {({ location: l }) => (
-        <M.Button
-          component={Link}
-          to={urls.signIn(l.pathname + l.search + l.hash)}
-          variant="contained"
-          color="primary"
-        >
-          Sign In
-        </M.Button>
-      )}
-    </Route>
+    <M.Button
+      component={Link}
+      to={urls.signIn(l.pathname + l.search + l.hash)}
+      variant="contained"
+      color="primary"
+    >
+      Sign In
+    </M.Button>
   )
 }
 
@@ -125,7 +124,7 @@ const defaultHandlers: ErrorHandler[] = [
         <br />
         <StyledLink
           target="_blank"
-          href={`${docs}/references/technical-reference#deploy-a-private-quilt-instance-on-aws`}
+          href={`${docs}/quilt-platform-administrator/technical-reference#preparing-an-aws-role-for-use-with-quilt`}
         >
           Learn how to configure the bucket for Quilt
         </StyledLink>
@@ -168,7 +167,7 @@ const defaultHandlers: ErrorHandler[] = [
           <br />
           <StyledLink
             target="_blank"
-            href={`${docs}/walkthrough/working-with-the-catalog#access-control`}
+            href={`${docs}/quilt-platform-administrator/admin#users-and-roles`}
           >
             Learn about access control in Quilt
           </StyledLink>

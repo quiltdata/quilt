@@ -1,32 +1,35 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import * as urql from 'urql'
+import { useRouteMatch } from 'react-router-dom'
 
+import cfg from 'constants/config'
 import * as AuthSelectors from 'containers/Auth/selectors'
-import * as Config from 'utils/Config'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { useRoute } from 'utils/router'
 
 import BUCKET_CONFIGS_QUERY from './BucketConfigList.generated'
 
+type BucketConfigs = GQL.DataForDoc<typeof BUCKET_CONFIGS_QUERY>['bucketConfigs']
+
+const EMPTY: BucketConfigs = []
+
 // always suspended
 function useBucketConfigs() {
-  const cfg = Config.use()
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   // XXX: consider moving this logic to gql resolver
-  const empty = cfg.mode === 'MARKETING' || (cfg.alwaysRequiresAuth && !authenticated)
+  const empty = cfg.alwaysRequiresAuth && !authenticated
 
-  const [{ data }] = urql.useQuery({
-    query: BUCKET_CONFIGS_QUERY,
-    pause: empty,
-    variables: { includeCollaborators: cfg.mode === 'PRODUCT' },
-  })
-
-  return React.useMemo(() => {
-    if (empty) return []
-    return data?.bucketConfigs || []
-  }, [empty, data?.bucketConfigs])
+  try {
+    return GQL.useQueryS(
+      BUCKET_CONFIGS_QUERY,
+      { includeCollaborators: cfg.mode === 'PRODUCT' },
+      { pause: empty },
+    ).bucketConfigs
+  } catch (e) {
+    if (e instanceof GQL.Paused) return EMPTY
+    throw e
+  }
 }
 
 // XXX: consider deprecating this in favor of direct graphql usage
@@ -44,8 +47,7 @@ export const useRelevantBucketConfigs = () => {
 
 export const useCurrentBucket = () => {
   const { paths } = NamedRoutes.use()
-  const { match } = useRoute(paths.bucketRoot)
-  return match && match.params.bucket
+  return useRouteMatch<{ bucket: string }>(paths.bucketRoot)?.params.bucket
 }
 
 export function useIsInStack() {

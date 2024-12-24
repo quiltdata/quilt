@@ -5,10 +5,14 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
-import AsyncResult from 'utils/AsyncResult'
-import { JsonRecord } from 'utils/types'
+import type * as Model from 'model'
+import * as AWS from 'utils/AWS'
+import type { MetaBlockPreferences } from 'utils/BucketPreferences'
+import { useData } from 'utils/Data'
+import type { JsonRecord } from 'utils/types'
 
-import Section, { SectionProps } from './Section'
+import * as requests from './requests'
+import Section from './Section'
 
 interface MetaData {
   message?: string
@@ -16,10 +20,6 @@ interface MetaData {
   workflow?: JsonRecord
   version?: string
 }
-
-const errorHandler = (error: Error) => (
-  <Lab.Alert severity="error">{error.message}</Lab.Alert>
-)
 
 const noop = () => null
 
@@ -72,74 +72,129 @@ const usePackageMetaStyles = M.makeStyles({
   },
 })
 
-interface MetaProps extends Partial<SectionProps> {
-  data: $TSFixMe
+interface PackageMetaSectionProps {
+  meta: MetaData | null
+  preferences: MetaBlockPreferences
 }
 
-export function PackageMeta({ data, ...props }: MetaProps) {
+export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProps) {
   const classes = usePackageMetaStyles()
-  return AsyncResult.case(
-    {
-      Ok: ({ message, user_meta: userMeta, workflow }: MetaData) => (
-        <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-          <M.Table className={classes.table} size="small">
-            <M.TableBody>
-              {message && (
-                <M.TableRow className={classes.row}>
-                  <HeadCell className={classes.headCell} title="/message">
-                    Message:
-                  </HeadCell>
-                  <M.TableCell>
-                    <M.Typography className={classes.message}>{message}</M.Typography>
-                  </M.TableCell>
-                </M.TableRow>
-              )}
-              {userMeta && (
-                <M.TableRow className={classes.row}>
-                  <HeadCell className={classes.headCell} title="/user_meta">
-                    User metadata:
-                  </HeadCell>
-                  <M.TableCell>
-                    {/* @ts-expect-error */}
-                    <JsonDisplay value={userMeta} />
-                  </M.TableCell>
-                </M.TableRow>
-              )}
-              {workflow && (
-                <M.TableRow className={classes.row}>
-                  <HeadCell className={classes.headCell} title="/workflow">
-                    Workflow:
-                  </HeadCell>
-                  <M.TableCell>
-                    {/* @ts-expect-error */}
-                    <JsonDisplay value={workflow} />
-                  </M.TableCell>
-                </M.TableRow>
-              )}
-            </M.TableBody>
-          </M.Table>
-        </Section>
-      ),
-      Err: errorHandler,
-      _: noop,
-    },
-    data,
+  if (!meta) return null
+  const { message, user_meta: userMeta, workflow } = meta
+  if (!message && !userMeta && !workflow) return null
+  return (
+    <Section icon="list" heading="Metadata" defaultExpanded>
+      <M.Table className={classes.table} size="small" data-testid="package-meta">
+        <M.TableBody>
+          {message && (
+            <M.TableRow className={classes.row} data-key="message" data-value={message}>
+              <HeadCell className={classes.headCell} title="/message">
+                Message:
+              </HeadCell>
+              <M.TableCell>
+                <M.Typography className={classes.message}>{message}</M.Typography>
+              </M.TableCell>
+            </M.TableRow>
+          )}
+          {userMeta && (
+            <M.TableRow
+              className={classes.row}
+              data-key="user_meta"
+              data-value={JSON.stringify(userMeta)}
+            >
+              <HeadCell className={classes.headCell} title="/user_meta">
+                User metadata:
+              </HeadCell>
+              <M.TableCell>
+                <JsonDisplay
+                  defaultExpanded={preferences.userMeta.expanded}
+                  value={userMeta}
+                />
+              </M.TableCell>
+            </M.TableRow>
+          )}
+          {workflow && (
+            <M.TableRow
+              className={classes.row}
+              data-key="workflow"
+              data-value={JSON.stringify(workflow)}
+            >
+              <HeadCell className={classes.headCell} title="/workflow">
+                Workflow:
+              </HeadCell>
+              <M.TableCell>
+                <JsonDisplay
+                  defaultExpanded={preferences.workflows.expanded}
+                  value={workflow}
+                />
+              </M.TableCell>
+            </M.TableRow>
+          )}
+        </M.TableBody>
+      </M.Table>
+    </Section>
   )
 }
 
-export function ObjectMeta({ data, ...props }: MetaProps) {
-  return AsyncResult.case(
-    {
-      Ok: (meta?: JsonRecord) =>
-        meta && !R.isEmpty(meta) ? (
-          <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-            {/* @ts-expect-error */}
-            <JsonDisplay value={meta} defaultExpanded={1} />
-          </Section>
-        ) : null,
-      Err: errorHandler,
-      _: noop,
-    },
-    data,
+interface ObjectMetaSectionProps {
+  title?: string
+  meta?: JsonRecord | null
+}
+
+export function ObjectMetaSection({ meta, title = 'Metadata' }: ObjectMetaSectionProps) {
+  if (!meta || R.isEmpty(meta)) return null
+  return (
+    <Section icon="list" heading={title} defaultExpanded>
+      <JsonDisplay value={meta} defaultExpanded={1} />
+    </Section>
   )
+}
+
+interface ObjectMetaProps {
+  handle: Model.S3.S3ObjectLocation
+}
+
+export function ObjectMeta({ handle }: ObjectMetaProps) {
+  const s3 = AWS.S3.use()
+  const metaData = useData(requests.objectMeta, {
+    s3,
+    handle,
+  })
+  return metaData.case({
+    Ok: (meta?: JsonRecord) => <ObjectMetaSection meta={meta} title="S3 Metadata" />,
+    Err: (e: Error) => <Lab.Alert severity="error">S3 Metadata: {e.message}</Lab.Alert>,
+    _: noop,
+  })
+}
+
+interface ObjectTagsSectionProps {
+  tags: Record<string, string>
+}
+
+function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
+  if (!tags || R.isEmpty(tags)) return null
+  return (
+    <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
+      <JsonDisplay value={tags} defaultExpanded={1} />
+    </Section>
+  )
+}
+
+interface ObjectTagsProps {
+  handle: Model.S3.S3ObjectLocation
+}
+
+export function ObjectTags({ handle }: ObjectTagsProps) {
+  const s3 = AWS.S3.use()
+  const tagsData = useData(requests.objectTags, {
+    s3,
+    handle,
+  })
+  return tagsData.case({
+    Ok: (tags: Record<string, string>) => <ObjectTagsSection tags={tags} />,
+    Err: (e: Error) => (
+      <Lab.Alert severity="error">S3 Object Tags: {e.message}</Lab.Alert>
+    ),
+    _: noop,
+  })
 }

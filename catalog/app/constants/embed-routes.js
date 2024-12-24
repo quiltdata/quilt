@@ -7,7 +7,7 @@ export const bucketRoot = {
 }
 export const bucketFile = {
   path: '/b/:bucket/tree/:path(.*[^/])',
-  url: (bucket, path, version) =>
+  url: (bucket, path, { version } = {}) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ version })}`,
 }
 export const bucketDir = {

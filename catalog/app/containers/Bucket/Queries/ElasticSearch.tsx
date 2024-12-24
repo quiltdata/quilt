@@ -1,6 +1,7 @@
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
-import { RouteComponentProps } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -22,9 +23,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   form: {
     margin: t.spacing(0, 0, 4),
-  },
-  sectionHeader: {
-    margin: t.spacing(0, 0, 1),
   },
   select: {
     margin: t.spacing(3, 0),
@@ -61,7 +59,7 @@ interface QueriesStateRenderProps {
   error: Error | null
   handleError: (error: Error | null) => void
   handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
-  handleQueryMetaChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
+  handleQueryMetaChange: (q: requests.Query | requests.athena.Query | null) => void
   handleSubmit: (q: requests.ElasticSearchQuery) => () => void
   queries: requests.Query[]
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
@@ -98,7 +96,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   )
 
   const handleQueryMetaChange = React.useCallback(
-    (q: requests.athena.AthenaQuery | requests.Query | null) => {
+    (q: requests.athena.Query | requests.Query | null) => {
       setQueryMeta(q as requests.Query | null)
       setCustomQueryBody(null)
     },
@@ -183,18 +181,14 @@ const QUERY_PLACEHOLDER = {
 }
 
 const isButtonDisabled = (
-  queryContent: requests.ElasticSearchQuery,
   resultsData: requests.AsyncData<requests.ElasticSearchResults>,
   error: Error | null,
-): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
+): boolean => !!error || !!resultsData.case({ Pending: R.T, _: R.F })
 
-interface ElastiSearchProps extends RouteComponentProps<{ bucket: string }> {}
+export default function ElastiSearch() {
+  const { bucket } = useParams<{ bucket: string }>()
+  invariant(!!bucket, '`bucket` must be defined')
 
-export default function ElastiSearch({
-  match: {
-    params: { bucket },
-  },
-}: ElastiSearchProps) {
   const classes = useStyles()
 
   return (
@@ -215,10 +209,8 @@ export default function ElastiSearch({
           <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
           <div className={classes.select}>
-            <M.Typography className={classes.sectionHeader} variant="body1">
-              Select query
-            </M.Typography>
-            <QuerySelect
+            <QuerySelect<requests.Query>
+              label="Select query"
               queries={queries}
               onChange={handleQueryMetaChange}
               value={customQueryBody ? null : queryMeta}
@@ -228,7 +220,7 @@ export default function ElastiSearch({
           {queryData.case({
             Init: () => (
               <Form
-                disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
+                disabled={isButtonDisabled(resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
@@ -237,11 +229,7 @@ export default function ElastiSearch({
             ),
             Ok: (queryBody: requests.ElasticSearchQuery) => (
               <Form
-                disabled={isButtonDisabled(
-                  customQueryBody || queryBody,
-                  resultsData,
-                  queryBodyError,
-                )}
+                disabled={isButtonDisabled(resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}

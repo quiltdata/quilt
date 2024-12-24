@@ -3,9 +3,10 @@ import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
-import { useConfig } from 'utils/Config'
+import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useConstant from 'utils/useConstant'
 import useMemoEqLazy from 'utils/useMemoEqLazy'
 
@@ -15,6 +16,7 @@ import * as Credentials from './Credentials'
 const DEFAULT_OPTS = {
   signatureVersion: 'v4',
   s3UsEast1RegionalEndpoint: 'regional',
+  region: cfg.region,
 }
 
 const PROXIED = Symbol('proxied')
@@ -35,64 +37,50 @@ function useTrackingFn(fn) {
 }
 
 function useSmartS3() {
-  const cfg = useConfig()
-  const selectEndpoint = `${cfg.binaryApiGatewayEndpoint}/s3select/`
   const isAuthenticated = useTracking(redux.useSelector(authSelectors.authenticated))
   const isInStack = useTrackingFn(BucketConfig.useIsInStack())
+  const statusReportsBucket = useStatusReportsBucket()
 
   return useConstant(() => {
     class SmartS3 extends S3 {
-      getReqType(req) {
+      shouldSign(req) {
         const bucket = req.params.Bucket
         if (cfg.mode === 'LOCAL') {
-          return 'signed'
+          return true
         }
-        if (isAuthenticated()) {
-          if (
-            // sign if operation is not bucket-specific
-            // (not sure if there are any such operations that can be used from the browser)
-            !bucket ||
-            (cfg.analyticsBucket && cfg.analyticsBucket === bucket) ||
-            (cfg.serviceBucket && cfg.serviceBucket === bucket) ||
-            (cfg.mode !== 'OPEN' && isInStack(bucket))
-          ) {
-            return 'signed'
-          }
-        } else if (req.operation === 'selectObjectContent') {
-          return 'select'
+        if (
+          isAuthenticated() &&
+          // sign if operation is not bucket-specific
+          // (not sure if there are any such operations that can be used from the browser)
+          (!bucket ||
+            cfg.serviceBucket === bucket ||
+            statusReportsBucket === bucket ||
+            (cfg.mode !== 'OPEN' && isInStack(bucket)))
+        ) {
+          return true
         }
-        return 'unsigned'
-      }
-
-      populateURI(req) {
-        if (req.service.getReqType(req) === 'select') {
-          return
-        }
-        super.populateURI(req)
+        return false
       }
 
       customRequestHandler(req) {
-        const b = req.params.Bucket
-        const type = this.getReqType(req)
-
-        if (b) {
-          const endpoint = new AWS.Endpoint(
-            type === 'select' ? selectEndpoint : cfg.s3Proxy,
-          )
+        if (req.params.Bucket) {
+          const endpoint = new AWS.Endpoint(cfg.s3Proxy)
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
+
             // Monkey-patch the request object after it has been signed and save the original
             // values in case of retry.
+            const origEndpoint = req.httpRequest.endpoint
+            const origPath = req.httpRequest.path
+
             req.httpRequest[PROXIED] = {
-              endpoint: req.httpRequest.endpoint,
-              path: req.httpRequest.path,
+              endpoint: origEndpoint,
+              path: origPath,
             }
             const basePath = endpoint.path.replace(/\/$/, '')
+
             req.httpRequest.endpoint = endpoint
-            req.httpRequest.path =
-              type === 'select'
-                ? `${basePath}${req.httpRequest.path}`
-                : `${basePath}/${req.httpRequest.region}/${b}${req.httpRequest.path}`
+            req.httpRequest.path = `${basePath}/${origEndpoint.host}${origPath}`
           })
           req.on(
             'retry',
@@ -131,9 +119,8 @@ function useSmartS3() {
         if (forceProxy) {
           req.httpRequest[FORCE_PROXY] = true
         }
-        const type = this.getReqType(req)
 
-        if (type !== 'signed') {
+        if (!this.shouldSign(req)) {
           req.toUnauthenticated()
         }
 

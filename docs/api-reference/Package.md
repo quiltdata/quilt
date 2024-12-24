@@ -1,5 +1,5 @@
 
-# Package(self)  {#Package}
+# Package()  {#Package}
 In-memory representation of a package
 
 ## manifest
@@ -131,7 +131,7 @@ json decode error
 invalid package exception
 
 
-## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming')  {#Package.set\_dir}
+## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming', unversioned: bool = False)  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
 
@@ -149,6 +149,7 @@ __Arguments__
     If 'incoming', whenever logical keys match, always take the new entry from set_dir.
     If 'existing', whenever logical keys match, retain existing entries
     and ignore new entries from set_dir.
+* __unversioned(bool)__:  when True, do not retrieve VersionId for S3 physical keys.
 
 __Returns__
 
@@ -230,7 +231,7 @@ fail to create file
 fail to finish write
 
 
-## Package.set(self, logical\_key, entry=None, meta=None, serialization\_location=None, serialization\_format\_opts=None)  {#Package.set}
+## Package.set(self, logical\_key, entry=None, meta=None, serialization\_location=None, serialization\_format\_opts=None, unversioned: bool = False)  {#Package.set}
 
 Returns self with the object at logical_key set to entry.
 
@@ -251,6 +252,7 @@ __Arguments__
 * __https__: //github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
 * __serialization_location(string)__:  Optional. If passed in, only used if entry is an object. Where the
     serialized object should be written, e.g. "./mydataframe.parquet"
+* __unversioned(bool)__:  when True, do not retrieve VersionId for S3 physical keys.
 
 __Returns__
 
@@ -259,7 +261,7 @@ self
 
 ## Package.delete(self, logical\_key)  {#Package.delete}
 
-Returns the package with logical_key removed.
+Returns self with logical_key removed.
 
 __Returns__
 
@@ -270,7 +272,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force=False)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -299,9 +301,9 @@ the parent hash of the package being pushed. Use `force=True` to skip the check.
 __Arguments__
 
 * __name__:  name for package in registry
-* __dest__:  where to copy the objects in the package
-    Must be either an S3 URI prefix in the registry bucket, or a callable that takes
-* __logical_key, package_entry, and top_hash and returns S3 URI. S3 URIs format is s3__: //$bucket/$key.
+* __dest__:  where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
+    in the registry bucket, or a callable that takes logical_key and package_entry, and returns an S3 URI.
+    (Changed in 6.0.0a1) previously top_hash was passed to the callable dest as a third argument.
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
 * __selector_fn__:  An optional function that determines which package entries should be copied to S3.
@@ -315,6 +317,7 @@ __Arguments__
 * __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
 
 * __force__:  skip the top hash check and overwrite any existing package
+* __dedupe__:  don't push if the top hash matches the existing package top hash; return the current package
 
 __Returns__
 
@@ -398,7 +401,7 @@ __Returns__
 True if the package matches the directory; False otherwise.
 
 
-# PackageEntry(self, physical\_key, size, hash\_obj, meta)  {#PackageEntry}
+# PackageEntry(physical\_key, size, hash\_obj, meta)  {#PackageEntry}
 Represents an entry at a logical key inside a package.
 
 **\_\_init\_\_**

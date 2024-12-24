@@ -2,26 +2,27 @@
 
 ## `catalog`
 ```
-usage: quilt3 catalog [-h] [--detailed_help] [--host HOST] [--port PORT]
+usage: quilt3 catalog [-h] [--detailed-help] [--host HOST] [--port PORT]
                       [--no-browser]
                       [navigation_target]
 
 Run Quilt catalog locally
 
 positional arguments:
-  navigation_target  Which page in the local catalog to open. Leave blank to
-                     go to the catalog landing page, pass in an s3 url (e.g.
-                     's3://bucket/myfile.txt') to go to file viewer, or pass
-                     in a package name in the form 'BUCKET:USER/PKG' to go to
-                     the package viewer.
+  navigation_target     Which page in the local catalog to open. Leave blank
+                        to go to the catalog landing page, pass in an s3 url
+                        (e.g. 's3://bucket/myfile.txt') to go to file viewer,
+                        or pass in a package name in the form
+                        'BUCKET:USER/PKG' to go to the package viewer.
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --detailed_help    Display detailed information about this command and then
-                     exit
-  --host HOST        Bind socket to this host
-  --port PORT        Bind to a socket with this port
-  --no-browser       Don't open catalog in a browser after startup
+  -h, --help            show this help message and exit
+  --detailed-help, --detailed_help
+                        Display detailed information about this command and
+                        then exit
+  --host HOST           Bind socket to this host
+  --port PORT           Bind to a socket with this port
+  --no-browser          Don't open catalog in a browser after startup
 ```
 
 Run the Quilt catalog on your machine. Running `quilt3 catalog` launches a
@@ -137,7 +138,7 @@ optional arguments:
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force]
+                   [--force] [--dedupe] [--no-copy]
                    name
 
 Pushes the new package to the remote registry
@@ -162,6 +163,10 @@ optional arguments:
   --force              Skip the parent top hash check and create a new
                        revision even if your local state is behind the remote
                        registry.
+  --dedupe             Skip the push if the local package hash matches the
+                       remote hash.
+  --no-copy            Do not copy data. Package manifest entries will
+                       reference the data at the original location.
 ```
 ## `verify`
 ```
@@ -217,14 +222,17 @@ $ export QUILT_TRANSFER_MAX_CONCURRENCY=20
 ```
 
 ### `XDG_*`
-Quilt uses appdirs for Python to determine where to write data. You can therefore
-override the following path constants with environment variables using the XDG
-standard (see [appdirs docs](https://pypi.org/project/appdirs/)).
+`quilt3` uses platformdirs so you can set one or more of the
+[XDG environment variables](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
+to customize where `quilt3` writes to disk.
 
-For instance, AWS Lambda requires the user to use `tmp/*` as the scratch
-directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` will succeed
-in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
+For example, AWS Lambda requires the user to use `/tmp/*` as the scratch
+directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` 
+will succeed, by setting the `XDG_CACHE_HOME` environment variable in code or in
+your [AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html).
 
+> You must **set XDG environment variables before** `import quilt3` in
+order for them to take effect.
 
 ## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
 

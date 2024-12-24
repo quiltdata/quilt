@@ -2,10 +2,10 @@ import * as FF from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import { Redirect } from 'react-router-dom'
+import { useLocation, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
@@ -118,16 +118,15 @@ function PasswordSignIn({ mutex }) {
   )
 }
 
-export default ({ location: { search } }) => {
+export default () => {
+  const { search } = useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
-  const cfg = Config.useConfig()
   const mutex = useMutex()
   const { urls } = NamedRoutes.use()
 
   const ssoEnabled = (provider) => {
     if (!cfg.ssoAuth) return false
-    const { ssoProviders = [] } = cfg
-    return provider ? ssoProviders.includes(provider) : !!ssoProviders.length
+    return provider ? cfg.ssoProviders.includes(provider) : !!cfg.ssoProviders.length
   }
 
   const { next } = parseSearch(search)

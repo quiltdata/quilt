@@ -1,12 +1,18 @@
-import type { PerspectiveViewerConfig } from '@finos/perspective-viewer'
+import type { ViewConfig } from '@finos/perspective'
 
+import FileType from './fileType'
+
+// TODO: enable all available file types?
 export type TypeShorthand =
-  | 'echarts'
-  | 'json'
-  | 'jupyter'
-  | 'perspective'
-  | 'vega'
-  | 'voila'
+  | typeof FileType.ECharts
+  | typeof FileType.Igv
+  | typeof FileType.Json
+  | typeof FileType.Jupyter
+  | typeof FileType.Tabular
+  | typeof FileType.Vega
+  | typeof FileType.Voila
+  | typeof FileType.Text
+  | typeof FileType.Html
 
 export type FileShortcut = string
 
@@ -15,7 +21,8 @@ export interface StyleOptions {
 }
 
 export interface PerspectiveOptions {
-  config?: PerspectiveViewerConfig
+  config?: ViewConfig
+  settings?: boolean
 }
 
 interface TypeExtendedEssentials {
@@ -24,7 +31,7 @@ interface TypeExtendedEssentials {
 }
 
 // Add new specific options like this:
-// export type TypeExtended = TypeExtendedEssentials & (PerspectiveOptions | EchartsOptions)
+// export type TypeExtended = TypeExtendedEssentials & (PerspectiveOptions | EChartsOptions)
 export type TypeExtended = TypeExtendedEssentials & PerspectiveOptions
 
 export type Type = TypeShorthand | TypeExtended
@@ -34,13 +41,15 @@ export interface FileExtended {
   description?: string
   title?: string
   types?: Type[]
+
+  expand?: boolean
+  width?: string | number
 }
 
 export type File = FileShortcut | FileExtended
 
-export function detect(fileType: TypeShorthand) {
-  return (options: File): Type | undefined =>
-    (options as FileExtended)?.types?.find(
-      (type) => type === fileType || (type as TypeExtended).name === fileType,
-    )
+export function detect(fileType: TypeShorthand, options: File): Type | undefined {
+  return (options as FileExtended)?.types?.find(
+    (type) => type === fileType || (type as TypeExtended).name === fileType,
+  )
 }

@@ -4,13 +4,20 @@ import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
-import { isSchemaEnum } from 'utils/json-schema'
+import * as JSONPointer from 'utils/JSONPointer'
+import { isSchemaEnum } from 'utils/JSONSchema'
 
 import ContextMenu from './ContextMenu'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { COLUMN_IDS, JsonValue, RowData, EMPTY_VALUE } from './constants'
+import {
+  COLUMN_IDS,
+  EMPTY_VALUE,
+  JSON_POINTER_PLACEHOLDER,
+  JsonValue,
+  RowData,
+} from './constants'
 import { parseJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
@@ -31,14 +38,14 @@ const cellPlaceholders = {
 
 interface CellProps {
   column: RTable.Column<{ id: 'key' | 'value' }>
-  columnPath: string[]
-  contextMenuPath: string[]
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
   editing: boolean
-  onContextMenu: (path: string[]) => void
-  onExpand: (path: string[]) => void
-  onRemove: (path: string[]) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
+  onRemove: (path: JSONPointer.Path) => void
   row: Pick<RTable.Row<RowData>, 'original' | 'values'>
-  updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  updateMyData: (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => void
   value: JsonValue
 }
 
@@ -76,10 +83,12 @@ export default function Cell({
   const isKeyCell = column.id === COLUMN_IDS.KEY
   const isValueCell = column.id === COLUMN_IDS.VALUE
 
-  const isEditable = React.useMemo(
-    () => !(isKeyCell && row.original.valueSchema),
-    [isKeyCell, row.original],
-  )
+  const isEditable = React.useMemo(() => {
+    const isPathDefinedInSchema =
+      row.original.valueSchema &&
+      R.last(row.original.address) !== JSON_POINTER_PLACEHOLDER
+    return !(isKeyCell && isPathDefinedInSchema)
+  }, [isKeyCell, row.original])
 
   const isEnumCell = React.useMemo(
     () => isValueCell && isSchemaEnum(row.original.valueSchema),
@@ -161,7 +170,7 @@ export default function Cell({
           onContextMenu: handleContextMenu,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
-          placeholder: cellPlaceholders[column.id!],
+          placeholder: cellPlaceholders[column.id as 'key' | 'value'],
           title: isEditable ? 'Click to edit' : '',
           value,
         }}

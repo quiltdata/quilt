@@ -3,8 +3,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import StyledLink from 'utils/StyledLink'
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import { docs } from 'constants/urls'
+import StyledLink from 'utils/StyledLink'
 
 import * as ERRORS from '../errors'
 
@@ -38,8 +39,9 @@ const errorDisplay = R.cond([
           Error: <code>{e.message}</code>
         </M.Typography>
         <M.Typography>
-          Please fix the workflows config according to{' '}
-          <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
+          Please fix the <WorkflowsConfigLink>workflows config</WorkflowsConfigLink>{' '}
+          according to{' '}
+          <StyledLink href={`${docs}/workflows`} target="_blank">
             the documentation
           </StyledLink>
           .

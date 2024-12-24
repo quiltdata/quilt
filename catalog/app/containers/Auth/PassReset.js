@@ -3,7 +3,7 @@ import React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
@@ -20,7 +20,6 @@ export default function PassReset() {
   const [done, setDone] = React.useState(false)
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
-  const cfg = Config.useConfig()
   const { urls } = NamedRoutes.use()
 
   const onSubmit = React.useCallback(

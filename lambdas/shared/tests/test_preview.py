@@ -46,7 +46,7 @@ class TestPreview(TestCase):
                 assert body.count('<') == body.count('>'), \
                     'expected matching HTML tags'
                 assert cell_value not in body, 'only expected columns'
-                assert 'skipped rows' in info['warnings']
+                assert 'Skipped rows' in info['warnings']
 
         with open(file, mode='rb') as parquet:
             body, info = extract_parquet(parquet, as_html=True, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
@@ -54,7 +54,7 @@ class TestPreview(TestCase):
 
         with open(file, mode='rb') as parquet:
             body, info = extract_parquet(parquet, skip_rows=True, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
-            assert 'skipped rows' in info['warnings']
+            assert 'Skipped rows' in info['warnings']
             assert cell_value not in body, 'only expected columns'
 
         with open(file, mode='rb') as parquet:

@@ -31,19 +31,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function parseJSON(str: string) {
-  try {
-    return JSON.parse(str)
-  } catch (e) {
-    return str
-  }
-}
-
-export const stringifyJSON = (obj: object | string) => {
-  if (typeof obj === 'string') return obj
-  return JSON.stringify(obj, null, 2)
-}
-
 interface QueryViewerProps {
   className: string
   onChange: (value: requests.ElasticSearchQuery) => void
@@ -64,9 +51,7 @@ export default function QueryViewer({
   const [error, setError] = React.useState<Error | null>(null)
 
   const handleChange = React.useCallback(
-    (value: object) => {
-      onChange(value as requests.ElasticSearchQuery)
-    },
+    (value: object) => onChange(value as requests.ElasticSearchQuery),
     [onChange],
   )
 
@@ -91,8 +76,6 @@ export default function QueryViewer({
     }),
     [t],
   )
-
-  if (!query) return null
 
   return (
     <div className={className}>

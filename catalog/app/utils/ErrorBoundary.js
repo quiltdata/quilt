@@ -1,6 +1,7 @@
 import PT from 'prop-types'
 import * as React from 'react'
 
+// TODO: TSify or, better yet, use react-error-boundary package
 export const createBoundary = (handle, name = 'ErrorBoundary') =>
   class extends React.Component {
     static displayName = name

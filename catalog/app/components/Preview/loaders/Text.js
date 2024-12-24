@@ -4,9 +4,13 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 
 import { PreviewData } from '../types'
+
+import FileType from './fileType'
 import * as utils from './utils'
 
 export const MAX_BYTES = 10 * 1024
+
+export const FILE_TYPE = FileType.Text
 
 const LANGS = {
   accesslog: /\.log$/,
@@ -14,7 +18,8 @@ const LANGS = {
   clojure: /\.clj$/,
   coffeescript: /\.(coffee|cson|iced)$/,
   coq: /\.v$/,
-  'c-like': /\.((c(c|\+\+|pp|xx)?)|(h(\+\+|pp|xx)?))$/,
+  c: /\.(c|h)$/,
+  cpp: /\.((c(c|\+\+|pp|xx)?)|(h(\+\+|pp|xx)?))$/,
   csharp: /\.cs$/,
   css: /\.css$/,
   diff: /\.(diff|patch)$/,
@@ -54,11 +59,11 @@ const findLang = R.pipe(R.unary(basename), R.toLower, utils.stripCompression, (n
 
 export const detect = R.pipe(findLang, Boolean)
 
-const getLang = R.pipe(findLang, ([lang] = []) => lang)
+const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
-export const Loader = function TextLoader({ handle, forceLang, children }) {
+export const Loader = function TextLoader({ handle, forceLang = null, children }) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
@@ -70,6 +75,7 @@ export const Loader = function TextLoader({ handle, forceLang, children }) {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)
+      // TODO: move highlightjs call to renderer
       const highlighted = R.map(hl(lang), { head, tail })
       return PreviewData.Text({ head, tail, lang, highlighted, note, warnings })
     },

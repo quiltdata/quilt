@@ -1,12 +1,10 @@
 import cx from 'classnames'
 import * as React from 'react'
 
+import type { RegularTableElement } from 'regular-table'
 import perspective from '@finos/perspective'
-import type { Table, TableData } from '@finos/perspective'
-import type {
-  HTMLPerspectiveViewerElement,
-  PerspectiveViewerConfig,
-} from '@finos/perspective-viewer'
+import type { Table, TableData, ViewConfig } from '@finos/perspective'
+import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
 import { themes } from 'utils/perspective-pollution'
 
@@ -44,7 +42,8 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: PerspectiveInput,
   attrs: React.HTMLAttributes<HTMLDivElement>,
-  config?: PerspectiveViewerConfig,
+  config?: ViewConfig,
+  onRender?: (tableEl: RegularTableElement) => void,
 ) {
   const [state, setState] = React.useState<State | null>(null)
 
@@ -59,6 +58,13 @@ function usePerspective(
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
 
+      const regularTable: RegularTableElement | null =
+        viewer.querySelector('regular-table')
+      if (onRender && regularTable?.addStyleListener) {
+        onRender(regularTable)
+        regularTable.addStyleListener(({ detail }) => onRender(detail))
+      }
+
       if (config) {
         await viewer.restore(config)
       }
@@ -67,11 +73,11 @@ function usePerspective(
       setState({
         rotateThemes: async () => {
           const settings = await viewer?.save()
-          // @ts-expect-error `PerspectiveViewerConfig` type doesn't have `theme`
+          // @ts-expect-error `ViewConfig` type doesn't have `theme`
           const themeIndex = themes.findIndex((t) => t === settings?.theme)
           const theme =
             themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
-          viewer?.restore({ theme } as PerspectiveViewerConfig)
+          viewer?.restore({ theme } as ViewConfig)
         },
         size,
         toggleConfig: () => viewer?.toggleConfig(),
@@ -89,7 +95,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, config, container, data])
+  }, [attrs, config, container, data, onRender])
 
   return state
 }

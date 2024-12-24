@@ -42,6 +42,21 @@ def test_write_yaml(tmpdir):
     assert fname.read_text('utf-8') == 'testing: bar\n'
 
 
+@pytest.mark.parametrize("keep_backup", [False, True])
+def test_write_yaml_exception(tmp_path, keep_backup):
+    fname = tmp_path / "some_file.yml"
+    fname.write_text("42")
+
+    exc = Exception("test exception")
+    with mock.patch("quilt3.util.yaml.dump", side_effect=exc):
+        with pytest.raises(Exception) as exc_info:
+            util.write_yaml("test", fname)
+
+    assert exc_info.value == exc
+    assert fname.read_text("utf-8") == "42"
+    assert list(tmp_path.iterdir()) == [fname]
+
+
 def test_read_yaml(tmpdir):
     # Read a string
     parsed_string = util.read_yaml(TEST_YAML)

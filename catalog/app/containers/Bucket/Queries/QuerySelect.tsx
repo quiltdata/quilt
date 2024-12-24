@@ -1,37 +1,33 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as requests from './requests'
-
-interface QuerySelectProps {
-  onChange: (value: requests.Query | requests.athena.AthenaQuery | null) => void
-  onLoadMore?: () => void
-  queries: (requests.Query | requests.athena.AthenaQuery)[]
-  value: requests.Query | requests.athena.AthenaQuery | null
+interface AbstractQuery {
+  key: string
+  name: string
+  description?: string
 }
 
-const useStyles = M.makeStyles((t) => ({
-  header: {
-    margin: t.spacing(0, 0, 1),
-  },
-  selectWrapper: {
-    width: '100%',
-  },
-  select: {
-    padding: t.spacing(1),
-  },
-}))
+interface QuerySelectProps<T> {
+  className?: string
+  disabled?: boolean
+  label: React.ReactNode
+  onChange: (value: T | null) => void
+  onLoadMore?: () => void
+  queries: T[]
+  value: T | null
+}
 
 const LOAD_MORE = 'load-more'
 
-export default function QuerySelect({
-  queries,
+export default function QuerySelect<T>({
+  className,
+  disabled,
+  label,
   onChange,
   onLoadMore,
+  queries,
   value,
-}: QuerySelectProps) {
-  const classes = useStyles()
-
+}: QuerySelectProps<T & AbstractQuery>) {
   const handleChange = React.useCallback(
     (event) => {
       if (event.target.value === LOAD_MORE && onLoadMore) {
@@ -44,31 +40,29 @@ export default function QuerySelect({
   )
 
   return (
-    <M.Paper>
-      <M.FormControl className={classes.selectWrapper}>
-        <M.Select
-          classes={{ root: classes.select }}
-          disabled={!queries.length}
-          onChange={handleChange}
-          value={value ? value.key : 'none'}
-        >
-          <M.MenuItem disabled value="none">
-            <M.ListItemText>Custom</M.ListItemText>
+    <M.FormControl className={className} fullWidth>
+      <M.InputLabel>{label}</M.InputLabel>
+      <M.Select
+        disabled={disabled || !queries.length}
+        onChange={handleChange}
+        value={value?.key || 'none'}
+      >
+        <M.MenuItem disabled value="none">
+          <M.ListItemText>Custom</M.ListItemText>
+        </M.MenuItem>
+        {queries.map((query) => (
+          <M.MenuItem key={query.key} value={query.key}>
+            <M.ListItemText primary={query.name} secondary={query.description} />
           </M.MenuItem>
-          {queries.map((query) => (
-            <M.MenuItem key={query.key} value={query.key}>
-              <M.ListItemText primary={query.name} secondary={query.description} />
-            </M.MenuItem>
-          ))}
-          {!!onLoadMore && (
-            <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
-              <M.ListItemText>
-                <em>Load more</em>
-              </M.ListItemText>
-            </M.MenuItem>
-          )}
-        </M.Select>
-      </M.FormControl>
-    </M.Paper>
+        ))}
+        {!!onLoadMore && (
+          <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
+            <M.ListItemText>
+              <em>Load more</em>
+            </M.ListItemText>
+          </M.MenuItem>
+        )}
+      </M.Select>
+    </M.FormControl>
   )
 }

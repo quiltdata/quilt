@@ -2,11 +2,13 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
+import * as BucketConfig from 'utils/BucketConfig'
 
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
 import Search from './Search'
+import { useNavBar } from './Provider'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
   root: {
@@ -59,7 +61,7 @@ const Container = (props) => (
   />
 )
 
-function GlobalControls({ iconized, disableSearch }) {
+function GlobalControls({ iconized }) {
   const [state, setState] = React.useState(null)
   const search = React.useCallback(() => {
     setState('search')
@@ -67,23 +69,28 @@ function GlobalControls({ iconized, disableSearch }) {
   const cancel = React.useCallback(() => {
     setState(null)
   }, [setState])
+  const model = useNavBar()
+  React.useEffect(() => {
+    if (model?.input.expanded === undefined) return
+    if (model.input.expanded) {
+      search()
+    } else {
+      cancel()
+    }
+  }, [model?.input.expanded, cancel, search])
 
   return (
     <Container pr={{ xs: 6, sm: 0 }}>
-      <BucketSelect display={state === 'search' ? 'none' : undefined} />
-      <Search
-        onFocus={search}
-        onBlur={cancel}
-        iconized={iconized}
-        disabled={disableSearch}
-      />
+      <M.Fade in={state !== 'search'}>
+        <BucketSelect />
+      </M.Fade>
+      <Search iconized={iconized} />
     </Container>
   )
 }
 
-function BucketControls({ bucket, iconized, disableSearch }) {
+function BucketControls({ bucket, iconized }) {
   const [state, setState] = React.useState(null)
-  const cfg = Config.use()
   const select = React.useCallback(() => {
     setState('select')
   }, [setState])
@@ -93,6 +100,15 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   const cancel = React.useCallback(() => {
     setState(null)
   }, [setState])
+  const model = useNavBar()
+  React.useEffect(() => {
+    if (model?.input.expanded === undefined) return
+    if (model.input.expanded) {
+      search()
+    } else {
+      cancel()
+    }
+  }, [model?.input.expanded, cancel, search])
 
   const selectRef = React.useRef()
   const focusSelect = React.useCallback(() => {
@@ -105,14 +121,7 @@ function BucketControls({ bucket, iconized, disableSearch }) {
       {cfg.mode === 'PRODUCT' && (
         <Collaborators bucket={bucket} hidden={state === 'search'} />
       )}
-      <Search
-        bucket={bucket}
-        onFocus={search}
-        onBlur={cancel}
-        hidden={state === 'select'}
-        iconized={iconized}
-        disabled={disableSearch}
-      />
+      <Search hidden={state === 'select'} iconized={iconized} />
       <M.Fade in={state === 'select'} onEnter={focusSelect}>
         <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
       </M.Fade>
@@ -120,12 +129,13 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   )
 }
 
-export default function Controls({ bucket, disableSearch }) {
+export default function Controls() {
+  const bucket = BucketConfig.useCurrentBucket()
   const t = M.useTheme()
   const iconized = M.useMediaQuery(t.breakpoints.down('xs'))
   return bucket ? (
-    <BucketControls {...{ bucket, iconized, disableSearch }} />
+    <BucketControls {...{ bucket, iconized }} />
   ) : (
-    <GlobalControls {...{ iconized, disableSearch }} />
+    <GlobalControls {...{ iconized }} />
   )
 }

@@ -81,6 +81,9 @@ function* signUp(credentials) {
       if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
         throw new errors.SMTPError({ originalError: e })
       }
+      if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
+        throw new errors.SubscriptionInvalid({ originalError: e })
+      }
     }
     throw new errors.AuthError({
       message: 'unable to sign up',
@@ -120,6 +123,10 @@ function* signOut() {
  * @throws {AuthError}
  */
 function* signIn(credentials) {
+  if (typeof credentials.token === 'string' && typeof credentials.exp === 'number') {
+    return { token: credentials.token, exp: credentials.exp }
+  }
+
   try {
     const { token, exp } = yield call(apiRequest, {
       auth: false,
@@ -137,6 +144,9 @@ function* signIn(credentials) {
     }
     if (HTTPError.is(e, 400, 'Default role not set')) {
       throw new errors.NoDefaultRole({ originalError: e })
+    }
+    if (HTTPError.is(e, 400) && e.json?.error_code === 'SubscriptionInvalid') {
+      throw new errors.SubscriptionInvalid({ originalError: e })
     }
 
     throw new errors.AuthError({
@@ -162,7 +172,7 @@ function* fetchUser(tokens) {
   try {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
-      endpoint: '/me',
+      endpoint: `/me?_cachebust=${Math.random()}`,
     })
     return auth
   } catch (e) {
@@ -520,7 +530,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * Handles auth actions and fires CHECK action on specified condition.
  *
  * @param {Object} options
- * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
  * @param {function} options.storeUser
@@ -529,7 +538,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  */
 export default function* Saga({
   latency,
-  checkOn,
   storeTokens,
   forgetTokens,
   storeUser,
@@ -553,10 +561,4 @@ export default function* Saga({
   yield takeEvery(actions.resetPassword.type, handleResetPassword)
   yield takeEvery(actions.changePassword.type, handleChangePassword)
   yield takeEvery(actions.getCode.type, handleGetCode)
-
-  if (checkOn) {
-    yield takeEvery(checkOn, function* checkAuth() {
-      yield put(actions.check())
-    })
-  }
 }

@@ -37,6 +37,12 @@ export type containers_Bucket_PackageList_gql_PackageListQuery = {
                   >
                 }
             >
+            readonly revision: Types.Maybe<
+              { readonly __typename: 'PackageRevision' } & Pick<
+                Types.PackageRevision,
+                'message' | 'userMeta'
+              >
+            >
           }
       >
     }
@@ -176,6 +182,17 @@ export const containers_Bucket_PackageList_gql_PackageListDocument = {
                                 ],
                               },
                             },
+                          ],
+                        },
+                      },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'revision' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'userMeta' } },
                           ],
                         },
                       },

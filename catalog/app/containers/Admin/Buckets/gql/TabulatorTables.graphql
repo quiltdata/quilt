@@ -1,0 +1,9 @@
+query ($bucket: String!) {
+  bucketConfig(name: $bucket) {
+    name
+    tabulatorTables {
+      name
+      config
+    }
+  }
+}

@@ -204,7 +204,7 @@ function ThemePreview({}: ThemePreviewProps) {
   )
 }
 
-const useThemeEditorStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
     display: 'flex',
@@ -226,7 +226,7 @@ export default function ThemeEditor() {
 
   const { push } = Notifications.use()
 
-  const classes = useThemeEditorStyles({
+  const classes = useStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
   })
 
@@ -252,7 +252,7 @@ export default function ThemeEditor() {
     if (editing || removing || (!settings?.theme && !settings?.logo)) return
     // XXX: implement custom MUI Dialog-based confirm?
     // eslint-disable-next-line no-restricted-globals, no-alert
-    if (!confirm('You are about to remove custom theme')) return
+    if (!window.confirm('You are about to remove custom theme')) return
     setRemoving(true)
     try {
       await writeSettings(FP.function.pipe(settings, R.dissoc('theme'), R.dissoc('logo')))

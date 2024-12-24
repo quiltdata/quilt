@@ -3,23 +3,8 @@ import { parse as parseUrl } from 'url'
 
 import * as R from 'ramda'
 
+import type * as Model from 'model'
 import { mkSearch } from 'utils/NamedRoutes'
-
-/**
- * Handle for an S3 object.
- */
-export interface S3HandleBase {
-  bucket: string
-  key: string
-  version?: string
-}
-
-export interface S3Handle extends S3HandleBase {
-  region: string
-  modified: Date
-  size: number
-  etag: string
-}
 
 /**
  * Ensure the string has no trailing slash.
@@ -96,7 +81,7 @@ export const isS3Url = (url: string) => url.startsWith('s3://')
 /**
  * Parse an S3 URL and create an S3Handle out of it.
  */
-export const parseS3Url = (url: string): S3HandleBase => {
+export const parseS3Url = (url: string): Model.S3.S3ObjectLocation => {
   const u = parseUrl(url, true)
   if (Array.isArray(u.query.versionId)) {
     throw new Error('versionId specified multiple times')
@@ -117,27 +102,18 @@ export const parseS3Url = (url: string): S3HandleBase => {
 export const resolveKey = (from: string, to: string) =>
   resolve(`/${getPrefix(from)}`, to).substring(1)
 
-/**
- * Create an S3Handle for a URL relative to the given S3Handle.
- */
-export const handleFromUrl = (url: string, referrer: S3Handle) => {
-  // absolute URL (e.g. `s3://${bucket}/${key}`)
-  if (isS3Url(url)) return parseS3Url(url)
-  if (!referrer) {
-    throw new Error('handleFromUrl: referrer required for local URLs')
-  }
-  // path-like URL (e.g. `dir/file.json` or `/dir/file.json`)
-  return { bucket: referrer.bucket, key: resolveKey(referrer.key, url) }
-}
-
 // AWS docs (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) state that
 // "buckets created in Regions launched after March 20, 2019 are not reachable via the
 // `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
 // `https://bucket.s3.aws-region.amazonaws.com` scheme as well.
-export const handleToHttpsUri = ({ bucket, key, version }: S3HandleBase) =>
+export const handleToHttpsUri = ({ bucket, key, version }: Model.S3.S3ObjectLocation) =>
   `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
 
-export const handleToS3Url = ({ bucket, key, version = undefined }: S3HandleBase) =>
+export const handleToS3Url = ({
+  bucket,
+  key,
+  version = undefined,
+}: Model.S3.S3ObjectLocation) =>
   `s3://${bucket}/${encode(key)}${mkSearch({ versionId: version })}`
 
 /**

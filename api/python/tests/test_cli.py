@@ -42,7 +42,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package = mocked_package_class.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
-                name, registry=None, dest=None, message=None, workflow=..., force=False
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
             )
 
     def test_push_force(self):
@@ -59,7 +59,24 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package = mocked_package_class.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
-                name, registry=None, dest=None, message=None, workflow=..., force=True
+                name, registry=None, dest=None, message=None, workflow=..., force=True, dedupe=False
+            )
+
+    def test_push_dedupe(self):
+        name = 'test/name'
+        dir_path = 'test/dir/path'
+
+        with patch_package_class as mocked_package_class:
+            mocked_package_class.browse.side_effect = FileNotFoundError()
+
+            main.main(('push', '--dir', dir_path, name, '--dedupe'))
+
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_called_once_with()
+            mocked_package = mocked_package_class.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=True
             )
 
     def test_push_existing(self):
@@ -74,7 +91,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package = mocked_package_class.browse.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
             mocked_package.push.assert_called_once_with(
-                name, registry=None, dest=None, message=None, workflow=..., force=False
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
             )
 
 
@@ -108,7 +125,7 @@ def test_push_with_meta_data(
         mocked_package = mocked_package_class.return_value
         mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
         mocked_package.push.assert_called_once_with(
-            name, dest=None, message=None, registry=None, workflow=..., force=False
+            name, dest=None, message=None, registry=None, workflow=..., force=False, dedupe=False
         )
 
 
@@ -163,7 +180,7 @@ def test_push_workflow(workflow_input, expected_workflow):
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
         mocked_package.push.assert_called_once_with(
-            name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False
+            name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False, dedupe=False
         )
 
 
@@ -177,3 +194,29 @@ def test_list_packages(capsys):
         list_packages_mock.assert_called_once_with()
         captured = capsys.readouterr()
         assert captured.out.split() == pkg_names
+
+
+def test_push_no_copy():
+    name = 'test/name'
+    dir_path = 's3://test/dir/path'
+
+    with patch_package_class as mocked_package_class:
+        main.main(('push', '--dir', dir_path, '--no-copy', name))
+
+        mocked_package_class.browse.assert_called_once_with(name, None)
+        mocked_package_class.assert_not_called()
+        mocked_package = mocked_package_class.browse.return_value
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+        mocked_package.push.assert_called_once_with(
+            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False,
+            selector_fn=main._selector_fn_no_copy,
+        )
+
+
+def test_push_no_copy_local_dir(capsys):
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    assert main.main(('push', '--dir', dir_path, '--no-copy', name)) == 1
+    captured = capsys.readouterr()
+    assert "--no-copy flag can be specified only for remote data." in captured.err

@@ -34,16 +34,19 @@
         {
           "$ref": "#/definitions/CompoundVersion"
         }
-      ]
+      ],
+      "examples": ["1.0", { "base": "1", "catalog": "1" }]
     },
     "is_workflow_required": {
       "type": "boolean",
       "description": "If true, users must succeed a workflow in order to push. If false, users may skip workflows altogether.",
-      "default": true
+      "default": true,
+      "examples": [true, false]
     },
     "default_workflow": {
       "type": "string",
-      "description": "The workflow to use if the user doesn't specify a workflow."
+      "description": "The workflow to use if the user doesn't specify any.",
+      "examples": ["foobar"]
     },
     "workflows": {
       "type": "object",
@@ -91,12 +94,30 @@
             "default": false
           }
         }
-      }
+      },
+      "examples": [
+        {
+          "workflowA": {
+            "name": "Workflow A",
+            "metadata_schema": "schemaA"
+          }
+        }
+      ]
     },
     "schemas": {
       "type": "object",
       "description": "JSON Schemas for validating user-supplied metadata and/or package entries.",
       "minProperties": 1,
+      "examples": [
+        {
+          "schemaA": {
+            "url": "s3://foo/bar/.quilt/workflows/schema-a.json"
+          },
+          "schemaB": {
+            "url": "s3://foo/bar/.quilt/workflows/schema-a.json"
+          }
+        }
+      ],
       "additionalProperties": {
         "type": "object",
         "required": ["url"],

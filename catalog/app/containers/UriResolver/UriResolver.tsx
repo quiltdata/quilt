@@ -1,6 +1,5 @@
 import * as React from 'react'
-import { RouteComponentProps } from 'react-router'
-import { useHistory, Redirect } from 'react-router-dom'
+import { Redirect, useHistory, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -23,12 +22,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function UriResolver({ match }: RouteComponentProps<{ uri: string }>) {
+export default function UriResolver() {
+  const params = useParams<{ uri?: string }>()
+
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const classes = useStyles()
 
-  const uri = decodeURIComponent(match.params.uri || '')
+  const uri = decodeURIComponent(params.uri || '')
   const [parsed, error] = React.useMemo(() => {
     try {
       return [uri ? PackageUri.parse(uri) : null]
@@ -69,10 +70,10 @@ export default function UriResolver({ match }: RouteComponentProps<{ uri: string
     <Layout
       pre={
         <M.Container className={classes.container}>
-          <MetaTitle>Resolve a Quilt package URI</MetaTitle>
+          <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
 
           <M.Typography variant="h4" align="center">
-            Resolve a Quilt package URI
+            Resolve a Quilt+ URI
           </M.Typography>
 
           <form className={classes.form} onSubmit={handleSubmit}>
@@ -95,7 +96,7 @@ export default function UriResolver({ match }: RouteComponentProps<{ uri: string
 
           {!!error && (
             <M.Box mt={2}>
-              <M.Typography color="error">
+              <M.Typography color="error" data-testid="uri-error">
                 Error parsing URI: {error.msg || `${error}`}
               </M.Typography>
             </M.Box>

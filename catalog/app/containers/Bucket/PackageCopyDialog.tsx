@@ -2,12 +2,13 @@ import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
+import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
+import { useMutation } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
@@ -111,11 +112,10 @@ function DialogForm({
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
-  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
-  const [, copyPackage] = urql.useMutation(PACKAGE_PROMOTE)
+  const copyPackage = useMutation(PACKAGE_PROMOTE)
 
   interface FormData {
     commitMessage: string
@@ -127,7 +127,7 @@ function DialogForm({
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }: FormData) => {
     try {
-      const res = await copyPackage({
+      const { packagePromote: r } = await copyPackage({
         params: {
           bucket: successor.slug,
           name,
@@ -147,9 +147,6 @@ function DialogForm({
           hash,
         },
       })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data returned by the API')
-      const r = res.data.packagePromote
       switch (r.__typename) {
         case 'PackagePushSuccess':
           setSuccess({ name, hash: r.revision.hash, bucket: successor.slug })
@@ -194,14 +191,6 @@ function DialogForm({
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-  const resizeObserver = React.useMemo(
-    () =>
-      new window.ResizeObserver((entries) => {
-        const { height } = entries[0].contentRect
-        setMetaHeight(height)
-      }),
-    [setMetaHeight],
-  )
 
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
@@ -223,13 +212,7 @@ function DialogForm({
     [handleNameChange, selectedWorkflow, setWorkflow],
   )
 
-  React.useEffect(() => {
-    if (editorElement) resizeObserver.observe(editorElement)
-    return () => {
-      if (editorElement) resizeObserver.unobserve(editorElement)
-    }
-  }, [editorElement, resizeObserver])
-
+  const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   return (
@@ -462,7 +445,7 @@ export default function PackageCopyDialog({
   const manifestData = PD.useManifest({
     bucket,
     name,
-    hash,
+    hashOrTag: hash,
     skipEntries: true,
     pause: !successor || !open,
   })

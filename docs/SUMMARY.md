@@ -1,54 +1,76 @@
-# Summary
+# Quilt Documentation
 
-* [Introduction](README.md)
-* [Installation](Installation.md)
-* [Quick start](Quickstart.md)
-* [Mental model](MentalModel.md)
+* [About Quilt](README.md)
 * [Architecture](Architecture.md)
+* [Mental Model](MentalModel.md)
+* [Metadata Management](Catalog/Metadata.md)
+* [Metadata Workflows](advanced-features/workflows.md)
 
-### Walkthrough
+## Quilt Platform (Catalog) User
+
+* [About the Catalog](walkthrough/working-with-the-catalog.md)
+* [Bucket Browsing](Catalog/FileBrowser.md)
+* [Document Previews](Catalog/Preview.md)
+* [Embeddable iFrames](Catalog/Embed.md)
+* [Search & Query](Catalog/SearchQuery.md)
+* [Quilt+ URIs](Catalog/URI.md)
+* [Qurator Omni](Catalog/Qurator.md) AI Assistant
+* [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
+* **Advanced**
+  * [Athena](advanced-features/athena.md)
+  * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
+  * [Removing Stacks](Catalog/RemovingStacks.md)
+
+## Quilt Platform Administrator
+
+* [Admin Settings UI](Catalog/Admin.md)
+* [Catalog Configuration](Catalog/Preferences.md)
+* [Cross-Account Access](CrossAccount.md)
+* [Enterprise Installs](technical-reference.md)
+* [quilt3.admin Python API](api-reference/Admin.md)
+* **Advanced**
+  * [Package Events](advanced-features/package-events.md)
+  * [Private Endpoints](advanced-features/private-endpoint-access.md)
+  * [Restrict Access by Bucket Prefix](advanced-features/s3-prefix-permissions.md)
+  * [S3 Events via EventBridge](EventBridge.md)
+  * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
+  * [Tabulator](advanced-features/tabulator.md)
+* **Best Practices**
+  * [GxP for Security & Compliance](advanced-features/good-practice.md)
+  * [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)
+
+## Quilt Python SDK
+
+* [Installation](Installation.md)
+* [Quick Start](Quickstart.md)
 * [Editing a Package](walkthrough/editing-a-package.md)
 * [Uploading a Package](walkthrough/uploading-a-package.md)
 * [Installing a Package](walkthrough/installing-a-package.md)
 * [Getting Data from a Package](walkthrough/getting-data-from-a-package.md)
-* [Working with the Catalog](walkthrough/working-with-the-catalog.md)
-* [Working with a Bucket](walkthrough/working-with-a-bucket.md)
+* [Example: Git-like Operations](examples/GitLike.md)
+* **API Reference**
+  * [quilt3](api-reference/api.md)
+  * [quilt3.Package](api-reference/Package.md)
+  * [quilt3.Bucket](api-reference/Bucket.md)
+  * [Local Catalog](Catalog/LocalMode.md)
+  * [CLI, Environment](api-reference/cli.md)
+  * [Known Limitations](api-reference/limitations.md)
+  * [Custom SSL Certificates](api-reference/custom-ssl-certificates.md)
+* **Advanced**
+  * [Browsing Buckets](walkthrough/working-with-a-bucket.md)
+  * [Filtering a Package](advanced-features/filtering-a-package.md)
+  * [.quiltignore](advanced-features/.quiltignore.md)
+  * [Manipulating Manifests](advanced-features/working-with-manifests.md)
+  * [Materialization](advanced-features/materialization.md)
+  * [S3 Select](advanced-features/s3-select.md)
+* **More**
+  * [Changelog](CHANGELOG.md)
+  * [Contributing](CONTRIBUTING.md)
+  * [Frequently Asked Questions](FAQ.md)
+  * [Troubleshooting](Troubleshooting.md)
 
-### API Reference
-* [quilt3](api-reference/api.md)
-* [quilt3.Package](api-reference/Package.md)
-* [quilt3.Bucket](api-reference/Bucket.md)
-* [CLI, environment](api-reference/cli.md)
-* [Known limitations](api-reference/limitations.md)
+## Quilt Ecosystem Integrations
 
-### Catalog
-* [Admin UI](Catalog/Admin.md)
-* [Configuration](Catalog/Preferences.md)
-* [Embed](Catalog/Embed.md)
-* [Metadata for teams](Catalog/Metadata.md)
-* [Preview](Catalog/Preview.md)
-* [Search & query](Catalog/SearchQuery.md)
-* [Visualization & dashboards](Catalog/VisualizationDashboards.md)
-* [Local Development Mode](Catalog/LocalMode.md)
-
-### Examples
-* [Git-like operations for datasets and Jupyter notebooks](examples/GitLike.md)
-
-### Advanced
-* [Filtering a Package](advanced-features/filtering-a-package.md)
-* [.quiltignore](advanced-features/.quiltignore.md)
-* [Materialization](advanced-features/materialization.md)
-* [Working with Manifests](advanced-features/working-with-manifests.md)
-* [S3 Select](advanced-features/s3-select.md)
-* [Workflows](advanced-features/workflows.md)
-* [Enterprise install](technical-reference.md)
-* [S3 Events, EventBridge](EventBridge.md)
-* [Cross-account access](CrossAccount.md)
-* [Querying metadata with Athena](advanced-features/athena.md)
-* [S3 Bucket Organization](advanced-features/s3-bucket-organization.md)
-
-### More
-* [Frequently Asked Questions](FAQ.md)
-* [Troubleshooting](Troubleshooting.md)
-* [Contributing](CONTRIBUTING.md)
-* [Changelog](CHANGELOG.md)
+* [Benchling Packager](examples/benchling.md)
+* [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
+* [Nextflow Plugin](examples/nextflow.md)

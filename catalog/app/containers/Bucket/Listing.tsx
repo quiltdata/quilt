@@ -6,20 +6,26 @@ import type { AutosizeInputProps } from 'react-input-autosize'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
-import * as DG from '@material-ui/data-grid'
 
+import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
+import type * as Routes from 'constants/routes'
+import * as BucketPreferences from 'utils/BucketPreferences'
+import type { Urls } from 'utils/NamedRoutes'
+import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
+import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
+
+import { RowActions } from './ListingActions'
+import * as Selection from './Selection'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
 
 const TIP_DELAY = 1000
 
 const TOOLBAR_INNER_HEIGHT = 28
-
-// monkey-patch MUI built-in colDef to better align checkboxes
-DG.gridCheckboxSelectionColDef.width = 32
 
 export interface Item {
   type: 'dir' | 'file'
@@ -28,6 +34,101 @@ export interface Item {
   size?: number
   modified?: Date
   archived?: boolean
+}
+
+export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
+  File: (f: {
+    archived?: boolean
+    key: string
+    modified?: Date
+    physicalKey?: string
+    size?: number
+  }) => f,
+  Dir: (d: { key: string; size?: number }) => d,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Entry = tagged.InstanceOf<typeof Entry>
+
+interface RouteMap {
+  bucketDir: Routes.BucketDirArgs
+  bucketFile: Routes.BucketFileArgs
+  bucketPackageTree: Routes.BucketPackageTreeArgs
+}
+
+type PackageUrls = Urls<RouteMap>
+
+type BucketUrls = Urls<Omit<RouteMap, 'bucketPackageTree'>>
+
+interface FormatListingOptions {
+  bucket: string
+  packageHandle?: PackageHandleWithHashesOrTag
+  prefix: string
+  urls?: BucketUrls | PackageUrls
+}
+
+export function format(
+  entries: Entry[],
+  { bucket, packageHandle, prefix, urls }: FormatListingOptions,
+) {
+  const toDir = (path: string) => {
+    if (!urls) return path
+    if (!packageHandle) return urls.bucketDir(bucket, path)
+    return (
+      (urls as PackageUrls).bucketPackageTree?.(
+        bucket,
+        packageHandle.name,
+        packageHandle.hashOrTag,
+        path ? s3paths.ensureSlash(path) : path,
+      ) || path
+    )
+  }
+  const toFile = (path: string) => {
+    if (!urls) return path
+    if (!packageHandle) return urls.bucketFile(bucket, path)
+    return (
+      (urls as PackageUrls).bucketPackageTree?.(
+        bucket,
+        packageHandle.name,
+        packageHandle.hashOrTag,
+        path,
+      ) || path
+    )
+  }
+
+  const head = prefix
+    ? [
+        {
+          type: 'dir' as const,
+          name: '..',
+          to: toDir(s3paths.up(prefix)),
+        },
+      ]
+    : []
+  const items = [
+    ...head,
+    ...entries.map(
+      Entry.match<Item>({
+        Dir: ({ key, size }) => ({
+          type: 'dir' as const,
+          name: s3paths.ensureNoSlash(s3paths.withoutPrefix(prefix, key)),
+          to: toDir(key),
+          size,
+        }),
+        File: ({ key, size, archived, modified, physicalKey }) => ({
+          type: 'file' as const,
+          name: s3paths.withoutPrefix(prefix, key),
+          to: toFile(key),
+          size,
+          physicalKey,
+          modified,
+          archived,
+        }),
+      }),
+    ),
+  ]
+  // filter-out files with same name as one of dirs
+  return R.uniqBy(R.prop('name'), items)
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {
@@ -48,15 +149,6 @@ const computeStats = R.reduce(
     size: 0,
     modified: undefined as Date | undefined,
   },
-)
-
-type DataGridProps = Omit<DG.GridComponentProps, 'licenseStatus'>
-
-const DataGrid = React.memo(
-  React.forwardRef<HTMLDivElement, DataGridProps>(function DataGrid(inProps, ref) {
-    const props = DG.useThemeProps({ props: inProps, name: 'MuiDataGrid' })
-    return <DG.GridComponent ref={ref} {...props} licenseStatus="Valid" />
-  }),
 )
 
 interface WrappedAutosizeInputProps extends Omit<AutosizeInputProps, 'ref'> {
@@ -158,7 +250,7 @@ export function PrefixFilter({ prefix = '', setPrefix }: PrefixFilterProps) {
           <M.Button
             className={classes.btn}
             size="small"
-            variant="contained"
+            variant="outlined"
             color="primary"
             onClick={apply}
           >
@@ -194,14 +286,11 @@ const usePaginationStyles = M.makeStyles((t) => ({
   select: {
     alignItems: 'center',
     display: 'flex',
-    height: 24,
-    paddingBottom: 0,
     paddingLeft: t.spacing(0.5),
-    paddingTop: 0,
   },
   input: {
     fontSize: 'inherit',
-    marginRight: t.spacing(0.5),
+    marginRight: t.spacing(2),
 
     [t.breakpoints.down('xs')]: {
       display: 'none',
@@ -209,9 +298,7 @@ const usePaginationStyles = M.makeStyles((t) => ({
   },
   button: {
     color: t.palette.action.active,
-    minWidth: 'auto',
-    paddingBottom: 1,
-    paddingTop: 1,
+    minWidth: t.spacing(4),
   },
   current: {
     color: t.palette.text.primary,
@@ -220,15 +307,20 @@ const usePaginationStyles = M.makeStyles((t) => ({
 }))
 
 interface PaginationProps {
-  truncated?: boolean
+  apiRef?: DG.GridApiRef
   loadMore?: () => void
+  state: DG.GridPaginationState
+  truncated?: boolean
 }
 
-function Pagination({ truncated, loadMore }: PaginationProps) {
+function Pagination({
+  apiRef,
+  state: paginationState,
+  truncated,
+  loadMore,
+}: PaginationProps) {
   const classes = usePaginationStyles()
 
-  const apiRef = React.useContext(DG.GridApiContext)
-  const paginationState = DG.useGridSelector(apiRef, DG.gridPaginationSelector)
   const options = DG.useGridSelector(apiRef, optionsSelector)
 
   const page = paginationState.page + 1
@@ -381,6 +473,33 @@ function FilterToolbarButton() {
   )
 }
 
+// Iterate over `items`, and add slash if selection item is directory
+// Iterate over `items` only once, but keep the sort order as in original selection
+function formatSelection(ids: DG.GridRowId[], items: Item[]): Selection.SelectionItem[] {
+  if (!ids.length) return []
+
+  const names: Selection.SelectionItem[] = []
+  const sortOrder = ids.reduce(
+    (memo, id, index) => ({ ...memo, [id]: index + 1 }),
+    {} as Record<DG.GridRowId, number>,
+  )
+  items.some(({ name, type }) => {
+    if (name === '..') return false
+    if (ids.includes(name)) {
+      names.push({
+        logicalKey: type === 'dir' ? s3paths.ensureSlash(name) : name.toString(),
+      })
+    }
+    if (names.length === ids.length) return true
+  })
+  names.sort((a, b) => {
+    const aPos = sortOrder[a.logicalKey] || sortOrder[s3paths.ensureNoSlash(a.logicalKey)]
+    const bPos = sortOrder[b.logicalKey] || sortOrder[s3paths.ensureNoSlash(b.logicalKey)]
+    return aPos - bPos
+  })
+  return names
+}
+
 const useToolbarStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -393,6 +512,10 @@ const useToolbarStyles = M.makeStyles((t) => ({
   icon: {
     fontSize: t.typography.body1.fontSize,
     marginRight: t.spacing(0.5),
+  },
+  summary: {
+    marginLeft: 'auto',
+    marginRight: t.spacing(1),
   },
   truncated: {
     ...t.typography.body2,
@@ -433,7 +556,11 @@ function Toolbar({
   items,
   children,
 }: ToolbarProps) {
+  const apiRef = React.useContext(DG.GridApiContext)
+  const paginationState = DG.useGridSelector(apiRef, DG.gridPaginationSelector)
   const classes = useToolbarStyles()
+  const from = paginationState.page * paginationState.pageSize + 1
+  const to = Math.min((paginationState.page + 1) * paginationState.pageSize, items.length)
   return (
     <div className={classes.root}>
       {children}
@@ -457,7 +584,9 @@ function Toolbar({
           )}
         </div>
       )}
-      <Pagination truncated={truncated} loadMore={loadMore} />
+      <div className={classes.summary}>
+        Showing {from}—{to} out of {truncated ? 'first' : ''} {items.length}
+      </div>
       <FilterToolbarButton />
       {locked && <div className={classes.lock} />}
     </div>
@@ -549,7 +678,7 @@ function ColumnMenu({
 }
 
 const useFooterStyles = M.makeStyles((t) => ({
-  root: {
+  section: {
     alignItems: 'center',
     borderTop: `1px solid ${t.palette.divider}`,
     color: t.palette.text.secondary,
@@ -602,12 +731,20 @@ const useFooterStyles = M.makeStyles((t) => ({
   },
   cellSecond: {
     paddingLeft: t.spacing(1),
+    paddingRight: t.spacing(1),
     textAlign: 'right',
   },
   cellLast: {
+    overflow: 'hidden',
+    paddingLeft: t.spacing(1),
     paddingRight: t.spacing(1),
     textAlign: 'right',
-    width: COL_MODIFIED_W + t.spacing(1),
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    width: COL_MODIFIED_W,
+    [t.breakpoints.down('sm')]: {
+      width: COL_MODIFIED_W_SM,
+    },
   },
 }))
 
@@ -627,6 +764,8 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
 
   const stats = React.useMemo(() => computeStats(items), [items])
 
+  const paginationState = DG.useGridSelector(apiRef, DG.gridPaginationSelector)
+
   const filteredStats = React.useMemo(() => {
     if (!filterCount) return undefined
     const visibleItems = (state.visibleRows.visibleRows || []).map(
@@ -638,71 +777,85 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
   const modified = filteredStats ? filteredStats.modified : stats.modified
 
   return (
-    <div className={classes.root}>
-      <div className={classes.cellFirst}>
-        <M.Tooltip title="Directories" arrow enterDelay={TIP_DELAY}>
-          <div className={classes.group}>
-            <M.Icon className={classes.icon}>folder_open</M.Icon>
-            {filteredStats && <>{filteredStats.dirs} / </>}
-            {stats.dirs}
-            {truncated && '+'}
-          </div>
-        </M.Tooltip>
-
-        <M.Tooltip title="Files" arrow enterDelay={TIP_DELAY}>
-          <div className={classes.group}>
-            <M.Icon className={classes.icon}>insert_drive_file</M.Icon>
-            {filteredStats && <>{filteredStats.files} / </>}
-            {stats.files}
-            {truncated && '+'}
-          </div>
-        </M.Tooltip>
-
-        {!!filterCount && (
-          <M.Tooltip title={<ActiveFilters />} arrow enterDelay={TIP_DELAY}>
+    <>
+      <div className={classes.section}>
+        <div className={classes.cellFirst}>
+          <M.Tooltip title="Directories" arrow enterDelay={TIP_DELAY}>
             <div className={classes.group}>
-              <M.Icon className={classes.icon}>filter_list</M.Icon>
-              {filterCount}
+              <M.Icon className={classes.icon}>folder_open</M.Icon>
+              {filteredStats && <>{filteredStats.dirs} / </>}
+              {stats.dirs}
+              {truncated && '+'}
             </div>
           </M.Tooltip>
-        )}
 
-        {truncated && (
-          // TODO: show tooltip with detailed description?
-          <div className={classes.group}>
-            <M.Icon className={classes.icon}>warning</M.Icon>
-            <span className={classes.truncationWarning}>
-              Showing first {items.length} objects
-              {!!loadMore && (
-                <>
-                  <> &rarr;&nbsp;</>
-                  <M.Link
-                    onClick={loadMore}
-                    className={classes.loadMore}
-                    component="button"
-                    underline="always"
-                  >
-                    load more
-                  </M.Link>
-                  {locked && (
-                    <M.CircularProgress size={16} className={classes.progress} />
-                  )}
-                </>
-              )}
-            </span>
+          <M.Tooltip title="Files" arrow enterDelay={TIP_DELAY}>
+            <div className={classes.group}>
+              <M.Icon className={classes.icon}>insert_drive_file</M.Icon>
+              {filteredStats && <>{filteredStats.files} / </>}
+              {stats.files}
+              {truncated && '+'}
+            </div>
+          </M.Tooltip>
+
+          {!!filterCount && (
+            <M.Tooltip title={<ActiveFilters />} arrow enterDelay={TIP_DELAY}>
+              <div className={classes.group}>
+                <M.Icon className={classes.icon}>filter_list</M.Icon>
+                {filterCount}
+              </div>
+            </M.Tooltip>
+          )}
+
+          {truncated && (
+            // TODO: show tooltip with detailed description?
+            <div className={classes.group}>
+              <M.Icon className={classes.icon}>warning</M.Icon>
+              <span className={classes.truncationWarning}>
+                Showing first {items.length} objects
+                {!!loadMore && (
+                  <>
+                    <> &rarr;&nbsp;</>
+                    <M.Link
+                      onClick={loadMore}
+                      className={classes.loadMore}
+                      component="button"
+                      underline="always"
+                    >
+                      load more
+                    </M.Link>
+                    {locked && (
+                      <M.CircularProgress size={16} className={classes.progress} />
+                    )}
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+        </div>
+        <div className={classes.spacer} />
+        <div className={classes.cellSecond}>
+          {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
+          {readableBytes(stats.size, truncated ? '+' : '')}
+        </div>
+        {modified && (
+          <div className={classes.cellLast}>
+            {truncated ? '~' : ''}
+            {modified.toLocaleString()}
           </div>
         )}
+        {locked && <div className={classes.lock} />}
       </div>
-      <div className={classes.spacer} />
-      <div className={classes.cellSecond}>
-        {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
-        {readableBytes(stats.size, truncated ? '+' : '')}
+
+      <div className={classes.section}>
+        <Pagination
+          apiRef={apiRef}
+          state={paginationState}
+          truncated={truncated}
+          loadMore={loadMore}
+        />
       </div>
-      <div className={classes.cellLast}>
-        {modified && `${truncated ? '~' : ''}${modified.toLocaleString()}`}
-      </div>
-      {locked && <div className={classes.lock} />}
-    </div>
+    </>
   )
 }
 
@@ -764,7 +917,9 @@ const localeText = {
 }
 
 const COL_SIZE_W = 114
+const COL_SIZE_W_SM = COL_SIZE_W / 1.3
 const COL_MODIFIED_W = 176
+const COL_MODIFIED_W_SM = COL_MODIFIED_W / 1.2
 
 const useStyles = M.makeStyles((t) => ({
   '@global': {
@@ -819,12 +974,10 @@ const useStyles = M.makeStyles((t) => ({
       '& .MuiDataGrid-columnSeparator': {
         pointerEvents: 'none',
       },
-      // "Size" column
-      '&:nth-last-child(2)': {
+      '&[data-field="size"]': {
         justifyContent: 'flex-end',
       },
-      // "Last modified" column
-      '&:last-child': {
+      '&[data-field="modified"]': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
@@ -836,6 +989,10 @@ const useStyles = M.makeStyles((t) => ({
           display: 'none',
         },
       },
+    },
+    '& [data-id=".."] .MuiDataGrid-checkboxInput': {
+      cursor: 'default',
+      opacity: 0.3,
     },
   },
   locked: {
@@ -881,12 +1038,12 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
-  selection?: DG.GridRowId[]
-  onSelectionChange?: (newSelection: DG.GridRowId[]) => void
+  selection?: Selection.SelectionItem[]
+  onSelectionChange?: (newSelection: Selection.SelectionItem[]) => void
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
-  dataGridProps?: Partial<DataGridProps>
+  dataGridProps?: Partial<DG.DataGridProps>
 }
 
 export function Listing({
@@ -904,6 +1061,9 @@ export function Listing({
   dataGridProps,
 }: ListingProps) {
   const classes = useStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const { prefs } = BucketPreferences.use()
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
@@ -940,8 +1100,9 @@ export function Listing({
     }
   })
 
-  const columns: DG.GridColumns = React.useMemo(
-    () => [
+  // NOTE: after dependencies change fourth empty column appears
+  const columns: DG.GridColumns = React.useMemo(() => {
+    const columnsWithValues: DG.GridColumns = [
       {
         field: 'name',
         headerName: 'Name',
@@ -982,20 +1143,13 @@ export function Listing({
           )
         },
       },
-      // TODO: uncomment this after implementing custom filter operators
-      // {
-      //   field: 'type',
-      //   headerName: 'Type',
-      //   type: 'string',
-      //   hide: true,
-      //   // TODO: custom filter operators
-      //   // filterOperators: GridFilterOperator[]
-      // },
-      {
+    ]
+    if (items.some(({ size }) => size != null)) {
+      columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
         type: 'number',
-        width: COL_SIZE_W,
+        width: sm ? COL_SIZE_W_SM : COL_SIZE_W,
         renderCell: (params: DG.GridCellParams) => {
           const i = params.row as unknown as Item
           return (
@@ -1008,29 +1162,60 @@ export function Listing({
             </CellComponent>
           )
         },
-      },
-      {
+      })
+    }
+    if (items.some(({ modified }) => !!modified)) {
+      columnsWithValues.push({
         field: 'modified',
         headerName: 'Last modified',
         type: 'dateTime',
         align: 'right',
-        width: COL_MODIFIED_W,
+        width: sm ? COL_MODIFIED_W_SM : COL_MODIFIED_W,
         renderCell: (params: DG.GridCellParams) => {
           const i = params.row as unknown as Item
           return (
             <CellComponent
               item={i}
-              className={cx(classes.link, i.archived && classes.archived)}
+              className={cx(
+                classes.link,
+                i.archived && classes.archived,
+                classes.ellipsis,
+              )}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.modified == null ? <>&nbsp;</> : i.modified.toLocaleString()}
             </CellComponent>
           )
         },
-      },
-    ],
-    [classes, CellComponent],
-  )
+      })
+    }
+    columnsWithValues.push({
+      field: 'actions',
+      headerName: '',
+      align: 'right',
+      width: 0,
+      renderCell: (params: DG.GridCellParams) =>
+        params.id === '..' ? (
+          <></>
+        ) : (
+          BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) => (
+                <RowActions
+                  archived={params.row.archived}
+                  physicalKey={params.row.physicalKey}
+                  prefs={actions}
+                  to={params.row.to}
+                />
+              ),
+              _: () => <></>,
+            },
+            prefs,
+          )
+        ),
+    })
+    return columnsWithValues
+  }, [classes, CellComponent, items, sm, prefs])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
@@ -1041,15 +1226,21 @@ export function Listing({
 
   const handleSelectionModelChange = React.useCallback(
     (newSelection: DG.GridSelectionModelChangeParams) => {
-      if (onSelectionChange) onSelectionChange(newSelection.selectionModel)
+      if (!onSelectionChange) return
+      onSelectionChange(formatSelection(newSelection.selectionModel, items))
     },
-    [onSelectionChange],
+    [items, onSelectionChange],
+  )
+
+  const selectionModel = React.useMemo(
+    () => selection?.map(({ logicalKey }) => s3paths.ensureNoSlash(logicalKey)),
+    [selection],
   )
 
   // TODO: control page, pageSize, filtering and sorting via props
   return (
     <RootComponent className={cx(classes.root, className)}>
-      <DataGrid
+      <DG.DataGrid
         onFilterModelChange={handleFilterModelChange}
         className={cx(classes.grid, locked && classes.locked)}
         rows={items}
@@ -1076,9 +1267,8 @@ export function Listing({
         disableMultipleSelection
         disableMultipleColumnsSorting
         localeText={{ noRowsLabel, ...localeText }}
-        // selection-related props
-        checkboxSelection={!!onSelectionChange}
-        selectionModel={selection}
+        checkboxSelection={!!selectionModel}
+        selectionModel={selectionModel}
         onSelectionModelChange={handleSelectionModelChange}
         {...dataGridProps}
       />

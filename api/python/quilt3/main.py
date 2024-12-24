@@ -13,7 +13,7 @@ import requests
 
 from . import Package
 from . import __version__ as quilt3_version
-from . import api, session
+from . import api, session, util
 from .backends import get_package_registry
 from .session import open_url
 from .util import (
@@ -116,7 +116,7 @@ def _launch_local_catalog(*, host: str, port: int):
             'uvicorn',
             'quilt3_local',
         ):
-            raise QuiltException('To run `quilt3 catalog` install `quilt3[catalog]`') from e
+            raise QuiltException("To run `quilt3 catalog` please `pip install 'quilt3[catalog]'`") from e
         raise
     _thread.start_new_thread(functools.partial(uvicorn.run, host=host, port=port, log_level="info"), (app,))
 
@@ -202,14 +202,26 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force):
+# This is not a lambda to ease of testing.
+def _selector_fn_no_copy(*args):
+    return False
+
+
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy):
+    if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
+        raise QuiltException("--no-copy flag can be specified only for remote data.")
+
     try:
         pkg = Package.browse(name, None)
     except FileNotFoundError:
         pkg = Package()
 
     pkg.set_dir('.', dir, meta=meta)
-    pkg.push(name, registry=registry, dest=dest, message=message, workflow=workflow, force=force)
+    pkg.push(
+        name, registry=registry, dest=dest, message=message,
+        workflow=workflow, force=force, dedupe=dedupe,
+        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
+    )
 
 
 def create_parser():
@@ -280,7 +292,7 @@ def create_parser():
             nargs="?"
     )
     catalog_p.add_argument(
-            "--detailed_help",
+            "--detailed-help", "--detailed_help",
             help="Display detailed information about this command and then exit",
             action="store_true",
     )
@@ -456,6 +468,16 @@ def create_parser():
             Skip the parent top hash check and create a new revision
             even if your local state is behind the remote registry.
             """,
+    )
+    optional_args.add_argument(
+        "--dedupe",
+        action="store_true",
+        help="Skip the push if the local package hash matches the remote hash.",
+    )
+    optional_args.add_argument(
+        "--no-copy",
+        action="store_true",
+        help="Do not copy data. Package manifest entries will reference the data at the original location.",
     )
     push_p.set_defaults(func=cmd_push)
 

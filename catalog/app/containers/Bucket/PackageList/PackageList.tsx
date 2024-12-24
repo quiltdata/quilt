@@ -1,4 +1,7 @@
+import cx from 'classnames'
 import * as dateFns from 'date-fns'
+import invariant from 'invariant'
+import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -6,10 +9,13 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
+import * as Buttons from 'components/Buttons'
+import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -18,9 +24,9 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
+import { JsonRecord } from 'utils/types'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
-import useQuery from 'utils/useQuery'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
@@ -47,7 +53,7 @@ const SORT_OPTIONS = [
   },
 ] as const
 
-type SortMode = typeof SORT_OPTIONS[number]['key']
+type SortMode = (typeof SORT_OPTIONS)[number]['key']
 
 const DEFAULT_SORT = SORT_OPTIONS[0]
 
@@ -136,10 +142,199 @@ function Counts({ counts, total }: CountsProps) {
   )
 }
 
+const useRevisionAttributesStyles = M.makeStyles((t) => ({
+  revisionsNumber: {
+    ...t.typography.subtitle2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
+  },
+  updated: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+    marginLeft: t.spacing(2),
+  },
+}))
+
+interface RevisionAttributesProps {
+  bucket: string
+  name: string
+  className: string
+  revisions: {
+    total: number
+  }
+  modified: Date
+}
+
+function RevisionAttributes({
+  bucket,
+  className,
+  name,
+  modified,
+  revisions,
+}: RevisionAttributesProps) {
+  const classes = useRevisionAttributesStyles()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const { urls } = NamedRoutes.use()
+  return (
+    <div className={className}>
+      <RRDom.Link
+        className={classes.revisionsNumber}
+        to={urls.bucketPackageRevisions(bucket, name)}
+      >
+        {revisions.total}{' '}
+        {xs ? (
+          'Rev.'
+        ) : (
+          <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
+        )}
+      </RRDom.Link>
+      <span
+        className={classes.updated}
+        title={modified ? modified.toString() : undefined}
+      >
+        {xs ? 'Upd. ' : 'Updated '}
+        {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
+      </span>
+    </div>
+  )
+}
+
+const useRevisionMetaStyles = M.makeStyles((t) => ({
+  root: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2),
+    ...t.typography.body2,
+  },
+  section: {
+    '& + &': {
+      marginTop: t.spacing(1),
+    },
+  },
+  sectionWithToggle: {
+    marginLeft: '-5px',
+  },
+}))
+
+interface RevisionMetaProps {
+  revision: SelectiveMeta
+}
+
+function RevisionMeta({ revision }: RevisionMetaProps) {
+  const classes = useRevisionMetaStyles()
+  const { prefs } = BucketPreferences.use()
+  return (
+    <div className={classes.root}>
+      {!!revision.message && <div className={classes.section}>{revision.message}</div>}
+      {!!revision.userMeta && (
+        <div className={classes.section}>
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { packageDescription } }) =>
+                packageDescription.userMetaMultiline ? (
+                  Object.entries(revision.userMeta!).map(([name, value]) => (
+                    <JsonDisplay
+                      className={cx({
+                        [classes.sectionWithToggle]: typeof value === 'object',
+                      })}
+                      key={`user-meta-section-${name}`}
+                      name={name}
+                      value={value}
+                    />
+                  ))
+                ) : (
+                  <JsonDisplay
+                    className={classes.sectionWithToggle}
+                    name="User metadata"
+                    value={revision.userMeta}
+                  />
+                ),
+              _: () => null,
+            },
+            prefs,
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function filterObjectByJsonPaths(obj: JsonRecord, jsonPaths: readonly string[]) {
+  return jsonPaths.reduce(
+    (acc, jPath) =>
+      jsonpath
+        .nodes(obj, jPath)
+        .reduce((memo, { path, value }) => R.assocPath(path.slice(1), value, memo), acc),
+    {},
+  )
+}
+
+function usePackageDescription(
+  name: string,
+): BucketPreferences.PackagePreferences | null {
+  const { prefs } = BucketPreferences.use()
+  return React.useMemo(
+    () =>
+      BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { packageDescription } }) => {
+            if (!packageDescription.packages) return null
+            return (
+              Object.entries(packageDescription.packages)
+                .reverse() // The last found config wins
+                .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
+            )
+          },
+          _: () => null,
+        },
+        prefs,
+      ),
+    [name, prefs],
+  )
+}
+
+interface SelectiveMeta {
+  message: string | null
+  userMeta: JsonRecord | null
+}
+
+function useSelectiveMeta(name: string, revision: SelectiveMeta | null) {
+  // TODO: move visible meta calculation to the graphql
+  const packageDescription = usePackageDescription(name)
+  return React.useMemo(() => {
+    const output: { message: string | null; userMeta: JsonRecord | null } = {
+      message: null,
+      userMeta: null,
+    }
+    try {
+      if (!packageDescription) return null
+      if (packageDescription.message && revision?.message) {
+        output.message = revision.message
+      }
+      if (packageDescription.userMeta && revision?.userMeta) {
+        const selectiveUserMeta = filterObjectByJsonPaths(
+          revision.userMeta,
+          packageDescription.userMeta,
+        )
+        if (!R.isEmpty(selectiveUserMeta)) {
+          output.userMeta = selectiveUserMeta
+        }
+      }
+      return output.message || output.userMeta ? output : null
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error)
+      return null
+    }
+  }, [packageDescription, revision])
+}
+
 const usePackageStyles = M.makeStyles((t) => ({
   root: {
-    position: 'relative',
-
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
     },
@@ -148,15 +343,17 @@ const usePackageStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
+  base: {
+    padding: t.spacing(2),
+    position: 'relative',
+  },
   handleContainer: {
     WebkitBoxOrient: 'vertical',
     WebkitLineClamp: 2,
     display: '-webkit-box',
     overflow: 'hidden',
     overflowWrap: 'break-word',
-    paddingLeft: t.spacing(2),
     paddingRight: t.spacing(21),
-    paddingTop: t.spacing(2),
     textOverflow: 'ellipsis',
   },
   handle: {
@@ -178,15 +375,8 @@ const usePackageStyles = M.makeStyles((t) => ({
       background: t.palette.action.hover,
     },
   },
-  revisions: {
-    ...t.typography.subtitle2,
-    color: t.palette.text.secondary,
-    position: 'relative',
-  },
-  updated: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    position: 'relative',
+  attributes: {
+    marginTop: t.spacing(1),
   },
 }))
 
@@ -194,41 +384,39 @@ type PackageProps = NonNullable<
   ResultOf<typeof PACKAGE_LIST_QUERY>['packages']
 >['page'][number]
 
-function Package({ name, modified, revisions, bucket, accessCounts }: PackageProps) {
+function Package({
+  name,
+  modified,
+  revisions,
+  bucket,
+  accessCounts,
+  revision,
+}: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const selectiveMeta = useSelectiveMeta(name, revision)
   return (
     <M.Paper className={classes.root}>
-      <div className={classes.handleContainer}>
-        <RRDom.Link
-          className={classes.handle}
-          to={urls.bucketPackageDetail(bucket, name)}
-        >
-          <span className={classes.handleClickArea} />
-          <span className={classes.handleText}>{name}</span>
-        </RRDom.Link>
+      <div className={classes.base}>
+        <div className={classes.handleContainer}>
+          <RRDom.Link
+            className={classes.handle}
+            to={urls.bucketPackageDetail(bucket, name)}
+          >
+            <span className={classes.handleClickArea} />
+            <span className={classes.handleText}>{name}</span>
+          </RRDom.Link>
+        </div>
+        <RevisionAttributes
+          bucket={bucket}
+          className={classes.attributes}
+          modified={modified}
+          name={name}
+          revisions={revisions}
+        />
+        {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      <M.Box pl={2} pb={2} pt={1}>
-        <span className={classes.revisions}>
-          {revisions.total}{' '}
-          {xs ? (
-            'Rev.'
-          ) : (
-            <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
-          )}
-        </span>
-        <M.Box mr={2} component="span" />
-        <span
-          className={classes.updated}
-          title={modified ? modified.toString() : undefined}
-        >
-          {xs ? 'Upd. ' : 'Updated '}
-          {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
-        </span>
-      </M.Box>
-      {!!accessCounts && <Counts {...accessCounts} />}
+      {!!selectiveMeta && <RevisionMeta revision={selectiveMeta} />}
     </M.Paper>
   )
 }
@@ -365,25 +553,19 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   const computedFilter = filter || ''
   const filtering = useDebouncedInput(computedFilter, 500)
 
-  const totalCountQuery = useQuery({
-    query: PACKAGE_COUNT_QUERY,
-    variables: { bucket, filter: null },
+  const totalCountQuery = GQL.useQuery(PACKAGE_COUNT_QUERY, { bucket, filter: null })
+
+  const filteredCountQuery = GQL.useQuery(PACKAGE_COUNT_QUERY, {
+    bucket,
+    filter: filter || null,
   })
 
-  const filteredCountQuery = useQuery({
-    query: PACKAGE_COUNT_QUERY,
-    variables: { bucket, filter: filter || null },
-  })
-
-  const packagesQuery = useQuery({
-    query: PACKAGE_LIST_QUERY,
-    variables: {
-      bucket,
-      filter: filter || null,
-      order: computedSort.value,
-      page: computedPage,
-      perPage: PER_PAGE,
-    },
+  const packagesQuery = GQL.useQuery(PACKAGE_LIST_QUERY, {
+    bucket,
+    filter: filter || null,
+    order: computedSort.value,
+    page: computedPage,
+    perPage: PER_PAGE,
   })
 
   const makeSortUrl = React.useCallback(
@@ -431,13 +613,17 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     }
   })
 
-  const preferences = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const createDialog = PD.usePackageCreationDialog({
     bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })
+  const openPackageCreationDialog = React.useCallback(
+    () => createDialog.open(),
+    [createDialog],
+  )
 
   return (
     <>
@@ -449,7 +635,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
         title: 'Create package',
       })}
 
-      {totalCountQuery.case({
+      {GQL.fold(totalCountQuery, {
         fetching: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box mt={{ xs: 0, sm: 3 }} display="flex" justifyContent="space-between">
@@ -491,24 +677,32 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
               <M.Box pt={5} textAlign="center">
                 <M.Typography variant="h4">No packages</M.Typography>
                 <M.Box pt={3} />
-                {preferences?.ui?.actions?.createPackage && (
-                  <>
-                    <M.Button
-                      variant="contained"
-                      color="primary"
-                      onClick={createDialog.open}
-                    >
-                      Create package
-                    </M.Button>
-                    <M.Box pt={2} />
-                    <M.Typography>
-                      Or{' '}
-                      <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
-                        push a package
-                      </StyledLink>{' '}
-                      with the Quilt Python API.
-                    </M.Typography>
-                  </>
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      actions.createPackage && (
+                        <>
+                          <M.Button
+                            variant="contained"
+                            color="primary"
+                            onClick={openPackageCreationDialog}
+                          >
+                            Create package
+                          </M.Button>
+                          <M.Box pt={2} />
+                          <M.Typography>
+                            Or{' '}
+                            <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
+                              push a package
+                            </StyledLink>{' '}
+                            with the Quilt Python API.
+                          </M.Typography>
+                        </>
+                      ),
+                    Pending: () => <Buttons.Skeleton />,
+                    Init: () => null,
+                  },
+                  prefs,
                 )}
               </M.Box>
             )
@@ -545,18 +739,30 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                   />
                 </M.Box>
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
-                {preferences?.ui?.actions?.createPackage && (
-                  <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
-                    <M.Button
-                      variant="contained"
-                      size="large"
-                      color="primary"
-                      style={{ paddingTop: 7, paddingBottom: 7 }}
-                      onClick={createDialog.open}
-                    >
-                      Create package
-                    </M.Button>
-                  </M.Box>
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      actions.createPackage && (
+                        <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                          <M.Button
+                            variant="contained"
+                            size="large"
+                            color="primary"
+                            style={{ paddingTop: 7, paddingBottom: 7 }}
+                            onClick={openPackageCreationDialog}
+                          >
+                            Create package
+                          </M.Button>
+                        </M.Box>
+                      ),
+                    Pending: () => (
+                      <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                        <Buttons.Skeleton size="large" />
+                      </M.Box>
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
                 )}
                 <M.Box component={M.Paper} className={classes.paper}>
                   <SortDropdown
@@ -567,7 +773,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                 </M.Box>
               </M.Box>
 
-              {filteredCountQuery.case({
+              {GQL.fold(filteredCountQuery, {
                 fetching: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
                 error: displayError(),
                 data: (filteredCountData) => {
@@ -595,7 +801,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
 
                   return (
                     <>
-                      {packagesQuery.case({
+                      {GQL.fold(packagesQuery, {
                         fetching: () => {
                           const items =
                             computedPage < pages ? PER_PAGE : filteredCount % PER_PAGE
@@ -622,12 +828,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   )
 }
 
-export default function PackageListWrapper({
-  match: {
-    params: { bucket },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string }>) {
+export default function PackageListWrapper() {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  const location = RRDom.useLocation()
+  invariant(!!bucket, '`bucket` must be defined')
+
   const { sort, filter, p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (

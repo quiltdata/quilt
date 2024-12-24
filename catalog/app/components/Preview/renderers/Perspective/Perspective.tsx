@@ -1,10 +1,12 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
+import { JsonRecord } from 'utils/types'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
@@ -14,7 +16,7 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
     margin: t.spacing(1, 0, 1, 3),
   },
   mono: {
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
+    fontFamily: t.typography.monospace.fontFamily,
   },
   metaName: {
     paddingRight: t.spacing(1),
@@ -96,7 +98,6 @@ function ParquetMeta({
               </span>
             ))}
             {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-              /* @ts-expect-error */
               <JsonDisplay value={s} />
             ))}
           </tbody>
@@ -192,7 +193,6 @@ const useStyles = M.makeStyles((t) => ({
     // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 8px',
     resize: 'vertical',
-    width: '100%',
   },
   meta: {
     marginBottom: t.spacing(1),
@@ -210,8 +210,10 @@ export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
   data: perspective.PerspectiveInput
-  meta?: ParquetMetadata
+  packageMeta?: JsonRecord
+  parquetMeta?: ParquetMetadata
   onLoadMore?: () => void
+  onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
 }
 
@@ -219,8 +221,10 @@ export default function Perspective({
   children,
   className,
   data,
-  meta,
+  parquetMeta,
+  packageMeta,
   onLoadMore,
+  onRender,
   truncated,
   config,
   ...props
@@ -230,7 +234,7 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const state = perspective.use(root, data, attrs, config)
+  const state = perspective.use(root, data, attrs, config, onRender)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
@@ -240,7 +244,8 @@ export default function Perspective({
         onLoadMore={onLoadMore}
         truncated={truncated}
       />
-      {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
+      {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
+      {!!parquetMeta && <ParquetMeta className={classes.meta} {...parquetMeta} />}
       {children}
     </div>
   )

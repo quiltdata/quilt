@@ -5,9 +5,6 @@ import * as M from '@material-ui/core'
 import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
-  },
   tableWrapper: {
     overflow: 'auto',
   },
@@ -49,19 +46,18 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
 
   const renderCell =
     (type, i = '') =>
-    (col, j) =>
-      (
-        <M.TableCell
-          // eslint-disable-next-line react/no-array-index-key
-          key={`${type}:${i}:${j}`}
-          className={cx(classes.cell, classes[type])}
-        >
-          {col}
-        </M.TableCell>
-      )
+    (col, j) => (
+      <M.TableCell
+        // eslint-disable-next-line react/no-array-index-key
+        key={`${type}:${i}:${j}`}
+        className={cx(classes.cell, classes[type])}
+      >
+        {col}
+      </M.TableCell>
+    )
 
   return (
-    <div className={classes.root}>
+    <>
       {renderWarnings(warnings)}
       <div className={classes.tableWrapper}>
         <M.Table className={classes.table}>
@@ -107,7 +103,7 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
           <div className={classes.variants}>{variants.join(' ')}</div>
         </M.Box>
       )}
-    </div>
+    </>
   )
 }
 

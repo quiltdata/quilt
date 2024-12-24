@@ -1,20 +1,33 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory, Link } from 'react-router-dom'
+import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
+import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
 
+import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
+
 const PER_PAGE = 9
+
+function useIsAdmin() {
+  const data = GQL.useQuery(IS_ADMIN_QUERY)
+  return GQL.fold(data, {
+    data: ({ me: { isAdmin } }) => isAdmin,
+    fetching: R.F,
+    error: R.F,
+  })
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -34,7 +47,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   backlight: {
-    bottom: ({ isProduct }) => (isProduct ? 0 : undefined),
+    bottom: cfg.mode === 'PRODUCT' ? 0 : undefined,
     opacity: 0.5,
   },
   controls: {
@@ -66,9 +79,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Buckets({ query: filter } = { query: '' }) {
-  const cfg = Config.useConfig()
-  const classes = useStyles({ isProduct: cfg.mode === 'PRODUCT' })
+export default function Buckets() {
+  const classes = useStyles()
   // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()
@@ -76,6 +88,8 @@ export default function Buckets({ query: filter } = { query: '' }) {
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
+  const location = useLocation()
+  const { q: filter = '' } = parseSearch(location.search)
   const terms = React.useMemo(
     () => filter.toLowerCase().split(/\s+/).filter(Boolean),
     [filter],
@@ -130,6 +144,8 @@ export default function Buckets({ query: filter } = { query: '' }) {
     filtering.set()
   }, [filtering])
 
+  const isAdmin = useIsAdmin()
+
   return (
     <div className={classes.root}>
       <Backlight className={classes.backlight} />
@@ -166,16 +182,16 @@ export default function Buckets({ query: filter } = { query: '' }) {
             buckets={paginated}
             onTagClick={filtering.set}
             tagIsMatching={tagIsMatching}
-            showAddLink={!filter && buckets.length <= PER_PAGE - 1}
+            showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
           />
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No buckets mathcing <b>&quot;{filter}&quot;</b>
+            No buckets matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>
           <M.Box mt={2}>
-            {buckets.length > 2 && (
+            {buckets.length > 2 && isAdmin && (
               <M.Box mt={2} mr={2} display="inline-block">
                 <M.Button
                   variant="contained"

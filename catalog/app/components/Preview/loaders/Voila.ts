@@ -1,14 +1,19 @@
+import * as R from 'ramda'
+
+import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import * as Config from 'utils/Config'
 import mkSearch from 'utils/mkSearch'
 import { PackageHandle } from 'utils/packageHandle'
 import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
 
-import * as summarize from './summarize'
+import FileType from './fileType'
 import * as utils from './utils'
+
+export const FILE_TYPE = FileType.Voila
 
 interface AWSCredentials {
   accessKeyId: string
@@ -34,8 +39,7 @@ function usePackageQuery(packageHandle: PackageHandle) {
   }
 }
 
-export const detect = (key: string, options: summarize.File) =>
-  summarize.detect('voila')(options)
+export const detect = R.F
 
 const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin allow-downloads'
 const IFRAME_LOAD_TIMEOUT = 30000
@@ -81,25 +85,25 @@ function waitForIframe(src: string) {
 async function loadVoila({ src }: { src: string }) {
   // Preload iframe, then insert cached iframe
   await waitForIframe(src)
-  return PreviewData.Voila({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
+  return PreviewData.Voila({
+    src,
+    sandbox: IFRAME_SANDBOX_ATTRIBUTES,
+    modes: [FileType.Jupyter, FileType.Json, FileType.Voila, FileType.Text],
+  })
 }
 
-interface FileHandle {
-  bucket: string
-  key: string
-  version: string
+interface FileHandle extends Model.S3.S3ObjectLocation {
   packageHandle: PackageHandle
 }
 
 const useVoilaUrl = (handle: FileHandle) => {
   const sign = AWS.Signer.useS3Signer()
-  const endpoint = Config.use().registryUrl
   const credentialsQuery = useCredentialsQuery()
   const packageQuery = usePackageQuery(handle.packageHandle)
   return useMemoEq(
-    [credentialsQuery, endpoint, handle, packageQuery, sign],
+    [credentialsQuery, handle, packageQuery, sign],
     () =>
-      `${endpoint}/voila/voila/render/${mkSearch({
+      `${cfg.registryUrl}/voila/voila/render/${mkSearch({
         url: sign(handle),
         ...credentialsQuery,
         ...packageQuery,

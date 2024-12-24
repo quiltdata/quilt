@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import usePrevious from 'utils/usePrevious'
 
 import { SELECTOR } from './Launcher'
@@ -37,8 +37,6 @@ const defaultUserSelector = () => undefined
 
 function APILoader({ appId, userSelector = defaultUserSelector, children, ...props }) {
   const settings = { app_id: appId, ...props }
-
-  const cfg = Config.use()
 
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
@@ -88,7 +86,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
 }
 
 export function IntercomProvider({ children, ...props }) {
-  const { intercomAppId: appId } = Config.useConfig()
+  const { intercomAppId: appId } = cfg
   if (!canUseDOM || !appId) {
     return children
   }
@@ -105,6 +103,7 @@ export function useIntercom() {
 
 export { IntercomProvider as Provider, useIntercom as use }
 
+// Hides or shows __default__ Intercom launcher when the `condition` changes
 export function usePauseVisibilityWhen(condition) {
   const intercom = useIntercom()
   const [isVisible, setVisible] = React.useState(true)
@@ -119,7 +118,8 @@ export function usePauseVisibilityWhen(condition) {
     [intercom, isVisible, setVisible],
   )
   React.useEffect(() => {
+    if (intercom.isCustom) return
     if (condition) showIntercom(false)
     return () => showIntercom(true)
-  }, [condition, showIntercom])
+  }, [condition, intercom.isCustom, showIntercom])
 }

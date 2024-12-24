@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Cross-account access
 
 It is often desirable to run the Quilt control plane (CloudFormation stack)
@@ -34,12 +35,17 @@ following to buckets in your *DataAccount*.
             },
             "Action": [
                 "s3:GetObject",
+                "s3:GetObjectAttributes",
+                "s3:GetObjectTagging",
                 "s3:GetObjectVersion",
+                "s3:GetObjectVersionAttributes",
+                "s3:GetObjectVersionTagging",
                 "s3:ListBucket",
                 "s3:ListBucketVersions",
                 "s3:DeleteObject",
                 "s3:DeleteObjectVersion",
                 "s3:PutObject",
+                "s3:PutObjectTagging",
                 "s3:GetBucketNotification",
                 "s3:PutBucketNotification"
             ],
@@ -51,6 +57,31 @@ following to buckets in your *DataAccount*.
     ]
 }
 ```
+
+## Notifications
+
+In order for *ControlAccount* to use an existing and
+[correctly configured SNS topic](EventBridge.md#the-workarounds)
+for a single bucket in *DataAccount*, add a statement similar to the following
+to the topic resource policy:
+
+```json
+{
+      "Sid": "AWSConfigSNSPolicy",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::CONTROL-ACCOUNT:root"
+      },
+      "Action": [
+        "sns:GetTopicAttributes",
+        "sns:Subscribe"
+      ],
+      "Resource": "SNS_TOPIC_ARN"
+}
+```
+
+You can now set the SNS topic in the [Catalog Admin Panel](catalog/Admin.md) in bucket
+properties under "Indexing and notifications".
 
 ## CloudTrail
 

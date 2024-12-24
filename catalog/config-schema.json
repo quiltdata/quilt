@@ -13,34 +13,14 @@
       "type": "string",
       "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
     },
-    "binaryApiGatewayEndpoint": {
-      "type": "string",
-      "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
-    },
-    "calendlyLink": {
-      "type": "string",
-      "description": "Calendly.com scheduling link (e.g. https://calendly.com/$username/$event) used for meeting scheduling popup aka Talk To Us."
-    },
-    "googleClientId": {
-      "type": "string",
-      "description": "Client ID for Google Sign-In"
-    },
-    "oktaClientId": {
-      "type": "string",
-      "description": "Client ID for Okta Sign-In"
-    },
-    "oktaBaseUrl": {
-      "type": "string",
-      "description": "Base URL for Okta Sign-In (e.g., https://$company.okta.com/oauth2 or https://$company.oktapreview.com/oauth2/default)"
-    },
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
     },
     "mode": {
       "type": "string",
-      "pattern": "^((MARKETING)|(OPEN)|(PRODUCT)|(LOCAL))$",
-      "description": "App mode: MARKETING | OPEN | PRODUCT | LOCAL."
+      "pattern": "^((OPEN)|(PRODUCT)|(LOCAL))$",
+      "description": "App mode: OPEN | PRODUCT | LOCAL."
     },
     "legacyPackagesRedirect": {
       "type": "string",
@@ -74,6 +54,10 @@
       "$ref": "#/definitions/AuthMethodConfig",
       "description": "Whether Quilt password authentication is enabled for sign in and sign up."
     },
+    "region": {
+      "type": "string",
+      "description": "Stack's region; used for S3 and Athena. S3 client supports any region, but will try this one first."
+    },
     "registryUrl": {
       "$ref": "#/definitions/Url",
       "description": "Registry your users will use to login and get credentials."
@@ -98,23 +82,39 @@
       "type": "string",
       "description": "Space-separated list of SSO providers."
     },
+    "desktop": {
+      "type": "boolean"
+    },
+    "chunkedChecksums": {
+      "type": "boolean",
+      "description": "Whether to use chunked checksums when creating / modifying packages via the Catalog UI."
+    },
     "build_version": {
       "type": "string",
       "description": "Optional"
+    },
+    "qurator": {
+      "type": "boolean",
+      "description": "Enable Qurator AI Assistant (powered by Amazon Bedrock)"
+    },
+    "stackVersion": {
+      "type": "string",
+      "description": "Stack release version"
     }
   },
   "required": [
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
-    "binaryApiGatewayEndpoint",
     "mixpanelToken",
     "mode",
     "passwordAuth",
+    "region",
     "registryUrl",
     "s3Proxy",
     "serviceBucket",
     "ssoAuth",
-    "ssoProviders"
+    "ssoProviders",
+    "stackVersion"
   ],
   "definitions": {
     "Url": {

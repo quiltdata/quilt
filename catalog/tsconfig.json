@@ -8,6 +8,7 @@
     "sourceMap": true,
     "module": "ESNext",
     "target": "ES5",
+    "downlevelIteration": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
@@ -21,7 +22,5 @@
     "importHelpers": true,
     "allowJs": true
   },
-  "include": [
-    "./app/**/*"
-  ]
+  "include": ["./app/**/*"]
 }

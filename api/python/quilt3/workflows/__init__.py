@@ -2,10 +2,10 @@ import functools
 import json
 import re
 import typing
+from importlib import resources
 
 import botocore.exceptions
 import jsonschema
-import pkg_resources
 import yaml
 
 from quilt3.data_transfer import get_bytes_and_effective_pk
@@ -59,7 +59,7 @@ class WorkflowValidationError(WorkflowErrorBase):
 
 @functools.lru_cache(maxsize=None)
 def _get_conf_validator():
-    schema = json.loads(pkg_resources.resource_string(__name__, 'config-1.schema.json'))
+    schema = json.loads(resources.read_text(__name__, 'config-1.schema.json'))
     return jsonschema.Draft7Validator(schema).validate
 
 
@@ -259,14 +259,22 @@ class WorkflowValidator(typing.NamedTuple):
         try:
             self.entries_validator.validate(self.get_pkg_entries_for_validation(pkg))
         except jsonschema.ValidationError as e:
-            raise WorkflowValidationError.from_schema_validation_error('"Package entries failed validation', e) from e
+            raise WorkflowValidationError.from_schema_validation_error("Package entries failed validation", e) from e
 
     def get_pkg_entries_for_validation(self, pkg):
         # TODO: this should be validated without fully populating array.
+        empty_dict = {}
+
+        def reuse_empty_dict(meta):
+            # Reuse the same empty dict for entries without meta
+            # to reduce memory usage.
+            return empty_dict if meta == {} else meta
+
         return [
             {
                 'logical_key': lk,
-                'size': e.size
+                'size': e.size,
+                "meta": reuse_empty_dict(e.meta),
             }
             for lk, e in pkg.walk()
         ]

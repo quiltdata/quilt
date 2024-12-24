@@ -19,13 +19,14 @@ PreviewStatus: {
 
 export const PreviewData = tagged([
   'Audio', // { src: string }
-  'DataFrame', // { preview: string, ...PreviewStatus }
   'ECharts', // { option: object }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
-  'IFrame', // { src: string }
+  'IFrame', // { src: string, modes, sandbox }
+  'Igv', // { options: object }
   'Image', // { handle: object }
   'Json', // { rendered: object }
   'Markdown', // { rendered: string }
+  'NamedPackage', // { bucket: string, hash: string }
   'Notebook', // { preview: string, ...PreviewStatus }
   'Ngl', // { blob: Blob([Uint8Array|string]) }
   'Pdf', // { handle: object, pages: number, firstPageBlob: Blob, type: 'pdf' | 'pptx' }
@@ -48,7 +49,8 @@ export const PreviewError = tagged([
   'DoesNotExist', // { handle }
   'SrcDoesNotExist', // { handle }
   'MalformedJson', // { handle, message }
-  'Unexpected', // { handle, retry, originalError: any }
+  'Expired', // { retry }
+  'Unexpected', // { handle, retry, message, originalError: any }
 ])
 
 export const CONTEXT = {

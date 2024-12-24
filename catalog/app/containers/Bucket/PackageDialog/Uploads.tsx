@@ -4,8 +4,9 @@ import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { getPartSize, MIN_PART_SIZE } from 'utils/checksums'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
@@ -73,7 +74,7 @@ export function useUploads() {
       files: { path: string; file: LocalFile }[]
       bucket: string
       prefix: string
-      getMeta?: (path: string) => object | undefined
+      getMeta?: (path: string) => Model.EntryMeta | undefined
     }) => {
       const limit = pLimit(2)
       let rejected = false
@@ -85,11 +86,16 @@ export function useUploads() {
           return undefined as never
         }
 
-        const upload: S3.ManagedUpload = s3.upload({
-          Bucket: bucket,
-          Key: `${prefix}/${path}`,
-          Body: file,
-        })
+        const upload: S3.ManagedUpload = s3.upload(
+          {
+            Bucket: bucket,
+            Key: `${prefix}/${path}`,
+            Body: file,
+          },
+          {
+            partSize: getPartSize(file.size) || MIN_PART_SIZE,
+          },
+        )
 
         upload.on('httpUploadProgress', ({ loaded }) => {
           if (rejected) return

@@ -12,6 +12,7 @@ import sys
 import tempfile
 import textwrap
 import time
+import typing as T
 import uuid
 import warnings
 from collections import deque
@@ -24,12 +25,16 @@ from tqdm import tqdm
 from . import util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
-    calculate_sha256,
+    calculate_checksum,
+    calculate_checksum_bytes,
     copy_file,
     copy_file_list,
     get_bytes,
     get_size_and_version,
+    legacy_calculate_checksum,
+    legacy_calculate_checksum_bytes,
     list_object_versions,
+    list_objects,
     list_url,
     put_bytes,
 )
@@ -65,6 +70,24 @@ MANIFEST_MAX_RECORD_SIZE = util.get_pos_int_from_env('QUILT_MANIFEST_MAX_RECORD_
 if MANIFEST_MAX_RECORD_SIZE is None:
     MANIFEST_MAX_RECORD_SIZE = DEFAULT_MANIFEST_MAX_RECORD_SIZE
 
+SHA256_HASH_NAME = 'SHA256'
+SHA256_CHUNKED_HASH_NAME = 'sha2-256-chunked'
+
+SUPPORTED_HASH_TYPES = (
+    SHA256_HASH_NAME,
+    SHA256_CHUNKED_HASH_NAME,
+)
+
+
+class CopyFileListFn(T.Protocol):
+    def __call__(
+        self,
+        file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
+        message: T.Optional[str] = None,
+        callback: T.Optional[T.Callable] = None,
+    ) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]:
+        ...
+
 
 def _fix_docstring(**kwargs):
     def f(wrapped):
@@ -90,6 +113,15 @@ def _filesystem_safe_encode(key):
     """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts,
     avoids `OSError: [Errno 36] File name too long:`, etc."""
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+def _check_hash_type_support(hash_type: str) -> None:
+    if hash_type not in SUPPORTED_HASH_TYPES:
+        raise QuiltException(
+            f"Unsupported hash type: {hash_type!r}. "
+            f"Supported types: {', '.join(SUPPORTED_HASH_TYPES)}. "
+            "Try to update quilt3."
+        )
 
 
 class ObjectPathCache:
@@ -196,10 +228,17 @@ class PackageEntry:
         """
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
-        if self.hash.get('type') != 'SHA256':
-            raise NotImplementedError
-        digest = hashlib.sha256(read_bytes).hexdigest()
-        if digest != self.hash.get('value'):
+        hash_type = self.hash.get('type')
+        _check_hash_type_support(hash_type)
+
+        if hash_type == SHA256_CHUNKED_HASH_NAME:
+            expected_value = calculate_checksum_bytes(read_bytes)
+        elif hash_type == SHA256_HASH_NAME:
+            expected_value = legacy_calculate_checksum_bytes(read_bytes)
+        else:
+            assert False
+
+        if expected_value != self.hash.get('value'):
             raise QuiltException("Hash validation failed")
 
     def set(self, path=None, meta=None):
@@ -509,7 +548,7 @@ class Package:
 
         if subpkg_key is not None:
             if subpkg_key not in pkg:
-                raise QuiltException(f"Package {name} doesn't contain {subpkg_key!r}.")
+                raise QuiltException(f"Package {name!r} doesn't contain {subpkg_key!r}.")
             entry = pkg[subpkg_key]
             entries = entry.walk() if isinstance(entry, Package) else ((subpkg_key.split('/')[-1], entry),)
         else:
@@ -792,7 +831,7 @@ class Package:
                     subpkg.set_meta(obj['meta'])
                     continue
                 if key in subpkg._children:
-                    raise PackageException("Duplicate logical key while loading package")
+                    raise PackageException(f"Duplicate logical key {key!r} while loading package entry: {obj!r}")
                 subpkg._children[key] = PackageEntry(
                     PhysicalKey.from_url(obj['physical_keys'][0]),
                     obj['size'],
@@ -803,7 +842,7 @@ class Package:
             gc.enable()
         return pkg
 
-    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming"):
+    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming", unversioned: bool = False):
         """
         Adds all files from `path` to the package.
 
@@ -820,6 +859,7 @@ class Package:
                 If 'incoming', whenever logical keys match, always take the new entry from set_dir.
                 If 'existing', whenever logical keys match, retain existing entries
                 and ignore new entries from set_dir.
+            unversioned(bool): when True, do not retrieve VersionId for S3 physical keys.
 
         Returns:
             self
@@ -829,7 +869,7 @@ class Package:
             ValueError: When `update_policy` is invalid.
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
-            raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
+            raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY!r}, not {update_policy!r}")
 
         lkey = lkey.strip("/")
 
@@ -850,7 +890,7 @@ class Package:
         if src.is_local():
             src_path = pathlib.Path(src.path)
             if not src_path.is_dir():
-                raise PackageException("The specified directory doesn't exist")
+                raise PackageException(f"The specified directory {src_path!r} doesn't exist")
 
             files = src_path.rglob('*')
             ignore = src_path / '.quiltignore'
@@ -872,10 +912,13 @@ class Package:
             src_path = src.path
             if src.basename() != '':
                 src_path += '/'
-            objects, _ = list_object_versions(src.bucket, src_path)
+            if not unversioned:
+                objects, _ = list_object_versions(src.bucket, src_path)
+                objects = filter(lambda obj: obj["IsLatest"], objects)
+            else:
+                objects = list_objects(src.bucket, src_path, recursive=True)
+
             for obj in objects:
-                if not obj['IsLatest']:
-                    continue
                 # Skip S3 pseduo directory files and Keys that end in /
                 if obj['Key'].endswith('/'):
                     if obj['Size'] != 0:
@@ -908,7 +951,7 @@ class Package:
         """
         obj = self[logical_key]
         if not isinstance(obj, PackageEntry):
-            raise ValueError("Key does not point to a PackageEntry")
+            raise ValueError(f"Key {logical_key!r} does not point to a PackageEntry")
         return obj.get()
 
     def readme(self):
@@ -932,11 +975,11 @@ class Package:
         self._meta['user_meta'] = meta
         return self
 
-    def _fix_sha256(self):
+    def _calculate_missing_hashes(self):
         """
         Calculate and set missing hash values
         """
-        logger.info('fix package hashes: started')
+        logger.debug('fix package hashes: started')
 
         self._incomplete_entries = [entry for key, entry in self.walk() if entry.hash is None]
 
@@ -946,19 +989,19 @@ class Package:
             physical_keys.append(entry.physical_key)
             sizes.append(entry.size)
 
-        results = calculate_sha256(physical_keys, sizes)
+        results = calculate_checksum(physical_keys, sizes)
         exc = None
-        for entry, obj_hash in zip(self._incomplete_entries, results):
-            if isinstance(obj_hash, Exception):
-                exc = obj_hash
+        for entry, result in zip(self._incomplete_entries, results):
+            if isinstance(result, Exception):
+                exc = result
             else:
-                entry.hash = dict(type='SHA256', value=obj_hash)
+                entry.hash = dict(type=SHA256_CHUNKED_HASH_NAME, value=result)
         if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
             raise PackageException(msg.format(path=incomplete_manifest_path)) from exc
 
-        logger.info('fix package hashes: finished')
+        logger.debug('fix package hashes: finished')
 
     def _set_commit_message(self, msg):
         """
@@ -1033,7 +1076,7 @@ class Package:
         registry = get_package_registry(registry)
 
         self._set_commit_message(message)
-        self._fix_sha256()
+        self._calculate_missing_hashes()
 
         top_hash = self.top_hash
         self._push_manifest(name, registry, top_hash)
@@ -1096,7 +1139,15 @@ class Package:
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+    def set(
+        self,
+        logical_key,
+        entry=None,
+        meta=None,
+        serialization_location=None,
+        serialization_format_opts=None,
+        unversioned: bool = False,
+    ):
         """
         Returns self with the object at logical_key set to entry.
 
@@ -1116,6 +1167,7 @@ class Package:
                 https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
             serialization_location(string): Optional. If passed in, only used if entry is an object. Where the
                 serialized object should be written, e.g. "./mydataframe.parquet"
+            unversioned(bool): when True, do not retrieve VersionId for S3 physical keys.
 
         Returns:
             self
@@ -1124,13 +1176,21 @@ class Package:
                          entry=entry,
                          meta=meta,
                          serialization_location=serialization_location,
-                         serialization_format_opts=serialization_format_opts)
+                         serialization_format_opts=serialization_format_opts,
+                         unversioned=unversioned)
 
-    def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+    def _set(
+        self,
+        logical_key,
+        entry=None,
+        meta=None,
+        serialization_location=None,
+        serialization_format_opts=None,
+        unversioned: bool = False,
+    ):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
-                f"Invalid logical key {logical_key!r}. "
-                f"A package entry logical key cannot be a directory."
+                f"A package entry logical key {logical_key!r} must be a file."
             )
 
         validate_key(logical_key)
@@ -1143,7 +1203,7 @@ class Package:
             size, version_id = get_size_and_version(src)
 
             # Determine if a new version needs to be appended.
-            if not src.is_local() and src.version_id is None and version_id is not None:
+            if not src.is_local() and src.version_id is None and version_id is not None and not unversioned:
                 src.version_id = version_id
             entry = PackageEntry(src, size, None, None)
         elif isinstance(entry, PackageEntry):
@@ -1177,7 +1237,7 @@ class Package:
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
-                    error_message += f' as a {ext} file.'
+                    error_message += f' as a {ext!r} file.'
                 error_message += '. If you think this should be supported, please open an issue or PR at ' \
                                  'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
@@ -1210,7 +1270,7 @@ class Package:
 
         pkg = self._ensure_subpackage(path[:-1], ensure_no_entry=True)
         if path[-1] in pkg and isinstance(pkg[path[-1]], Package):
-            raise QuiltException("Cannot overwrite directory with PackageEntry")
+            raise QuiltException(f"Cannot overwrite directory {path[-1]!r} with PackageEntry")
         pkg._children[path[-1]] = entry
 
         return self
@@ -1231,13 +1291,16 @@ class Package:
         for key_fragment in path:
             if ensure_no_entry and key_fragment in pkg \
                     and isinstance(pkg[key_fragment], PackageEntry):
-                raise QuiltException("Already a PackageEntry along the path.")
+                raise QuiltException(
+                    f"Already a PackageEntry for {key_fragment!r} "
+                    f"along the path {path!r}: {pkg[key_fragment].physical_key!r}",
+                )
             pkg = pkg._children.setdefault(key_fragment, Package())
         return pkg
 
     def delete(self, logical_key):
         """
-        Returns the package with logical_key removed.
+        Returns self with logical_key removed.
 
         Returns:
             self
@@ -1281,7 +1344,7 @@ class Package:
         for logical_key, entry in entries:
             if entry.hash is None or entry.size is None:
                 raise QuiltException(
-                    "PackageEntry missing hash and/or size: %s" % entry.physical_key
+                    "PackageEntry missing hash and/or size: %r" % entry.physical_key
                 )
             yield {
                 'hash': entry.hash,
@@ -1292,7 +1355,10 @@ class Package:
 
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=..., force=False):
+    def push(
+        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
+        workflow=..., force: bool = False, dedupe: bool = False
+    ):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1320,9 +1386,9 @@ class Package:
 
         Args:
             name: name for package in registry
-            dest: where to copy the objects in the package
-                Must be either an S3 URI prefix in the registry bucket, or a callable that takes
-                logical_key, package_entry, and top_hash and returns S3 URI. S3 URIs format is s3://$bucket/$key.
+            dest: where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
+                in the registry bucket, or a callable that takes logical_key and package_entry, and returns an S3 URI.
+                (Changed in 6.0.0a1) previously top_hash was passed to the callable dest as a third argument.
             registry: registry where to create the new package
             message: the commit message for the new package
             selector_fn: An optional function that determines which package entries should be copied to S3.
@@ -1333,16 +1399,27 @@ class Package:
                 push the local file to s3 (instead of pushing all data to the destination bucket).
             %(workflow)s
             force: skip the top hash check and overwrite any existing package
+            dedupe: don't push if the top hash matches the existing package top hash; return the current package
 
         Returns:
             A new package that points to the copied objects.
         """
-        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True, force=force)
+        return self._push(
+            name, registry, dest, message, selector_fn, workflow=workflow,
+            print_info=True, force=force, dedupe=dedupe
+        )
 
-    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info, force):
+    def _push(
+        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
+        workflow, print_info, force: bool, dedupe: bool,
+        copy_file_list_fn: T.Optional[CopyFileListFn] = None,
+    ):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
+
+        if copy_file_list_fn is None:
+            copy_file_list_fn = copy_file_list
 
         validate_package_name(name)
 
@@ -1378,7 +1455,7 @@ class Package:
                     raise TypeError(f'{dest!r} returned {url!r}, but str is expected')
                 pk = PhysicalKey.from_url(url)
                 if pk.is_local():
-                    raise util.URLParseError("Unexpected scheme: 'file'")
+                    raise util.URLParseError(f"Unexpected scheme: 'file' for {pk!r}")
                 if pk.version_id:
                     raise ValueError(f'{dest!r} returned {url!r}, but URI must not include versionId')
                 return pk
@@ -1398,35 +1475,40 @@ class Package:
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
-        def check_latest_hash():
-            if force:
-                return
-
+        def get_latest_hash():
             try:
-                latest_hash = get_bytes(registry.pointer_latest_pk(name)).decode()
+                return get_bytes(registry.pointer_latest_pk(name)).decode()
             except botocore.exceptions.ClientError as ex:
                 if ex.response['Error']['Code'] == 'NoSuchKey':
                     # Expected
-                    return
+                    return None
                 raise
+
+        def check_hash_conficts(latest_hash):
+            if latest_hash is None:
+                return
 
             if self._origin is None or latest_hash != self._origin.top_hash:
                 raise QuiltConflictException(
-                    f"Package with hash {latest_hash} already exists at the destination; "
-                    f"expected {None if self._origin is None else self._origin.top_hash}. "
+                    f"Package with hash {latest_hash!r} already exists at the destination; "
+                    f"expected {None if self._origin is None else self._origin.top_hash!r}. "
                     "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 
-        # Check the top hash and fail early if it's unexpected.
-        check_latest_hash()
+        # Get the latest hash if we're either checking for conflicts or deduping.
+        # Otherwise, avoid making unnecessary network calls.
+        if not force or dedupe:
+            latest_hash = get_latest_hash()
+        else:
+            latest_hash = None
 
-        self._fix_sha256()
+        # Check the top hash and fail early if it's unexpected.
+        if not force:
+            check_hash_conficts(latest_hash)
 
         pkg = self.__class__()
         pkg._meta = self._meta
         pkg._set_commit_message(message)
-        top_hash = self._calculate_top_hash(pkg._meta, self.walk())
-        pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
@@ -1440,7 +1522,7 @@ class Package:
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 
-            new_physical_key = dest_fn(logical_key, entry, top_hash)
+            new_physical_key = dest_fn(logical_key, entry)
             if (
                 physical_key.bucket == new_physical_key.bucket and
                 physical_key.path == new_physical_key.path
@@ -1451,13 +1533,30 @@ class Package:
                 entries.append((logical_key, entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
-        results = copy_file_list(file_list, message="Copying objects")
+        results = copy_file_list_fn(file_list, message="Copying objects")
 
-        for (logical_key, entry), versioned_key in zip(entries, results):
+        for (logical_key, entry), (versioned_key, checksum) in zip(entries, results):
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
+            if checksum is not None:
+                new_entry.hash = dict(type=SHA256_CHUNKED_HASH_NAME, value=checksum)
             pkg._set(logical_key, new_entry)
+
+        # Some entries may miss hash values (e.g because of selector_fn), so we need
+        # to fix them before calculating the top hash.
+        pkg._calculate_missing_hashes()
+        top_hash = pkg._calculate_top_hash(pkg._meta, pkg.walk())
+
+        if dedupe and top_hash == latest_hash:
+            if print_info:
+                print(
+                    f"Skipping since package with hash {latest_hash} already exists "
+                    "at the destination and dedupe parameter is true."
+                )
+            return self
+
+        pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
         def physical_key_is_temp_file(pk):
             if not pk.is_local():
@@ -1477,7 +1576,9 @@ class Package:
                 self._set(lk, pkg[lk])
 
         # Check top hash again just before pushing, to minimize the race condition.
-        check_latest_hash()
+        if not force:
+            latest_hash = get_latest_hash()
+            check_hash_conficts(latest_hash)
 
         pkg._push_manifest(name, registry, top_hash)
 
@@ -1622,28 +1723,53 @@ class Package:
         Returns:
             True if the package matches the directory; False otherwise.
         """
+        for lk, e in self.walk():
+            _check_hash_type_support(e.hash["type"])
+
         src = PhysicalKey.from_url(fix_url(src))
         src_dict = dict(list_url(src))
+
+        expected_hash_list = []
         url_list = []
         size_list = []
+
+        legacy_expected_hash_list = []
+        legacy_url_list = []
+        legacy_size_list = []
+
         for logical_key, entry in self.walk():
             src_size = src_dict.pop(logical_key, None)
-            if src_size is None:
-                return False
-            if entry.size != src_size:
+            if src_size is None or entry.size != src_size:
                 return False
             entry_url = src.join(logical_key)
-            url_list.append(entry_url)
-            size_list.append(src_size)
+            hash_type = entry.hash['type']
+            hash_value = entry.hash['value']
+            if hash_type == SHA256_CHUNKED_HASH_NAME:
+                expected_hash_list.append(hash_value)
+                url_list.append(entry_url)
+                size_list.append(src_size)
+            elif hash_type == SHA256_HASH_NAME:
+                legacy_expected_hash_list.append(hash_value)
+                legacy_url_list.append(entry_url)
+                legacy_size_list.append(src_size)
+            else:
+                assert False, hash_type
 
         if src_dict and not extra_files_ok:
             return False
 
-        hash_list = calculate_sha256(url_list, size_list)
-        for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
+        hash_list = calculate_checksum(url_list, size_list)
+        for expected_hash, url_hash in zip(expected_hash_list, hash_list):
             if isinstance(url_hash, Exception):
                 raise url_hash
-            if entry.hash['value'] != url_hash:
+            if expected_hash != url_hash:
+                return False
+
+        legacy_hash_list = legacy_calculate_checksum(legacy_url_list, legacy_size_list)
+        for expected_hash, url_hash in zip(legacy_expected_hash_list, legacy_hash_list):
+            if isinstance(url_hash, Exception):
+                raise url_hash
+            if expected_hash != url_hash:
                 return False
 
         return True

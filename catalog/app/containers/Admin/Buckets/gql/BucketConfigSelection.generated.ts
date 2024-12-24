@@ -20,6 +20,7 @@ export type BucketConfigSelectionFragment = {
   | 'snsNotificationArn'
   | 'skipMetaDataIndexing'
   | 'lastIndexed'
+  | 'browsable'
 >
 
 export const BucketConfigSelectionFragmentDoc = {
@@ -46,6 +47,7 @@ export const BucketConfigSelectionFragmentDoc = {
           { kind: 'Field', name: { kind: 'Name', value: 'snsNotificationArn' } },
           { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },
           { kind: 'Field', name: { kind: 'Name', value: 'lastIndexed' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'browsable' } },
         ],
       },
     },

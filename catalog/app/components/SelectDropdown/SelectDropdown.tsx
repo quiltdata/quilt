@@ -24,17 +24,21 @@ const useStyles = M.makeStyles((t) => ({
   progress: {
     margin: t.spacing(0, 1),
   },
+  value: {
+    flexGrow: 1,
+  },
 }))
 
 export interface ValueBase {
   // TODO: use getOptionLabel(): string  similar to M.Autocomplete
   toString: () => string
   // TODO: use isOptionEqualToValue(): bool similar to M.Autocomplete
-  valueOf: () => string | number | boolean
+  valueOf: () => string | number | boolean | null
 }
 
 interface SelectDropdownProps<Value extends ValueBase> {
   ButtonProps?: M.ButtonProps
+  adaptive?: boolean
   children?: React.ReactNode
   disabled?: boolean
   emptySlot?: React.ReactNode
@@ -44,12 +48,19 @@ interface SelectDropdownProps<Value extends ValueBase> {
   onOpen?: () => void
   options: Value[]
   value: ValueBase
+  className?: string
+  classes?: {
+    root?: string
+    value?: string
+  }
 }
 
 export default function SelectDropdown<Value extends ValueBase>({
   ButtonProps,
+  adaptive = true,
   children,
   className,
+  classes: classesProp,
   disabled = false,
   emptySlot,
   loading,
@@ -58,8 +69,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   onOpen,
   options,
   value,
-  ...props
-}: M.PaperProps & SelectDropdownProps<Value>) {
+}: SelectDropdownProps<Value>) {
   const classes = useStyles()
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
@@ -91,10 +101,10 @@ export default function SelectDropdown<Value extends ValueBase>({
   const { className: buttonClassName, ...buttonProps } = ButtonProps || {}
 
   return (
-    <M.Paper
-      className={cx(className, classes.root, { [classes.disabled]: disabled })}
-      elevation={0}
-      {...props}
+    <div
+      className={cx(className, classes.root, classesProp?.root, {
+        [classes.disabled]: disabled,
+      })}
     >
       <M.Button
         className={cx(classes.button, buttonClassName)}
@@ -105,9 +115,11 @@ export default function SelectDropdown<Value extends ValueBase>({
         {...buttonProps}
       >
         {children}
-        {aboveSm && (
+        {(aboveSm || !adaptive) && (
           <>
-            {value.toString()}
+            <span className={cx(classes.value, classesProp?.value)}>
+              {value.toString()}
+            </span>
             {loading && (
               <M.CircularProgress
                 className={classes.progress}
@@ -138,6 +150,6 @@ export default function SelectDropdown<Value extends ValueBase>({
             ))
           : emptySlot}
       </M.Menu>
-    </M.Paper>
+    </div>
   )
 }

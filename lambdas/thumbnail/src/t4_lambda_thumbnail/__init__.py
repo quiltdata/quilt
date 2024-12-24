@@ -35,6 +35,11 @@ from PIL import Image
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
+# See https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open.
+# Use 0 to disable the limit.
+if _MAX_IMAGE_PIXELS := os.environ.get("MAX_IMAGE_PIXELS"):
+    Image.MAX_IMAGE_PIXELS = int(_MAX_IMAGE_PIXELS) or None
+
 # Eventually we'll want to precompute/cache thumbnails, so we won't be able to support
 # arbitrary sizes. Might as well copy Dropbox' API:
 # https://www.dropbox.com/developers/documentation/http/documentation#files-get_thumbnail
@@ -54,9 +59,9 @@ SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
 
 # If the image is one of these formats, retain the format after formatting
 SUPPORTED_BROWSER_FORMATS = {
-    imageio.plugins.pillow.JPEGFormat.Reader: "JPG",
-    imageio.plugins.pillow.PNGFormat.Reader: "PNG",
-    imageio.plugins.pillow.GIFFormat.Reader: "GIF"
+    imageio.plugins.pillow_legacy.JPEGFormat.Reader: "JPG",
+    imageio.plugins.pillow_legacy.PNGFormat.Reader: "PNG",
+    imageio.plugins.pillow_legacy.GIFFormat.Reader: "GIF"
 }
 
 SCHEMA = {
@@ -373,7 +378,6 @@ def lambda_handler(request):
     url = request.args['url']
     size = SIZE_PARAMETER_MAP[request.args['size']]
     input_ = request.args.get('input', 'image')
-    output = request.args.get('output', 'json')
     page = int(request.args.get('page', '1'))
     count_pages = request.args.get('countPages') == 'true'
 

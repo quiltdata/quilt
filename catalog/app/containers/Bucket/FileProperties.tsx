@@ -111,7 +111,7 @@ export default function Wrapper({ className, data }: FilePropertiesProps) {
           Exists: ({ lastModified, size }: { lastModified?: Date; size?: number }) => (
             <FileProperties {...{ className, lastModified, size }} />
           ),
-          _: () => <FilePropertiesSkeleton className={className} />,
+          _: () => null,
         }),
         Err: (e: Error) => (
           <M.Icon title={`Fetching object info failed: ${e.message}`} color="error">

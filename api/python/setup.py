@@ -40,15 +40,16 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
-    python_requires='>=3.7',
+    python_requires='>=3.9',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
@@ -56,16 +57,16 @@ setup(
     url='https://github.com/quiltdata/quilt',
     keywords='',
     install_requires=[
-        'appdirs>=1.4.0',
-        'aws-requests-auth>=0.4.2',
-        'boto3>=1.10.0',
+        'platformdirs>=2',
+        'boto3>=1.21.7',
         'jsonlines==1.2.0',
         'PyYAML>=5.1',
         'requests>=2.12.4',
-        'tenacity>=5.1.1',
+        'tenacity>=5.1.1,!=8.4.0',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
+        "pydantic>=2.0.0,<3.0.0",
     ],
     extras_require={
         'pyarrow': [
@@ -73,10 +74,10 @@ setup(
             'pandas>=0.19.2',
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
+        'anndata': ['anndata>=0.8.0'],
         'tests': [
-            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
-            'pandas>=0.19.2',
-            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'anndata!=0.9.0',
+            'quilt3[pyarrow,anndata]',
             'pytest==6.*',
             'pytest-cov',
             'coverage==6.4',
@@ -88,6 +89,8 @@ setup(
         'catalog': [
             'quilt3_local>=1,<2',
             'uvicorn>=0.15,<0.18',
+            # Workaround to reduce backtracking during `pip install quilt3[catalog]`.
+            'aiobotocore[boto3]>=2',
         ],
     },
     include_package_data=True,

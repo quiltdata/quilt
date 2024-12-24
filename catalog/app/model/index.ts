@@ -7,6 +7,8 @@ import * as GQLTypes from './graphql/types.generated'
 
 export * as GQLTypes from './graphql/types.generated'
 
+export * as S3 from './S3'
+
 export const BucketPermissionLevel = Types.enum(
   GQLTypes.BucketPermissionLevel,
   'BucketPermissionLevel',
@@ -14,7 +16,7 @@ export const BucketPermissionLevel = Types.enum(
 
 export const BucketPermissionLevelStrings = ['Read', 'ReadWrite'] as const
 
-export type BucketPermissionLevelString = typeof BucketPermissionLevelStrings[number]
+export type BucketPermissionLevelString = (typeof BucketPermissionLevelStrings)[number]
 
 export const BucketPermissionLevelFromString = new IO.Type<
   GQLTypes.BucketPermissionLevel,
@@ -43,11 +45,33 @@ export type Collaborators = ReadonlyArray<
   GQLTypes.CollaboratorBucketConnection | PotentialCollaborator
 >
 
+// Note that the actual user-defined meta is in the `user_meta` field
+export type EntryMeta = (Types.JsonRecord & { user_meta?: Types.JsonRecord }) | null
+
+export const CHECKSUM_TYPE_SHA256 = 'SHA256' as const
+export const CHECKSUM_TYPE_SHA256_CHUNKED = 'sha2-256-chunked' as const
+export interface Checksum {
+  type: typeof CHECKSUM_TYPE_SHA256 | typeof CHECKSUM_TYPE_SHA256_CHUNKED
+  value: string
+}
+
 export interface PackageEntry {
+  // TODO: replace with { address: { physicalKey: string }}
+  //       so, you can merge PackageEntry and S3File
   physicalKey: string
-  hash: string
-  meta: Types.JsonRecord | null
+  hash: Checksum
+  meta?: EntryMeta
   size: number
 }
 
 export type PackageContentsFlatMap = Record<string, PackageEntry>
+
+export interface S3File {
+  // TODO: replace with { address: { handle: S3.S3ObjectLocation }}
+  //       so, you can merge PackageEntry and S3File
+  bucket: string
+  key: string
+  meta?: EntryMeta
+  size: number
+  version?: string
+}

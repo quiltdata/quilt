@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 The Quilt catalog includes an admin panel that allows you to manage
 users and buckets in Quilt, as well as customize the Quilt catalog. You can access
 the panel via a dropdown menu under username in the navbar.
@@ -24,6 +25,17 @@ functions:
 ![](../imgs/admin-users-roles.png)
 
 You may invite new users to your Quilt stack by clicking the + button, upper right.
+You must assign one or more roles to all new users (default role is pre-selected for you).
+You can edit existing users' attributes by clicking on underlined cells.
+
+![](../imgs/admin-users-invite.png)
+
+Users can switch between assigned roles via the drodpwon menu in the navbar
+(if assigned more than one).
+
+![](../imgs/switch-role-menu.png)
+
+![](../imgs/switch-role-dialog.png)
 
 You must select the default role for all new users, else they will not be able
 to sign in to the Quilt catalog. The default role is shown in bold.
@@ -88,9 +100,9 @@ See [S3 Events, EventBridge](EventBridge.md) for more.
 ## Settings
 
 This section allows you to customize your Quilt catalog, including custom links
-in the navbar.
+in the navbar, custom logo and default search mode.
 
 ![](../imgs/admin-settings.png)
 
 ## Further settings
-See [Prefences](Preferences.md) for further control over the catalog user interface.
+See [Preferences](Preferences.md) for further control over the catalog user interface.

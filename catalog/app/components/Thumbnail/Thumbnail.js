@@ -4,9 +4,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { useConfig } from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 import { HTTPError } from 'utils/APIConnector'
 import pipeThru from 'utils/pipeThru'
@@ -111,7 +111,6 @@ export default function Thumbnail({
   className,
   ...props
 }) {
-  const api = useConfig().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
 
   const classes = useStyles()
@@ -121,7 +120,10 @@ export default function Thumbnail({
   usePrevious(handle, (prev) => {
     if (R.equals(handle, prev)) return
     const url = sign(handle)
-    const src = `${api}/thumbnail${mkSearch({ url, size: sizeStr(size) })}`
+    const src = `${cfg.apiGatewayEndpoint}/thumbnail${mkSearch({
+      url,
+      size: sizeStr(size),
+    })}`
     setState(AsyncResult.Pending())
     loadImg(src)
       .then((blob) => {

@@ -1,0 +1,68 @@
+name: Deploy catalog to ECR
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/deploy-catalog.yaml'
+      - 'catalog/**'
+      - 'shared/**'
+
+jobs:
+  deploy-catalog-ecr:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: catalog
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: 'catalog/package.json'
+          cache: 'npm'
+          cache-dependency-path: 'catalog/package-lock.json'
+      - run: npm ci
+      - run: npm run build
+      - name: Configure AWS credentials from Prod account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
+          aws-region: us-east-1
+      - name: Login to Prod ECR
+        id: login-prod-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to MP ECR
+        id: login-mp-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: 709825985650
+      - name: Configure AWS credentials from GovCloud account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
+          aws-region: us-gov-east-1
+      - name: Login to GovCloud ECR
+        id: login-govcloud-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push Docker image to Prod, MP and GovCloud ECR
+        env:
+          ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
+          ECR_REGISTRY_GOVCLOUD: ${{ steps.login-govcloud-ecr.outputs.registry }}
+          ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
+          ECR_REPOSITORY: quiltdata/catalog
+          ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker buildx build \
+            -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
+            .
+          docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
