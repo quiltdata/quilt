@@ -1,191 +1,253 @@
+import * as FF from 'final-form'
+import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
+import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import { Redirect } from 'react-router-dom'
-import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
+import { useLocation, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as Config from 'utils/Config'
+import Placeholder from 'components/Placeholder'
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
-import { composeComponent } from 'utils/reactTools'
 import useMutex from 'utils/useMutex'
+import * as RT from 'utils/reactTools'
 import validate, * as validators from 'utils/validators'
 
 import * as Layout from './Layout'
+import SSOAzure from './SSOAzure'
 import SSOGoogle from './SSOGoogle'
 import SSOOkta from './SSOOkta'
 import SSOOneLogin from './SSOOneLogin'
 import { signUp } from './actions'
 import * as errors from './errors'
-import msg from './messages'
 import * as selectors from './selectors'
 
-const Container = Layout.mkLayout(<FM {...msg.signUpHeading} />)
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
+
+const StrenghtenPasswordField = RT.mkLazy(
+  () => import('./StrenghtenPasswordField'),
+  SuspensePlaceholder,
+)
+
+const Container = Layout.mkLayout('Sign Up')
 
 const MUTEX_ID = 'password'
 
-const PasswordSignUp = composeComponent(
-  'Auth.SignUp.Password',
-  Sentry.inject(),
-  reduxForm({
-    form: 'Auth.SignUp.Password',
-    onSubmit: async (values, dispatch, { onSuccess, mutex, sentry }) => {
+function PasswordSignUp({ mutex, next, onSuccess }) {
+  const sentry = Sentry.use()
+  const dispatch = redux.useDispatch()
+  const { urls } = NamedRoutes.use()
+
+  const [email, setEmail] = React.useState('')
+  const [username, setName] = React.useState('')
+  const onFormChange = React.useCallback(({ modified, values }) => {
+    if (modified.email) setEmail(values.email)
+    if (modified.username) setName(values.username)
+  }, [])
+
+  const onSubmit = React.useCallback(
+    async (values) => {
       if (mutex.current) return
       mutex.claim(MUTEX_ID)
       try {
         const result = defer()
-        dispatch(signUp(values.remove('passwordCheck').toJS(), result.resolver))
+        dispatch(signUp(R.dissoc('passwordCheck', values), result.resolver))
         await result.promise
         onSuccess()
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {
-          throw new SubmissionError({ username: 'taken' })
+          // eslint-disable-next-line consistent-return
+          return {
+            username: 'taken',
+          }
         }
         if (e instanceof errors.InvalidUsername) {
-          throw new SubmissionError({ username: 'invalid' })
+          // eslint-disable-next-line consistent-return
+          return {
+            username: 'invalid',
+          }
         }
         if (e instanceof errors.EmailTaken) {
-          throw new SubmissionError({ email: 'taken' })
+          // eslint-disable-next-line consistent-return
+          return {
+            email: 'taken',
+          }
         }
         if (e instanceof errors.InvalidEmail) {
-          throw new SubmissionError({ email: 'invalid' })
+          // eslint-disable-next-line consistent-return
+          return {
+            email: 'invalid',
+          }
         }
         if (e instanceof errors.InvalidPassword) {
-          throw new SubmissionError({ password: 'invalid' })
+          // eslint-disable-next-line consistent-return
+          return {
+            password: 'invalid',
+          }
+        }
+        if (e instanceof errors.NoDefaultRole) {
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'noDefaultRole',
+          }
         }
         if (e instanceof errors.SMTPError) {
-          throw new SubmissionError({ _error: 'smtp' })
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'smtp',
+          }
+        }
+        if (e instanceof errors.SubscriptionInvalid) {
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'subscriptionInvalid',
+          }
         }
         sentry('captureException', e)
-        throw new SubmissionError({ _error: 'unexpected' })
+        // eslint-disable-next-line consistent-return
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       } finally {
         mutex.release(MUTEX_ID)
       }
     },
-  }),
-  ({ next, mutex, handleSubmit, submitting, submitFailed, invalid, error }) => {
-    const { urls } = NamedRoutes.use()
-    return (
-      <form onSubmit={handleSubmit}>
-        <Field
-          component={Layout.Field}
-          name="username"
-          validate={[validators.required]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpUsernameLabel} />}
-          errors={{
-            required: <FM {...msg.signUpUsernameRequired} />,
-            taken: (
-              <FM
-                {...msg.signUpUsernameTaken}
-                values={{
-                  link: (
-                    <Layout.FieldErrorLink to={urls.signIn(next)}>
-                      <FM {...msg.signUpSignInHint} />
-                    </Layout.FieldErrorLink>
-                  ),
-                }}
-              />
-            ),
-            invalid: <FM {...msg.signUpUsernameInvalid} />,
-          }}
-        />
-        <Field
-          component={Layout.Field}
-          name="email"
-          validate={[validators.required]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpEmailLabel} />}
-          errors={{
-            required: <FM {...msg.signUpEmailRequired} />,
-            taken: (
-              <FM
-                {...msg.signUpEmailTaken}
-                values={{
-                  link: (
-                    <Layout.FieldErrorLink to={urls.signIn(next)}>
-                      <FM {...msg.signUpSignInHint} />
-                    </Layout.FieldErrorLink>
-                  ),
-                }}
-              />
-            ),
-            invalid: <FM {...msg.signUpEmailInvalid} />,
-          }}
-        />
-        <Field
-          component={Layout.Field}
-          name="password"
-          type="password"
-          validate={[validators.required]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpPassLabel} />}
-          errors={{
-            required: <FM {...msg.signUpPassRequired} />,
-            invalid: <FM {...msg.signUpPassInvalid} />,
-          }}
-        />
-        <Field
-          component={Layout.Field}
-          name="passwordCheck"
-          type="password"
-          validate={[
-            validators.required,
-            validate('check', validators.matchesField('password')),
-          ]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpPassCheckLabel} />}
-          errors={{
-            required: <FM {...msg.signUpPassCheckRequired} />,
-            check: <FM {...msg.signUpPassCheckMatch} />,
-          }}
-        />
-        <Layout.Error
-          {...{ submitFailed, error }}
-          errors={{
-            unexpected: <FM {...msg.signUpErrorUnexpected} />,
-            smtp: <FM {...msg.signUpErrorSMTP} />,
-          }}
-        />
-        <Layout.Actions>
-          <Layout.Submit
-            label={<FM {...msg.signUpSubmit} />}
-            disabled={!!mutex.current || submitting || (submitFailed && invalid)}
-            busy={submitting}
+    [dispatch, mutex, onSuccess, sentry],
+  )
+
+  return (
+    <RF.Form onSubmit={onSubmit}>
+      {({
+        error,
+        handleSubmit,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
+        submitError,
+        submitFailed,
+        submitting,
+      }) => (
+        <form onSubmit={handleSubmit}>
+          <RF.FormSpy
+            subscription={{ values: true, modified: true }}
+            onChange={onFormChange}
           />
-        </Layout.Actions>
-        <Layout.Hint>
-          <FM
-            {...msg.signUpHintSignIn}
-            values={{
-              link: (
-                <Link to={urls.signIn(next)}>
-                  <FM {...msg.signUpHintSignInLink} />
-                </Link>
+          <RF.Field
+            component={Layout.Field}
+            name="username"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Username"
+            errors={{
+              required: 'Enter a username',
+              taken: (
+                <>
+                  Username taken, try{' '}
+                  <Layout.FieldErrorLink to={urls.signIn(next)}>
+                    signing in
+                  </Layout.FieldErrorLink>
+                </>
               ),
+              invalid: 'Username invalid',
             }}
           />
-        </Layout.Hint>
-      </form>
-    )
-  },
-)
+          <RF.Field
+            component={Layout.Field}
+            name="email"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Email"
+            errors={{
+              required: 'Enter your email',
+              taken: (
+                <>
+                  Email taken, try{' '}
+                  <Layout.FieldErrorLink to={urls.signIn(next)}>
+                    signing in
+                  </Layout.FieldErrorLink>
+                </>
+              ),
+              invalid: 'Enter a valid email address',
+            }}
+          />
+          <RF.Field
+            component={StrenghtenPasswordField}
+            name="password"
+            validate={validators.required}
+            username={username}
+            email={email}
+            disabled={!!mutex.current || submitting}
+            errors={{
+              required: 'Enter a password',
+              invalid: 'Password must be between 8 and 64 characters long',
+            }}
+          />
+          <RF.Field
+            component={Layout.Field}
+            name="passwordCheck"
+            type="password"
+            validate={validators.composeAsync(
+              validators.required,
+              validate('check', validators.matchesField('password')),
+            )}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Verify password"
+            errors={{
+              required: 'Enter the password again',
+              check: 'Passwords must match',
+            }}
+          />
+          <Layout.Error
+            {...{
+              submitFailed,
+              error: error || (!modifiedSinceLastSubmit && submitError),
+            }}
+            errors={{
+              unexpected: 'Something went wrong. Try again later.',
+              smtp: 'SMTP error: contact your Quilt administrator',
+              noDefaultRole:
+                'Unable to assign role. Ask your Quilt administrator to set a default role.',
+              subscriptionInvalid:
+                'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
+            }}
+          />
+          <Layout.Actions>
+            <Layout.Submit
+              label="Sign up"
+              disabled={
+                !!mutex.current ||
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
+              }
+              busy={submitting}
+            />
+          </Layout.Actions>
+          <Layout.Hint>
+            <>
+              Already have an account? <Link to={urls.signIn(next)}>Sign in</Link>
+            </>
+          </Layout.Hint>
+        </form>
+      )}
+    </RF.Form>
+  )
+}
 
-export default ({ location: { search } }) => {
+export default () => {
+  const { search } = useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
-  const cfg = Config.useConfig()
   const mutex = useMutex()
 
   const [done, setDone] = React.useState(false)
 
   const ssoEnabled = (provider) => {
     if (cfg.ssoAuth !== true) return false
-    const { ssoProviders = [] } = cfg
-    return provider ? ssoProviders.includes(provider) : !!ssoProviders.length
+    return provider ? cfg.ssoProviders.includes(provider) : !!cfg.ssoProviders.length
   }
 
   const { next } = parseSearch(search)
@@ -198,7 +260,7 @@ export default ({ location: { search } }) => {
     return (
       <Container>
         <Layout.Message>
-          <FM {...msg.signUpSuccess} />
+          You have signed up for Quilt. Check your email for further instructions.
         </Layout.Message>
       </Container>
     )
@@ -232,6 +294,16 @@ export default ({ location: { search } }) => {
               <>
                 <M.Box mt={2} />
                 <SSOOneLogin
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+            {ssoEnabled('azure') && (
+              <>
+                <M.Box mt={2} />
+                <SSOAzure
                   mutex={mutex}
                   next={next}
                   style={{ justifyContent: 'flex-start' }}

@@ -1,0 +1,6 @@
+query ($bucket: String!, $name: String!) {
+  package(bucket: $bucket, name: $name) {
+    __typename
+    name
+  }
+}

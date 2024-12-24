@@ -1,3 +1,7 @@
+node_modules
+ipynb-styling/notebook
+ipynb-styling/pygments-css
+
 # Don't check auto-generated stuff into git
 coverage
 build
@@ -9,4 +13,4 @@ stats.json
 npm-debug.log
 .idea
 .firebase*
-firebase.json
+firebase-debug.log

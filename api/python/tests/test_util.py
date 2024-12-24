@@ -1,6 +1,7 @@
 """ Testing for util.py """
 
 import pathlib
+from unittest import mock
 
 import pytest
 
@@ -34,6 +35,21 @@ def test_write_yaml(tmpdir):
     assert fname.read_text('utf-8') == 'testing: bar\n'
 
 
+@pytest.mark.parametrize("keep_backup", [False, True])
+def test_write_yaml_exception(tmp_path, keep_backup):
+    fname = tmp_path / "some_file.yml"
+    fname.write_text("42")
+
+    exc = Exception("test exception")
+    with mock.patch("quilt3.util.yaml.dump", side_effect=exc):
+        with pytest.raises(Exception) as exc_info:
+            util.write_yaml("test", fname)
+
+    assert exc_info.value == exc
+    assert fname.read_text("utf-8") == "42"
+    assert list(tmp_path.iterdir()) == [fname]
+
+
 def test_read_yaml(tmpdir):
     # Read a string
     parsed_string = util.read_yaml(TEST_YAML)
@@ -64,3 +80,28 @@ def test_validate_url():
 
     with pytest.raises(util.QuiltException, match='Requires at least scheme and host'):
         util.validate_url('blah')
+
+
+@pytest.mark.parametrize(
+    'env_val, expected_val',
+    (
+        (None, None),
+        ('', None),
+        ('1', 1),
+        ('10', 10),
+        ('20', 20),
+    )
+)
+def test_get_pos_int_from_env(env_val, expected_val):
+    var_name = 'ENV_VAR_NAME'
+    with mock.patch.dict('os.environ', {} if env_val is None else {var_name: env_val}, clear=True):
+        assert util.get_pos_int_from_env(var_name) == expected_val
+
+
+@pytest.mark.parametrize('env_val', ('blah', '-3', '0'))
+def test_get_pos_int_from_env_error(env_val):
+    var_name = 'ENV_VAR_NAME'
+    with mock.patch.dict('os.environ', {} if env_val is None else {var_name: env_val}, clear=True):
+        with pytest.raises(ValueError) as e:
+            util.get_pos_int_from_env(var_name)
+        assert f'{var_name} must be a positive integer' == str(e.value)

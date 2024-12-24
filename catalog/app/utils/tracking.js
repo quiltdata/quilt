@@ -1,27 +1,45 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { matchPath, useLocation } from 'react-router-dom'
 
-import { useExperiments } from 'components/Experiments'
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
 
 const NAV_TIMEOUT = 500
 
 const Ctx = React.createContext()
 
-const loadMixpanel = (token) =>
-  import('mixpanel-browser').then(({ default: mp }) => {
-    mp.init(token)
-    return mp
-  })
-
 const consoleTracker = Promise.resolve({
   // eslint-disable-next-line no-console
   track: (evt, opts) => console.log(`track: ${evt}`, opts),
 })
 
-const mkLocation = (l) => `${l.pathname}${l.search}${l.hash}`
+const loadMixpanel = () =>
+  cfg.mixpanelToken
+    ? import('mixpanel-browser').then(({ default: mp }) => {
+        mp.init(cfg.mixpanelToken)
+        return mp
+      })
+    : consoleTracker
+
+function useMkLocation() {
+  const {
+    paths: { passChange: passChangePath },
+    urls: { passChange: passChangeUrl },
+  } = NamedRoutes.use()
+  return React.useCallback(
+    (l) => {
+      const pathname = matchPath(l.pathname, { path: passChangePath, exact: true })
+        ? passChangeUrl('REDACTED')
+        : l.pathname
+
+      return `${pathname}${l.search}${l.hash}`
+    },
+    [passChangePath, passChangeUrl],
+  )
+}
 
 const delayNav = (e) => {
   const el = e.currentTarget
@@ -44,17 +62,10 @@ const withTimeout = (p, timeout) =>
     p.then(settle(resolve), settle(reject))
   })
 
-export function TrackingProvider({ locationSelector, userSelector, children }) {
-  const { getSelectedVariants } = useExperiments()
-  const cfg = Config.useConfig()
-  // workaround to avoid changing client configs
-  const token = cfg.mixpanelToken || cfg.mixPanelToken
-
-  const tracker = React.useMemo(() => (token ? loadMixpanel(token) : consoleTracker), [
-    token,
-  ])
-
-  const location = mkLocation(redux.useSelector(locationSelector))
+export function TrackingProvider({ userSelector, children }) {
+  const tracker = React.useMemo(loadMixpanel, [])
+  const mkLocation = useMkLocation()
+  const location = mkLocation(useLocation())
   const user = redux.useSelector(userSelector)
 
   const commonOpts = React.useMemo(
@@ -65,6 +76,7 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
       origin: window.location.origin,
       location,
       user,
+      catalog_release: cfg.stackVersion,
     }),
     [location, user],
   )
@@ -73,15 +85,9 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
     (evt, opts) =>
       tracker.then(
         (inst) =>
-          new Promise((resolve) =>
-            inst.track(
-              evt,
-              { ...commonOpts, ...getSelectedVariants('experiment:'), ...opts },
-              resolve,
-            ),
-          ),
+          new Promise((resolve) => inst.track(evt, { ...commonOpts, ...opts }, resolve)),
       ),
-    [tracker, commonOpts, getSelectedVariants],
+    [tracker, commonOpts],
   )
 
   const trackLink = React.useCallback(

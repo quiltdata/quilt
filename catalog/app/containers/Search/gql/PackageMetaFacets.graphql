@@ -1,0 +1,24 @@
+query ($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter) {
+  searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        userMetaTruncated
+        userMeta {
+          __typename
+          ... on IPackageUserMetaFacet {
+            path
+          }
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

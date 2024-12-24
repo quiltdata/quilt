@@ -1,0 +1,25 @@
+# import BucketPermissionSelection from "./BucketPermissionSelection.graphql"
+
+fragment PolicySelection on Policy {
+  __typename
+  id
+  title
+  arn
+  managed
+  permissions {
+    ...BucketPermissionSelection
+  }
+  roles {
+    __typename
+    id
+    # XXX: not sure we need all the extra fields
+    name
+    arn
+    permissions {
+      ...BucketPermissionSelection
+    }
+    policies {
+      id
+    }
+  }
+}

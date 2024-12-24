@@ -1,0 +1,12 @@
+# import PackagePushSuccessSelection from "./PackagePushSuccessSelection.graphql"
+# import InvalidInputSelection from "./InvalidInputSelection.graphql"
+# import OperationErrorSelection from "./OperationErrorSelection.graphql"
+
+mutation ($params: PackagePushParams!, $src: PackageConstructSource!) {
+  packageConstruct(params: $params, src: $src) {
+    __typename
+    ...PackagePushSuccessSelection
+    ...InvalidInputSelection
+    ...OperationErrorSelection
+  }
+}

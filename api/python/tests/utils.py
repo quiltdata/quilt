@@ -43,6 +43,7 @@ class QuiltTestCase(TestCase):
 
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
+        self.addCleanup(self.requests_mock.stop)
 
         # Create a dummy S3 client that (hopefully) can't do anything.
         boto_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
@@ -54,15 +55,14 @@ class QuiltTestCase(TestCase):
             find_correct_client=lambda *args, **kwargs: boto_client,
         )
         self.s3_client_patcher.start()
+        self.addCleanup(self.s3_client_patcher.stop)
 
         self.s3_stubber = Stubber(self.s3_client)
         self.s3_stubber.activate()
+        self.addCleanup(self.s3_stubber.deactivate)
 
     def tearDown(self):
         self.s3_stubber.assert_no_pending_responses()
-        self.s3_stubber.deactivate()
-        self.s3_client_patcher.stop()
-        self.requests_mock.stop()
 
     def s3_streaming_body(self, data):
         return StreamingBody(io.BytesIO(data), len(data))

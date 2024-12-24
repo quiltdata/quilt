@@ -1,4 +1,4 @@
-FROM debian:buster-slim
+FROM amazonlinux:2023.6.20241212.0
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 # Based on:
@@ -8,20 +8,23 @@ MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 EXPOSE 80
 
-ENV NGINX_VERSION=1.18.0
+ENV NGINX_VERSION=1.24.0
 
+# Download and compile Nginx.
+# Dependencies:
+# - pcre: runtime dependency for nginx
+# - gettext: envsubst used by run-nginx.sh
+# - shadow-utils: useradd
+# - tar, gzip: download the source
+# - gcc, make, *-devel: compile nginx
 RUN set -x \
-    && addgroup --system nginx \
-    && adduser --system --disabled-login --ingroup nginx --no-create-home --home /nonexistent --shell /bin/false nginx
-
-RUN set -x \
-    && apt-get update \
-    && apt-get install -y gettext \
-    && apt-get install -y curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
+    && dnf -y upgrade \
+    && dnf -y install --setopt=install_weak_deps=False pcre gettext shadow-utils tar gzip gcc make openssl-devel pcre-devel zlib-devel \
+    && cd /root \
     && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
     && mkdir mod_zip \
-    && curl -L https://github.com/evanmiller/mod_zip/archive/1.2.0.tar.gz | tar zx --strip-components 1 --directory mod_zip \
+    && curl -L https://api.github.com/repos/quiltdata/mod_zip/tarball/979314cca0507a59071310f09401861cced73ccb | tar zx --strip-components 1 --directory mod_zip \
     && ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \
@@ -31,11 +34,11 @@ RUN set -x \
         --error-log-path=/dev/stdout \
         --pid-path=/var/run/nginx.pid \
         --lock-path=/var/run/nginx.lock \
-        --http-client-body-temp-path=/var/cache/nginx/client_temp \
-        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        --http-client-body-temp-path=/var/lib/nginx/tmp/client_temp \
+        --http-proxy-temp-path=/var/lib/nginx/tmp/proxy_temp \
+        --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi_temp \
+        --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi_temp \
+        --http-scgi-temp-path=/var/lib/nginx/tmp/scgi_temp \
         --user=nginx \
         --group=nginx \
         --with-compat \
@@ -68,14 +71,19 @@ RUN set -x \
     && make install \
     && cd .. \
     && rm -r nginx-${NGINX_VERSION} \
-    && apt-get purge -y --autoremove curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
-    && apt-get clean
+    && dnf -y remove gcc make openssl-devel pcre-devel zlib-devel \
+    && dnf -y clean all
 
-RUN cat /etc/ssl/certs/*.pem > /etc/nginx/certs.pem
+RUN set -x \
+    && useradd --system --user-group --no-create-home --home /nonexistent --shell /sbin/nologin nginx
 
-RUN mkdir /var/cache/nginx/
+RUN mkdir -p /var/lib/nginx/tmp/
 COPY nginx.conf /root/nginx.conf.tmpl
 COPY run-nginx.sh /root/run-nginx.sh
+RUN ln -sf /tmp/nginx.conf /etc/nginx/nginx.conf
+
+# Use SIGQUIT for a "graceful" shutdown
+STOPSIGNAL SIGQUIT
 
 # Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
 CMD exec /root/run-nginx.sh

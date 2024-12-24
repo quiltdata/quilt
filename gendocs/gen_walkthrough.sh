@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euxo pipefail
 
 gen_cmd_docs () {
     file=$1
@@ -7,9 +8,9 @@ gen_cmd_docs () {
     jupyter nbconvert --to markdown "${file}".ipynb
 }
 
-gen_cmd_docs '../docs/Advanced Features/Working with Manifests'
-gen_cmd_docs '../docs/Walkthrough/Editing a Package'
-gen_cmd_docs '../docs/Walkthrough/Getting Data from a Package'
-gen_cmd_docs '../docs/Walkthrough/Installing a Package'
-gen_cmd_docs '../docs/Walkthrough/Uploading a Package'
-gen_cmd_docs '../docs/Walkthrough/Working with a Bucket'
+gen_cmd_docs '../docs/advanced-features/working-with-manifests'
+gen_cmd_docs '../docs/walkthrough/editing-a-package'
+gen_cmd_docs '../docs/walkthrough/getting-data-from-a-package'
+gen_cmd_docs '../docs/walkthrough/installing-a-package'
+gen_cmd_docs '../docs/walkthrough/uploading-a-package'
+gen_cmd_docs '../docs/walkthrough/working-with-a-bucket'

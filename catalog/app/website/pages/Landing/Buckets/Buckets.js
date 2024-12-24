@@ -1,18 +1,33 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
+import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
+import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
 
+import IS_ADMIN_QUERY from '../gql/IsAdmin.generated'
+
 const PER_PAGE = 9
+
+function useIsAdmin() {
+  const data = GQL.useQuery(IS_ADMIN_QUERY)
+  return GQL.fold(data, {
+    data: ({ me: { isAdmin } }) => isAdmin,
+    fetching: R.F,
+    error: R.F,
+  })
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -30,6 +45,10 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
+  },
+  backlight: {
+    bottom: cfg.mode === 'PRODUCT' ? 0 : undefined,
+    opacity: 0.5,
   },
   controls: {
     display: 'flex',
@@ -62,15 +81,19 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Buckets() {
   const classes = useStyles()
+  // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()
-  const [filter, setFilter] = React.useState('')
+  const history = useHistory()
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
-  const terms = React.useMemo(() => filter.toLowerCase().split(/\s+/).filter(Boolean), [
-    filter,
-  ])
+  const location = useLocation()
+  const { q: filter = '' } = parseSearch(location.search)
+  const terms = React.useMemo(
+    () => filter.toLowerCase().split(/\s+/).filter(Boolean),
+    [filter],
+  )
 
   const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
 
@@ -92,7 +115,7 @@ export default function Buckets() {
   const paginated = React.useMemo(
     () =>
       pages === 1 ? filtered : filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
-    [filtered, page],
+    [filtered, pages, page],
   )
 
   usePrevious(page, (prev) => {
@@ -107,13 +130,25 @@ export default function Buckets() {
     }
   })
 
-  const handleFilterChange = React.useCallback((e) => setFilter(e.target.value), [])
+  const filtering = useDebouncedInput(filter, 500)
 
-  const clearFilter = React.useCallback(() => setFilter(''), [])
+  React.useEffect(() => {
+    // TODO: handle route change
+    //       and implement BucketGrid tag as <Link />
+    if (filtering.value !== filter) {
+      history.push(urls.home({ q: filtering.value }))
+    }
+  }, [history, filtering.value, filter, urls])
+
+  const clearFilter = React.useCallback(() => {
+    filtering.set()
+  }, [filtering])
+
+  const isAdmin = useIsAdmin()
 
   return (
     <div className={classes.root}>
-      <Backlight style={{ opacity: 0.5 }} />
+      <Backlight className={classes.backlight} />
       <M.Container maxWidth="lg" className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">
@@ -122,8 +157,6 @@ export default function Buckets() {
         <M.Box mt={4} />
         <M.TextField
           className={classes.filter}
-          value={filter}
-          onChange={handleFilterChange}
           placeholder="Find a bucket"
           variant="outlined"
           margin="dense"
@@ -142,22 +175,23 @@ export default function Buckets() {
               </M.InputAdornment>
             ) : undefined,
           }}
+          {...filtering.input}
         />
         {paginated.length || !filter ? (
           <BucketGrid
             buckets={paginated}
-            onTagClick={setFilter}
+            onTagClick={filtering.set}
             tagIsMatching={tagIsMatching}
-            showAddLink={!filter && buckets.length <= PER_PAGE - 1}
+            showAddLink={!filter && buckets.length <= PER_PAGE - 1 && isAdmin}
           />
         ) : (
           <M.Typography color="textPrimary" variant="h4">
-            No buckets mathcing <b>&quot;{filter}&quot;</b>
+            No buckets matching <b>&quot;{filter}&quot;</b>
           </M.Typography>
         )}
         <div className={classes.controls}>
           <M.Box mt={2}>
-            {buckets.length > 2 && (
+            {buckets.length > 2 && isAdmin && (
               <M.Box mt={2} mr={2} display="inline-block">
                 <M.Button
                   variant="contained"

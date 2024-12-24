@@ -1,8 +1,30 @@
+import * as R from 'ramda'
+
 // import { withInitialState } from 'utils/reduxTools';
 
 import tagged from './tagged'
 
-describe('tagged', () => {
+describe('utils/tagged', () => {
+  describe('equality check', () => {
+    const Type = tagged(['A', 'B'])
+
+    it('should return true for equal values', () => {
+      const a1 = Type.A({ a: 1 })
+      const a11 = Type.A({ a: 1 })
+      expect(R.equals(a1, a11)).toBe(true)
+    })
+    it('should return false for different values of the same type', () => {
+      const a1 = Type.A({ a: 1 })
+      const a2 = Type.A({ a: 2 })
+      expect(R.equals(a1, a2)).toBe(false)
+    })
+    it('should return false for different values of different types', () => {
+      const a1 = Type.A({ a: 1 })
+      const b = Type.B()
+      expect(R.equals(a1, b)).toBe(false)
+    })
+  })
+
   describe('case', () => {
     const Result = tagged(['Ok', 'Err'])
     const ok = Result.Ok('ok')

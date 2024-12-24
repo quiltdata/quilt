@@ -2,7 +2,6 @@
 Helper functions.
 """
 import gzip
-import io
 import json
 import logging
 import os
@@ -12,6 +11,10 @@ from typing import Iterable
 LOGGER_NAME = "quilt-lambda"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
 POINTER_PREFIX_V1 = ".quilt/named_packages/"
+
+PACKAGE_INDEX_SUFFIX = "_packages"
+
+LAMBDA_TMP_SPACE = 512 * 2 ** 20
 
 
 def separated_env_to_iter(
@@ -28,11 +31,12 @@ def separated_env_to_iter(
     if candidate:
         for c in candidate.split(separator):
             token = c.strip().lower() if lower else c.strip()
-            if predicate:
-                if predicate(token):
+            if token:
+                if predicate:
+                    if predicate(token):
+                        result.append(token)
+                else:
                     result.append(token)
-            else:
-                result.append(token)
     return set(result) if deduplicate else result
 
 
@@ -57,12 +61,13 @@ def get_quilt_logger():
 
 
 def get_available_memory():
-    """how much virtual memory is available to us (bytes)?"""
+    """how much virtual memory is available to us (in bytes)"""
     from psutil import virtual_memory
+
     return virtual_memory().available
 
 
-def make_json_response(status_code, json_object, extra_headers=None):
+def make_json_response(status_code, json_object, extra_headers=None, add_status=False):
     """
     Helper function to serialize a JSON object and add the JSON content type header.
     """
@@ -71,6 +76,8 @@ def make_json_response(status_code, json_object, extra_headers=None):
     }
     if extra_headers is not None:
         headers.update(extra_headers)
+    if add_status:
+        json_object['status'] = status_code
 
     return status_code, json.dumps(json_object), headers
 
@@ -88,13 +95,6 @@ def read_body(resp):
     return body
 
 
-class IncompleteResultException(Exception):
-    """
-    Exception indicating an incomplete response
-    (e.g., from S3 Select)
-    """
-
-
 def sql_escape(s):
     """
     Escape strings that might contain single quotes for use in Athena
@@ -102,60 +102,3 @@ def sql_escape(s):
     """
     escaped = s or ""
     return escaped.replace("'", "''")
-
-
-def buffer_s3response(s3response):
-    """
-    Read a streaming response (botocore.eventstream.EventStream) from s3 select
-    into a StringIO buffer
-    """
-    logger_ = logging.getLogger(LOGGER_NAME)
-    response = io.StringIO()
-    end_event_received = False
-    stats = None
-    found_records = False
-    for event in s3response['Payload']:
-        if 'Records' in event:
-            records = event['Records']['Payload'].decode()
-            response.write(records)
-            found_records = True
-        elif 'Progress' in event:
-            logger_.info("select progress: %s", event['Progress'].get('Details'))
-        elif 'Stats' in event:
-            logger_.info("select stats: %s", event['Stats'])
-        elif 'End' in event:
-            # End event indicates that the request finished successfully
-            end_event_received = True
-
-    if not end_event_received:
-        raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
-    response.seek(0)
-    return response if found_records else None
-
-
-def query_manifest_content(
-        s3_client: str,
-        *,
-        bucket: str,
-        key: str,
-        sql_stmt: str
-) -> io.StringIO:
-    """
-    Call S3 Select to read only the logical keys from a
-    package manifest that match the desired folder path
-    prefix
-    """
-    logger_ = get_quilt_logger()
-    logger_.debug("utils.py: manifest_select: %s", sql_stmt)
-    response = s3_client.select_object_content(
-        Bucket=bucket,
-        Key=key,
-        ExpressionType='SQL',
-        Expression=sql_stmt,
-        InputSerialization={
-            'JSON': {'Type': 'LINES'},
-            'CompressionType': 'NONE'
-        },
-        OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
-    )
-    return buffer_s3response(response)

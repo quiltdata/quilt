@@ -9,9 +9,11 @@ import stat
 import subprocess
 import sys
 import time
+import typing as T
+from importlib import metadata
 
+import boto3
 import botocore.session
-import pkg_resources
 import requests
 from botocore.credentials import (
     CredentialProvider,
@@ -23,33 +25,35 @@ from .util import BASE_PATH, QuiltException, get_from_config
 
 AUTH_PATH = BASE_PATH / 'auth.json'
 CREDENTIALS_PATH = BASE_PATH / 'credentials.json'
-VERSION = pkg_resources.require('quilt3')[0].version
+VERSION = metadata.version('quilt3')
 
 
 def _load_auth():
-    if AUTH_PATH.exists():
-        with open(AUTH_PATH) as fd:
+    try:
+        with open(AUTH_PATH, encoding='utf-8') as fd:
             return json.load(fd)
-    return {}
+    except FileNotFoundError:
+        return {}
 
 
 def _save_auth(cfg):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
-    with open(AUTH_PATH, 'w') as fd:
+    with open(AUTH_PATH, 'w', encoding='utf-8') as fd:
         AUTH_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
 
 
 def _load_credentials():
-    if CREDENTIALS_PATH.exists():
-        with open(CREDENTIALS_PATH) as fd:
+    try:
+        with open(CREDENTIALS_PATH, encoding='utf-8') as fd:
             return json.load(fd)
-    return {}
+    except FileNotFoundError:
+        return {}
 
 
 def _save_credentials(creds):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
-    with open(CREDENTIALS_PATH, 'w') as fd:
+    with open(CREDENTIALS_PATH, 'w', encoding='utf-8') as fd:
         CREDENTIALS_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(creds, fd)
 
@@ -113,7 +117,7 @@ def _create_auth(timeout=None):
                 auth = _update_auth(auth['refresh_token'], timeout)
             except QuiltException as ex:
                 raise QuiltException(
-                    "Failed to update the access token (%s). Run `quilt login` again." % ex
+                    "Failed to update the access token (%s). Run `quilt3 login` again." % ex
                 )
             contents[url] = auth
             _save_auth(contents)
@@ -172,10 +176,10 @@ def open_url(url):
         if sys.platform == 'win32':
             os.startfile(url)   # pylint:disable=E1101
         elif sys.platform == 'darwin':
-            with open(os.devnull, 'r+') as null:
+            with open(os.devnull, 'rb+') as null:
                 subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
         else:
-            with open(os.devnull, 'r+') as null:
+            with open(os.devnull, 'rb+') as null:
                 subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
@@ -286,14 +290,34 @@ class QuiltProvider(CredentialProvider):
         return creds
 
 
-def create_botocore_session():
+def create_botocore_session(*, credentials: T.Optional[dict] = None) -> botocore.session.Session:
     botocore_session = botocore.session.get_session()
 
     # If we have saved credentials, use them. Otherwise, create a normal Boto session.
-    credentials = _load_credentials()
+    if credentials is None:
+        credentials = _load_credentials()
     if credentials:
         provider = QuiltProvider(credentials)
         resolver = CredentialResolver([provider])
         botocore_session.register_component('credential_provider', resolver)
 
     return botocore_session
+
+
+def get_boto3_session(*, fallback: bool = True) -> boto3.Session:
+    """
+    Return a Boto3 session with Quilt stack credentials and AWS region.
+    In case of no Quilt credentials found, return a "normal" Boto3 session if `fallback` is `True`,
+    otherwise raise a `QuiltException`.
+
+    > Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set on the session,
+    if you previously called it in quilt3 < 6.1.0.
+    """
+    if not (credentials := _load_credentials()):
+        if fallback:
+            return boto3.Session()
+        raise QuiltException("No Quilt credentials found.")
+    return boto3.Session(
+        botocore_session=create_botocore_session(credentials=credentials),
+        region_name=get_from_config("region"),
+    )

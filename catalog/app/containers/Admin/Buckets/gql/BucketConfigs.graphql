@@ -1,0 +1,7 @@
+# import BucketConfigSelection from "./BucketConfigSelection.graphql"
+
+query {
+  bucketConfigs {
+    ...BucketConfigSelection
+  }
+}

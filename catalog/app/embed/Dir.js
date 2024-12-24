@@ -1,57 +1,53 @@
 import { basename } from 'path'
 
-import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as Buttons from 'components/Buttons'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
-import Code from 'containers/Bucket/Code'
+import DirCodeSamples from 'containers/Bucket/CodeSamples/Dir'
 import * as FileView from 'containers/Bucket/FileView'
-import { ListingItem, ListingWithPrefixFiltering } from 'containers/Bucket/Listing'
+import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
 import * as EmbedConfig from './EmbedConfig'
-import getCrumbs from './getCrumbs'
 
 const formatListing = ({ urls, scope }, r) => {
-  const dirs = r.dirs.map((name) =>
-    ListingItem.Dir({
-      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
-      to: urls.bucketDir(r.bucket, name),
-    }),
-  )
-  const files = r.files.map(({ key, size, modified, archived }) =>
-    ListingItem.File({
-      name: basename(key),
-      to: urls.bucketFile(r.bucket, key),
-      size,
-      modified,
-      archived,
-    }),
-  )
+  const dirs = r.dirs.map((name) => ({
+    type: 'dir',
+    name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
+    to: urls.bucketDir(r.bucket, name),
+  }))
+  const files = r.files.map(({ key, size, modified, archived }) => ({
+    type: 'file',
+    name: basename(key),
+    to: urls.bucketFile(r.bucket, key),
+    size,
+    modified,
+    archived,
+  }))
   const items = [...dirs, ...files]
   if (r.path !== '' && r.path !== scope && !r.prefix) {
-    items.unshift(
-      ListingItem.Dir({
-        name: '..',
-        to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
-      }),
-    )
+    items.unshift({
+      type: 'dir',
+      name: '..',
+      to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
+    })
   }
   // filter-out files with same name as one of dirs
-  return R.uniqBy(ListingItem.case({ Dir: R.prop('name'), File: R.prop('name') }), items)
+  return R.uniqBy(R.prop('name'), items)
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -62,56 +58,44 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Dir({
-  match: {
-    params: { bucket, path: encodedPath = '' },
-  },
-  location: l,
-}) {
-  const cfg = EmbedConfig.use()
-  const { noDownload } = Config.use()
+export default function Dir() {
+  const { bucket, path: encodedPath = '' } = useParams()
+  const l = useLocation()
+  const ecfg = EmbedConfig.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
-  const dest = path ? basename(path) : bucket
 
-  const code = React.useMemo(
-    () => [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
-          # list files
-          b.ls("${path}")
-          # download
-          b.fetch("${path}", "./${dest}")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          # list files
-          aws s3 ls "s3://${bucket}/${path}"
-          # download
-          aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
-        `,
-      },
-    ],
-    [bucket, path, dest],
-  )
+  const [prev, setPrev] = React.useState(null)
+
+  React.useLayoutEffect(() => {
+    // reset accumulated results when path and/or prefix change
+    setPrev(null)
+  }, [path, prefix])
 
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
     path,
     prefix,
+    prev,
   })
+
+  const loadMore = React.useCallback(() => {
+    AsyncResult.case(
+      {
+        Ok: (res) => {
+          // this triggers a re-render and fetching of next page of results
+          if (res.continuationToken) setPrev(res)
+        },
+        _: () => {},
+      },
+      data.result,
+    )
+  }, [data.result, setPrev])
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -120,58 +104,63 @@ export default function Dir({
     [history, urls, bucket, path],
   )
 
+  const scoped = ecfg.scope && path.startsWith(ecfg.scope)
+  const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
+  const getSegmentRoute = React.useCallback(
+    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
+    [bucket, ecfg.scope, scoped, urls],
+  )
+  const crumbs = BreadCrumbs.use(
+    scopedPath,
+    getSegmentRoute,
+    scoped ? basename(ecfg.scope) : 'ROOT',
+  )
+
   return (
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
-        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs({ bucket, path, urls, scope: cfg.scope }))}
+        <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+          {BreadCrumbs.render(crumbs)}
         </div>
         <M.Box flexGrow={1} />
-        {!noDownload && (
-          <FileView.ZipDownloadForm
-            suffix={`dir/${bucket}/${path}`}
-            label="Download directory"
-            newTab
-          />
+        {!cfg.noDownload && (
+          <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`} newTab>
+            <Buttons.Iconized label="Download directory" icon="archive" type="submit" />
+          </FileView.ZipDownloadForm>
         )}
       </M.Box>
 
-      {!cfg.hideCode && <Code gutterBottom>{code}</Code>}
+      {!ecfg.hideCode && <DirCodeSamples bucket={bucket} path={path} gutterBottom />}
 
       {data.case({
         Err: displayError(),
         Init: () => null,
         _: (x) => {
-          const res = AsyncResult.case(
-            {
-              Ok: R.identity,
-              Pending: AsyncResult.case({
-                Ok: R.identity,
-                _: () => null,
-              }),
-              _: () => null,
-            },
-            x,
-          )
+          const res = AsyncResult.getPrevResult(x)
 
           if (!res) return <M.CircularProgress />
 
-          const items = formatListing({ urls, scope: cfg.scope }, res)
+          const items = formatListing({ urls, scope: ecfg.scope }, res)
 
           const locked = !AsyncResult.Ok.is(x)
 
           return (
             <>
-              <ListingWithPrefixFiltering
+              <Listing
                 items={items}
                 locked={locked}
+                loadMore={loadMore}
                 truncated={res.truncated}
-                prefix={res.prefix}
-                setPrefix={setPrefix}
-                bucket={res.bucket}
-                path={res.path}
+                prefixFilter={res.prefix}
+                toolbarContents={
+                  <PrefixFilter
+                    key={`${res.bucket}/${res.path}`}
+                    prefix={res.prefix}
+                    setPrefix={setPrefix}
+                  />
+                }
               />
-              <Summary files={res.files} />
+              <Summary files={res.files} path={path} />
             </>
           )
         },

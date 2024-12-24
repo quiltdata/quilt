@@ -56,6 +56,9 @@ function* signUp(credentials) {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
+      if (e.status === 400 && e.json && e.json.message === 'Default role not set') {
+        throw new errors.NoDefaultRole({ originalError: e })
+      }
       if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
         throw new errors.InvalidUsername({ originalError: e })
       }
@@ -77,6 +80,9 @@ function* signUp(credentials) {
       }
       if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
         throw new errors.SMTPError({ originalError: e })
+      }
+      if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
+        throw new errors.SubscriptionInvalid({ originalError: e })
       }
     }
     throw new errors.AuthError({
@@ -117,6 +123,10 @@ function* signOut() {
  * @throws {AuthError}
  */
 function* signIn(credentials) {
+  if (typeof credentials.token === 'string' && typeof credentials.exp === 'number') {
+    return { token: credentials.token, exp: credentials.exp }
+  }
+
   try {
     const { token, exp } = yield call(apiRequest, {
       auth: false,
@@ -131,6 +141,12 @@ function* signIn(credentials) {
     }
     if (HTTPError.is(e, 401, /login attempt failed/i)) {
       throw new errors.InvalidCredentials()
+    }
+    if (HTTPError.is(e, 400, 'Default role not set')) {
+      throw new errors.NoDefaultRole({ originalError: e })
+    }
+    if (HTTPError.is(e, 400) && e.json?.error_code === 'SubscriptionInvalid') {
+      throw new errors.SubscriptionInvalid({ originalError: e })
     }
 
     throw new errors.AuthError({
@@ -156,7 +172,7 @@ function* fetchUser(tokens) {
   try {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
-      endpoint: '/me',
+      endpoint: `/me?_cachebust=${Math.random()}`,
     })
     return auth
   } catch (e) {
@@ -205,7 +221,9 @@ function* resetPassword(email) {
  * @param {string} password
  *
  * @throws {AuthError}
- * @throws {InvalidResetLink}
+ * @throws {PassChangeUserNotFound}
+ * @throws {PassChangeNotAllowed}
+ * @throws {PassChangeInvalidToken}
  * @throws {InvalidPassword}
  */
 function* changePassword(link, password) {
@@ -219,11 +237,18 @@ function* changePassword(link, password) {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
-      if (e.status === 404 && e.json && e.json.error === 'User not found.') {
-        throw new errors.InvalidResetLink({ originalError: e })
+      if (e.status === 404 && e.json && e.json.message === 'User not found') {
+        throw new errors.PassChangeUserNotFound({ originalError: e })
       }
-      if (e.status === 401 && e.json && e.json.error === 'Reset token invalid.') {
-        throw new errors.InvalidResetLink({ originalError: e })
+      if (
+        e.status === 401 &&
+        e.json &&
+        e.json.message === 'User not allowed to reset password'
+      ) {
+        throw new errors.PassChangeNotAllowed({ originalError: e })
+      }
+      if (e.status === 401 && e.json && e.json.message === 'Reset token invalid') {
+        throw new errors.PassChangeInvalidToken({ originalError: e })
       }
       if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
         throw new errors.InvalidPassword({ originalError: e })
@@ -367,9 +392,6 @@ const isExpired = (tokens, time) => {
  * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
- * @param {function} options.forgetTokens
- * @param {function} options.forgetUser
- * @param {function} options.onAuthLost
  *
  * @param {Action} action
  */
@@ -378,6 +400,9 @@ function* handleCheck(
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
+    // waiting while all the current requests settle to avoid race conditions
+    yield call(waitTil, selectors.waiting, (w) => !w)
+
     const tokens = yield select(selectors.tokens)
     const time = yield call(timestamp)
     if (!tokens || !isExpired(tokens, time)) {
@@ -407,6 +432,27 @@ function* handleCheck(
 }
 
 /**
+ * Handle GET_TOKENS action.
+ *
+ * @param {Action} action
+ */
+function* handleGetTokens({ meta: { resolve, reject } }) {
+  try {
+    const tokens = yield call(getTokens)
+    yield call(resolve, tokens)
+  } catch (e) {
+    if (reject) {
+      yield call(reject, e)
+    } else {
+      // eslint-disable-next-line no-console
+      console.error('handleGetTokens: unhandled error:')
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  }
+}
+
+/**
  * Handle AUTH_LOST action.
  *
  * @param {Object} options
@@ -416,6 +462,7 @@ function* handleCheck(
 function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: err }) {
   yield fork(forgetTokens)
   yield fork(forgetUser)
+  // TODO: dont call onAuthLost if not signed in / on consectutive dispatches
   yield call(onAuthLost, err)
 }
 
@@ -483,16 +530,14 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * Handles auth actions and fires CHECK action on specified condition.
  *
  * @param {Object} options
- * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
  * @param {function} options.storeUser
  * @param {function} options.forgetUser
  * @param {function} options.onAuthLost
  */
-export default function*({
+export default function* Saga({
   latency,
-  checkOn,
   storeTokens,
   forgetTokens,
   storeUser,
@@ -506,6 +551,7 @@ export default function*({
     storeTokens,
     storeUser,
   })
+  yield takeEvery(actions.getTokens.type, handleGetTokens)
   yield takeEvery(actions.authLost.type, handleAuthLost, {
     forgetTokens,
     forgetUser,
@@ -515,10 +561,4 @@ export default function*({
   yield takeEvery(actions.resetPassword.type, handleResetPassword)
   yield takeEvery(actions.changePassword.type, handleChangePassword)
   yield takeEvery(actions.getCode.type, handleGetCode)
-
-  if (checkOn) {
-    yield takeEvery(checkOn, function* checkAuth() {
-      yield put(actions.check())
-    })
-  }
 }

@@ -4,14 +4,15 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { useConfig } from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 import { HTTPError } from 'utils/APIConnector'
 import pipeThru from 'utils/pipeThru'
 import usePrevious from 'utils/usePrevious'
 
+import checkboard from './checkboard.svg'
 import glacier from './glacier.svg'
 
 export const SUPPORTED_EXTENSIONS = [
@@ -23,6 +24,7 @@ export const SUPPORTED_EXTENSIONS = [
   '.bmp',
   '.tiff',
   '.tif',
+  '.czi',
 ]
 
 const SIZES = {
@@ -40,7 +42,7 @@ const loadImg = async (src) => {
   throw e
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useSkeletonStyles = M.makeStyles((t) => ({
   container: {
     paddingBottom: '70%',
     position: 'relative',
@@ -73,7 +75,7 @@ export function ThumbnailSkeleton({
   animate,
   ...props
 }) {
-  const classes = useStyles()
+  const classes = useSkeletonStyles()
   return (
     <Skeleton
       borderRadius="borderRadius"
@@ -95,22 +97,33 @@ export function ThumbnailSkeleton({
   )
 }
 
+const useStyles = M.makeStyles({
+  root: {
+    background: `0 0 url("${checkboard}") repeat`,
+  },
+})
+
 export default function Thumbnail({
   handle,
   size = 'sm', // sm | lg
   alt = '',
   skeletonProps,
+  className,
   ...props
 }) {
-  const api = useConfig().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
+
+  const classes = useStyles()
 
   const [state, setState] = React.useState(AsyncResult.Init())
 
   usePrevious(handle, (prev) => {
     if (R.equals(handle, prev)) return
     const url = sign(handle)
-    const src = `${api}/thumbnail${mkSearch({ url, size: sizeStr(size), output: 'raw' })}`
+    const src = `${cfg.apiGatewayEndpoint}/thumbnail${mkSearch({
+      url,
+      size: sizeStr(size),
+    })}`
     setState(AsyncResult.Pending())
     loadImg(src)
       .then((blob) => {
@@ -134,7 +147,15 @@ export default function Thumbnail({
   return pipeThru(state)(
     AsyncResult.case({
       _: () => <ThumbnailSkeleton {...skeletonProps} {...props} />,
-      Ok: (src) => <M.Box component="img" src={src} alt={alt} {...props} />,
+      Ok: (src) => (
+        <M.Box
+          className={cx(classes.root, className)}
+          component="img"
+          src={src}
+          alt={alt}
+          {...props}
+        />
+      ),
       Err: (e) => {
         let title = 'Error loading image'
         let icon = 'error'

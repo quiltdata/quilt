@@ -1,0 +1,968 @@
+directive @admin on FIELD_DEFINITION
+
+scalar Datetime
+
+scalar Json
+
+scalar JsonRecord
+
+scalar PackageContentsFlatMap
+
+# bucket + key + version (aka physical key)
+scalar S3ObjectLocation
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+type OperationError {
+  message: String!
+  name: String!
+  context: JsonRecord
+}
+
+type InputError {
+  path: String
+  message: String!
+  name: String!
+  context: JsonRecord
+}
+
+type InvalidInput {
+  errors: [InputError!]!
+}
+
+type Ok {
+  _: Boolean
+}
+
+union OperationResult = Ok | InvalidInput | OperationError
+
+type Unavailable {
+  _: Boolean
+}
+
+type ContentIndexingSettings {
+  extensions: [String!]!
+  bytesDefault: Int!
+  bytesMin: Int!
+  bytesMax: Int!
+}
+
+type Config {
+  contentIndexingSettings: ContentIndexingSettings! @admin
+}
+
+type Canary {
+  name: String!
+  # TODO: full AWS console URL instead?
+  region: String!
+  group: String!
+  title: String!
+  description: String!
+  schedule: String!
+  ok: Boolean
+  lastRun: Datetime
+}
+
+type TestStats {
+  passed: Int!
+  failed: Int!
+  running: Int!
+}
+
+type TestStatsTimeSeries {
+  datetimes: [Datetime!]!
+  passed: [Int!]!
+  failed: [Int!]!
+}
+
+type StatusReport {
+  timestamp: Datetime! # can be used as id / cache key
+  renderedReportLocation: S3ObjectLocation!
+}
+
+enum StatusReportListOrder {
+  NEW_FIRST
+  OLD_FIRST
+}
+
+type StatusReportList {
+  total: Int!
+  page(
+    number: Int! = 1
+    perPage: Int! = 25
+    order: StatusReportListOrder! = NEW_FIRST
+  ): [StatusReport!]!
+}
+
+input StatusReportListFilter {
+  timestampFrom: Datetime
+  timestampTo: Datetime
+}
+
+type Status {
+  canaries: [Canary!]!
+  latestStats: TestStats!
+  stats(window: Int = 30): TestStatsTimeSeries!
+  reports(filter: StatusReportListFilter): StatusReportList!
+  reportsBucket: String!
+}
+
+union StatusResult = Status | Unavailable
+
+type Collaborator {
+  email: String!
+  username: String!
+}
+
+type CollaboratorBucketConnection {
+  collaborator: Collaborator!
+  permissionLevel: BucketPermissionLevel!
+}
+
+type TabulatorTable {
+  name: String!
+  config: String!
+}
+
+type BucketConfig {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int!
+  lastIndexed: Datetime
+  browsable: Boolean!
+  snsNotificationArn: String @admin
+  scannerParallelShardsDepth: Int @admin
+  skipMetaDataIndexing: Boolean @admin
+  fileExtensionsToIndex: [String!] @admin
+  indexContentBytes: Int @admin
+  associatedPolicies: [PolicyBucketPermission!]! @admin
+  associatedRoles: [RoleBucketPermission!]! @admin
+  collaborators: [CollaboratorBucketConnection!]!
+  tabulatorTables: [TabulatorTable!]!
+}
+
+# XXX: consider unifying ManagedRole and UnmanagedRole
+type UnmanagedRole {
+  id: ID!
+  name: String!
+  arn: String!
+}
+
+type ManagedRole {
+  id: ID!
+  name: String!
+  arn: String!
+  policies: [Policy!]!
+  permissions: [RoleBucketPermission!]!
+}
+
+union Role = UnmanagedRole | ManagedRole
+
+type Policy {
+  id: ID!
+  title: String!
+  arn: String!
+  managed: Boolean!
+  permissions: [PolicyBucketPermission!]!
+  roles: [ManagedRole!]!
+}
+
+enum BucketPermissionLevel {
+  READ
+  READ_WRITE
+}
+
+interface BucketPermission {
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type PolicyBucketPermission implements BucketPermission {
+  policy: Policy!
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type RoleBucketPermission implements BucketPermission {
+  role: Role!
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type User {
+  name: String!
+  email: String!
+  dateJoined: Datetime!
+  lastLogin: Datetime!
+  isActive: Boolean!
+  isAdmin: Boolean!
+  isSsoOnly: Boolean!
+  isService: Boolean!
+  role: Role
+  extraRoles: [Role!]!
+  isRoleAssignmentDisabled: Boolean!
+  isAdminAssignmentDisabled: Boolean!
+}
+
+type AccessCountForDate {
+  date: Datetime!
+  value: Int!
+}
+
+type AccessCounts {
+  total: Int!
+  counts: [AccessCountForDate!]!
+}
+
+type AccessCountsGroup {
+  ext: String!
+  counts: AccessCounts!
+}
+
+type BucketAccessCounts {
+  byExt(groups: Int): [AccessCountsGroup!]!
+  combined: AccessCounts!
+}
+
+type PackageDir {
+  path: String!
+  metadata: JsonRecord
+  # 32-bit Int is too small to represent dir size which quite often exceeds several GB
+  size: Float!
+  children: [PackageEntry!]!
+}
+
+type PackageFile {
+  path: String!
+  metadata: JsonRecord
+  # 32-bit Int is too small to represent file size which quite often exceeds several GB
+  size: Float!
+  physicalKey: String!
+  # XXX: expose hash?
+}
+
+union PackageEntry = PackageFile | PackageDir
+
+type PackageWorkflow {
+  config: String!
+  id: String
+}
+
+type PackageRevision {
+  # XXX: backlink to package?
+  hash: String!
+  modified: Datetime!
+  message: String
+  metadata: JsonRecord!
+  userMeta: JsonRecord
+  workflow: PackageWorkflow
+  totalEntries: Int
+  # 32-bit Int is too small to represent package size which quite often exceeds several GB
+  totalBytes: Float
+  dir(path: String!): PackageDir
+  file(path: String!): PackageFile
+  accessCounts(window: Int = 30): AccessCounts
+  # null when more than max entries
+  contentsFlatMap(max: Int = 1000): PackageContentsFlatMap
+}
+
+type PackageRevisionList {
+  total: Int!
+  page(number: Int = 1, perPage: Int = 10): [PackageRevision!]!
+}
+
+type Package {
+  bucket: String!
+  name: String!
+  modified: Datetime!
+  revisions: PackageRevisionList!
+  revision(hashOrTag: String = "latest"): PackageRevision
+  accessCounts(window: Int = 30): AccessCounts
+}
+
+enum PackageListOrder {
+  NAME
+  MODIFIED
+}
+
+type PackageList {
+  total: Int!
+  page(
+    number: Int = 1
+    perPage: Int = 30
+    order: PackageListOrder = NAME
+  ): [Package!]!
+}
+
+type BrowsingSession {
+  id: ID!
+  expires: Datetime!
+}
+
+enum SearchResultOrder {
+  BEST_MATCH
+  NEWEST
+  OLDEST
+}
+
+type DatetimeExtents {
+  min: Datetime!
+  max: Datetime!
+}
+
+type NumberExtents {
+  min: Float!
+  max: Float!
+}
+
+type KeywordExtents {
+  values: [String!]!
+}
+
+interface IPackageUserMetaFacet {
+  path: String!
+}
+
+type NumberPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: NumberExtents!
+}
+
+type DatetimePackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: DatetimeExtents!
+}
+
+type KeywordPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: KeywordExtents!
+}
+
+type TextPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+}
+
+type BooleanPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+}
+
+union PackageUserMetaFacet =
+  | NumberPackageUserMetaFacet
+  | DatetimePackageUserMetaFacet
+  | KeywordPackageUserMetaFacet
+  | TextPackageUserMetaFacet
+  | BooleanPackageUserMetaFacet
+
+type PackagesSearchResultSetPage {
+  cursor: String
+  hits: [SearchHitPackage!]!
+}
+
+type ObjectsSearchResultSetPage {
+  cursor: String
+  hits: [SearchHitObject!]!
+}
+
+input DatetimeSearchPredicate {
+  gte: Datetime
+  lte: Datetime
+}
+
+input NumberSearchPredicate {
+  gte: Float
+  lte: Float
+}
+
+input TextSearchPredicate {
+  queryString: String!
+}
+
+input KeywordSearchPredicate {
+  terms: [String!]
+  wildcard: String
+}
+
+input BooleanSearchPredicate {
+  true: Boolean
+  false: Boolean
+}
+
+input PackageUserMetaPredicate {
+  path: String!
+  # one of the following
+  datetime: DatetimeSearchPredicate
+  number: NumberSearchPredicate
+  text: TextSearchPredicate
+  keyword: KeywordSearchPredicate
+  boolean: BooleanSearchPredicate
+}
+
+input ObjectsSearchFilter {
+  modified: DatetimeSearchPredicate
+  size: NumberSearchPredicate
+  ext: KeywordSearchPredicate
+  key: KeywordSearchPredicate
+  content: TextSearchPredicate
+  deleted: BooleanSearchPredicate
+}
+
+input PackagesSearchFilter {
+  modified: DatetimeSearchPredicate
+  size: NumberSearchPredicate
+  name: KeywordSearchPredicate
+  hash: KeywordSearchPredicate
+  entries: NumberSearchPredicate
+  comment: TextSearchPredicate
+  workflow: KeywordSearchPredicate
+}
+
+type ObjectsSearchStats {
+  total: Int!
+  modified: DatetimeExtents!
+  size: NumberExtents!
+  ext: KeywordExtents!
+}
+
+type PackagesSearchStats {
+  total: Int!
+  modified: DatetimeExtents!
+  size: NumberExtents!
+  entries: NumberExtents!
+  workflow: KeywordExtents!
+  userMeta: [PackageUserMetaFacet!]!
+  userMetaTruncated: Boolean!
+}
+
+type ObjectsSearchResultSet {
+  stats: ObjectsSearchStats!
+  firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
+}
+
+enum PackageUserMetaFacetType {
+  NUMBER
+  DATETIME
+  KEYWORD
+  TEXT
+  BOOLEAN
+}
+
+type PackagesSearchResultSet {
+  stats: PackagesSearchStats!
+  filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
+  firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
+}
+
+type EmptySearchResultSet {
+  _: Boolean
+}
+
+union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput
+
+union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput
+
+union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput
+
+union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
+
+type SearchHitObject {
+  id: ID!
+  bucket: String!
+  score: Float!
+  size: Float!
+  modified: Datetime!
+
+  key: String!
+  version: String!
+
+  deleted: Boolean!
+  # meta: JsonRecord! # String?
+  # tags
+  indexedContent: String
+}
+
+# TODO: reuse package types?
+type SearchHitPackage {
+  id: ID!
+  bucket: String!
+  score: Float!
+  size: Float!
+  modified: Datetime!
+
+  name: String!
+  hash: String!
+
+  # specific props
+  comment: String
+  meta: JsonRecord # user_meta
+  workflow: JsonRecord
+  # tags: [String!]! // TODO: currently not provided
+}
+
+type SubscriptionState {
+  active: Boolean!
+  timestamp: Datetime!
+}
+
+type UserAdminQueries {
+  list: [User!]!
+  get(name: String!): User
+}
+
+type SsoConfig {
+  text: String!
+  timestamp: Datetime!
+  uploader: User!
+}
+
+type AdminQueries {
+  user: UserAdminQueries!
+  ssoConfig: SsoConfig
+  isDefaultRoleSettingDisabled: Boolean!
+  tabulatorOpenQuery: Boolean!
+}
+
+type MyRole {
+  name: String!
+}
+
+type Me {
+  name: String!
+  email: String!
+  isAdmin: Boolean!
+  role: MyRole!
+  roles: [MyRole!]!
+}
+
+union SwitchRoleResult = Me | InvalidInput | OperationError
+
+type Query {
+  me: Me
+
+  config: Config!
+  bucketConfigs: [BucketConfig!]!
+  bucketConfig(name: String!): BucketConfig
+  potentialCollaborators: [Collaborator!]!
+  packages(bucket: String!, filter: String): PackageList
+  package(bucket: String!, name: String!): Package
+  searchObjects(
+    buckets: [String!]
+    searchString: String
+    filter: ObjectsSearchFilter
+  ): ObjectsSearchResult!
+  searchPackages(
+    buckets: [String!]
+    searchString: String
+    filter: PackagesSearchFilter
+    userMetaFilters: [PackageUserMetaPredicate!]
+  ): PackagesSearchResult!
+  searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
+  searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
+  subscription: SubscriptionState!
+
+  bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
+  objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
+
+  admin: AdminQueries! @admin
+
+  policies: [Policy!]! @admin
+  policy(id: ID!): Policy @admin
+  roles: [Role!]! @admin
+  role(id: ID!): Role @admin
+  defaultRole: Role @admin
+  status: StatusResult! @admin
+}
+
+input BucketAddInput {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
+  delayScan: Boolean
+  browsable: Boolean
+}
+
+input BucketUpdateInput {
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
+  browsable: Boolean
+}
+
+type BucketAddSuccess {
+  bucketConfig: BucketConfig!
+}
+
+type BucketNotFound {
+  _: Boolean
+}
+
+type BucketAlreadyAdded {
+  _: Boolean
+}
+
+type BucketDoesNotExist {
+  _: Boolean
+}
+
+type BucketFileExtensionsToIndexInvalid {
+  _: Boolean
+}
+
+type BucketIndexContentBytesInvalid {
+  _: Boolean
+}
+
+type SnsInvalid {
+  _: Boolean
+}
+
+type NotificationConfigurationError {
+  _: Boolean
+}
+
+type NotificationTopicNotFound {
+  _: Boolean
+}
+
+type InsufficientPermissions {
+  _: Boolean
+}
+
+type IndexingInProgress {
+  _: Boolean
+}
+
+type SubscriptionInvalid {
+  _: Boolean
+}
+
+union BucketAddResult =
+    BucketAddSuccess
+  | BucketAlreadyAdded
+  | BucketDoesNotExist
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
+  | InsufficientPermissions
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
+  | SnsInvalid
+  | SubscriptionInvalid
+
+type BucketUpdateSuccess {
+  bucketConfig: BucketConfig!
+}
+
+union BucketUpdateResult =
+    BucketUpdateSuccess
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
+  | BucketNotFound
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
+  | SnsInvalid
+
+type BucketRemoveSuccess {
+  _: Boolean
+}
+
+union BucketRemoveResult =
+    BucketRemoveSuccess
+  | BucketNotFound
+  | IndexingInProgress
+
+input PermissionInput {
+  bucket: String!
+  level: BucketPermissionLevel!
+}
+
+input UnmanagedRoleInput {
+  name: String!
+  arn: String!
+}
+
+input ManagedRoleInput {
+  name: String!
+  policies: [ID!]!
+}
+
+# XXX: consider making these `OperationError`s
+type RoleNameReserved {
+  _: Boolean
+}
+
+type RoleNameExists {
+  _: Boolean
+}
+
+type RoleNameInvalid {
+  _: Boolean
+}
+
+type RoleNameUsedBySsoConfig {
+  _: Boolean
+}
+
+type RoleDoesNotExist {
+  _: Boolean
+}
+
+type RoleIsManaged {
+  _: Boolean
+}
+
+type RoleIsUnmanaged {
+  _: Boolean
+}
+
+type RoleHasTooManyPoliciesToAttach {
+  _: Boolean
+}
+
+type RoleCreateSuccess {
+  role: Role!
+}
+
+union RoleCreateResult =
+    RoleCreateSuccess
+  | RoleNameReserved
+  | RoleNameExists
+  | RoleNameInvalid
+  | RoleHasTooManyPoliciesToAttach
+
+type RoleUpdateSuccess {
+  role: Role!
+}
+
+union RoleUpdateResult =
+    RoleUpdateSuccess
+  | RoleNameReserved
+  | RoleNameExists
+  | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
+  | RoleIsManaged
+  | RoleIsUnmanaged
+  | RoleHasTooManyPoliciesToAttach
+
+type RoleDeleteSuccess {
+  _: Boolean
+}
+
+type RoleAssigned {
+  _: Boolean
+}
+
+union RoleDeleteResult =
+    RoleDeleteSuccess
+  | RoleDoesNotExist
+  | RoleNameReserved
+  | RoleNameUsedBySsoConfig
+  | RoleAssigned
+
+type SsoConfigConflict {
+  _: Boolean
+}
+
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigConflict
+
+type RoleSetDefaultSuccess {
+  role: Role!
+}
+
+input ManagedPolicyInput {
+  title: String!
+  permissions: [PermissionInput!]!
+  roles: [ID!]!
+}
+
+input UnmanagedPolicyInput {
+  title: String!
+  arn: String!
+  roles: [ID!]!
+}
+
+union PolicyResult = Policy | InvalidInput | OperationError
+
+union PolicyDeleteResult = Ok | InvalidInput | OperationError
+
+input PackagePushParams {
+  message: String
+  userMeta: JsonRecord
+  workflow: String
+  bucket: String!
+  name: String!
+}
+
+input PackageEntryHash {
+  type: String!
+  value: String!
+}
+
+input PackageConstructEntry {
+  logicalKey: String!
+  physicalKey: String!
+  hash: PackageEntryHash
+  # 32-bit Int may be too small to represent file size which may exceed several GB
+  size: Float
+  # `meta` is the full metadata dict for entry that includes optional `user_meta` property,
+  # see PackageEntry._meta vs PackageEntry.meta.
+  meta: JsonRecord
+}
+
+input PackageConstructSource {
+  entries: [PackageConstructEntry!]!
+}
+
+input PackagePromoteSource {
+  bucket: String!
+  name: String!
+  hash: String!
+}
+
+type PackagePushSuccess {
+  package: Package!
+  revision: PackageRevision!
+}
+
+type PackageRevisionDeleteSuccess {
+  _: Boolean
+}
+
+union PackageConstructResult =
+    PackagePushSuccess
+  | InvalidInput
+  | OperationError
+
+union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
+
+union PackageRevisionDeleteResult =
+    PackageRevisionDeleteSuccess
+  | OperationError
+
+union BrowsingSessionCreateResult =
+    BrowsingSession
+  | InvalidInput
+  | OperationError
+
+union BrowsingSessionRefreshResult =
+    BrowsingSession
+  | InvalidInput
+  | OperationError
+
+union BrowsingSessionDisposeResult = Ok | OperationError
+
+input UserInput {
+  name: String!
+  email: String!
+  role: String!
+  extraRoles: [String!]
+}
+
+union UserResult = User | InvalidInput | OperationError
+
+type MutateUserAdminMutations {
+  delete: OperationResult!
+  setEmail(email: String!): UserResult!
+  setRole(role: String!, extraRoles: [String!], append: Boolean! = false): UserResult!
+  addRoles(roles: [String!]!): UserResult!
+  removeRoles(roles: [String!]!, fallback: String): UserResult!
+  setAdmin(admin: Boolean!): UserResult!
+  setActive(active: Boolean!): UserResult!
+  resetPassword: OperationResult!
+}
+
+type UserAdminMutations {
+  create(input: UserInput!): UserResult!
+  mutate(name: String!): MutateUserAdminMutations
+}
+
+union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
+
+union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
+
+type TabulatorOpenQueryResult {
+  tabulatorOpenQuery: Boolean!
+}
+
+type AdminMutations {
+  user: UserAdminMutations!
+  setSsoConfig(config: String): SetSsoConfigResult
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
+  setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
+}
+
+type Mutation {
+  switchRole(roleName: String!): SwitchRoleResult!
+
+  packageConstruct(
+    params: PackagePushParams!
+    src: PackageConstructSource!
+  ): PackageConstructResult!
+  packagePromote(
+    params: PackagePushParams!
+    src: PackagePromoteSource!
+  ): PackagePromoteResult!
+  packageRevisionDelete(
+    bucket: String!
+    name: String!
+    hash: String!
+  ): PackageRevisionDeleteResult!
+
+  admin: AdminMutations! @admin
+
+  bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
+  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
+    @admin
+  bucketRemove(name: String!): BucketRemoveResult! @admin
+
+  policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
+  policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin
+  policyUpdateManaged(id: ID!, input: ManagedPolicyInput!): PolicyResult! @admin
+  policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult!
+    @admin
+  policyDelete(id: ID!): PolicyDeleteResult! @admin
+
+  roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
+  roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin
+  roleUpdateManaged(id: ID!, input: ManagedRoleInput!): RoleUpdateResult! @admin
+  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult!
+    @admin
+  roleDelete(id: ID!): RoleDeleteResult! @admin
+  roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
+
+  browsingSessionCreate(
+    scope: String!
+    ttl: Int! = 180
+  ): BrowsingSessionCreateResult!
+  browsingSessionRefresh(
+    id: ID!
+    ttl: Int! = 180
+  ): BrowsingSessionRefreshResult!
+  browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
+}

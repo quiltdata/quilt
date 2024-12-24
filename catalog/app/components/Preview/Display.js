@@ -2,11 +2,10 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as Config from 'utils/Config'
 import StyledLink from 'utils/StyledLink'
-import pipeThru from 'utils/pipeThru'
 
 import render from './render'
 import { PreviewError } from './types'
@@ -42,13 +41,19 @@ export default function PreviewDisplay({
   renderProgress = defaultProgress,
   renderMessage = defaultMessage,
   renderAction = defaultAction,
+  onData,
+  props,
 }) {
-  const cfg = Config.use()
   const noDl = noDownload != null ? noDownload : cfg.noDownload
-  return pipeThru(data)(
-    AsyncResult.case({
+
+  React.useEffect(() => {
+    onData?.(data)
+  }, [data, onData])
+
+  return AsyncResult.case(
+    {
       _: renderProgress,
-      Ok: R.pipe(render, renderContents),
+      Ok: (...args) => R.pipe(render, renderContents)(...args, props),
       Err: PreviewError.case({
         Deleted: () =>
           renderMessage({
@@ -110,19 +115,37 @@ export default function PreviewDisplay({
             heading: 'No Such Object',
             body: 'Object does not exist',
           }),
+        SrcDoesNotExist: ({ path }) =>
+          renderMessage({
+            heading: 'Could Not Resolve Data File',
+            body: `Data file referenced as '${path}' could not be resolved`,
+          }),
         MalformedJson: ({ message }) =>
           renderMessage({
             heading: 'Malformed JSON',
             body: message,
           }),
-        Unexpected: ({ retry }) =>
+        Expired: ({ retry }) =>
+          renderMessage({
+            heading: 'Session expired',
+            body: !retry && 'Try to reload the page',
+            action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
+          }),
+        Unexpected: ({ retry, message }) =>
+          renderMessage({
+            heading: 'Unexpected Error',
+            body: message || 'Something went wrong while loading preview',
+            action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
+          }),
+        __: ({ retry }) =>
           renderMessage({
             heading: 'Unexpected Error',
             body: 'Something went wrong while loading preview',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
       }),
-    }),
+    },
+    data,
   )
 }
 

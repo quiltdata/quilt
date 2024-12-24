@@ -1,0 +1,5 @@
+mutation ($name: String!) {
+  bucketRemove(name: $name) {
+    __typename
+  }
+}

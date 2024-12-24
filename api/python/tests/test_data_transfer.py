@@ -1,6 +1,5 @@
 """ Testing for data_transfer.py """
 
-import hashlib
 import io
 import os
 import pathlib
@@ -14,7 +13,7 @@ import botocore
 import botocore.client
 import pandas as pd
 import pytest
-from botocore.exceptions import ClientError, ReadTimeoutError
+from botocore.exceptions import ClientError, ConnectionError, ReadTimeoutError
 from botocore.stub import ANY
 
 from quilt3 import data_transfer
@@ -165,11 +164,13 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response(
             method='put_object',
             service_response={
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,
                 'Bucket': 'example',
                 'Key': 'foo.csv',
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
@@ -183,11 +184,13 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response(
             method='put_object',
             service_response={
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,
                 'Bucket': 'example1',
                 'Key': 'foo.csv',
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
@@ -195,24 +198,32 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response(
             method='put_object',
             service_response={
-                'VersionId': 'v123'
+                'VersionId': 'v123',
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,
                 'Bucket': 'example2',
                 'Key': 'foo.txt',
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
         # stubber expects responses in order, so disable multi-threading.
-        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+        with mock.patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             urls = data_transfer.copy_file_list([
                 (PhysicalKey.from_path(path1), PhysicalKey.from_url('s3://example1/foo.csv'), path1.stat().st_size),
                 (PhysicalKey.from_path(path2), PhysicalKey.from_url('s3://example2/foo.txt'), path2.stat().st_size),
             ])
 
-            assert urls[0] == PhysicalKey.from_url('s3://example1/foo.csv')
-            assert urls[1] == PhysicalKey.from_url('s3://example2/foo.txt?versionId=v123')
+            assert urls[0] == (
+                PhysicalKey.from_url('s3://example1/foo.csv'),
+                'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
+            )
+            assert urls[1] == (
+                PhysicalKey.from_url('s3://example2/foo.txt?versionId=v123'),
+                'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
+            )
 
     def test_upload_large_file(self):
         path = DATA_DIR / 'large_file.npy'
@@ -223,25 +234,31 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example',
                 'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
             }
         )
 
         self.s3_stubber.add_response(
             method='put_object',
             service_response={
-                'VersionId': 'v1'
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,
                 'Bucket': 'example',
                 'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
         urls = data_transfer.copy_file_list([
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
+        )
 
     def test_upload_large_file_etag_match(self):
         path = DATA_DIR / 'large_file.npy'
@@ -256,13 +273,17 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example',
                 'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
             }
         )
 
         urls = data_transfer.copy_file_list([
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=",
+        )
 
     def test_upload_large_file_etag_mismatch(self):
         path = DATA_DIR / 'large_file.npy'
@@ -277,25 +298,244 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example',
                 'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
             }
         )
 
         self.s3_stubber.add_response(
             method='put_object',
             service_response={
-                'VersionId': 'v2'
+                'VersionId': 'v2',
+                # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,
                 'Bucket': 'example',
                 'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
         urls = data_transfer.copy_file_list([
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2')
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2'),
+            'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
+        )
+
+    def test_upload_file_checksum_match(self):
+        path = DATA_DIR / 'large_file.npy'
+        assert path.stat().st_size < data_transfer.CHECKSUM_MULTIPART_THRESHOLD
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'J+KTXLmOXrP7AmRZQQZWSj6DznTh7TbeeP6YbL1j+5w=',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=",
+        )
+
+    def test_upload_file_checksum_match_unexpected_parts(self):
+        path = DATA_DIR / 'large_file.npy'
+        assert path.stat().st_size < data_transfer.CHECKSUM_MULTIPART_THRESHOLD
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=-1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2',
+                # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2'),
+            "Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=",
+        )
+
+    def test_upload_file_checksum_multipart_match(self):
+        path = pathlib.Path("test-file")
+        path.write_bytes(bytes(data_transfer.CHECKSUM_MULTIPART_THRESHOLD))
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=-1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=",
+        )
+
+    def test_upload_file_checksum_multipart_match_unexpected_parts(self):
+        path = pathlib.Path("test-file")
+        path.write_bytes(bytes(data_transfer.CHECKSUM_MULTIPART_THRESHOLD))
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': '"123"',
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='create_multipart_upload',
+            service_response={
+                'UploadId': '123'
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='upload_part',
+            service_response={
+                'ETag': '"123"',
+                'ChecksumSHA256': 'La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'UploadId': '123',
+                'Body': ANY,
+                'PartNumber': 1,
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='complete_multipart_upload',
+            service_response={
+                'ChecksumSHA256': "MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=-1",
+                'VersionId': 'v1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'UploadId': '123',
+                'MultipartUpload': {
+                    'Parts': [
+                        {
+                            'ETag': '"123"',
+                            'ChecksumSHA256': 'La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=',
+                            'PartNumber': 1,
+                        },
+                    ]
+                }
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=",
+        )
+
+    def test_upload_file_size_mismatch(self):
+        path = DATA_DIR / 'large_file.npy'
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size + 1,
+                'ETag': data_transfer._calculate_etag(path),
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=-1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2',
+                # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumAlgorithm': 'SHA256',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2'),
+            "Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=",
+        )
 
     def test_multipart_upload(self):
         name = 'very_large_file.bin'
@@ -317,6 +557,7 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example',
                 'Key': name,
+                'ChecksumMode': 'ENABLED',
             }
         )
 
@@ -328,6 +569,7 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example',
                 'Key': name,
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
@@ -335,20 +577,24 @@ class DataTransferTest(QuiltTestCase):
             self.s3_stubber.add_response(
                 method='upload_part',
                 service_response={
-                    'ETag': 'etag%d' % part_num
+                    'ETag': 'etag%d' % part_num,
+                    'ChecksumSHA256': 'hash%d' % part_num,
                 },
                 expected_params={
                     'Bucket': 'example',
                     'Key': name,
                     'UploadId': '123',
                     'Body': ANY,
-                    'PartNumber': part_num
+                    'PartNumber': part_num,
+                    'ChecksumAlgorithm': 'SHA256',
                 }
             )
 
         self.s3_stubber.add_response(
             method='complete_multipart_upload',
-            service_response={},
+            service_response={
+                'ChecksumSHA256': f'123456-{chunks}',
+            },
             expected_params={
                 'Bucket': 'example',
                 'Key': name,
@@ -356,13 +602,14 @@ class DataTransferTest(QuiltTestCase):
                 'MultipartUpload': {
                     'Parts': [{
                         'ETag': 'etag%d' % i,
+                        'ChecksumSHA256': 'hash%d' % i,
                         'PartNumber': i
                     } for i in range(1, chunks+1)]
                 }
             }
         )
 
-        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+        with mock.patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             data_transfer.copy_file_list([
                 (PhysicalKey.from_path(path), PhysicalKey.from_url(f's3://example/{name}'), path.stat().st_size),
             ])
@@ -387,6 +634,7 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example2',
                 'Key': 'large_file2.npy',
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
@@ -395,7 +643,8 @@ class DataTransferTest(QuiltTestCase):
                 method='upload_part_copy',
                 service_response={
                     'CopyPartResult': {
-                        'ETag': 'etag%d' % part_num
+                        'ETag': 'etag%d' % part_num,
+                        'ChecksumSHA256': 'hash%d' % part_num,
                     }
                 },
                 expected_params={
@@ -416,7 +665,9 @@ class DataTransferTest(QuiltTestCase):
 
         self.s3_stubber.add_response(
             method='complete_multipart_upload',
-            service_response={},
+            service_response={
+                'ChecksumSHA256': f'123456-{chunks}',
+            },
             expected_params={
                 'Bucket': 'example2',
                 'Key': 'large_file2.npy',
@@ -424,13 +675,14 @@ class DataTransferTest(QuiltTestCase):
                 'MultipartUpload': {
                     'Parts': [{
                         'ETag': 'etag%d' % i,
+                        'ChecksumSHA256': 'hash%d' % i,
                         'PartNumber': i
                     } for i in range(1, chunks+1)]
                 }
             }
         )
 
-        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+        with mock.patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             stderr = io.StringIO()
 
             with redirect_stderr(stderr), mock.patch('quilt3.data_transfer.DISABLE_TQDM', False):
@@ -454,7 +706,7 @@ class DataTransferTest(QuiltTestCase):
         pk = PhysicalKey(bucket, key, vid)
         exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
         mocked_api_call.side_effect = exc
-        results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+        results = data_transfer.calculate_checksum([pk], [len(a_contents)])
         assert mocked_api_call.call_count == data_transfer.MAX_FIX_HASH_RETRIES
         assert results == [exc]
 
@@ -512,6 +764,91 @@ class DataTransferTest(QuiltTestCase):
             with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, size)])
 
+    def test_calculate_checksum_retry(self):
+        src = PhysicalKey('test-bucket', 'dir/a', None)
+
+        # TODO: copy_file_list also retries ClientError. Should calculate_checksum do that?
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=ConnectionError(error='foo')) as mocked_api_call:
+            result = data_transfer.calculate_checksum([src], [1])
+            assert isinstance(result[0], ConnectionError)
+            self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_FIX_HASH_RETRIES)
+
+    def test_calculate_checksum_partial_retry(self):
+        src1 = PhysicalKey('test-bucket', 'dir/a', None)
+        src2 = PhysicalKey('test-bucket', 'dir/b', None)
+
+        def side_effect(operation_name, *args, **kwargs):
+            if args[0]['Key'] == 'dir/a':
+                # src1 succeeds
+                return {
+                    'Body': io.BytesIO(b'a'),
+                }
+            else:
+                # src2 fails twice, then succeeds
+                if side_effect.counter < 2:
+                    side_effect.counter += 1
+                    raise ConnectionError(error='foo')
+                return {
+                    'Body': io.BytesIO(b'b'),
+                }
+
+        side_effect.counter = 0
+
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=side_effect) as mocked_api_call:
+            result = data_transfer.calculate_checksum([src1, src2], [1, 2])
+            assert result[0] == 'v106/7c+/S7Gw2rTES3ZM+/tY8Thy//PqI4nWcFE8tg='
+            assert result[1] == 'OTYRYJA8ZpXGgEtxV8e9EAE+m6ibH5VCQ7yOOZCwjbk='
+            self.assertEqual(mocked_api_call.call_count, 4)
+
+    @mock.patch.multiple(
+        'quilt3.data_transfer.s3_transfer_config',
+        multipart_threshold=1,
+        multipart_chunksize=1,
+    )
+    @mock.patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
+    def test_download_latest_in_versioned_bucket(self):
+        bucket = 'example'
+        key = 'foo.csv'
+        src = PhysicalKey(bucket, key, None)
+        latest_version = '1'
+        latest_size = 3
+
+        # Check what is the latest version and size.
+        expected_params = {
+            'Bucket': bucket,
+            'Key': key,
+        }
+        self.s3_stubber.add_response(
+            'head_object',
+            service_response={
+                'VersionId': latest_version,
+                'ContentLength': latest_size,
+            },
+            expected_params=expected_params,
+        )
+        for i in range(latest_size):
+            self.s3_stubber.add_response(
+                'get_object',
+                service_response={
+                    'Body': io.BytesIO(b'0'),
+                },
+                expected_params={
+                    **expected_params,
+                    'Range': f'bytes={i}-{i}',
+                    # Version must be specified, otherwise we will end with
+                    # a truncated file if the file was modified after getting the latest
+                    # version/size.
+                    'VersionId': latest_version,
+                },
+            )
+
+        data_transfer.copy_file(
+            src,
+            PhysicalKey.from_path('some-file'),
+        )
+
 
 class Success(Exception):
     pass
@@ -551,11 +888,7 @@ class S3UploadProgressTest(unittest.TestCase):
 
         def handler(request, **kwargs):
             request.body.read(2)
-            mocked_update.assert_called_once_with(2)
-
-            mocked_update.reset_mock()
-            request.body.seek(0)
-            mocked_update.assert_called_once_with(-2)
+            mocked_update.assert_called_once()
 
             raise Success
 
@@ -615,50 +948,84 @@ class S3DownloadTest(QuiltTestCase):
 
 
 class S3HashingTest(QuiltTestCase):
-    data = b'0123456789abcdef'
-    size = len(data)
-    hasher = hashlib.sha256
-
     bucket = 'test-bucket'
     key = 'test-key'
     src = PhysicalKey(bucket, key, None)
 
-    def _hashing_subtest(self, *, threshold, chunksize, data=data):
+    def test_adjust_chunksize(self):
+        default = 8 * 1024 * 1024
+
+        # "Normal" file sizes
+        assert data_transfer.get_checksum_chunksize(8 * 1024 * 1024) == default
+        assert data_transfer.get_checksum_chunksize(1024 * 1024 * 1024) == default
+        assert data_transfer.get_checksum_chunksize(10_000 * default) == default
+
+        # Big file: exceeds 10,000 parts
+        assert data_transfer.get_checksum_chunksize(10_000 * default + 1) == default * 2
+        assert data_transfer.get_checksum_chunksize(2 * 10_000 * default + 1) == default * 4
+
+    def test_single(self):
+        data = b'0123456789abcdef'
+        size = len(data)
+
+        chunksize = 8 * 1024 * 1024
+
+        ranges = {
+            f'bytes=0-{size-1}': data,
+        }
+
         with self.s3_test_multi_thread_download(
-            self.bucket, self.key, data, threshold=threshold, chunksize=chunksize
+                self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
         ):
-            assert data_transfer.calculate_sha256([self.src], [self.size]) == [self.hasher(self.data).hexdigest()]
+            hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+            hash2 = data_transfer.calculate_checksum_bytes(data)
+            assert hash1 == hash2
+            assert hash1 == 'Xb1PbjJeWof4zD7zuHc9PI7sLiz/Ykj4gphlaZEt3xA='
 
-    def test_single_request(self):
-        params = (
-            (self.size + 1, 5),
-            (self.size, self.size),
-            (self.size, self.size + 1),
-            (5, self.size),
-        )
-        for threshold, chunksize in params:
-            with self.subTest(threshold=threshold, chunksize=chunksize):
-                self._hashing_subtest(threshold=threshold, chunksize=chunksize)
+    def test_multipart(self):
+        data = b'1234567890abcdefgh' * 1024 * 1024
+        size = len(data)
 
-    def test_multi_request(self):
-        params = (
-            (
-                self.size, 5, {
-                    'bytes=0-4': self.data[:5],
-                    'bytes=5-9': self.data[5:10],
-                    'bytes=10-14': self.data[10:15],
-                    'bytes=15-15': self.data[15:],
-                }
-            ),
-            (
-                5, self.size - 1, {
-                    'bytes=0-14': self.data[:15],
-                    'bytes=15-15': self.data[15:],
-                }
-            ),
-        )
-        for threshold, chunksize, data in params:
-            for concurrency in (len(data), 1):
-                with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', concurrency):
-                    with self.subTest(threshold=threshold, chunksize=chunksize, data=data, concurrency=concurrency):
-                        self._hashing_subtest(threshold=threshold, chunksize=chunksize, data=data)
+        chunksize = 8 * 1024 * 1024
+
+        ranges = {
+            f'bytes=0-{chunksize-1}': data[:chunksize],
+            f'bytes={chunksize}-{chunksize*2-1}': data[chunksize:chunksize*2],
+            f'bytes={chunksize*2}-{size-1}': data[chunksize*2:],
+        }
+
+        with self.s3_test_multi_thread_download(
+                self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
+        ):
+            hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+            hash2 = data_transfer.calculate_checksum_bytes(data)
+            assert hash1 == hash2
+            assert hash1 == 'T+rt/HKRJOiAkEGXKvc+DhCwRcrZiDrFkjKonDT1zgs='
+
+    def test_one_part(self):
+        # Edge case: file length is exactly the threshold, resulting in a 1-part multipart upload.
+        data = b'12345678' * 1024 * 1024
+        size = len(data)
+
+        chunksize = 8 * 1024 * 1024
+
+        ranges = {
+            f'bytes=0-{size-1}': data,
+        }
+
+        with self.s3_test_multi_thread_download(
+                self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
+        ):
+            hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+            hash2 = data_transfer.calculate_checksum_bytes(data)
+            assert hash1 == hash2
+            assert hash1 == '7V3rZ3Q/AmAYax2wsQBZbc7N1EMIxlxRyMiMthGRdwg='
+
+    def test_empty(self):
+        data = b''
+        size = len(data)
+
+        hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+        hash2 = data_transfer.calculate_checksum_bytes(data)
+        assert hash1 == hash2
+        assert hash1 == '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='

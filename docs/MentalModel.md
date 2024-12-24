@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Mental model for a Quilt package
 
 Quilt represents datasets as *packages*. A package is an immutable collection of
@@ -41,3 +42,20 @@ dataset are shown below.
     "meta": {}
 }
 ```
+
+## Buckets are branches
+
+In Quilt, S3 buckets are analogous to branches in git. Each bucket is a self-contained
+registry for one or more packages. As package data and schemas are refined, you
+can promote a package to a new bucket to signify its increased data quality.
+
+We generally recommend a minimum of three buckets for the data lifecycle:
+* Raw
+* Stage
+* Production
+
+![](imgs/three-bucket-flow.png)
+
+
+See [Quilt workflows](advanced-features/workflows.md) for more on how you can
+control data quality with schemas.

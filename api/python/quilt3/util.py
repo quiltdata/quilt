@@ -13,12 +13,17 @@ from urllib.parse import (
     urlparse,
     urlunparse,
 )
-from urllib.request import pathname2url, url2pathname
+from urllib.request import url2pathname
 
 import requests
 # Third-Party
 import yaml
-from appdirs import user_cache_dir, user_data_dir
+from platformdirs import user_cache_dir, user_data_dir
+
+
+def get_bool_from_env(var_name: str):
+    return os.getenv(var_name, '').lower() == 'true'
+
 
 APP_NAME = "Quilt"
 APP_AUTHOR = "QuiltData"
@@ -29,9 +34,11 @@ TEMPFILE_DIR_PATH = BASE_PATH / "tempfiles"
 CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
 
-PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
-DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
+PACKAGE_NAME_FORMAT = r"^[\w-]+/[\w-]+$"
+DISABLE_TQDM = get_bool_from_env('QUILT_MINIMIZE_STDOUT')
 PACKAGE_UPDATE_POLICY = {'incoming', 'existing'}
+IS_CACHE_ENABLED = not get_bool_from_env('QUILT_DISABLE_CACHE')
+
 
 # CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
@@ -45,7 +52,7 @@ CONFIG_TEMPLATE = """
 # navigator_url: https://example.com
 navigator_url:
 
-# default_local_registry: <url string, default: local appdirs>
+# default_local_registry: <url string, default: local data directory (platform dependent)>
 # default target registry for operations like install and build
 default_local_registry: "{}"
 
@@ -74,7 +81,22 @@ binaryApiGatewayEndpoint:
 
 default_registry_version: 1
 
+# AWS region
+region:
+
 """.format(BASE_PATH.as_uri() + '/packages')
+
+
+def get_pos_int_from_env(var_name):
+    val = os.getenv(var_name)
+    if val:
+        try:
+            val = int(val)
+        except ValueError:
+            val = None
+        if val is None or val <= 0:
+            raise ValueError(f'{var_name} must be a positive integer')
+        return val
 
 
 class QuiltException(Exception):
@@ -89,6 +111,10 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
+class QuiltConflictException(QuiltException):
+    pass
+
+
 class RemovedInQuilt4Warning(FutureWarning):
     pass
 
@@ -98,7 +124,7 @@ class URLParseError(ValueError):
 
 
 class PhysicalKey:
-    __slots__ = ['bucket', 'path', 'version_id']
+    __slots__ = ('bucket', 'path', 'version_id')
 
     def __init__(self, bucket, path, version_id):
         """
@@ -113,8 +139,6 @@ class PhysicalKey:
             assert version_id is None, "Local keys cannot have a version ID"
             if os.name == 'nt':
                 assert '\\' not in path, "Paths must use / as a separator"
-        else:
-            assert not path.startswith('/'), "S3 paths must not start with '/'"
 
         self.bucket = bucket
         self.path = path
@@ -199,13 +223,13 @@ class PhysicalKey:
 
     def __str__(self):
         if self.bucket is None:
-            return urlunparse(('file', '', pathname2url(self.path.replace('/', os.path.sep)), None, None, None))
+            return pathlib.PurePath(self.path).as_uri()
         else:
             if self.version_id is None:
                 params = {}
             else:
                 params = {'versionId': self.version_id}
-            return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+            return urlunparse(('s3', self.bucket, quote('/' + self.path), None, urlencode(params), None))
 
 
 def fix_url(url):
@@ -269,26 +293,19 @@ def write_yaml(data, yaml_path, keep_backup=False):
     :param keep_backup: If set, a timestamped backup will be kept in the same dir.
     """
     path = pathlib.Path(yaml_path)
-    now = str(datetime.datetime.now())
-
-    # XXX unicode colon for Windows/NTFS -- looks prettier, but could be confusing. We could use '_' instead.
-    if os.name == 'nt':
-        now = now.replace(':', '\ua789')
-
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")  # ISO 8601 'basic format'
     backup_path = path.with_name(path.name + '.backup.' + now)
 
     try:
         if path.exists():
-            path.rename(backup_path)
-        if not path.parent.exists():
-            path.parent.mkdir(parents=True)
+            # TODO: use something from tempfile to make sure backup_path doesn't exist.
+            path.replace(backup_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
     except Exception:     # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
-            if path.exists():
-                path.unlink()
-            backup_path.rename(path)
+            backup_path.replace(path)
         raise
 
     if backup_path.exists() and not keep_backup:
@@ -338,19 +355,9 @@ class QuiltConfig(OrderedDict):
         return "<{} at {!r} {}>".format(type(self).__name__, str(self.filepath), json.dumps(self, indent=4))
 
 
-def parse_sub_package_name(name):
-    """
-    Extract package name and optional sub-package path as tuple.
-    """
-    m = re.match(PACKAGE_NAME_FORMAT, name)
-    if m:
-        return tuple(m.groups())
-
-
 def validate_package_name(name):
     """ Verify that a package name is two alphanumeric strings separated by a slash."""
-    parts = parse_sub_package_name(name)
-    if not parts or parts[1]:
+    if not re.match(PACKAGE_NAME_FORMAT, name):
         raise QuiltException(f"Invalid package name: {name}.")
 
 
@@ -425,8 +432,10 @@ def load_config():
     Read the local config using defaults from CONFIG_TEMPLATE.
     """
     local_config = read_yaml(CONFIG_TEMPLATE)
-    if CONFIG_PATH.exists():
+    try:
         local_config.update(read_yaml(CONFIG_PATH))
+    except FileNotFoundError:
+        pass
     return local_config
 
 

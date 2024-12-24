@@ -3,15 +3,16 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 
 import { push as notify } from 'containers/Notifications/actions'
-import { useIntl } from 'containers/LanguageProvider'
 import { useReducer } from 'utils/ReducerInjector'
 import { useSaga } from 'utils/SagaInjector'
 import { withInitialState } from 'utils/reduxTools'
+import useConstant from 'utils/useConstant'
 
+import * as actions from './actions'
 import { REDUX_KEY } from './constants'
-import msg from './messages'
 import reducer from './reducer'
 import saga from './saga'
+import * as selectors from './selectors'
 
 /*
 const ActionPattern = PT.oneOfType([PT.string, PT.func])
@@ -37,16 +38,27 @@ const useStorageHandlers = (storage) =>
   )
 
 const useNotificationHandlers = () => {
-  const intl = useIntl()
   const dispatch = redux.useDispatch()
   return React.useMemo(
     () => ({
       onAuthLost: () => {
-        dispatch(notify(intl.formatMessage(msg.notificationAuthLost)))
+        dispatch(notify('Authentication lost. Sign in again.'))
       },
     }),
-    [intl, dispatch],
+    [dispatch],
   )
+}
+
+function useCheck() {
+  const dispatch = redux.useDispatch()
+  const exp = redux.useSelector(selectors.exp)
+  React.useEffect(() => {
+    if (typeof exp !== 'number') return
+    const ts = Date.now()
+    const timeLeft = exp * 1000 - ts
+    const timer = setTimeout(() => dispatch(actions.check()), timeLeft)
+    return () => clearTimeout(timer)
+  }, [dispatch, exp])
 }
 
 /**
@@ -54,10 +66,6 @@ const useNotificationHandlers = () => {
  */
 export default function AuthProvider({
   children,
-  /**
-   * Determines on which actions to fire the check logic.
-   */
-  checkOn, // oneOfType([ActionPattern, PT.arrayOf(ActionPattern)])
   /**
    * Storage instance used to persist tokens and user data.
    */
@@ -67,7 +75,7 @@ export default function AuthProvider({
    */
   latency = 20, // number
 }) {
-  const reducerWithInit = React.useMemo(() => {
+  const reducerWithInit = useConstant(() => {
     const init = fromJS(storage.load())
       .filter(Boolean)
       .update((s) =>
@@ -76,14 +84,16 @@ export default function AuthProvider({
           .set('sessionId', 0),
       )
     return withInitialState(init, reducer)
-  }, [])
+  })
   useReducer(REDUX_KEY, reducerWithInit)
 
   const handlers = {
     ...useStorageHandlers(storage),
     ...useNotificationHandlers(),
   }
-  useSaga(saga, { ...handlers, checkOn, latency })
+  useSaga(saga, { ...handlers, latency })
+
+  useCheck()
 
   return children
 }

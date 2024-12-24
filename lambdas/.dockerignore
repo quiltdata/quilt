@@ -1,0 +1,9 @@
+**/*.pyc
+**/__pycache__/
+**/venv/
+**/tests/
+**/.pytest_cache/
+**/*.egg-info/
+**/build/
+**/*Dockerfile
+.dockerignore

@@ -2,8 +2,10 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import usePrevious from 'utils/usePrevious'
+
+import { SELECTOR } from './Launcher'
 
 const canUseDOM = !!(
   typeof window !== 'undefined' &&
@@ -16,6 +18,7 @@ function dummyIntercomApi(...args) {
   console.log("Trying to call Intercom, but it's unavailable", args)
 }
 dummyIntercomApi.dummy = true
+dummyIntercomApi.isCustom = false
 dummyIntercomApi.isAvailable = () => false
 
 const Ctx = React.createContext(dummyIntercomApi)
@@ -37,9 +40,15 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
 
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
-  const api = React.useCallback((...args) => window.Intercom(...args), [])
+  const { current: api } = React.useRef((...args) => window.Intercom(...args))
   if (!('dummy' in api)) api.dummy = false
   if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
+  api.isCustom = cfg.mode === 'PRODUCT'
+
+  if (api.isCustom) {
+    settings.custom_launcher_selector = SELECTOR
+    settings.hide_default_launcher = true
+  }
 
   React.useEffect(() => {
     api('boot', settings)
@@ -56,6 +65,8 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
       api('shutdown')
       delete window.Intercom
     }
+    // run this only once, ignore settings changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const user = redux.useSelector(userSelector)
@@ -75,7 +86,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
 }
 
 export function IntercomProvider({ children, ...props }) {
-  const { intercomAppId: appId } = Config.useConfig()
+  const { intercomAppId: appId } = cfg
   if (!canUseDOM || !appId) {
     return children
   }
@@ -91,3 +102,24 @@ export function useIntercom() {
 }
 
 export { IntercomProvider as Provider, useIntercom as use }
+
+// Hides or shows __default__ Intercom launcher when the `condition` changes
+export function usePauseVisibilityWhen(condition) {
+  const intercom = useIntercom()
+  const [isVisible, setVisible] = React.useState(true)
+  const showIntercom = React.useCallback(
+    (shouldShow) => {
+      if (isVisible === shouldShow) return
+      intercom('update', {
+        hide_default_launcher: !shouldShow,
+      })
+      setVisible(shouldShow)
+    },
+    [intercom, isVisible, setVisible],
+  )
+  React.useEffect(() => {
+    if (intercom.isCustom) return
+    if (condition) showIntercom(false)
+    return () => showIntercom(true)
+  }, [condition, intercom.isCustom, showIntercom])
+}

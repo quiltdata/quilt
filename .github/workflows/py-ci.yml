@@ -1,0 +1,209 @@
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
+  merge_group:
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1'
+      - name: Run pylint
+        run: |
+          pylint .
+      - name: Run pycodestyle
+        run: |
+          pycodestyle $(find -name '*.py' -not -path './venv/*')
+
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install isort
+      - name: Run isort
+        run: |
+          isort --check --diff .
+
+  test-gendocs:
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # on newer versions it crashes with
+          # TypeError: <classmethod(<function Package.install at 0x105219f30>)> is not a callable object
+          python-version: '3.9'
+      - name: install deps
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@v2.0.5+quilt3.2
+      - name: generate docs
+        run: cd gendocs && python build.py
+      - name: show invisible changes via cat
+        run: git diff | cat -A
+      - name: check there are no changes
+        run: git diff --exit-code
+
+  test-testdocs:
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: install poetry
+        run: python -m pip install poetry
+      - name: install deps
+        run: cd testdocs && poetry install
+      - name: test codeblocks
+        run: cd testdocs && poetry run pytest --codeblocks ../docs
+
+  test-client:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+    runs-on: ${{ matrix.os }}
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e api/python[tests]
+      - name: Run Pytest
+        run: |
+          pytest --cov=api/python api/python
+      - uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          OS: ${{ matrix.os }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        with:
+          flags: api-python
+          name: ${{ github.job }}
+          env_vars: OS,PYTHON_VERSION
+
+  pypi-release-tag-check:
+    needs: test-client
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.check.outputs.check }}
+    if: github.ref_type == 'tag'
+    steps:
+      - name: check git tag
+        id: check
+        run: |
+          if [[ ${{ github.ref_name }} =~ ^[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$ ]]; then
+            echo ::set-output name=check::true
+          fi
+
+  pypi-release:
+    needs: pypi-release-tag-check
+    if: github.ref_type == 'tag' && needs.pypi-release-tag-check.outputs.check == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install build==1.2.2.post1 twine==5.1.1
+      - name: verify git tag vs. version
+        env:
+          CIRCLE_TAG: ${{ github.ref_name }}
+        run: python setup.py verify
+      - name: build
+        run: python -m build
+      - name: upload to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: twine upload dist/*
+
+  test-lambda:
+    strategy:
+      fail-fast: false
+      matrix:
+        path:
+          - access_counts
+          - indexer
+          - pkgevents
+          - pkgpush
+          - preview
+          - s3hash
+          - shared
+          - status_reports
+          - tabular_preview
+          - thumbnail
+          - transcode
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+      PYTHONPATH: deps
+      JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: lambdas/${{ matrix.path }}/.python-version
+      - name: Install dependencies
+        run: |
+          if [ ${{ matrix.path }} == "thumbnail" ]
+          then
+            # Due to behavior change in pip>=23.1 installing tifffile==0.15.1
+            # from thumbnail lambda fails whithout installed wheel.
+            # See https://github.com/pypa/pip/issues/8559.
+            # HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
+            python -m pip install wheel 'numpy<2'
+          fi
+
+          # Try to simulate the lambda .zip file:
+          # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
+          # - Remove "tests" directories
+          # - Run "strip" on shared libraries
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
+          find deps -name tests -type d -exec rm -r \{} \+
+          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+
+          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
+      - name: Pytest
+        run: |
+          pytest --cov=lambdas lambdas/${{ matrix.path }}
+      - uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          LAMBDA: ${{ matrix.path }}
+        with:
+          flags: lambda
+          name: ${{ github.job }}
+          env_vars: LAMBDA

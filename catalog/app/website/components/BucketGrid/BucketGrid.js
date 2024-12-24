@@ -4,39 +4,12 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'grid',
-    gridColumnGap: t.spacing(4),
-    gridRowGap: t.spacing(4),
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gridAutoRows: 'auto',
-    [t.breakpoints.down('sm')]: {
-      gridTemplateColumns: '1fr 1fr',
-    },
-    [t.breakpoints.down('xs')]: {
-      gridTemplateColumns: 'auto',
-    },
-  },
-  add: {
-    alignItems: 'center',
-    border: '2px dashed #2f306e',
-    borderRadius: t.spacing(2),
-    color: t.palette.tertiary.main,
-    cursor: 'pointer',
-    display: 'flex',
-    justifyContent: 'center',
-    paddingBottom: 'calc(50% - 2rem - 2px)',
-    paddingTop: 'calc(50% - 2rem - 2px)',
-    '&:hover': {
-      background: fade(t.palette.tertiary.main, 0.04),
-    },
-    '& > span': {
-      fontSize: '4rem',
-    },
-  },
+import Collaborators from './Collaborators'
+
+const useBucketStyles = M.makeStyles((t) => ({
   bucket: {
     background: 'linear-gradient(to top, #1f2151, #2f306e)',
     borderRadius: t.spacing(2),
@@ -44,6 +17,8 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     padding: t.spacing(4),
+    position: 'relative',
+    overflow: 'hidden',
   },
   title: {
     ...t.typography.h6,
@@ -53,6 +28,8 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     color: t.palette.text.hint,
     lineHeight: t.typography.pxToRem(24),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   desc: {
     ...t.typography.body2,
@@ -73,6 +50,9 @@ const useStyles = M.makeStyles((t) => ({
   },
   active: {},
   matching: {},
+  shared: {
+    float: 'right',
+  },
   tag: {
     ...t.typography.body2,
     background: fade(t.palette.secondary.main, 0.3),
@@ -97,43 +77,104 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+function Bucket({ bucket, onTagClick, tagIsMatching }) {
+  const classes = useBucketStyles()
+  const { urls } = NamedRoutes.use()
+
+  return (
+    <div
+      className={classes.bucket}
+      data-testid="bucket-grid--bucket"
+      data-bucket={bucket.name}
+    >
+      <div>
+        {cfg.mode === 'PRODUCT' && (
+          <div className={classes.shared}>
+            <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
+          </div>
+        )}
+        <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
+          {bucket.title}
+        </Link>
+      </div>
+      <Link
+        className={classes.name}
+        to={urls.bucketRoot(bucket.name)}
+        title={`s3://${bucket.name}`}
+      >
+        s3://{bucket.name}
+      </Link>
+      {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
+      <M.Box flexGrow={1} />
+      {!!bucket.tags && !!bucket.tags.length && (
+        <div className={classes.tags}>
+          {bucket.tags.map((t) => (
+            <button
+              key={t}
+              className={cx(
+                classes.tag,
+                tagIsMatching(t) && classes.matching,
+                !!onTagClick && classes.active,
+              )}
+              type="button"
+              onClick={() => onTagClick(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gridColumnGap: t.spacing(4),
+    gridRowGap: t.spacing(4),
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gridAutoRows: `minmax(${t.spacing(25)}px, auto)`,
+    [t.breakpoints.down('sm')]: {
+      gridTemplateColumns: '1fr 1fr',
+    },
+    [t.breakpoints.down('xs')]: {
+      gridTemplateColumns: 'auto',
+    },
+  },
+  add: {
+    alignItems: 'center',
+    border: '2px dashed #2f306e',
+    borderRadius: t.spacing(2),
+    color: t.palette.tertiary.main,
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'center',
+    '&:hover': {
+      background: fade(t.palette.tertiary.main, 0.04),
+    },
+    '& > span': {
+      fontSize: '4rem',
+    },
+  },
+}))
+
 export default React.forwardRef(function BucketGrid(
   { buckets, onTagClick, tagIsMatching = () => false, showAddLink = false },
   ref,
 ) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+
   return (
     <div className={classes.root} ref={ref}>
       {buckets.map((b) => (
-        <div key={b.name} className={classes.bucket}>
-          <Link className={classes.title} to={urls.bucketRoot(b.name)}>
-            {b.title}
-          </Link>
-          <Link className={classes.name} to={urls.bucketRoot(b.name)}>
-            s3://{b.name}
-          </Link>
-          {!!b.description && <p className={classes.desc}>{b.description}</p>}
-          <M.Box flexGrow={1} />
-          {!!b.tags && !!b.tags.length && (
-            <div className={classes.tags}>
-              {b.tags.map((t) => (
-                <button
-                  key={t}
-                  className={cx(
-                    classes.tag,
-                    tagIsMatching(t) && classes.matching,
-                    !!onTagClick && classes.active,
-                  )}
-                  type="button"
-                  onClick={() => onTagClick(t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <Bucket
+          bucket={b}
+          key={b.name}
+          onTagClick={onTagClick}
+          tagIsMatching={tagIsMatching}
+        />
       ))}
       {showAddLink && (
         <Link className={classes.add} to={urls.adminBuckets()}>

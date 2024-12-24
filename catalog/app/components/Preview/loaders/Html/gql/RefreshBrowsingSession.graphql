@@ -1,0 +1,19 @@
+mutation ($id: ID!, $ttl: Int) {
+  browsingSessionRefresh(id: $id, ttl: $ttl) {
+    __typename
+    ... on BrowsingSession {
+      id
+    }
+    ... on InvalidInput {
+      errors {
+        name
+        path
+        message
+      }
+    }
+    ... on OperationError {
+      name
+      message
+    }
+  }
+}
