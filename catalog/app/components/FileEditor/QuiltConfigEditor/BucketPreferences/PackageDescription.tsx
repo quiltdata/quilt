@@ -7,7 +7,7 @@ import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPref
 
 import type { KeyedValue } from './State'
 
-interface LabelsProps {
+interface JsonPathsProps {
   disabled?: boolean
   onChange: (value: string[]) => void
   size: 'small' | 'medium'
@@ -16,7 +16,7 @@ interface LabelsProps {
 
 const options: string[] = []
 
-function Labels({ disabled, onChange, size, value = [] }: LabelsProps) {
+function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
   return (
     <Lab.Autocomplete
       disabled={disabled}
@@ -26,7 +26,10 @@ function Labels({ disabled, onChange, size, value = [] }: LabelsProps) {
       onChange={(_e, labels) => onChange(labels)}
       value={[...(value || [])]}
       renderInput={(params) => (
-        <M.TextField {...params} placeholder="Keys from `user_meta`" />
+        <M.TextField
+          {...params}
+          placeholder="JSON paths from `user_meta`, e.g. $.Some.Key"
+        />
       )}
       size={size}
     />
@@ -155,7 +158,7 @@ function PackageDescription({
         size={size}
         value={value.message}
       />
-      <Labels
+      <JsonPaths
         disabled={disabled || !handlePattern}
         onChange={handleLabels}
         size={size}
