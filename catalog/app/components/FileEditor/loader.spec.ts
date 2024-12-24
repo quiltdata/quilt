@@ -75,11 +75,11 @@ describe('components/FileEditor/loader', () => {
     })
     it('should detect bucket preferences config', () => {
       expect(detect('.quilt/catalog/config.yml').map((x) => x.brace)).toEqual([
-        '__quiltConfig',
+        '__bucketPreferences',
         'yaml',
       ])
       expect(detect('.quilt/catalog/config.yaml').map((x) => x.brace)).toEqual([
-        '__quiltConfig',
+        '__bucketPreferences',
         'yaml',
       ])
       expect(

@@ -34,6 +34,13 @@ const typeQuiltSummarize: EditorInputType = {
   brace: '__quiltSummarize',
 }
 
+const isBucketPreferences = (path: string) =>
+  quiltConfigs.bucketPreferences.some((quiltConfig) => quiltConfig.includes(path))
+const typeBucketPreferences: EditorInputType = {
+  title: 'Edit with config helper',
+  brace: '__bucketPreferences',
+}
+
 const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab'])
 const typeCsv: EditorInputType = {
   brace: 'less',
@@ -66,6 +73,7 @@ export const detect: (path: string) => EditorInputType[] = R.pipe(
   PreviewUtils.stripCompression,
   R.cond([
     [isQuiltSummarize, R.always([typeQuiltSummarize, typeJson])],
+    [isBucketPreferences, R.always([typeBucketPreferences, typeYaml])],
     [isQuiltConfig, R.always([typeQuiltConfig, typeYaml])],
     [isCsv, R.always([typeCsv])],
     [isJson, R.always([typeJson])],
