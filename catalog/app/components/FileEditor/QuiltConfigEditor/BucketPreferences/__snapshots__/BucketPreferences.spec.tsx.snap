@@ -177,8 +177,13 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
   <div
     className="makeStyles-groupWrapper-9"
   >
+    <h6
+      className="MuiTypography-root makeStyles-groupTitle-8 MuiTypography-h6"
+    >
+      Toggle expanded JSON blocks in METADATA section
+    </h6>
     <div
-      className="makeStyles-group-5"
+      className="makeStyles-group-5 makeStyles-group2Columns-6"
     >
       <div
         className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
@@ -192,18 +197,10 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Expand "User metadata" in METADATA section
+            Expand "User metadata"
           </span>
         </label>
       </div>
-    </div>
-  </div>
-  <div
-    className="makeStyles-groupWrapper-9"
-  >
-    <div
-      className="makeStyles-group-5"
-    >
       <div
         className="MuiFormControl-root makeStyles-field-3 makeStyles-pristine-4"
       >
@@ -216,7 +213,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Expand "Workflow" in METADATA section
+            Expand "Workflow"
           </span>
         </label>
       </div>

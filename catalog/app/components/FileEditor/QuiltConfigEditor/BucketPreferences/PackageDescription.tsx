@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import jsonpath from 'jsonpath'
 import React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -16,18 +17,35 @@ interface JsonPathsProps {
 
 const options: string[] = []
 
+const emptyArray: string[] = []
+
 function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
+  const [error, setError] = React.useState<Error | null>(null)
+  const handleChange = React.useCallback(
+    (_e, labels: string[]) => {
+      onChange(labels)
+      try {
+        labels.forEach((label: string) => jsonpath.parse(label))
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Invalid JSON path'))
+      }
+    },
+    [onChange],
+  )
   return (
     <Lab.Autocomplete
       disabled={disabled}
       freeSolo
       multiple
       options={options}
-      onChange={(_e, labels) => onChange(labels)}
-      value={[...(value || [])]}
+      onChange={handleChange}
+      value={(value as string[]) || emptyArray}
       renderInput={(params) => (
         <M.TextField
           {...params}
+          error={!!error}
+          helperText={error?.message}
           placeholder="JSON paths from `user_meta`, e.g. $.Some.Key"
         />
       )}
@@ -44,16 +62,14 @@ interface MessageProps {
 }
 
 function Message({ disabled, onChange, size, value = false }: MessageProps) {
+  const handleChange = React.useCallback(
+    (_e, checked: boolean) => onChange(checked),
+    [onChange],
+  )
   return (
     <M.FormControl>
       <M.FormControlLabel
-        control={
-          <M.Checkbox
-            checked={value}
-            size={size}
-            onChange={(_e, checked) => onChange(checked)}
-          />
-        }
+        control={<M.Checkbox checked={value} size={size} onChange={handleChange} />}
         disabled={disabled}
         label="Show the last commit message in the package list"
       />
@@ -83,13 +99,14 @@ function PackageHandle({
     },
     [onChange, value],
   )
+  const handleChange = React.useCallback((event) => setValue(event.target.value), [])
   return (
     <M.TextField
       disabled={disabled}
-      label="RegExp for the package handle"
+      label="RegExp or name for the package handle, e.g. namespace/production"
       onBlur={() => onChange(value)}
+      onChange={handleChange}
       onKeyDown={handleEnter}
-      onChange={(event) => setValue(event.target.value)}
       size={size}
       value={value}
     />

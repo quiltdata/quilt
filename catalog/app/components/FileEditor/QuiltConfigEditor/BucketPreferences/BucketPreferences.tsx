@@ -27,7 +27,7 @@ function InputBoolean({
   return (
     <M.FormControl className={className}>
       <M.FormControlLabel
-        control={<M.Checkbox checked={value} size={size} onChange={handleChange} />}
+        control={<M.Checkbox checked={!!value} size={size} onChange={handleChange} />}
         disabled={disabled}
         label={i18n(key)}
       />
@@ -145,8 +145,9 @@ const I18N = {
   'ui.blocks.meta': 'Toggle METADATA section',
   'ui.blocks.qurator': 'Enable Qurator omni',
 
-  'ui.blocks.meta.user_meta.expanded': 'Expand "User metadata" in METADATA section',
-  'ui.blocks.meta.workflows.expanded': 'Expand "Workflow" in METADATA section',
+  'ui.blocks.meta.*.expanded': 'Toggle expanded JSON blocks in METADATA section',
+  'ui.blocks.meta.user_meta.expanded': 'Expand "User metadata"',
+  'ui.blocks.meta.workflows.expanded': 'Expand "Workflow"',
 
   'ui.blocks.gallery.files': 'Images on the directory listing',
   'ui.blocks.gallery.overview': 'Images on the Bucket overview page',
@@ -277,9 +278,14 @@ export default function BucketPreferences({
     () =>
       Object.values(config).reduce(
         (memo, value) => {
+          let groupKey: string = value.key
           const keyParts = value.key.split('.')
-          const groupKey =
-            keyParts.length > 2 ? keyParts.slice(0, -1).join('.') : value.key
+          if (keyParts.length > 2 && value.key !== 'ui.package_description') {
+            groupKey = keyParts.slice(0, -1).join('.')
+          }
+          if (value.key.match(/ui\.blocks\.meta\..*\.expanded/)) {
+            groupKey = 'ui.blocks.meta.*.expanded'
+          }
           return {
             ...memo,
             [groupKey]: [...(memo[groupKey] || []), value],
