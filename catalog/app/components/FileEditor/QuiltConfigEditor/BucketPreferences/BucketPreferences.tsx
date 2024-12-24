@@ -95,7 +95,10 @@ function InputSourceBuckets({
   ...props
 }: FieldProps<TypedValue<string[]>>) {
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const options = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  const options = React.useMemo(
+    () => bucketConfigs.map((b) => `s3://${b.name}`),
+    [bucketConfigs],
+  )
   const classes = useInputSourceBucketsStyles()
   const handleChange = React.useCallback(
     (_e, buckets: string[]) => onChange({ isDefault: false, key, value: buckets }),
