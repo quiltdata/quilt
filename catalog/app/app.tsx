@@ -11,7 +11,7 @@ import * as M from '@material-ui/core'
 // initialize config from window.QUILT_CATALOG_CONFIG
 import cfg from 'constants/config'
 
-let a;
+let a
 
 // init Sentry before importing other modules
 // to allow importing it directly in other modules and capturing errors
