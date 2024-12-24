@@ -1,0 +1,15 @@
+query ($bucket: String!, $name: String!, $hash: String!, $path: String!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    revision(hashOrTag: $hash) {
+      hash
+      file(path: $path) {
+        path
+        metadata
+        size
+        physicalKey
+      }
+    }
+  }
+}

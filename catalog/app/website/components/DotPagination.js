@@ -46,10 +46,10 @@ export default function DotPagination({ total, current, onChange, ...props }) {
         (i) => (
           <button
             type="button"
-            // eslint-disable-next-line react/no-array-index-key
             key={i}
             onClick={() => onChange(i)}
             className={cx(classes.dot, current === i && classes.current)}
+            aria-label={`${i + 1} / ${total}`}
           />
         ),
         total,

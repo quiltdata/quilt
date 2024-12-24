@@ -16,6 +16,7 @@ class PackageRegistry(abc.ABC):
     latest_tag_name = 'latest'
     top_hash_len = 64
     revision_pointers = False
+    workflow_conf_path = '.quilt/workflows/config.yml'
 
     def __init__(self, base: PhysicalKey):
         self.base = base
@@ -96,6 +97,14 @@ class PackageRegistry(abc.ABC):
     @abc.abstractmethod
     def shorten_top_hash(self, pkg_name: str, top_hash: str) -> str:
         pass
+
+    @property
+    def workflow_conf_pk(self) -> PhysicalKey:
+        return self.base.join(self.workflow_conf_path)
+
+    def get_workflow_config(self):
+        from quilt3.workflows import WorkflowConfig
+        return WorkflowConfig.load(self.workflow_conf_pk)
 
 
 class PackageRegistryV1(PackageRegistry):
@@ -194,7 +203,7 @@ class PackageRegistryV1(PackageRegistry):
 class PackageRegistryV2(PackageRegistry):
     """
     All metadata files live under `.quilt/v2`:
-    * the manifests use `.quilt/v2/manifests/<usr>@<pkg>/<top_hash>/manifest.json` format for path
+    * the manifests use `.quilt/v2/manifests/<usr>@<pkg>/<top_hash>/manifest.jsonl` format for path
     * the tag files (or pointers) live under `.quilt/v2/tags/<usr>@<pkg>/<tag_name>`, each of these files
       contains the top hash of one of package manifests.
     """

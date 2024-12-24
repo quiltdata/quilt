@@ -1,69 +1,78 @@
-import * as R from 'ramda'
+import cx from 'classnames'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
+import * as Buttons from 'components/Buttons'
+import SelectDropdown from 'components/SelectDropdown'
+import cfg from 'constants/config'
+import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
-import pipeThru from 'utils/pipeThru'
 
-// import Code from './Code'
-import Section from './Section'
+export * from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
-export function Meta({ data, ...props }) {
-  return pipeThru(data)(
-    AsyncResult.case({
-      Ok: (meta) =>
-        !!meta &&
-        !R.isEmpty(meta) && (
-          <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-            <JsonDisplay value={meta} defaultExpanded={1} />
-          </Section>
-        ),
-      _: () => null,
-    }),
-  )
+export function DownloadButton({ className, handle }) {
+  return AWS.Signer.withDownloadUrl(handle, (url) => (
+    <Buttons.Iconized
+      className={className}
+      href={url}
+      download
+      label="Download file"
+      icon="arrow_downward"
+    />
+  ))
 }
 
-const useDownloadButtonStyles = M.makeStyles(() => ({
-  button: {
+const useViewModeSelectorStyles = M.makeStyles((t) => ({
+  root: {
     flexShrink: 0,
     marginBottom: -3,
     marginTop: -3,
   },
+  label: {
+    marginRight: t.spacing(1),
+  },
 }))
 
-export function DownloadButton({ handle }) {
-  const classes = useDownloadButtonStyles()
+export function ViewModeSelector({ className, ...props }) {
+  const classes = useViewModeSelectorStyles()
   const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  return (
+    <SelectDropdown className={cx(classes.root, className)} {...props}>
+      {sm ? <M.Icon>visibility</M.Icon> : <span className={classes.label}>View as:</span>}
+    </SelectDropdown>
+  )
+}
 
-  return AWS.Signer.withDownloadUrl(handle, (url) =>
-    xs ? (
-      <M.IconButton
-        className={classes.button}
-        href={url}
-        edge="end"
-        size="small"
-        download
-      >
-        <M.Icon>arrow_downward</M.Icon>
-      </M.IconButton>
-    ) : (
-      <M.Button
-        href={url}
-        className={classes.button}
-        variant="outlined"
-        size="small"
-        startIcon={<M.Icon>arrow_downward</M.Icon>}
-        download
-      >
-        Download file
-      </M.Button>
-    ),
+/** Child button must have `type="submit"` */
+export function ZipDownloadForm({
+  className = '',
+  suffix,
+  children,
+  newTab = false,
+  files = [],
+}) {
+  const { token } = redux.useSelector(tokensSelector) || {}
+  if (!token || cfg.noDownload) return null
+  const action = `${cfg.s3Proxy}/zip/${suffix}`
+  return (
+    <form
+      className={className}
+      action={action}
+      target={newTab ? '_blank' : undefined}
+      method="POST"
+      style={{ flexShrink: 0 }}
+    >
+      <input type="hidden" name="token" value={token} />
+      {files.map((file) => (
+        <input type="hidden" name="file" value={file} key={file} />
+      ))}
+      {children}
+    </form>
   )
 }
 
@@ -89,7 +98,7 @@ const renderDownload = (handle) => !!handle && <DownloadButton {...{ handle }} /
 
 function FileView({
   header,
-  subheader, 
+  subheader,
 }) {
   return (
     <Root>

@@ -14,8 +14,10 @@ const mapResult = AsyncResult.mapCase({ Pending: R.prop('prev') })
 
 const reducer = Action.reducer({
   Reset: () => () => initial,
-  Request: ({ request, params }) => (prev) =>
-    AsyncResult.Pending({ request, params, prev: mapResult(prev) }),
+  Request:
+    ({ request, params }) =>
+    (prev) =>
+      AsyncResult.Pending({ request, params, prev: mapResult(prev) }),
   Response: ({ request, params, result }) =>
     AsyncResult.case({
       Pending: (p) =>
@@ -26,9 +28,27 @@ const reducer = Action.reducer({
     }),
 })
 
+// Use it to test AsyncResult states
+// example: `createResult(AsyncResult.Err(new Error('Expected')))`
+export function createResult(result) {
+  return {
+    case: (cases, ...args) => AsyncResult.case(cases, result, ...args),
+    result,
+  }
+}
+
 export function useData(request, params, { noAutoFetch = false } = {}) {
   // TODO: accept custom key extraction fn (params => key for comparison)
-  const [state, dispatch] = React.useReducer(reducer, initial)
+  const [state, setState] = React.useState(initial)
+  const stateRef = React.useRef()
+  stateRef.current = state
+
+  const mountRef = React.useRef(true)
+  React.useEffect(() => () => (mountRef.current = false), [])
+  const dispatch = (action) => {
+    if (!mountRef.current) return
+    setState((stateRef.current = reducer(stateRef.current, action)))
+  }
 
   const fetch = useMemoEq([request, params], () => () => {
     dispatch(Action.Request({ request, params }))
@@ -41,16 +61,19 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
       })
   })
 
-  usePrevious({ params, noAutoFetch }, (prev) => {
-    if (R.equals({ params, noAutoFetch }, prev)) return
+  const prev = usePrevious({ params, noAutoFetch })
+  if (!R.equals({ params, noAutoFetch }, prev)) {
     if (noAutoFetch) dispatch(Action.Reset())
     else fetch()
-  })
+  }
 
-  const result = useMemoEq(state, mapResult)
+  const result = useMemoEq(stateRef.current, mapResult)
 
-  const doCase = useMemoEq([result], () => (cases, ...args) =>
-    AsyncResult.case(cases, result, ...args),
+  const doCase = useMemoEq(
+    [result],
+    () =>
+      (cases, ...args) =>
+        AsyncResult.case(cases, result, ...args),
   )
 
   return useMemoEq({ result, fetch, case: doCase }, R.identity)

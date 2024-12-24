@@ -1,0 +1,6 @@
+query {
+  potentialCollaborators {
+    email
+    username
+  }
+}

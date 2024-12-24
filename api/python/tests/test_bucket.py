@@ -60,7 +60,7 @@ class TestBucket(QuiltTestCase):
             }
         )
 
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+        with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             bucket.fetch('dir/', './')
 
         assert pathlib.Path('a').read_bytes() == a_contents

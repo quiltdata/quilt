@@ -1,0 +1,11 @@
+# import BucketConfigSelection from "./BucketConfigSelection.graphql"
+
+mutation ($name: String!, $input: BucketUpdateInput!) {
+  bucketUpdate(name: $name, input: $input) {
+    ... on BucketUpdateSuccess {
+      bucketConfig {
+        ...BucketConfigSelection
+      }
+    }
+  }
+}

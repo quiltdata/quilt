@@ -1,27 +1,56 @@
-# The bare minimum Dockerfile to install aicsimageio==3.0.* and all its dependencies
+ARG FUNCTION_DIR="/function"
 
-# Must start from this image for lambda support
-FROM amazonlinux:2018.03
+FROM debian:bullseye-20241202-slim@sha256:8118d0da5204dcc2f648d416b4c25f97255a823797aeb17495a01f2eb9c1b487 as base-image
 
-# Install python
-RUN yum install python36-devel.x86_64 -y
-RUN yum install python36-pip.noarch -y
+FROM base-image as build-image
 
-# Get gcc for Cython
-RUN yum install gcc.noarch -y
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+# Create function directory
+RUN mkdir -p ${FUNCTION_DIR}
 
-# Set python3.6 to default python3
-RUN ln -sf /usr/bin/python3.6 /usr/bin/python3
-RUN ln -sf /usr/bin/pip-3.6 /usr/bin/pip3
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        curl \
+        python3-dev \
+        python3-pip
 
-# Get requirements file
-COPY requirements.txt requirements.txt
+COPY requirements.txt /requirements/thumbnail.txt
+# HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
+RUN pip install -U pip setuptools 'numpy<2'
+RUN pip install --target /deps -r /requirements/thumbnail.txt
+RUN curl --output /deps/unoconv \
+    https://raw.githubusercontent.com/unoconv/unoconv/be5301a757552f4ecac5d73187ce4d8e18341306/unoconv
 
-# Update pip
-RUN pip3 install --upgrade pip
+COPY . /src/thumbnail/
+RUN pip install --target /lambda --no-deps /src/thumbnail/
 
-# Get Cython for numpy
-RUN pip3 install Cython
+FROM base-image
 
-# Install package
-RUN pip3 install -r requirements.txt
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends\
+        ca-certificates \
+        libreoffice-impress-nogui \
+        python3 \
+        python3-uno \
+        poppler-utils \
+        fonts-crosextra-caladea \
+        fonts-crosextra-carlito \
+        fonts-liberation \
+        # WebP support
+        libfreeimage3 \
+    && \
+    apt-get clean
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+# Set working directory to function root directory
+WORKDIR ${FUNCTION_DIR}
+
+# Copy in the build image dependencies
+COPY --from=build-image /deps ${FUNCTION_DIR}
+COPY --from=build-image /lambda ${FUNCTION_DIR}
+
+ENTRYPOINT ["/usr/bin/python3", "-m", "awslambdaric"]
+CMD ["t4_lambda_thumbnail.lambda_handler"]

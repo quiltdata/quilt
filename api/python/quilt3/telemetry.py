@@ -21,16 +21,23 @@ DISABLE_USAGE_METRICS_ENVVAR = "QUILT_DISABLE_USAGE_METRICS"
 MAX_CLEANUP_WAIT_SECS = 5
 
 
+@functools.lru_cache(maxsize=None)
+def get_session_id():
+    return str(uuid.uuid4())
+
+
+reset_session_id = get_session_id.cache_clear
+
+
 class ApiTelemetry:
     session = None
-    session_id = str(uuid.uuid4())
     pending_reqs = []
     pending_reqs_lock = Lock()
     telemetry_disabled = None
 
     @classmethod
     def create_session(cls):
-        return FuturesSession(executor=ThreadPoolExecutor(max_workers=2))
+        return FuturesSession(executor=ThreadPoolExecutor(max_workers=2))  # pylint: disable=consider-using-with
 
     def __init__(self, api_name):
         if ApiTelemetry.telemetry_disabled is None:
@@ -62,12 +69,8 @@ class ApiTelemetry:
     @classmethod
     def check_telemetry_disabled_by_envvar(cls):
         envvar = os.environ.get(DISABLE_USAGE_METRICS_ENVVAR, "")
-        if envvar.lower() == "false":
-            envvar = False
-        elif envvar.lower() == "no":
-            envvar = False
-        elif envvar == "0":
-            envvar = False
+        if envvar.lower() in ("false", "no", "0"):
+            return False
         return bool(envvar)
 
     @classmethod
@@ -127,7 +130,7 @@ class ApiTelemetry:
         def decorated(*args, **kwargs):
 
             ApiTelemetry.cleanup_completed_requests()
-            ApiTelemetry.report_api_use(self.api_name, ApiTelemetry.session_id)
+            ApiTelemetry.report_api_use(self.api_name, get_session_id())
 
             results = func(*args, **kwargs)
             # print(f"{len(ApiTelemetry.pending_reqs)} request(s) pending!")

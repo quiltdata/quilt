@@ -12,7 +12,8 @@ const appPalette = {
     main: colors.orange[600],
   },
   info: {
-    main: colors.lightBlue[50],
+    main: colors.lightBlue[600],
+    light: colors.lightBlue[50],
   },
   warning: {
     main: colors.yellow[200],
@@ -87,6 +88,11 @@ const websiteTypography = {
 }
 
 const websiteOverrides = {
+  MuiAppBar: {
+    colorPrimary: {
+      background: appPalette.primary.main,
+    },
+  },
   MuiButton: {
     root: {
       padding: [[8, 24]],
@@ -133,7 +139,7 @@ export const navTheme = createMuiTheme({
   mixins,
 })
 
-// theme used for marketing pages
+// theme used for "website" pages
 export const websiteTheme = createMuiTheme({
   palette: websitePalette,
   typography: websiteTypography,

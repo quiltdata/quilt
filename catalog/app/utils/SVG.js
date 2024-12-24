@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import uuid from 'uuid/v1'
+import * as uuid from 'uuid'
 
 import tagged from 'utils/tagged'
 import useMemoEq from 'utils/useMemoEq'
@@ -15,12 +15,12 @@ export const usePaint = memoEq(
   R.pipe(
     (paint) => {
       if (Paint.is(paint)) {
-        const id = uuid()
+        const id = uuid.v1()
         return (fn) => fn(paint, id)
       }
       // assuming object if not array
       const map = Array.isArray(paint) ? R.addIndex(R.map) : R.mapObjIndexed
-      const ids = map(() => uuid(), paint)
+      const ids = map(() => uuid.v1(), paint)
       return (fn) => map((p, k) => fn(p, ids[k]), paint)
     },
     (map) =>

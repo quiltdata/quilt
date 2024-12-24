@@ -3,23 +3,20 @@ import isBuffer from 'lodash/isBuffer'
 import isNil from 'lodash/isNil'
 import isString from 'lodash/isString'
 import isTypedArray from 'lodash/isTypedArray'
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { setPropTypes } from 'recompose'
 import { takeEvery, call, put } from 'redux-saga/effects'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import * as SagaInjector from 'utils/SagaInjector'
 import defer from 'utils/defer'
 import { BaseError } from 'utils/error'
-import { composeComponent } from 'utils/reactTools'
 import { actionCreator, createActions } from 'utils/reduxTools'
 
 const REDUX_KEY = 'app/utils/APIConnector'
 
-const actions = createActions(REDUX_KEY, 'API_REQUEST', 'API_RESPONSE') // eslint-disable-line function-paren-newline
+const actions = createActions(REDUX_KEY, 'API_REQUEST', 'API_RESPONSE')
 
 /**
  * Options object for creating Requests, with some minor additions:
@@ -81,7 +78,6 @@ const response = actionCreator(actions.API_RESPONSE, (payload, requestOpts) => (
 const test = R.ifElse(R.is(RegExp), R.test, R.equals)
 
 export class HTTPError extends BaseError {
-  // eslint-disable-next-line react/static-property-placement
   static displayName = 'HTTPError'
 
   static is = (e, status, msg) => {
@@ -95,7 +91,9 @@ export class HTTPError extends BaseError {
     let json
     try {
       json = JSON.parse(text)
-    } catch (e) {} // eslint-disable-line no-empty
+    } catch (e) {
+      json = { message: message || text }
+    }
 
     super(message || (json && (json.message || json.error)) || resp.statusText, {
       response: resp,
@@ -220,8 +218,12 @@ const jsonAccepts = {
 function* jsonMiddleware({ json = true, ...opts }, next) {
   if (!json) return yield call(next, opts)
 
-  const { stringify = true, parse = true, contentType = true, accepts = true } =
-    json === true ? {} : json
+  const {
+    stringify = true,
+    parse = true,
+    contentType = true,
+    accepts = true,
+  } = json === true ? {} : json
 
   if (!stringify && !parse && !contentType && !accepts) {
     return yield call(next, opts)
@@ -276,19 +278,19 @@ function* apiSaga({ fetch, base = '', middleware = [] }) {
     mkFetchMiddleware({ fetch, base }),
   )
 
-  yield takeEvery(request.type, function* handleRequest({
-    payload: opts,
-    meta: { resolve, reject },
-  }) {
-    try {
-      const result = yield call(execRequest, opts)
-      yield put(response(result, opts))
-      yield call(resolve, result)
-    } catch (e) {
-      yield put(response(e, opts))
-      yield call(reject, e)
-    }
-  })
+  yield takeEvery(
+    request.type,
+    function* handleRequest({ payload: opts, meta: { resolve, reject } }) {
+      try {
+        const result = yield call(execRequest, opts)
+        yield put(response(result, opts))
+        yield call(resolve, result)
+      } catch (e) {
+        yield put(response(e, opts))
+        yield call(reject, e)
+      }
+    },
+  )
 }
 
 /**
@@ -310,26 +312,20 @@ export const useApi = () => React.useContext(Ctx)
 
 export const use = useApi
 
-export const Provider = composeComponent(
-  'APIConnector.Provider',
-  setPropTypes({
-    fetch: PT.func.isRequired,
-    middleware: PT.arrayOf(PT.func.isRequired),
-  }),
-  ({ fetch, middleware, children }) => {
-    const base = `${Config.useConfig().registryUrl}/api`
-    SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
+// fetch: window.fetch, middleware: ((any) => any)[]
+export function Provider({ fetch, middleware, children }) {
+  const base = `${cfg.registryUrl}/api`
+  SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
 
-    const dispatch = redux.useDispatch()
-    const req = React.useCallback(
-      (opts) => {
-        const dfd = defer()
-        dispatch(request(opts, dfd.resolver))
-        return dfd.promise
-      },
-      [dispatch],
-    )
+  const dispatch = redux.useDispatch()
+  const req = React.useCallback(
+    (opts) => {
+      const dfd = defer()
+      dispatch(request(opts, dfd.resolver))
+      return dfd.promise
+    },
+    [dispatch],
+  )
 
-    return <Ctx.Provider value={req}>{children}</Ctx.Provider>
-  },
-)
+  return <Ctx.Provider value={req}>{children}</Ctx.Provider>
+}

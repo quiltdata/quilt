@@ -4,6 +4,7 @@ Decorators for using lambdas in API Gateway
 
 import gzip
 import traceback
+import urllib.parse
 from base64 import b64decode, b64encode
 from functools import wraps
 
@@ -20,12 +21,13 @@ class Request:
     Wraps a lambda event in an object similar to a Flask Request:
     http://flask.pocoo.org/docs/1.0/api/#flask.Request
     """
-    def __init__(self, event):
+    def __init__(self, event, context):
         self.event = event
+        self.context = context
         self.method = event['httpMethod']
         self.path = event['path']
-        self.pathParameters = event['pathParameters']
-        self.headers = event['headers'] or {}
+        self.pathParameters = event.get('pathParameters')
+        self.headers = {k.lower(): v for k, v in (event["headers"] or {}).items()}
         self.args = event['queryStringParameters'] or {}
         if event['isBase64Encoded']:
             self.data = b64decode(event['body'])
@@ -33,11 +35,25 @@ class Request:
             self.data = event['body']
 
 
-def api(cors_origins=()):
+class ELBRequest(Request):
+    def __init__(self, event, context):
+        super().__init__(event, context)
+        # ELB pass queryStringParameters escaped.
+        self.args = dict(
+            urllib.parse.parse_qsl(
+                '&'.join(
+                    f'{k}={v}'
+                    for k, v in self.args.items()
+                )
+            )
+        )
+
+
+def api(cors_origins=(), *, request_class=Request):
     def innerdec(f):
         @wraps(f)
-        def wrapper(event, _):
-            request = Request(event)
+        def wrapper(event, context):
+            request = request_class(event, context)
             if request.method == 'OPTIONS':
                 status = 200
                 response_headers = {}
@@ -63,7 +79,7 @@ def api(cors_origins=()):
                         'Content-Encoding': 'gzip'
                     })
 
-                if isinstance(body, bytes):
+                if isinstance(body, (bytes, bytearray, memoryview)):
                     body = b64encode(body).decode()
                     encoded = True
                 else:
@@ -82,7 +98,7 @@ def api(cors_origins=()):
                     'access-control-expose-headers': (
                         f"*, Authorization, {QUILT_INFO_HEADER}"
                     ),
-                    'access-control-max-age': 86400
+                    'access-control-max-age': '86400',
                 })
 
             return {

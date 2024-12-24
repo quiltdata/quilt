@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "outDir": "./build/",
+    "baseUrl": "./app/",
+    "paths": {
+      "*": ["*", "../../shared/*"]
+    },
+    "sourceMap": true,
+    "module": "ESNext",
+    "target": "ES5",
+    "downlevelIteration": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "jsx": "react",
+    "strict": true,
+    "noImplicitAny": true,
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "importHelpers": true,
+    "allowJs": true
+  },
+  "include": ["./app/**/*"]
+}

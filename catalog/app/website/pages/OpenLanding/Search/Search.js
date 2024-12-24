@@ -1,17 +1,29 @@
-import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
-import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
+
+// TODO: decouple NavBar layout/state from gql and auth calls
+//       and place it into components/SearchBar
+import { useNavBar } from 'containers/NavBar/Provider'
+import Suggestions from 'containers/NavBar/Suggestions'
 
 import * as BucketConfig from 'utils/BucketConfig'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 
 import Dots from 'website/components/Backgrounds/Dots'
 
 import bg from './search-bg.png'
 import bg2x from './search-bg@2x.png'
+
+const useHelpStyles = M.makeStyles((t) => ({
+  paper: {
+    borderRadius: t.spacing(0.5),
+    marginTop: t.spacing(8),
+    maxWidth: 690,
+    position: 'absolute',
+    width: '100%',
+    zIndex: 1,
+  },
+}))
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -48,34 +60,34 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: t.typography.pxToRem(20),
     lineHeight: t.typography.pxToRem(60),
     maxWidth: 750,
+    overflow: 'hidden',
+    paddingLeft: 0,
     width: '100%',
   },
   inputInput: {
     height: 'auto',
-    paddingBottom: 0,
-    paddingLeft: t.spacing(9),
-    paddingRight: t.spacing(4),
-    paddingTop: 0,
+    padding: t.spacing(0, 4, 0, 9.5),
   },
-  adornment: {
+  inputOptions: {
+    borderColor: t.palette.grey[300],
+    borderRadius: 0,
+    borderWidth: '0 1px 0 0',
     color: t.palette.grey[600],
-    justifyContent: 'center',
-    left: t.spacing(3),
-    pointerEvents: 'none',
-    position: 'absolute',
+    padding: t.spacing(1.5, 1.5, 1.5, 3),
   },
-  hintContainer: {
-    maxWidth: 750,
-    position: 'relative',
+  inputOptionsSelected: {
+    boxShadow: 'inset -1px 0 4px rgba(0, 0, 0, 0.2)',
+  },
+  inputWrapper: {
+    display: 'flex',
+    justifyContent: 'center',
     width: '100%',
   },
-  hint: {
-    ...t.typography.body2,
-    color: fade(t.palette.common.white, 0.6),
-    lineHeight: 1,
+  adornment: {
+    justifyContent: 'center',
     position: 'absolute',
-    right: 30,
-    top: 12,
+    height: 'auto',
+    maxHeight: '100%',
   },
   stats: {
     display: 'flex',
@@ -112,60 +124,47 @@ const useStyles = M.makeStyles((t) => ({
       fontSize: t.typography.pxToRem(16),
     },
   },
+  icon: {
+    marginLeft: t.spacing(3.5),
+    opacity: 0.5,
+  },
 }))
 
 export default function Search() {
   const classes = useStyles()
+  const helpClasses = useHelpStyles()
 
-  const dispatch = redux.useDispatch()
-  const { urls } = NamedRoutes.use()
-
+  // XXX: consider using graphql directly
   const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
-  const [value, change] = React.useState('')
-
-  const onChange = React.useCallback((evt) => {
-    change(evt.target.value)
-  }, [])
-
-  const onKeyDown = React.useCallback(
-    (evt) => {
-      // eslint-disable-next-line default-case
-      switch (evt.key) {
-        case 'Enter':
-          dispatch(push(urls.search({ q: value })))
-          break
-        case 'Escape':
-          evt.target.blur()
-          break
-      }
-    },
-    [dispatch, urls, value],
-  )
+  const { input, onClickAway } = useNavBar()
+  const ref = React.useRef(null)
+  const focus = React.useCallback(() => ref.current?.focus(), [])
 
   return (
     <div className={classes.root}>
       <Dots />
       <M.Container maxWidth="lg" className={classes.container}>
         <div className={classes.inner}>
-          <M.InputBase
-            {...{ value, onChange, onKeyDown }}
-            startAdornment={
-              <M.InputAdornment className={classes.adornment}>
-                <M.Icon fontSize="large">search</M.Icon>
-              </M.InputAdornment>
-            }
-            classes={{ root: classes.inputRoot, input: classes.inputInput }}
-            placeholder="Search"
-          />
-          <div className={classes.hintContainer}>
-            <a
-              className={classes.hint}
-              href="https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html#_simple_query_string_syntax"
-            >
-              Search syntax
-            </a>
-          </div>
+          <M.ClickAwayListener onClickAway={onClickAway}>
+            <div className={classes.inputWrapper}>
+              <M.InputBase
+                {...input}
+                startAdornment={
+                  <M.InputAdornment className={classes.adornment}>
+                    <M.Icon className={classes.icon} onClick={focus}>
+                      search
+                    </M.Icon>
+                  </M.InputAdornment>
+                }
+                classes={{ root: classes.inputRoot, input: classes.inputInput }}
+                placeholder="Search"
+                ref={ref}
+              />
+              <Suggestions classes={helpClasses} open={input.helpOpen} />
+            </div>
+          </M.ClickAwayListener>
+
           <div className={classes.stats}>
             <div className={classes.stat}>
               <div className={classes.statValue}>10.2 Billion</div>

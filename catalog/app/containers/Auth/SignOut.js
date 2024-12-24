@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import { Redirect } from 'react-router-dom'
 import * as redux from 'react-redux'
 import { createStructuredSelector } from 'reselect'
@@ -11,7 +10,6 @@ import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
 import { signOut } from './actions'
-import msg from './messages'
 import * as selectors from './selectors'
 
 const selector = createStructuredSelector({
@@ -27,23 +25,22 @@ export function useSignOut() {
     dispatch(signOut(result.resolver))
     result.promise.catch(sentry('captureException'))
     return result.promise
-  }, [dispatch])
+  }, [dispatch, sentry])
 }
 
 export default function SignOut() {
-  const doSignOut = useSignOut()
+  const signOutRef = React.useRef()
+  signOutRef.current = useSignOut()
   const { waiting, authenticated } = redux.useSelector(selector)
   React.useEffect(() => {
-    if (!waiting && authenticated) doSignOut()
+    if (!waiting && authenticated) signOutRef.current()
   }, [waiting, authenticated])
   return (
     <>
       {!authenticated && <Redirect to="/" />}
       <Layout>
         <M.Box mt={5} textAlign="center">
-          <Working>
-            <FM {...msg.signOutWaiting} />
-          </Working>
+          <Working>Signing out</Working>
         </M.Box>
       </Layout>
     </>

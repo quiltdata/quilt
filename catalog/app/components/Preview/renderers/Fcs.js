@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -7,9 +6,6 @@ import JsonDisplay from 'components/JsonDisplay'
 import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
-  },
   dataframe: {
     overflow: 'auto',
     paddingTop: t.spacing(2),
@@ -40,7 +36,7 @@ const useStyles = M.makeStyles((t) => ({
 function Fcs({ className, preview, metadata, note, warnings, ...props }) {
   const classes = useStyles()
   return (
-    <div className={cx(className, classes.root)} {...props}>
+    <div className={className} {...props}>
       {renderWarnings(warnings)}
       {!!metadata && <JsonDisplay name="Metadata" value={metadata} />}
       {!!preview && (

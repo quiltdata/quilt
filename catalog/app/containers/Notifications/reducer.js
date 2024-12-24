@@ -4,6 +4,7 @@ import { PUSH, DISMISS } from './constants'
 
 const initialState = fromJS([])
 
+// eslint-disable-next-line @typescript-eslint/default-param-last
 export default (state = initialState, action) => {
   switch (action.type) {
     case PUSH:

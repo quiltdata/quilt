@@ -1,0 +1,16 @@
+mutation ($id: ID!) {
+  roleSetDefault(id: $id) {
+    __typename
+    ... on RoleSetDefaultSuccess {
+      role {
+        __typename
+        ... on UnmanagedRole {
+          id
+        }
+        ... on ManagedRole {
+          id
+        }
+      }
+    }
+  }
+}

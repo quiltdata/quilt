@@ -37,20 +37,14 @@ export default function useEditableValue(externalValue, onCommit) {
     )
   }, [externalValue, onCommit, cancel, state])
 
+  const isEdited = State.Edited.is(state)
   const commitValue = React.useCallback(
     (v) => {
-      State.case(
-        {
-          Edited: () => {
-            if (!R.equals(externalValue, v)) onCommit(v)
-            cancel()
-          },
-          _: () => {},
-        },
-        state,
-      )
+      if (!isEdited) return
+      if (!R.equals(externalValue, v)) onCommit(v)
+      cancel()
     },
-    [externalValue, onCommit, cancel, State.Edited.is(state)],
+    [externalValue, onCommit, cancel, isEdited],
   )
 
   const value = useMemoEq([state, externalValue], () =>

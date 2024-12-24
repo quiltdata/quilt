@@ -6,6 +6,7 @@ build
 dist
 node_modules
 tmp_*
+.venv
 
 **/.DS_Store
 
@@ -39,3 +40,13 @@ registry/dpmd
 
 # Doc Build
 _build
+testdocs/*.json*
+testdocs/test_workflow
+testdocs/references
+testdocs/notebooks
+testdocs/scripts
+
+.env
+
+.venv
+.aider*

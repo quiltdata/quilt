@@ -9,16 +9,15 @@ VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 
 def readme():
-    readme_short = """
-    Quilt manages data like code (with packages, repositories, browsing and
-    revision history) so that teams can experiment faster in machine learning,
-    biotech, and other data-driven domains.
+    return """\
+Quilt manages data like code (with packages, repositories, browsing and
+revision history) so that teams can experiment faster in machine learning,
+biotech, and other data-driven domains.
 
-    The `quilt3` PyPi package allows you to build, push, and install data packages.
-    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
-    to learn more.
-    """
-    return readme_short
+The `quilt3` PyPI package allows you to build, push, and install data packages.
+Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
+to learn more.
+"""
 
 
 class VerifyVersionCommand(install):
@@ -38,17 +37,19 @@ class VerifyVersionCommand(install):
 setup(
     name="quilt3",
     version=VERSION,
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
-    python_requires='>=3.6',
+    python_requires='>=3.9',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
@@ -56,20 +57,16 @@ setup(
     url='https://github.com/quiltdata/quilt',
     keywords='',
     install_requires=[
-        'appdirs>=1.4.0',
-        'aws-requests-auth>=0.4.2',
-        'boto3>=1.10.0',
-        'dnspython>=1.16.0',
-        'flask',
-        'flask_cors',
-        'flask_json',
+        'platformdirs>=2',
+        'boto3>=1.21.7',
         'jsonlines==1.2.0',
-        'packaging>=16.8',
         'PyYAML>=5.1',
         'requests>=2.12.4',
-        'tenacity>=5.1.1',
+        'tenacity>=5.1.1,!=8.4.0',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
+        'jsonschema>=3,<5',
+        "pydantic>=2.0.0,<3.0.0",
     ],
     extras_require={
         'pyarrow': [
@@ -77,21 +74,26 @@ setup(
             'pandas>=0.19.2',
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
+        'anndata': ['anndata>=0.8.0'],
         'tests': [
-            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
-            'pandas>=0.19.2',
-            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
-            'pytest<5.1.0',                 # TODO: Fix pytest.ensuretemp in conftest.py
+            'anndata!=0.9.0',
+            'quilt3[pyarrow,anndata]',
+            'pytest==6.*',
             'pytest-cov',
+            'coverage==6.4',
             'pytest-env',
+            'pytest-subtests',
             'responses',
-            'tox',
-            'detox',
-            'tox-pytest-summary',
             'git-pylint-commit-hook',
             'ipython',
             'jupyter',
             'watchdog'
+        ],
+        'catalog': [
+            'quilt3_local>=1,<2',
+            'uvicorn>=0.15,<0.18',
+            # Workaround to reduce backtracking during `pip install quilt3[catalog]`.
+            'aiobotocore[boto3]>=2',
         ],
     },
     include_package_data=True,

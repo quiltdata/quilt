@@ -1,3 +1,5 @@
+import typing as T
+
 from .backends import get_package_registry
 from .data_transfer import copy_file
 from .search_util import search_api
@@ -71,7 +73,7 @@ def list_packages(registry=None):
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
 
-    Returns an iterable of (version, hash) of a package in a registry.
+    Returns an iterable of (latest_or_unix_ts, hash) of package revisions.
     If the registry is None, default to the local registry.
 
     Args:
@@ -91,17 +93,18 @@ def config(*catalog_url, **config_values):
 
     To retrieve the current config, call directly, without arguments:
 
-        >>> import quilt3
-        >>> quilt3.config()
+        import quilt3
+        quilt3.config()
 
     To trigger autoconfiguration, call with just the navigator URL:
 
-        >>> quilt3.config('https://example.com')
+        import quilt3
+        quilt3.config('https://YOUR-CATALOG-URL.com')
 
     To set config values, call with one or more key=value pairs:
 
-        >>> quilt3.config(navigator_url='http://example.com',
-        ...               elastic_search_url='http://example.com/queries')
+        import quilt3
+        quilt3.config(navigator_url='http://example.com')
 
     Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
 
@@ -163,38 +166,23 @@ def _disable_telemetry():
 
 
 @ApiTelemetry("api.search")
-def search(query, limit=10):
+def search(query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
     """
     Execute a search against the configured search endpoint.
 
     Args:
-        query (str): query string to search
-        limit (number): maximum number of results to return. Defaults to 10
+        query: query string to query if passed as `str`, DSL query body if passed as `dict`
+        limit: maximum number of results to return. Defaults to 10
 
     Query Syntax:
-        [simple query string query](
-            https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
-
+        [Query String Query](
+            https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
+        [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
 
     Returns:
-        a list of objects with the following structure:
-        ```
-        [{
-            "_id": <document unique id>
-            "_index": <source index>,
-            "_score": <relevance score>
-            "_source":
-                "key": <key of the object>,
-                "size": <size of object in bytes>,
-                "user_meta": <user metadata from meta= via quilt3>,
-                "last_modified": <timestamp from ElasticSearch>,
-                "updated": <object timestamp from S3>,
-                "version_id": <version_id of object version>
-            "_type": <document type>
-        }, ...]
-        ```
+        search results
     """
     # force a call to configure_from_default if no config exists
     _config()
-    raw_results = search_api(query, '*', limit)
+    raw_results = search_api(query, '_all', limit)
     return raw_results['hits']['hits']

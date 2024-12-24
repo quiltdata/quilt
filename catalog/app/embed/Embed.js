@@ -1,17 +1,29 @@
-// side-effect: inject global css
-import 'sanitize.css'
+// Embed entry point
 
+// Import all the third party stuff
+import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Switch, useLocation } from 'react-router-dom'
-import { createMemoryHistory as createHistory } from 'history'
+import { Route, Router, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+// initialize config from window.QUILT_CATALOG_CONFIG
+import cfg from 'constants/config'
+
+// init Sentry before importing other modules
+// to allow importing it directly in other modules and capturing errors
+import * as Sentry from 'utils/Sentry'
+
+Sentry.init(cfg)
+
+// side-effect: inject global css
+import 'sanitize.css'
+
+// Import the rest of our modules
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'
-import LanguageProvider from 'containers/LanguageProvider'
 import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/embed-routes'
@@ -19,17 +31,16 @@ import * as style from 'constants/style'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as BucketCache from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
+import * as GraphQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
-import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import RouterProvider from 'utils/router'
 import * as s3paths from 'utils/s3paths'
+import * as Tracking from 'utils/tracking'
 import useConstant from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
@@ -41,13 +52,14 @@ import WithGlobalStyles from '../global-styles'
 
 import AppBar from './AppBar'
 import * as EmbedConfig from './EmbedConfig'
+import * as Overrides from './Overrides'
+import * as ipc from './ipc'
 
-const mkLazy = (load) =>
-  RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const Dir = mkLazy(() => import('./Dir'))
-const File = mkLazy(() => import('./File'))
-const Search = mkLazy(() => import('./Search'))
+const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
+const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
+const Search = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 
 const FinalBoundary = createBoundary(() => (error) => (
   <h1
@@ -92,27 +104,36 @@ function Root() {
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
-        <Route path={paths.bucketRoot} component={Bucket} />
-        <Route component={ThrowNotFound} />
+        <Route path={paths.bucketRoot}>
+          <Bucket />
+        </Route>
+        <Route>
+          <ThrowNotFound />
+        </Route>
       </Switch>
     </CatchNotFound>
   )
 }
 
-function Bucket({
-  match: {
-    params: { bucket },
-  },
-}) {
+function Bucket() {
+  const { bucket } = useParams()
   const { paths } = NamedRoutes.use()
 
   return (
     <BucketLayout bucket={bucket}>
       <Switch>
-        <Route path={paths.bucketFile} component={File} exact strict />
-        <Route path={paths.bucketDir} component={Dir} exact />
-        <Route path={paths.bucketSearch} component={Search} exact />
-        <Route component={ThrowNotFound} />
+        <Route path={paths.bucketFile} exact strict>
+          <File />
+        </Route>
+        <Route path={paths.bucketDir} exact>
+          <Dir />
+        </Route>
+        <Route path={paths.bucketSearch} exact>
+          <Search />
+        </Route>
+        <Route>
+          <ThrowNotFound />
+        </Route>
       </Switch>
     </BucketLayout>
   )
@@ -136,39 +157,45 @@ function BucketLayout({ bucket, children }) {
 }
 
 function useInit() {
+  const messageParent = ipc.useMessageParent()
   const [state, setState] = React.useState(null)
 
-  const handleMessage = React.useCallback(
-    ({ data }) => {
-      if (!data || data.type !== 'init') return
-      const { type, ...init } = data
-      try {
-        if (!init.bucket) throw new Error('missing .bucket')
-        if (init.scope) {
-          if (typeof init.scope !== 'string') throw new Error('.scope must be a string')
-          init.scope = s3paths.ensureSlash(init.scope)
+  ipc.useMessageHandler(
+    React.useCallback(
+      ({ type, ...init }) => {
+        if (type !== 'init') return
+        try {
+          if (!init.bucket && !init.route)
+            throw new Error('missing either .bucket or .route')
+          if (init.scope) {
+            if (typeof init.scope !== 'string') throw new Error('.scope must be a string')
+            // eslint-disable-next-line no-param-reassign
+            init.scope = s3paths.ensureSlash(init.scope)
+          }
+          Overrides.validate(init.overrides)
+          setState(init)
+        } catch (e) {
+          const message = `Configuration error: ${e.message}`
+          // eslint-disable-next-line no-console
+          console.error(message)
+          // eslint-disable-next-line no-console
+          console.log('init object:', init)
+          messageParent({ type: 'error', message, init })
+          setState(e)
         }
-        setState(init)
-      } catch (e) {
-        console.error(`Configuration error: ${e.message}`)
-        console.log('init object:', init)
-        setState(e)
-      }
-    },
-    [setState],
+      },
+      [setState, messageParent],
+    ),
   )
 
   React.useEffect(() => {
-    window.addEventListener('message', handleMessage)
-    return () => {
-      window.removeEventListener('message', handleMessage)
-    }
-  }, [handleMessage])
+    messageParent({ type: 'ready' })
+  }, [messageParent])
 
   return state
 }
 
-function Init({ messages }) {
+function Init() {
   const [key, setKey] = React.useState(0)
   const init = useInit()
   usePrevious(init, (prev) => {
@@ -182,13 +209,14 @@ function Init({ messages }) {
   }
   return (
     <ErrorBoundary key={key}>
-      <App {...{ key, init, messages }} />
+      <App {...{ key, init }} />
     </ErrorBoundary>
   )
 }
 
 function usePostInit(init) {
   const dispatch = redux.useDispatch()
+  const messageParent = ipc.useMessageParent()
   const [state, setState] = React.useState(null)
 
   React.useEffect(() => {
@@ -197,13 +225,21 @@ function usePostInit(init) {
     result.promise
       .then(() => {
         setState(true)
+        messageParent({ type: 'init', init })
       })
       .catch((e) => {
+        // eslint-disable-next-line no-console
         console.warn('Authentication failure:')
+        // eslint-disable-next-line no-console
         console.error(e)
         setState(new ErrorDisplay('Authentication Failure'))
+        messageParent({
+          type: 'error',
+          message: `Authentication failure: ${e.message}`,
+          credentials: init.credentials,
+        })
       })
-  }, [init])
+  }, [init, dispatch, messageParent])
 
   return state
 }
@@ -254,11 +290,52 @@ function useCssFiles(files = []) {
   }, [files])
 }
 
-function App({ messages, init }) {
+function useSyncHistory(history) {
+  const messageParent = ipc.useMessageParent()
+
+  ipc.useMessageHandler(
+    React.useCallback(
+      ({ type, ...data }) => {
+        if (type !== 'navigate') return
+        try {
+          if (!data.route) throw new Error('missing .route')
+          if (typeof data.route !== 'string') throw new Error('.route must be a string')
+          history.push(data.route)
+        } catch (e) {
+          const message = `Navigate: error: ${e.message}`
+          // eslint-disable-next-line no-console
+          console.error(message)
+          // eslint-disable-next-line no-console
+          console.log('params:', data)
+          messageParent({ type: 'error', message, data })
+        }
+      },
+      [history, messageParent],
+    ),
+  )
+
+  React.useEffect(
+    () =>
+      history.listen((l, action) => {
+        messageParent({
+          type: 'navigate',
+          route: `${l.pathname}${l.search}${l.hash}`,
+          action,
+        })
+      }),
+    [history, messageParent],
+  )
+}
+
+function App({ init }) {
   const { urls } = NamedRoutes.use()
   const history = useConstant(() =>
-    createHistory({ initialEntries: [urls.bucketDir(init.bucket, init.path)] }),
+    createHistory({
+      initialEntries: [init.route || urls.bucketDir(init.bucket, init.path)],
+    }),
   )
+
+  useSyncHistory(history)
 
   const storage = useConstant(() => ({
     load: () => ({}),
@@ -269,17 +346,18 @@ function App({ messages, init }) {
   useCssFiles(init.css)
 
   return RT.nest(
+    [Overrides.Provider, { value: init.overrides }],
     [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
-    [Store.Provider, { history }],
-    [LanguageProvider, { messages }],
-    [RouterProvider, { history }],
+    Store.Provider,
     Cache.Provider,
-    [Config.Provider, { path: '/config.json' }],
+    [Router, { history }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
+    GraphQL.Provider,
     Notifications.Provider,
     [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
     [Auth.Provider, { storage }],
+    [Tracking.Provider, { userSelector: Auth.selectors.username }],
     AWS.Credentials.Provider,
     AWS.Config.Provider,
     AWS.S3.Provider,
@@ -290,15 +368,14 @@ function App({ messages, init }) {
   )
 }
 
-export default function Embed({ messages }) {
+export default function Embed() {
   return RT.nest(
     FinalBoundary,
     [M.MuiThemeProvider, { theme: style.appTheme }],
     WithGlobalStyles,
     Layout.Root,
     ErrorBoundary,
-    Sentry.Provider,
     [NamedRoutes.Provider, { routes }],
-    [Init, { messages }],
+    Init,
   )
 }
