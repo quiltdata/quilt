@@ -7,7 +7,7 @@ setup(
     package_dir={"": "src"},
     include_package_data=True,
     install_requires=[
-        "Jinja2==3.1.4",
+        "Jinja2==3.1.5",
         "aiobotocore==2.3.4",
         "botocore==1.24.21",
     ],
