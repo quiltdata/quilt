@@ -25,7 +25,7 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const statusReportsBucket = useStatusReportsBucket()
   const s3 = S3.use()
   const inStackOrSpecial = React.useCallback(
-    (b) => isInStack(b) || cfg.analyticsBucket === b || statusReportsBucket === b,
+    (b) => isInStack(b) || statusReportsBucket === b,
     [isInStack, statusReportsBucket],
   )
   return React.useCallback(

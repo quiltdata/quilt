@@ -36,12 +36,19 @@ export interface AccessCounts {
   readonly counts: ReadonlyArray<AccessCountForDate>
 }
 
+export interface AccessCountsGroup {
+  readonly __typename: 'AccessCountsGroup'
+  readonly ext: Scalars['String']
+  readonly counts: AccessCounts
+}
+
 export interface AdminMutations {
   readonly __typename: 'AdminMutations'
   readonly user: UserAdminMutations
   readonly setSsoConfig: Maybe<SetSsoConfigResult>
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
+  readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -60,11 +67,16 @@ export interface AdminMutationsbucketRenameTabulatorTableArgs {
   newTableName: Scalars['String']
 }
 
+export interface AdminMutationssetTabulatorOpenQueryArgs {
+  enabled: Scalars['Boolean']
+}
+
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
   readonly ssoConfig: Maybe<SsoConfig>
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
+  readonly tabulatorOpenQuery: Scalars['Boolean']
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -88,6 +100,16 @@ export type BrowsingSessionCreateResult = BrowsingSession | InvalidInput | Opera
 export type BrowsingSessionDisposeResult = Ok | OperationError
 
 export type BrowsingSessionRefreshResult = BrowsingSession | InvalidInput | OperationError
+
+export interface BucketAccessCounts {
+  readonly __typename: 'BucketAccessCounts'
+  readonly byExt: ReadonlyArray<AccessCountsGroup>
+  readonly combined: AccessCounts
+}
+
+export interface BucketAccessCountsbyExtArgs {
+  groups: Maybe<Scalars['Int']>
+}
 
 export interface BucketAddInput {
   readonly name: Scalars['String']
@@ -864,6 +886,8 @@ export interface Query {
   readonly searchMoreObjects: ObjectsSearchMoreResult
   readonly searchMorePackages: PackagesSearchMoreResult
   readonly subscription: SubscriptionState
+  readonly bucketAccessCounts: Maybe<BucketAccessCounts>
+  readonly objectAccessCounts: Maybe<AccessCounts>
   readonly admin: AdminQueries
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
@@ -908,6 +932,17 @@ export interface QuerysearchMoreObjectsArgs {
 export interface QuerysearchMorePackagesArgs {
   after: Scalars['String']
   size?: Maybe<Scalars['Int']>
+}
+
+export interface QuerybucketAccessCountsArgs {
+  bucket: Scalars['String']
+  window: Scalars['Int']
+}
+
+export interface QueryobjectAccessCountsArgs {
+  bucket: Scalars['String']
+  key: Scalars['String']
+  window: Scalars['Int']
 }
 
 export interface QuerypolicyArgs {
@@ -1137,6 +1172,11 @@ export interface SubscriptionState {
 }
 
 export type SwitchRoleResult = Me | InvalidInput | OperationError
+
+export interface TabulatorOpenQueryResult {
+  readonly __typename: 'TabulatorOpenQueryResult'
+  readonly tabulatorOpenQuery: Scalars['Boolean']
+}
 
 export interface TabulatorTable {
   readonly __typename: 'TabulatorTable'

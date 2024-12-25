@@ -241,3 +241,17 @@ mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $
     }
   }
 }
+
+query tabulatorGetOpenQuery {
+  admin {
+    tabulatorOpenQuery
+  }
+}
+
+mutation tabulatorSetOpenQuery($enabled: Boolean!) {
+  admin {
+    setTabulatorOpenQuery(enabled: $enabled) {
+      tabulatorOpenQuery
+    }
+  }
+}

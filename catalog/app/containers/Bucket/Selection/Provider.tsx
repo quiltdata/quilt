@@ -1,10 +1,10 @@
-import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import { EMPTY_MAP, ListingSelection, SelectionItem, merge } from './utils'
 
 interface State {
+  inited: boolean
   clear: () => void
   isEmpty: boolean
   merge: (items: SelectionItem[], bucket: string, path: string, filter?: string) => void
@@ -13,7 +13,22 @@ interface State {
   totalCount: number
 }
 
-const Ctx = React.createContext<State | null>(null)
+const dummy = () => {
+  new Error('Selection provider not initialized')
+}
+
+const Ctx = React.createContext<State>({
+  inited: false,
+  clear: dummy,
+  isEmpty: true,
+  merge: dummy,
+  remove: () => {
+    dummy()
+    return { isEmpty: true }
+  },
+  selection: EMPTY_MAP,
+  totalCount: 0,
+})
 
 interface ProviderProps {
   children: React.ReactNode
@@ -42,6 +57,7 @@ export function Provider({ children }: ProviderProps) {
   )
   const state = React.useMemo(
     () => ({
+      inited: true,
       clear,
       isEmpty: totalCount === 0,
       merge: handleMerge,
@@ -54,10 +70,6 @@ export function Provider({ children }: ProviderProps) {
   return <Ctx.Provider value={state}>{children}</Ctx.Provider>
 }
 
-export const useSelection = () => {
-  const state = React.useContext(Ctx)
-  invariant(state, 'Selection must be used within an Selection.Provider')
-  return state
-}
+export const useSelection = () => React.useContext(Ctx)
 
 export const use = useSelection

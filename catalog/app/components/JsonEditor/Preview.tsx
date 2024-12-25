@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { JsonSchema, isNestedType } from 'utils/json-schema'
+import { JsonSchema, isNestedType } from 'utils/JSONSchema'
 
 import ButtonExpand from './ButtonExpand'
 import Note from './Note'

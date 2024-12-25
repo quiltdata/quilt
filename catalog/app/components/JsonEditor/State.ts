@@ -4,8 +4,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as JSONPointer from 'utils/JSONPointer'
-import { JsonSchema } from 'utils/json-schema'
-import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
+import type { JsonSchema } from 'utils/JSONSchema'
+import * as JSONSchema from 'utils/JSONSchema'
 import { Json, JsonRecord } from 'utils/types'
 
 import {
@@ -162,14 +162,12 @@ function calcReactId(valuePath: JSONPointer.Path, value?: Json): string {
 function getDefaultValue(jsonDictItem?: SchemaItem): Json | typeof EMPTY_VALUE {
   if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
 
-  const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
+  const defaultFromSchema = JSONSchema.getDefaultValue(jsonDictItem?.valueSchema)
   if (defaultFromSchema !== undefined) return defaultFromSchema
 
-  // TODO:
-  // get defaults from nested objects
-  // const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
-  // const nestedDefaultFromSchema = setDefaults()
-  // if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
+  const setDefaults = JSONSchema.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
+  const nestedDefaultFromSchema = setDefaults(undefined)
+  if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
 
   return EMPTY_VALUE
 }

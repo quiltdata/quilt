@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import { isSchemaEnum, findTypeInCompoundSchema } from 'utils/json-schema'
+import { isSchemaEnum, findTypeInCompoundSchema } from 'utils/JSONSchema'
 
 import PreviewValue from './PreviewValue'
 import { JsonValue, EMPTY_VALUE, RowData } from './constants'

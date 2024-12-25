@@ -223,7 +223,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const redirectToPackagesList = React.useCallback(() => {
     history.push(urls.bucketPackageList(bucket))
@@ -282,6 +282,7 @@ function DirDisplay({
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const handleSelection = React.useCallback(
     (ids) => slt.merge(ids, bucket, path),
     [bucket, path, slt],
@@ -468,7 +469,14 @@ function DirDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples
+                          {...{
+                            ...packageHandle,
+                            hashOrTag,
+                            path,
+                            catalog: window.location.hostname,
+                          }}
+                        />
                       )}
                       {blocks.meta && (
                         <FileView.PackageMetaSection
@@ -689,7 +697,7 @@ function FileDisplay({
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useFileDisplayStyles()
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const packageHandle = React.useMemo(
     () => ({ bucket, name, hash }),
@@ -705,17 +713,6 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
-  const handleEdit = React.useCallback(() => {
-    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-    const physicalHandle = s3paths.parseS3Url(file.physicalKey)
-    const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
-      add: path,
-      edit: true,
-      next,
-    })
-    history.push(editUrl)
-  }, [file, bucket, history, name, path, urls])
-
   const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
     () => ({
       ...s3paths.parseS3Url(file.physicalKey),
@@ -724,6 +721,9 @@ function FileDisplay({
     }),
     [file, packageHandle],
   )
+
+  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle, path)
+  const handleEdit = React.useCallback(() => history.push(editUrl), [editUrl, history])
 
   return (
     // @ts-expect-error
@@ -821,7 +821,14 @@ function FileDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples
+                          {...{
+                            ...packageHandle,
+                            hashOrTag,
+                            path,
+                            catalog: window.location.hostname,
+                          }}
+                        />
                       )}
                       {blocks.meta && (
                         <>
@@ -946,6 +953,7 @@ function PackageTree({
   })
 
   const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within a Selection.Provider')
   const guardNavigation = React.useCallback(
     (location) =>
       isStillBrowsingPackage(urls, location.pathname, {

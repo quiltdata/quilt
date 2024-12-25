@@ -34,6 +34,8 @@ from .sso_config_set import (
     SsoConfigSetAdminSetSsoConfigOperationError,
     SsoConfigSetAdminSetSsoConfigSsoConfig,
 )
+from .tabulator_get_open_query import TabulatorGetOpenQuery
+from .tabulator_set_open_query import TabulatorSetOpenQuery
 from .users_add_roles import UsersAddRoles, UsersAddRolesAdminUserMutate
 from .users_create import (
     UsersCreate,
@@ -1164,3 +1166,47 @@ class Client(BaseClient):
         return BucketTabulatorTableRename.model_validate(
             data
         ).admin.bucket_rename_tabulator_table
+
+    def tabulator_get_open_query(self, **kwargs: Any) -> bool:
+        query = gql(
+            """
+            query tabulatorGetOpenQuery {
+              admin {
+                tabulatorOpenQuery
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {}
+        response = self.execute(
+            query=query,
+            operation_name="tabulatorGetOpenQuery",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return TabulatorGetOpenQuery.model_validate(data).admin.tabulator_open_query
+
+    def tabulator_set_open_query(self, enabled: bool, **kwargs: Any) -> bool:
+        query = gql(
+            """
+            mutation tabulatorSetOpenQuery($enabled: Boolean!) {
+              admin {
+                setTabulatorOpenQuery(enabled: $enabled) {
+                  tabulatorOpenQuery
+                }
+              }
+            }
+            """
+        )
+        variables: Dict[str, object] = {"enabled": enabled}
+        response = self.execute(
+            query=query,
+            operation_name="tabulatorSetOpenQuery",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return TabulatorSetOpenQuery.model_validate(
+            data
+        ).admin.set_tabulator_open_query.tabulator_open_query

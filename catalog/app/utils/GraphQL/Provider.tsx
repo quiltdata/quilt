@@ -90,6 +90,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
         keys: {
           AccessCountForDate: () => null,
           AccessCounts: () => null,
+          AccessCountsGroup: () => null,
+          BucketAccessCounts: () => null,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
           Collaborator: (c) => c.username as string,
@@ -344,6 +346,18 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
               ) {
                 cache.invalidate({ __typename: 'Query' }, 'admin')
                 cache.invalidate({ __typename: 'Query' }, 'roles')
+              }
+              if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
+                cache.updateQuery(
+                  { query: urql.gql`{ admin { tabulatorOpenQuery } }` },
+                  ({ admin }) => ({
+                    admin: {
+                      ...admin,
+                      tabulatorOpenQuery:
+                        result.admin.setTabulatorOpenQuery.tabulatorOpenQuery,
+                    },
+                  }),
+                )
               }
             },
           },

@@ -1,4 +1,4 @@
-import type Athena from 'aws-sdk/clients/athena'
+import type { Athena, AWSError } from 'aws-sdk'
 import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
@@ -33,15 +33,10 @@ function listIncludes(list: string[], value: string): boolean {
 
 export type Workgroup = string
 
-interface WorkgroupArgs {
-  athena: Athena
-  workgroup: Workgroup
-}
-
-async function fetchWorkgroup({
-  athena,
-  workgroup,
-}: WorkgroupArgs): Promise<Workgroup | null> {
+async function fetchWorkgroup(
+  athena: Athena,
+  workgroup: Workgroup,
+): Promise<Workgroup | null> {
   try {
     const workgroupOutput = await athena.getWorkGroup({ WorkGroup: workgroup }).promise()
     if (
@@ -53,8 +48,8 @@ async function fetchWorkgroup({
     }
     return null
   } catch (error) {
-    if ((error as $TSFixMe).code === 'AccessDeniedException') {
-      Log.info(`Fetching "${workgroup}" workgroup failed: ${(error as $TSFixMe).code}`)
+    if (isAwsErrorAccessDenied(error)) {
+      Log.info(`Fetching "${workgroup}" workgroup failed: ${error.code}`)
     } else {
       Log.error(`Fetching "${workgroup}" workgroup failed:`, error)
     }
@@ -75,7 +70,7 @@ async function fetchWorkgroups(
       .filter(Boolean)
       .sort()
     const available = (
-      await Promise.all(parsed.map((workgroup) => fetchWorkgroup({ athena, workgroup })))
+      await Promise.all(parsed.map((workgroup) => fetchWorkgroup(athena, workgroup)))
     ).filter(Boolean)
     const list = (prev?.list || []).concat(available as Workgroup[])
     return {
@@ -536,27 +531,80 @@ export function useDatabase(
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
-export function useCatalogNames(): Model.DataController<Model.List<CatalogName>> {
+function isAwsErrorAccessDenied(e: unknown): e is AWSError {
+  return (
+    e instanceof Error &&
+    (e as Error & { code?: string }).code === 'AccessDeniedException'
+  )
+}
+
+async function fetchCatalogName(
+  athena: Athena,
+  workgroup: Workgroup,
+  catalogName: CatalogName,
+): Promise<CatalogName | null> {
+  try {
+    return (
+      (await athena.getDataCatalog({ Name: catalogName, WorkGroup: workgroup }).promise())
+        ?.DataCatalog?.Name || null
+    )
+  } catch (error) {
+    if (isAwsErrorAccessDenied(error)) {
+      Log.info(`Fetching "${catalogName}" catalog name failed: ${error.code}`)
+    } else {
+      Log.error(`Fetching "${catalogName}" catalog name failed:`, error)
+    }
+    return null
+  }
+}
+
+async function fetchCatalogNames(
+  athena: Athena,
+  workgroup: Workgroup,
+  prev: Model.List<CatalogName> | null,
+): Promise<Model.List<CatalogName>> {
+  try {
+    const catalogsOutput = await athena
+      .listDataCatalogs({ NextToken: prev?.next })
+      .promise()
+    const parsed = (catalogsOutput.DataCatalogsSummary || [])
+      .map(({ CatalogName }) => CatalogName || '')
+      .filter(Boolean)
+      .sort()
+    const available = (
+      await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
+    ).filter(Boolean)
+    const list = (prev?.list || []).concat(available as Workgroup[])
+    return {
+      list,
+      next: catalogsOutput.NextToken,
+    }
+  } catch (e) {
+    Log.error(e)
+    throw e
+  }
+}
+
+export function useCatalogNames(
+  workgroup: Model.Value<Workgroup>,
+): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
   const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
   React.useEffect(() => {
-    const request = athena?.listDataCatalogs({ NextToken: prev?.next }, (error, d) => {
-      const { DataCatalogsSummary, NextToken: next } = d || {}
-      setData(Model.Loading)
-      if (error) {
-        Sentry.captureException(error)
-        setData(error)
-        return
-      }
-      const list = DataCatalogsSummary?.map(({ CatalogName }) => CatalogName || 'Unknown')
-      setData({
-        list: (prev?.list || []).concat(list || []),
-        next,
-      })
-    })
-    return () => request?.abort()
-  }, [athena, prev])
+    if (!Model.hasData(workgroup)) {
+      setData(workgroup || undefined)
+      return
+    }
+    let mounted = true
+    if (!athena) return
+    fetchCatalogNames(athena, workgroup, prev)
+      .then((d) => mounted && setData(d))
+      .catch((d) => mounted && setData(d))
+    return () => {
+      mounted = false
+    }
+  }, [athena, prev, workgroup])
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 
@@ -630,6 +678,9 @@ export function useQueryBody(
       if (Model.isError(query)) return null
       if (Model.hasData(query)) return query.body
       if (Model.hasData(execution) && execution.query) return execution.query
+      if (!Model.isReady(v) && Model.isReady(query) && Model.isReady(execution)) {
+        return null
+      }
       return v
     })
   }, [execution, query])

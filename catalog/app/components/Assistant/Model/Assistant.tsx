@@ -62,7 +62,8 @@ function useConstructAssistantAPI() {
   }
 }
 
-type AssistantAPI = ReturnType<typeof useConstructAssistantAPI>
+export type AssistantAPI = ReturnType<typeof useConstructAssistantAPI>
+export type { AssistantAPI as API }
 
 const Ctx = React.createContext<AssistantAPI | typeof DISABLED | null>(null)
 
