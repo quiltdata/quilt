@@ -236,7 +236,8 @@ Resources:
                   - rds:ListTagsForResource
                   - rds:ModifyDBInstance
                   - route53:CreateHostedZone
-                  - s3:*  # Stack has this anyway; Canary buckets get Access Denied even with GetObject                  - secretsmanager:CreateSecret
+                  - s3:*  # Stack has this anyway; Canary buckets get Access Denied even with GetObject
+                  - secretsmanager:CreateSecret
                   - secretsmanager:TagResource
                   - servicediscovery:CreatePrivateDnsNamespace
                   - servicediscovery:CreateService
@@ -246,9 +247,10 @@ Resources:
                   - servicediscovery:GetService
                   - servicediscovery:TagResource
                   - sns:CreateTopic*
-                  - sns:DeleteTopic                  - sns:Get*
+                  - sns:DeleteTopic
+                  - sns:Get*
                   - sns:Publish  # To publish to CFN notification topic.
-                  - sns:SetTopicAttributes
+                  - sns:SetTopicAttributes 
                   - sns:Subscribe
                   - sns:TagResource
                   - sqs:CreateQueue
