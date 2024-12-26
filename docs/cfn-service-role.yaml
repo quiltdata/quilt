@@ -1,7 +1,3 @@
-Outputs:
-  Role:
-    Value: !GetAtt 'CloudFormationServiceRole.Arn'
-
 Resources:
   QuiltCloudFormationServiceRole:
     Type: AWS::IAM::Role
