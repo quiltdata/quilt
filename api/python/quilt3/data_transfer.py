@@ -303,15 +303,19 @@ def _copy_local_file(ctx: WorkerContext, size: int, src_path: str, dest_path: st
 
 def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str, put_options=None):
     s3_client = ctx.s3_client_provider.standard_client
+    s3_extra_params: dict = put_options or {}
 
     if not is_mpu(size):
         with ReadFileChunk.from_filename(src_path, 0, size, [ctx.progress]) as fd:
-            resp = s3_client.put_object(
+            s3_params = dict(
                 Body=fd,
                 Bucket=dest_bucket,
                 Key=dest_key,
                 ChecksumAlgorithm='SHA256',
             )
+            if put_options:
+                s3_params.update(put_options)
+            resp = s3_client.put_object(**s3_params)
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['ChecksumSHA256'])
@@ -321,6 +325,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
             Bucket=dest_bucket,
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
+            **s3_extra_params,
         )
         upload_id = resp['UploadId']
 
@@ -343,6 +348,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                     UploadId=upload_id,
                     PartNumber=part_id,
                     ChecksumAlgorithm='SHA256',
+                    **s3_extra_params,
                 )
             with lock:
                 parts[i] = dict(
@@ -359,6 +365,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                     Key=dest_key,
                     UploadId=upload_id,
                     MultipartUpload={'Parts': parts},
+                    **s3_extra_params,
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
@@ -450,6 +457,7 @@ def _download_file(
 
 def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: str, src_version: Optional[str],
                       dest_bucket: str, dest_key: str, extra_args: Optional[Iterable[Tuple[str, Any]]] = None):
+    s3_extra_params: dict = dict(extra_args) if extra_args else {}
     src_params = dict(
         Bucket=src_bucket,
         Key=src_key
@@ -469,10 +477,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             ChecksumAlgorithm='SHA256',
         )
 
-        if extra_args:
-            params.update(extra_args)
-
-        resp = s3_client.copy_object(**params)
+        resp = s3_client.copy_object(**params, **s3_extra_params)
         ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['CopyObjectResult']['ChecksumSHA256'])
@@ -482,6 +487,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             Bucket=dest_bucket,
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
+            **s3_extra_params,
         )
         upload_id = resp['UploadId']
 
@@ -503,6 +509,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
                 Key=dest_key,
                 UploadId=upload_id,
                 PartNumber=part_id,
+                **s3_extra_params,
             )
             with lock:
                 parts[i] = dict(
@@ -521,6 +528,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
                     Key=dest_key,
                     UploadId=upload_id,
                     MultipartUpload={'Parts': parts},
+                    **s3_extra_params,
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
