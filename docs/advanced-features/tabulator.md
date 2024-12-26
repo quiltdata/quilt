@@ -212,7 +212,9 @@ Tabulator.
 
 ### 1. Enable Open Query
 
-An admin can enable open query via the Admin UI:
+An admin can enable open query via the `quilt3.admin.tabulator.set_open_query()`
+[API](../api-reference/Admin.md#set_open_query)
+or Admin UI:
 
 ![Tabulator Settings](../imgs/admin-tabulator-settings.png)
 

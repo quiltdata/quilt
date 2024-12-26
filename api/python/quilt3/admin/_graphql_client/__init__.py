@@ -50,6 +50,12 @@ from .sso_config_set import (
     SsoConfigSetAdminSetSsoConfigOperationError,
     SsoConfigSetAdminSetSsoConfigSsoConfig,
 )
+from .tabulator_get_open_query import TabulatorGetOpenQuery, TabulatorGetOpenQueryAdmin
+from .tabulator_set_open_query import (
+    TabulatorSetOpenQuery,
+    TabulatorSetOpenQueryAdmin,
+    TabulatorSetOpenQueryAdminSetTabulatorOpenQuery,
+)
 from .users_add_roles import (
     UsersAddRoles,
     UsersAddRolesAdmin,
@@ -172,6 +178,11 @@ __all__ = [
     "SsoConfigSetAdminSetSsoConfigInvalidInput",
     "SsoConfigSetAdminSetSsoConfigOperationError",
     "SsoConfigSetAdminSetSsoConfigSsoConfig",
+    "TabulatorGetOpenQuery",
+    "TabulatorGetOpenQueryAdmin",
+    "TabulatorSetOpenQuery",
+    "TabulatorSetOpenQueryAdmin",
+    "TabulatorSetOpenQueryAdminSetTabulatorOpenQuery",
     "UnmanagedRoleSelection",
     "Upload",
     "UserInput",
