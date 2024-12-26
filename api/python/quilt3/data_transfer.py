@@ -52,6 +52,16 @@ MAX_CONCURRENCY = util.get_pos_int_from_env('QUILT_TRANSFER_MAX_CONCURRENCY') or
 
 logger = logging.getLogger(__name__)
 
+def add_put_options_safely(params: dict, put_options: Optional[dict]):
+    """
+    Add put options to the params dictionary safely.
+    This method ensures that the put options do not overwrite existing keys in the params dictionary.
+    """
+    if put_options:
+        for key, value in put_options.items():
+            if key in params:
+                raise ValueError(f"Key {key} already exists in params.")
+            params[key] = value
 
 class S3Api(Enum):
     GET_OBJECT = "GET_OBJECT"
@@ -303,7 +313,6 @@ def _copy_local_file(ctx: WorkerContext, size: int, src_path: str, dest_path: st
 
 def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str, put_options=None):
     s3_client = ctx.s3_client_provider.standard_client
-    s3_extra_params: dict = put_options or {}
 
     if not is_mpu(size):
         with ReadFileChunk.from_filename(src_path, 0, size, [ctx.progress]) as fd:
@@ -313,20 +322,20 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                 Key=dest_key,
                 ChecksumAlgorithm='SHA256',
             )
-            if put_options:
-                s3_params.update(put_options)
+            add_put_options_safely(s3_params, put_options)
             resp = s3_client.put_object(**s3_params)
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['ChecksumSHA256'])
         ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
     else:
-        resp = s3_client.create_multipart_upload(
+        s3_create_params = dict(
             Bucket=dest_bucket,
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
-            **s3_extra_params,
         )
+        add_put_options_safely(s3_create_params, put_options)
+        resp = s3_client.create_multipart_upload(s3_create_params)
         upload_id = resp['UploadId']
 
         chunksize = get_checksum_chunksize(size)
@@ -341,15 +350,16 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
             nonlocal remaining
             part_id = i + 1
             with ReadFileChunk.from_filename(src_path, start, end-start, [ctx.progress]) as fd:
-                part = s3_client.upload_part(
+                s3_upload_params = dict(
                     Body=fd,
                     Bucket=dest_bucket,
                     Key=dest_key,
                     UploadId=upload_id,
                     PartNumber=part_id,
                     ChecksumAlgorithm='SHA256',
-                    **s3_extra_params,
                 )
+                add_put_options_safely(s3_upload_params, put_options)
+                part = s3_client.upload_part(s3_upload_params)
             with lock:
                 parts[i] = dict(
                     PartNumber=part_id,
@@ -360,12 +370,18 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                 done = remaining == 0
 
             if done:
+                s3_complete_params = dict(
+                    Bucket=dest_bucket,
+                    Key=dest_key,
+                    UploadId=upload_id,
+                    MultipartUpload={'Parts': parts},
+                )
+                add_put_options_safely(s3_complete_params, put_options)
                 resp = s3_client.complete_multipart_upload(
                     Bucket=dest_bucket,
                     Key=dest_key,
                     UploadId=upload_id,
                     MultipartUpload={'Parts': parts},
-                    **s3_extra_params,
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
@@ -926,8 +942,7 @@ def put_bytes(data: bytes, dest: PhysicalKey, put_options=None):
             raise ValueError("Cannot set VersionId on destination")
         s3_client = S3ClientProvider().standard_client
         s3_params = dict(Bucket=dest.bucket, Key=dest.path, Body=data)
-        if put_options:
-            s3_params.update(put_options)
+        add_put_options_safely(s3_params, put_options)
         s3_client.put_object(**s3_params)
 
 
