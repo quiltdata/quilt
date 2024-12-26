@@ -242,7 +242,7 @@ Resources:
                   - servicediscovery:GetOperation
                   - servicediscovery:GetService
                   - servicediscovery:TagResource
-                  - sns:CreateTopic*
+                  - sns:CreateTopic
                   - sns:DeleteTopic
                   - sns:Get*
                   - sns:Publish  # To publish to CFN notification topic.
@@ -262,7 +262,12 @@ Resources:
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
-                  - synthetics:*
+                  - synthetics:CreateCanary
+                  - synthetics:DeleteCanary
+                  - synthetics:GetCanary
+                  - synthetics:StartCanary
+                  - synthetics:StopCanary
+                  - synthetics:TagResource
                   - wafv2:AssociateWebACL
                   - wafv2:CreateRegexPatternSet
                   - wafv2:CreateWebACL
