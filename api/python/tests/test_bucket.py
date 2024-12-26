@@ -174,8 +174,8 @@ class TestBucket(QuiltTestCase):
         with patch("quilt3.bucket.copy_file") as copy_mock:
             opts = {'SSECustomerKey': 'FakeKey'}
             bucket = Bucket('s3://test-bucket')
-            bucket.put_file(key='README.md', path='./README', put_options=opts)
             # put local file to bucket
+            bucket.put_file(key='README.md', path='./README', put_options=opts)
 
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path('README'),
