@@ -236,6 +236,15 @@ Resources:
                   - rds:ListTagsForResource
                   - rds:ModifyDBInstance
                   - s3:*
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:TagResource
+                  - servicediscovery:CreatePrivateDnsNamespace
+                  - servicediscovery:CreateService
+                  - servicediscovery:DeleteNamespace
+                  - servicediscovery:DeleteService
+                  - servicediscovery:GetOperation
+                  - servicediscovery:GetService
+                  - servicediscovery:TagResource
                   - sns:Get*
                   - sns:Publish  # To publish to CFN notification topic.
                   - sns:SetTopicAttributes
@@ -256,15 +265,6 @@ Resources:
                   - ssm:PutParameter
                   - synthetics:*
                   - route53:CreateHostedZone
-                  - secretsmanager:CreateSecret
-                  - secretsmanager:TagResource
-                  - servicediscovery:CreatePrivateDnsNamespace
-                  - servicediscovery:CreateService
-                  - servicediscovery:DeleteNamespace
-                  - servicediscovery:DeleteService
-                  - servicediscovery:GetOperation
-                  - servicediscovery:GetService
-                  - servicediscovery:TagResource
                   - wafv2:AssociateWebACL
                   - wafv2:CreateRegexPatternSet
                   - wafv2:CreateWebACL
