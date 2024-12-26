@@ -52,6 +52,7 @@ MAX_CONCURRENCY = util.get_pos_int_from_env('QUILT_TRANSFER_MAX_CONCURRENCY') or
 
 logger = logging.getLogger(__name__)
 
+
 def add_put_options_safely(params: dict, put_options: Optional[dict]):
     """
     Add put options to the params dictionary safely.
@@ -62,6 +63,7 @@ def add_put_options_safely(params: dict, put_options: Optional[dict]):
             if key in params:
                 raise ValueError(f"Key {key} already exists in params.")
             params[key] = value
+
 
 class S3Api(Enum):
     GET_OBJECT = "GET_OBJECT"
@@ -335,7 +337,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
             ChecksumAlgorithm='SHA256',
         )
         add_put_options_safely(s3_create_params, put_options)
-        resp = s3_client.create_multipart_upload(s3_create_params)
+        resp = s3_client.create_multipart_upload(**s3_create_params)
         upload_id = resp['UploadId']
 
         chunksize = get_checksum_chunksize(size)
@@ -359,7 +361,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                     ChecksumAlgorithm='SHA256',
                 )
                 add_put_options_safely(s3_upload_params, put_options)
-                part = s3_client.upload_part(s3_upload_params)
+                part = s3_client.upload_part(**s3_upload_params)
             with lock:
                 parts[i] = dict(
                     PartNumber=part_id,
@@ -473,7 +475,6 @@ def _download_file(
 
 def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: str, src_version: Optional[str],
                       dest_bucket: str, dest_key: str, extra_args: Optional[Iterable[Tuple[str, Any]]] = None):
-    s3_extra_params: dict = dict(extra_args) if extra_args else {}
     src_params = dict(
         Bucket=src_bucket,
         Key=src_key
@@ -492,19 +493,20 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
         )
-
-        resp = s3_client.copy_object(**params, **s3_extra_params)
+        add_put_options_safely(params, extra_args)
+        resp = s3_client.copy_object(**params)
         ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['CopyObjectResult']['ChecksumSHA256'])
         ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
     else:
-        resp = s3_client.create_multipart_upload(
+        s3_create_params = dict(
             Bucket=dest_bucket,
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
-            **s3_extra_params,
         )
+        add_put_options_safely(s3_create_params, extra_args)
+        resp = s3_client.create_multipart_upload(**s3_create_params)
         upload_id = resp['UploadId']
 
         chunksize = get_checksum_chunksize(size)
@@ -518,15 +520,16 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
         def upload_part(i, start, end):
             nonlocal remaining
             part_id = i + 1
-            part = s3_client.upload_part_copy(
+            s3_upload_params = dict(
                 CopySource=src_params,
                 CopySourceRange=f'bytes={start}-{end-1}',
                 Bucket=dest_bucket,
                 Key=dest_key,
                 UploadId=upload_id,
                 PartNumber=part_id,
-                **s3_extra_params,
             )
+            add_put_options_safely(s3_upload_params, extra_args)
+            part = s3_client.upload_part_copy(**s3_upload_params)
             with lock:
                 parts[i] = dict(
                     PartNumber=part_id,
@@ -539,13 +542,14 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             ctx.progress(end - start)
 
             if done:
-                resp = s3_client.complete_multipart_upload(
+                s3_complete_params = dict(
                     Bucket=dest_bucket,
                     Key=dest_key,
                     UploadId=upload_id,
                     MultipartUpload={'Parts': parts},
-                    **s3_extra_params,
                 )
+                add_put_options_safely(s3_complete_params, extra_args)
+                resp = s3_client.complete_multipart_upload(**s3_complete_params)
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
                 ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
