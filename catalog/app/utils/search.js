@@ -1,3 +1,4 @@
+// XXX: remove once embed is converted to use GQL search
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'

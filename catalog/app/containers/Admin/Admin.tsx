@@ -19,15 +19,14 @@ const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 const Status = RT.mkLazy(() => import('./Status'), SuspensePlaceholder)
 
 const ErrorBoundary = createBoundary(
-  () => () =>
-    (
-      <M.Box my={4}>
-        <M.Typography variant="h4" align="center" gutterBottom>
-          Unexpected Error
-        </M.Typography>
-        <M.Typography align="center">See the console for details</M.Typography>
-      </M.Box>
-    ),
+  () => () => (
+    <M.Box my={4}>
+      <M.Typography variant="h4" align="center" gutterBottom>
+        Unexpected Error
+      </M.Typography>
+      <M.Typography align="center">See the console for details</M.Typography>
+    </M.Box>
+  ),
   'AdminErrorBoundary',
 )
 
@@ -77,12 +76,13 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
   )
 }
 
-export default function Admin({ location }: RR.RouteComponentProps) {
+export default function Admin() {
+  const location = RR.useLocation()
   const { paths } = NamedRoutes.use()
 
   const sections = {
     users: { path: paths.adminUsers, exact: true },
-    buckets: { path: paths.adminBuckets, exact: true },
+    buckets: { path: paths.adminBuckets },
     sync: { path: paths.adminSync, exact: true },
     settings: { path: paths.adminSettings, exact: true },
     status: { path: paths.adminStatus, exact: true },
@@ -102,12 +102,26 @@ export default function Admin({ location }: RR.RouteComponentProps) {
     <AdminLayout section={getSection(location.pathname)}>
       <ErrorBoundary key={JSON.stringify(location)}>
         <RR.Switch>
-          <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
-          <RR.Route path={paths.adminBuckets} component={Buckets} exact />
-          {cfg.desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
-          <RR.Route path={paths.adminSettings} component={Settings} exact />
-          <RR.Route path={paths.adminStatus} component={Status} exact />
-          <RR.Route component={ThrowNotFound} />
+          <RR.Route path={paths.adminUsers} exact strict>
+            <UsersAndRoles />
+          </RR.Route>
+          {cfg.desktop && (
+            <RR.Route path={paths.adminSync} exact>
+              <Sync />
+            </RR.Route>
+          )}
+          <RR.Route path={paths.adminSettings} exact>
+            <Settings />
+          </RR.Route>
+          <RR.Route path={paths.adminStatus} exact>
+            <Status />
+          </RR.Route>
+          <RR.Route path={paths.adminBuckets}>
+            <Buckets />
+          </RR.Route>
+          <RR.Route>
+            <ThrowNotFound />
+          </RR.Route>
         </RR.Switch>
       </ErrorBoundary>
     </AdminLayout>

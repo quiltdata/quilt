@@ -13,7 +13,7 @@ from urllib.parse import (
     urlparse,
     urlunparse,
 )
-from urllib.request import pathname2url, url2pathname
+from urllib.request import url2pathname
 
 import requests
 # Third-Party
@@ -81,6 +81,9 @@ binaryApiGatewayEndpoint:
 
 default_registry_version: 1
 
+# AWS region
+region:
+
 """.format(BASE_PATH.as_uri() + '/packages')
 
 
@@ -136,8 +139,6 @@ class PhysicalKey:
             assert version_id is None, "Local keys cannot have a version ID"
             if os.name == 'nt':
                 assert '\\' not in path, "Paths must use / as a separator"
-        else:
-            assert not path.startswith('/'), "S3 paths must not start with '/'"
 
         self.bucket = bucket
         self.path = path
@@ -222,13 +223,13 @@ class PhysicalKey:
 
     def __str__(self):
         if self.bucket is None:
-            return urlunparse(('file', '', pathname2url(self.path.replace('/', os.path.sep)), None, None, None))
+            return pathlib.PurePath(self.path).as_uri()
         else:
             if self.version_id is None:
                 params = {}
             else:
                 params = {'versionId': self.version_id}
-            return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+            return urlunparse(('s3', self.bucket, quote('/' + self.path), None, urlencode(params), None))
 
 
 def fix_url(url):
@@ -292,26 +293,19 @@ def write_yaml(data, yaml_path, keep_backup=False):
     :param keep_backup: If set, a timestamped backup will be kept in the same dir.
     """
     path = pathlib.Path(yaml_path)
-    now = str(datetime.datetime.now())
-
-    # XXX unicode colon for Windows/NTFS -- looks prettier, but could be confusing. We could use '_' instead.
-    if os.name == 'nt':
-        now = now.replace(':', '\ua789')
-
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")  # ISO 8601 'basic format'
     backup_path = path.with_name(path.name + '.backup.' + now)
 
     try:
         if path.exists():
-            path.rename(backup_path)
-        if not path.parent.exists():
-            path.parent.mkdir(parents=True)
+            # TODO: use something from tempfile to make sure backup_path doesn't exist.
+            path.replace(backup_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
     except Exception:     # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
-            if path.exists():
-                path.unlink()
-            backup_path.rename(path)
+            backup_path.replace(path)
         raise
 
     if backup_path.exists() and not keep_backup:
@@ -438,8 +432,10 @@ def load_config():
     Read the local config using defaults from CONFIG_TEMPLATE.
     """
     local_config = read_yaml(CONFIG_TEMPLATE)
-    if CONFIG_PATH.exists():
+    try:
         local_config.update(read_yaml(CONFIG_PATH))
+    except FileNotFoundError:
+        pass
     return local_config
 
 

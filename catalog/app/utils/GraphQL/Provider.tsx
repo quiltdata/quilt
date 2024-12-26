@@ -16,6 +16,7 @@ const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExch
 const BUCKET_CONFIGS_QUERY = urql.gql`{ bucketConfigs { name } }`
 const POLICIES_QUERY = urql.gql`{ policies { id } }`
 const ROLES_QUERY = urql.gql`{ roles { id } }`
+const USERS_QUERY = urql.gql`{ admin { user { list { name } } } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
 
 function handlePackageCreation(result: any, cache: GraphCache.Cache) {
@@ -89,6 +90,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
         keys: {
           AccessCountForDate: () => null,
           AccessCounts: () => null,
+          AccessCountsGroup: () => null,
+          BucketAccessCounts: () => null,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
           Collaborator: (c) => c.username as string,
@@ -107,11 +110,41 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
+          SsoConfig: (c) =>
+            c.timestamp instanceof Date ? c.timestamp.getTime().toString() : null,
           Status: () => null,
           StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
           StatusReportList: () => null,
+          Unavailable: () => null,
+          SubscriptionState: () => null,
           TestStats: () => null,
           TestStatsTimeSeries: () => null,
+          DatetimeExtents: () => null,
+          KeywordExtents: () => null,
+          NumberExtents: () => null,
+          BooleanPackageUserMetaFacet: () => null,
+          DatetimePackageUserMetaFacet: () => null,
+          KeywordPackageUserMetaFacet: () => null,
+          NumberPackageUserMetaFacet: () => null,
+          TextPackageUserMetaFacet: () => null,
+          ObjectsSearchResultSetPage: () => null,
+          PackagesSearchResultSetPage: () => null,
+          ObjectsSearchStats: () => null,
+          PackagesSearchStats: () => null,
+          EmptySearchResultSet: () => null,
+          ObjectsSearchResultSet: () => null,
+          PackagesSearchResultSet: () => null,
+          InvalidInput: () => null,
+          InputError: () => null,
+          Me: (me) => me.name as string,
+          MyRole: (r) => r.name as string,
+          User: (u) => (u.name as string) ?? null,
+          AdminQueries: () => null,
+          UserAdminQueries: () => null,
+          AdminMutations: () => null,
+          UserAdminMutations: () => null,
+          MutateUserAdminMutations: () => null,
+          TabulatorTable: (t) => t.name as string,
         },
         updates: {
           Mutation: {
@@ -287,11 +320,49 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             packagePromote: (result, _vars, cache) => {
               handlePackageCreation(result.packagePromote, cache)
             },
-            packageFromFolder: (result, _vars, cache) => {
-              handlePackageCreation(result.packageFromFolder, cache)
+            admin: (result: any, _vars, cache, info) => {
+              // XXX: newer versions of GraphCache support updaters on arbitrary types
+              if (result.admin?.user?.create?.__typename === 'User') {
+                // Add created User to user list
+                // XXX: sort?
+                const addUser = R.append(result.admin.user.create)
+                cache.updateQuery(
+                  { query: USERS_QUERY },
+                  R.evolve({ admin: { user: { list: addUser } } }),
+                )
+              }
+              if (result.admin?.user?.mutate?.delete?.__typename === 'Ok') {
+                // XXX: handle "user not found" somehow?
+                // Remove deleted User from user list
+                const rmUser = R.reject(R.propEq('name', info.variables.name))
+                cache.updateQuery(
+                  { query: USERS_QUERY },
+                  R.evolve({ admin: { user: { list: rmUser } } }),
+                )
+              }
+              if (
+                result.admin?.setSsoConfig?.__typename === 'SsoConfig' ||
+                result.admin?.setSsoConfig === null
+              ) {
+                cache.invalidate({ __typename: 'Query' }, 'admin')
+                cache.invalidate({ __typename: 'Query' }, 'roles')
+              }
+              if (result.admin?.setTabulatorOpenQuery?.tabulatorOpenQuery != null) {
+                cache.updateQuery(
+                  { query: urql.gql`{ admin { tabulatorOpenQuery } }` },
+                  ({ admin }) => ({
+                    admin: {
+                      ...admin,
+                      tabulatorOpenQuery:
+                        result.admin.setTabulatorOpenQuery.tabulatorOpenQuery,
+                    },
+                  }),
+                )
+              }
             },
           },
         },
+        // XXX: make an exchange for handling optimistic responses
         optimistic: {
           bucketRemove: () => ({ __typename: 'BucketRemoveSuccess' }),
           roleDelete: () => ({ __typename: 'RoleDeleteSuccess' }),

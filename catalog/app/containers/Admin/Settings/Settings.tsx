@@ -12,6 +12,7 @@ import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
 import SearchSettings from './SearchSettings'
+import TabulatorSettings from './TabulatorSettings'
 import ThemeEditor from './ThemeEditor'
 
 function useBeta(): [boolean, (b: boolean) => Promise<void>] {
@@ -273,6 +274,10 @@ const useStyles = M.makeStyles((t) => ({
   title: {
     margin: t.spacing(0, 0, 2),
     padding: t.spacing(0, 2),
+
+    '* + &': {
+      marginTop: t.spacing(2),
+    },
   },
 }))
 
@@ -281,13 +286,13 @@ export default function Settings() {
   return (
     <div className={classes.root}>
       <MetaTitle>{['Settings', 'Admin']}</MetaTitle>
-      <M.Typography variant="h4" className={classes.title}>
+      <M.Typography variant="h5" className={classes.title}>
         Catalog Customization
       </M.Typography>
       <M.Grid container spacing={2}>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Navbar link
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
@@ -297,7 +302,7 @@ export default function Settings() {
         </M.Grid>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Theme (logo and color)
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
@@ -307,7 +312,7 @@ export default function Settings() {
         </M.Grid>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Default search mode
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
@@ -317,13 +322,20 @@ export default function Settings() {
         </M.Grid>
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
-            <M.Typography variant="h5" className={classes.sectionHeading}>
+            <M.Typography variant="h6" className={classes.sectionHeading}>
               Enable beta features
             </M.Typography>
             <BetaSwitch />
           </M.Paper>
         </M.Grid>
       </M.Grid>
+
+      <M.Typography variant="h5" className={classes.title}>
+        Tabulator Settings
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <TabulatorSettings />
+      </M.Paper>
     </div>
   )
 }

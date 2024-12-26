@@ -72,13 +72,12 @@ function ChartInner({
 // TODO: nice customizable display
 const ChartErrorBoundary = createBoundary(
   (props: $TSFixMe /* , { reset }: $TSFixMe */) =>
-    (/* error: $TSFixMe, info: $TSFixMe */) =>
-      (
-        // console.log('ChartErrorBoundary', { error, info }),
-        <M.Typography variant="h6" {...props}>
-          Unexpected Error
-        </M.Typography>
-      ),
+    (/* error: $TSFixMe, info: $TSFixMe */) => (
+      // console.log('ChartErrorBoundary', { error, info }),
+      <M.Typography variant="h6" {...props}>
+        Unexpected Error
+      </M.Typography>
+    ),
   'ChartErrorBoundary',
 )
 

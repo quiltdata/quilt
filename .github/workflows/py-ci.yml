@@ -5,21 +5,22 @@ on:
     tags:
       - "*"
   pull_request:
+  merge_group:
 jobs:
   linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
-          python -m pip install 'pylint==2.10.2' 'pycodestyle>=2.6.1'
+          python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1'
       - name: Run pylint
         run: |
-          pylint $(find -name '*.py' -not -path './venv/*')
+          pylint .
       - name: Run pycodestyle
         run: |
           pycodestyle $(find -name '*.py' -not -path './venv/*')
@@ -27,10 +28,10 @@ jobs:
   isort:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
@@ -44,14 +45,16 @@ jobs:
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          # on newer versions it crashes with
+          # TypeError: <classmethod(<function Package.install at 0x105219f30>)> is not a callable object
+          python-version: '3.9'
       - name: install deps
         run: |
           python -m pip install --upgrade pip setuptools
-          python -m pip install PyYAML~=5.4.1 api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+          python -m pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@v2.0.5+quilt3.2
       - name: generate docs
         run: cd gendocs && python build.py
       - name: show invisible changes via cat
@@ -64,10 +67,10 @@ jobs:
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: install poetry
         run: python -m pip install poetry
       - name: install deps
@@ -79,13 +82,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -95,8 +98,9 @@ jobs:
       - name: Run Pytest
         run: |
           pytest --cov=api/python api/python
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v5
         env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           OS: ${{ matrix.os }}
           PYTHON_VERSION: ${{ matrix.python-version }}
         with:
@@ -126,18 +130,18 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install build==1.2.2.post1 twine==5.1.1
       - name: verify git tag vs. version
         env:
           CIRCLE_TAG: ${{ github.ref_name }}
         run: python setup.py verify
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install build==0.8.0 twine==4.0.0
       - name: build
         run: python -m build
       - name: upload to PyPI
@@ -148,61 +152,56 @@ jobs:
 
   test-lambda:
     strategy:
+      fail-fast: false
       matrix:
         path:
           - access_counts
-          - es/indexer
-          - molecule
+          - indexer
           - pkgevents
           - pkgpush
-          - pkgselect
           - preview
           - s3hash
-          - s3select
           - shared
           - status_reports
           - tabular_preview
+          - thumbnail
           - transcode
-        python-version: ['3.7']
-        include:
-          - path: thumbnail
-            python-version: '3.9'
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
       PYTHONPATH: deps
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version-file: lambdas/${{ matrix.path }}/.python-version
       - name: Install dependencies
         run: |
-          # Due to behavior change in pip>=23.1 installing tifffile==0.15.1
-          # from thumbnail lambda fails whithout installed wheel.
-          # See https://github.com/pypa/pip/issues/8559.
-          python -m pip install wheel
-          if [ ${{ matrix.path }} == "shared" ]
-            python -m pip install -e lambdas/shared[tests]
+          if [ ${{ matrix.path }} == "thumbnail" ]
           then
-            python -m pip install -e lambdas/shared
-            python -m pip install -e lambdas/${{ matrix.path }}
+            # Due to behavior change in pip>=23.1 installing tifffile==0.15.1
+            # from thumbnail lambda fails whithout installed wheel.
+            # See https://github.com/pypa/pip/issues/8559.
+            # HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
+            python -m pip install wheel 'numpy<2'
           fi
-          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
 
           # Try to simulate the lambda .zip file:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
           # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+
+          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v5
         env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           LAMBDA: ${{ matrix.path }}
         with:
           flags: lambda

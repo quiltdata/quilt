@@ -6,7 +6,7 @@ import Skel from 'components/Skeleton'
 const useSkeletonStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
-    height: t.spacing(30),
+    height: ({ height }: { height: number }) => t.spacing(height),
     width: '100%',
   },
   lineNumbers: {
@@ -16,6 +16,7 @@ const useSkeletonStyles = M.makeStyles((t) => ({
   content: {
     flexGrow: 1,
     marginLeft: t.spacing(2),
+    overflow: 'hidden',
   },
   line: {
     height: t.spacing(2),
@@ -25,8 +26,12 @@ const useSkeletonStyles = M.makeStyles((t) => ({
 
 const fakeLines = [80, 50, 100, 60, 30, 80, 50, 100, 60, 30, 20, 70]
 
-export default function Skeleton() {
-  const classes = useSkeletonStyles()
+interface SkeletonProps {
+  height?: number
+}
+
+export default function Skeleton({ height = 30 }: SkeletonProps) {
+  const classes = useSkeletonStyles({ height })
   return (
     <div className={classes.root}>
       <Skel className={classes.lineNumbers} height="100%" />

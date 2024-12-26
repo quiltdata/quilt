@@ -18,6 +18,7 @@ const useBucketStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     padding: t.spacing(4),
     position: 'relative',
+    overflow: 'hidden',
   },
   title: {
     ...t.typography.h6,
@@ -27,6 +28,8 @@ const useBucketStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     color: t.palette.text.hint,
     lineHeight: t.typography.pxToRem(24),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   desc: {
     ...t.typography.body2,
@@ -94,7 +97,11 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
           {bucket.title}
         </Link>
       </div>
-      <Link className={classes.name} to={urls.bucketRoot(bucket.name)}>
+      <Link
+        className={classes.name}
+        to={urls.bucketRoot(bucket.name)}
+        title={`s3://${bucket.name}`}
+      >
         s3://{bucket.name}
       </Link>
       {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
@@ -127,7 +134,7 @@ const useStyles = M.makeStyles((t) => ({
     gridColumnGap: t.spacing(4),
     gridRowGap: t.spacing(4),
     gridTemplateColumns: '1fr 1fr 1fr',
-    gridAutoRows: 'auto',
+    gridAutoRows: `minmax(${t.spacing(25)}px, auto)`,
     [t.breakpoints.down('sm')]: {
       gridTemplateColumns: '1fr 1fr',
     },
@@ -143,8 +150,6 @@ const useStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'center',
-    paddingBottom: 'calc(50% - 2rem - 2px)',
-    paddingTop: 'calc(50% - 2rem - 2px)',
     '&:hover': {
       background: fade(t.palette.tertiary.main, 0.04),
     },

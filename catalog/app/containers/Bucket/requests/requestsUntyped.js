@@ -1,21 +1,17 @@
 import { join as pathJoin } from 'path'
 
-import * as dateFns from 'date-fns'
-import * as FP from 'fp-ts'
+import * as Eff from 'effect'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-import * as quiltConfigs from 'constants/quiltConfigs'
-import cfg from 'constants/config'
 import * as Resource from 'utils/Resource'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator } from 'utils/JSONSchema'
 import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
-import * as workflows from 'utils/workflows'
 
 import * as errors from '../errors'
 
@@ -23,106 +19,6 @@ import { decodeS3Key } from './utils'
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
-
-const MAX_BANDS = 10
-
-export const bucketAccessCounts = async ({ s3, bucket, today, window }) => {
-  if (!cfg.analyticsBucket)
-    throw new Error('bucketAccessCounts: "analyticsBucket" required')
-
-  const dates = R.unfold(
-    (daysLeft) => daysLeft >= 0 && [dateFns.subDays(today, daysLeft), daysLeft - 1],
-    window,
-  )
-
-  try {
-    const result = await s3Select({
-      s3,
-      Bucket: cfg.analyticsBucket,
-      Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
-      Expression: `
-        SELECT ext, counts FROM s3object
-        WHERE eventname = 'GetObject'
-        AND bucket = '${sqlEscape(bucket)}'
-      `,
-      InputSerialization: {
-        CSV: {
-          FileHeaderInfo: 'Use',
-          AllowQuotedRecordDelimiter: true,
-        },
-      },
-    })
-    return FP.function.pipe(
-      result,
-      R.map((r) => {
-        const recordedCounts = JSON.parse(r.counts)
-        const { counts, total } = dates.reduce(
-          (acc, date) => {
-            const value = recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0
-            const sum = acc.total + value
-            return {
-              total: sum,
-              counts: acc.counts.concat({ date, value, sum }),
-            }
-          },
-          { total: 0, counts: [] },
-        )
-        return { ext: r.ext && `.${r.ext}`, total, counts }
-      }),
-      R.filter((i) => i.total),
-      R.sort(R.descend(R.prop('total'))),
-      R.applySpec({
-        byExt: R.identity,
-        byExtCollapsed: (bands) => {
-          if (bands.length <= MAX_BANDS) return bands
-          const [other, rest] = R.partition((b) => b.ext === '', bands)
-          const [toKeep, toMerge] = R.splitAt(MAX_BANDS - 1, rest)
-          const merged = [...other, ...toMerge].reduce((acc, band) => ({
-            ext: '',
-            total: acc.total + band.total,
-            counts: R.zipWith(
-              (a, b) => ({
-                date: a.date,
-                value: a.value + b.value,
-                sum: a.sum + b.sum,
-              }),
-              acc.counts,
-              band.counts,
-            ),
-          }))
-          return R.sort(R.descend(R.prop('total')), toKeep.concat(merged))
-        },
-        combined: {
-          total: R.reduce((sum, { total }) => sum + total, 0),
-          counts: R.pipe(
-            R.pluck('counts'),
-            R.transpose,
-            R.map(
-              R.reduce(
-                (acc, { date, value, sum }) => ({
-                  date,
-                  value: acc.value + value,
-                  sum: acc.sum + sum,
-                }),
-                { value: 0, sum: 0 },
-              ),
-            ),
-          ),
-        },
-      }),
-    )
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch bucket access counts:')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return {
-      byExt: [],
-      byExtCollapsed: [],
-      combined: { total: 0, counts: [] },
-    }
-  }
-}
 
 const parseDate = (d) => d && new Date(d)
 
@@ -174,102 +70,6 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   throw new Error('Stats unavailable')
-}
-
-const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) => {
-  if (!keys.length) return null
-
-  const [key, ...keysTail] = keys
-  const fileExists = await ensureObjectIsPresent({
-    s3,
-    bucket,
-    key,
-    version,
-  })
-
-  return (
-    fileExists ||
-    (await ensureObjectIsPresentInCollection({ s3, bucket, keys: keysTail }))
-  )
-}
-
-const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
-  const keys = Array.isArray(path) ? path : [path]
-  const versionExists = await ensureObjectIsPresentInCollection({
-    s3,
-    bucket,
-    keys,
-    version,
-  })
-  if (!versionExists) {
-    throw new errors.VersionNotFound(
-      `${path} for ${bucket} and version ${version} does not exist`,
-    )
-  }
-
-  return s3
-    .getObject({
-      Bucket: bucket,
-      Key: versionExists.key,
-      VersionId: version,
-    })
-    .promise()
-}
-
-const fetchFileLatest = async ({ s3, bucket, path }) => {
-  const keys = Array.isArray(path) ? path : [path]
-  const fileExists = await ensureObjectIsPresentInCollection({
-    s3,
-    bucket,
-    keys,
-  })
-  if (!fileExists) {
-    throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
-  }
-
-  const versions = await objectVersions({
-    s3,
-    bucket,
-    path: fileExists.key,
-  })
-  const latest = R.find(R.prop('isLatest'), versions)
-  const version = latest && latest.id !== 'null' ? latest.id : undefined
-
-  return fetchFileVersioned({ s3, bucket, path: fileExists.key, version })
-}
-
-export const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
-
-export const metadataSchema = async ({ s3, schemaUrl }) => {
-  if (!schemaUrl) return null
-
-  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
-
-  const response = await fetchFile({ s3, bucket, path: key, version })
-  return JSON.parse(response.Body.toString('utf-8'))
-}
-
-export const WORKFLOWS_CONFIG_PATH = quiltConfigs.workflows
-// TODO: enable this when backend is ready
-// const WORKFLOWS_CONFIG_PATH = [
-//   '.quilt/workflows/config.yaml',
-//   '.quilt/workflows/config.yml',
-// ]
-
-export const workflowsConfig = async ({ s3, bucket }) => {
-  try {
-    const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
-    return workflows.parse(response.Body.toString('utf-8'))
-  } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return workflows.emptyConfig
-
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
@@ -373,7 +173,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-      return FP.function.pipe(
+      return Eff.pipe(
         JSON.parse(r.Body.toString('utf-8')),
         R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
         R.map((b) => ({
@@ -403,7 +203,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     try {
       const qs = mkSearch({ action: 'sample', index: bucket })
       const result = await req(`/search${qs}`)
-      return FP.function.pipe(
+      return Eff.pipe(
         result,
         R.pathOr([], ['aggregations', 'objects', 'buckets']),
         R.map((h) => {
@@ -425,7 +225,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-    return FP.function.pipe(
+    return Eff.pipe(
       result,
       R.path(['Contents']),
       R.map(R.evolve({ Key: decodeS3Key })),
@@ -477,7 +277,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-      return FP.function.pipe(
+      return Eff.pipe(
         JSON.parse(r.Body.toString('utf-8')),
         R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
         R.map((b) => ({
@@ -498,7 +298,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     try {
       const qs = mkSearch({ action: 'images', index: bucket })
       const result = await req(`/search${qs}`)
-      return FP.function.pipe(
+      return Eff.pipe(
         result,
         R.pathOr([], ['aggregations', 'objects', 'buckets']),
         R.map((h) => {
@@ -519,7 +319,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-    return FP.function.pipe(
+    return Eff.pipe(
       result,
       R.path(['Contents']),
       R.map(R.evolve({ Key: decodeS3Key })),
@@ -541,39 +341,6 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   }
   return []
 }
-
-export const objectVersions = ({ s3, bucket, path }) =>
-  s3
-    .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
-    .promise()
-    .then(
-      R.pipe(
-        ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
-        R.map(R.evolve({ Key: decodeS3Key })),
-        R.filter((v) => v.Key === path),
-        R.map((v) => ({
-          isLatest: v.IsLatest || false,
-          lastModified: v.LastModified,
-          size: v.Size,
-          id: v.VersionId,
-          deleteMarker: v.Size == null,
-          archived: v.StorageClass === 'GLACIER' || v.StorageClass === 'DEEP_ARCHIVE',
-        })),
-        R.sort(R.descend(R.prop('lastModified'))),
-      ),
-    )
-
-// TODO: handle archive, delete markers
-//       make re-useable head request with such handlers
-export const objectMeta = ({ s3, bucket, path, version }) =>
-  s3
-    .headObject({
-      Bucket: bucket,
-      Key: path,
-      VersionId: version,
-    })
-    .promise()
-    .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
 const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
 
@@ -668,8 +435,6 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
   }
 }
 
-const MANIFESTS_PREFIX = '.quilt/packages/'
-
 const withCalculatedRevisions = (s) => ({
   scripted_metric: {
     init_script: `
@@ -724,113 +489,33 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
     .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
+// const MANIFESTS_PREFIX = '.quilt/packages/'
+
 // TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
-const MAX_PACKAGE_ENTRIES = 500
+// const MAX_PACKAGE_ENTRIES = 500
 
-// TODO: remove
-export const getRevisionData = async ({
-  endpoint,
-  sign,
-  bucket,
-  hash,
-  maxKeys = MAX_PACKAGE_ENTRIES,
-}) => {
-  const url = sign({ bucket, key: `${MANIFESTS_PREFIX}${hash}` })
-  const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
-  const r = await fetch(
-    `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
-  )
-  const [header, ...entries] = await r
-    .json()
-    .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
-  const files = Math.min(maxKeys, entries.length)
-  const bytes = entries.slice(0, maxKeys).reduce((sum, i) => sum + i.size, 0)
-  const truncated = entries.length > maxKeys
-  return {
-    stats: { files, bytes, truncated },
-    message: header.message,
-    header,
-  }
-}
-
-const s3Select = ({
-  s3,
-  ExpressionType = 'SQL',
-  InputSerialization = { JSON: { Type: 'LINES' } },
-  ...rest
-}) =>
-  s3
-    .selectObjectContent({
-      ExpressionType,
-      InputSerialization,
-      OutputSerialization: { JSON: {} },
-      ...rest,
-    })
-    .promise()
-    .then(
-      R.pipe(
-        R.prop('Payload'),
-        R.reduce((acc, evt) => {
-          if (!evt.Records) return acc
-          const s = evt.Records.Payload.toString()
-          return acc + s
-        }, ''),
-        R.trim,
-        R.ifElse(R.isEmpty, R.always([]), R.pipe(R.split('\n'), R.map(JSON.parse))),
-      ),
-    )
-
-const sqlEscape = (arg) => arg.replace(/'/g, "''")
-
-const ACCESS_COUNTS_PREFIX = 'AccessCounts'
-
-const queryAccessCounts = async ({ s3, type, query, today, window = 365 }) => {
-  try {
-    const records = await s3Select({
-      s3,
-      Bucket: cfg.analyticsBucket,
-      Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
-      Expression: query,
-      InputSerialization: {
-        CSV: {
-          FileHeaderInfo: 'Use',
-          AllowQuotedRecordDelimiter: true,
-        },
-      },
-    })
-
-    const recordedCounts = records.length ? JSON.parse(records[0].counts) : {}
-
-    const counts = R.times((i) => {
-      const date = dateFns.subDays(today, window - i - 1)
-      return {
-        date,
-        value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
-      }
-    }, window)
-
-    const total = Object.values(recordedCounts).reduce(R.add, 0)
-
-    return { counts, total }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('queryAccessCounts: error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
-}
-
-export const objectAccessCounts = ({ s3, bucket, path, today }) =>
-  queryAccessCounts({
-    s3,
-    type: 'Objects',
-    query: `
-      SELECT counts FROM s3object
-      WHERE eventname = 'GetObject'
-      AND bucket = '${sqlEscape(bucket)}'
-      AND "key" = '${sqlEscape(path)}'
-    `,
-    today,
-    window: 365,
-  })
+// TODO: remove: used in a comented-out code in PackageList
+// export const getRevisionData = async ({
+//   endpoint,
+//   sign,
+//   bucket,
+//   hash,
+//   maxKeys = MAX_PACKAGE_ENTRIES,
+// }) => {
+//   const url = sign({ bucket, key: `${MANIFESTS_PREFIX}${hash}` })
+//   const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
+//   const r = await fetch(
+//     `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
+//   )
+//   const [header, ...entries] = await r
+//     .json()
+//     .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
+//   const files = Math.min(maxKeys, entries.length)
+//   const bytes = entries.slice(0, maxKeys).reduce((sum, i) => sum + i.size, 0)
+//   const truncated = entries.length > maxKeys
+//   return {
+//     stats: { files, bytes, truncated },
+//     message: header.message,
+//     header,
+//   }
+// }

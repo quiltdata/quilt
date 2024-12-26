@@ -5,6 +5,7 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
@@ -27,6 +28,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
+import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
@@ -72,6 +74,8 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),
     Object.entries,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    R.filter(([path, file]) => file !== FI.EMPTY_DIR_MARKER),
     R.map(([path, file]) => ({
       logical_key: path,
       meta: file.meta?.user_meta || {},
@@ -91,12 +95,11 @@ function createReadmeFile(name: string) {
   return FI.computeHash(f) as FI.LocalFile
 }
 
-// XXX: move to dialogs module
-interface DialogsOpenProps {
-  close: (reason?: string) => void
+interface ConfirmReadmeProps {
+  close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
 }
 
-function ConfirmReadme({ close }: DialogsOpenProps) {
+function ConfirmReadme({ close }: ConfirmReadmeProps) {
   return (
     <>
       <M.DialogTitle>Add a README file?</M.DialogTitle>
@@ -143,6 +146,7 @@ function FormError({ submitting, error }: FormErrorProps) {
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
+    overflowY: 'auto',
   },
   filesWithError: {
     height: `calc(90% - ${t.spacing()}px)`,
@@ -171,7 +175,6 @@ interface PackageCreationFormProps {
     meta?: Types.JsonRecord
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
-    path?: string
   }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
@@ -180,6 +183,7 @@ interface PackageCreationFormProps {
   setWorkflow: (workflow: workflows.Workflow) => void
   sourceBuckets: BucketPreferences.SourceBuckets
   workflowsConfig: workflows.WorkflowsConfig
+  currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
   ui?: {
@@ -205,6 +209,7 @@ function PackageCreationForm({
   sourceBuckets,
   validate: validateMetaInput,
   workflowsConfig,
+  currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
   ui = {},
@@ -213,8 +218,9 @@ function PackageCreationForm({
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
-  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
+  const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
@@ -292,6 +298,7 @@ function PackageCreationForm({
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
+      if (file === FI.EMPTY_DIR_MARKER) return
       if (isS3File(file)) {
         addedS3Entries.push({ path, file })
       } else {
@@ -301,13 +308,13 @@ function PackageCreationForm({
 
     const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]
-      return !e || e.hash !== file.hash.value
+      return !e || !R.equals(e.hash, file.hash.value)
     })
 
     const entries = filesStateToEntries(files)
 
     if (!entries.length) {
-      const reason = await dialogs.open((props: DialogsOpenProps) => (
+      const reason = await dialogs.open<'cancel' | 'empty' | 'readme'>((props) => (
         <ConfirmReadme {...props} />
       ))
       if (reason === 'cancel') return mkFormError(CANCEL)
@@ -436,16 +443,6 @@ function PackageCreationForm({
     [nameWarning, nameExistence],
   )
 
-  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-  const resizeObserver = React.useMemo(
-    () =>
-      new window.ResizeObserver((entries) => {
-        const { height } = entries[0]!.contentRect
-        setMetaHeight(height)
-      }),
-    [setMetaHeight],
-  )
-  const [filesDisabled, setFilesDisabled] = React.useState(false)
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
@@ -453,23 +450,14 @@ function PackageCreationForm({
     [handleNameChange],
   )
 
-  React.useEffect(() => {
-    if (editorElement) resizeObserver.observe(editorElement)
-    return () => {
-      if (editorElement) resizeObserver.unobserve(editorElement)
-    }
-  }, [editorElement, resizeObserver])
-
   const validateFiles = React.useCallback(
     async (files: FI.FilesState) => {
       const hashihgError = delayHashing && FI.validateHashingComplete(files)
       if (hashihgError) return hashihgError
 
-      setFilesDisabled(true)
       const entries = filesStateToEntries(files)
       const errors = await validateEntries(entries)
       setEntriesError(errors || null)
-      setFilesDisabled(false)
       if (errors?.length) {
         return 'schema'
       }
@@ -509,6 +497,7 @@ function PackageCreationForm({
             {ui.title || 'Create package'} in{' '}
             <Successors.Dropdown
               bucket={bucket || ''}
+              currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
               successor={successor}
               onChange={onSuccessor}
             />{' '}
@@ -540,7 +529,6 @@ function PackageCreationForm({
                 <Layout.LeftColumn>
                   <RF.Field
                     component={PD.WorkflowInput}
-                    bucket={bucket}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
@@ -603,7 +591,7 @@ function PackageCreationForm({
                   {cfg.desktop ? (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       component={Upload.LocalFolderInput}
                       initialValue={defaultLocalFolder}
@@ -617,7 +605,7 @@ function PackageCreationForm({
                   ) : (
                     <RF.Field
                       className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
+                        [classes.filesWithError]: submitFailed && !!entriesError,
                       })}
                       // @ts-expect-error
                       component={FI.FilesInput}
@@ -641,9 +629,9 @@ function PackageCreationForm({
                       delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
-                      initialS3Path={initial?.path}
-                      validationErrors={submitFailed ? entriesError : []}
-                      disabled={filesDisabled}
+                      validationErrors={
+                        submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
+                      }
                     />
                   )}
 
@@ -698,7 +686,7 @@ const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
     Closed: () => {},
-    Loading: () => {},
+    Loading: (opts?: { waitListing?: boolean }) => opts,
     Error: (e: Error) => e,
     Form: (v: {
       manifest?: Manifest
@@ -729,6 +717,7 @@ interface UsePackageCreationDialogProps {
     name: string
     hash?: string
   }
+  s3Path?: string
   initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
@@ -743,20 +732,18 @@ export function usePackageCreationDialog({
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
   src,
   initialOpen,
+  s3Path,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
-  // TODO: put it to src as S3Handle
-  const [s3Path, setS3Path] = React.useState<string | undefined>()
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
+  const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
+  const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()
@@ -765,7 +752,7 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,
@@ -811,19 +798,33 @@ export function usePackageCreationDialog({
     [bucket, s3Path, workflowsData, manifestResult, prefs],
   )
 
+  const [waitingListing, setWaitingListing] = React.useState(false)
+  const getFiles = requests.useFilesListing()
+
   const open = React.useCallback(
-    (initial?: { successor?: workflows.Successor; path?: string }) => {
+    async (initial?: {
+      successor?: workflows.Successor
+      path?: string
+      selection?: Selection.ListingSelection
+    }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)
       }
-      if (initial?.path !== undefined) {
-        setS3Path(initial?.path)
-      }
 
+      setWaitingListing(true)
       setOpen(true)
       setExited(false)
+
+      if (!initial?.selection) {
+        setWaitingListing(false)
+        return
+      }
+      const handles = Selection.toHandlesList(initial?.selection)
+      const filesMap = await getFiles(handles)
+      addToPackage?.merge(filesMap)
+      setWaitingListing(false)
     },
-    [setOpen, setExited],
+    [addToPackage, getFiles],
   )
 
   const close = React.useCallback(() => {
@@ -843,6 +844,11 @@ export function usePackageCreationDialog({
   const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
     if (success) return DialogState.Success(success)
+    if (waitingListing) {
+      return DialogState.Loading({
+        waitListing: true,
+      })
+    }
     return AsyncResult.case(
       {
         Ok: DialogState.Form,
@@ -851,7 +857,7 @@ export function usePackageCreationDialog({
       },
       data,
     )
-  }, [exited, success, data])
+  }, [waitingListing, exited, success, data])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <PD.DialogWrapper
@@ -866,17 +872,20 @@ export function usePackageCreationDialog({
       {DialogState.match(
         {
           Closed: () => null,
-          Loading: () => (
+          Loading: (opts) => (
             <DialogLoading
               skeletonElement={<FormSkeleton />}
-              title="Fetching package manifest. One moment…"
+              title={
+                opts?.waitListing
+                  ? 'Fetching list of files inside selected directories. It can take a while…'
+                  : 'Fetching package manifest. One moment…'
+              }
               submitText={ui.submit}
               onCancel={close}
             />
           ),
           Error: (e) => (
             <DialogError
-              bucket={bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}
@@ -902,7 +911,11 @@ export function usePackageCreationDialog({
                     setWorkflow,
                     workflowsConfig,
                     sourceBuckets,
-                    initial: { name: src?.name, path: s3Path, ...manifest },
+                    initial: {
+                      name: src?.name,
+                      ...manifest,
+                    },
+                    currentBucketCanBeSuccessor,
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,

@@ -1,6 +1,8 @@
 <!-- markdownlint-disable -->
 # Run Quilt in Your AWS Account
-Quilt is a Data Hub for AWS.
+Quilt is a data mesh that verifies the integrity of your data so that teams can
+find, understand, and file discoveries based on data of any size or in any format.
+
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
 ## Help and Advice
@@ -19,26 +21,74 @@ connect with other users
 * [Email Quilt](mailto:contact@quiltdata.io)
 
 ## Architecture
-Each instance consists of a password-protected web catalog on your domain,
-backend services, a secure server to manage user identities, and a Python API.
 
-![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+Each instance consists of a CloudFormation stack that is privately hosted in your 
+AWS account. The stack includes backend services for the web catalog, single sign-on,
+user identification and access, an ElasticSearch cluster, and more.
+
+Quilt uses subnets and security groups to isolate network services and runs key
+services within the VPC.
+
+A private stack with an inward load balancer is shown below.
+
+![Architecture (private ELBv2)](imgs/network_private.png)
+
+For an internet-facing load balancer the data plane remains the same, as shown below.
+
+![Architecture (public ELBv2)](imgs/network_public.png)
 
 ### Network
-![](imgs/aws-diagram-network.png)
 
-- Amazon ECS services run in two subnets in two Availability Zones (AZ).
-If your Quilt stack is configured to use private subnets you must also provide a
-public NAT gateway.
-- An Amazon RDS instance (Postgres) stores stack configuration,
-user login information, and bucket metadata.
-- AWS Lambda Services can optionally be configured to use private IPs in your VPC.
-- Security groups and NACLs throughout restrict access to the greatest degree possible.
+You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
+create its own network.
 
-See [Private endpoints](advanced-features/private-endpoint-access.md) for more details
-on private IPs and Quilt services.
+> If you provide the subnets you may choose to reuse subnets across parameters.
+> For example you can use the same subnets for the Private and User subnet parameters.
 
-> For cost-sensitive deployments, Quilt ECS services can be configured to use a single AZ.
+You may optionally provide your own VPC CIDR block
+if the default block of 10.0.0.0/16 conflicts with shared or
+peered VPC services. We recommend a CIDR block no smaller than /24 (256 addresses)
+for production, multi-AZ deployments. Larger CIDR blocks are easier to upgrade to
+new Quilt versions with expanded services.
+
+> For cost-sensitive deployments, Quilt ECS services can be configured to use
+> a single AZ.
+
+> You may use a combination of interface endpoints and gateway endpoints to
+> restrict the data plane traffic shown above to your VPC.
+> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
+
+#### Production, multi-AZ subnet division for private ELBv2 (you provide the network)
+
+| Type       | AZ | Description            | Services | IPs needed† |
+|------------|----|------------------------|----------|--------------|
+| Private    | a  | Routes to Internet     | ECS, Lambda | 32 |
+| Private    | b  | " | " | 32 |
+| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 32 |
+| Intra      | b  | " | " | 32 |
+| User       | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 16 |
+| User       | b  | " | " | 16 |
+
+> \* One IP per master node, one IP per data node
+
+> †  Includes 5 IPs for AWS (network, routing, DNS, reserved, broadcast) plus room
+> for new services in future updates.
+
+Below are the subnet configurations and sizes for Quilt version 2.0 networks,
+new as of June 2023. The configuration is similar to the
+[AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
+
+#### Subnet division when Quilt creates the VPC
+
+- 2 public subnets for NAT gateways and an internet-facing application load balancer
+(1/4 the VPC CIDR)
+- 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
+application load balancer
+(1/2 of the VPC CIDR)
+- 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
+OpenSearch domain
+(1/8 of the VPC CIDR)
+- Unused (1/8 of the VPC CIDR)
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
@@ -85,13 +135,21 @@ Running Quilt requires working knowledge of [AWS CloudFormation](https://aws.ama
 You will need the following:
 
 1. **An AWS account**.
+    1. **The service-linked role for Elasticsearch**
+    > This role is not created automatically when you use Cloudformation or other
+    > APIs.
+
+    You can create the role as follows:
+        ```
+        aws iam create-service-linked-role --aws-service-name es.amazonaws.com
+        ```
 1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
-    1. We recommend that you use a
+    1. You may choose to use a
     [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
     for stack creation and updates.
-    1. See this [example service role](./cfn-service-role.yml) for minimal permissions
-    to install a Quilt stack.
+    1. Refer to this [example service role](./cfn-service-role.yaml)
+    and modify as needed to fit your use case.
 
     > Ensure that your service role is up-to-date with the example before every stack
     update so as to prevent installation failures.
@@ -125,7 +183,6 @@ following Bucket characteristics:
     bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
     of `ObjectRemoved:DeleteMarkerCreated`.
 
-1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 1. A license key or an active subscription to Quilt Business on AWS Marketplace. 
@@ -169,6 +226,13 @@ you see in Service Catalog.
 
 ### CloudFormation
 
+You can perform stack update and creation with the AWS Console, AWS CLI,
+Terraform, or other means.
+
+In all cases it is **highly recommended** that you set the `--on-failure` policy
+to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
+In the AWS Console this option appears under the phrase "Stack failure options."
+
 1. Specify stack details in the form of a stack _name_ and CloudFormation
 _parameters_. Refer to the descriptions displayed above each
 text box for further details. Service Catalog users require a license key. See
@@ -192,10 +256,8 @@ Create.
 
     ![](./imgs/finish.png)
 
-1. CloudFormation takes about 30 minutes to create the resources
-for your stack. You may monitor progress under Events.
-Once the stack is complete, you will see `CREATE_COMPLETE` as the Status for
-your CloudFormation stack.
+1. CloudFormation may take between 30 and 90 minutes to create your stack.
+You can monitor progress under Events. On completion you will see `CREATE_COMPLETE`.
 
     ![](./imgs/events.png)
 
@@ -203,24 +265,35 @@ your CloudFormation stack.
 
     ![](./imgs/outputs.png)
 
-In a separate browser window, open the DNS settings for your domain.
-Create the following `CNAME` records. **Replace italics** with the
-corresponding stack Outputs.
+### CNAMEs
+
+In order for your users to reach the Quilt catalog you must set three CNAMEs
+that point to the `LoadBalancerDNSName` as shown below and in the Outputs
+of your stack.
 
 | CNAME | Value |
 | ------ | ------- |
-| _QuiltWebHost Key_  | _LoadBalancerDNSName_ | 
-| _RegistryHostName Key_  | _LoadBalancerDNSName_ |
-| _S3ProxyHost Key_  | _LoadBalancerDNSName_ | 
+| `<QuiltWebHost>` Key  | `LoadBalancerDNSName` | 
+| `<RegistryHostName>` Key  | `LoadBalancerDNSName` |
+| `<S3ProxyHost>` Key  | `LoadBalancerDNSName` | 
 
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
+### Terraform
+
+Refer to the [`quilt` module](https://github.com/quiltdata/iac) for guidance.
+
 ## Routine Maintenance and Upgrades
 
-Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
+Releases are sent to customers over email. We recommend that you apply new releases
+as soon as possible to benefit from the latest security updates and features.
+
+### CloudFormation updates
 
 To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console as follows.
+
+> By default, previous parameter values carry over.
 
 1. Navigate to AWS Console > CloudFormation > Stacks
 1. Select your Quilt stack
@@ -229,7 +302,54 @@ To update your Quilt stack, apply the latest CloudFormation template in the Clou
 1. Enter the Amazon S3 URL for your template
 1. Click Next (several times) and proceed to apply the update
 
-Your previous settings should carry over.
+### Terraform updates
+
+> See above.
+
+## Upgrading from network 1.0 to network 2.0
+
+Upgrading to the Quilt 2.0 network configuration provides improved security by means
+of isolated subnets and a preference for private routing.
+
+An upgrade the 2.0 network, unlike routine Quilt upgrades, requires you to create
+a new stack with a new load balancer. You must therefore also update your
+[CNAMEs](#cnames) to point to the new load balancer.
+
+## Create a new stack with an existing configuration
+
+Terraform users can create a new Quilt stack with the same configuration as an existing
+stack. This is typically useful when upgrading to the 2.0 network.
+
+> _Configuration_ refers to the Quilt stack buckets, roles, policies,
+> and other administrative settings, all of which are stored in RDS.
+
+Perform the following steps:
+
+1. Contact your Quilt account manager for a template that supports Terraform.
+
+1. Take a manual snapshot of the current Quilt database instance. For an existing
+Quilt stack this resource has the logical ID "DB". Note the snapshot identifier
+("Snapshot name" in the AWS Console, `DBSnapshotIdentifier` in the following
+AWS CLI command):
+
+    <!--pytest.mark.skip-->
+    ```sh
+    aws rds describe-db-snapshots
+    ```
+
+    > Be sure to take a _manual_ snapshot. Do not rely on automatic snapshots,
+    > which are deleted when the parent stack is deleted.
+
+1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac)
+to your new template and provide the snapshot identifier to the
+`db_snapshot_identifier=` argument.
+
+    > You must use a Quilt CloudFormation template that supports an existing database,
+    > existing search domain, and existing vpc in order for the terraform modules to
+    > function properly.
+
+1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
+Verify that the new stack is working as desired. Delete the old stack.
 
 ## Security
 
@@ -266,7 +386,7 @@ to Google's OAuth 2.0 server.
 ![](./imgs/google_console.png)
 
 Copy the `Client ID` and `Client secret` to a safe place.
-Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
+Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 ### Active Directory
 
@@ -274,7 +394,7 @@ Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
 1. Click "New Registration".
 1. Name the app, select the Supported account types.
 1. Click "Add a platform", "Web", and enter the `Redirect URIs` value
-`YOUR_QUILT_CATALOG_URL/oauth-callback`. Click "Save" at the bottom.
+`<QuiltWebHost>/oauth-callback`. Click "Save" at the bottom.
 1. Once the application has been created you will need both its `Application
 (client) ID` and `Directory (tenant) ID`.
 
@@ -317,17 +437,12 @@ for further details.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-    1. To the `Sign-in redirect URIs` add `YOUR_QUILT_CATALOG_URL/oauth-callback` URL. 
-    Do not allow wildcard `*` in the login URI redirect. This will be something like the following:
-
-        ```
-        https://quilt.<MY_COMPANY>.com/
-        ```
-
+    1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL. 
+    1. Leave the `Allow wildcard * in the login URI redirect` checkbox **unchecked**.
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
 1. Once you click the `Save` button you will have a new application integration to review.
-    1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
+    1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
     1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
@@ -335,7 +450,7 @@ for further details.
     following:
 
         ```
-        https://<MY_COMPANY>.okta.com/oauth2/default
+        <MY_COMPANY>.okta.com/oauth2/default
         ```
 
     1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
@@ -347,7 +462,7 @@ for further details.
 1. Click `New Connector`
     1. Name the connector *Quilt Connector* or something similar
     1. Set `Sign on method` to `OpenID Connect`
-    1. Set `Login URL` to `YOUR_QUILT_CATALOG_URL/oauth-callback`
+    1. Set `Login URL` to `<QuiltWebHost>/oauth-callback`
     1. Click "Save"
 1. Go back to Applications > Custom Connectors
 1. Click `Add App to Connector`
@@ -441,7 +556,7 @@ In order for Quilt to access and index buckets encrypted with SSE-KMS, you must 
 
 1. Add KMS Key Usage to Quilt Permission Boundary
 2. Add Quilt Principals to KMS Key Policy
-3. Add KMS Key Access to a Scoure=Quilt Role
+3. Add KMS Key Access to a Source=Quilt Role
 
 NOTE: This will not work with the default Source=Custom Roles.
 
@@ -457,8 +572,8 @@ create an IAM policy that explicitly enables KMS access.
   "Statement": {
     "Effect": "Allow",
     "Action": [
-      "kms:Encrypt",
-      "kms:Decrypt"
+      "kms:Decrypt",
+      "kms:GenerateDataKey"
     ],
     "Resource": "arn:aws:kms:us-west-2:111122223333:key/*"
   }
@@ -469,7 +584,7 @@ Go to CloudFormation > Your Quilt Stack -> Update -> Parameters
 and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
 at the bottom of the page:
 
-![](../imgs/ManagedUserRoleExtraPolicies.png)
+![](imgs/ManagedUserRoleExtraPolicies.png)
 
 If other policies are already in that field, 
 you will need to add a comma before appending the ARN.
@@ -520,8 +635,8 @@ that gives a Quilt role access to the keys for specific buckets, e.g:
   "Statement": {
     "Effect": "Allow",
     "Action": [
-      "kms:Encrypt",
-      "kms:Decrypt"
+      "kms:Decrypt",
+      "kms:GenerateDataKey"
     ],
     "Resource": [
       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",

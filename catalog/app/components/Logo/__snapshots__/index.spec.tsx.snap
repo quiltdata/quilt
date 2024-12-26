@@ -1,8 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/Logo should render custom logo 1`] = `
-<div
+<img
   className="makeStyles-custom-1 makeStyles-custom-7"
+  src="https://example.com/example.png"
 />
 `;
 

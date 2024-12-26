@@ -1,31 +1,27 @@
 import { basename } from 'path'
 
-import * as dateFns from 'date-fns'
-import dedent from 'dedent'
-import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
-import Sparkline from 'components/Sparkline'
 import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import { readableBytes, readableQuantity } from 'utils/string'
+import { readableBytes } from 'utils/string'
 
-import Code from 'containers/Bucket/Code'
+import FileCodeSamples from 'containers/Bucket/CodeSamples/File'
+import Analytics from 'containers/Bucket/File/Analytics'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
@@ -230,80 +226,6 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function Meta({ bucket, path, version }) {
-  const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, bucket, path, version })
-  return <FileView.ObjectMeta data={data.result} />
-}
-
-function Analytics({ bucket, path }) {
-  const [cursor, setCursor] = React.useState(null)
-  const s3 = AWS.S3.use()
-  const today = React.useMemo(() => new Date(), [])
-  const formatDate = (date) =>
-    dateFns.format(
-      date,
-      today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
-    )
-  const data = useData(requests.objectAccessCounts, {
-    s3,
-    bucket,
-    path,
-    today,
-  })
-
-  const defaultExpanded = data.case({
-    Ok: ({ total }) => !!total,
-    _: () => false,
-  })
-
-  return (
-    <Section icon="bar_charts" heading="Analytics" defaultExpanded={defaultExpanded}>
-      {data.case({
-        Ok: ({ counts, total }) =>
-          total ? (
-            <M.Box
-              display="flex"
-              width="100%"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <M.Box>
-                <M.Typography variant="h5">Downloads</M.Typography>
-                <M.Typography variant="h4" component="div">
-                  {readableQuantity(cursor === null ? total : counts[cursor].value)}
-                </M.Typography>
-                <M.Typography variant="overline" component="span">
-                  {cursor === null
-                    ? `${counts.length} days`
-                    : formatDate(counts[cursor].date)}
-                </M.Typography>
-              </M.Box>
-              <M.Box width="calc(100% - 7rem)">
-                <Sparkline
-                  data={R.pluck('value', counts)}
-                  onCursor={setCursor}
-                  width={1000}
-                  height={60}
-                  stroke={SVG.Paint.Server(
-                    <linearGradient x2="0" y2="100%" gradientUnits="userSpaceOnUse">
-                      <stop offset="0" stopColor={M.colors.blueGrey[800]} />
-                      <stop offset="100%" stopColor={M.colors.blueGrey[100]} />
-                    </linearGradient>,
-                  )}
-                />
-              </M.Box>
-            </M.Box>
-          ) : (
-            <M.Typography>No analytics available</M.Typography>
-          ),
-        Err: () => <M.Typography>No analytics available</M.Typography>,
-        _: () => <M.CircularProgress />,
-      })}
-    </Section>
-  )
-}
-
 function CenteredProgress() {
   return (
     <M.Box textAlign="center" width="100%">
@@ -349,12 +271,9 @@ const useStyles = M.makeStyles((t) => ({
 
 const previewOptions = { context: Preview.CONTEXT.FILE }
 
-export default function File({
-  match: {
-    params: { bucket, path: encodedPath },
-  },
-  location,
-}) {
+export default function File() {
+  const { bucket, path: encodedPath } = useParams()
+  const location = useLocation()
   const ecfg = EmbedConfig.use()
   const { version } = parseSearch(location.search)
   const classes = useStyles()
@@ -362,28 +281,6 @@ export default function File({
   const s3 = AWS.S3.use()
 
   const path = s3paths.decode(encodedPath)
-
-  const code = React.useMemo(
-    () => [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3 as q3
-          b = q3.Bucket("s3://${bucket}")
-          b.fetch("${path}", "./${basename(path)}")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          aws s3 cp "s3://${bucket}/${path}" .
-        `,
-      },
-    ],
-    [bucket, path],
-  )
 
   const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
   const versionExistsData = useData(requests.getObjectExistence, {
@@ -483,7 +380,7 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              {!ecfg.hideCode && <Code>{code}</Code>}
+              {!ecfg.hideCode && <FileCodeSamples {...{ bucket, path }} />}
               {!ecfg.hideAnalytics && !!cfg.analyticsBucket && (
                 <Analytics {...{ bucket, path }} />
               )}
@@ -498,7 +395,8 @@ export default function File({
                   })}
                 </div>
               </Section>
-              <Meta bucket={bucket} path={path} version={version} />
+              <FileView.ObjectMeta handle={handle} />
+              <FileView.ObjectTags handle={handle} />
             </>
           ),
           _: () => <Message headline="No Such Object" />,

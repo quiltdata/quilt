@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import { Redirect } from 'react-router-dom'
+import { useLocation, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Placeholder from 'components/Placeholder'
@@ -44,13 +44,10 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
 
   const [email, setEmail] = React.useState('')
   const [username, setName] = React.useState('')
-  const onFormChange = React.useCallback(
-    async ({ values }) => {
-      if (email !== values.email) setEmail(values.email)
-      if (username !== values.username) setName(values.username)
-    },
-    [email, username],
-  )
+  const onFormChange = React.useCallback(({ modified, values }) => {
+    if (modified.email) setEmail(values.email)
+    if (modified.username) setName(values.username)
+  }, [])
 
   const onSubmit = React.useCallback(
     async (values) => {
@@ -104,6 +101,12 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             [FF.FORM_ERROR]: 'smtp',
           }
         }
+        if (e instanceof errors.SubscriptionInvalid) {
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'subscriptionInvalid',
+          }
+        }
         sentry('captureException', e)
         // eslint-disable-next-line consistent-return
         return {
@@ -129,7 +132,10 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
         submitting,
       }) => (
         <form onSubmit={handleSubmit}>
-          <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
+          <RF.FormSpy
+            subscription={{ values: true, modified: true }}
+            onChange={onFormChange}
+          />
           <RF.Field
             component={Layout.Field}
             name="username"
@@ -202,9 +208,11 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
             errors={{
               unexpected: 'Something went wrong. Try again later.',
-              smtp: 'SMTP error: contact your administrator',
+              smtp: 'SMTP error: contact your Quilt administrator',
               noDefaultRole:
                 'Unable to assign role. Ask your Quilt administrator to set a default role.',
+              subscriptionInvalid:
+                'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
             }}
           />
           <Layout.Actions>
@@ -230,7 +238,8 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   )
 }
 
-export default ({ location: { search } }) => {
+export default () => {
+  const { search } = useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
   const mutex = useMutex()
 

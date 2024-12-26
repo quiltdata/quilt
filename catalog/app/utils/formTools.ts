@@ -1,7 +1,9 @@
-import { FORM_ERROR } from 'final-form'
+import { SubmissionErrors, FORM_ERROR } from 'final-form'
 import * as React from 'react'
 
-export const mkFormError = (err: React.ReactNode) => ({ [FORM_ERROR]: err })
+export const mkFormError = (err: React.ReactNode): SubmissionErrors => ({
+  [FORM_ERROR]: err,
+})
 
 export interface InputError {
   path: string | null

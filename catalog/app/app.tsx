@@ -4,6 +4,8 @@
 import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+import { Router } from 'react-router-dom'
+import { createSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -20,7 +22,7 @@ Sentry.init(cfg, history)
 import 'sanitize.css'
 
 // Import the rest of our modules
-import { ExperimentsProvider } from 'components/Experiments'
+import * as Assistant from 'components/Assistant'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
@@ -36,12 +38,14 @@ import * as APIConnector from 'utils/APIConnector'
 import * as GraphQL from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
+import WithGlobalDialogs from 'utils/GlobalDialogs'
+import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { PFSCookieManager } from 'utils/PFSCookieManager'
 import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
 import { nest } from 'utils/reactTools'
-import RouterProvider, { LOCATION_CHANGE, selectLocation } from 'utils/router'
 import mkStorage from 'utils/storage'
 import * as Tracking from 'utils/tracking'
 // Load the icons
@@ -56,26 +60,30 @@ globalApi.attach(window)
 const GlobalAPIProvider = globalApi.getProvider()
 
 // listen for Roboto fonts
-fontLoader('Roboto', 'Roboto Mono').then(() => {
-  // reload doc when we have all custom fonts
-  document.body.classList.add('fontLoaded')
-})
+fontLoader('Roboto', 'Roboto Mono')
+  .then(() => {
+    // reload doc when we have all custom fonts
+    document.body.classList.add('fontLoaded')
+  })
+  .catch((error) => {
+    log.log('Failed to load fonts')
+    log.error(error)
+  })
 
 const MOUNT_NODE = document.getElementById('app')
 
 // TODO: make storage injectable
 const storage = mkStorage({ user: 'USER', tokens: 'TOKENS' })
 
-const intercomUserSelector = (state: $TSFixMe) => {
-  const { user: u } = Auth.selectors.domain(state)
-  return (
+const intercomUserSelector = createSelector(
+  Auth.selectors.domain,
+  ({ user: u }) =>
     u && {
       user_id: u.current_user,
       name: u.current_user,
       email: u.email,
-    }
-  )
-}
+    },
+)
 
 const render = () => {
   ReactDOM.render(
@@ -84,11 +92,11 @@ const render = () => {
       WithGlobalStyles,
       Errors.FinalBoundary,
       // @ts-expect-error
-      [Store.Provider, { history }],
+      Store.Provider,
       Sentry.UserTracker,
       GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
-      [RouterProvider, { history }],
+      [Router, { history }],
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
       GraphQL.Provider,
@@ -96,7 +104,7 @@ const render = () => {
       Bookmarks.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
-      [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
+      [Auth.Provider, { storage }],
       [
         Intercom.Provider,
         {
@@ -107,21 +115,18 @@ const render = () => {
           vertical_padding: 59,
         },
       ],
-      ExperimentsProvider,
-      [
-        Tracking.Provider,
-        {
-          locationSelector: selectLocation,
-          userSelector: Auth.selectors.username,
-        },
-      ],
+      [Tracking.Provider, { userSelector: Auth.selectors.username }],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,
       AWS.S3.Provider,
+      Assistant.Provider,
+      Assistant.WithUI,
       Notifications.WithNotifications,
+      WithGlobalDialogs,
       Errors.ErrorBoundary,
       BucketCacheProvider,
+      PFSCookieManager,
       App,
     ),
     MOUNT_NODE,

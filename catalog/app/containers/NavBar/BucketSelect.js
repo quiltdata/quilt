@@ -1,17 +1,15 @@
-import { push } from 'connected-react-router/esm/immutable'
 import deburr from 'lodash/deburr'
 import { matchSorter } from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
-import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
 import BucketIcon from 'components/BucketIcon'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const normalizeBucket = R.pipe(
@@ -120,7 +118,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
   const currentBucket = BucketConfig.useCurrentBucket()
   // XXX: consider using graphql directly
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const dispatch = redux.useDispatch()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
 
   const [inputValue, setInputValue] = React.useState('')
@@ -149,7 +147,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
               const to =
                 typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
               if (to && currentBucket !== to) {
-                dispatch(push(urls.bucketRoot(to)))
+                history.push(urls.bucketRoot(to))
               }
             }
           }}
@@ -222,7 +220,13 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
 
 export default React.forwardRef(function BucketSelectSuspended(props, ref) {
   return (
-    <React.Suspense fallback={<Delay>{() => <M.CircularProgress />}</Delay>}>
+    <React.Suspense
+      fallback={
+        <M.Fade in style={{ transitionDelay: '1000ms' }}>
+          <M.CircularProgress />
+        </M.Fade>
+      }
+    >
       <BucketSelect {...props} forwardedRef={ref} />
     </React.Suspense>
   )

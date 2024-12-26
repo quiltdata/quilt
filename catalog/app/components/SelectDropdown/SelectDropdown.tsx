@@ -38,6 +38,7 @@ export interface ValueBase {
 
 interface SelectDropdownProps<Value extends ValueBase> {
   ButtonProps?: M.ButtonProps
+  adaptive?: boolean
   children?: React.ReactNode
   disabled?: boolean
   emptySlot?: React.ReactNode
@@ -48,12 +49,18 @@ interface SelectDropdownProps<Value extends ValueBase> {
   options: Value[]
   value: ValueBase
   className?: string
+  classes?: {
+    root?: string
+    value?: string
+  }
 }
 
 export default function SelectDropdown<Value extends ValueBase>({
   ButtonProps,
+  adaptive = true,
   children,
   className,
+  classes: classesProp,
   disabled = false,
   emptySlot,
   loading,
@@ -94,7 +101,11 @@ export default function SelectDropdown<Value extends ValueBase>({
   const { className: buttonClassName, ...buttonProps } = ButtonProps || {}
 
   return (
-    <div className={cx(className, classes.root, { [classes.disabled]: disabled })}>
+    <div
+      className={cx(className, classes.root, classesProp?.root, {
+        [classes.disabled]: disabled,
+      })}
+    >
       <M.Button
         className={cx(classes.button, buttonClassName)}
         onClick={handleOpen}
@@ -104,9 +115,11 @@ export default function SelectDropdown<Value extends ValueBase>({
         {...buttonProps}
       >
         {children}
-        {aboveSm && (
+        {(aboveSm || !adaptive) && (
           <>
-            <span className={classes.value}>{value.toString()}</span>
+            <span className={cx(classes.value, classesProp?.value)}>
+              {value.toString()}
+            </span>
             {loading && (
               <M.CircularProgress
                 className={classes.progress}

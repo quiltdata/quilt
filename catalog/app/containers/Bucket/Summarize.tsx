@@ -6,11 +6,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import cfg from 'constants/config'
 import { docs } from 'constants/urls'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
@@ -124,27 +124,10 @@ const useSectionStyles = M.makeStyles((t) => ({
     ...t.typography.body2,
   },
   heading: {
-    ...t.typography.h6,
-    display: 'flex',
-    lineHeight: 1.75,
     marginBottom: t.spacing(1),
     [t.breakpoints.up('sm')]: {
       marginBottom: t.spacing(2),
     },
-    [t.breakpoints.up('md')]: {
-      ...t.typography.h5,
-    },
-  },
-  headingText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  menu: {
-    display: 'flex',
-    marginLeft: t.spacing(1),
-  },
-  toggle: {
-    marginLeft: 'auto',
   },
 }))
 
@@ -173,19 +156,15 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       <div className={classes.content}>
         {!!heading && (
-          <div className={classes.heading}>
-            <div className={classes.headingText}>{heading}</div>
-            {onToggle && (
-              <Buttons.Iconized
-                className={classes.toggle}
-                label={expanded ? 'Collapse' : 'Expand'}
-                icon={expanded ? 'unfold_less' : 'unfold_more'}
-                rotate={expanded}
-                onClick={onToggle}
-              />
-            )}
-            {handle && <Preview.Menu className={classes.menu} handle={handle} />}
-          </div>
+          <Preview.Header
+            className={classes.heading}
+            downloadable={!cfg.noDownload}
+            expanded={expanded}
+            handle={handle}
+            onToggle={onToggle}
+          >
+            {heading}
+          </Preview.Header>
         )}
         {!!description && <div className={classes.description}>{description}</div>}
         {children}
@@ -279,7 +258,7 @@ interface FilePreviewProps {
   expanded?: boolean
   file?: SummarizeFile
   handle: LogicalKeyResolver.S3SummarizeHandle
-  headingOverride: React.ReactNode
+  headingOverride?: React.ReactNode
   packageHandle?: PackageHandle
 }
 
@@ -291,7 +270,7 @@ export function FilePreview({
   packageHandle,
 }: FilePreviewProps) {
   const description = file?.description ? <Markdown data={file.description} /> : null
-  const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
+  const heading = headingOverride ?? <Crumbs handle={handle} />
 
   const key = handle.logicalKey || handle.key
   const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])
@@ -587,7 +566,7 @@ interface SummaryRootProps {
   s3: S3
   bucket: string
   inStack: boolean
-  overviewUrl: string
+  overviewUrl?: string | null
 }
 
 export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootProps) {
@@ -639,7 +618,9 @@ function SummaryFailed({ error }: SummaryFailedProps) {
       <M.Typography>Check your quilt_summarize.json file for errors.</M.Typography>
       <M.Typography>
         See the{' '}
-        <Link href={`${docs}/catalog/visualizationdashboards#quilt_summarize.json`}>
+        <Link
+          href={`${docs}/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json`}
+        >
           summarize docs
         </Link>{' '}
         for more.

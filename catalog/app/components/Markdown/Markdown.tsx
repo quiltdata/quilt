@@ -32,6 +32,7 @@ const SANITIZE_OPTS = {
     'aside',
     'b',
     'blockquote',
+    'br',
     'caption',
     'code',
     'col',
@@ -203,6 +204,18 @@ const useContainerStyles = M.makeStyles({
     /* prevent horizontal overflow */
     '& img': {
       maxWidth: '100%',
+    },
+
+    '& * + h1, & * + h2, & * + h3, & * + h4, & * + h5, & * + h6': {
+      marginTop: '8px',
+    },
+
+    '& * + p': {
+      marginTop: '8px',
+    },
+
+    '& li + li': {
+      marginTop: '4px',
     },
 
     '& table': {

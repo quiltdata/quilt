@@ -6,6 +6,7 @@ build
 dist
 node_modules
 tmp_*
+.venv
 
 **/.DS_Store
 
@@ -46,3 +47,6 @@ testdocs/notebooks
 testdocs/scripts
 
 .env
+
+.venv
+.aider*

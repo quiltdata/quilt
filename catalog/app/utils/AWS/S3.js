@@ -16,6 +16,7 @@ import * as Credentials from './Credentials'
 const DEFAULT_OPTS = {
   signatureVersion: 'v4',
   s3UsEast1RegionalEndpoint: 'regional',
+  region: cfg.region,
 }
 
 const PROXIED = Symbol('proxied')
@@ -42,66 +43,44 @@ function useSmartS3() {
 
   return useConstant(() => {
     class SmartS3 extends S3 {
-      getReqType(req) {
+      shouldSign(req) {
         const bucket = req.params.Bucket
         if (cfg.mode === 'LOCAL') {
-          return 'signed'
+          return true
         }
-        if (isAuthenticated()) {
-          if (
-            // sign if operation is not bucket-specific
-            // (not sure if there are any such operations that can be used from the browser)
-            !bucket ||
-            cfg.analyticsBucket === bucket ||
+        if (
+          isAuthenticated() &&
+          // sign if operation is not bucket-specific
+          // (not sure if there are any such operations that can be used from the browser)
+          (!bucket ||
             cfg.serviceBucket === bucket ||
             statusReportsBucket === bucket ||
-            (cfg.mode !== 'OPEN' && isInStack(bucket))
-          ) {
-            return 'signed'
-          }
-        } else if (req.operation === 'selectObjectContent') {
-          return 'select'
+            (cfg.mode !== 'OPEN' && isInStack(bucket)))
+        ) {
+          return true
         }
-        return 'unsigned'
-      }
-
-      populateURI(req) {
-        if (req.service.getReqType(req) === 'select') {
-          return
-        }
-        super.populateURI(req)
+        return false
       }
 
       customRequestHandler(req) {
-        const b = req.params.Bucket
-        const type = this.getReqType(req)
-
-        if (b) {
-          const endpoint = new AWS.Endpoint(
-            type === 'select' ? `${cfg.apiGatewayEndpoint}/s3select/` : cfg.s3Proxy,
-          )
+        if (req.params.Bucket) {
+          const endpoint = new AWS.Endpoint(cfg.s3Proxy)
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
+
             // Monkey-patch the request object after it has been signed and save the original
             // values in case of retry.
+            const origEndpoint = req.httpRequest.endpoint
+            const origPath = req.httpRequest.path
+
             req.httpRequest[PROXIED] = {
-              endpoint: req.httpRequest.endpoint,
-              path: req.httpRequest.path,
+              endpoint: origEndpoint,
+              path: origPath,
             }
             const basePath = endpoint.path.replace(/\/$/, '')
-            // handle buckets with dots in their names
-            if (
-              req.httpRequest.path.startsWith(`/${b}`) &&
-              !req.httpRequest.endpoint.host.startsWith(`${b}.`)
-            ) {
-              req.httpRequest.path = req.httpRequest.path.replace(`/${b}`, '')
-            }
 
             req.httpRequest.endpoint = endpoint
-            req.httpRequest.path =
-              type === 'select'
-                ? `${basePath}${req.httpRequest.path}`
-                : `${basePath}/${req.httpRequest.region}/${b}${req.httpRequest.path}`
+            req.httpRequest.path = `${basePath}/${origEndpoint.host}${origPath}`
           })
           req.on(
             'retry',
@@ -140,9 +119,8 @@ function useSmartS3() {
         if (forceProxy) {
           req.httpRequest[FORCE_PROXY] = true
         }
-        const type = this.getReqType(req)
 
-        if (type !== 'signed') {
+        if (!this.shouldSign(req)) {
           req.toUnauthenticated()
         }
 

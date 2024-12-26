@@ -1,10 +1,7 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects'
-import * as Sentry from '@sentry/react'
 
-import cfg from 'constants/config'
 import { apiRequest, HTTPError } from 'utils/APIConnector'
 import defer from 'utils/defer'
-import log from 'utils/Logging'
 import { waitTil } from 'utils/sagaTools'
 import { timestamp } from 'utils/time'
 
@@ -84,6 +81,9 @@ function* signUp(credentials) {
       if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
         throw new errors.SMTPError({ originalError: e })
       }
+      if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
+        throw new errors.SubscriptionInvalid({ originalError: e })
+      }
     }
     throw new errors.AuthError({
       message: 'unable to sign up',
@@ -145,25 +145,14 @@ function* signIn(credentials) {
     if (HTTPError.is(e, 400, 'Default role not set')) {
       throw new errors.NoDefaultRole({ originalError: e })
     }
+    if (HTTPError.is(e, 400) && e.json?.error_code === 'SubscriptionInvalid') {
+      throw new errors.SubscriptionInvalid({ originalError: e })
+    }
 
     throw new errors.AuthError({
       message: 'unable to sign in',
       originalError: e,
     })
-  }
-}
-
-function* setBrowseCookie(tokens) {
-  try {
-    yield call(apiRequest, {
-      auth: { tokens, handleInvalidToken: false },
-      url: `${cfg.s3Proxy}/browse/set_browse_cookie`,
-      method: 'POST',
-      credentials: 'include',
-    })
-  } catch (e) {
-    log.warn('Unable to set browse cookie:', e)
-    Sentry.captureException(e)
   }
 }
 
@@ -345,7 +334,6 @@ function* handleSignIn(
     const tokensRaw = yield call(signIn, credentials)
     const tokens = adjustTokensForLatency(tokensRaw, latency)
     const user = yield call(fetchUser, tokens)
-    yield fork(setBrowseCookie, tokens)
     yield fork(storeTokens, tokens)
     yield fork(storeUser, user)
     yield put(actions.signIn.resolve({ tokens, user }))
@@ -425,7 +413,6 @@ function* handleCheck(
 
     yield put(actions.refresh())
     const newTokens = yield call(refreshTokens, latency, tokens)
-    yield fork(setBrowseCookie, newTokens)
     yield fork(storeTokens, newTokens)
     let user
     if (refetch) {
@@ -543,7 +530,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * Handles auth actions and fires CHECK action on specified condition.
  *
  * @param {Object} options
- * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
  * @param {function} options.storeUser
@@ -552,7 +538,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  */
 export default function* Saga({
   latency,
-  checkOn,
   storeTokens,
   forgetTokens,
   storeUser,
@@ -576,10 +561,4 @@ export default function* Saga({
   yield takeEvery(actions.resetPassword.type, handleResetPassword)
   yield takeEvery(actions.changePassword.type, handleChangePassword)
   yield takeEvery(actions.getCode.type, handleGetCode)
-
-  if (checkOn) {
-    yield takeEvery(checkOn, function* checkAuth() {
-      yield put(actions.check())
-    })
-  }
 }

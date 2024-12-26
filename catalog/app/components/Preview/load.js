@@ -70,8 +70,8 @@ function findLoader(key, options) {
 }
 
 export function getRenderProps(key, options) {
-  const { detect } = findLoader(key, options)
-  const optionsSpecificToType = detect(key, options)
+  const { FILE_TYPE } = findLoader(key, options)
+  const optionsSpecificToType = summarize.detect(FILE_TYPE, options)
   return optionsSpecificToType && R.type(optionsSpecificToType) === 'Object'
     ? R.dissoc('name', optionsSpecificToType)
     : null

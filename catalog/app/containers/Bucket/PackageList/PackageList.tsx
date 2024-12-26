@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as dateFns from 'date-fns'
+import invariant from 'invariant'
 import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -225,7 +226,7 @@ interface RevisionMetaProps {
 
 function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   return (
     <div className={classes.root}>
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
@@ -236,7 +237,6 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
               Ok: ({ ui: { packageDescription } }) =>
                 packageDescription.userMetaMultiline ? (
                   Object.entries(revision.userMeta!).map(([name, value]) => (
-                    // @ts-expect-error
                     <JsonDisplay
                       className={cx({
                         [classes.sectionWithToggle]: typeof value === 'object',
@@ -247,7 +247,6 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
                     />
                   ))
                 ) : (
-                  // @ts-expect-error
                   <JsonDisplay
                     className={classes.sectionWithToggle}
                     name="User metadata"
@@ -277,7 +276,7 @@ function filterObjectByJsonPaths(obj: JsonRecord, jsonPaths: readonly string[]) 
 function usePackageDescription(
   name: string,
 ): BucketPreferences.PackagePreferences | null {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   return React.useMemo(
     () =>
       BucketPreferences.Result.match(
@@ -614,7 +613,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     }
   })
 
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const createDialog = PD.usePackageCreationDialog({
     bucket,
@@ -829,12 +828,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   )
 }
 
-export default function PackageListWrapper({
-  match: {
-    params: { bucket },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string }>) {
+export default function PackageListWrapper() {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  const location = RRDom.useLocation()
+  invariant(!!bucket, '`bucket` must be defined')
+
   const { sort, filter, p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (

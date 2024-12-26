@@ -1,10 +1,11 @@
 import type { ErrorObject } from 'ajv'
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
 import JsonValidationErrors from 'components/JsonValidationErrors'
-import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import { JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
 import * as YAML from 'utils/yaml'
 
 const useStyles = M.makeStyles((t) => ({
@@ -22,6 +23,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export interface QuiltConfigEditorProps {
+  className?: string
   disabled?: boolean
   error: Error | null
   initialValue?: string
@@ -34,6 +36,7 @@ interface QuiltConfigEditorEssentialProps {
 }
 
 export default function QuiltConfigEditorSuspended({
+  className,
   disabled,
   error,
   header,
@@ -56,7 +59,7 @@ export default function QuiltConfigEditorSuspended({
     [onChange, validate],
   )
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       {!!header && <div className={classes.header}>{header}</div>}
       <JsonEditor
         disabled={disabled}

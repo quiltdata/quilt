@@ -10,7 +10,7 @@ import type { JsonRecord } from 'utils/types'
 
 import { PreviewError } from '../types'
 
-const createPathResolver = (
+export const createPathResolver = (
   resolveLogicalKey: LogicalKeyResolver.LogicalKeyResolver | null,
   handle: LogicalKeyResolver.S3SummarizeHandle,
 ): ((path: string) => Promise<LogicalKeyResolver.S3SummarizeHandle>) =>
@@ -36,7 +36,7 @@ const createPathResolver = (
           key: s3paths.resolveKey(handle.key, path),
         })
 
-const createUrlProcessor = (
+export const createUrlProcessor = (
   sign: (handle: Model.S3.S3ObjectLocation) => string,
   resolvePath: (path: string) => Promise<Model.S3.S3ObjectLocation>,
 ) =>
@@ -50,12 +50,16 @@ const createUrlProcessor = (
     }),
   )
 
-const createObjectUrlsSigner =
+export const createObjectUrlsSigner =
   (
     traverseUrls: (fn: (v: any) => any, json: JsonRecord) => JsonRecord,
     processUrl: (path: string) => Promise<string>,
+    asyncReady: boolean,
   ) =>
   async (json: JsonRecord) => {
+    if (asyncReady) {
+      return traverseUrls((url: string) => () => processUrl(url), json)
+    }
     const promises: Promise<string>[] = []
     const jsonWithPlaceholders = traverseUrls((url: string): number => {
       const len = promises.push(processUrl(url))
@@ -65,9 +69,15 @@ const createObjectUrlsSigner =
     return traverseUrls((idx: number): string => results[idx], jsonWithPlaceholders)
   }
 
+/**
+ * Return function that can traverse properties in an object and process URLs.
+ * Use `R.evolve` to create `traverseUrls` argument and describe which properties contain URLs in question.
+ * Also, if consumer of that object is able to use async functions instead of strings, you can set `asyncReady` option
+ */
 export default function useSignObjectUrls(
   handle: LogicalKeyResolver.S3SummarizeHandle,
   traverseUrls: (fn: (v: any) => any, json: JsonRecord) => JsonRecord,
+  opts?: { asyncReady?: boolean },
 ) {
   const resolveLogicalKey = LogicalKeyResolver.use()
   // @ts-expect-error
@@ -81,7 +91,7 @@ export default function useSignObjectUrls(
     [sign, resolvePath],
   )
   return React.useMemo(
-    () => createObjectUrlsSigner(traverseUrls, processUrl),
-    [traverseUrls, processUrl],
+    () => createObjectUrlsSigner(traverseUrls, processUrl, !!opts?.asyncReady),
+    [opts?.asyncReady, traverseUrls, processUrl],
   )
 }

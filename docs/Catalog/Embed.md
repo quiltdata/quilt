@@ -114,7 +114,7 @@ function Embed() {
           initialize()
           return
         case 'navigate':
-          // store Embed state (route), e.g. update our URL to store the embed route in a query paramter or smth
+          // store Embed state (route), e.g. update our URL to store the embed route in a query parameter or smth
           console.log('embed navigating to', e.data.route)
           return
         case 's3ObjectLink':
@@ -205,13 +205,13 @@ interface InitCommand extends Command {
   // via a command (navigate or init) or a link, so it's not to be considered a security measure.
   scope?: string
 
-  // Look and feel of the Embed can be customzied by providing theme overrides,
+  // Look and feel of the Embed can be customized by providing theme overrides,
   // see [MUI theming reference](https://material-ui.com/customization/theming/)
   // and [Quilt theme construction code](https://github.com/quiltdata/quilt/blob/master/catalog/app/constants/style.js#L145)
   // for details.
   theme?: MUI.ThemeOptions // https://github.com/mui-org/material-ui/blob/v4.12.3/packages/material-ui/src/styles/createTheme.d.ts#L15
 
-  // Some aspects of the UI can be overriden:
+  // Some aspects of the UI can be overridden:
   overrides?: {
     // This prop is responsible for customizing the display and behaviour
     // of the "link" button in the object revision list menu

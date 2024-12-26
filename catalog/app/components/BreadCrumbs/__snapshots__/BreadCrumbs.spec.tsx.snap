@@ -19,7 +19,7 @@ exports[`components/BreadCrumbs Segment should render link 1`] = `
 `;
 
 exports[`components/BreadCrumbs render and end with separator 1`] = `
-Array [
+[
   <a
     className="makeStyles-root-1"
     href="https://quiltdata.com/"
@@ -45,7 +45,7 @@ Array [
 `;
 
 exports[`components/BreadCrumbs render and make links for every crumb 1`] = `
-Array [
+[
   <a
     className="makeStyles-root-1"
     href="https://quiltdata.com/"
@@ -70,7 +70,7 @@ Array [
 `;
 
 exports[`components/BreadCrumbs render and transform links 1`] = `
-Array [
+[
   <a
     className="makeStyles-root-1"
     href="https://quiltdata.com/"
@@ -90,7 +90,7 @@ Array [
 `;
 
 exports[`components/BreadCrumbs render basic breadcrumbs 1`] = `
-Array [
+[
   <a
     className="makeStyles-root-1"
     to=""
@@ -127,7 +127,7 @@ Array [
 `;
 
 exports[`components/BreadCrumbs render without root label 1`] = `
-Array [
+[
   <a
     className="makeStyles-root-1"
     href="/a/"

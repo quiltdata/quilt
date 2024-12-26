@@ -1,9 +1,8 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { matchPath } from 'react-router-dom'
+import { matchPath, useLocation } from 'react-router-dom'
 
-import { useExperiments } from 'components/Experiments'
 import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
@@ -63,11 +62,10 @@ const withTimeout = (p, timeout) =>
     p.then(settle(resolve), settle(reject))
   })
 
-export function TrackingProvider({ locationSelector, userSelector, children }) {
+export function TrackingProvider({ userSelector, children }) {
   const tracker = React.useMemo(loadMixpanel, [])
-  const { getSelectedVariants } = useExperiments()
   const mkLocation = useMkLocation()
-  const location = mkLocation(redux.useSelector(locationSelector))
+  const location = mkLocation(useLocation())
   const user = redux.useSelector(userSelector)
 
   const commonOpts = React.useMemo(
@@ -78,7 +76,7 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
       origin: window.location.origin,
       location,
       user,
-      catalog_release: process.env.REVISION_HASH,
+      catalog_release: cfg.stackVersion,
     }),
     [location, user],
   )
@@ -87,15 +85,9 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
     (evt, opts) =>
       tracker.then(
         (inst) =>
-          new Promise((resolve) =>
-            inst.track(
-              evt,
-              { ...commonOpts, ...getSelectedVariants('experiment:'), ...opts },
-              resolve,
-            ),
-          ),
+          new Promise((resolve) => inst.track(evt, { ...commonOpts, ...opts }, resolve)),
       ),
-    [tracker, commonOpts, getSelectedVariants],
+    [tracker, commonOpts],
   )
 
   const trackLink = React.useCallback(

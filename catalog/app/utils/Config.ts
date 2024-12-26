@@ -6,11 +6,13 @@ import { printObject } from 'utils/string'
 
 import configSchema from '../../config-schema.json'
 
-type Mode = 'MARKETING' | 'OPEN' | 'PRODUCT' | 'LOCAL'
+type Mode = 'OPEN' | 'PRODUCT' | 'LOCAL'
 type AuthMethodConfig = 'ENABLED' | 'DISABLED' | 'SIGN_IN_ONLY'
 
 // manually synced w/ config-schema.json
 export interface ConfigJson {
+  region: string
+
   mode: Mode
   alwaysRequiresAuth: boolean
   desktop?: boolean
@@ -26,8 +28,6 @@ export interface ConfigJson {
   mixpanelToken: string
   sentryDSN?: string
 
-  calendlyLink?: string
-
   legacyPackagesRedirect?: string
 
   linkedData?: {
@@ -42,7 +42,12 @@ export interface ConfigJson {
   ssoAuth: AuthMethodConfig
   ssoProviders: string
 
+  chunkedChecksums?: boolean
+
+  qurator?: boolean
+
   build_version?: string // not sure where this comes from
+  stackVersion: string
 }
 
 const ajv = new Ajv({ allErrors: true, removeAdditional: true })
@@ -81,13 +86,13 @@ const transformConfig = (cfg: ConfigJson) => ({
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
   ssoAuth: AUTH_MAP[cfg.ssoAuth],
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
-  enableMarketingPages: cfg.mode === 'PRODUCT' || cfg.mode === 'MARKETING',
-  disableNavigator: cfg.mode === 'MARKETING',
   s3Proxy: startWithOrigin(cfg.s3Proxy),
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
   noDownload: !!cfg.noDownload,
   noOverviewImages: !!cfg.noOverviewImages,
   desktop: !!cfg.desktop,
+  chunkedChecksums: !!cfg.chunkedChecksums,
+  qurator: !!cfg.qurator,
 })
 
 export function prepareConfig(input: unknown) {

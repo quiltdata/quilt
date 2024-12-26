@@ -1,0 +1,38 @@
+query (
+  $buckets: [String!]
+  $searchString: String
+  $filter: ObjectsSearchFilter
+  $order: SearchResultOrder
+) {
+  searchObjects(buckets: $buckets, searchString: $searchString, filter: $filter) {
+    __typename
+    ... on ObjectsSearchResultSet {
+      stats {
+        total
+      }
+      firstPage(order: $order) {
+        cursor
+        hits {
+          __typename
+          id
+          bucket
+          score
+          size
+          modified
+          key
+          version
+          deleted
+          indexedContent
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

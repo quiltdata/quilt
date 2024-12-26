@@ -1,4 +1,5 @@
 import * as dateFns from 'date-fns'
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -368,7 +369,6 @@ function Revision({
       meta={
         !!userMeta &&
         !R.isEmpty(userMeta) && (
-          // @ts-expect-error
           <JsonDisplay
             name="User metadata"
             value={userMeta}
@@ -419,7 +419,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -533,12 +533,12 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
   )
 }
 
-export default function PackageRevisionsWrapper({
-  match: {
-    params: { bucket, name },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+export default function PackageRevisionsWrapper() {
+  const { bucket, name } = RRDom.useParams<{ bucket: string; name: string }>()
+  const location = RRDom.useLocation()
+  invariant(!!bucket, '`bucket` must be defined')
+  invariant(!!name, '`name` must be defined')
+
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (

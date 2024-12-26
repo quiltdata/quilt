@@ -1,6 +1,6 @@
 ARG FUNCTION_DIR="/function"
 
-FROM debian:bullseye-20230502-slim@sha256:f4da3f9b18fc242b739807a0fb3e77747f644f2fb3f67f4403fafce2286b431a as base-image
+FROM debian:bullseye-20241223-slim@sha256:b0c91cc181796d34c53f7ea106fbcddaf87f3e601cc371af6a24a019a489c980 as base-image
 
 FROM base-image as build-image
 
@@ -16,15 +16,15 @@ RUN apt-get update && \
         python3-dev \
         python3-pip
 
-COPY thumbnail/requirements.txt /requirements/thumbnail.txt
-RUN pip install -U pip setuptools
+COPY requirements.txt /requirements/thumbnail.txt
+# HACK: Pre-install numpy v1 as a build dependency for tifffile to prevent it from using v2 and failing to build
+RUN pip install -U pip setuptools 'numpy<2'
 RUN pip install --target /deps -r /requirements/thumbnail.txt
 RUN curl --output /deps/unoconv \
     https://raw.githubusercontent.com/unoconv/unoconv/be5301a757552f4ecac5d73187ce4d8e18341306/unoconv
 
-COPY shared/ /src/shared/
-COPY thumbnail/ /src/thumbnail/
-RUN pip install --target /lambda --no-deps /src/shared/ /src/thumbnail/
+COPY . /src/thumbnail/
+RUN pip install --target /lambda --no-deps /src/thumbnail/
 
 FROM base-image
 

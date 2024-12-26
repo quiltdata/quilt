@@ -2,7 +2,7 @@
 # Organizing data in S3 buckets
 
 You can think of your data buckets as a grid. The horizontal dimension reflects
-the data lifecycle phase (raw, refined, curated). The veritcal dimension reflects
+the data lifecycle phase (raw, refined, curated). The vertical dimension reflects
 topic or domain.
 
 As discussed under [mental model](../MentalModel.md#buckets-are-branches), S3
@@ -43,7 +43,7 @@ catalog or the `.set*()` APIs).
 
 Since packages separate metadata from logical view paths, but include metadata
 and data in the package manifest, data and metadata can never be accidentally
-separted. File paths also become simpler and easier to trust.
+separated. File paths also become simpler and easier to trust.
 
 ## S3 data lifecycle
 Below is an example of how you might organize three data domains according to a three-phase data lifecycle.

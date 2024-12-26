@@ -5,7 +5,7 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Switch, useLocation } from 'react-router-dom'
+import { Route, Router, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -39,8 +39,8 @@ import * as Store from 'utils/Store'
 import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import RouterProvider from 'utils/router'
 import * as s3paths from 'utils/s3paths'
+import * as Tracking from 'utils/tracking'
 import useConstant from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
@@ -104,27 +104,36 @@ function Root() {
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
-        <Route path={paths.bucketRoot} component={Bucket} />
-        <Route component={ThrowNotFound} />
+        <Route path={paths.bucketRoot}>
+          <Bucket />
+        </Route>
+        <Route>
+          <ThrowNotFound />
+        </Route>
       </Switch>
     </CatchNotFound>
   )
 }
 
-function Bucket({
-  match: {
-    params: { bucket },
-  },
-}) {
+function Bucket() {
+  const { bucket } = useParams()
   const { paths } = NamedRoutes.use()
 
   return (
     <BucketLayout bucket={bucket}>
       <Switch>
-        <Route path={paths.bucketFile} component={File} exact strict />
-        <Route path={paths.bucketDir} component={Dir} exact />
-        <Route path={paths.bucketSearch} component={Search} exact />
-        <Route component={ThrowNotFound} />
+        <Route path={paths.bucketFile} exact strict>
+          <File />
+        </Route>
+        <Route path={paths.bucketDir} exact>
+          <Dir />
+        </Route>
+        <Route path={paths.bucketSearch} exact>
+          <Search />
+        </Route>
+        <Route>
+          <ThrowNotFound />
+        </Route>
       </Switch>
     </BucketLayout>
   )
@@ -340,14 +349,15 @@ function App({ init }) {
     [Overrides.Provider, { value: init.overrides }],
     [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
-    [Store.Provider, { history }],
-    [RouterProvider, { history }],
+    Store.Provider,
     Cache.Provider,
+    [Router, { history }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQL.Provider,
     Notifications.Provider,
     [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
     [Auth.Provider, { storage }],
+    [Tracking.Provider, { userSelector: Auth.selectors.username }],
     AWS.Credentials.Provider,
     AWS.Config.Provider,
     AWS.S3.Provider,
@@ -366,6 +376,6 @@ export default function Embed() {
     Layout.Root,
     ErrorBoundary,
     [NamedRoutes.Provider, { routes }],
-    [Init],
+    Init,
   )
 }

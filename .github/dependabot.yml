@@ -16,21 +16,9 @@ updates:
       interval: "daily"
 
   - package-ecosystem: "docker"
-    directory: "/lambdas/molecule"
-    schedule:
-      interval: "daily"
-
-  - package-ecosystem: "docker"
     directory: "/catalog"
     schedule:
       interval: "daily"
-    ignore:
-      - dependency-name: "nginx"
-        # Prefer stable over mainline. See
-        # https://www.nginx.com/blog/nginx-1-6-1-7-released/ for explanation.
-        # There is no way to specify stable versions, so just ignore latest
-        # mainline.
-        versions: ["~> 1.23.0"]
 
   - package-ecosystem: "docker"
     directory: "/s3-proxy"

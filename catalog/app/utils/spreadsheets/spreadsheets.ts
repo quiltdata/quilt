@@ -2,7 +2,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as xlsx from 'xlsx'
 
-import * as jsonSchema from 'utils/json-schema'
+import * as jsonSchema from 'utils/JSONSchema'
 import pipeThru from 'utils/pipeThru'
 
 type MetadataValue = $TSFixMe

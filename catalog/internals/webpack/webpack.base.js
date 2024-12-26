@@ -9,9 +9,12 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
-const { execSync } = require('child_process')
 
-const revisionHash = execSync('git rev-parse HEAD').toString()
+class RevertPathOverwriteByPerspective {
+  apply(compiler) {
+    compiler.options.resolve.fallback.path = require.resolve('path-browserify')
+  }
+}
 
 // TODO: use webpack-merge, it's already in node_modules
 module.exports = (options) => ({
@@ -34,7 +37,7 @@ module.exports = (options) => ({
     rules: [
       {
         test: /\.(txt|md)$/,
-        use: 'raw-loader',
+        type: 'asset/source',
       },
       {
         test: /\.[jt]sx?$/,
@@ -70,7 +73,7 @@ module.exports = (options) => ({
       },
       {
         test: /\.(eot|otf|ttf|woff|woff2)$/,
-        use: 'file-loader',
+        type: 'asset/resource',
       },
       {
         test: /\.svg$/,
@@ -86,16 +89,14 @@ module.exports = (options) => ({
         ],
       },
       {
-        test: /\.(jpg|jpeg|png|gif)$/,
-        use: [
-          {
-            loader: 'url-loader',
-            options: {
-              // Inline files smaller than 10 kB
-              limit: 10 * 1024,
-            },
+        test: /\.(jpg|jpeg|png|gif|webp)$/,
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            // Inline files smaller than 10 kB
+            maxSize: 10 * 1024,
           },
-        ],
+        },
       },
       {
         test: /\.html$/,
@@ -103,10 +104,10 @@ module.exports = (options) => ({
       },
       {
         test: /\.(mp4|webm)$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 10000,
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 10000,
           },
         },
       },
@@ -140,21 +141,24 @@ module.exports = (options) => ({
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({
       LOGGER_REDUX: process.env.LOGGER_REDUX || 'enabled',
-      REVISION_HASH: revisionHash,
     }),
 
     new webpack.ProvidePlugin({
       process: 'process/browser.js',
+      Buffer: ['buffer', 'Buffer'],
     }),
 
     new PerspectivePlugin(),
+
+    new RevertPathOverwriteByPerspective(),
   ]),
   resolve: {
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
     fallback: {
-      path: require.resolve('path-browserify'),
+      // See RevertPathOverwriteByPerspective and source of the PerspectivePlugin for details
+      // path: require.resolve('path-browserify'),
     },
   },
   devtool: options.devtool,

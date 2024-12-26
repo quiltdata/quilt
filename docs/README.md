@@ -1,44 +1,114 @@
-<!-- markdownlint-disable -->
-[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
-[![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
-[![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
-[![pypi](https://img.shields.io/pypi/v/quilt3.svg?style=flat-square)](https://pypi.org/project/quilt3/)
+# Quilt: A Data Lakehouse for Actionable Data
 
-# Quilt is a self-organizing data hub
+Quilt connects teams to actionable data by simplifying data discovery, sharing,
+and analysis. It’s designed to serve data-driven organizations with powerful
+tools for managing data as code, enabling rapid experimentation, and ensuring
+data integrity at scale.
 
-## Python Quick start, tutorials
-If you have Python and an S3 bucket, you're ready to create versioned datasets with Quilt.
-Visit the [Quilt docs](https://docs.quiltdata.com/installation) for installation instructions,
-a quick start, and more.
+---
 
-## Quilt in action
-* [open.quiltdata.com](https://open.quiltdata.com/) is a petabyte-scale open
-data portal that runs on Quilt
-* [quiltdata.com](https://quiltdata.com) includes case studies, use cases, videos,
-and instructions on how to run a private Quilt instance
-* [Versioning data and models for rapid experimentation in machine learning](https://medium.com/pytorch/how-to-iterate-faster-in-machine-learning-by-versioning-data-and-models-featuring-detectron2-4fd2f9338df5)
-shows how to use Quilt for real world projects
+## How to Get Started
 
-## Who is Quilt for?
-Quilt is for data-driven teams and offers features for coders (data scientists,
-data engineers, developers) and business users alike.
+Quilt consists of three main elements:
 
-## What does Quilt do?
-Quilt manages data like code so that teams in machine learning, biotech,
-and analytics can experiment faster, build smarter models, and recover from errors.
+- [Quilt Platform](#quilt-platform-overview) which is a cloud platform for
+  interacting with, visualizing, searching and querying Quilt Packages, which is
+  hosted in an organization's AWS Account.
+- [Quilt Python SDK](#quilt-python-sdk) which provides the ability to create,
+  push, install and delete Quilt Packages.
+- [Quilt Ecosystem](#quilt-ecosystem-and-integrations) which provide extension
+  of the core Quilt Capabilities to enable typical elements of life sciences
+  workflows, such as incorporating orchestration data, and connecting packages
+  to Electronic Lab Notebooks.
 
-## How does Quilt work?
-Quilt consists of a Python client, web catalog, lambda
-functions&mdash;all of which are open source&mdash;plus
-a suite of backend services and Docker containers
-orchestrated by CloudFormation.
+To dive deeper into the capabilities of Quilt, start with our [Quick Start
+Guide](Quickstart.md) or explore the [Installation
+Instructions](Installation.md) for setting up your environment.
 
-The backend services are available under a paid license
-on [quiltdata.com](https://quiltdata.com).
+If you have any questions or need help, join our [Slack
+community](https://slack.quiltdata.com/) or submit a support request to
+<support@quiltdata.io>.
 
-## Use cases
-* **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address (no need to create an IAM role).
-* **Understand** data better through inline documentation (Jupyter notebooks, markdown) and visualizations (Vega, Vega Lite)
-* **Discover** related data by indexing objects in ElasticSearch
-* **Model** data by providing a home for large data and models that don't fit in git, and by providing immutable versions for objects and data sets (a.k.a. "Quilt Packages")
-* **Decide** by broadening data access within the organization and supporting the documentation of decision processes through audit-able versioning and inline documentation
+---
+
+## Navigating the Documentation
+
+The Quilt documentation is structured to guide users through different layers of
+the platform, from basic concepts to advanced integrations. Whether you're a
+business user, developer, or platform administrator, the docs will help you
+quickly find the information you need.
+
+### Quilt Platform Overview
+
+The **Quilt Platform** powers the core features of the Quilt data catalog,
+providing tools for browsing, searching, and visualizing data stored in AWS S3.
+The platform is ideal for teams needing to collaborate on data, with
+capabilities like embeddable previews and metadata collection.
+
+**Core Sections:**
+
+- [Architecture](Architecture.md) - Learn how Quilt is architected.
+- [Mental Model](MentalModel.md) - Understand the guiding principles behind Quilt.
+- [Metadata Management](Catalog/Metadata.md) - Manage metadata at scale.
+
+For users of the Quilt Platform (often referred to as the Catalog):
+
+- [Bucket Browsing](Catalog/FileBrowser.md) - Navigate through S3 buckets.
+- [Document Previews](Catalog/Preview.md) - Visualize documents and datasets
+  directly in the web interface.
+- [Search & Query](Catalog/SearchQuery.md) - Leverage Quilt’s powerful search
+  and querying capabilities.
+- [Visualization & Dashboards](Catalog/VisualizationDashboards.md) - Create
+  visual dashboards for data insights.
+
+For administrators managing Quilt deployments:
+
+- [Admin Settings UI](Catalog/Admin.md) - Control platform settings and user access.
+- [Catalog Configuration](Catalog/Preferences.md) - Set platform preferences.
+- [Cross-Account Access](CrossAccount.md) - Manage multi-account access to S3 data.
+
+### Quilt Python SDK
+
+The **Quilt Python SDK** allows users to programmatically manage data packages,
+version datasets, and automate data workflows. Whether you're uploading a
+package, fetching data, or scripting custom workflows, the SDK provides the
+flexibility needed for deeper integrations.
+
+- [Installation](Installation.md) - Get started with the Quilt SDK.
+- [Quick Start](Quickstart.md) - Follow a step-by-step guide to building and
+  managing data packages.
+- [Editing and Uploading Packages](walkthrough/editing-a-package.md) - Learn how
+  to version, edit, and share data.
+- [API Reference](api-reference/api.md) - Detailed API documentation for developers.
+
+### Quilt Ecosystem and Integrations
+
+The **Quilt Ecosystem** extends the platform with integrations and plugins to
+fit your workflow. Whether you're managing scientific data or automating
+packaging tasks, Quilt can be tailored to your needs with these tools:
+
+- [Benchling Packager](examples/benchling.md) - Package electronic lab notebooks
+  from Benchling.
+- [Nextflow Plugin](examples/nextflow.md) - Integrate with Nextflow pipelines
+  for bioinformatics.
+
+---
+
+## Who Should Use Quilt?
+
+Quilt is for teams across industries like machine learning, biotech, and
+analytics who need to manage large datasets, collaborate seamlessly, and track
+the lifecycle of their data. Whether you're a data scientist, engineer, or
+administrator, Quilt helps streamline your data management workflows.
+
+## What Can You Do with Quilt?
+
+- **Share**: Easily share versioned data using simple URLs and email invites.
+- **Understand**: Enrich data with inline documentation and visualizations for
+  better insights.
+- **Discover**: Use metadata and search tools to explore data relationships
+  across projects.
+- **Model**: Version and manage large data sets that don't fit traditional git repositories.
+- **Decide**: Empower your team with auditable data for better decision-making.
+
+---

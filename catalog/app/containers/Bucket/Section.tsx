@@ -16,6 +16,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   heading: {
     display: 'flex',
+    flexGrow: 1,
   },
   gutterBottom: {
     marginBottom: t.spacing(2),
@@ -28,7 +29,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-type NodeRenderer = (props: {
+export type NodeRenderer = (props: {
   expanded: boolean
   setExpanded: (exp: boolean) => void
 }) => React.ReactNode

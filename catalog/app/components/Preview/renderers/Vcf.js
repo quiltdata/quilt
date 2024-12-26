@@ -46,16 +46,15 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
 
   const renderCell =
     (type, i = '') =>
-    (col, j) =>
-      (
-        <M.TableCell
-          // eslint-disable-next-line react/no-array-index-key
-          key={`${type}:${i}:${j}`}
-          className={cx(classes.cell, classes[type])}
-        >
-          {col}
-        </M.TableCell>
-      )
+    (col, j) => (
+      <M.TableCell
+        // eslint-disable-next-line react/no-array-index-key
+        key={`${type}:${i}:${j}`}
+        className={cx(classes.cell, classes[type])}
+      >
+        {col}
+      </M.TableCell>
+    )
 
   return (
     <>
