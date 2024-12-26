@@ -156,7 +156,6 @@ Resources:
                   - glue:CreateTable
                   - glue:DeleteDatabase
                   - glue:DeleteTable
-                  - kms:*
                   - glue:TagResource
                   - iam:AddRoleToInstanceProfile
                   - iam:AttachRolePolicy
@@ -236,21 +235,8 @@ Resources:
                   - rds:DescribeDBSubnetGroups
                   - rds:ListTagsForResource
                   - rds:ModifyDBInstance
-                  - s3:CreateBucket
-                  - s3:DeleteBucket
-                  - s3:DeleteBucketPolicy
-                  - s3:GetBucketOwnershipControls
-                  - s3:GetBucketPolicy
-                  - s3:GetObject
-                  - s3:PutBucketCORS
-                  - s3:PutBucketOwnershipControls
-                  - s3:PutBucketPolicy
-                  - s3:PutBucketPublicAccessBlock
-                  - s3:PutBucketVersioning
-                  - s3:PutLifecycleConfiguration
-                  - sns:CreateTopic
-                  - sns:DeleteTopic
-                  - sns:GetTopicAttributes
+                  - s3:*
+                  - sns:Get*
                   - sns:Publish  # To publish to CFN notification topic.
                   - sns:SetTopicAttributes
                   - sns:Subscribe
@@ -269,7 +255,6 @@ Resources:
                   - ssm:GetParameters
                   - ssm:PutParameter
                   - synthetics:*
-                  - synthetics:TagResource
                   - route53:CreateHostedZone
                   - secretsmanager:CreateSecret
                   - secretsmanager:TagResource
