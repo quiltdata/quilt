@@ -895,7 +895,7 @@ def copy_file_list(file_list, message=None, callback=None, put_options=None):
         if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback, put_options=None)
+    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback, put_options=put_options)
 
 
 def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None, put_options=None):
@@ -930,7 +930,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
                 src = PhysicalKey(src.bucket, src.path, version_id)
         url_list.append((src, dest, size))
 
-    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback, put_options=None)
+    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback, put_options=put_options)
 
 
 def put_bytes(data: bytes, dest: PhysicalKey, put_options=None):
