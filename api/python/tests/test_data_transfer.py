@@ -46,8 +46,8 @@ class DataTransferTest(QuiltTestCase):
         options_original = OPTIONS_TEMPLATE.copy()
         options_modified = {'SSECustomerKey': '987654321'}
         with pytest.raises(ValueError,
-                           match="Cannot override key `SSECustomerKey` using put_options:"\
-                            " {'SSECustomerKey': '987654321'}."):
+                           match="Cannot override key `SSECustomerKey` using put_options:"
+                           " {'SSECustomerKey': '987654321'}."):
             data_transfer.add_put_options_safely(options_original, options_modified)
 
     def test_select(self):
