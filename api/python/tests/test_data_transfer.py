@@ -29,6 +29,25 @@ DATA_DIR = pathlib.Path(__file__).parent / 'data'
 
 
 class DataTransferTest(QuiltTestCase):
+    def test_add_put_options_safely(self):
+        OPTIONS_TEMPLATE = {'SSECustomerKey': '123456789'}
+
+        # Test that the function adds the options
+        options_empty = {}
+        data_transfer.add_put_options_safely(options_empty, OPTIONS_TEMPLATE)
+        assert options_empty == OPTIONS_TEMPLATE
+            
+        # Test that the function works when passed None
+        options_unchanged = OPTIONS_TEMPLATE.copy()
+        data_transfer.add_put_options_safely(options_unchanged, None)
+        assert options_unchanged == OPTIONS_TEMPLATE
+
+        # Test that the function raises error if modifying the original options
+        options_original = OPTIONS_TEMPLATE.copy()
+        options_modified = {'SSECustomerKey': '987654321'}
+        with pytest.raises(ValueError):
+            data_transfer.add_put_options_safely(options_original, OPTIONS_TEMPLATE)
+
     def test_select(self):
         # Note: The boto3 Stubber doesn't work properly with s3_client.select_object_content().
         #       The return value expects a dict where an iterable is in the actual results.
