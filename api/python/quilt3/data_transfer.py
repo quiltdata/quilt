@@ -62,7 +62,7 @@ def add_put_options_safely(params: dict, put_options: Optional[dict]):
     if put_options:
         for key, value in put_options.items():
             if key in params:
-                raise ValueError(f"Key {key} already exists in params.")
+                raise ValueError(f"Cannot override key `{key}` using put_options: {put_options}.")
             params[key] = value
     print(f"add_put_options_safely.PARAMS: {params}")
 
@@ -897,7 +897,7 @@ def copy_file_list(file_list, message=None, callback=None, put_options=None):
         if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback, put_options=None)
+    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback, put_options=put_options)
 
 
 def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None, put_options=None):
