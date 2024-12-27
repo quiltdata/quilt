@@ -58,11 +58,13 @@ def add_put_options_safely(params: dict, put_options: Optional[dict]):
     Add put options to the params dictionary safely.
     This method ensures that the put options do not overwrite existing keys in the params dictionary.
     """
+    print(f"add_put_options_safely.put_options: {put_options}")
     if put_options:
         for key, value in put_options.items():
             if key in params:
                 raise ValueError(f"Key {key} already exists in params.")
             params[key] = value
+    print(f"add_put_options_safely.PARAMS: {params}")
 
 
 class S3Api(Enum):
@@ -930,7 +932,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
                 src = PhysicalKey(src.bucket, src.path, version_id)
         url_list.append((src, dest, size))
 
-    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback, put_options=None)
+    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback, put_options=put_options)
 
 
 def put_bytes(data: bytes, dest: PhysicalKey, put_options=None):
