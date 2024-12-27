@@ -1055,7 +1055,7 @@ class Package:
 
     @ApiTelemetry("package.build")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def build(self, name, registry=None, message=None, *, workflow=...):
+    def build(self, name, registry=None, message=None, *, workflow=..., put_options=None):
         """
         Serializes this package to a registry.
 
@@ -1064,17 +1064,17 @@ class Package:
             registry: registry to build to
                 defaults to local registry
             message: the commit message of the package
-            put_options: optional arguments to pass to the PutObject operation
             %(workflow)s
+            put_options: optional arguments to pass to the PutObject operation
 
         Returns:
             The top hash as a string.
         """
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
-        return self._build(name=name, registry=registry, message=message)
+        return self._build(name=name, registry=registry, message=message, put_options=put_options)
 
-    def _build(self, name, registry, message):
+    def _build(self, name, registry, message, put_options=None):
         validate_package_name(name)
         registry = get_package_registry(registry)
 
@@ -1082,7 +1082,7 @@ class Package:
         self._calculate_missing_hashes()
 
         top_hash = self.top_hash
-        self._push_manifest(name, registry, top_hash)
+        self._push_manifest(name, registry, top_hash, put_options=put_options)
         return top_hash
 
     def _push_manifest(self, name, registry, top_hash, put_options=None):
