@@ -35,18 +35,20 @@ class DataTransferTest(QuiltTestCase):
         # Test that the function adds the options
         options_empty = {}
         data_transfer.add_put_options_safely(options_empty, OPTIONS_TEMPLATE)
-        assert options_empty == OPTIONS_TEMPLATE
+        self.assertEqual(options_empty, OPTIONS_TEMPLATE)
 
         # Test that the function works when passed None
         options_unchanged = OPTIONS_TEMPLATE.copy()
         data_transfer.add_put_options_safely(options_unchanged, None)
-        assert options_unchanged == OPTIONS_TEMPLATE
+        self.assertEqual(options_unchanged, OPTIONS_TEMPLATE)
 
-        # Test that the function raises error if modifying the original options
+        # Test that the function raises error if it would modify the original options
         options_original = OPTIONS_TEMPLATE.copy()
         options_modified = {'SSECustomerKey': '987654321'}
-        with pytest.raises(ValueError):
-            data_transfer.add_put_options_safely(options_original, OPTIONS_TEMPLATE)
+        with pytest.raises(ValueError,
+                           match="Cannot override key `SSECustomerKey` using put_options:"\
+                            " {'SSECustomerKey': '987654321'}."):
+            data_transfer.add_put_options_safely(options_original, options_modified)
 
     def test_select(self):
         # Note: The boto3 Stubber doesn't work properly with s3_client.select_object_content().

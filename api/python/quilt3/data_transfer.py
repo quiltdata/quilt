@@ -61,7 +61,7 @@ def add_put_options_safely(params: dict, put_options: Optional[dict]):
     if put_options:
         for key, value in put_options.items():
             if key in params:
-                raise ValueError(f"Key {key} already exists in params.")
+                raise ValueError(f"Cannot override key `{key}` using put_options: {put_options}.")
             params[key] = value
 
 
