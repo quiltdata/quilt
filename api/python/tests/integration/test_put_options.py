@@ -1,6 +1,6 @@
 import pathlib
-import boto3
 
+import boto3
 from botocore.exceptions import ClientError
 from pytest import raises
 
