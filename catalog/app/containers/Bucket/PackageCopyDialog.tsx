@@ -138,8 +138,8 @@ function DialogForm({
             workflow.slug === workflows.notAvailable
               ? null
               : workflow.slug === workflows.notSelected
-              ? ''
-              : workflow.slug,
+                ? ''
+                : workflow.slug,
         },
         src: {
           bucket,

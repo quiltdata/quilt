@@ -225,12 +225,12 @@ function Data({ children, close }: DataProps) {
           formApi: !deleting
             ? formApi
             : deleting === true
-            ? { ...formApi, submitting: true }
-            : {
-                ...formApi,
-                submitError: deleting[FF.FORM_ERROR] || formApi.submitError,
-                submitFailed: true,
-              },
+              ? { ...formApi, submitting: true }
+              : {
+                  ...formApi,
+                  submitError: deleting[FF.FORM_ERROR] || formApi.submitError,
+                  submitFailed: true,
+                },
           close,
           ssoConfig: data.admin?.ssoConfig,
         })

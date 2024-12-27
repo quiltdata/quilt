@@ -259,14 +259,14 @@ export default function Reports({
   invariant(queryResult.data?.status?.__typename !== 'Unavailable', 'Status unavailable')
 
   const rows = (
-    pause ? firstPage : queryResult.data?.status?.reports.page ?? fallbacks.rows
+    pause ? firstPage : (queryResult.data?.status?.reports.page ?? fallbacks.rows)
   ) as StatusReport[]
   if (rows !== fallbacks.rows) fallbacks.rows = rows
 
   const isFiltered = !R.equals(defaults.filter, variables.filter)
 
   const rowCount = isFiltered
-    ? queryResult.data?.status?.reports.total ?? fallbacks.rowCount
+    ? (queryResult.data?.status?.reports.total ?? fallbacks.rowCount)
     : total
   if (rowCount !== fallbacks.rowCount) fallbacks.rowCount = rowCount
 
