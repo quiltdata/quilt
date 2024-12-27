@@ -190,8 +190,8 @@ const computeEntries = ({
           state = !a.hash.ready
             ? ('hashing' as const)
             : R.equals(a.hash.value, hash)
-            ? ('unchanged' as const)
-            : ('modified' as const)
+              ? ('unchanged' as const)
+              : ('modified' as const)
         }
         return { state, type, path, size: a.size, meta }
       }
@@ -214,8 +214,8 @@ const computeEntries = ({
       f === EMPTY_DIR_MARKER
         ? ('hidden' as const)
         : S3FilePicker.isS3File(f)
-        ? ('s3' as const)
-        : ('local' as const)
+          ? ('s3' as const)
+          : ('local' as const)
     return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
@@ -1618,10 +1618,10 @@ export function FilesInput({
             disabled // eslint-disable-line no-nested-ternary
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
-              ? 'error'
-              : warn.upload || warn.s3 || warn.count
-              ? 'warn'
-              : undefined
+                ? 'error'
+                : warn.upload || warn.s3 || warn.count
+                  ? 'warn'
+                  : undefined
           }
         >
           {title}
