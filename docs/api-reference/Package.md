@@ -515,7 +515,7 @@ Gets objects from entry and saves them to dest.
 
 __Arguments__
 
-* __dest__:  where to put the files
+* __dest__:  url for where to put the files
     Defaults to the entry name
 * __put_options__:  optional arguments to pass to the PutObject operation
 

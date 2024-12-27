@@ -356,7 +356,7 @@ class PackageEntry:
         Gets objects from entry and saves them to dest.
 
         Args:
-            dest: where to put the files
+            dest: url for where to put the files
                 Defaults to the entry name
             put_options: optional arguments to pass to the PutObject operation
 
