@@ -86,7 +86,7 @@ PackageEntry if prefix matches a logical_key exactly
 otherwise Package
 
 
-## Package.fetch(self, dest='./', put\_options=None)  {#Package.fetch}
+## Package.fetch(self, dest='./')  {#Package.fetch}
 
 Copy all descendants to `dest`. Descendants are written under their logical
 names _relative_ to self.
@@ -94,7 +94,6 @@ names _relative_ to self.
 __Arguments__
 
 * __dest__:  where to put the files (locally)
-* __put_options__:  optional arguments to pass to the PutObject operation
 
 __Returns__
 
