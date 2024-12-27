@@ -1924,8 +1924,7 @@ class PackageTest(QuiltTestCase):
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        pkg.push(pkg_name, registry='s3://test-bucket', dest=dest_fn, force=True,
-)
+        pkg.push(pkg_name, registry='s3://test-bucket', dest=dest_fn, force=True)
 
         dest_fn.assert_called_once_with(lk, pkg[lk])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY, put_options=None)
