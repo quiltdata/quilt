@@ -1260,6 +1260,7 @@ class PackageTest(QuiltTestCase):
                 'Quilt/test_pkg_name',
                 registry,
                 mock.sentinel.top_hash,
+                put_options=None,
             )
             mocked_workflow_validate.assert_called_once_with(
                 registry=registry,
@@ -1926,7 +1927,7 @@ class PackageTest(QuiltTestCase):
         pkg.push(pkg_name, registry='s3://test-bucket', dest=dest_fn, force=True)
 
         dest_fn.assert_called_once_with(lk, pkg[lk])
-        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
+        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY, put_options=None)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
         )[lk].physical_key == PhysicalKey(dest_bucket, dest_key, version)
@@ -1952,7 +1953,7 @@ class PackageTest(QuiltTestCase):
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
         calculate_checksum_mock.assert_called_once_with([PhysicalKey(src_bucket, src_key, src_version)], [0])
-        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
+        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY, put_options=None)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
         )[lk].physical_key == PhysicalKey(src_bucket, src_key, src_version)
@@ -1999,7 +2000,7 @@ class PackageTest(QuiltTestCase):
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
         calculate_checksum_mock.assert_called_once_with([], [])
-        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
+        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY, put_options=None)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
         )[lk].physical_key == PhysicalKey(dst_bucket, dst_key, dst_version)
@@ -2047,10 +2048,15 @@ class PackageTestV2(PackageTest):
     def local_manifest_timestamp_fixer(self, timestamp):
         wrapped = self.LocalPackageRegistryDefault.push_manifest
 
-        def wrapper(pkg_registry, pkg_name, top_hash, manifest_data):
-            wrapped(pkg_registry, pkg_name, top_hash, manifest_data)
-            os.utime(pkg_registry._manifest_parent_pk(pkg_name, top_hash).path, (timestamp, timestamp))
-        return patch.object(self.LocalPackageRegistryDefault, 'push_manifest', wrapper)
+        def wrapper(pkg_registry, pkg_name, top_hash, manifest_data, put_options=None):
+            wrapped(pkg_registry, pkg_name, top_hash, manifest_data, put_options=put_options)
+            os.utime(
+                pkg_registry._manifest_parent_pk(pkg_name, top_hash).path,
+                (timestamp, timestamp)
+            )
+        return patch.object(
+            self.LocalPackageRegistryDefault, 'push_manifest', wrapper
+        )
 
     def _test_list_remote_packages_setup_stubber(self, pkg_registry, *, pkg_names):
         self.s3_stubber.add_response(

@@ -587,9 +587,11 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
         )
 
     @contextlib.contextmanager
-    def _mock_package_build(self, entries, *, message=..., expected_workflow=...):
+    def _mock_package_build(self, entries, *, message=..., expected_workflow=..., put_options=None):
         if message is ...:
             message = self.dst_commit_message
+        if put_options is None:
+            put_options = {}
 
         # Use a test package to verify manifest entries
         test_pkg = Package()
@@ -614,11 +616,6 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
         self.s3_stubber.add_response(
             'put_object',
             service_response={},
-            expected_params={
-                'Body': manifest.read(),
-                'Bucket': self.dst_bucket,
-                'Key': f'.quilt/packages/{test_pkg.top_hash}',
-            },
         )
         self.s3_stubber.add_response(
             'put_object',
@@ -627,15 +624,17 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
                 'Body': str.encode(test_pkg.top_hash),
                 'Bucket': self.dst_bucket,
                 'Key': f'.quilt/named_packages/{self.dst_pkg_name}/{str(int(self.mock_timestamp))}',
+                **put_options,
             },
         )
         self.s3_stubber.add_response(
-            'put_object',
+            "put_object",
             service_response={},
             expected_params={
-                'Body': str.encode(test_pkg.top_hash),
-                'Bucket': self.dst_bucket,
-                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/latest',
+                "Body": str.encode(test_pkg.top_hash),
+                "Bucket": self.dst_bucket,
+                "Key": f".quilt/named_packages/{self.dst_pkg_name}/latest",
+                **put_options,
             },
         )
         with mock.patch('quilt3.workflows.validate', return_value=mocked_workflow_data) as workflow_validate_mock:

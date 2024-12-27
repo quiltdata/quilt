@@ -87,7 +87,8 @@ class PackageRegistry(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes):
+    def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes,
+                      put_options: dict = None):
         pass
 
     @abc.abstractmethod
@@ -134,14 +135,14 @@ class PackageRegistryV1(PackageRegistry):
     def manifest_pk(self, pkg_name: str, top_hash: str) -> PhysicalKey:
         return self.root.join(f'packages/{top_hash}')
 
-    def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes):
+    def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes, put_options: dict = None):
         """returns: timestamp to support catalog drag-and-drop => browse"""
-        put_bytes(manifest_data, self.manifest_pk(pkg_name, top_hash))
+        put_bytes(manifest_data, self.manifest_pk(pkg_name, top_hash), put_options=put_options)
         hash_bytes = top_hash.encode()
         # TODO: use a float to string formatter instead of double casting
         timestamp_str = str(int(time.time()))
-        put_bytes(hash_bytes, self.pointer_pk(pkg_name, timestamp_str))
-        put_bytes(hash_bytes, self.pointer_latest_pk(pkg_name))
+        put_bytes(hash_bytes, self.pointer_pk(pkg_name, timestamp_str), put_options=put_options)
+        put_bytes(hash_bytes, self.pointer_latest_pk(pkg_name), put_options=put_options)
         return timestamp_str
 
     @staticmethod
@@ -246,9 +247,9 @@ class PackageRegistryV2(PackageRegistry):
         for dt, top_hash in self.list_package_versions_with_timestamps(pkg_name):
             yield str(int(dt.timestamp())), top_hash
 
-    def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes):
-        put_bytes(manifest_data, self.manifest_pk(pkg_name, top_hash))
-        put_bytes(top_hash.encode(), self.pointer_latest_pk(pkg_name))
+    def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes, put_options: dict = None):
+        put_bytes(manifest_data, self.manifest_pk(pkg_name, top_hash), put_options=put_options)
+        put_bytes(top_hash.encode(), self.pointer_latest_pk(pkg_name), put_options=put_options)
 
     @staticmethod
     def _top_hash_from_path(path: str) -> str:

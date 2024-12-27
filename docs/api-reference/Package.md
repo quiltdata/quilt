@@ -194,7 +194,7 @@ no such entry exists.
 Sets user metadata on this Package.
 
 
-## Package.build(self, name, registry=None, message=None, \*, workflow=Ellipsis)  {#Package.build}
+## Package.build(self, name, registry=None, message=None, \*, workflow=Ellipsis, put\_options=None)  {#Package.build}
 
 Serializes this package to a registry.
 
@@ -207,6 +207,8 @@ __Arguments__
 * __workflow__:  workflow ID or `None` to skip workflow validation.
     If not specified, the default workflow will be used.
 * __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
+
+* __put_options__:  optional arguments to pass to the PutObject operation
 
 
 __Returns__
