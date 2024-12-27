@@ -766,6 +766,10 @@ interface PrimaryCardProps {
 function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps) {
   const initialValues = bucketToPrimaryValues(bucket)
   const ref = React.useRef<HTMLElement>(null)
+  const { urls } = NamedRoutes.use()
+  const configUrl = urls.bucketFile(bucket.name, '.quilt/catalog/config.yaml', {
+    edit: true,
+  })
   return (
     <RF.Form<PrimaryFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, form, submitFailed }) => (
@@ -780,7 +784,17 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
             <PrimaryForm bucket={bucket} />
           </form>
           <StickyActions parentRef={ref}>
-            <CardActions<PrimaryFormValues> disabled={disabled} form={form} />
+            <CardActions<PrimaryFormValues>
+              action={
+                <RRDom.Link to={configUrl}>
+                  <M.Button disabled={disabled} variant="outlined" size="small">
+                    Go to .quilt/catalog/config.yaml
+                  </M.Button>
+                </RRDom.Link>
+              }
+              disabled={disabled}
+              form={form}
+            />
           </StickyActions>
         </Card>
       )}
