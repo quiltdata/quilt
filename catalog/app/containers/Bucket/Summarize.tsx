@@ -694,7 +694,7 @@ export function ConfigureAppearance({
   const classes = useConfigureAppearanceStyles()
   const readme = FileEditor.useAddFileInPackage(
     packageHandle,
-    join(path || '', 'quilt_summarize.json'),
+    join(path || '', 'README.md'),
   )
   const summarize = FileEditor.useAddFileInPackage(
     packageHandle,
