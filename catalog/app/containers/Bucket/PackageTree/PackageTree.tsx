@@ -391,8 +391,8 @@ function DirDisplay({
           const downloadLabel = !slt.isEmpty // eslint-disable-line no-nested-ternary
             ? 'Download selected'
             : path
-            ? 'Download sub-package'
-            : 'Download package'
+              ? 'Download sub-package'
+              : 'Download package'
           const downloadPath =
             path && slt.isEmpty
               ? `package/${bucket}/${name}/${hash}/${path}`

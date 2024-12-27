@@ -109,8 +109,8 @@ export function LocalFolderInput({
             disabledInternal // eslint-disable-line no-nested-ternary
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
-              ? 'error'
-              : undefined
+                ? 'error'
+                : undefined
           }
         >
           {title}

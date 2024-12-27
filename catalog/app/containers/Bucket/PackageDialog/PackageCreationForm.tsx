@@ -389,8 +389,8 @@ function PackageCreationForm({
             workflow.slug === workflows.notAvailable
               ? null
               : workflow.slug === workflows.notSelected
-              ? ''
-              : workflow.slug,
+                ? ''
+                : workflow.slug,
         },
         src: {
           entries: allEntries,
