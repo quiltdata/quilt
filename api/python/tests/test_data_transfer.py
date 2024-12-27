@@ -36,7 +36,7 @@ class DataTransferTest(QuiltTestCase):
         options_empty = {}
         data_transfer.add_put_options_safely(options_empty, OPTIONS_TEMPLATE)
         assert options_empty == OPTIONS_TEMPLATE
-            
+
         # Test that the function works when passed None
         options_unchanged = OPTIONS_TEMPLATE.copy()
         data_transfer.add_put_options_safely(options_unchanged, None)
