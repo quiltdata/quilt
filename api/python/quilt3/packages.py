@@ -1064,6 +1064,7 @@ class Package:
             registry: registry to build to
                 defaults to local registry
             message: the commit message of the package
+            put_options: optional arguments to pass to the PutObject operation
             %(workflow)s
 
         Returns:
@@ -1084,10 +1085,10 @@ class Package:
         self._push_manifest(name, registry, top_hash)
         return top_hash
 
-    def _push_manifest(self, name, registry, top_hash):
+    def _push_manifest(self, name, registry, top_hash, put_options=None):
         manifest = io.BytesIO()
         self._dump(manifest)
-        registry.push_manifest(name, top_hash, manifest.getvalue())
+        registry.push_manifest(name, top_hash, manifest.getvalue(), put_options=put_options)
 
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
@@ -1583,7 +1584,7 @@ class Package:
             latest_hash = get_latest_hash()
             check_hash_conficts(latest_hash)
 
-        pkg._push_manifest(name, registry, top_hash)
+        pkg._push_manifest(name, registry, top_hash, put_options=put_options)
 
         if print_info:
             shorthash = registry.shorten_top_hash(name, top_hash)
