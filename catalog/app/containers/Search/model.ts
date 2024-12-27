@@ -52,8 +52,8 @@ export type PackagesFilterState = FilterState<typeof PackagesSearchFilterIO>
 export type FilterStateForResultType<T extends ResultType> = T extends ResultType.S3Object
   ? ObjectsFilterState
   : T extends ResultType.QuiltPackage
-  ? PackagesFilterState
-  : never
+    ? PackagesFilterState
+    : never
 
 export type ObjectsSearchFilter = Model.GQLTypes.ObjectsSearchFilter
 export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
@@ -106,13 +106,8 @@ interface PredicateIO<Tag extends string, State, GQLType> {
 export type PredicateState<PIO extends PredicateIO<any, any, any>> =
   PIO extends PredicateIO<infer Tag, infer State, any> ? Tagged<Tag, State> : never
 
-type PredicateGQLType<PIO extends PredicateIO<any, any, any>> = PIO extends PredicateIO<
-  any,
-  any,
-  infer G
->
-  ? G
-  : never
+type PredicateGQLType<PIO extends PredicateIO<any, any, any>> =
+  PIO extends PredicateIO<any, any, infer G> ? G : never
 
 function Predicate<Tag extends string, State, GQLType>(input: {
   tag: Tag
@@ -235,10 +230,10 @@ export type Extents =
 export type ExtentsForPredicate<P> = P extends Predicates['Datetime']
   ? Model.GQLTypes.DatetimeExtents
   : P extends Predicates['Number']
-  ? Model.GQLTypes.NumberExtents
-  : P extends Predicates['KeywordEnum']
-  ? Model.GQLTypes.KeywordExtents
-  : never
+    ? Model.GQLTypes.NumberExtents
+    : P extends Predicates['KeywordEnum']
+      ? Model.GQLTypes.KeywordExtents
+      : never
 
 export type KnownPredicate = Predicates[keyof Predicates]
 
@@ -383,9 +378,8 @@ function Filter<PM extends PredicateMap>(children: PM): FilterIO<PM> {
   }
 }
 
-type FilterState<FIO extends FilterIO<any>> = FIO extends FilterIO<infer PM>
-  ? OrderedCombinedState<PM>
-  : never
+type FilterState<FIO extends FilterIO<any>> =
+  FIO extends FilterIO<infer PM> ? OrderedCombinedState<PM> : never
 
 export const ObjectsSearchFilterIO = Filter({
   modified: Predicates.Datetime,
