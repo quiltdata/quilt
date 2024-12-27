@@ -210,7 +210,6 @@ __Arguments__
 
 * __put_options__:  optional arguments to pass to the PutObject operation
 
-
 __Returns__
 
 The top hash as a string.
