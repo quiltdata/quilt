@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from quilt3 import Bucket, Package
 
 ERR_MSG = r"An error occurred \(AccessDenied\) when calling the PutObject operation:.*"
+COPY_MSG = ERR_MSG.replace("PutObject", "CopyObject")
 DATA_DIR = pathlib.Path(__file__).parent / 'data'
 TEST_BUCKET = "test-kms-policies"
 TEST_BUCKET_URI = f"s3://{TEST_BUCKET}"
@@ -92,21 +93,20 @@ def test_package_push():
     print(f"pkg_entry: {pkg_entry}")
     assert pkg_entry is not None
 
-    # fetch to temp location in S3 bucket
-    fetch_dir = dest_dir("test_package_fetch")
-    dest_uri = f"s3://{TEST_BUCKET}/{fetch_dir}"
-    with raises(ClientError, match=ERR_MSG):
+    # fetch entry to remote URI
+    fetch_dir = dest_dir("test_package_entry_fetch")
+    dest_uri = f"s3://{TEST_BUCKET}/{fetch_dir}/"
+    with raises(ClientError, match=COPY_MSG):
         pkg_entry.fetch(dest_uri)
 
     new_entry = pkg_entry.fetch(dest_uri, put_options=USE_KMS)
     assert new_entry is not None
 
     # Use boto3 to verify the object was uploaded with the correct encryption
-    response = S3_CLIENT.head_object(Bucket=TEST_BUCKET,
-                                     Key=f"{fetch_dir}/{TEST_FILE}")
+    response = S3_CLIENT.head_object(Bucket=TEST_BUCKET, Key=f"{fetch_dir}/{TEST_FILE}")
     assert response['ServerSideEncryption'] == 'aws:kms'
+    S3_CLIENT.delete_object(Bucket=TEST_BUCKET, Key=fetch_dir)
 
     # Cleanup
-    # pkg.delete(pkg_name)
-    # S3_CLIENT.delete_object(Bucket=TEST_BUCKET, Key=f"{fetch_dir}")
+    Package.delete(pkg_name)
     # S3_CLIENT.delete_object(Bucket=TEST_BUCKET, Key=f"{pkg_name}/")
