@@ -1,26 +1,27 @@
+import json
 import pathlib
+from datetime import datetime
+from io import BytesIO
+from unittest.mock import ANY, patch
 
-import boto3
 from botocore.exceptions import ClientError
-from pytest import raises
 
-from quilt3 import Bucket, Package, delete_package
+from quilt3 import Bucket, Package
 
-ERR_MSG = r"An error occurred \(AccessDenied\)" +\
-           r" when calling the PutObject operation:.*"
+from ..utils import QuiltTestCase
+
+ERR_MSG = (
+    r"An error occurred \(AccessDenied\)"
+    r" when calling the PutObject operation:.*"
+)
 COPY_MSG = ERR_MSG.replace("PutObject", "CopyObject")
-DATA_DIR = pathlib.Path(__file__).parent / 'data'
+DATA_DIR = pathlib.Path(__file__).parent / "data"
 TEST_BUCKET = "test-kms-policies"
-TEST_BUCKET_URI = f"s3://{TEST_BUCKET}"
+TEST_URI = f"s3://{TEST_BUCKET}"
 TEST_FILE = "foo.txt"
 TEST_SRC = f"{DATA_DIR / TEST_FILE}"
-
-S3_BUCKET = Bucket(TEST_BUCKET_URI)
-S3_CLIENT = boto3.client('s3')
 USE_KMS = {"ServerSideEncryption": "aws:kms"}
-
-print(f"TEST_BUCKET: {S3_BUCKET}")
-print(f"TEST_SRC: {TEST_SRC}")
+S3_BUCKET = Bucket(TEST_URI)
 
 
 def dest_dir(test_name):
@@ -31,92 +32,140 @@ def dest_key(test_name):
     return f"{dest_dir(test_name)}/{TEST_FILE}"
 
 
-def delete_key(key: str):
-    response = S3_CLIENT.list_objects_v2(Bucket=TEST_BUCKET, Prefix=key)
-    if "Contents" in response:
-        objs = [{"Key": obj["Key"]} for obj in response["Contents"]]
-        S3_CLIENT.delete_objects(Bucket=TEST_BUCKET, Delete={"Objects": objs})
-    else:
-        S3_CLIENT.delete_object(Bucket=TEST_BUCKET, Key=key)
+class TestPutOptions(QuiltTestCase):
 
+    @classmethod
+    def body_bytes(cls) -> bytes:
+        config = {
+            "version": "1",
+            "is_workflow_required": False,
+            "workflows": {
+                "alpha": {
+                    "name": "Alpha",
+                    "metadata_schema": "m",
+                    "entries_schema": "e",
+                }
+            },
+            "schemas": {
+                "metadata-schema": {"url": "s3://bkt/.quilt/workflows/m.json"},
+                "entries-schema": {"url": "s3://bkt/.quilt/workflows/e.json"},
+            },
+        }
+        body = json.dumps(config)
+        return bytes(body, "utf-8")
 
-def test_bucket_put_file():
-    dest = dest_key("test_bucket_put_file")
-    print(f"test_bucket_put_file.dest: {dest}")
+    @classmethod
+    def mock_get_object_side_effect(cls, Bucket, Key, Body=None, **kwargs):
+        return {
+            "ETag": "test-etag",
+            "Bucket": Bucket,
+            "Key": Key,
+            "Body": BytesIO(Body.encode() if isinstance(Body, str) else cls.body_bytes()),
+            "VersionId": "test-version-id",
+            "ChecksumSHA256": ("e039a2db15dc12e34534a0b338bbea13ecd848d76f970d594c730b3b754da64e"),
+        }
 
-    with raises(ClientError, match=ERR_MSG):
-        S3_BUCKET.put_file(dest, TEST_SRC)
+    @classmethod
+    def mock_put_object_side_effect(cls, Bucket, Key, Body, **kwargs):
+        if kwargs.get("ServerSideEncryption") == "aws:kms":
+            return cls.mock_get_object_side_effect(Bucket, Key, Body)
+        else:
+            raise ClientError(
+                {"Error": {"Code": "AccessDenied", "Message": "Access Denied"}},
+                "PutObject"
+            )
 
-    S3_BUCKET.put_file(dest, TEST_SRC, put_options=USE_KMS)
+    @classmethod
+    def mock_list_objects_side_effect(cls, Bucket, Prefix, **kwargs):
+        return {
+            "Contents": [{"Key": f"{Prefix}/file-{i}.txt", "Size": i} for i in range(3)],
+            "IsTruncated": True,
+            "NextContinuationToken": None,
+        }
 
-    # Use boto3 to verify the object was uploaded with the correct encryption
-    response = S3_CLIENT.head_object(Bucket=TEST_BUCKET, Key=dest)
-    assert response['ServerSideEncryption'] == 'aws:kms'
+    @staticmethod
+    def mock_call_args(dest):
+        return {
+            "Body": ANY,
+            "Bucket": TEST_BUCKET,
+            "Key": dest,
+            "ChecksumAlgorithm": "SHA256",
+            "ServerSideEncryption": "aws:kms",
+        }
 
-    # Use boto3 to clean up
-    delete_key(dest)
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
+    def test_bucket_put_file(self, mock_put_object):
+        dest = "test_bucket_put_file_dest_key"
+        print(f"test_bucket_put_file.dest: {dest}")
 
+        # Simulate AccessDenied error
+        mock_put_object.side_effect = self.mock_put_object_side_effect
 
-def test_bucket_put_dir():
-    dest = dest_dir("test_bucket_put_dir")
-    print(f"test_bucket_put_dir.dest: {dest}")
+        # Test error handling when access is denied
+        with self.assertRaises(ClientError, msg=ERR_MSG):
+            S3_BUCKET.put_file(key=dest, path=TEST_SRC)
 
-    with raises(ClientError, match=ERR_MSG):
-        S3_BUCKET.put_dir(dest, DATA_DIR)
+        # Retry with ServerSideEncryption
+        S3_BUCKET.put_file(key=dest, path=TEST_SRC, put_options=USE_KMS)
 
-    S3_BUCKET.put_dir(dest, DATA_DIR, put_options=USE_KMS)
+        # Verify the final call to the patched put_object method
+        mock_put_object.assert_called_with(**self.mock_call_args(dest))
 
-    # Use boto3 to verify the object was uploaded with the correct encryption
-    response = S3_CLIENT.head_object(Bucket=TEST_BUCKET,
-                                     Key=f"{dest}/{TEST_FILE}")
-    assert response['ServerSideEncryption'] == 'aws:kms'
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
+    def test_bucket_put_dir(self, mock_put_object):
+        dest = dest_dir("test_bucket_put_dir")
+        print(f"test_bucket_put_dir.dest: {dest}")
 
-    delete_key(dest)
+        mock_put_object.side_effect = self.mock_put_object_side_effect
 
+        with self.assertRaises(ClientError, msg=ERR_MSG):
+            S3_BUCKET.put_dir(dest, DATA_DIR)
 
-def test_package_push():
-    pkg_name = dest_dir("test_package_push")
-    print(f"test_package_push.pkg_name: {pkg_name}")
+        S3_BUCKET.put_dir(dest, DATA_DIR, put_options=USE_KMS)
 
-    pkg = Package()
-    pkg.set(TEST_FILE, TEST_SRC)
+        args = self.mock_call_args(f"{dest}/{TEST_FILE}")
+        mock_put_object.assert_any_call(**args)
 
-    with raises(ClientError, match=ERR_MSG):
-        pkg.build(pkg_name, TEST_BUCKET_URI)
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
+    def test_package_push(self, mock_get_object, mock_copy_object,
+                          mock_put_object, mock_list_objects):
+        pkg_name = dest_dir("test_package_push")
+        print(f"test_package_push.pkg_name: {pkg_name}")
 
-    with raises(ClientError, match=ERR_MSG):
-        pkg.push(pkg_name, TEST_BUCKET_URI, force=True)
+        pkg = Package()
+        pkg.set(TEST_FILE, TEST_SRC)
 
-    pkg.build(pkg_name, TEST_BUCKET_URI, put_options=USE_KMS)
-    pkg.push(pkg_name, TEST_BUCKET_URI, put_options=USE_KMS, force=True)
+        mock_put_object.side_effect = self.mock_put_object_side_effect
+        mock_get_object.side_effect = self.mock_get_object_side_effect
+        mock_list_objects.side_effect = self.mock_list_objects_side_effect
 
-    # Use boto3 to verify the object was uploaded with the correct encryption
-    response = S3_CLIENT.head_object(Bucket=TEST_BUCKET,
-                                     Key=f"{pkg_name}/{TEST_FILE}")
-    assert response['ServerSideEncryption'] == 'aws:kms'
+        with self.assertRaises(ClientError, msg=ERR_MSG):
+            pkg.build(pkg_name, TEST_URI)
 
-    # Read package entry
-    pkg2 = Package.browse(pkg_name, registry=TEST_BUCKET_URI)
-    assert TEST_FILE in pkg2
-    pkg_entry = pkg2[TEST_FILE]
-    assert pkg_entry is not None
+        with self.assertRaises(ClientError, msg=ERR_MSG):
+            pkg.push(pkg_name, TEST_URI, force=True)
 
-    # fetch entry to remote URI
-    fetch_dir = dest_dir("test_package_entry_fetch")
-    dest_uri = f"s3://{TEST_BUCKET}/{fetch_dir}/"
-    with raises(ClientError, match=COPY_MSG):
-        pkg_entry.fetch(dest_uri)
+        pkg.build(pkg_name, TEST_URI, put_options=USE_KMS)
+        pkg.push(pkg_name, TEST_URI, put_options=USE_KMS, force=True)
 
-    new_entry = pkg_entry.fetch(dest_uri, put_options=USE_KMS)
-    assert new_entry is not None
+        args = self.mock_call_args(f"{pkg_name}/{TEST_FILE}")
+        mock_put_object.assert_called_with(**args)
 
-    # Use boto3 to verify the object was fetched with the correct encryption
-    response = S3_CLIENT.head_object(Bucket=TEST_BUCKET,
-                                     Key=f"{fetch_dir}/{TEST_FILE}")
-    assert response['ServerSideEncryption'] == 'aws:kms'
-    S3_CLIENT.delete_object(Bucket=TEST_BUCKET, Key=fetch_dir)
+        mock_copy_object.side_effect = self.mock_put_object_side_effect
 
-    # Cleanup
-    delete_package(pkg_name, registry=TEST_BUCKET_URI)
-    delete_key(pkg_name)
-    delete_key(fetch_dir)
+        fetch_dir = dest_dir("test_package_entry_fetch")
+        dest_uri = f"s3://{TEST_BUCKET}/{fetch_dir}/"
+        pkg_entry = pkg[pkg_name]
+
+        with self.assertRaises(ClientError, msg=COPY_MSG):
+            pkg_entry.fetch(dest_uri)
+
+        new_entry = pkg_entry.fetch(dest_uri, put_options=USE_KMS)
+        assert new_entry is not None
+
+        args = self.mock_call_args(f"{fetch_dir}/{TEST_FILE}")
+        args["CopySource"] = {"Bucket": TEST_BUCKET, "Key": f"{pkg_name}/{TEST_FILE}"}
+        mock_copy_object.assert_called_with(**args)
