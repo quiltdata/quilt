@@ -82,8 +82,12 @@ def test_package_push():
     pkg.set(TEST_FILE, TEST_SRC)
 
     with raises(ClientError, match=ERR_MSG):
+        pkg.build(pkg_name, TEST_BUCKET_URI)
+
+    with raises(ClientError, match=ERR_MSG):
         pkg.push(pkg_name, TEST_BUCKET_URI, force=True)
 
+    pkg.build(pkg_name, TEST_BUCKET_URI, put_options=USE_KMS)
     pkg.push(pkg_name, TEST_BUCKET_URI, put_options=USE_KMS, force=True)
 
     # Use boto3 to verify the object was uploaded with the correct encryption

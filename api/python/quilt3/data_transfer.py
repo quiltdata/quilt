@@ -58,13 +58,11 @@ def add_put_options_safely(params: dict, put_options: Optional[dict]):
     Add put options to the params dictionary safely.
     This method ensures that the put options do not overwrite existing keys in the params dictionary.
     """
-    print(f"add_put_options_safely.put_options: {put_options}")
     if put_options:
         for key, value in put_options.items():
             if key in params:
                 raise ValueError(f"Cannot override key `{key}` using put_options: {put_options}.")
             params[key] = value
-    print(f"add_put_options_safely.PARAMS: {params}")
 
 
 class S3Api(Enum):
