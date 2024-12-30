@@ -1,0 +1,507 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form with default values 1`] = `
+<div
+  className="root root"
+>
+  <div
+    className="groupWrapper"
+  >
+    <h6
+      className="MuiTypography-root groupTitle MuiTypography-h6"
+    >
+      Toggle buttons visibility
+    </h6>
+    <div
+      className="group group2Columns"
+    >
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "PUSH TO BUCKET" on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "CREATE PACKAGE" on the packages list and bucket listing pages
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "DELETE REVISION" item menu on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "REVISE PACKAGE" on the package page
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    className="groupWrapper"
+  >
+    <h6
+      className="MuiTypography-root groupTitle MuiTypography-h6"
+    >
+      Toggle blocks visibility
+    </h6>
+    <div
+      className="group group2Columns"
+    >
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Toggle ANALYTICS section on the file page
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Toggle files listings on bucket and packages pages
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Toggle CODE section
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Toggle METADATA section
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Enable Qurator omni
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    className="groupWrapper"
+  >
+    <h6
+      className="MuiTypography-root groupTitle MuiTypography-h6"
+    >
+      Toggle expanded JSON blocks in METADATA section
+    </h6>
+    <div
+      className="group group2Columns"
+    >
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Expand "User metadata"
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Expand "Workflow"
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    className="groupWrapper"
+  >
+    <h6
+      className="MuiTypography-root groupTitle MuiTypography-h6"
+    >
+      Toggle galleries visibility
+    </h6>
+    <div
+      className="group group2Columns"
+    >
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images on the directory listing
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images on the Bucket overview page
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images in the directory listing on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Image galleries alongside defined quilt_summarize.json
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    className="groupWrapper"
+  >
+    <h6
+      className="MuiTypography-root groupTitle MuiTypography-h6"
+    >
+      Toggle navigation items
+    </h6>
+    <div
+      className="group group2Columns group3Columns"
+    >
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "BUCKET" tab
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "PACKAGES" tab
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "QUERIES" tab
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    className="groupWrapper"
+  >
+    <h6
+      className="MuiTypography-root groupTitle MuiTypography-h6"
+    >
+      List of buckets allowed to be as source for packages
+    </h6>
+    <div
+      className="group group2Columns"
+    >
+      <div
+        id="autocomplete"
+      >
+         from [
+        
+        ]
+      </div>
+      <div
+        className="MuiFormControl-root field pristine MuiFormControl-fullWidth"
+      >
+        <label
+          className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
+          data-shrink={false}
+        >
+          Default source bucket
+        </label>
+        <div
+          id="select"
+        >
+           from [
+          ]
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    className="groupWrapper"
+  >
+    <h6
+      className="MuiTypography-root groupTitle MuiTypography-h6"
+    >
+      Configure the packages list appearance
+    </h6>
+    <div
+      className="group"
+    >
+      <div
+        className="root field pristine"
+      >
+        <div
+          className="root"
+        >
+          <div
+            id="text-field"
+          >
+            .*
+          </div>
+          <div
+            className="MuiFormControl-root"
+          >
+            <label
+              className="MuiFormControlLabel-root"
+            >
+              <div
+                id="checkbox"
+              />
+              <span
+                className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+              >
+                Show the last commit message in the package list
+              </span>
+            </label>
+          </div>
+          <div
+            id="autocomplete"
+          >
+             from [
+            
+            ]
+          </div>
+        </div>
+        <div
+          className="root"
+        >
+          <div
+            id="text-field"
+          >
+            
+          </div>
+          <div
+            className="MuiFormControl-root"
+          >
+            <label
+              className="MuiFormControlLabel-root Mui-disabled"
+            >
+              <div
+                id="checkbox"
+              />
+              <span
+                className="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
+              >
+                Show the last commit message in the package list
+              </span>
+            </label>
+          </div>
+          <div
+            id="autocomplete"
+          >
+             from [
+            
+            ]
+          </div>
+        </div>
+      </div>
+      <div
+        className="MuiFormControl-root field pristine"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Show package's \`user_meta\` as a multiline list of keys
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    className="groupWrapper"
+  >
+    <div
+      className="group"
+    >
+      <div
+        id="text-field"
+      >
+        
+      </div>
+    </div>
+  </div>
+</div>
+`;
