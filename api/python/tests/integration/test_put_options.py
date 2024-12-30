@@ -1,6 +1,5 @@
 import json
 import pathlib
-from datetime import datetime
 from io import BytesIO
 from unittest.mock import ANY, patch
 
@@ -77,8 +76,12 @@ class TestPutOptions(QuiltTestCase):
 
     @classmethod
     def mock_list_objects_side_effect(cls, Bucket, Prefix, **kwargs):
+        print(f"mock_list_objects_side_effect.Prefix: {Prefix}")
+        SUB_HASH = "e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"
+        contents = [{"Key": f"{Prefix}{i}{SUB_HASH}", "Size": i} for i in range(3)]
+        print(f"mock_list_objects_side_effect.contents: {contents}")
         return {
-            "Contents": [{"Key": f"{Prefix}/file-{i}.txt", "Size": i} for i in range(3)],
+            "Contents": contents,
             "IsTruncated": True,
             "NextContinuationToken": None,
         }
