@@ -76,10 +76,8 @@ class TestPutOptions(QuiltTestCase):
 
     @classmethod
     def mock_list_objects_side_effect(cls, Bucket, Prefix, **kwargs):
-        print(f"mock_list_objects_side_effect.Prefix: {Prefix}")
         SUB_HASH = "e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"
         contents = [{"Key": f"{Prefix}{i}{SUB_HASH}", "Size": i} for i in range(3)]
-        print(f"mock_list_objects_side_effect.contents: {contents}")
         return {
             "Contents": contents,
             "IsTruncated": True,
@@ -99,7 +97,6 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
     def test_bucket_put_file(self, mock_put_object):
         dest = "test_bucket_put_file_dest_key"
-        print(f"test_bucket_put_file.dest: {dest}")
 
         # Simulate AccessDenied error
         mock_put_object.side_effect = self.mock_put_object_side_effect
@@ -117,7 +114,6 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
     def test_bucket_put_dir(self, mock_put_object):
         dest = dest_dir("test_bucket_put_dir")
-        print(f"test_bucket_put_dir.dest: {dest}")
 
         mock_put_object.side_effect = self.mock_put_object_side_effect
 
@@ -136,7 +132,6 @@ class TestPutOptions(QuiltTestCase):
     def test_package_push(self, mock_get_object, mock_copy_object,
                           mock_put_object, mock_list_objects):
         pkg_name = dest_dir("test_package_push")
-        print(f"test_package_push.pkg_name: {pkg_name}")
 
         pkg = Package()
         pkg.set(TEST_FILE, TEST_SRC)
@@ -153,22 +148,32 @@ class TestPutOptions(QuiltTestCase):
 
         pkg.build(pkg_name, TEST_URI, put_options=USE_KMS)
         pkg.push(pkg_name, TEST_URI, put_options=USE_KMS, force=True)
+        print(f"Package[{pkg_name}]: {pkg}")
 
-        args = self.mock_call_args(f"{pkg_name}/{TEST_FILE}")
+        args = {
+            "Body": b'2e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab',
+            "Bucket": TEST_BUCKET,
+            "Key": f".quilt/named_packages/{pkg_name}/latest",
+            "ServerSideEncryption": "aws:kms",
+        }
         mock_put_object.assert_called_with(**args)
 
         mock_copy_object.side_effect = self.mock_put_object_side_effect
 
+        #
+        # Test fetch entry to S3 directory
+        #
+
         fetch_dir = dest_dir("test_package_entry_fetch")
         dest_uri = f"s3://{TEST_BUCKET}/{fetch_dir}/"
-        pkg_entry = pkg[pkg_name]
+        pkg_entry = pkg[TEST_FILE]
 
         with self.assertRaises(ClientError, msg=COPY_MSG):
             pkg_entry.fetch(dest_uri)
 
         new_entry = pkg_entry.fetch(dest_uri, put_options=USE_KMS)
         assert new_entry is not None
+        print(f"Entry[{new_entry}]: {new_entry}")
 
         args = self.mock_call_args(f"{fetch_dir}/{TEST_FILE}")
-        args["CopySource"] = {"Bucket": TEST_BUCKET, "Key": f"{pkg_name}/{TEST_FILE}"}
-        mock_copy_object.assert_called_with(**args)
+        mock_put_object.assert_called_with(**args)
