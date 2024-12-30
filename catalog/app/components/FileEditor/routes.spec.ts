@@ -1,6 +1,11 @@
 import { renderHook } from '@testing-library/react-hooks'
 
-import { useParams, editFileInPackage, useEditFileInPackage } from './routes'
+import {
+  editFileInPackage,
+  useAddFileInPackage,
+  useEditFileInPackage,
+  useParams,
+} from './routes'
 
 const useParamsInternal = jest.fn(
   () =>
@@ -48,6 +53,17 @@ describe('components/FileEditor/routes', () => {
       )
       expect(result.current).toBe(
         'bucketFile(b, k, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
+      )
+    })
+  })
+
+  describe('useAddFileInPackage', () => {
+    it('should create url for the new file', () => {
+      const { result } = renderHook(() =>
+        useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }, 'lk'),
+      )
+      expect(result.current).toBe(
+        'bucketFile(b, n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
       )
     })
   })
