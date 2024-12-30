@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Add links to modify configs ([#4273](https://github.com/quiltdata/quilt/pull/4273))
 - [Added] Admin: Tabulator Settings (open query) ([#4255](https://github.com/quiltdata/quilt/pull/4255))
 - [Added] Visual editor for `quilt_summarize.json` ([#4254](https://github.com/quiltdata/quilt/pull/4254))
 - [Added] Support "html" type in `quilt_summarize.json` ([#4252](https://github.com/quiltdata/quilt/pull/4252))

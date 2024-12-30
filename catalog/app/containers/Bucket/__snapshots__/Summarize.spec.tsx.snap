@@ -1,0 +1,80 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Buckets/Summarize ConfigureAppearance should not render buttons when there are files out there 1`] = `
+<div
+  className="makeStyles-root-1"
+/>
+`;
+
+exports[`containers/Buckets/Summarize ConfigureAppearance should render both links 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <div>
+    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new quilt_summarize.json file.
+    <hr />
+    <a
+      href="file: b/n/some/path/quilt_summarize.json {"add":"some/path/quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
+      >
+        Add quilt_summarize
+      </div>
+    </a>
+  </div>
+  <div>
+    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new README file.
+    <hr />
+    <a
+      href="file: b/n/some/path/README.md {"add":"some/path/README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
+      >
+        Add README
+      </div>
+    </a>
+  </div>
+</div>
+`;
+
+exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_summarize link 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <div>
+    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new quilt_summarize.json file.
+    <hr />
+    <a
+      href="file: b/n/quilt_summarize.json {"add":"quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
+      >
+        Add quilt_summarize
+      </div>
+    </a>
+  </div>
+</div>
+`;
+
+exports[`containers/Buckets/Summarize ConfigureAppearance should render readme link 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <div>
+    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new README file.
+    <hr />
+    <a
+      href="file: b/n/README.md {"add":"README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
+      >
+        Add README
+      </div>
+    </a>
+  </div>
+</div>
+`;
