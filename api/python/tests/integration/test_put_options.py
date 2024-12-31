@@ -58,6 +58,9 @@ class MockEntry:
         }
         return args
 
+    def upload_args(self, parent):
+        return parent.mock_call_args(f"{self.pkg_dest}/{TEST_FILE}")
+
 
 class TestPutOptions(QuiltTestCase):
 
@@ -169,6 +172,8 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     def test_package_push(self, mock_get_object,
                           mock_put_object, mock_list_objects):
+        """Package push !mpu -> put_object"""
+        # TODO: Add test for mpu -> upload_part
         mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
@@ -213,10 +218,8 @@ class TestPutOptions(QuiltTestCase):
         mock_is_mpu.return_value = False
 
         with self.assertRaises(ClientError, msg=COPY_MSG):
-            print("\n= Package.fetch.fail")
             pkg_entry.fetch(uri_dest)
 
-        print("\n= Package.fetch")
         new_entry = pkg_entry.fetch(uri_dest, put_options=USE_KMS)
         assert new_entry is not None
         copy_args = mock_entry.copy_args(self)
@@ -225,18 +228,34 @@ class TestPutOptions(QuiltTestCase):
 
     @patch("quilt3.data_transfer.is_mpu")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
-    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.create_multipart_upload")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.upload_part_copy")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.complete_multipart_upload")
     def test_package_entry_fetch_mpu(
-        self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects, mock_is_mpu
+        self, mock_complete_mpu, mock_upload_part, mock_create_mpu,
+        mock_head_object, mock_get_object, mock_list_objects, mock_is_mpu
     ):
+        """_copy_remote_file mpu -> create_multipart_upload"""
+        mock_complete_mpu.return_value = {"Location": "test-location"}
+        mock_upload_part.return_value = {"ETag": "test-etag"}
+        mock_create_mpu.return_value = {"UploadId": "test-upload-id"}
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
-        mock_copy_object.side_effect = self.mock_copy_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
-        #
-        # _copy_remote_file mpu -> create_multipart_upload
-        #
 
         mock_is_mpu.return_value = True
+
+        mock_entry = MockEntry("test_package_entry_fetch_mpu")
+        pkg_entry = mock_entry.pkg_entry
+        uri_dest = mock_entry.uri_dest
+
+        with self.assertRaises(ClientError, msg=COPY_MSG):
+            pkg_entry.fetch(uri_dest)
+
+        new_entry = pkg_entry.fetch(uri_dest, put_options=USE_KMS)
+        assert new_entry is not None
+        upload_args = mock_entry.upload_args(self)
+
+        mock_copy_object.assert_called_with(**upload_args)
