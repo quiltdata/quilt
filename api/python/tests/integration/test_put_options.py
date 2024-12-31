@@ -48,9 +48,13 @@ class MockEntry:
             meta={},
         )
 
-    def copy_args(self, parent):
+    def create_args(self, parent):
         args = parent.mock_call_args(f"{self.pkg_dest}/{TEST_FILE}")
         args.pop("Body")
+        return args
+
+    def copy_args(self, parent):
+        args = self.create_args(parent)
         args["CopySource"] = {
             "Bucket": TEST_BUCKET,
             "Key": f"{self.pkg_src}/{TEST_FILE}",
@@ -59,8 +63,22 @@ class MockEntry:
         return args
 
     def upload_args(self, parent):
-        args = parent.mock_call_args(f"{self.pkg_dest}/{TEST_FILE}")
-        args.pop("Body")
+        args = self.copy_args(parent)
+        args.pop("ServerSideEncryption")
+        args.pop("ChecksumAlgorithm")
+        args["UploadId"] = "test-upload-id"
+        args["PartNumber"] = 1
+        args["CopySourceRange"] = "bytes=0-122"
+        return args
+
+    def complete_args(self, parent):
+        args = self.create_args(parent)
+        args.pop("ServerSideEncryption")
+        args.pop("ChecksumAlgorithm")
+        args["UploadId"] = "test-upload-id"
+        args["MultipartUpload"] = {
+            "Parts": [{"PartNumber": 1, "ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}]
+        }
         return args
 
 
@@ -266,6 +284,8 @@ class TestPutOptions(QuiltTestCase):
 
         new_entry = pkg_entry.fetch(uri_dest, put_options=USE_KMS)
         assert new_entry is not None
-        upload_args = mock_entry.upload_args(self)
 
-        mock_create_mpu.assert_called_with(**upload_args)
+        mock_create_mpu.assert_called_with(**mock_entry.create_args(self))
+        mock_upload_part.assert_called_with(**mock_entry.upload_args(self))
+        mock_complete_mpu.assert_called_with(**mock_entry.complete_args(self))
+        # TODO: Test whether upload_part.CopySource needs to include ServerSideEncryption
