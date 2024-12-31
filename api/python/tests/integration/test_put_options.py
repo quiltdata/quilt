@@ -22,8 +22,10 @@ TEST_FILE = "foo.txt"
 TEST_SRC = f"{DATA_DIR / TEST_FILE}"
 USE_KMS = {"ServerSideEncryption": "aws:kms"}
 S3_BUCKET = Bucket(TEST_URI)
-SUB_HASH = "e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"
-
+HASHES = [
+    "2e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab",
+    "5bedf4fcce4fbcf0dd15eb1b692ae304a2257f1f67f6cca576e79c5024fccb1f"
+]
 
 def dest_dir(test_name):
     return f"test/{test_name}"
@@ -40,7 +42,7 @@ class MockEntry:
         self.uri_src = f"{TEST_URI}/{self.pkg_src}/{TEST_FILE}"
         self.uri_dest = f"{TEST_URI}/{self.pkg_dest}/"
         self.key_src = PhysicalKey.from_url(self.uri_src)
-        self.hash_obj = {"type": "SHA256", "value": "2" + SUB_HASH}
+        self.hash_obj = {"type": "SHA256", "value": HASHES[0]}
         self.pkg_entry = PackageEntry(
             physical_key=self.key_src,
             size=123,
@@ -140,7 +142,7 @@ class TestPutOptions(QuiltTestCase):
 
     @classmethod
     def mock_list_objects_side_effect(cls, Bucket, Prefix, **kwargs):
-        contents = [{"Key": f"{Prefix}{i}{SUB_HASH}", "Size": i} for i in range(3)]
+        contents = [{"Key": f"{Prefix}{HASHES[i]}", "Size": i} for i in range(2)]
         return {
             "Contents": contents,
             "IsTruncated": True,
@@ -194,7 +196,6 @@ class TestPutOptions(QuiltTestCase):
     def test_package_push(self, mock_get_object,
                           mock_put_object, mock_list_objects):
         """Package push !mpu -> put_object"""
-        # TODO: Add test for mpu -> upload_part
         mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
@@ -225,7 +226,9 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
-    def test_package_entry_fetch(self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects, mock_is_mpu):
+    def test_package_entry_fetch(
+        self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects, mock_is_mpu
+    ):
         """_copy_remote_file !mpu -> copy_object"""
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
@@ -246,6 +249,54 @@ class TestPutOptions(QuiltTestCase):
         copy_args = mock_entry.copy_args(self)
 
         mock_copy_object.assert_called_with(**copy_args)
+
+    @patch("quilt3.data_transfer.is_mpu")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.create_multipart_upload")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.upload_part")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.complete_multipart_upload")
+    def test_package_push_mpu(
+        self,
+        mock_complete_mpu,
+        mock_upload_part,
+        mock_create_mpu,
+        mock_head_object,
+        mock_get_object,
+        mock_put_object,
+        mock_list_objects,
+        mock_is_mpu,
+    ):
+        """_copy_local_file mpu -> create_multipart_upload"""
+        mock_complete_mpu.return_value = {
+            "Location": "test-location",
+            "VersionId": "test-version-id",
+            "ChecksumSHA256": "test-checksum-sha256",
+        }
+        mock_upload_part.return_value = {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}
+        mock_create_mpu.side_effect = self.mock_copy_object_side_effect
+        mock_head_object.side_effect = self.mock_get_object_side_effect
+        mock_get_object.side_effect = self.mock_get_object_side_effect
+        mock_put_object.side_effect = self.mock_put_object_side_effect
+        mock_list_objects.side_effect = self.mock_list_objects_side_effect
+
+        mock_is_mpu.return_value = True
+
+        pkg_name = dest_dir("test_package_push_mpu")
+        pkg = Package()
+        pkg.set(TEST_FILE, TEST_SRC)
+
+        with self.assertRaises(ClientError, msg=ERR_MSG):
+            pkg.push(pkg_name, TEST_URI, force=True)
+
+        pkg.push(pkg_name, TEST_URI, put_options=USE_KMS, force=True)
+
+        mock_entry = MockEntry("test_package_push_mpu")
+        mock_create_mpu.assert_called_with(**mock_entry.create_args(self))
+        mock_upload_part.assert_called_with(**mock_entry.upload_args(self))
+        mock_complete_mpu.assert_called_with(**mock_entry.complete_args(self))
 
     @patch("quilt3.data_transfer.is_mpu")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
