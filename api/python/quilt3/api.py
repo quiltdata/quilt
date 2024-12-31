@@ -21,7 +21,7 @@ from .util import (
 )
 
 
-def copy(src, dest):
+def copy(src, dest, put_options=None):
     """
     Copies ``src`` object from QUILT to ``dest``.
 
@@ -29,10 +29,11 @@ def copy(src, dest):
     or local file paths (starting with ``file:///``).
 
     Parameters:
-        src (str): a path to retrieve
-        dest (str): a path to write to
+        src: a path to retrieve
+        dest: a path to write to
+        put_options: optional arguments to pass to the PutObject operation
     """
-    copy_file(PhysicalKey.from_url(fix_url(src)), PhysicalKey.from_url(fix_url(dest)))
+    copy_file(PhysicalKey.from_url(fix_url(src)), PhysicalKey.from_url(fix_url(dest)), put_options=put_options)
 
 
 @ApiTelemetry("api.delete_package")
