@@ -127,18 +127,16 @@ class TestPutOptions(QuiltTestCase):
 
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
-    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
-    def test_package_push(self, mock_get_object, mock_copy_object,
+    def test_package_push(self, mock_get_object,
                           mock_put_object, mock_list_objects):
-        pkg_name = dest_dir("test_package_push")
-
-        pkg = Package()
-        pkg.set(TEST_FILE, TEST_SRC)
-
         mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
+
+        pkg_name = dest_dir("test_package_push")
+        pkg = Package()
+        pkg.set(TEST_FILE, TEST_SRC)
 
         with self.assertRaises(ClientError, msg=ERR_MSG):
             pkg.build(pkg_name, TEST_URI)
@@ -148,7 +146,6 @@ class TestPutOptions(QuiltTestCase):
 
         pkg.build(pkg_name, TEST_URI, put_options=USE_KMS)
         pkg.push(pkg_name, TEST_URI, put_options=USE_KMS, force=True)
-        print(f"Package[{pkg_name}]: {pkg}")
 
         args = {
             "Body": b'2e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab',
@@ -158,22 +155,33 @@ class TestPutOptions(QuiltTestCase):
         }
         mock_put_object.assert_called_with(**args)
 
-        mock_copy_object.side_effect = self.mock_put_object_side_effect
-
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
+    def test_package_entry_fetch(self, mock_get_object, mock_put_object, mock_list_objects):
+        mock_put_object.side_effect = self.mock_put_object_side_effect
+        mock_get_object.side_effect = self.mock_get_object_side_effect
+        mock_list_objects.side_effect = self.mock_list_objects_side_effect
         #
         # Test fetch entry to S3 directory
+        # _copy_remote_file !mpu -> copy_object
+        # _copy_remote_file mpu -> create_multipart_upload
         #
 
-        fetch_dir = dest_dir("test_package_entry_fetch")
-        dest_uri = f"s3://{TEST_BUCKET}/{fetch_dir}/"
+        pkg_fetch = dest_dir("test_package_entry_fetch")
+        pkg = Package.browse(pkg_fetch, TEST_URI)
+
         pkg_entry = pkg[TEST_FILE]
+        print(f"Entry[{TEST_FILE}]: {pkg_entry}")
+        dest_uri = f"s3://{TEST_BUCKET}/{pkg_fetch}/"
 
         with self.assertRaises(ClientError, msg=COPY_MSG):
+            print("\n= Package.fetch.fail")
             pkg_entry.fetch(dest_uri)
 
+        print("\n= Package.fetch")
         new_entry = pkg_entry.fetch(dest_uri, put_options=USE_KMS)
         assert new_entry is not None
-        print(f"Entry[{new_entry}]: {new_entry}")
 
-        args = self.mock_call_args(f"{fetch_dir}/{TEST_FILE}")
+        args = self.mock_call_args(f"{pkg_fetch}/{TEST_FILE}")
         mock_put_object.assert_called_with(**args)
