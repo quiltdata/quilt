@@ -360,7 +360,6 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                     PartNumber=part_id,
                     ChecksumAlgorithm='SHA256',
                 )
-                add_put_options_safely(s3_upload_params, put_options)
                 part = s3_client.upload_part(**s3_upload_params)
             with lock:
                 parts[i] = dict(
@@ -372,13 +371,6 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                 done = remaining == 0
 
             if done:
-                s3_complete_params = dict(
-                    Bucket=dest_bucket,
-                    Key=dest_key,
-                    UploadId=upload_id,
-                    MultipartUpload={'Parts': parts},
-                )
-                add_put_options_safely(s3_complete_params, put_options)
                 resp = s3_client.complete_multipart_upload(
                     Bucket=dest_bucket,
                     Key=dest_key,
@@ -528,7 +520,6 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
                 UploadId=upload_id,
                 PartNumber=part_id,
             )
-            add_put_options_safely(s3_upload_params, extra_args)
             part = s3_client.upload_part_copy(**s3_upload_params)
             with lock:
                 parts[i] = dict(
@@ -548,7 +539,6 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
                     UploadId=upload_id,
                     MultipartUpload={'Parts': parts},
                 )
-                add_put_options_safely(s3_complete_params, extra_args)
                 resp = s3_client.complete_multipart_upload(**s3_complete_params)
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
