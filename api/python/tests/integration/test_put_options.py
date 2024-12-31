@@ -33,6 +33,31 @@ def dest_dir(test_name):
 def dest_key(test_name):
     return f"{dest_dir(test_name)}/{TEST_FILE}"
 
+class MockEntry:
+    def __init__(self, test_name_fetch):
+        self.pkg_src = dest_dir("test_package_push")
+        self.pkg_dest = dest_dir(test_name_fetch)
+        self.uri_src = f"{TEST_URI}/{self.pkg_src}/{TEST_FILE}"
+        self.uri_dest = f"{TEST_URI}/{self.pkg_dest}/"
+        self.key_src = PhysicalKey.from_url(self.uri_src)
+        self.hash_obj = {"type": "SHA256", "value": "2" + SUB_HASH}
+        self.pkg_entry = PackageEntry(
+            physical_key=self.key_src,
+            size=123,
+            hash_obj=self.hash_obj,
+            meta={},
+        )
+
+    def copy_args(self, parent):
+        args = parent.mock_call_args(f"{self.pkg_dest}/{TEST_FILE}")
+        args.pop("Body")
+        args["CopySource"] = {
+            "Bucket": TEST_BUCKET,
+            "Key": f"{self.pkg_src}/{TEST_FILE}",
+            "VersionId": "test-version-id",
+        }
+        return args
+
 
 class TestPutOptions(QuiltTestCase):
 
@@ -169,33 +194,23 @@ class TestPutOptions(QuiltTestCase):
         }
         mock_put_object.assert_called_with(**args)
 
+    @patch("quilt3.data_transfer.is_mpu")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
-    def test_package_entry_fetch(self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects):
+    def test_package_entry_fetch(self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects, mock_is_mpu):
+        """_copy_remote_file !mpu -> copy_object"""
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_copy_object.side_effect = self.mock_copy_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
-        #
-        # Test fetch entry to S3 directory
-        # _copy_remote_file !mpu -> copy_object
-        # _copy_remote_file mpu -> create_multipart_upload
-        #
-        pkg_src = dest_dir("test_package_push")
-        pkg_dest = dest_dir("test_package_entry_fetch")
-        uri_src = f"{TEST_URI}/{pkg_src}/{TEST_FILE}"
-        uri_dest = f"{TEST_URI}/{pkg_dest}/"
 
-        key_src = PhysicalKey.from_url(uri_src)
-        hash_obj = {"type": "SHA256", "value": "2"+"e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"}
-        pkg_entry = PackageEntry(
-            physical_key=key_src,
-            size=123,
-            hash_obj=hash_obj,
-            meta={},
-        )
+        mock_entry = MockEntry("test_package_entry_fetch")
+        pkg_entry = mock_entry.pkg_entry
+        uri_dest = mock_entry.uri_dest
+
+        mock_is_mpu.return_value = False
 
         with self.assertRaises(ClientError, msg=COPY_MSG):
             print("\n= Package.fetch.fail")
@@ -204,12 +219,24 @@ class TestPutOptions(QuiltTestCase):
         print("\n= Package.fetch")
         new_entry = pkg_entry.fetch(uri_dest, put_options=USE_KMS)
         assert new_entry is not None
+        copy_args = mock_entry.copy_args(self)
 
-        args = self.mock_call_args(f"{pkg_dest}/{TEST_FILE}")
-        args.pop("Body")
-        args["CopySource"] = {
-            "Bucket": TEST_BUCKET,
-            "Key": f"{pkg_src}/{TEST_FILE}",
-            "VersionId": "test-version-id",
-        }
-        mock_copy_object.assert_called_with(**args)
+        mock_copy_object.assert_called_with(**copy_args)
+
+    @patch("quilt3.data_transfer.is_mpu")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
+    def test_package_entry_fetch_mpu(
+        self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects, mock_is_mpu
+    ):
+        mock_head_object.side_effect = self.mock_get_object_side_effect
+        mock_get_object.side_effect = self.mock_get_object_side_effect
+        mock_copy_object.side_effect = self.mock_copy_object_side_effect
+        mock_list_objects.side_effect = self.mock_list_objects_side_effect
+        #
+        # _copy_remote_file mpu -> create_multipart_upload
+        #
+
+        mock_is_mpu.return_value = True
