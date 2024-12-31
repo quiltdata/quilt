@@ -79,6 +79,17 @@ class TestPutOptions(QuiltTestCase):
             )
 
     @classmethod
+    def mock_copy_object_side_effect(cls, Bucket, Key, **kwargs):
+        if kwargs.get("ServerSideEncryption") == "aws:kms":
+            body = cls.mock_get_object_side_effect(Bucket, Key, "EmptyBody")
+            return {
+                "CopyObjectResult": body,
+                "CopySourceVersionId": "test-version-id",
+            }
+        else:
+            raise ClientError({"Error": {"Code": "AccessDenied", "Message": "Access Denied"}}, "CopyObject")
+
+    @classmethod
     def mock_list_objects_side_effect(cls, Bucket, Prefix, **kwargs):
         contents = [{"Key": f"{Prefix}{i}{SUB_HASH}", "Size": i} for i in range(3)]
         return {
@@ -165,7 +176,7 @@ class TestPutOptions(QuiltTestCase):
     def test_package_entry_fetch(self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects):
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
-        mock_copy_object.side_effect = self.mock_put_object_side_effect
+        mock_copy_object.side_effect = self.mock_copy_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
         #
         # Test fetch entry to S3 directory
@@ -175,8 +186,7 @@ class TestPutOptions(QuiltTestCase):
         pkg_src = dest_dir("test_package_push")
         pkg_dest = dest_dir("test_package_entry_fetch")
         uri_src = f"{TEST_URI}/{pkg_src}/{TEST_FILE}"
-        uri_dir = f"{TEST_URI}/{pkg_dest}/"
-        uri_dest = f"{TEST_URI}/{pkg_dest}/{TEST_FILE}"
+        uri_dest = f"{TEST_URI}/{pkg_dest}/"
 
         key_src = PhysicalKey.from_url(uri_src)
         hash_obj = {"type": "SHA256", "value": "2"+"e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"}
@@ -189,11 +199,17 @@ class TestPutOptions(QuiltTestCase):
 
         with self.assertRaises(ClientError, msg=COPY_MSG):
             print("\n= Package.fetch.fail")
-            pkg_entry.fetch(uri_dir)
+            pkg_entry.fetch(uri_dest)
 
         print("\n= Package.fetch")
-        new_entry = pkg_entry.fetch(uri_dir, put_options=USE_KMS)
+        new_entry = pkg_entry.fetch(uri_dest, put_options=USE_KMS)
         assert new_entry is not None
 
-        args = self.mock_call_args(uri_dest)
+        args = self.mock_call_args(f"{pkg_dest}/{TEST_FILE}")
+        args.pop("Body")
+        args["CopySource"] = {
+            "Bucket": TEST_BUCKET,
+            "Key": f"{pkg_src}/{TEST_FILE}",
+            "VersionId": "test-version-id",
+        }
         mock_copy_object.assert_called_with(**args)
