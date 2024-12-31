@@ -6,8 +6,8 @@ from unittest.mock import ANY, patch
 from botocore.exceptions import ClientError
 
 from quilt3 import Bucket, Package
-from quilt3.packages import PackageEntry
 from quilt3.data_transfer import PhysicalKey
+from quilt3.packages import PackageEntry
 
 from ..utils import QuiltTestCase
 
@@ -59,7 +59,9 @@ class MockEntry:
         return args
 
     def upload_args(self, parent):
-        return parent.mock_call_args(f"{self.pkg_dest}/{TEST_FILE}")
+        args = parent.mock_call_args(f"{self.pkg_dest}/{TEST_FILE}")
+        args.pop("Body")
+        return args
 
 
 class TestPutOptions(QuiltTestCase):
@@ -113,6 +115,7 @@ class TestPutOptions(QuiltTestCase):
             return {
                 "CopyObjectResult": body,
                 "CopySourceVersionId": "test-version-id",
+                "UploadId": "test-upload-id",
             }
         else:
             raise ClientError({"Error": {"Code": "AccessDenied", "Message": "Access Denied"}}, "CopyObject")
@@ -238,9 +241,16 @@ class TestPutOptions(QuiltTestCase):
         mock_head_object, mock_get_object, mock_list_objects, mock_is_mpu
     ):
         """_copy_remote_file mpu -> create_multipart_upload"""
-        mock_complete_mpu.return_value = {"Location": "test-location"}
-        mock_upload_part.return_value = {"ETag": "test-etag"}
-        mock_create_mpu.return_value = {"UploadId": "test-upload-id"}
+        mock_complete_mpu.return_value = {
+            "Location": "test-location",
+            "VersionId": "test-version-id",
+            "ChecksumSHA256": "test-checksum-sha256",
+        }
+        mock_upload_part.return_value = {
+            "CopyPartResult": {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"},
+            "CopySourceVersionId": "test-version-id",
+        }
+        mock_create_mpu.side_effect = self.mock_copy_object_side_effect
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
@@ -258,4 +268,4 @@ class TestPutOptions(QuiltTestCase):
         assert new_entry is not None
         upload_args = mock_entry.upload_args(self)
 
-        mock_copy_object.assert_called_with(**upload_args)
+        mock_create_mpu.assert_called_with(**upload_args)
