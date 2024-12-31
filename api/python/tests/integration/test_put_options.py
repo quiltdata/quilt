@@ -293,10 +293,34 @@ class TestPutOptions(QuiltTestCase):
 
         pkg.push(pkg_name, TEST_URI, put_options=USE_KMS, force=True)
 
-        mock_entry = MockEntry("test_package_push_mpu")
-        mock_create_mpu.assert_called_with(**mock_entry.create_args(self))
-        mock_upload_part.assert_called_with(**mock_entry.upload_args(self))
-        mock_complete_mpu.assert_called_with(**mock_entry.complete_args(self))
+        mock_create_mpu.assert_called_with(
+            Bucket=TEST_BUCKET,
+            Key=f"{pkg_name}/{TEST_FILE}",
+            ChecksumAlgorithm="SHA256",
+            ServerSideEncryption="aws:kms",
+        )
+        mock_upload_part.assert_called_with(
+            Bucket=TEST_BUCKET,
+            Key=f"{pkg_name}/{TEST_FILE}",
+            UploadId="test-upload-id",
+            PartNumber=1,
+            Body=ANY,
+            ChecksumAlgorithm="SHA256",
+        )
+        mock_complete_mpu.assert_called_with(
+            Bucket=TEST_BUCKET,
+            Key=f"{pkg_name}/{TEST_FILE}",
+            UploadId="test-upload-id",
+            MultipartUpload={
+                "Parts": [
+                    {
+                        "PartNumber": 1,
+                        "ETag": "test-etag",
+                        "ChecksumSHA256": "test-checksum-sha256"
+                    }
+                ]
+            },
+        )
 
     @patch("quilt3.data_transfer.is_mpu")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
