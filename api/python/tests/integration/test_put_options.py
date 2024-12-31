@@ -6,6 +6,8 @@ from unittest.mock import ANY, patch
 from botocore.exceptions import ClientError
 
 from quilt3 import Bucket, Package
+from quilt3.packages import PackageEntry
+from quilt3.data_transfer import PhysicalKey
 
 from ..utils import QuiltTestCase
 
@@ -21,6 +23,7 @@ TEST_FILE = "foo.txt"
 TEST_SRC = f"{DATA_DIR / TEST_FILE}"
 USE_KMS = {"ServerSideEncryption": "aws:kms"}
 S3_BUCKET = Bucket(TEST_URI)
+SUB_HASH = "e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"
 
 
 def dest_dir(test_name):
@@ -62,6 +65,7 @@ class TestPutOptions(QuiltTestCase):
             "Body": BytesIO(Body.encode() if isinstance(Body, str) else cls.body_bytes()),
             "VersionId": "test-version-id",
             "ChecksumSHA256": ("e039a2db15dc12e34534a0b338bbea13ecd848d76f970d594c730b3b754da64e"),
+            "ContentLength": 123,
         }
 
     @classmethod
@@ -76,7 +80,6 @@ class TestPutOptions(QuiltTestCase):
 
     @classmethod
     def mock_list_objects_side_effect(cls, Bucket, Prefix, **kwargs):
-        SUB_HASH = "e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"
         contents = [{"Key": f"{Prefix}{i}{SUB_HASH}", "Size": i} for i in range(3)]
         return {
             "Contents": contents,
@@ -130,8 +133,8 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     def test_package_push(self, mock_get_object,
                           mock_put_object, mock_list_objects):
-        mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
+        mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
 
         pkg_name = dest_dir("test_package_push")
@@ -156,32 +159,41 @@ class TestPutOptions(QuiltTestCase):
         mock_put_object.assert_called_with(**args)
 
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
-    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
-    def test_package_entry_fetch(self, mock_get_object, mock_put_object, mock_list_objects):
-        mock_put_object.side_effect = self.mock_put_object_side_effect
+    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
+    def test_package_entry_fetch(self, mock_head_object, mock_get_object, mock_copy_object, mock_list_objects):
+        mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
+        mock_copy_object.side_effect = self.mock_put_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
         #
         # Test fetch entry to S3 directory
         # _copy_remote_file !mpu -> copy_object
         # _copy_remote_file mpu -> create_multipart_upload
         #
+        pkg_src = dest_dir("test_package_push")
+        pkg_dest = dest_dir("test_package_entry_fetch")
+        uri_src = f"{TEST_URI}/{pkg_src}/{TEST_FILE}"
+        uri_dir = f"{TEST_URI}/{pkg_dest}/"
+        uri_dest = f"{TEST_URI}/{pkg_dest}/{TEST_FILE}"
 
-        pkg_fetch = dest_dir("test_package_entry_fetch")
-        pkg = Package.browse(pkg_fetch, TEST_URI)
-
-        pkg_entry = pkg[TEST_FILE]
-        print(f"Entry[{TEST_FILE}]: {pkg_entry}")
-        dest_uri = f"s3://{TEST_BUCKET}/{pkg_fetch}/"
+        key_src = PhysicalKey.from_url(uri_src)
+        hash_obj = {"type": "SHA256", "value": "2"+"e885f8bed32d1bdb889b42f4ea9f62c1c095c501e748573fa30896be06120ab"}
+        pkg_entry = PackageEntry(
+            physical_key=key_src,
+            size=123,
+            hash_obj=hash_obj,
+            meta={},
+        )
 
         with self.assertRaises(ClientError, msg=COPY_MSG):
             print("\n= Package.fetch.fail")
-            pkg_entry.fetch(dest_uri)
+            pkg_entry.fetch(uri_dir)
 
         print("\n= Package.fetch")
-        new_entry = pkg_entry.fetch(dest_uri, put_options=USE_KMS)
+        new_entry = pkg_entry.fetch(uri_dir, put_options=USE_KMS)
         assert new_entry is not None
 
-        args = self.mock_call_args(f"{pkg_fetch}/{TEST_FILE}")
-        mock_put_object.assert_called_with(**args)
+        args = self.mock_call_args(uri_dest)
+        mock_copy_object.assert_called_with(**args)
