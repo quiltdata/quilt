@@ -12,8 +12,7 @@ from quilt3.packages import PackageEntry
 from ..utils import QuiltTestCase
 
 ERR_MSG = (
-    r"An error occurred \(AccessDenied\)"
-    r" when calling the PutObject operation:.*"
+    r"An error occurred \(AccessDenied\) when calling the PutObject operation:.*"
 )
 COPY_MSG = ERR_MSG.replace("PutObject", "CopyObject")
 DATA_DIR = pathlib.Path(__file__).parent / "data"
@@ -32,6 +31,7 @@ def dest_dir(test_name):
 
 def dest_key(test_name):
     return f"{dest_dir(test_name)}/{TEST_FILE}"
+
 
 class MockEntry:
     def __init__(self, test_name_fetch):
