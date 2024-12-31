@@ -352,15 +352,14 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
             nonlocal remaining
             part_id = i + 1
             with ReadFileChunk.from_filename(src_path, start, end-start, [ctx.progress]) as fd:
-                s3_upload_params = dict(
+                part = s3_client.upload_part(
                     Body=fd,
                     Bucket=dest_bucket,
                     Key=dest_key,
                     UploadId=upload_id,
                     PartNumber=part_id,
-                    ChecksumAlgorithm='SHA256',
+                    ChecksumAlgorithm="SHA256",
                 )
-                part = s3_client.upload_part(**s3_upload_params)
             with lock:
                 parts[i] = dict(
                     PartNumber=part_id,
@@ -512,15 +511,14 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
         def upload_part(i, start, end):
             nonlocal remaining
             part_id = i + 1
-            s3_upload_params = dict(
+            part = s3_client.upload_part_copy(
                 CopySource=src_params,
-                CopySourceRange=f'bytes={start}-{end-1}',
+                CopySourceRange=f"bytes={start}-{end-1}",
                 Bucket=dest_bucket,
                 Key=dest_key,
                 UploadId=upload_id,
                 PartNumber=part_id,
             )
-            part = s3_client.upload_part_copy(**s3_upload_params)
             with lock:
                 parts[i] = dict(
                     PartNumber=part_id,
