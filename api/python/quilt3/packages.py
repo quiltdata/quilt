@@ -356,7 +356,7 @@ class PackageEntry:
         Gets objects from entry and saves them to dest.
 
         Args:
-            dest: where to put the files
+            dest: url for where to put the files
                 Defaults to the entry name
             put_options: optional arguments to pass to the PutObject operation
 
@@ -701,14 +701,13 @@ class Package:
         return pkg
 
     @ApiTelemetry("package.fetch")
-    def fetch(self, dest='./', put_options=None):
+    def fetch(self, dest='./'):
         """
         Copy all descendants to `dest`. Descendants are written under their logical
         names _relative_ to self.
 
         Args:
             dest: where to put the files (locally)
-            put_options: optional arguments to pass to the PutObject operation
 
         Returns:
             A new Package object with entries from self, but with physical keys
@@ -729,7 +728,7 @@ class Package:
             new_entry = entry.with_physical_key(new_physical_key)
             pkg._set(logical_key, new_entry)
 
-        copy_file_list(file_list, message="Copying objects", put_options=put_options)
+        copy_file_list(file_list, message="Copying objects")
 
         return pkg
 

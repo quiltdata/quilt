@@ -32,10 +32,6 @@ def dest_dir(test_name):
     return f"test/{test_name}"
 
 
-def dest_key(test_name):
-    return f"{dest_dir(test_name)}/{TEST_FILE}"
-
-
 class MockEntry:
     def __init__(self, test_name_fetch):
         self.pkg_src = dest_dir("test_package_push")
