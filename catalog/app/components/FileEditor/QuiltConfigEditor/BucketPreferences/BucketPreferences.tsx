@@ -163,7 +163,8 @@ const I18N = {
   'ui.blocks.gallery.files': 'Images in the directory listing on bucket pages',
   'ui.blocks.gallery.overview': 'Images on the Bucket overview page',
   'ui.blocks.gallery.packages': 'Images in the directory listing on the package page',
-  'ui.blocks.gallery.summarize': 'Image galleries alongside those defined in quilt_summarize.json',
+  'ui.blocks.gallery.summarize':
+    'Image galleries alongside those defined in quilt_summarize.json',
 
   'ui.nav': 'Toggle navigation items',
   'ui.nav.files': '"BUCKET" tab',
@@ -172,8 +173,7 @@ const I18N = {
 
   'ui.source_buckets': 'List of buckets allowed to be as source for packages',
   'ui.package_description': 'Package list appearance',
-  'ui.package_description.multiline':
-    "Display `user_meta` on multiple lines",
+  'ui.package_description.multiline': 'Display `user_meta` on multiple lines',
 }
 
 function i18n(key: string): string {
