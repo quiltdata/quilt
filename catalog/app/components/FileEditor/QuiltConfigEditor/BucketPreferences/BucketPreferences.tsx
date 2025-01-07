@@ -5,7 +5,9 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonValidationErrors from 'components/JsonValidationErrors'
+import { docs } from 'constants/urls'
 import * as BucketConfig from 'utils/BucketConfig'
+import StyledLink from 'utils/StyledLink'
 
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
@@ -231,6 +233,9 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     paddingBottom: t.spacing(2),
   },
+  helperText: {
+    marginBottom: t.spacing(2),
+  },
   error: {
     marginBottom: t.spacing(2),
   },
@@ -301,6 +306,16 @@ export default function BucketPreferences({
 
   return (
     <div className={cx(classes.root, className)}>
+      <M.Typography variant="body2" className={classes.helperText}>
+        Configuration for Catalog UI: show and hide features, set default values. See{' '}
+        <StyledLink
+          href={`${docs}/quilt-platform-administrator/preferences`}
+          target="_blank"
+        >
+          the docs
+        </StyledLink>
+      </M.Typography>
+
       {!!errors.length && (
         <JsonValidationErrors className={classes.error} error={errors} />
       )}
