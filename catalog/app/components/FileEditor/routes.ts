@@ -39,16 +39,12 @@ export function useEditFileInPackage(
   return editFileInPackage(urls, fileHandle, logicalKey, next)
 }
 
-export function useAddFileInPackage(packageHandle: PackageHandle, logicalKey: string) {
+export function useAddFileInPackage({ bucket, name }: PackageHandle, logicalKey: string) {
   const { urls } = NamedRoutes.use<RouteMap>()
-  const { bucket, name } = packageHandle
   const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
   const fileHandle = React.useMemo(
-    () => ({
-      bucket: packageHandle.bucket,
-      key: join(packageHandle.name, logicalKey),
-    }),
-    [packageHandle, logicalKey],
+    () => ({ bucket, key: join(name, logicalKey) }),
+    [bucket, logicalKey, name],
   )
   return editFileInPackage(urls, fileHandle, logicalKey, next)
 }
