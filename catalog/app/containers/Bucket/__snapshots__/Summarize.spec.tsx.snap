@@ -11,7 +11,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render both lin
   className="makeStyles-root-1"
 >
   <div>
-    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new quilt_summarize.json file.
+    Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
       href="file: b/n/some/path/quilt_summarize.json {"add":"some/path/quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
@@ -24,7 +24,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render both lin
     </a>
   </div>
   <div>
-    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new README file.
+    Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
       href="file: b/n/some/path/README.md {"add":"some/path/README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
@@ -44,7 +44,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_su
   className="makeStyles-root-1"
 >
   <div>
-    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new quilt_summarize.json file.
+    Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
       href="file: b/n/quilt_summarize.json {"add":"quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
@@ -64,7 +64,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render readme l
   className="makeStyles-root-1"
 >
   <div>
-    Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new README file.
+    Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
     <hr />
     <a
       href="file: b/n/README.md {"add":"README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
