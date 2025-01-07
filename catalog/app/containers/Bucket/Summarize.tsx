@@ -703,7 +703,7 @@ export function ConfigureAppearance({
   return (
     <div className={classes.root}>
       {!hasSummarizeJson && (
-        <StyledTooltip title="Clicking the button opens the file editor. After saving, you'll see a package creation dialog to add a new quilt_summarize.json file.">
+        <StyledTooltip title="Clicking the button opens the file editor. After saving, you'll see a package revision dialog to add a new quilt_summarize.json file.">
           <RRDom.Link to={summarize} className={classes.button}>
             <M.Button color="primary" size="small" variant="outlined">
               Add quilt_summarize
