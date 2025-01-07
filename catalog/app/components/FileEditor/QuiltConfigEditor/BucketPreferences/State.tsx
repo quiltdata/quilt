@@ -23,8 +23,7 @@ function isExpanded(
   parent: undefined | boolean | MetaBlockPreferencesInput,
   key: keyof MetaBlockPreferencesInput,
 ) {
-  if (parent === false) return false
-  if (parent === true || parent === undefined) return false
+  if (typeof parent === 'boolean' || parent === undefined) return false
   return parent[key]?.expanded
 }
 
@@ -42,7 +41,7 @@ function parseUser(config: string) {
 
     'ui.blocks.meta':
       typeof json?.ui?.blocks?.meta !== 'undefined'
-        ? !!json?.ui?.blocks?.meta
+        ? !!json.ui.blocks.meta
         : json?.ui?.blocks?.meta,
     'ui.blocks.meta.user_meta.expanded': isExpanded(json?.ui?.blocks?.meta, 'user_meta'),
     'ui.blocks.meta.workflows.expanded': isExpanded(json?.ui?.blocks?.meta, 'workflows'),
