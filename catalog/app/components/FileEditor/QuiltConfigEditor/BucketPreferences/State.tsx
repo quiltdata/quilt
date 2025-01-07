@@ -23,8 +23,8 @@ function isExpanded(
   parent: undefined | boolean | MetaBlockPreferencesInput,
   key: keyof MetaBlockPreferencesInput,
 ) {
-  if (typeof parent === 'boolean' || parent === undefined) return false
-  return parent[key]?.expanded
+  if (typeof parent === 'boolean') return false
+  return parent?.[key]?.expanded
 }
 
 function parseUser(config: string) {
