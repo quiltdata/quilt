@@ -64,6 +64,7 @@ function InputDefaultSourceBucket({
   value: { key, value },
   size,
   className,
+  disabled,
 }: FieldPropsWithConfig<TypedValue<string>>) {
   const options = config['ui.source_buckets'].value
   const handleChange = React.useCallback(
@@ -71,9 +72,14 @@ function InputDefaultSourceBucket({
     [key, onChange],
   )
   return (
-    <M.FormControl className={className} fullWidth size={size}>
+    <M.FormControl
+      className={className}
+      disabled={!options.length || disabled}
+      fullWidth
+      size={size}
+    >
       <M.InputLabel>Default source bucket</M.InputLabel>
-      <M.Select value={value || options[0]} onChange={handleChange}>
+      <M.Select value={value || options[0] || ''} onChange={handleChange}>
         {options.map((bucket) => (
           <M.MenuItem key={bucket} value={bucket}>
             {bucket}
