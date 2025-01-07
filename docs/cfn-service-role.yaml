@@ -134,6 +134,7 @@ Resources:
                   - es:CreateElasticsearchDomain
                   - es:DeleteElasticsearchDomain
                   - es:DescribeElasticsearchDomain
+                  - es:UpdateDomainConfig
                   - es:UpdateElasticsearchDomainConfig
                   - events:DeleteRule
                   - events:DescribeRule
@@ -156,6 +157,7 @@ Resources:
                   - iam:AttachRolePolicy
                   - iam:CreateInstanceProfile
                   - iam:CreatePolicy
+                  - iam:CreatePolicyVersion
                   - iam:CreateRole
                   - iam:CreateServiceLinkedRole
                   - iam:DeleteInstanceProfile
@@ -240,7 +242,7 @@ Resources:
                   - servicediscovery:GetOperation
                   - servicediscovery:GetService
                   - servicediscovery:TagResource
-                  - sns:CreateTopic*
+                  - sns:CreateTopic
                   - sns:DeleteTopic
                   - sns:Get*
                   - sns:Publish  # To publish to CFN notification topic.
@@ -250,8 +252,13 @@ Resources:
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
                   - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:ListDeadLetterSourceQueues
+                  - sqs:ListQueues
+                  - sqs:ListQueueTags
+                  - sqs:SetQueueAttributes
                   - sqs:TagQueue
-                  - ssm:AddTagsToResource 
+                  - ssm:AddTagsToResource
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
