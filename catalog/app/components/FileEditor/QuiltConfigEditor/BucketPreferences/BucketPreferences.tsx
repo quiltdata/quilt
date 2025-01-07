@@ -1,4 +1,3 @@
-import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import React from 'react'
 import * as M from '@material-ui/core'
@@ -273,9 +272,7 @@ export default function BucketPreferences({
   initialValue,
   onChange,
 }: QuiltConfigEditorProps) {
-  const [errors /*, setErrors */] = React.useState<[Error] | ErrorObject[]>(
-    error ? [error] : [],
-  )
+  const errors = React.useMemo(() => (error ? [error] : []), [error])
 
   const [config, setConfig] = React.useState(parse(initialValue || '', {}))
   const classes = useStyles()
