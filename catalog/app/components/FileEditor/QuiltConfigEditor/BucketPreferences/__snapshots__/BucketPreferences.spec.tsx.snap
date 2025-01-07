@@ -4,6 +4,19 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
 <div
   className="root root"
 >
+  <p
+    className="MuiTypography-root helperText MuiTypography-body2"
+  >
+    Configuration for Catalog UI: show and hide features, set default values. See
+     
+    <a
+      className="root"
+      href="https://docs.quiltdata.com/quilt-platform-administrator/preferences"
+      target="_blank"
+    >
+      the docs
+    </a>
+  </p>
   <div
     className="groupWrapper"
   >
@@ -16,7 +29,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -32,7 +45,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -48,7 +61,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -64,7 +77,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -93,7 +106,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -109,7 +122,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -125,7 +138,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -141,7 +154,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -157,7 +170,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -186,7 +199,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -202,7 +215,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -231,7 +244,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       className="group group2Columns"
     >
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -247,7 +260,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -263,7 +276,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -279,7 +292,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -308,7 +321,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       className="group group2Columns group3Columns"
     >
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -324,7 +337,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -340,7 +353,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </label>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
@@ -376,7 +389,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         ]
       </div>
       <div
-        className="MuiFormControl-root field pristine MuiFormControl-fullWidth"
+        className="MuiFormControl-root MuiFormControl-fullWidth"
       >
         <label
           className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
@@ -405,7 +418,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       className="group"
     >
       <div
-        className="root field pristine"
+        className="root"
       >
         <div
           className="root"
@@ -473,7 +486,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         </div>
       </div>
       <div
-        className="MuiFormControl-root field pristine"
+        className="MuiFormControl-root"
       >
         <label
           className="MuiFormControlLabel-root"
