@@ -43,44 +43,28 @@ function useSmartS3() {
 
   return useConstant(() => {
     class SmartS3 extends S3 {
-      getReqType(req) {
+      shouldSign(req) {
         const bucket = req.params.Bucket
         if (cfg.mode === 'LOCAL') {
-          return 'signed'
+          return true
         }
-        if (isAuthenticated()) {
-          if (
-            // sign if operation is not bucket-specific
-            // (not sure if there are any such operations that can be used from the browser)
-            !bucket ||
-            cfg.analyticsBucket === bucket ||
+        if (
+          isAuthenticated() &&
+          // sign if operation is not bucket-specific
+          // (not sure if there are any such operations that can be used from the browser)
+          (!bucket ||
             cfg.serviceBucket === bucket ||
             statusReportsBucket === bucket ||
-            (cfg.mode !== 'OPEN' && isInStack(bucket))
-          ) {
-            return 'signed'
-          }
-        } else if (req.operation === 'selectObjectContent') {
-          return 'select'
+            (cfg.mode !== 'OPEN' && isInStack(bucket)))
+        ) {
+          return true
         }
-        return 'unsigned'
-      }
-
-      populateURI(req) {
-        if (req.service.getReqType(req) === 'select') {
-          return
-        }
-        super.populateURI(req)
+        return false
       }
 
       customRequestHandler(req) {
-        const b = req.params.Bucket
-        const type = this.getReqType(req)
-
-        if (b) {
-          const endpoint = new AWS.Endpoint(
-            type === 'select' ? `${cfg.apiGatewayEndpoint}/s3select/` : cfg.s3Proxy,
-          )
+        if (req.params.Bucket) {
+          const endpoint = new AWS.Endpoint(cfg.s3Proxy)
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
 
@@ -96,10 +80,7 @@ function useSmartS3() {
             const basePath = endpoint.path.replace(/\/$/, '')
 
             req.httpRequest.endpoint = endpoint
-            req.httpRequest.path =
-              type === 'select'
-                ? `${basePath}${origPath}`
-                : `${basePath}/${origEndpoint.host}${origPath}`
+            req.httpRequest.path = `${basePath}/${origEndpoint.host}${origPath}`
           })
           req.on(
             'retry',
@@ -138,9 +119,8 @@ function useSmartS3() {
         if (forceProxy) {
           req.httpRequest[FORCE_PROXY] = true
         }
-        const type = this.getReqType(req)
 
-        if (type !== 'signed') {
+        if (!this.shouldSign(req)) {
           req.toUnauthenticated()
         }
 

@@ -16,11 +16,6 @@ updates:
       interval: "daily"
 
   - package-ecosystem: "docker"
-    directory: "/lambdas/molecule"
-    schedule:
-      interval: "daily"
-
-  - package-ecosystem: "docker"
     directory: "/catalog"
     schedule:
       interval: "daily"

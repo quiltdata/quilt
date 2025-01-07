@@ -12,6 +12,7 @@ export type TypeShorthand =
   | typeof FileType.Vega
   | typeof FileType.Voila
   | typeof FileType.Text
+  | typeof FileType.Html
 
 export type FileShortcut = string
 
@@ -21,6 +22,7 @@ export interface StyleOptions {
 
 export interface PerspectiveOptions {
   config?: ViewConfig
+  settings?: boolean
 }
 
 interface TypeExtendedEssentials {
@@ -39,6 +41,9 @@ export interface FileExtended {
   description?: string
   title?: string
   types?: Type[]
+
+  expand?: boolean
+  width?: string | number
 }
 
 export type File = FileShortcut | FileExtended

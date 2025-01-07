@@ -1,23 +1,91 @@
 import cx from 'classnames'
-import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
+import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
-import * as requests from '../requests'
 
-import { Alert, Section, makeAsyncDataErrorHandler } from './Components'
-import CreatePackage from './CreatePackage'
+import { Alert, Section } from './Components'
 import * as QueryEditor from './QueryEditor'
-import Results from './Results'
 import History from './History'
+import Results from './Results'
 import Workgroups from './Workgroups'
+import * as Model from './model'
+import { doQueryResultsContainManifestEntries } from './model/createPackage'
+
+const CreatePackage = React.lazy(() => import('./CreatePackage'))
+
+function SeeDocsForCreatingPackage() {
+  return (
+    <M.Tooltip title="You can create packages from the query results. Click to see the docs.">
+      <a href="https://docs.quiltdata.com/advanced/athena" target="_blank">
+        <M.IconButton size="small">
+          <M.Icon>help_outline</M.Icon>
+        </M.IconButton>
+      </a>
+    </M.Tooltip>
+  )
+}
+
+const useRelieveMessageStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+  },
+  text: {
+    animation: '$show 0.3s ease-out',
+  },
+  '@keyframes show': {
+    from: {
+      opacity: 0,
+    },
+    to: {
+      opacity: 1,
+    },
+  },
+}))
+
+const RELIEVE_INITIAL_TIMEOUT = 1000
+
+interface RelieveMessageProps {
+  className: string
+  messages: string[]
+}
+
+function RelieveMessage({ className, messages }: RelieveMessageProps) {
+  const classes = useRelieveMessageStyles()
+  const [relieve, setRelieve] = React.useState('')
+  const timersData = React.useMemo(
+    () =>
+      messages.map((message, index) => ({
+        timeout: RELIEVE_INITIAL_TIMEOUT * (index + 1) ** 2,
+        message,
+      })),
+    [messages],
+  )
+  React.useEffect(() => {
+    const timers = timersData.map(({ timeout, message }) =>
+      setTimeout(() => setRelieve(message), timeout),
+    )
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer))
+    }
+  }, [timersData])
+  if (!relieve) return null
+  return (
+    <M.Paper className={cx(classes.root, className)}>
+      <M.Typography className={classes.text} key={relieve} variant="caption">
+        {relieve}
+      </M.Typography>
+    </M.Paper>
+  )
+}
 
 interface QuerySelectSkeletonProps {
   className?: string
@@ -32,113 +100,57 @@ function QuerySelectSkeleton({ className }: QuerySelectSkeletonProps) {
   )
 }
 
-const useAthenaQueriesStyles = M.makeStyles((t) => ({
-  form: {
-    margin: t.spacing(3, 0, 0),
-  },
-}))
-
 interface QueryConstructorProps {
-  bucket: string
   className?: string
-  initialValue?: requests.athena.QueryExecution
-  workgroup: requests.athena.Workgroup
 }
 
-function QueryConstructor({
-  bucket,
-  className,
-  initialValue,
-  workgroup,
-}: QueryConstructorProps) {
-  const [query, setQuery] = React.useState<requests.athena.AthenaQuery | null>(null)
-  const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
-  const data = requests.athena.useQueries(workgroup, prev)
-  const classes = useAthenaQueriesStyles()
-  const [value, setValue] = React.useState<requests.athena.QueryExecution | null>(
-    initialValue || null,
-  )
-  const handleNamedQueryChange = React.useCallback(
-    (q: requests.athena.AthenaQuery | null) => {
-      setQuery(q)
-      setValue((x) => ({
-        ...x,
-        query: q?.body,
-      }))
-    },
-    [],
-  )
+function QueryConstructor({ className }: QueryConstructorProps) {
+  const { query, queries, queryRun } = Model.use()
 
-  const handleChange = React.useCallback((x: requests.athena.QueryExecution) => {
-    setValue(x)
-    setQuery(null)
-  }, [])
+  if (Model.isError(queries.data)) {
+    return <Alert className={className} error={queries.data} title="Select query" />
+  }
 
-  return (
-    <div className={className}>
-      {data.case({
-        Ok: (queries) => (
-          <Section title="Select query" empty="There are no saved queries.">
-            {!!queries.list.length && (
-              <QuerySelect<requests.athena.AthenaQuery | null>
-                onChange={handleNamedQueryChange}
-                onLoadMore={queries.next ? () => setPrev(queries) : undefined}
-                queries={queries.list}
-                value={query}
-              />
-            )}
-          </Section>
-        ),
-        Err: makeAsyncDataErrorHandler('Select query'),
-        _: () => <QuerySelectSkeleton />,
-      })}
-      <QueryEditor.Form
-        bucket={bucket}
-        className={classes.form}
-        onChange={handleChange}
-        value={value}
-        workgroup={workgroup}
-      />
-    </div>
-  )
-}
+  if (!Model.hasData(queries.data) || !Model.isReady(query.value)) {
+    return <QuerySelectSkeleton className={className} />
+  }
 
-function QueryConstructorSkeleton() {
-  const classes = useStyles()
+  if (!queries.data.list.length && !Model.isError(query.value)) {
+    return <M.Typography className={className}>No saved queries.</M.Typography>
+  }
+
   return (
     <>
-      <QuerySelectSkeleton className={classes.section} />
-      <QueryEditor.Skeleton className={classes.section} />
+      <QuerySelect<Model.Query | null>
+        label="Select a query"
+        className={className}
+        disabled={Model.isLoading(queryRun)}
+        onChange={query.setValue}
+        onLoadMore={queries.data.next ? queries.loadMore : undefined}
+        queries={queries.data.list}
+        value={Model.isError(query.value) ? null : query.value}
+      />
+      {Model.isError(query.value) && (
+        <M.FormHelperText error>{query.value.message}</M.FormHelperText>
+      )}
     </>
   )
 }
 
-interface HistoryContainerProps {
-  bucket: string
-  className: string
-  workgroup: requests.athena.Workgroup
-}
-
-function HistoryContainer({ bucket, className, workgroup }: HistoryContainerProps) {
-  const [prev, setPrev] = React.useState<requests.athena.QueryExecutionsResponse | null>(
-    null,
-  )
-  const data = requests.athena.useQueryExecutions(workgroup, prev)
+function HistoryContainer() {
+  const { bucket, executions } = Model.use()
+  if (Model.isError(executions.data)) {
+    return <Alert error={executions.data} title="Executions Data" />
+  }
+  if (!Model.hasData(executions.data)) {
+    return <TableSkeleton size={4} />
+  }
   return (
-    <Section title="Query executions" className={className}>
-      {data.case({
-        Ok: (executions) => (
-          <History
-            bucket={bucket}
-            executions={executions.list}
-            onLoadMore={executions.next ? () => setPrev(executions) : undefined}
-            workgroup={workgroup}
-          />
-        ),
-        Err: makeAsyncDataErrorHandler('Executions Data'),
-        _: () => <TableSkeleton size={4} />,
-      })}
-    </Section>
+    <History
+      bucket={bucket}
+      executions={executions.data.list}
+      onLoadMore={executions.data.next ? executions.loadMore : undefined}
+    />
   )
 }
 
@@ -146,89 +158,90 @@ const useResultsContainerStyles = M.makeStyles((t) => ({
   breadcrumbs: {
     margin: t.spacing(0, 0, 1),
   },
+  relieve: {
+    left: '50%',
+    position: 'absolute',
+    top: t.spacing(7),
+    transform: 'translateX(-50%)',
+  },
+  table: {
+    position: 'relative',
+  },
 }))
 
 interface ResultsContainerSkeletonProps {
   bucket: string
   className: string
-  queryExecutionId: string
-  workgroup: requests.athena.Workgroup
 }
 
-function ResultsContainerSkeleton({
-  bucket,
-  className,
-  queryExecutionId,
-  workgroup,
-}: ResultsContainerSkeletonProps) {
+const relieveMessages = [
+  'Still loading…',
+  'This is taking a moment. Thanks for your patience!',
+  'Looks like a heavy task! We’re still working on it.',
+  'Hang in there, we haven’t forgotten about you! Your request is still being processed.',
+]
+
+function ResultsContainerSkeleton({ bucket, className }: ResultsContainerSkeletonProps) {
   const classes = useResultsContainerStyles()
   return (
     <div className={className}>
-      <ResultsBreadcrumbs
-        bucket={bucket}
-        className={classes.breadcrumbs}
-        queryExecutionId={queryExecutionId}
-        workgroup={workgroup}
-      >
+      <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
         <Skeleton height={24} width={144} animate />
       </ResultsBreadcrumbs>
-      <TableSkeleton size={10} />
+      <div className={classes.table}>
+        <TableSkeleton size={10} />
+        <RelieveMessage className={classes.relieve} messages={relieveMessages} />
+      </div>
     </div>
   )
 }
 
 interface ResultsContainerProps {
-  bucket: string
   className: string
-  queryExecutionId: string
-  queryResults: requests.athena.QueryResultsResponse
-  workgroup: requests.athena.Workgroup
-  onLoadMore?: () => void
 }
 
-function ResultsContainer({
-  bucket,
-  className,
-  queryExecutionId,
-  queryResults,
-  onLoadMore,
-  workgroup,
-}: ResultsContainerProps) {
+function ResultsContainer({ className }: ResultsContainerProps) {
   const classes = useResultsContainerStyles()
+  const { bucket, execution, results } = Model.use()
+
+  if (Model.isError(execution)) {
+    return (
+      <div className={className}>
+        <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
+        <Alert error={execution} title="Query execution" className={className} />
+      </div>
+    )
+  }
+
+  if (Model.isError(results.data)) {
+    return (
+      <div className={className}>
+        <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
+        <Alert error={results.data} title="Query results" className={className} />
+      </div>
+    )
+  }
+
+  if (!Model.isReady(execution) || !Model.isReady(results.data)) {
+    return <ResultsContainerSkeleton bucket={bucket} className={className} />
+  }
+
   return (
     <div className={className}>
-      <ResultsBreadcrumbs
-        bucket={bucket}
-        className={classes.breadcrumbs}
-        queryExecutionId={queryExecutionId}
-        workgroup={workgroup}
-      >
-        {!!queryResults.rows.length && (
-          <CreatePackage bucket={bucket} queryResults={queryResults} />
+      <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
+        {doQueryResultsContainManifestEntries(results.data) ? (
+          <React.Suspense fallback={<M.CircularProgress />}>
+            <CreatePackage bucket={bucket} queryResults={results.data} />
+          </React.Suspense>
+        ) : (
+          <SeeDocsForCreatingPackage />
         )}
       </ResultsBreadcrumbs>
-      {/* eslint-disable-next-line no-nested-ternary */}
-      {queryResults.rows.length ? (
-        <Results
-          rows={queryResults.rows}
-          columns={queryResults.columns}
-          onLoadMore={onLoadMore}
-        />
-      ) : // eslint-disable-next-line no-nested-ternary
-      queryResults.queryExecution.error ? (
-        <Alert error={queryResults.queryExecution.error} title="Query Results Data" />
-      ) : queryResults.queryExecution ? (
-        <History
-          bucket={bucket}
-          executions={[queryResults.queryExecution]}
-          workgroup={workgroup}
-        />
-      ) : (
-        <Alert
-          error={new Error("Couldn't fetch query results")}
-          title="Query Results Data"
-        />
-      )}
+      <Results
+        rows={results.data.rows}
+        columns={results.data.columns}
+        onLoadMore={results.data.next ? results.loadMore : undefined}
+      />
     </div>
   )
 }
@@ -248,19 +261,6 @@ function TableSkeleton({ size }: TableSkeletonProps) {
   )
 }
 
-interface QueryResults {
-  data: requests.AsyncData<requests.athena.QueryResultsResponse>
-  loadMore: (prev: requests.athena.QueryResultsResponse) => void
-}
-
-function useQueryResults(queryExecutionId?: string): QueryResults {
-  const [prev, setPrev] = React.useState<requests.athena.QueryResultsResponse | null>(
-    null,
-  )
-  const data = requests.athena.useQueryResults(queryExecutionId || null, prev)
-  return React.useMemo(() => ({ data, loadMore: setPrev }), [data])
-}
-
 const useOverrideStyles = M.makeStyles({
   li: {
     '&::before': {
@@ -278,7 +278,7 @@ const useResultsBreadcrumbsStyles = M.makeStyles({
     display: 'flex',
   },
   actions: {
-    marginLeft: 'auto',
+    margin: '-3px 0 -3px auto',
   },
   breadcrumb: {
     display: 'flex',
@@ -290,19 +290,12 @@ const useResultsBreadcrumbsStyles = M.makeStyles({
 
 interface ResultsBreadcrumbsProps {
   bucket: string
-  children: React.ReactNode
+  children?: React.ReactNode
   className?: string
-  queryExecutionId?: string
-  workgroup: requests.athena.Workgroup
 }
 
-function ResultsBreadcrumbs({
-  bucket,
-  children,
-  className,
-  queryExecutionId,
-  workgroup,
-}: ResultsBreadcrumbsProps) {
+function ResultsBreadcrumbs({ bucket, children, className }: ResultsBreadcrumbsProps) {
+  const { workgroup, queryExecutionId } = Model.use()
   const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
@@ -311,7 +304,7 @@ function ResultsBreadcrumbs({
       <M.Breadcrumbs classes={overrideClasses}>
         <RRDom.Link
           className={classes.breadcrumb}
-          to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
+          to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)}
         >
           Query Executions
         </RRDom.Link>
@@ -320,7 +313,7 @@ function ResultsBreadcrumbs({
         </M.Typography>
       </M.Breadcrumbs>
 
-      <div className={classes.actions}>{children}</div>
+      {children && <div className={classes.actions}>{children}</div>}
     </div>
   )
 }
@@ -335,97 +328,13 @@ const useStyles = M.makeStyles((t) => ({
   section: {
     margin: t.spacing(3, 0, 0),
   },
+  form: {
+    margin: t.spacing(3, 0, 0),
+  },
 }))
 
-interface AthenaMainProps {
-  bucket: string
-  workgroup: string
-}
-
-function AthenaMain({ bucket, workgroup }: AthenaMainProps) {
-  const classes = useStyles()
-  const data = requests.athena.useDefaultQueryExecution()
-  return (
-    <div className={classes.content}>
-      {data.case({
-        Ok: (queryExecution) => (
-          <QueryConstructor
-            bucket={bucket}
-            className={classes.section}
-            key={workgroup}
-            workgroup={workgroup}
-            initialValue={queryExecution}
-          />
-        ),
-        Err: makeAsyncDataErrorHandler('Default catalog and database'),
-        _: () => <QueryConstructorSkeleton />,
-      })}
-      <HistoryContainer
-        bucket={bucket}
-        className={classes.section}
-        workgroup={workgroup}
-      />
-    </div>
-  )
-}
-
-interface AthenaExecutionProps {
-  bucket: string
-  queryExecutionId: string
-  workgroup: string
-}
-
-function AthenaExecution({ bucket, workgroup, queryExecutionId }: AthenaExecutionProps) {
-  const classes = useStyles()
-  const results = useQueryResults(queryExecutionId)
-  return (
-    <div className={classes.content}>
-      {results.data.case({
-        Ok: (value) => (
-          <QueryConstructor
-            bucket={bucket}
-            className={classes.section}
-            initialValue={value?.queryExecution}
-            workgroup={workgroup}
-          />
-        ),
-        _: () => <QueryConstructorSkeleton />,
-      })}
-
-      {results.data.case({
-        Ok: (queryResults) => (
-          <ResultsContainer
-            bucket={bucket}
-            className={classes.section}
-            queryExecutionId={queryExecutionId}
-            queryResults={queryResults}
-            onLoadMore={
-              queryResults.next ? () => results.loadMore(queryResults) : undefined
-            }
-            workgroup={workgroup}
-          />
-        ),
-        _: () => (
-          <ResultsContainerSkeleton
-            bucket={bucket}
-            className={classes.section}
-            queryExecutionId={queryExecutionId}
-            workgroup={workgroup}
-          />
-        ),
-        Err: makeAsyncDataErrorHandler('Query Results Data'),
-      })}
-    </div>
-  )
-}
-
-export default function AthenaContainer() {
-  const { bucket, queryExecutionId, workgroup } = RRDom.useParams<{
-    bucket: string
-    queryExecutionId?: string
-    workgroup?: string
-  }>()
-  invariant(!!bucket, '`bucket` must be defined')
+function AthenaContainer() {
+  const { bucket, queryExecutionId, workgroup } = Model.use()
 
   const classes = useStyles()
   return (
@@ -434,18 +343,38 @@ export default function AthenaContainer() {
         Athena SQL
       </M.Typography>
 
-      <Workgroups bucket={bucket} workgroup={workgroup || null} />
+      <Workgroups bucket={bucket} />
 
-      {workgroup &&
-        (queryExecutionId ? (
-          <AthenaExecution
-            bucket={bucket}
-            queryExecutionId={queryExecutionId}
-            workgroup={workgroup}
-          />
-        ) : (
-          <AthenaMain bucket={bucket} workgroup={workgroup} />
-        ))}
+      {Model.hasData(workgroup.data) && (
+        <div className={classes.content}>
+          <div className={classes.section}>
+            <QueryConstructor />
+            <QueryEditor.Form className={classes.form} />
+          </div>
+          {queryExecutionId ? (
+            <ResultsContainer className={classes.section} />
+          ) : (
+            <Section title="Query executions" className={classes.section}>
+              <HistoryContainer />
+            </Section>
+          )}
+        </div>
+      )}
     </>
+  )
+}
+
+export default function Wrapper() {
+  const { prefs } = BucketPreferences.use()
+  return BucketPreferences.Result.match(
+    {
+      Ok: ({ ui }) => (
+        <Model.Provider preferences={ui.athena}>
+          <AthenaContainer />
+        </Model.Provider>
+      ),
+      _: () => <Placeholder color="inherit" />,
+    },
+    prefs,
   )
 }

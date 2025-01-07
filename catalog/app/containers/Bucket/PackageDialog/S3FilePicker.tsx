@@ -1,3 +1,5 @@
+import type { AWSError } from 'aws-sdk'
+import invariant from 'invariant'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -174,6 +176,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within an Selection.Provider')
 
   const [locked, setLocked] = React.useState(false)
 
@@ -208,7 +211,19 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     [selectBucket],
   )
 
-  const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
+  const data = useData(
+    bucketListing,
+    {
+      bucket,
+      path,
+      prefix,
+      prev,
+      drain: true,
+    },
+    {
+      noAutoFetch: !open,
+    },
+  )
 
   const loadMore = React.useCallback(() => {
     AsyncResult.case(
@@ -263,6 +278,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           ) : (
             bucket
           )}
+          {/* TODO: Add link to the documentation: how to add buckets to `ui.sourceBuckets` */}
         </M.Typography>
       </M.DialogTitle>
       <div className={classes.header}>
@@ -273,7 +289,16 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       </div>
       {data.case({
         // TODO: customized error display?
-        Err: displayError(),
+        Err: displayError([
+          [
+            (e: unknown) => (e as AWSError)?.code === 'InvalidBucketName',
+            (e: AWSError) => (
+              <M.Box m={2}>
+                <M.Typography>{e.message}</M.Typography>
+              </M.Box>
+            ),
+          ],
+        ]),
         Init: () => null,
         _: (x: $TSFixMe) => {
           const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)

@@ -47,6 +47,7 @@ export interface ConfigJson {
   qurator?: boolean
 
   build_version?: string // not sure where this comes from
+  stackVersion: string
 }
 
 const ajv = new Ajv({ allErrors: true, removeAdditional: true })

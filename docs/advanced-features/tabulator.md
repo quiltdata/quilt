@@ -49,10 +49,10 @@ parser:
    column names in the document. For Parquet, they must match except for case.
    However, if column names are present in a CSV/TSV, you must set `header` to
    `true` in the parser configuration.
-1. **Types**:  Must be uppercase and match the [Apache Arrow Data
-Types](https://docs.aws.amazon.com/athena/latest/ug/data-types.html)
-used by Amazon Athena.  Valid types are BOOLEAN, TINYINT, SMALLINT, INT, BIGINT,
-FLOAT, DOUBLE, STRING, BINARY, DATE, TIMESTAMP.
+1. **Types**: Must be uppercase and match the
+   [Apache Arrow Data Types](https://docs.aws.amazon.com/athena/latest/ug/data-types.html)
+   used by Amazon Athena. Valid types are BOOLEAN, TINYINT, SMALLINT, INT,
+   BIGINT, FLOAT, DOUBLE, STRING, BINARY, DATE, TIMESTAMP.
 1. **Source**: The source defines the packages and objects to query. The `type`
    must be `quilt-packages`. The `package_name` is a regular expression that
    matches the package names to include. The `logical_key` is a regular
@@ -78,11 +78,15 @@ In addition to the columns defined in the schema, Tabulator will add:
 
 ### Using Athena to Access Tabulator
 
-Due to the way permissions are configured, Tabulator cannot be accessed from the
-AWS Console or Athena views. You must access Tabulator via the Quilt stack in
-order to query those tables.  This can be done by users via the per-bucket
-"Queries" tab in the Quilt Catalog, or programmatically via `quilt3`. See
-"Usage" below for more details.
+The primary way of accessing Tabulator is using the Quilt stack to query those
+tables. This can be done by users via the per-bucket "Queries" tab in the Quilt
+Catalog, or programmatically via `quilt3`. See "Usage" below for more details.
+
+As of Quilt Platform version 1.57, admins can enable [open query](#open-query)
+(below) to allow external users to access Tabulator tables directly from the AWS
+Console, Athena views, or JDBC connectors. This is especially useful for
+customers who want to access Tabulator from external services, such as Tableau
+and Spotfire.
 
 ### Caveats
 
@@ -110,7 +114,8 @@ order to query those tables.  This can be done by users via the per-bucket
 
 Once the configuration is set, users can query the tables using the Athena tab
 from the Quilt Catalog. Note that because Tabulator runs with elevated
-permissions, it cannot be accessed from the AWS Console.
+permissions, it cannot be accessed from the AWS Console by default
+(unless [open query](#open-query) is enabled).
 
 For example, to query the `ccle_tsv` table from the appropriate workgroup in
 the `quilt-tf-stable` stack, where the database (bucket name) is `udp-spec`:
@@ -128,7 +133,7 @@ SELECT * FROM "userathenadatabase-1qstaay0czbf"."udp-spec_packages-view"
 LIMIT 10
 ```
 
-We can then join on PKG_NAME to add the `user_meta` field from the package
+We can then join on `PKG_NAME` to add the `user_meta` field from the package
 metadata to the tabulated results:
 
 ```sql
@@ -147,6 +152,9 @@ authenticate against the stack using `config()` and `login()`, which opens a web
 page from which you must paste in the appropriate access token. Use
 `get_boto3_session()` to get a session with the same permissions as your Quilt
 Catalog user, then use the `boto3` Athena client to run queries.
+
+> If [open query](#open-query) is enabled, you can use any
+> AWS credentials providing access to Athena resources associated with Tabulator.
 
 Here is a complete example:
 
@@ -188,3 +196,39 @@ if state == 'SUCCEEDED':
 else:
     print(f'Query did not succeed. Final state: {state}')
 ```
+
+## Open Query
+
+> Available since Quilt Platform version 1.57
+
+By default, Tabulator is only accessible via a session provided by the Quilt
+Catalog, and the access is scoped to the permissions of the Catalog user
+associated with that session. However, admins can choose to enable **open
+query** to Tabulator tables, deferring all access control to AWS, thus enabling
+access from external services. This allows querying Tabulator from the AWS
+Console, Athena views or JDBC connectors -- as long as the caller has been
+granted the necessary permissions to access Athena resources associated with
+Tabulator.
+
+### 1. Enable Open Query
+
+An admin can enable open query via the `quilt3.admin.tabulator.set_open_query()`
+[API](../api-reference/Admin.md#set_open_query)
+or Admin UI:
+
+![Tabulator Settings](../imgs/admin-tabulator-settings.png)
+
+### 2. Configure Permissions
+
+In order to access Tabulator in open query mode, the caller must use a special
+workgroup, and have permissions to use that workgroup and access tabulator
+resources. For convenience, Quilt Stack provides a pre-configured workgroup and
+policy for open query -- they can be found in the stack outputs:
+
+1. `TabulatorOpenQueryPolicyArn`: attach this managed policy to a relevant IAM
+   role (or copy the statements directly to your own role/policy).
+
+2. `TabulatorOpenQueryWorkGroup`: configure your Athena client or connector to
+   use this workgroup (or create your own with the same results output configuration).
+
+![Tabulator Resources](../imgs/admin-tabulator-resources.png)

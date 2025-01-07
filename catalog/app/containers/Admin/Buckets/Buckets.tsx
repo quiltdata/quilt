@@ -15,12 +15,14 @@ import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
+import * as quiltConfigs from 'constants/quiltConfigs'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import type FormSpec from 'utils/FormSpec'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
@@ -766,6 +768,11 @@ interface PrimaryCardProps {
 function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps) {
   const initialValues = bucketToPrimaryValues(bucket)
   const ref = React.useRef<HTMLElement>(null)
+  const { urls } = NamedRoutes.use()
+  const configPath = quiltConfigs.bucketPreferences[0]
+  const configHref = urls.bucketFile(bucket.name, configPath, {
+    edit: true,
+  })
   return (
     <RF.Form<PrimaryFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, form, submitFailed }) => (
@@ -780,7 +787,11 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
             <PrimaryForm bucket={bucket} />
           </form>
           <StickyActions parentRef={ref}>
-            <CardActions<PrimaryFormValues> disabled={disabled} form={form} />
+            <CardActions<PrimaryFormValues>
+              action={<StyledLink to={configHref}>Configure Bucket UI</StyledLink>}
+              disabled={disabled}
+              form={form}
+            />
           </StickyActions>
         </Card>
       )}

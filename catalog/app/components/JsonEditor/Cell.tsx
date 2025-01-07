@@ -5,7 +5,7 @@ import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
 import * as JSONPointer from 'utils/JSONPointer'
-import { isSchemaEnum } from 'utils/json-schema'
+import { isSchemaEnum } from 'utils/JSONSchema'
 
 import ContextMenu from './ContextMenu'
 import EnumSelect from './EnumSelect'

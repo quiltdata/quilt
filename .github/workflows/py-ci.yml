@@ -13,14 +13,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
-          python -m pip install 'pylint==2.10.2' 'pycodestyle>=2.6.1'
+          python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1'
       - name: Run pylint
         run: |
-          pylint $(find -name '*.py' -not -path './venv/*')
+          pylint .
       - name: Run pycodestyle
         run: |
           pycodestyle $(find -name '*.py' -not -path './venv/*')
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
@@ -70,7 +70,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: install poetry
         run: python -m pip install poetry
       - name: install deps
@@ -82,7 +82,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -98,7 +98,7 @@ jobs:
       - name: Run Pytest
         run: |
           pytest --cov=api/python api/python
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           OS: ${{ matrix.os }}
@@ -157,13 +157,10 @@ jobs:
         path:
           - access_counts
           - indexer
-          - molecule
           - pkgevents
           - pkgpush
-          - pkgselect
           - preview
           - s3hash
-          - s3select
           - shared
           - status_reports
           - tabular_preview
@@ -190,27 +187,19 @@ jobs:
             python -m pip install wheel 'numpy<2'
           fi
 
-          # XXX: something fishy is going on with this "if [ ] X then Y" syntax
-          if [ ${{ matrix.path }} == "shared" ]
-            python -m pip install -e lambdas/shared[tests]
-          then
-            python -m pip install -e lambdas/shared
-            python -m pip install -e lambdas/${{ matrix.path }}
-          fi
-
-          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
-
           # Try to simulate the lambda .zip file:
           # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
           # - Remove "tests" directories
           # - Run "strip" on shared libraries
-          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt lambdas/${{ matrix.path }}
           find deps -name tests -type d -exec rm -r \{} \+
           find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+
+          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           LAMBDA: ${{ matrix.path }}

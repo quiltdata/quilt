@@ -5,7 +5,6 @@
 * [Mental Model](MentalModel.md)
 * [Metadata Management](Catalog/Metadata.md)
 * [Metadata Workflows](advanced-features/workflows.md)
-* [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)
 
 ## Quilt Platform (Catalog) User
 
@@ -13,36 +12,34 @@
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
 * [Embeddable iFrames](Catalog/Embed.md)
-* [Search](Catalog/Search.md)
+* [Search & Query](Catalog/SearchQuery.md)
+* [Quilt+ URIs](Catalog/URI.md)
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
-* [Query](Catalog/Query.md)
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
+* **Advanced**
+  * [Athena](advanced-features/athena.md)
+  * [Elasticsearch](walkthrough/working-with-elasticsearch.md)
+  * [Removing Stacks](Catalog/RemovingStacks.md)
 
 ## Quilt Platform Administrator
 
 * [Admin Settings UI](Catalog/Admin.md)
 * [Catalog Configuration](Catalog/Preferences.md)
 * [Cross-Account Access](CrossAccount.md)
-* [Elasticsearch](walkthrough/working-with-elasticsearch.md)
 * [Enterprise Installs](technical-reference.md)
-* [SSO Permissions Mapping](advanced-features/sso-permissions.md)
-* [Tabulator](advanced-features/tabulator.md)
-* [Troubleshooting](Troubleshooting.md)
+* [quilt3.admin Python API](api-reference/Admin.md)
 * **Advanced**
-  * [quilt3.admin Python API](api-reference/Admin.md)
-  * [GxP for Security & Compliance](advanced-features/good-practice.md)
   * [Package Events](advanced-features/package-events.md)
   * [Private Endpoints](advanced-features/private-endpoint-access.md)
   * [Restrict Access by Bucket Prefix](advanced-features/s3-prefix-permissions.md)
   * [S3 Events via EventBridge](EventBridge.md)
+  * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
+  * [Tabulator](advanced-features/tabulator.md)
+* **Best Practices**
+  * [GxP for Security & Compliance](advanced-features/good-practice.md)
+  * [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)
 
-## Quilt Ecosystem Integrations
-
-* [Benchling Packager](https://open.quiltdata.com/b/quilt-example/packages/examples/benchling-packager)
-* [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
-* [Nextflow Plugin](examples/nextflow.md)
-
-## Quilt Python SDK Developers
+## Quilt Python SDK
 
 * [Installation](Installation.md)
 * [Quick Start](Quickstart.md)
@@ -70,3 +67,10 @@
   * [Changelog](CHANGELOG.md)
   * [Contributing](CONTRIBUTING.md)
   * [Frequently Asked Questions](FAQ.md)
+  * [Troubleshooting](Troubleshooting.md)
+
+## Quilt Ecosystem Integrations
+
+* [Benchling Packager](examples/benchling.md)
+* [Event-Driven Packaging](advanced-features/event-driven-packaging.md)
+* [Nextflow Plugin](examples/nextflow.md)

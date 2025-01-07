@@ -6,7 +6,17 @@ import * as Lab from '@material-ui/lab'
 import Skeleton from 'components/Skeleton'
 import * as Dialogs from 'utils/GlobalDialogs'
 
-import * as requests from '../requests'
+import * as Model from './model'
+import * as storage from './model/storage'
+
+const useSelectErrorStyles = M.makeStyles((t) => ({
+  button: {
+    whiteSpace: 'nowrap',
+  },
+  dialog: {
+    padding: t.spacing(2),
+  },
+}))
 
 interface SelectErrorProps {
   className?: string
@@ -14,18 +24,24 @@ interface SelectErrorProps {
 }
 
 function SelectError({ className, error }: SelectErrorProps) {
+  const classes = useSelectErrorStyles()
   const openDialog = Dialogs.use()
   const handleClick = React.useCallback(() => {
     openDialog(() => (
-      <M.Box p={2}>
+      <div className={classes.dialog}>
         <M.Typography>{error.message}</M.Typography>
-      </M.Box>
+      </div>
     ))
-  }, [error.message, openDialog])
+  }, [classes.dialog, error.message, openDialog])
   return (
     <Lab.Alert
       action={
-        <M.Button onClick={handleClick} size="small" color="inherit">
+        <M.Button
+          className={classes.button}
+          color="inherit"
+          onClick={handleClick}
+          size="small"
+        >
           Show more
         </M.Button>
       }
@@ -38,6 +54,8 @@ function SelectError({ className, error }: SelectErrorProps) {
 }
 
 const LOAD_MORE = '__load-more__'
+
+const EMPTY = '__empty__'
 
 interface Response {
   list: string[]
@@ -84,13 +102,22 @@ function Select({
   return (
     <M.FormControl className={cx(classes.root, className)} disabled={disabled}>
       <M.InputLabel>{label}</M.InputLabel>
-      <M.Select onChange={handleChange} value={value?.toLowerCase()}>
+      <M.Select
+        onChange={handleChange}
+        value={data.list.length ? value?.toLowerCase() || '' : EMPTY}
+        disabled={disabled || !data.list.length}
+      >
         {data.list.map((item) => (
           <M.MenuItem key={item} value={item.toLowerCase()}>
             {item}
           </M.MenuItem>
         ))}
         {data.next && <M.MenuItem value={LOAD_MORE}>Load more</M.MenuItem>}
+        {!data.list.length && (
+          <M.MenuItem value={value?.toLowerCase() || EMPTY}>
+            {value || 'Empty list'}
+          </M.MenuItem>
+        )}
       </M.Select>
     </M.FormControl>
   )
@@ -98,54 +125,78 @@ function Select({
 
 interface SelectCatalogNameProps {
   className?: string
-  value: requests.athena.CatalogName | null
-  onChange: (catalogName: requests.athena.CatalogName) => void
 }
 
-function SelectCatalogName({ className, value, onChange }: SelectCatalogNameProps) {
-  const [prev, setPrev] = React.useState<requests.athena.CatalogNamesResponse | null>(
-    null,
+function SelectCatalogName({ className }: SelectCatalogNameProps) {
+  const { catalogName, catalogNames, queryRun } = Model.use()
+
+  const handleChange = React.useCallback(
+    (value) => {
+      storage.setCatalog(value)
+      storage.clearDatabase()
+      catalogName.setValue(value)
+    },
+    [catalogName],
   )
-  const data = requests.athena.useCatalogNames(prev)
-  return data.case({
-    Ok: (response) => (
-      <Select
-        className={className}
-        data={response}
-        label="Data catalog"
-        onChange={onChange}
-        onLoadMore={setPrev}
-        value={value}
-      />
-    ),
-    Err: (error) => <SelectError className={className} error={error} />,
-    _: () => <Skeleton className={className} height={32} animate />,
-  })
+
+  if (Model.isError(catalogNames.data)) {
+    return <SelectError className={className} error={catalogNames.data} />
+  }
+  if (Model.isError(catalogName.value)) {
+    return <SelectError className={className} error={catalogName.value} />
+  }
+  if (!Model.hasValue(catalogName.value) || !Model.hasData(catalogNames.data)) {
+    return <Skeleton className={className} height={32} animate mt={2} />
+  }
+
+  return (
+    <Select
+      className={className}
+      data={catalogNames.data}
+      disabled={Model.isLoading(queryRun)}
+      label="Data catalog"
+      onChange={handleChange}
+      onLoadMore={catalogNames.loadMore}
+      value={catalogName.value}
+    />
+  )
 }
 
-interface SelectDatabaseProps
-  extends Omit<SelectProps, 'data' | 'label' | 'onChange' | 'onLoadMore'> {
-  catalogName: requests.athena.CatalogName | null
-  onChange: (database: requests.athena.Database) => void
-  value: requests.athena.Database | null
+interface SelectDatabaseProps {
+  className: string
 }
 
-function SelectDatabase({ catalogName, onChange, ...rest }: SelectDatabaseProps) {
-  const [prev, setPrev] = React.useState<requests.athena.DatabasesResponse | null>(null)
-  const data = requests.athena.useDatabases(catalogName, prev)
-  return data.case({
-    Ok: (response) => (
-      <Select
-        {...rest}
-        data={response}
-        label="Database"
-        onChange={onChange}
-        onLoadMore={setPrev}
-      />
-    ),
-    Err: (error) => <SelectError className={rest.className} error={error} />,
-    _: () => <Skeleton className={rest.className} height={32} animate />,
-  })
+function SelectDatabase({ className }: SelectDatabaseProps) {
+  const { catalogName, database, databases, queryRun } = Model.use()
+
+  const handleChange = React.useCallback(
+    (value) => {
+      storage.setDatabase(value)
+      database.setValue(value)
+    },
+    [database],
+  )
+
+  if (Model.isError(databases.data)) {
+    return <SelectError className={className} error={databases.data} />
+  }
+  if (Model.isError(database.value)) {
+    return <SelectError className={className} error={database.value} />
+  }
+  if (!Model.hasValue(database.value) || !Model.hasData(databases.data)) {
+    return <Skeleton className={className} height={32} animate mt={2} />
+  }
+
+  return (
+    <Select
+      data={databases.data}
+      disabled={!Model.hasValue(catalogName) || Model.isLoading(queryRun)}
+      label="Database"
+      onChange={handleChange}
+      onLoadMore={databases.loadMore}
+      value={database.value}
+    />
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -154,15 +205,8 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
   },
   field: {
-    cursor: 'pointer',
+    flexBasis: '50%',
     marginRight: t.spacing(2),
-    width: '50%',
-    '& input': {
-      cursor: 'pointer',
-    },
-    '& > *': {
-      cursor: 'pointer',
-    },
   },
   button: {
     marginLeft: t.spacing(1),
@@ -171,42 +215,14 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DatabaseProps {
   className?: string
-  value: requests.athena.ExecutionContext | null
-  onChange: (value: requests.athena.ExecutionContext | null) => void
 }
 
-export default function Database({ className, value, onChange }: DatabaseProps) {
+export default function Database({ className }: DatabaseProps) {
   const classes = useStyles()
-  const [catalogName, setCatalogName] =
-    React.useState<requests.athena.CatalogName | null>(value?.catalogName || null)
-  const handleCatalogName = React.useCallback(
-    (name) => {
-      setCatalogName(name)
-      onChange(null)
-    },
-    [onChange],
-  )
-  const handleDatabase = React.useCallback(
-    (database) => {
-      if (!catalogName) return
-      onChange({ catalogName, database })
-    },
-    [catalogName, onChange],
-  )
   return (
     <div className={cx(classes.root, className)}>
-      <SelectCatalogName
-        className={classes.field}
-        onChange={handleCatalogName}
-        value={catalogName}
-      />
-      <SelectDatabase
-        className={classes.field}
-        catalogName={catalogName}
-        onChange={handleDatabase}
-        value={value?.database || null}
-        disabled={!catalogName}
-      />
+      <SelectCatalogName className={classes.field} />
+      <SelectDatabase className={classes.field} />
     </div>
   )
 }

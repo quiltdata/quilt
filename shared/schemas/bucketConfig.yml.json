@@ -5,6 +5,7 @@
   "properties": {
     "version": {
       "const": "1",
+      "default": "1",
       "examples": ["1"]
     },
     "ui": {

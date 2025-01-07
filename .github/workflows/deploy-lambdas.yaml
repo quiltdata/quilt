@@ -17,10 +17,8 @@ jobs:
           - indexer
           - pkgevents
           - pkgpush
-          - pkgselect
           - preview
           - s3hash
-          - s3select
           - status_reports
           - tabular_preview
           - transcode
@@ -40,7 +38,6 @@ jobs:
           docker run --rm \
             --entrypoint /build_zip.sh \
             -v "$PWD/lambdas/${{ matrix.path }}":/lambda/function:z \
-            -v "$PWD/lambdas/shared":/lambda/shared:z \
             -v "$PWD/out.zip":/out.zip:z \
             -v "$PWD/lambdas/scripts/build_zip.sh":/build_zip.sh:z \
             "$BUILDER_IMAGE"
@@ -67,7 +64,6 @@ jobs:
     strategy:
       matrix:
         path:
-          - molecule
           - thumbnail
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
@@ -78,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
-        run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile ..
+        run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:

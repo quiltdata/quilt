@@ -5,7 +5,7 @@ import * as R from 'ramda'
 import workflowsConfigSchema from 'schemas/workflows-config-1.1.0.json'
 import workflowsCatalogConfigSchema from 'schemas/workflows-config_catalog-1.0.0.json'
 
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator } from 'utils/JSONSchema'
 import type * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import * as YAML from 'utils/yaml'

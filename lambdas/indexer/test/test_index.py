@@ -23,7 +23,6 @@ import pytest
 import responses
 from botocore import UNSIGNED
 from botocore.client import Config
-from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
 from document_queue import EVENT_PREFIX, RetryError
@@ -979,7 +978,7 @@ class TestIndex(TestCase):
         )
 
         select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
-        select_stats_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
+        select_stats_mock.assert_called_once_with(bucket, manifest_key)
         append_mock.assert_called_once_with({
             "_index": bucket + PACKAGE_INDEX_SUFFIX,
             "_id": key,
@@ -1023,7 +1022,7 @@ class TestIndex(TestCase):
         )
 
         select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
-        select_stats_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
+        select_stats_mock.assert_called_once_with(bucket, manifest_key)
         append_mock.assert_called_once_with({
             "_index": bucket + PACKAGE_INDEX_SUFFIX,
             "_id": key,
@@ -1181,51 +1180,6 @@ class TestIndex(TestCase):
             # these files should not get content indexed, therefore no S3 mock
             assert self._get_contents('foo.txt', '.txt') == ""
             assert self._get_contents('foo.ipynb', '.ipynb') == ""
-
-    @pytest.mark.xfail(
-        raises=ParamValidationError,
-        reason="boto bug https://github.com/boto/botocore/issues/1621",
-        strict=True,
-    )
-    def test_stub_select_object_content(self):
-        """Demonstrate that mocking S3 select with boto3 is broken"""
-        sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
-        manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
-        # this SHOULD work, but due to botocore bugs it does not
-        self.s3_stubber.add_response(
-            method="select_object_content",
-            service_response={
-                "ResponseMetadata": ANY,
-                # it is sadly not possible to mock S3 select responses because
-                # boto incorrectly believes "Payload"'s value should be a dict
-                # but it's really an iterable in realworld code
-                # see https://github.com/boto/botocore/issues/1621
-                "Payload": [
-                    {
-                        "Stats": {}
-                    },
-                    {
-                        "Records": {
-                            "Payload": json.dumps(MANIFEST_DATA).encode(),
-                        },
-                    },
-                    {
-                        "End": {}
-                    },
-                ]
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": manifest_key,
-                "Expression": index.SELECT_PACKAGE_META,
-                "ExpressionType": "SQL",
-                "InputSerialization": {
-                    'JSON': {'Type': 'LINES'},
-                    'CompressionType': 'NONE'
-                },
-                "OutputSerialization": {'JSON': {'RecordDelimiter': '\n'}}
-            }
-        )
 
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
@@ -1550,8 +1504,7 @@ class TestIndex(TestCase):
     @pytest.mark.extended
     @patch('document_queue.ELASTIC_LIMIT_BYTES', 64_000)
     def test_get_contents_extended(self):
-        directory = (BASE_DIR / 'extended')
-        files = directory.glob('**/*-c000')
+        files = (BASE_DIR / 'extended').glob('**/*-c000')
         for f in files:
             parquet = f.read_bytes()
             size = len(parquet)
@@ -1703,8 +1656,7 @@ class TestIndex(TestCase):
     # see PRE conditions in conftest.py
     @pytest.mark.extended
     def test_parquet_extended(self):
-        directory = (BASE_DIR / 'extended')
-        files = directory.glob('**/*.parquet')
+        files = (BASE_DIR / 'extended').glob('**/*.parquet')
         for f in files:
             print(f"Testing {f}")
             parquet = f.read_bytes()

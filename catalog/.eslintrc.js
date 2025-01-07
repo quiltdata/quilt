@@ -51,6 +51,7 @@ module.exports = {
     'max-classes-per-file': 0,
     'no-console': 2,
     'no-nested-ternary': 1,
+    'no-restricted-globals': [2, 'event', 'location', 'stop'],
     'no-underscore-dangle': [2, { allow: ['_', '__', '__typename', '_tag'] }],
     'prefer-arrow-callback': [2, { allowNamedFunctions: true }],
     'prefer-template': 2,
