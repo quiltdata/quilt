@@ -15,6 +15,7 @@ import * as Buttons from 'components/Buttons'
 import * as Dialog from 'components/Dialog'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
+import * as quiltConfigs from 'constants/quiltConfigs'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import type FormSpec from 'utils/FormSpec'
@@ -768,7 +769,7 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
   const initialValues = bucketToPrimaryValues(bucket)
   const ref = React.useRef<HTMLElement>(null)
   const { urls } = NamedRoutes.use()
-  const configPath = '.quilt/catalog/config.yaml'
+  const configPath = quiltConfigs.bucketPreferences[0]
   const configHref = urls.bucketFile(bucket.name, configPath, {
     edit: true,
   })
