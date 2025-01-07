@@ -56,7 +56,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            "CREATE PACKAGE" on the packages list and bucket listing pages
+            "CREATE PACKAGE" on the package list and bucket listing pages
           </span>
         </label>
       </div>
@@ -72,7 +72,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            "DELETE REVISION" item menu on the package page
+            "DELETE REVISION" menu item on the package page
           </span>
         </label>
       </div>
@@ -193,7 +193,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root groupTitle MuiTypography-h6"
     >
-      Toggle expanded JSON blocks in METADATA section
+      Auto-expand JSON blocks in Metadata section
     </h6>
     <div
       className="group group2Columns"
@@ -255,7 +255,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Images on the directory listing
+            Images in the directory listing on bucket pages
           </span>
         </label>
       </div>
@@ -303,7 +303,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Image galleries alongside defined quilt_summarize.json
+            Image galleries alongside those defined in quilt_summarize.json
           </span>
         </label>
       </div>
@@ -395,7 +395,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense Mui-disabled Mui-disabled"
           data-shrink={false}
         >
-          Default source bucket
+          Default bucket
         </label>
         <div
           id="select"
@@ -413,7 +413,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root groupTitle MuiTypography-h6"
     >
-      Configure the packages list appearance
+      Package list appearance
     </h6>
     <div
       className="group"
@@ -498,7 +498,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Show package's \`user_meta\` as a multiline list of keys
+            Display \`user_meta\` on multiple lines
           </span>
         </label>
       </div>
