@@ -114,7 +114,7 @@ function val<K extends Key>(
   ext: Partial<Defaults>,
 ): KeyedValue<K> {
   return {
-    isDefault: !user[key],
+    isDefault: typeof user[key] === 'undefined',
     key,
     value: (user[key] ?? ext[key] ?? sys[key]) as NonNullable<Defaults[K]>,
   }
