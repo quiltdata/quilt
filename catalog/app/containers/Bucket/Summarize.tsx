@@ -1,11 +1,15 @@
+import { join } from 'path'
+
 import type { S3 } from 'aws-sdk'
 import cx from 'classnames'
 import type { LocationDescriptor } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as FileEditor from 'components/FileEditor'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
@@ -20,6 +24,7 @@ import Data, { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
+import StyledTooltip from 'utils/StyledTooltip'
 import { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
@@ -658,4 +663,63 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
     Pending: () => <FilePreviewSkel />,
     _: () => null,
   })
+}
+
+const useConfigureAppearanceStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: t.spacing(2, 0),
+  },
+  button: {
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
+  },
+}))
+
+interface ConfigureAppearanceProps {
+  hasReadme: boolean
+  hasSummarizeJson: boolean
+  packageHandle: PackageHandle
+  path: string
+}
+
+export function ConfigureAppearance({
+  hasReadme,
+  hasSummarizeJson,
+  packageHandle,
+  path,
+}: ConfigureAppearanceProps) {
+  const classes = useConfigureAppearanceStyles()
+  const readme = FileEditor.useAddFileInPackage(
+    packageHandle,
+    join(path || '', 'README.md'),
+  )
+  const summarize = FileEditor.useAddFileInPackage(
+    packageHandle,
+    join(path || '', 'quilt_summarize.json'),
+  )
+  return (
+    <div className={classes.root}>
+      {!hasSummarizeJson && (
+        <StyledTooltip title="Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.">
+          <RRDom.Link to={summarize} className={classes.button}>
+            <M.Button color="primary" size="small" variant="outlined">
+              Add quilt_summarize
+            </M.Button>
+          </RRDom.Link>
+        </StyledTooltip>
+      )}
+      {!hasReadme && (
+        <StyledTooltip title="Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.">
+          <RRDom.Link to={readme} className={classes.button}>
+            <M.Button color="primary" size="small" variant="contained">
+              Add README
+            </M.Button>
+          </RRDom.Link>
+        </StyledTooltip>
+      )}
+    </div>
+  )
 }
