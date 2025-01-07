@@ -195,8 +195,7 @@ const usePackageDescriptionsListStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageDescriptionsListProps {
-  pristine?: boolean
-  className: string
+  className?: string
   disabled?: boolean
   onChange: (v: KeyedValue<'ui.package_description'>['value']) => void
   size: 'small' | 'medium'

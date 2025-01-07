@@ -173,7 +173,7 @@ function i18n(key: string): string {
 }
 
 interface FieldProps<V = KeyedValue> {
-  className: string
+  className?: string
   disabled?: boolean
   value: V
   size: 'small' | 'medium'
@@ -233,15 +233,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   error: {
     marginBottom: t.spacing(2),
-  },
-  field: {},
-  pristine: {
-    '&:not(:hover) .MuiCheckbox-root': {
-      opacity: 0.3,
-    },
-    '&:not(:hover) .MuiInput-root': {
-      opacity: 0.3,
-    },
   },
   group: {
     display: 'grid',
@@ -330,7 +321,6 @@ export default function BucketPreferences({
           >
             {groupValues.map((value) => (
               <Field
-                className={cx(classes.field, value.isDefault && classes.pristine)}
                 disabled={disabled}
                 key={value.key}
                 value={value}
