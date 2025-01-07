@@ -773,7 +773,6 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
   const configHref = urls.bucketFile(bucket.name, configPath, {
     edit: true,
   })
-  const configUrl = `s3://${bucket.name}/${configPath}`
   return (
     <RF.Form<PrimaryFormValues> onSubmit={onSubmit} initialValues={initialValues}>
       {({ handleSubmit, form, submitFailed }) => (
@@ -789,11 +788,7 @@ function PrimaryCard({ bucket, className, disabled, onSubmit }: PrimaryCardProps
           </form>
           <StickyActions parentRef={ref}>
             <CardActions<PrimaryFormValues>
-              action={
-                <StyledLink to={configHref}>
-                  Modify bucket appearance via {configUrl}
-                </StyledLink>
-              }
+              action={<StyledLink to={configHref}>Configure Bucket UI</StyledLink>}
               disabled={disabled}
               form={form}
             />
