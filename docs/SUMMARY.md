@@ -12,9 +12,10 @@
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
 * [Embeddable iFrames](Catalog/Embed.md)
-* [Search & Query](Catalog/SearchQuery.md)
+* [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
+* [Search](Catalog/Search.md)
 * [Visualization & Dashboards](Catalog/VisualizationDashboards.md)
 * **Advanced**
   * [Athena](advanced-features/athena.md)
