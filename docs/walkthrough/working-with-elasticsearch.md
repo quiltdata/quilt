@@ -1,55 +1,23 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable -->
+
 Each Quilt stack includes an Elasticsearch cluster that indexes
 objects and packages as documents. The cluster is deployed in the
 AWS OpenSearch service. You can connect to your Elasticsearch
 domain to query documents.
 
-Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index
-aliases:
+> If your Quilt stack uses private endpoints for Elasticsearch you will need to
+> connect to the cluster from a machine in the same VPC as the cluster.
 
+Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index aliases:
 1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
-2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in
-   the bucket.
+2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
 
-## Configuring Saved Queries
+> Quilt uses Amazon Elasticsearch version 6.7.
 
-You can provide pre-canned Elasticsearch queries for your users by providing a
-configuration file at `s3://YOUR_BUCKET/.quilt/queries/config.yaml`:
+## Query Elasticsearch with Python
 
-```yaml
-version: "1"
-queries:
-  query-1:
-    name: My first query
-    description: Optional description
-    url: s3://BUCKET/.quilt/queries/query-1.json
-  query-2:
-    name: Second query
-    url: s3://BUCKET/.quilt/queries/query-2.json
-```
-
-The Quilt catalog displays your saved queries in a drop-down for your users to
-select, edit, and execute.
-
-## Managing Elasticsearch
-
-<!-- markdownlint-disable-next-line MD013 -->
-Quilt uses Amazon Elasticsearch 6.7
-([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
-
-1. If your Quilt stack uses private endpoints for Elasticsearch you will need to
-   connect to the cluster from a machine in the same VPC as the cluster.
-2. By default, Quilt indexes a limited number of bytes per document for
-specified file formats (100KB). Both the max number of bytes per document and
-which file formats to deep index can be customized per Bucket in the Catalog
-Admin settings.
-
-<!-- markdownlint-disable-next-line MD013 -->
-![Example of Admin Bucket indexing options](../imgs/elastic-search-indexing-options.png)
-
-## Querying Elasticsearch with Python
-
-You can use [`elasticsearch`](https://elasticsearch-py.readthedocs.io/en/) as
+You can use [`elasticsearch
+6.3.1`](https://elasticsearch-py.readthedocs.io/en/6.3.1/) as
 follows:
 
 <!--pytest.mark.skip-->
@@ -104,8 +72,7 @@ will be one result (`Logical ID` value of `Search`).
 Elasticsearch cluster in the AWS OpenSearch service.
 1. Select the "Cluster health" tab.
 1. Review the "Summary" section (look for **Green** Status):
-   - If your cluster Status is **Red** or **Yellow**, notify your Quilt account
-     manager.
+   - If your cluster Status is **Red** or **Yellow**, notify your Quilt account manager.
 1. In the "Overall health" section, update the "Time range" to `2w`
 and review all graphs, paying particular attention to:
     - Total free storage space: if one or more nodes in your cluster
@@ -131,7 +98,6 @@ directly.
 
 ### References
 
-<!-- markdownlint-disable-next-line MD013 -->
 - [Sizing Amazon OpenSearch Service
 domains](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/sizing-domains.html)
 
@@ -143,7 +109,7 @@ workload. There is known bug in CloudFormation when deploying and/or
 upgrading Quilt stacks using t2 or t3 instance types. During stack
 deployments the following error may be encountered:
 
-```log
+```
 Autotune is not supported in t2/t3 instance types.
 Disable autotune or change your instance type.
 (Service: AWSElasticsearch; Status Code: 400; Error Code: ValidationException;
@@ -157,9 +123,7 @@ actions and re-run the Quilt CloudFormation deployment:
 
 1. Access the Quilt OpenSearch cluster (see steps 1 - 3 above).
 1. Select the "Auto-Tune" tab.
-1. Review the "Status" value. If the value is **Turned on**, click the "Edit"
-   button.
-1. Select the option to "Turn off" Auto-Tune and click the "Save changes"
-   button:
+1. Review the "Status" value. If the value is **Turned on**, click the "Edit" button.
+1. Select the option to "Turn off" Auto-Tune and click the "Save changes" button:
 
 ![Auto-Tune configuration](../imgs/elastic-search-autotune.png)
