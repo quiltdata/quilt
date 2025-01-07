@@ -78,7 +78,7 @@ function InputDefaultSourceBucket({
       fullWidth
       size={size}
     >
-      <M.InputLabel>Default source bucket</M.InputLabel>
+      <M.InputLabel>Default bucket</M.InputLabel>
       <M.Select value={value || options[0] || ''} onChange={handleChange}>
         {options.map((bucket) => (
           <M.MenuItem key={bucket} value={bucket}>
@@ -118,7 +118,7 @@ function InputSourceBuckets({
       multiple
       onChange={handleChange}
       options={options}
-      renderInput={(params) => <M.TextField {...params} placeholder="Source buckets" />}
+      renderInput={(params) => <M.TextField {...params} placeholder="Allowed buckets" />}
       value={value}
       {...props}
     />
@@ -142,8 +142,8 @@ const I18N = {
   'ui.actions': 'Toggle buttons visibility',
   'ui.actions.copyPackage': '"PUSH TO BUCKET" on the package page',
   'ui.actions.createPackage':
-    '"CREATE PACKAGE" on the packages list and bucket listing pages',
-  'ui.actions.deleteRevision': '"DELETE REVISION" item menu on the package page',
+    '"CREATE PACKAGE" on the package list and bucket listing pages',
+  'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
 
   'ui.athena.defaultWorkgroup': 'Default workgroup for Athena queries',
@@ -156,14 +156,14 @@ const I18N = {
   'ui.blocks.meta': 'Toggle METADATA section',
   'ui.blocks.qurator': 'Enable Qurator omni',
 
-  'ui.blocks.meta.*.expanded': 'Toggle expanded JSON blocks in METADATA section',
+  'ui.blocks.meta.*.expanded': 'Auto-expand JSON blocks in Metadata section',
   'ui.blocks.meta.user_meta.expanded': 'Expand "User metadata"',
   'ui.blocks.meta.workflows.expanded': 'Expand "Workflow"',
 
-  'ui.blocks.gallery.files': 'Images on the directory listing',
+  'ui.blocks.gallery.files': 'Images in the directory listing on bucket pages',
   'ui.blocks.gallery.overview': 'Images on the Bucket overview page',
   'ui.blocks.gallery.packages': 'Images in the directory listing on the package page',
-  'ui.blocks.gallery.summarize': 'Image galleries alongside defined quilt_summarize.json',
+  'ui.blocks.gallery.summarize': 'Image galleries alongside those defined in quilt_summarize.json',
 
   'ui.nav': 'Toggle navigation items',
   'ui.nav.files': '"BUCKET" tab',
@@ -171,9 +171,9 @@ const I18N = {
   'ui.nav.queries': '"QUERIES" tab',
 
   'ui.source_buckets': 'List of buckets allowed to be as source for packages',
-  'ui.package_description': 'Configure the packages list appearance',
+  'ui.package_description': 'Package list appearance',
   'ui.package_description.multiline':
-    "Show package's `user_meta` as a multiline list of keys",
+    "Display `user_meta` on multiple lines",
 }
 
 function i18n(key: string): string {
