@@ -138,7 +138,10 @@ function InputPackageDescription({
 }
 
 const I18N = {
-  'ui.actions': 'Toggle buttons visibility',
+  'ui.actions': {
+    title: 'Actions',
+    description: 'Show or hide buttons in the UI',
+  },
   'ui.actions.copyPackage': '"PUSH TO BUCKET" on the package page',
   'ui.actions.createPackage':
     '"CREATE PACKAGE" on the package list and bucket listing pages',
@@ -147,17 +150,26 @@ const I18N = {
 
   'ui.athena.defaultWorkgroup': 'Default workgroup for Athena queries',
 
-  'ui.blocks': 'Toggle blocks visibility',
-  'ui.blocks.gallery': 'Toggle galleries visibility',
-  'ui.blocks.analytics': 'Toggle ANALYTICS section on the file page',
-  'ui.blocks.browser': 'Toggle files listings on bucket and packages pages',
-  'ui.blocks.code': 'Toggle CODE section',
-  'ui.blocks.meta': 'Toggle METADATA section',
-  'ui.blocks.qurator': 'Enable Qurator omni',
+  'ui.blocks': {
+    title: 'Sections',
+    description: 'Show or hide sections in the UI',
+  },
+  'ui.blocks.gallery': {
+    title: 'Gallery',
+    description: 'Show or hide image galleries',
+  },
+  'ui.blocks.analytics': '"ANALYTICS" on the file page',
+  'ui.blocks.browser': 'File listings on bucket and packages pages',
+  'ui.blocks.code': '"CODE"',
+  'ui.blocks.meta': '"METADATA"',
+  'ui.blocks.qurator': 'Qurator assistance',
 
-  'ui.blocks.meta.*.expanded': 'Auto-expand JSON blocks in Metadata section',
-  'ui.blocks.meta.user_meta.expanded': 'Expand "User metadata"',
-  'ui.blocks.meta.workflows.expanded': 'Expand "Workflow"',
+  'ui.blocks.meta.*.expanded': {
+    title: 'Metadata in the package list',
+    description: 'Auto-expand JSON blocks in Metadata section',
+  },
+  'ui.blocks.meta.user_meta.expanded': 'User metadata',
+  'ui.blocks.meta.workflows.expanded': 'Workflow',
 
   'ui.blocks.gallery.files': 'Images in the directory listing on bucket pages',
   'ui.blocks.gallery.overview': 'Images on the Bucket overview page',
@@ -165,17 +177,24 @@ const I18N = {
   'ui.blocks.gallery.summarize':
     'Image galleries alongside those defined in quilt_summarize.json',
 
-  'ui.nav': 'Toggle navigation items',
-  'ui.nav.files': '"BUCKET" tab',
-  'ui.nav.packages': '"PACKAGES" tab',
-  'ui.nav.queries': '"QUERIES" tab',
+  'ui.nav': {
+    title: 'Navigation items',
+    description: 'Show or hide tabs at the top of the bucket pages',
+  },
+  'ui.nav.files': '"BUCKET"',
+  'ui.nav.packages': '"PACKAGES"',
+  'ui.nav.queries': '"QUERIES"',
 
-  'ui.source_buckets': 'List of buckets allowed to be as source for packages',
+  'ui.source_buckets': {
+    title: 'Source buckets for packages',
+    description:
+      'List of these buckets will be offered when users click on "ADD FILES FROM BUCKET" in Revise Package dialog',
+  },
   'ui.package_description': 'Package list appearance',
   'ui.package_description.multiline': 'Display `user_meta` on multiple lines',
 }
 
-function i18n(key: string): string {
+function i18n(key: string): string | { title: string; description: string } {
   return I18N[key as keyof typeof I18N] ?? key
 }
 
@@ -232,6 +251,79 @@ function Field({ config, value, ...props }: FieldPropsWithConfig) {
   throw new Error('Unsupported field')
 }
 
+const useGroupStyles = M.makeStyles((t) => ({
+  duplex: {
+    gridTemplateColumns: '1fr 1fr',
+  },
+  triplex: {
+    gridTemplateColumns: '1fr 1fr 1fr',
+  },
+  title: {
+    marginBottom: t.spacing(1),
+  },
+  description: {
+    marginTop: t.spacing(0.5),
+  },
+  layout: {
+    display: 'grid',
+    gridColumnGap: t.spacing(2),
+    gridRowGap: t.spacing(1),
+  },
+}))
+
+interface GroupProps {
+  className: string
+  config: Config
+  disabled?: boolean
+  id: keyof Config
+  onChange: (v: KeyedValue) => void
+  values: Config[keyof Config][]
+}
+
+function Group({ className, config, disabled, id, onChange, values }: GroupProps) {
+  const classes = useGroupStyles()
+  const singleElement = values.length === 1
+  const groupI18n = i18n(id)
+  const title = typeof groupI18n === 'string' ? groupI18n : groupI18n.title
+  const description = typeof groupI18n !== 'string' && groupI18n.description
+  const layout = React.useMemo(() => {
+    if (values.length === 3 || values.length > 5) return 3
+    if (values.length > 1 && id !== 'ui.package_description') return 2
+    return 1
+  }, [id, values])
+  return (
+    <div className={className}>
+      {!singleElement && (
+        <M.Typography className={classes.title} variant="h6">
+          {title}
+          {description && (
+            <M.Typography className={classes.description} variant="body2">
+              {description}
+            </M.Typography>
+          )}
+        </M.Typography>
+      )}
+      <div
+        className={cx(classes.layout, {
+          [classes.duplex]: layout === 2,
+          [classes.triplex]: layout === 3,
+        })}
+      >
+        {values.map((value) => (
+          <Field
+            disabled={disabled}
+            key={value.key}
+            value={value}
+            size={singleElement ? 'medium' : 'small'}
+            onChange={onChange}
+            config={config}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -245,20 +337,6 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
   },
   group: {
-    display: 'grid',
-    gridColumnGap: t.spacing(2),
-    gridRowGap: t.spacing(1),
-  },
-  group2Columns: {
-    gridTemplateColumns: '1fr 1fr',
-  },
-  group3Columns: {
-    gridTemplateColumns: '1fr 1fr 1fr',
-  },
-  groupTitle: {
-    marginBottom: t.spacing(1),
-  },
-  groupWrapper: {
     '& + &': {
       marginTop: t.spacing(3),
     },
@@ -323,32 +401,16 @@ export default function BucketPreferences({
         <JsonValidationErrors className={classes.error} error={errors} />
       )}
 
-      {Object.entries(grouped).map(([groupKey, groupValues]) => (
-        <div key={groupKey} className={classes.groupWrapper}>
-          {groupValues.length > 1 && (
-            <M.Typography className={classes.groupTitle} variant="h6">
-              {i18n(groupKey)}
-            </M.Typography>
-          )}
-          <div
-            className={cx(classes.group, {
-              [classes.group2Columns]:
-                groupValues.length > 1 && groupKey !== 'ui.package_description',
-              [classes.group3Columns]: groupValues.length === 3 || groupValues.length > 5,
-            })}
-          >
-            {groupValues.map((value) => (
-              <Field
-                disabled={disabled}
-                key={value.key}
-                value={value}
-                size={groupValues.length === 1 ? 'medium' : 'small'}
-                onChange={handleChange}
-                config={config}
-              />
-            ))}
-          </div>
-        </div>
+      {Object.entries(grouped).map(([id, values]) => (
+        <Group
+          className={classes.group}
+          config={config}
+          disabled={disabled}
+          id={id as keyof Config}
+          key={id}
+          onChange={handleChange}
+          values={values}
+        />
       ))}
     </div>
   )

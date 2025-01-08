@@ -18,15 +18,20 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </a>
   </p>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <h6
-      className="MuiTypography-root groupTitle MuiTypography-h6"
+      className="MuiTypography-root title MuiTypography-h6"
     >
-      Toggle buttons visibility
+      Actions
+      <p
+        className="MuiTypography-root description MuiTypography-body2"
+      >
+        Show or hide buttons in the UI
+      </p>
     </h6>
     <div
-      className="group group2Columns"
+      className="layout duplex"
     >
       <div
         className="MuiFormControl-root"
@@ -95,15 +100,20 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <h6
-      className="MuiTypography-root groupTitle MuiTypography-h6"
+      className="MuiTypography-root title MuiTypography-h6"
     >
-      Toggle blocks visibility
+      Sections
+      <p
+        className="MuiTypography-root description MuiTypography-body2"
+      >
+        Show or hide sections in the UI
+      </p>
     </h6>
     <div
-      className="group group2Columns"
+      className="layout duplex"
     >
       <div
         className="MuiFormControl-root"
@@ -117,7 +127,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Toggle ANALYTICS section on the file page
+            "ANALYTICS" on the file page
           </span>
         </label>
       </div>
@@ -133,7 +143,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Toggle files listings on bucket and packages pages
+            File listings on bucket and packages pages
           </span>
         </label>
       </div>
@@ -149,7 +159,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Toggle CODE section
+            "CODE"
           </span>
         </label>
       </div>
@@ -165,7 +175,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Toggle METADATA section
+            "METADATA"
           </span>
         </label>
       </div>
@@ -181,22 +191,27 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Enable Qurator omni
+            Qurator assistance
           </span>
         </label>
       </div>
     </div>
   </div>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <h6
-      className="MuiTypography-root groupTitle MuiTypography-h6"
+      className="MuiTypography-root title MuiTypography-h6"
     >
-      Auto-expand JSON blocks in Metadata section
+      Metadata in the package list
+      <p
+        className="MuiTypography-root description MuiTypography-body2"
+      >
+        Auto-expand JSON blocks in Metadata section
+      </p>
     </h6>
     <div
-      className="group group2Columns"
+      className="layout duplex"
     >
       <div
         className="MuiFormControl-root"
@@ -210,7 +225,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Expand "User metadata"
+            User metadata
           </span>
         </label>
       </div>
@@ -226,22 +241,27 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Expand "Workflow"
+            Workflow
           </span>
         </label>
       </div>
     </div>
   </div>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <h6
-      className="MuiTypography-root groupTitle MuiTypography-h6"
+      className="MuiTypography-root title MuiTypography-h6"
     >
-      Toggle galleries visibility
+      Gallery
+      <p
+        className="MuiTypography-root description MuiTypography-body2"
+      >
+        Show or hide image galleries
+      </p>
     </h6>
     <div
-      className="group group2Columns"
+      className="layout duplex"
     >
       <div
         className="MuiFormControl-root"
@@ -310,15 +330,20 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <h6
-      className="MuiTypography-root groupTitle MuiTypography-h6"
+      className="MuiTypography-root title MuiTypography-h6"
     >
-      Toggle navigation items
+      Navigation items
+      <p
+        className="MuiTypography-root description MuiTypography-body2"
+      >
+        Show or hide tabs at the top of the bucket pages
+      </p>
     </h6>
     <div
-      className="group group2Columns group3Columns"
+      className="layout triplex"
     >
       <div
         className="MuiFormControl-root"
@@ -332,7 +357,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            "BUCKET" tab
+            "BUCKET"
           </span>
         </label>
       </div>
@@ -348,7 +373,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            "PACKAGES" tab
+            "PACKAGES"
           </span>
         </label>
       </div>
@@ -364,22 +389,27 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            "QUERIES" tab
+            "QUERIES"
           </span>
         </label>
       </div>
     </div>
   </div>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <h6
-      className="MuiTypography-root groupTitle MuiTypography-h6"
+      className="MuiTypography-root title MuiTypography-h6"
     >
-      List of buckets allowed to be as source for packages
+      Source buckets for packages
+      <p
+        className="MuiTypography-root description MuiTypography-body2"
+      >
+        List of these buckets will be offered when users click on "ADD FILES FROM BUCKET" in Revise Package dialog
+      </p>
     </h6>
     <div
-      className="group group2Columns"
+      className="layout duplex"
     >
       <div
         id="autocomplete"
@@ -408,15 +438,15 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <h6
-      className="MuiTypography-root groupTitle MuiTypography-h6"
+      className="MuiTypography-root title MuiTypography-h6"
     >
       Package list appearance
     </h6>
     <div
-      className="group"
+      className="layout"
     >
       <div
         className="root"
@@ -505,10 +535,10 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     </div>
   </div>
   <div
-    className="groupWrapper"
+    className="group"
   >
     <div
-      className="group"
+      className="layout"
     >
       <div
         id="text-field"
