@@ -55,6 +55,9 @@ function InputValue({
   return (
     <M.TextField
       {...props}
+      InputLabelProps={{
+        shrink: true,
+      }}
       className={className}
       label={i18n(key)}
       value={value}
