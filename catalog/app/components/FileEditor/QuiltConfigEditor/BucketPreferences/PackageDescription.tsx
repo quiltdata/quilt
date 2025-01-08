@@ -46,7 +46,8 @@ function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
           {...params}
           error={!!error}
           helperText={error?.message}
-          placeholder="JSON paths from `user_meta`, e.g. $.Some.Key"
+          label="JSON paths from `user_meta`"
+          placeholder="$.Some.Key, $.Another.Key"
         />
       )}
       size={size}

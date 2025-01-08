@@ -89,12 +89,6 @@ function InputDefaultSourceBucket({
   )
 }
 
-const useInputSourceBucketsStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-  },
-}))
-
 function InputSourceBuckets({
   className,
   value: { key, value },
@@ -106,18 +100,17 @@ function InputSourceBuckets({
     () => bucketConfigs.map((b) => `s3://${b.name}`),
     [bucketConfigs],
   )
-  const classes = useInputSourceBucketsStyles()
   const handleChange = React.useCallback(
     (_e, buckets: string[]) => onChange({ isDefault: false, key, value: buckets }),
     [key, onChange],
   )
   return (
     <Lab.Autocomplete
-      className={cx(className, classes.root)}
+      className={className}
       multiple
       onChange={handleChange}
       options={options}
-      renderInput={(params) => <M.TextField {...params} placeholder="Allowed buckets" />}
+      renderInput={(params) => <M.TextField {...params} label="Allowed buckets" />}
       value={value}
       {...props}
     />
