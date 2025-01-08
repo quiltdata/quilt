@@ -1,3 +1,4 @@
+// TODO: Use implementation from components/FileEditor/QuiltConfigEditor/BucketPreferences/State.tsx
 export type {
   ActionPreferences,
   AthenaPreferences,
