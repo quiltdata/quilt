@@ -141,6 +141,7 @@ const I18N = {
   'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
 
+  'ui.athena': 'Athena',
   'ui.athena.defaultWorkgroup': 'Default workgroup for Athena queries',
 
   'ui.blocks': {
@@ -248,9 +249,6 @@ const useGroupStyles = M.makeStyles((t) => ({
   duplex: {
     gridTemplateColumns: '1fr 1fr',
   },
-  triplex: {
-    gridTemplateColumns: '1fr 1fr 1fr',
-  },
   title: {
     marginBottom: t.spacing(1),
   },
@@ -275,31 +273,27 @@ interface GroupProps {
 
 function Group({ className, config, disabled, id, onChange, values }: GroupProps) {
   const classes = useGroupStyles()
-  const singleElement = values.length === 1
   const groupI18n = i18n(id)
   const title = typeof groupI18n === 'string' ? groupI18n : groupI18n.title
   const description = typeof groupI18n !== 'string' && groupI18n.description
-  const layout = React.useMemo(() => {
-    if (values.length === 3 || values.length > 5) return 3
-    if (values.length > 1 && id !== 'ui.package_description') return 2
-    return 1
-  }, [id, values])
+  const layout = React.useMemo(
+    () =>
+      values.length > 1 && values.length !== 3 && id !== 'ui.package_description' ? 2 : 1,
+    [id, values],
+  )
   return (
     <div className={className}>
-      {!singleElement && (
-        <M.Typography className={classes.title} variant="h6">
-          {title}
-          {description && (
-            <M.Typography className={classes.description} variant="body2">
-              {description}
-            </M.Typography>
-          )}
-        </M.Typography>
-      )}
+      <M.Typography className={classes.title} variant="h6">
+        {title}
+        {description && (
+          <M.Typography className={classes.description} variant="body2">
+            {description}
+          </M.Typography>
+        )}
+      </M.Typography>
       <div
         className={cx(classes.layout, {
           [classes.duplex]: layout === 2,
-          [classes.triplex]: layout === 3,
         })}
       >
         {values.map((value) => (
@@ -307,7 +301,7 @@ function Group({ className, config, disabled, id, onChange, values }: GroupProps
             disabled={disabled}
             key={value.key}
             value={value}
-            size={singleElement ? 'medium' : 'small'}
+            size="small"
             onChange={onChange}
             config={config}
           />

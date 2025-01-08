@@ -343,7 +343,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       </p>
     </h6>
     <div
-      className="layout triplex"
+      className="layout"
     >
       <div
         className="MuiFormControl-root"
@@ -537,6 +537,11 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
   <div
     className="group"
   >
+    <h6
+      className="MuiTypography-root title MuiTypography-h6"
+    >
+      Athena
+    </h6>
     <div
       className="layout"
     >
