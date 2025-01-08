@@ -5,6 +5,8 @@ packages as documents. The objects in Amazon S3 buckets connected to Quilt are
 synchronized to an Elasticsearch cluster, which provides Quilt's search and
 package listing features.
 
+NOTE: This page is about full-text searching using Elasticsearch. For precise querying of specific fields, see the [Queries](Query.md) page.
+
 ## Indexing
 
 Quilt maintains a near-realtime index of the objects in your S3

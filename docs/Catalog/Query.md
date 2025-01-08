@@ -9,6 +9,10 @@ buckets, and any other data sources your users have access to. There are
 prebuilt tables for packages and objects, and you can create your own tables and
 views. See, for example, [Tabulator](advanced-features/tabulator.md).
 
+NOTE: This page describes how to use Athena for precise querying of specific
+tables and fields. For full-text searching using Elasticsearch, see the
+[Search](Search.md) page.
+
 ## Basics
 
 "Run query" executes the selected query and waits for the result.
