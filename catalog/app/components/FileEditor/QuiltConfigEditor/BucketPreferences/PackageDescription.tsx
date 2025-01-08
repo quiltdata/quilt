@@ -71,7 +71,7 @@ function Message({ disabled, onChange, size, value = false }: MessageProps) {
       <M.FormControlLabel
         control={<M.Checkbox checked={value} size={size} onChange={handleChange} />}
         disabled={disabled}
-        label="Show the last commit message in the package list"
+        label="Display commit message"
       />
     </M.FormControl>
   )

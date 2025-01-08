@@ -471,7 +471,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
               <span
                 className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
               >
-                Show the last commit message in the package list
+                Display commit message
               </span>
             </label>
           </div>
@@ -503,7 +503,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
               <span
                 className="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
               >
-                Show the last commit message in the package list
+                Display commit message
               </span>
             </label>
           </div>
