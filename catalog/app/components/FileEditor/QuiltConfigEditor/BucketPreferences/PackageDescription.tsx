@@ -9,6 +9,7 @@ import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPref
 import type { KeyedValue } from './State'
 
 interface JsonPathsProps {
+  className: string
   disabled?: boolean
   onChange: (value: string[]) => void
   size: 'small' | 'medium'
@@ -19,7 +20,7 @@ const options: string[] = []
 
 const emptyArray: string[] = []
 
-function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
+function JsonPaths({ className, disabled, onChange, size, value = [] }: JsonPathsProps) {
   const [error, setError] = React.useState<Error | null>(null)
   const handleChange = React.useCallback(
     (_e, labels: string[]) => {
@@ -35,15 +36,18 @@ function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
   )
   return (
     <Lab.Autocomplete
+      className={className}
       disabled={disabled}
       freeSolo
       multiple
       options={options}
       onChange={handleChange}
-      value={(value as string[]) || emptyArray}
       renderInput={(params) => (
         <M.TextField
           {...params}
+          InputLabelProps={{
+            shrink: true,
+          }}
           error={!!error}
           helperText={error?.message}
           label="JSON paths from `user_meta`"
@@ -51,6 +55,7 @@ function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
         />
       )}
       size={size}
+      value={(value as string[]) || emptyArray}
     />
   )
 }
@@ -103,11 +108,15 @@ function PackageHandle({
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
   return (
     <M.TextField
+      InputLabelProps={{
+        shrink: true,
+      }}
       disabled={disabled}
-      label="RegExp or name for the package handle, e.g. namespace/production"
+      label="RegExp or name for the package handle"
       onBlur={() => onChange(value)}
       onChange={handleChange}
       onKeyDown={handleEnter}
+      placeholder="namespace/production"
       size={size}
       value={value}
     />
@@ -121,8 +130,11 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: t.shape.borderRadius,
     display: 'grid',
     gridTemplateRows: '1fr 1fr 1fr',
-    padding: t.spacing(2),
+    padding: t.spacing(2, 2, 0),
     rowGap: t.spacing(1),
+  },
+  jsonpaths: {
+    marginTop: t.spacing(1),
   },
   '@keyframes appear': {
     '0%': { opacity: 0 },
@@ -170,17 +182,18 @@ function PackageDescription({
         value={handlePattern}
         onChange={handleRename}
       />
+      <JsonPaths
+        className={classes.jsonpaths}
+        disabled={disabled || !handlePattern}
+        onChange={handleLabels}
+        size={size}
+        value={value.user_meta}
+      />
       <Message
         disabled={disabled || !handlePattern}
         onChange={handleMessage}
         size={size}
         value={value.message}
-      />
-      <JsonPaths
-        disabled={disabled || !handlePattern}
-        onChange={handleLabels}
-        size={size}
-        value={value.user_meta}
       />
     </div>
   )
@@ -192,6 +205,7 @@ const usePackageDescriptionsListStyles = M.makeStyles((t) => ({
     gridTemplateColumns: '1fr 1fr',
     rowGap: t.spacing(2),
     columnGap: t.spacing(2),
+    marginTop: t.spacing(1),
   },
 }))
 

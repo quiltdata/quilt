@@ -14,6 +14,12 @@ import PackageDescription from './PackageDescription'
 import { parse, stringify } from './State'
 import type { Config, TypedValue, KeyedValue } from './State'
 
+const useFieldStyles = M.makeStyles((t) => ({
+  margin: {
+    marginTop: t.spacing(1),
+  },
+}))
+
 function InputBoolean({
   className,
   disabled,
@@ -107,10 +113,20 @@ function InputSourceBuckets({
   return (
     <Lab.Autocomplete
       className={className}
+      style={{ marginTop: '8px' }}
       multiple
       onChange={handleChange}
       options={options}
-      renderInput={(params) => <M.TextField {...params} label="Allowed buckets" />}
+      renderInput={(params) => (
+        <M.TextField
+          {...params}
+          InputLabelProps={{
+            shrink: true,
+          }}
+          label="Allowed buckets"
+          placeholder="s3://quilt-example"
+        />
+      )}
       value={value}
       {...props}
     />
@@ -184,7 +200,10 @@ const I18N = {
     description:
       'List of these buckets will be offered when users click on "ADD FILES FROM BUCKET" in Revise Package dialog',
   },
-  'ui.package_description': 'Package list appearance',
+  'ui.package_description': {
+    title: 'Package list appearance',
+    description: 'Match packages with RegExp or implicitly use package names',
+  },
   'ui.package_description.multiline': 'Display `user_meta` on multiple lines',
 }
 
@@ -205,10 +224,12 @@ interface FieldPropsWithConfig<V = KeyedValue> extends FieldProps<V> {
 }
 
 function Field({ config, value, ...props }: FieldPropsWithConfig) {
+  const classes = useFieldStyles()
   if (value.key === 'ui.package_description') {
     return (
       <InputPackageDescription
         {...props}
+        className={cx(props.className, classes.margin)}
         value={value as KeyedValue<'ui.package_description'>}
       />
     )
@@ -216,7 +237,11 @@ function Field({ config, value, ...props }: FieldPropsWithConfig) {
 
   if (value.key === 'ui.source_buckets') {
     return (
-      <InputSourceBuckets {...props} value={value as KeyedValue<'ui.source_buckets'>} />
+      <InputSourceBuckets
+        {...props}
+        className={cx(props.className, classes.margin)}
+        value={value as KeyedValue<'ui.source_buckets'>}
+      />
     )
   }
 
@@ -224,6 +249,7 @@ function Field({ config, value, ...props }: FieldPropsWithConfig) {
     return (
       <InputDefaultSourceBucket
         {...props}
+        className={cx(props.className, classes.margin)}
         config={config}
         value={value as KeyedValue<'ui.source_buckets.default'>}
       />

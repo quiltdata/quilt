@@ -419,7 +419,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         ]
       </div>
       <div
-        className="MuiFormControl-root MuiFormControl-fullWidth"
+        className="MuiFormControl-root margin MuiFormControl-fullWidth"
       >
         <label
           className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense Mui-disabled Mui-disabled"
@@ -444,12 +444,17 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       className="MuiTypography-root title MuiTypography-h6"
     >
       Package list appearance
+      <p
+        className="MuiTypography-root description MuiTypography-body2"
+      >
+        Match packages with RegExp or implicitly use package names
+      </p>
     </h6>
     <div
       className="layout"
     >
       <div
-        className="root"
+        className="root margin"
       >
         <div
           className="root"
@@ -458,6 +463,13 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             id="text-field"
           >
             .*
+          </div>
+          <div
+            id="autocomplete"
+          >
+             from [
+            
+            ]
           </div>
           <div
             className="MuiFormControl-root"
@@ -475,13 +487,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
               </span>
             </label>
           </div>
-          <div
-            id="autocomplete"
-          >
-             from [
-            
-            ]
-          </div>
         </div>
         <div
           className="root"
@@ -490,6 +495,13 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             id="text-field"
           >
             
+          </div>
+          <div
+            id="autocomplete"
+          >
+             from [
+            
+            ]
           </div>
           <div
             className="MuiFormControl-root"
@@ -506,13 +518,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
                 Display commit message
               </span>
             </label>
-          </div>
-          <div
-            id="autocomplete"
-          >
-             from [
-            
-            ]
           </div>
         </div>
       </div>
