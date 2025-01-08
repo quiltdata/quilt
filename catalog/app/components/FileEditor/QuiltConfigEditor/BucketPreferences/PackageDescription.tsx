@@ -9,7 +9,6 @@ import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPref
 import type { KeyedValue } from './State'
 
 interface JsonPathsProps {
-  className: string
   disabled?: boolean
   onChange: (value: string[]) => void
   size: 'small' | 'medium'
@@ -20,7 +19,7 @@ const options: string[] = []
 
 const emptyArray: string[] = []
 
-function JsonPaths({ className, disabled, onChange, size, value = [] }: JsonPathsProps) {
+function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
   const [error, setError] = React.useState<Error | null>(null)
   const handleChange = React.useCallback(
     (_e, labels: string[]) => {
@@ -36,7 +35,6 @@ function JsonPaths({ className, disabled, onChange, size, value = [] }: JsonPath
   )
   return (
     <Lab.Autocomplete
-      className={className}
       disabled={disabled}
       freeSolo
       multiple
@@ -126,15 +124,9 @@ function PackageHandle({
 const useStyles = M.makeStyles((t) => ({
   root: {
     animation: '$appear 0.3s ease-out',
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
     display: 'grid',
     gridTemplateRows: '1fr 1fr 1fr',
-    padding: t.spacing(2, 2, 0),
-    rowGap: t.spacing(1),
-  },
-  jsonpaths: {
-    marginTop: t.spacing(1),
+    rowGap: t.spacing(2),
   },
   '@keyframes appear': {
     '0%': { opacity: 0 },
@@ -183,7 +175,6 @@ function PackageDescription({
         onChange={handleRename}
       />
       <JsonPaths
-        className={classes.jsonpaths}
         disabled={disabled || !handlePattern}
         onChange={handleLabels}
         size={size}
@@ -203,9 +194,8 @@ const usePackageDescriptionsListStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    rowGap: t.spacing(2),
-    columnGap: t.spacing(2),
-    marginTop: t.spacing(1),
+    rowGap: t.spacing(4),
+    columnGap: t.spacing(8),
   },
 }))
 

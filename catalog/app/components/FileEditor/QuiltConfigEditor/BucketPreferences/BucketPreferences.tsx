@@ -201,9 +201,10 @@ const I18N = {
       'List of these buckets will be offered when users click on "ADD FILES FROM BUCKET" in Revise Package dialog',
   },
   'ui.package_description': {
-    title: 'Package list appearance',
+    title: 'Package list appearance (per package settings)',
     description: 'Match packages with RegExp or implicitly use package names',
   },
+  'ui.package_description.all': 'Package list appearance (all packages)',
   'ui.package_description.multiline': 'Display `user_meta` on multiple lines',
 }
 
@@ -283,7 +284,7 @@ const useGroupStyles = M.makeStyles((t) => ({
   },
   layout: {
     display: 'grid',
-    gridColumnGap: t.spacing(2),
+    gridColumnGap: t.spacing(8),
     gridRowGap: t.spacing(1),
   },
 }))
@@ -356,6 +357,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+function parseGroupKey(key: keyof Config): keyof typeof I18N {
+  if (key === 'ui.package_description.multiline') {
+    return 'ui.package_description.all'
+  }
+  if (key.match(/ui\.blocks\.meta\..*\.expanded/)) {
+    return 'ui.blocks.meta.*.expanded'
+  }
+  const keyParts = key.split('.')
+  if (keyParts.length > 2) {
+    return keyParts.slice(0, -1).join('.') as keyof typeof I18N
+  }
+  return key as keyof typeof I18N
+}
+
 export default function BucketPreferences({
   className,
   disabled,
@@ -371,14 +386,7 @@ export default function BucketPreferences({
     () =>
       Object.values(config).reduce(
         (memo, value) => {
-          let groupKey: string = value.key
-          const keyParts = value.key.split('.')
-          if (keyParts.length > 2 && value.key !== 'ui.package_description') {
-            groupKey = keyParts.slice(0, -1).join('.')
-          }
-          if (value.key.match(/ui\.blocks\.meta\..*\.expanded/)) {
-            groupKey = 'ui.blocks.meta.*.expanded'
-          }
+          let groupKey = parseGroupKey(value.key)
           return {
             ...memo,
             [groupKey]: [...(memo[groupKey] || []), value],
