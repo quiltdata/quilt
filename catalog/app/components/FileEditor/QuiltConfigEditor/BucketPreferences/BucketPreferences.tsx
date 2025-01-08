@@ -20,6 +20,12 @@ const useFieldStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useInputBooleanStyles = M.makeStyles((t) => ({
+  checkbox: {
+    margin: t.spacing(-1, 0),
+  },
+}))
+
 function InputBoolean({
   className,
   disabled,
@@ -27,6 +33,7 @@ function InputBoolean({
   size,
   value: { key, value },
 }: FieldProps<TypedValue<boolean>>) {
+  const classes = useInputBooleanStyles()
   const handleChange = React.useCallback(
     (_e, checked: boolean) => onChange({ isDefault: false, key, value: checked }),
     [key, onChange],
@@ -34,7 +41,14 @@ function InputBoolean({
   return (
     <M.FormControl className={className}>
       <M.FormControlLabel
-        control={<M.Checkbox checked={!!value} size={size} onChange={handleChange} />}
+        control={
+          <M.Checkbox
+            checked={!!value}
+            className={classes.checkbox}
+            onChange={handleChange}
+            size={size}
+          />
+        }
         disabled={disabled}
         label={i18n(key)}
       />
@@ -296,7 +310,7 @@ interface GroupProps {
   className: string
   config: Config
   disabled?: boolean
-  id: keyof Config
+  id: keyof typeof I18N
   onChange: (v: KeyedValue) => void
   values: Config[keyof Config][]
 }
@@ -306,11 +320,16 @@ function Group({ className, config, disabled, id, onChange, values }: GroupProps
   const groupI18n = i18n(id)
   const title = typeof groupI18n === 'string' ? groupI18n : groupI18n.title
   const description = typeof groupI18n !== 'string' && groupI18n.description
-  const layout = React.useMemo(
-    () =>
-      values.length > 1 && values.length !== 3 && id !== 'ui.package_description' ? 2 : 1,
-    [id, values],
-  )
+  const layout = React.useMemo(() => {
+    switch (id) {
+      case 'ui.blocks.meta.*.expanded':
+      case 'ui.nav':
+      case 'ui.package_description':
+        return 1
+      default:
+        return values.length > 1 ? 2 : 1
+    }
+  }, [id, values])
   return (
     <div className={className}>
       <M.Typography className={classes.title} variant="h6">
@@ -430,7 +449,7 @@ export default function BucketPreferences({
           className={classes.group}
           config={config}
           disabled={disabled}
-          id={id as keyof Config}
+          id={id as keyof typeof I18N}
           key={id}
           onChange={handleChange}
           values={values}

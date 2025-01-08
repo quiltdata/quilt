@@ -211,7 +211,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       </p>
     </h6>
     <div
-      className="layout duplex"
+      className="layout"
     >
       <div
         className="MuiFormControl-root"
