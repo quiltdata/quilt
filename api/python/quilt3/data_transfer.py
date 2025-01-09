@@ -165,7 +165,7 @@ class S3ClientProvider:
         s3_client = session.client('s3', config=Config(**conf_kwargs))
 
         # Apply any stored callbacks to the new client
-        for event_name, callback in self._event_callbacks:
+        for event_name, callback in self._event_callbacks.items():
             s3_client.meta.events.register(event_name, callback)
 
         return s3_client
@@ -177,6 +177,22 @@ class S3ClientProvider:
     def _build_unsigned_client(self):
         s3_client = self._build_client(lambda session: True)
         self._unsigned_client = s3_client
+
+    def register_event_callback(self, event_name: str, callback: Optional[Callable]) -> None:
+        """Register a callback for S3 client events.
+
+        Args:
+            event_name: The name of the event to register for (e.g. 'creating-client-class')
+            callback: The callback function to be called when the event occurs, or None to remove the callback
+        """
+        if callback is None:
+            del self._event_callbacks[event_name]
+        else:
+            self._event_callbacks[event_name] = callback
+
+        # Force clients to re-register the callback on the new clients
+        self._standard_client = None
+        self._unsigned_client = None
 
 
 def check_list_object_versions_works_for_client(s3_client, params):
