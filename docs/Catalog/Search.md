@@ -1,22 +1,21 @@
-<!-- markdownlint-disable -->
-Quilt provides support for queries in the Elasticsearch DSL, as
-well as SQL queries in Athena.
+<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable-next-line first-line-h1 -->
+Each Quilt stack includes an Elasticsearch cluster that indexes objects and
+packages as documents. The objects in Amazon S3 buckets connected to Quilt are
+synchronized to an Elasticsearch cluster, which provides Quilt's search and
+package listing features.
 
-## Elasticsearch
+NOTE: This page is about full-text searching using Elasticsearch. For precise querying of specific fields, see the [Queries](Query.md) page.
 
-The objects in Amazon S3 buckets connected to Quilt are synchronized to
-an Elasticsearch cluster, which provides Quilt's search features.
+## Indexing
 
-Quilt uses Elasticsearch 6.7
-([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
-
-### Indexing
 Quilt maintains a near-realtime index of the objects in your S3
 bucket in Elasticsearch.  Each bucket corresponds to one or more
 Elasticsearch indexes. As objects are mutated in S3, Quilt uses an
 event-driven system (via SNS and SQS) to update Elasticsearch.
 
 There are two types of indexing in Quilt:
+
 * *shallow* indexing includes object metadata (such as the file name and size)
 * *deep* indexing includes object contents. Quilt supports deep
 indexing for the following file extensions:
@@ -28,24 +27,18 @@ indexing for the following file extensions:
   * .pptx
   * .xls, .xlsx
 
-> By default, Quilt indexes a limited number of bytes per document for specified file
-formats (100KB). Both the max number of bytes per document and which file formats
-to deep index can be customized per Bucket in the Catalog Admin settings.
-
-![Example of Admin Bucket indexing options](../imgs/elastic-search-indexing-options.png)
-
 ### Search Bar
 
 The search bar on every page in the catalog provides a convenient
 shortcut for searching objects and packages in an Amazon S3
 bucket.
 
-> Quilt uses Elasticsearch 6.7 [query string
-> syntax](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html#query-string-syntax).
+NOTE: Quilt uses Elasticsearch 6.7 [query string
+syntax](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html#query-string-syntax).
 
 The following are all valid search parameters:
 
-**Fields**
+#### Fields
 
 | Syntax | Description | Example |
 |- | - | - |
@@ -65,7 +58,7 @@ The following are all valid search parameters:
 | `package_stats.total_bytes` | Package total bytes | `package_stats.total_bytes:<100` |
 | `workflow.id` | Package workflow ID | `workflow.id:verify-metadata` |
 
-**Logical operators and grouping**
+#### Logical operators and grouping
 
 | Syntax | Description | Example |
 |- | - | - |
@@ -75,7 +68,7 @@ The following are all valid search parameters:
 | `_exists_` | Matches any non-null value for the given field | `_exists_: content` |
 | `()` | Group terms | `(a AND b) NOT c` |
 
-**Wildcard and regular expressions**
+#### Wildcard and regular expressions
 
 | Syntax | Description | Example |
 |- | - | - |
@@ -83,58 +76,27 @@ The following are all valid search parameters:
 | `?` | Exactly one character | `ext:React.?sx` |
 | `//` | Regular expression (slows performance) | `content:/lmnb[12]/` |
 
-### QUERIES > ELASTICSEARCH tab
+### ELASTICSEARCH tab
 
-![](../imgs/catalog-es-queries-default.png)
+When you click into a specific bucket, you can access the Elasticsearch tab to
+run more complex queries. The Elasticsearch tab provides a more powerful search
+interface than the search bar, allowing you to specify the Elasticsearch index
+and query parameters.
+
+![catalog-es-queries-default](../imgs/catalog-es-queries-default.png)
 
 Quilt Elasticsearch queries support the following keys:
-- `index` — comma-separated list of indexes to search ([learn
+
+* `index` — comma-separated list of indexes to search ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/multi-index.html))
-- `filter_path` — to reducing response nesting, ([learn
+* `filter_path` — to reducing response nesting, ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/common-options.html#common-options-response-filtering))
-- `_source` — boolean that adds or removes the `_source` field, or
+* `_source` — boolean that adds or removes the `_source` field, or
 a list of fields to return ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-source-filtering.html))
-- `size` — limits the number of hits ([learn
+* `size` — limits the number of hits ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
-- `from` — starting offset for pagination ([learn
+* `from` — starting offset for pagination ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
-- `body` — the search query body as a JSON dictionary ([learn
+* `body` — the search query body as a JSON dictionary ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html))
-
-#### Saved queries
-You can provide pre-canned queries for your users by providing a configuration file 
-at `s3://YOUR_BUCKET/.quilt/queries/config.yaml`:
-
-```yaml
-version: "1"
-queries:
-  query-1:
-    name: My first query
-    description: Optional description
-    url: s3://BUCKET/.quilt/queries/query-1.json
-  query-2:
-    name: Second query
-    url: s3://BUCKET/.quilt/queries/query-2.json
-```
-
-The Quilt catalog displays your saved queries in a drop-down for your users to
-select, edit, and execute.
-
-## Athena
-
-You can park reusable Athena Queries in the Quilt catalog so that your users can
-run them. You must first set up you an Athena workgroup and Saved queries per
-[AWS's Athena documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).
-
-### Configuration
-You can hide the "Queries" tab by setting `ui > nav > queries: false`.
-It is also possible to set the default workgroup in `ui > athena > defaultWorkgroup: 'your-default-workgroup'`.
-[Learn more](./Preferences.md).
-
-The tab will remember the last workgroup, catalog name and database that was selected.
-
-### Basics
-"Run query" executes the selected query and waits for the result.
-
-![Athena page](../imgs/athena-ui.png)

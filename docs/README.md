@@ -56,8 +56,8 @@ For users of the Quilt Platform (often referred to as the Catalog):
 - [Bucket Browsing](Catalog/FileBrowser.md) - Navigate through S3 buckets.
 - [Document Previews](Catalog/Preview.md) - Visualize documents and datasets
   directly in the web interface.
-- [Search & Query](Catalog/SearchQuery.md) - Leverage Quilt’s powerful search
-  and querying capabilities.
+- [Search](Catalog/Search.md) - Leverage Quilt’s powerful search
+  capabilities.
 - [Visualization & Dashboards](Catalog/VisualizationDashboards.md) - Create
   visual dashboards for data insights.
 
