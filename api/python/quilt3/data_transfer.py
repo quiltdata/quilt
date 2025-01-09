@@ -194,6 +194,37 @@ class S3ClientProvider:
         self._standard_client = None
         self._unsigned_client = None
 
+    def register_write_options(self, **kwargs):
+        """Register write options for S3 clients.
+
+        Args:
+            **kwargs: The write options to register
+        """
+        event_mapping = {
+            "put": "provide-client-params.s3.PutObject",
+            "copy": "provide-client-params.s3.CopyObject",
+            "upload": "provide-client-params.s3.UploadPart",
+        }
+        event_names = [
+            "provide-client-params.s3.PutObject",
+            "provide-client-params.s3.CopyObject",
+            "provide-client-params.s3.UploadPart",
+        ]
+
+        # Dynamically create a closure for modifying parameters
+        def create_dynamic_callback(options):
+            def dynamic_callback(params, **kwargs):
+                # Update params with the provided write options
+                # TBD: sanitize first
+                params.update(options)
+
+            return dynamic_callback
+
+        # Register each event with a dynamically created callback
+        callback = create_dynamic_callback(kwargs)
+        for event_name in event_names:
+            self.register_event_callback(event_name, callback)
+
 
 def check_list_object_versions_works_for_client(s3_client, params):
     try:
