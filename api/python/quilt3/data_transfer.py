@@ -90,6 +90,7 @@ class S3ClientProvider:
         self._use_unsigned_client = {}  # f'{action}/{bucket}' -> use_unsigned_client_bool
         self._standard_client = None
         self._unsigned_client = None
+        self._event_callbacks = {}
 
     @property
     def standard_client(self):
@@ -161,7 +162,13 @@ class S3ClientProvider:
         if is_unsigned(session):
             conf_kwargs["signature_version"] = UNSIGNED
 
-        return session.client('s3', config=Config(**conf_kwargs))
+        s3_client = session.client('s3', config=Config(**conf_kwargs))
+
+        # Apply any stored callbacks to the new client
+        for event_name, callback in self._event_callbacks:
+            s3_client.meta.events.register(event_name, callback)
+
+        return s3_client
 
     def _build_standard_client(self):
         s3_client = self._build_client(lambda session: session.get_credentials() is None)
