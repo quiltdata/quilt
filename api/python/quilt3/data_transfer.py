@@ -200,15 +200,11 @@ class S3ClientProvider:
         Args:
             **kwargs: The write options to register
         """
-        event_mapping = {
-            "put": "provide-client-params.s3.PutObject",
-            "copy": "provide-client-params.s3.CopyObject",
-            "upload": "provide-client-params.s3.UploadPart",
-        }
         event_names = [
             "provide-client-params.s3.PutObject",
             "provide-client-params.s3.CopyObject",
-            "provide-client-params.s3.UploadPart",
+            "provide-client-params.s3.CreateMultipartUpload",
+            # "provide-client-params.s3.CompleteMultipartUpload",
         ]
 
         # Dynamically create a closure for modifying parameters
