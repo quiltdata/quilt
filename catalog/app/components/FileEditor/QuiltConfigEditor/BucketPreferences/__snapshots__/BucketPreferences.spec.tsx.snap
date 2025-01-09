@@ -93,7 +93,55 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
+            Download buttons for files in a "BUCKET" tab
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Download buttons for files in a "PACKAGE" tab
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
             "REVISE PACKAGE" on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Buttons to craete or edit files
           </span>
         </label>
       </div>

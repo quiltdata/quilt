@@ -33,7 +33,11 @@ function parseUser(config: string) {
     'ui.actions.copyPackage': childOfBool(json?.ui?.actions, 'copyPackage'),
     'ui.actions.createPackage': childOfBool(json?.ui?.actions, 'createPackage'),
     'ui.actions.deleteRevision': childOfBool(json?.ui?.actions, 'deleteRevision'),
+    'ui.actions.downloadObject': childOfBool(json?.ui?.actions, 'downloadObject'),
+    'ui.actions.downloadPackage': childOfBool(json?.ui?.actions, 'downloadPackage'),
+    'ui.actions.openInDesktop': childOfBool(json?.ui?.actions, 'openInDesktop'),
     'ui.actions.revisePackage': childOfBool(json?.ui?.actions, 'revisePackage'),
+    'ui.actions.writeFile': childOfBool(json?.ui?.actions, 'writeFile'),
 
     'ui.blocks.analytics': json?.ui?.blocks?.analytics,
     'ui.blocks.browser': json?.ui?.blocks?.browser,
@@ -73,7 +77,11 @@ const sys: Defaults = {
   'ui.actions.copyPackage': true,
   'ui.actions.createPackage': true,
   'ui.actions.deleteRevision': false,
+  'ui.actions.downloadObject': true,
+  'ui.actions.downloadPackage': true,
+  'ui.actions.openInDesktop': false,
   'ui.actions.revisePackage': true,
+  'ui.actions.writeFile': true,
 
   'ui.athena.defaultWorkgroup': '',
 
@@ -127,7 +135,11 @@ export function parse(config: string, ext: Partial<Defaults>) {
     'ui.actions.copyPackage': val('ui.actions.copyPackage', user, ext),
     'ui.actions.createPackage': val('ui.actions.createPackage', user, ext),
     'ui.actions.deleteRevision': val('ui.actions.deleteRevision', user, ext),
+    'ui.actions.downloadObject': val('ui.actions.downloadObject', user, ext),
+    'ui.actions.downloadPackage': val('ui.actions.downloadPackage', user, ext),
+    'ui.actions.openInDesktop': val('ui.actions.openInDesktop', user, ext),
     'ui.actions.revisePackage': val('ui.actions.revisePackage', user, ext),
+    'ui.actions.writeFile': val('ui.actions.writeFile', user, ext),
 
     'ui.blocks.analytics': val('ui.blocks.analytics', user, ext),
     'ui.blocks.browser': val('ui.blocks.browser', user, ext),

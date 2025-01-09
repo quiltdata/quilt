@@ -172,7 +172,10 @@ const I18N = {
   'ui.actions.createPackage':
     '"CREATE PACKAGE" on the package list and bucket listing pages',
   'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
+  'ui.actions.downloadObject': 'Download buttons for files in a "BUCKET" tab',
+  'ui.actions.downloadPackage': 'Download buttons for files in a "PACKAGE" tab',
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
+  'ui.actions.writeFile': 'Buttons to craete or edit files',
 
   'ui.qurator': 'Qurator',
 
@@ -245,6 +248,9 @@ interface FieldPropsWithConfig<V = KeyedValue> extends FieldProps<V> {
 
 function Field({ config, value, ...props }: FieldPropsWithConfig) {
   const classes = useFieldStyles()
+
+  if (value.key === 'ui.actions.openInDesktop') return null
+
   if (value.key === 'ui.package_description') {
     return (
       <InputPackageDescription
