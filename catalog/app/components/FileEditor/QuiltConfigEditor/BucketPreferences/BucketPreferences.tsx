@@ -174,6 +174,8 @@ const I18N = {
   'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
 
+  'ui.qurator': 'Qurator',
+
   'ui.athena': 'Athena',
   'ui.athena.defaultWorkgroup': 'Default workgroup for Athena queries',
 
@@ -189,7 +191,7 @@ const I18N = {
   'ui.blocks.browser': 'File listings on bucket and packages pages',
   'ui.blocks.code': '"CODE"',
   'ui.blocks.meta': '"METADATA"',
-  'ui.blocks.qurator': 'Qurator assistance',
+  'ui.blocks.qurator': 'Enable Qurator assistance',
 
   'ui.blocks.meta.*.expanded': {
     title: 'Metadata in the package list',
@@ -382,6 +384,9 @@ const useStyles = M.makeStyles((t) => ({
 function parseGroupKey(key: keyof Config): keyof typeof I18N {
   if (key === 'ui.package_description.multiline') {
     return 'ui.package_description.all'
+  }
+  if (key === 'ui.blocks.qurator') {
+    return 'ui.qurator'
   }
   if (key.match(/ui\.blocks\.meta\..*\.expanded/)) {
     return 'ui.blocks.meta.*.expanded'
