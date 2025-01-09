@@ -8,7 +8,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     className="MuiTypography-root helperText MuiTypography-body2"
   >
     Configuration for Catalog UI: show and hide features, set default values. See
-
+     
     <a
       className="root"
       href="https://docs.quiltdata.com/quilt-platform-administrator/preferences"
@@ -476,7 +476,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         id="autocomplete"
       >
          from [
-
+        
         ]
       </div>
       <div
@@ -491,7 +491,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         <div
           id="select"
         >
-
+          
            from [
           ]
         </div>
@@ -529,7 +529,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             id="autocomplete"
           >
              from [
-
+            
             ]
           </div>
           <div
@@ -555,13 +555,13 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <div
             id="text-field"
           >
-
+            
           </div>
           <div
             id="autocomplete"
           >
              from [
-
+            
             ]
           </div>
           <div
@@ -627,7 +627,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       <div
         id="text-field"
       >
-
+        
       </div>
     </div>
   </div>
