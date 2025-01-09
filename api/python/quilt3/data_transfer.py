@@ -178,6 +178,18 @@ class S3ClientProvider:
         s3_client = self._build_client(lambda session: True)
         self._unsigned_client = s3_client
 
+    @staticmethod
+    def add_options_safely(params: dict, options: Optional[dict]):
+        """
+        Add options to the params dictionary safely.
+        This method ensures that the options do not overwrite existing keys in the params dictionary.
+        """
+        if options:
+            for key, value in options.items():
+                if key in params:
+                    raise ValueError(f"Cannot override key `{key}` using options: {options}.")
+                params[key] = value
+
     def register_event_callback(self, event_name: str, callback: Optional[Callable]) -> None:
         """Register a callback for S3 client events.
 
@@ -212,7 +224,7 @@ class S3ClientProvider:
             def dynamic_callback(params, **kwargs):
                 # Update params with the provided write options
                 # TBD: sanitize first
-                params.update(options)
+                self.add_options_safely(params, options)
 
             return dynamic_callback
 
