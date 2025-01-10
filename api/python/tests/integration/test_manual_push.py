@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 from pytest import raises
 
 from quilt3 import Bucket, Package, delete_package
+from quilt3.data_transfer import S3ClientProvider
 
 DATA_DIR = pathlib.Path(__file__).parent / 'data'
 TEST_BUCKET = "test-kms-policies"
@@ -43,7 +44,8 @@ def test_package_push_mpu():
     ):
         pkg.push(pkg_name, TEST_BUCKET_URI, force=True)
 
-    pkg.push(pkg_name, TEST_BUCKET_URI, put_options=USE_KMS, force=True)
+    S3ClientProvider().register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+    pkg.push(pkg_name, TEST_BUCKET_URI, force=True)
 
     # Use boto3 to verify the object was uploaded with the correct encryption
     response = S3_CLIENT.head_object(Bucket=TEST_BUCKET, Key=dest_file)
