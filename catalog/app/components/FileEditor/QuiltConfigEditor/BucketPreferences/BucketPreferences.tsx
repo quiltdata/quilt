@@ -402,7 +402,7 @@ const useStyles = M.makeStyles((t) => ({
 //       or combine some keys into a new group
 function parseGroupKey(key: keyof Config): keyof typeof I18N_GROUPS {
   if (key === 'ui.blocks.qurator') {
-    // NOTE: Move 'ui.blocks.qurator' into a standalone group with 'ui.qurator' title
+    // NOTE: Move into a standalone group
     return 'custom_group.qurator'
   }
   if (key === 'ui.package_description.multiline') {
