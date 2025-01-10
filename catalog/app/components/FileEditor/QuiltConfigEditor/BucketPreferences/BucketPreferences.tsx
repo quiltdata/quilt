@@ -194,7 +194,7 @@ const I18N = {
   'ui.blocks.browser': 'File listings on bucket and packages pages',
   'ui.blocks.code': '"CODE"',
   'ui.blocks.meta': '"METADATA"',
-  'ui.blocks.qurator': 'Enable Qurator assistance',
+  'ui.blocks.qurator': 'Qurator assistance',
 
   'ui.blocks.meta.*.expanded': {
     title: 'Metadata in the package list',
@@ -223,10 +223,10 @@ const I18N = {
       'Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"',
   },
   'ui.package_description': {
-    title: 'Package list appearance (per package settings)',
-    description: 'Match packages with RegExp or implicitly use package names',
+    title: 'Package List: selective display settings',
+    description: 'Selectively apply display settings to matching packages',
   },
-  'ui.package_description.all': 'Package list appearance (all packages)',
+  'ui.package_description.all': 'Package List: common display settings',
   'ui.package_description.multiline': 'Display `user_meta` fields on separate lines',
 }
 

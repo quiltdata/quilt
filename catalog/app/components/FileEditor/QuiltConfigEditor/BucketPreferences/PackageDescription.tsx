@@ -114,7 +114,7 @@ function PackageHandle({
       onBlur={() => onChange(value)}
       onChange={handleChange}
       onKeyDown={handleEnter}
-      placeholder="namespace/production"
+      placeholder="e.g. ^prefix/.*"
       size={size}
       value={value}
     />
