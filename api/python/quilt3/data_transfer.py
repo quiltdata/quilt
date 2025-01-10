@@ -184,38 +184,54 @@ class S3ClientProvider:
         Add options to the params dictionary safely.
         This method ensures that the options do not overwrite existing keys in the params dictionary.
         """
-        if options:
-            for key, value in options.items():
-                if key in params:
-                    raise ValueError(f"Cannot override key `{key}` using options: {options}.")
-                params[key] = value
+        for key, value in options.items():
+            if key in params:
+                raise ValueError(f"Cannot override key `{key}` using options: {options}.")
+            params[key] = value
 
-    def register_event_callback(self, event_name: str, callback: Optional[Callable]) -> None:
+    def register_event_options(self, event_name: str, **kwargs: dict) -> None:
+        """Register options for S3 client events.
+
+        Args:
+            event_name: The name of the event to register for (e.g. 'creating-client-class')
+            kwargs: The options to be added to the client params when the event occurs
+
+        Example: Set options to use when writing objects to S3:
+        ```
+        def register_write_options(provider, **kwargs):
+            event_names = [
+                "provide-client-params.s3.PutObject",
+                "provide-client-params.s3.CopyObject",
+                "provide-client-params.s3.CreateMultipartUpload",
+                "provide-client-params.s3.CompleteMultipartUpload",
+            ]
+
+            for event_name in event_names:
+                provider.register_event_options(event_name, **kwargs)
+        ```
+        """
+        def callback(params, **_kwargs):
+            self.add_options_safely(params, kwargs)
+        self.register_event_callback(event_name, callback)
+
+    def register_event_callback(self, event_name: str, callback: Callable) -> None:
         """Register a callback for S3 client events.
 
         Args:
             event_name: The name of the event to register for (e.g. 'creating-client-class')
-            callback: The callback function to be called when the event occurs, or None to remove the callback
+            callback: The callback function to be called when the event occurs
 
-        Example: Set options to use when writing objects to S3:
+        Example: Add SSE Encryption to put_object calls:
         ```
-                def register_write_options(self, **kwargs):
-                    options = kwargs
-                    event_names = [
-                        "provide-client-params.s3.PutObject",
-                        "provide-client-params.s3.CopyObject",
-                        "provide-client-params.s3.CreateMultipartUpload",
-                        # "provide-client-params.s3.CompleteMultipartUpload",
-                    ]
-
-                    def callback(params, **kwargs):
-                        self.add_options_safely(params, options)
-                    for event_name in event_names:
-                        self.register_event_callback(event_name, callback)
+        options = {"ServerSideEncryption": "AES256"}
+        def callback(params, **_kwargs):
+            # Can add options based on the existing params
+            provider.add_options_safely(params, options)
+        provider.register_event_callback("provide-client-params.s3.PutObject", callback)
         ```
         """
-        if callback is None and event_name in self.__class__._event_callbacks:
-            logger.warning("Overwriting callback for event %s", event_name)
+        if event_name in self.__class__._event_callbacks:
+            logger.warning("Overwriting existing callback for event %s", event_name)
             del self.__class__._event_callbacks[event_name]
         else:
             self.__class__._event_callbacks[event_name] = callback
