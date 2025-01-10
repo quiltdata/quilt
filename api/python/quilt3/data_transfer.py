@@ -219,17 +219,9 @@ class S3ClientProvider:
             # "provide-client-params.s3.CompleteMultipartUpload",
         ]
 
-        # Dynamically create a closure for modifying parameters
-        def create_dynamic_callback(options):
-            def dynamic_callback(params, **kwargs):
-                # Update params with the provided write options
-                # TBD: sanitize first
-                self.add_options_safely(params, options)
-
-            return dynamic_callback
-
-        # Register each event with a dynamically created callback
-        callback = create_dynamic_callback(kwargs)
+        options = kwargs
+        def callback(params, **kwargs):
+            self.add_options_safely(params, options)
         for event_name in event_names:
             self.register_event_callback(event_name, callback)
 
