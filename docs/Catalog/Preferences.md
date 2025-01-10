@@ -122,7 +122,7 @@ ui:
       user_meta:
         - $.labels
     # for any package with a handle prefix of foo
-    ^foo/*:
+    ^foo/.*:
       # JSONPath expressions to the fields to display
       user_meta:
         - $.key1.key2
