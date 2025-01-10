@@ -64,5 +64,33 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         expect(config[key].value).toStrictEqual(value)
       })
     })
+
+    it('parses shortcut "True" value for ui.blocks.meta', () => {
+      const config = parse(
+        `ui:
+   blocks:
+     meta: True`,
+        {},
+      )
+      expect(config['ui.blocks.meta'].value).toBe(true)
+      expect(config['ui.blocks.meta.user_meta.expanded'].value).toBe(false)
+      expect(config['ui.blocks.meta.workflows.expanded'].value).toBe(false)
+    })
+
+    it('parses full value for ui.blocks.meta', () => {
+      const config = parse(
+        `ui:
+   blocks:
+     meta:
+       user_meta:
+         expanded: True
+       workflows:
+         expanded: True`,
+        {},
+      )
+      expect(config['ui.blocks.meta'].value).toBe(true)
+      expect(config['ui.blocks.meta.user_meta.expanded'].value).toBe(true)
+      expect(config['ui.blocks.meta.workflows.expanded'].value).toBe(true)
+    })
   })
 })
