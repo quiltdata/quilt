@@ -1,10 +1,12 @@
-import * as R from 'ramda'
-
 import * as legacyBucketPreferences from 'utils/BucketPreferences/BucketPreferences'
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
 
 import { assocPath, parse, stringify } from './State'
 import type { Config } from './State'
+
+function getValueByPath(obj: Record<string, any>, path: string[]) {
+  return path.reduce((memo, key) => memo[key], obj)
+}
 
 const legacyPrefs = legacyBucketPreferences.parse('')
 function getLegacyValue(key: keyof Config) {
@@ -13,7 +15,7 @@ function getLegacyValue(key: keyof Config) {
       // In the legacy implementation it is `undefined`
       return ''
     case 'ui.blocks.meta.user_meta.expanded':
-      return R.path('ui.blocks.meta.userMeta.expanded'.split('.'), legacyPrefs)
+      return getValueByPath(legacyPrefs, 'ui.blocks.meta.userMeta.expanded'.split('.'))
     case 'ui.blocks.meta':
       // In the legacy implementation it was substituted with default inner values
       // but in new implementation these values lays flat in the root
@@ -35,7 +37,7 @@ function getLegacyValue(key: keyof Config) {
     case 'ui.source_buckets.default':
       return legacyPrefs.ui.sourceBuckets.getDefault()
     default:
-      return R.path(key.split('.'), legacyPrefs)
+      return getValueByPath(legacyPrefs, key.split('.'))
   }
 }
 
