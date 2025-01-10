@@ -53,6 +53,18 @@ MAX_CONCURRENCY = util.get_pos_int_from_env('QUILT_TRANSFER_MAX_CONCURRENCY') or
 logger = logging.getLogger(__name__)
 
 
+def add_put_options_safely(params: dict, put_options: Optional[dict]):
+    """
+    Add put options to the params dictionary safely.
+    This method ensures that the put options do not overwrite existing keys in the params dictionary.
+    """
+    if put_options:
+        for key, value in put_options.items():
+            if key in params:
+                raise ValueError(f"Cannot override key `{key}` using put_options: {put_options}.")
+            params[key] = value
+
+
 class S3Api(Enum):
     GET_OBJECT = "GET_OBJECT"
     HEAD_OBJECT = "HEAD_OBJECT"
@@ -350,27 +362,31 @@ def _copy_local_file(ctx: WorkerContext, size: int, src_path: str, dest_path: st
     ctx.done(PhysicalKey.from_path(dest_path), None)
 
 
-def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str):
+def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str, put_options=None):
     s3_client = ctx.s3_client_provider.standard_client
 
     if not is_mpu(size):
         with ReadFileChunk.from_filename(src_path, 0, size, [ctx.progress]) as fd:
-            resp = s3_client.put_object(
+            s3_params = dict(
                 Body=fd,
                 Bucket=dest_bucket,
                 Key=dest_key,
                 ChecksumAlgorithm='SHA256',
             )
+            add_put_options_safely(s3_params, put_options)
+            resp = s3_client.put_object(**s3_params)
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['ChecksumSHA256'])
         ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
     else:
-        resp = s3_client.create_multipart_upload(
+        s3_create_params = dict(
             Bucket=dest_bucket,
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
         )
+        add_put_options_safely(s3_create_params, put_options)
+        resp = s3_client.create_multipart_upload(**s3_create_params)
         upload_id = resp['UploadId']
 
         chunksize = get_checksum_chunksize(size)
@@ -391,7 +407,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                     Key=dest_key,
                     UploadId=upload_id,
                     PartNumber=part_id,
-                    ChecksumAlgorithm='SHA256',
+                    ChecksumAlgorithm="SHA256",
                 )
             with lock:
                 parts[i] = dict(
@@ -517,21 +533,20 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
         )
-
-        if extra_args:
-            params.update(extra_args)
-
+        add_put_options_safely(params, extra_args)
         resp = s3_client.copy_object(**params)
         ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         checksum = _simple_s3_to_quilt_checksum(resp['CopyObjectResult']['ChecksumSHA256'])
         ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
     else:
-        resp = s3_client.create_multipart_upload(
+        s3_create_params = dict(
             Bucket=dest_bucket,
             Key=dest_key,
             ChecksumAlgorithm='SHA256',
         )
+        add_put_options_safely(s3_create_params, extra_args)
+        resp = s3_client.create_multipart_upload(**s3_create_params)
         upload_id = resp['UploadId']
 
         chunksize = get_checksum_chunksize(size)
@@ -547,7 +562,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             part_id = i + 1
             part = s3_client.upload_part_copy(
                 CopySource=src_params,
-                CopySourceRange=f'bytes={start}-{end-1}',
+                CopySourceRange=f"bytes={start}-{end-1}",
                 Bucket=dest_bucket,
                 Key=dest_key,
                 UploadId=upload_id,
@@ -565,12 +580,13 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             ctx.progress(end - start)
 
             if done:
-                resp = s3_client.complete_multipart_upload(
+                s3_complete_params = dict(
                     Bucket=dest_bucket,
                     Key=dest_key,
                     UploadId=upload_id,
                     MultipartUpload={'Parts': parts},
                 )
+                resp = s3_client.complete_multipart_upload(**s3_complete_params)
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 checksum, _ = resp['ChecksumSHA256'].split('-', 1)
                 ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
@@ -629,7 +645,8 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
     return None
 
 
-def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str):
+def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
+                          dest_path: str, put_options=None):
     result = _reuse_remote_file(ctx, size, src_path, dest_bucket, dest_path)
     if result is not None:
         dest_version_id, checksum = result
@@ -637,7 +654,7 @@ def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_buc
         ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id), checksum)
         return  # Optimization succeeded.
     # If the optimization didn't happen, do the normal upload.
-    _upload_file(ctx, size, src_path, dest_bucket, dest_path)
+    _upload_file(ctx, size, src_path, dest_bucket, dest_path, put_options)
 
 
 def _copy_file_list_last_retry(retry_state):
@@ -651,7 +668,8 @@ def _copy_file_list_last_retry(retry_state):
        wait=wait_exponential(multiplier=1, min=1, max=10),
        retry=retry_if_not_result(all),
        retry_error_callback=_copy_file_list_last_retry)
-def _copy_file_list_internal(file_list, results, message, callback, exceptions_to_ignore=(ClientError,)):
+def _copy_file_list_internal(file_list, results, message, callback,
+                             exceptions_to_ignore=(ClientError,), put_options=None):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     `results` is the list where results will be stored.
@@ -717,13 +735,13 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                 else:
                     if dest.version_id:
                         raise ValueError("Cannot set VersionId on destination")
-                    _upload_or_reuse_file(ctx, size, src.path, dest.bucket, dest.path)
+                    _upload_or_reuse_file(ctx, size, src.path, dest.bucket, dest.path, put_options)
             else:
                 if dest.is_local():
                     _download_file(ctx, size, src.bucket, src.path, src.version_id, dest.path)
                 else:
                     _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id,
-                                      dest.bucket, dest.path)
+                                      dest.bucket, dest.path, extra_args=put_options)
 
         try:
             for idx, (args, result) in enumerate(zip(file_list, results)):
@@ -904,7 +922,7 @@ def delete_url(src: PhysicalKey):
         s3_client.delete_object(Bucket=src.bucket, Key=src.path)
 
 
-def copy_file_list(file_list, message=None, callback=None):
+def copy_file_list(file_list, message=None, callback=None, put_options=None):
     """
     Takes a list of tuples (src, dest, size) and copies them in parallel.
     URLs must be regular files, not directories.
@@ -914,10 +932,10 @@ def copy_file_list(file_list, message=None, callback=None):
         if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback)
+    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback, put_options=put_options)
 
 
-def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None):
+def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None, put_options=None):
     """
     Copies a single file or directory.
     If src is a file, dest can be a file or a directory.
@@ -949,10 +967,10 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
                 src = PhysicalKey(src.bucket, src.path, version_id)
         url_list.append((src, dest, size))
 
-    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback)
+    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback, put_options=put_options)
 
 
-def put_bytes(data: bytes, dest: PhysicalKey):
+def put_bytes(data: bytes, dest: PhysicalKey, put_options=None):
     if _looks_like_dir(dest):
         raise ValueError("Invalid path: %r" % dest.path)
 
@@ -964,11 +982,9 @@ def put_bytes(data: bytes, dest: PhysicalKey):
         if dest.version_id is not None:
             raise ValueError("Cannot set VersionId on destination")
         s3_client = S3ClientProvider().standard_client
-        s3_client.put_object(
-            Bucket=dest.bucket,
-            Key=dest.path,
-            Body=data,
-        )
+        s3_params = dict(Bucket=dest.bucket, Key=dest.path, Body=data)
+        add_put_options_safely(s3_params, put_options)
+        s3_client.put_object(**s3_params)
 
 
 def _local_get_bytes(pk: PhysicalKey):
