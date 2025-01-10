@@ -197,7 +197,7 @@ const I18N = {
   'ui.blocks.qurator': 'Qurator assistance',
 
   'ui.blocks.meta.*.expanded': {
-    title: 'Metadata in the package list',
+    title: 'Metadata on the package page',
     description: 'Auto-expand JSON blocks in Metadata section',
   },
   'ui.blocks.meta.user_meta.expanded': 'User metadata',
