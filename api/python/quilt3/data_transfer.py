@@ -90,7 +90,7 @@ class S3ClientProvider:
         self._use_unsigned_client = {}  # f'{action}/{bucket}' -> use_unsigned_client_bool
         self._standard_client = None
         self._unsigned_client = None
-        self._event_callbacks = {}
+        self.__class__._event_callbacks = {}
 
     @property
     def standard_client(self):
@@ -165,7 +165,7 @@ class S3ClientProvider:
         s3_client = session.client('s3', config=Config(**conf_kwargs))
 
         # Apply any stored callbacks to the new client
-        for event_name, callback in self._event_callbacks.items():
+        for event_name, callback in self.__class__._event_callbacks.items():
             s3_client.meta.events.register(event_name, callback)
 
         return s3_client
@@ -196,34 +196,29 @@ class S3ClientProvider:
         Args:
             event_name: The name of the event to register for (e.g. 'creating-client-class')
             callback: The callback function to be called when the event occurs, or None to remove the callback
+
+        Example: Set options to use when writing objects to S3:
+        ```
+                def register_write_options(self, **kwargs):
+                    options = kwargs
+                    event_names = [
+                        "provide-client-params.s3.PutObject",
+                        "provide-client-params.s3.CopyObject",
+                        "provide-client-params.s3.CreateMultipartUpload",
+                        # "provide-client-params.s3.CompleteMultipartUpload",
+                    ]
+
+                    def callback(params, **kwargs):
+                        self.add_options_safely(params, options)
+                    for event_name in event_names:
+                        self.register_event_callback(event_name, callback)
+        ```
         """
-        if callback is None:
-            del self._event_callbacks[event_name]
+        if callback is None and event_name in self.__class__._event_callbacks:
+            logger.warning(f"Overwriting callback for event {event_name}")
+            del self.__class__._event_callbacks[event_name]
         else:
-            self._event_callbacks[event_name] = callback
-
-        # Force clients to re-register the callback on the new clients
-        self._standard_client = None
-        self._unsigned_client = None
-
-    def register_write_options(self, **kwargs):
-        """Register write options for S3 clients.
-
-        Args:
-            **kwargs: The write options to register
-        """
-        event_names = [
-            "provide-client-params.s3.PutObject",
-            "provide-client-params.s3.CopyObject",
-            "provide-client-params.s3.CreateMultipartUpload",
-            # "provide-client-params.s3.CompleteMultipartUpload",
-        ]
-
-        options = kwargs
-        def callback(params, **kwargs):
-            self.add_options_safely(params, options)
-        for event_name in event_names:
-            self.register_event_callback(event_name, callback)
+            self.__class__._event_callbacks[event_name] = callback
 
 
 def check_list_object_versions_works_for_client(s3_client, params):
