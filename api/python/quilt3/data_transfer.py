@@ -179,7 +179,7 @@ class S3ClientProvider:
         self._unsigned_client = s3_client
 
     @staticmethod
-    def add_options_safely(params: dict, options: Optional[dict]):
+    def add_options_safely(params: dict, options: dict):
         """
         Add options to the params dictionary safely.
         This method ensures that the options do not overwrite existing keys in the params dictionary.
@@ -215,7 +215,7 @@ class S3ClientProvider:
         ```
         """
         if callback is None and event_name in self.__class__._event_callbacks:
-            logger.warning(f"Overwriting callback for event {event_name}")
+            logger.warning("Overwriting callback for event %s", event_name)
             del self.__class__._event_callbacks[event_name]
         else:
             self.__class__._event_callbacks[event_name] = callback
