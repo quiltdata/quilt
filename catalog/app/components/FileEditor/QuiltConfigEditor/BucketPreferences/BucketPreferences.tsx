@@ -177,8 +177,6 @@ const I18N = {
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
   'ui.actions.writeFile': 'Buttons to create or edit files',
 
-  'ui.qurator': 'Qurator',
-
   'ui.athena': 'Athena',
   'ui.athena.defaultWorkgroup': 'Default workgroup for Athena queries',
 
@@ -196,10 +194,6 @@ const I18N = {
   'ui.blocks.meta': '"METADATA"',
   'ui.blocks.qurator': 'Qurator assistance',
 
-  'ui.blocks.meta.*.expanded': {
-    title: 'Metadata on the package page',
-    description: 'Auto-expand JSON blocks in Metadata section',
-  },
   'ui.blocks.meta.user_meta.expanded': 'User metadata',
   'ui.blocks.meta.workflows.expanded': 'Workflow',
 
@@ -226,8 +220,17 @@ const I18N = {
     title: 'Package List: selective display settings',
     description: 'Selectively apply display settings to matching packages',
   },
-  'ui.package_description.all': 'Package List: common display settings',
   'ui.package_description.multiline': 'Display `user_meta` fields on separate lines',
+
+  // NOTE: Combine all meta.*.expanded keys into one group
+  'custom_group.expanded_meta': {
+    title: 'Metadata on the package page',
+    description: 'Auto-expand JSON blocks in Metadata section',
+  },
+
+  // NOTE: Additional group keys that not in the original config
+  'custom_group.qurator': 'Qurator',
+  'custom_group.common_package_description': 'Package List: common display settings',
 }
 
 function i18n(key: string): string | { title: string; description: string } {
@@ -330,7 +333,7 @@ function Group({ className, config, disabled, id, onChange, values }: GroupProps
   const description = typeof groupI18n !== 'string' && groupI18n.description
   const layout = React.useMemo(() => {
     switch (id) {
-      case 'ui.blocks.meta.*.expanded':
+      case 'custom_group.expanded_meta':
       case 'ui.nav':
       case 'ui.package_description':
         return 1
@@ -387,15 +390,21 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// Group keys so 'a.b.c', and 'a.b.d' are in the same 'a.b' group
+// Also, move some config keys into standalone groups
+//       or combine some keys into a new group
 function parseGroupKey(key: keyof Config): keyof typeof I18N {
-  if (key === 'ui.package_description.multiline') {
-    return 'ui.package_description.all'
-  }
   if (key === 'ui.blocks.qurator') {
-    return 'ui.qurator'
+    // NOTE: Move 'ui.blocks.qurator' into a standalone group with 'ui.qurator' title
+    return 'custom_group.qurator'
+  }
+  if (key === 'ui.package_description.multiline') {
+    // NOTE: Move into a standalone group
+    return 'custom_group.common_package_description'
   }
   if (key.match(/ui\.blocks\.meta\..*\.expanded/)) {
-    return 'ui.blocks.meta.*.expanded'
+    // NOTE: Combine into a group
+    return 'custom_group.expanded_meta'
   }
   const keyParts = key.split('.')
   if (keyParts.length > 2) {
@@ -425,7 +434,7 @@ export default function BucketPreferences({
             [groupKey]: [...(memo[groupKey] || []), value],
           }
         },
-        {} as Record<string, KeyedValue[]>,
+        {} as Record<keyof typeof I18N, KeyedValue[]>,
       ),
     [config],
   )

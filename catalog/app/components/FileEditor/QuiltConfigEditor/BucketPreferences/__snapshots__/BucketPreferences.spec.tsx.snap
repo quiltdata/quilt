@@ -7,14 +7,14 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
   <p
     className="MuiTypography-root helperText MuiTypography-body2"
   >
-    Configuration for Catalog UI: show and hide features, set default values. See
+    Per-bucket Catalog UI configuration: show and hide features, set default values.
      
     <a
       className="root"
       href="https://docs.quiltdata.com/quilt-platform-administrator/preferences"
       target="_blank"
     >
-      the docs
+      Learn more
     </a>
   </p>
   <div
@@ -27,7 +27,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
-        Show or hide buttons in the UI
+        Show buttons and menu items
       </p>
     </h6>
     <div
@@ -93,7 +93,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Download buttons for files in a "BUCKET" tab
+            Download buttons under the "BUCKET" tab
           </span>
         </label>
       </div>
@@ -109,7 +109,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Download buttons for files in a "PACKAGE" tab
+            Download buttons under the "PACKAGES" tab
           </span>
         </label>
       </div>
@@ -157,7 +157,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
-        Show or hide sections in the UI
+        Show UI sections
       </p>
     </h6>
     <div
@@ -235,7 +235,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root title MuiTypography-h6"
     >
-      Metadata in the package list
+      Metadata on the package page
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
@@ -285,11 +285,11 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root title MuiTypography-h6"
     >
-      Gallery
+      Galleries
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
-        Show or hide image galleries
+        Show image galleries
       </p>
     </h6>
     <div
@@ -384,7 +384,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Enable Qurator assistance
+            Qurator assistance
           </span>
         </label>
       </div>
@@ -400,7 +400,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
-        Show or hide tabs at the top of the bucket pages
+        Show tabs at the top of the bucket pages
       </p>
     </h6>
     <div
@@ -466,7 +466,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
-        List of these buckets will be offered when users click on "ADD FILES FROM BUCKET" in Revise Package dialog
+        Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"
       </p>
     </h6>
     <div
@@ -504,11 +504,11 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root title MuiTypography-h6"
     >
-      Package list appearance (per package settings)
+      Package List: selective display settings
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
-        Match packages with RegExp or implicitly use package names
+        Selectively apply display settings to matching packages
       </p>
     </h6>
     <div
@@ -590,7 +590,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root title MuiTypography-h6"
     >
-      Package list appearance (all packages)
+      Package List: common display settings
     </h6>
     <div
       className="layout"
@@ -607,7 +607,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Display \`user_meta\` on multiple lines
+            Display \`user_meta\` fields on separate lines
           </span>
         </label>
       </div>
