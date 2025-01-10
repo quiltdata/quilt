@@ -187,7 +187,7 @@ export type Config = ReturnType<typeof parse>
 const isJsonRecord = (obj: Json): obj is JsonRecord =>
   obj != null && typeof obj === 'object' && !Array.isArray(obj)
 
-function assocPath(obj: JsonRecord, value: Json, path: string[]): JsonRecord {
+export function assocPath(obj: JsonRecord, value: Json, path: string[]): JsonRecord {
   const [head, ...parts] = path
   if (parts.length === 0) return { ...obj, [head]: value }
   const nested = obj[head]

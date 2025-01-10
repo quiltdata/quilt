@@ -2,7 +2,8 @@ import * as R from 'ramda'
 
 import * as legacyBucketPreferences from 'utils/BucketPreferences/BucketPreferences'
 import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPreferences'
-import { parse, stringify } from './State'
+
+import { assocPath, parse, stringify } from './State'
 import type { Config } from './State'
 
 const legacyPrefs = legacyBucketPreferences.parse('')
@@ -91,6 +92,53 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
       expect(config['ui.blocks.meta'].value).toBe(true)
       expect(config['ui.blocks.meta.user_meta.expanded'].value).toBe(true)
       expect(config['ui.blocks.meta.workflows.expanded'].value).toBe(true)
+    })
+  })
+
+  describe('assocPath', () => {
+    it('makes a shallow clone of an object, overriding only what is necessary for the path', () => {
+      const obj1 = {
+        a: { b: 1, c: 2, d: { e: 3 } },
+        f: { g: { h: 4, i: { x: 5, y: 6, z: 7 }, j: { k: 6, l: 7 } } },
+        m: 8,
+      }
+      const obj2 = assocPath(obj1, 42, ['f', 'g', 'i', 'y'])
+      // @ts-expect-error
+      expect(obj2.f.g.i).toStrictEqual({ x: 5, y: 42, z: 7 })
+      expect(obj2.a).toBe(obj1.a)
+      expect(obj2.m).toBe(obj1.m)
+      // @ts-expect-error
+      expect(obj2.f.g.h).toBe(obj1.f.g.h)
+      // @ts-expect-error
+      expect(obj2.f.g.j).toBe(obj1.f.g.j)
+    })
+
+    it('is the equivalent of clone and setPath if the property is not on the original', () => {
+      const obj1 = { a: 1, b: { c: 2, d: 3 }, e: 4, f: 5 }
+      const obj2 = assocPath(obj1, 42, ['x', 'y'])
+      expect(obj2).toStrictEqual({
+        a: 1,
+        b: { c: 2, d: 3 },
+        e: 4,
+        f: 5,
+        x: { y: 42 },
+      })
+      expect(obj2.a).toBe(obj1.a)
+      expect(obj2.b).toBe(obj1.b)
+      expect(obj2.e).toBe(obj1.e)
+      expect(obj2.f).toBe(obj1.f)
+    })
+
+    it('overwrites primitive values with keys in the path', () => {
+      const obj1 = { a: 'str' }
+      const obj2 = assocPath(obj1, 42, ['a', 'b'])
+      expect(obj2.a).toStrictEqual({ b: 42 })
+    })
+
+    it('replaces `null` with a new object', () => {
+      expect(assocPath({ foo: null }, 42, ['foo', 'bar', 'baz'])).toStrictEqual({
+        foo: { bar: { baz: 42 } },
+      })
     })
   })
 })
