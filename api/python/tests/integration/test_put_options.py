@@ -6,7 +6,7 @@ from unittest.mock import ANY, patch
 from botocore.exceptions import ClientError
 
 from quilt3 import Bucket, Package
-from quilt3.data_transfer import PhysicalKey
+from quilt3.data_transfer import PhysicalKey, S3ClientProvider
 from quilt3.packages import PackageEntry
 
 from ..utils import QuiltTestCase
@@ -168,7 +168,8 @@ class TestPutOptions(QuiltTestCase):
             S3_BUCKET.put_file(key=dest, path=TEST_SRC)
 
         # Retry with ServerSideEncryption
-        S3_BUCKET.put_file(key=dest, path=TEST_SRC, put_options=USE_KMS)
+        S3ClientProvider().register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+        S3_BUCKET.put_file(key=dest, path=TEST_SRC)
 
         # Verify the final call to the patched put_object method
         mock_put_object.assert_called_with(**self.mock_call_args(dest))
