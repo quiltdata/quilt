@@ -50,7 +50,7 @@ function InputBoolean({
           />
         }
         disabled={disabled}
-        label={i18n(key)}
+        label={fieldI18n(key)}
       />
     </M.FormControl>
   )
@@ -73,7 +73,7 @@ function InputValue({
         shrink: true,
       }}
       className={className}
-      label={i18n(key)}
+      label={fieldI18n(key)}
       value={value}
       onChange={handleChange}
     />
@@ -163,11 +163,7 @@ function InputPackageDescription({
   return <PackageDescription {...props} onChange={handleChange} value={value} />
 }
 
-const I18N = {
-  'ui.actions': {
-    title: 'Actions',
-    description: 'Show buttons and menu items',
-  },
+const I18N_FIELDS = {
   'ui.actions.copyPackage': '"PUSH TO BUCKET" on the package page',
   'ui.actions.createPackage':
     '"CREATE PACKAGE" on the package list and bucket listing pages',
@@ -177,17 +173,8 @@ const I18N = {
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
   'ui.actions.writeFile': 'Buttons to create or edit files',
 
-  'ui.athena': 'Athena',
   'ui.athena.defaultWorkgroup': 'Default workgroup for Athena queries',
 
-  'ui.blocks': {
-    title: 'Sections',
-    description: 'Show UI sections',
-  },
-  'ui.blocks.gallery': {
-    title: 'Galleries',
-    description: 'Show image galleries',
-  },
   'ui.blocks.analytics': '"ANALYTICS" on the file page',
   'ui.blocks.browser': 'File listings on bucket and packages pages',
   'ui.blocks.code': '"CODE"',
@@ -203,25 +190,14 @@ const I18N = {
   'ui.blocks.gallery.summarize':
     'Image galleries alongside those defined in quilt_summarize.json',
 
-  'ui.nav': {
-    title: 'Navigation items',
-    description: 'Show tabs at the top of the bucket pages',
-  },
   'ui.nav.files': '"BUCKET"',
   'ui.nav.packages': '"PACKAGES"',
   'ui.nav.queries': '"QUERIES"',
 
-  'ui.source_buckets': {
-    title: 'Source buckets for packages',
-    description:
-      'Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"',
-  },
-  'ui.package_description': {
-    title: 'Package List: selective display settings',
-    description: 'Selectively apply display settings to matching packages',
-  },
   'ui.package_description.multiline': 'Display `user_meta` fields on separate lines',
+}
 
+const I18N_GROUPS = {
   // NOTE: Combine all meta.*.expanded keys into one group
   'custom_group.expanded_meta': {
     title: 'Metadata on the package page',
@@ -229,12 +205,43 @@ const I18N = {
   },
 
   // NOTE: Additional group keys that not in the original config
-  'custom_group.qurator': 'Qurator',
   'custom_group.common_package_description': 'Package List: common display settings',
+  'custom_group.qurator': 'Qurator',
+
+  'ui.athena': 'Athena',
+  'ui.nav': {
+    title: 'Navigation items',
+    description: 'Show tabs at the top of the bucket pages',
+  },
+  'ui.blocks': {
+    title: 'Sections',
+    description: 'Show UI sections',
+  },
+  'ui.blocks.gallery': {
+    title: 'Galleries',
+    description: 'Show image galleries',
+  },
+  'ui.actions': {
+    title: 'Actions',
+    description: 'Show buttons and menu items',
+  },
+  'ui.package_description': {
+    title: 'Package List: selective display settings',
+    description: 'Selectively apply display settings to matching packages',
+  },
+  'ui.source_buckets': {
+    title: 'Source buckets for packages',
+    description:
+      'Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"',
+  },
 }
 
-function i18n(key: string): string | { title: string; description: string } {
-  return I18N[key as keyof typeof I18N] ?? key
+function fieldI18n(key: string): string {
+  return I18N_FIELDS[key as keyof typeof I18N_FIELDS] ?? key
+}
+
+function groupI18n(key: string): string | { title: string; description: string } {
+  return I18N_GROUPS[key as keyof typeof I18N_GROUPS] ?? key
 }
 
 interface FieldProps<V = KeyedValue> {
@@ -321,16 +328,16 @@ interface GroupProps {
   className: string
   config: Config
   disabled?: boolean
-  id: keyof typeof I18N
+  id: keyof typeof I18N_GROUPS
   onChange: (v: KeyedValue) => void
   values: Config[keyof Config][]
 }
 
 function Group({ className, config, disabled, id, onChange, values }: GroupProps) {
   const classes = useGroupStyles()
-  const groupI18n = i18n(id)
-  const title = typeof groupI18n === 'string' ? groupI18n : groupI18n.title
-  const description = typeof groupI18n !== 'string' && groupI18n.description
+  const i18n = groupI18n(id)
+  const title = typeof i18n === 'string' ? i18n : i18n.title
+  const description = typeof i18n !== 'string' && i18n.description
   const layout = React.useMemo(() => {
     switch (id) {
       case 'custom_group.expanded_meta':
@@ -393,7 +400,7 @@ const useStyles = M.makeStyles((t) => ({
 // Group keys so 'a.b.c', and 'a.b.d' are in the same 'a.b' group
 // Also, move some config keys into standalone groups
 //       or combine some keys into a new group
-function parseGroupKey(key: keyof Config): keyof typeof I18N {
+function parseGroupKey(key: keyof Config): keyof typeof I18N_GROUPS {
   if (key === 'ui.blocks.qurator') {
     // NOTE: Move 'ui.blocks.qurator' into a standalone group with 'ui.qurator' title
     return 'custom_group.qurator'
@@ -408,9 +415,9 @@ function parseGroupKey(key: keyof Config): keyof typeof I18N {
   }
   const keyParts = key.split('.')
   if (keyParts.length > 2) {
-    return keyParts.slice(0, -1).join('.') as keyof typeof I18N
+    return keyParts.slice(0, -1).join('.') as keyof typeof I18N_GROUPS
   }
-  return key as keyof typeof I18N
+  return key as keyof typeof I18N_GROUPS
 }
 
 export default function BucketPreferences({
@@ -434,7 +441,7 @@ export default function BucketPreferences({
             [groupKey]: [...(memo[groupKey] || []), value],
           }
         },
-        {} as Record<keyof typeof I18N, KeyedValue[]>,
+        {} as Record<keyof typeof I18N_GROUPS, KeyedValue[]>,
       ),
     [config],
   )
@@ -469,7 +476,7 @@ export default function BucketPreferences({
           className={classes.group}
           config={config}
           disabled={disabled}
-          id={id as keyof typeof I18N}
+          id={id as keyof typeof I18N_GROUPS}
           key={id}
           onChange={handleChange}
           values={values}
