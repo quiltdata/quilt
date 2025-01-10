@@ -48,8 +48,8 @@ function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
           }}
           error={!!error}
           helperText={error?.message}
-          label="JSON paths from `user_meta`"
-          placeholder="$.Some.Key, $.Another.Key"
+          label="Metadata fields (JSON paths from `user_meta`)"
+          placeholder="e.g. $.Some.Key, $.Another.Key"
         />
       )}
       size={size}
@@ -110,7 +110,7 @@ function PackageHandle({
         shrink: true,
       }}
       disabled={disabled}
-      label="RegExp or name for the package handle"
+      label="Package name pattern (RegExp or substring)"
       onBlur={() => onChange(value)}
       onChange={handleChange}
       onKeyDown={handleEnter}

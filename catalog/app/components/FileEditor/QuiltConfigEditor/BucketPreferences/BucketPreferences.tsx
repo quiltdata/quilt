@@ -141,7 +141,7 @@ function InputSourceBuckets({
             shrink: true,
           }}
           label="Allowed buckets"
-          placeholder="s3://quilt-example"
+          placeholder="e.g. s3://quilt-example"
         />
       )}
       value={value}
@@ -166,14 +166,14 @@ function InputPackageDescription({
 const I18N = {
   'ui.actions': {
     title: 'Actions',
-    description: 'Show or hide buttons in the UI',
+    description: 'Show buttons and menu items',
   },
   'ui.actions.copyPackage': '"PUSH TO BUCKET" on the package page',
   'ui.actions.createPackage':
     '"CREATE PACKAGE" on the package list and bucket listing pages',
   'ui.actions.deleteRevision': '"DELETE REVISION" menu item on the package page',
-  'ui.actions.downloadObject': 'Download buttons for files in a "BUCKET" tab',
-  'ui.actions.downloadPackage': 'Download buttons for files in a "PACKAGE" tab',
+  'ui.actions.downloadObject': 'Download buttons under the "BUCKET" tab',
+  'ui.actions.downloadPackage': 'Download buttons under the "PACKAGES" tab',
   'ui.actions.revisePackage': '"REVISE PACKAGE" on the package page',
   'ui.actions.writeFile': 'Buttons to create or edit files',
 
@@ -184,11 +184,11 @@ const I18N = {
 
   'ui.blocks': {
     title: 'Sections',
-    description: 'Show or hide sections in the UI',
+    description: 'Show UI sections',
   },
   'ui.blocks.gallery': {
-    title: 'Gallery',
-    description: 'Show or hide image galleries',
+    title: 'Galleries',
+    description: 'Show image galleries',
   },
   'ui.blocks.analytics': '"ANALYTICS" on the file page',
   'ui.blocks.browser': 'File listings on bucket and packages pages',
@@ -211,7 +211,7 @@ const I18N = {
 
   'ui.nav': {
     title: 'Navigation items',
-    description: 'Show or hide tabs at the top of the bucket pages',
+    description: 'Show tabs at the top of the bucket pages',
   },
   'ui.nav.files': '"BUCKET"',
   'ui.nav.packages': '"PACKAGES"',
@@ -220,14 +220,14 @@ const I18N = {
   'ui.source_buckets': {
     title: 'Source buckets for packages',
     description:
-      'List of these buckets will be offered when users click on "ADD FILES FROM BUCKET" in Revise Package dialog',
+      'Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"',
   },
   'ui.package_description': {
     title: 'Package list appearance (per package settings)',
     description: 'Match packages with RegExp or implicitly use package names',
   },
   'ui.package_description.all': 'Package list appearance (all packages)',
-  'ui.package_description.multiline': 'Display `user_meta` on multiple lines',
+  'ui.package_description.multiline': 'Display `user_meta` fields on separate lines',
 }
 
 function i18n(key: string): string | { title: string; description: string } {
@@ -442,12 +442,12 @@ export default function BucketPreferences({
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography variant="body2" className={classes.helperText}>
-        Configuration for Catalog UI: show and hide features, set default values. See{' '}
+        Per-bucket Catalog UI configuration: show and hide features, set default values.{' '}
         <StyledLink
           href={`${docs}/quilt-platform-administrator/preferences`}
           target="_blank"
         >
-          the docs
+          Learn more
         </StyledLink>
       </M.Typography>
 
