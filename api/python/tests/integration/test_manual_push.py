@@ -29,7 +29,7 @@ def dest_key(test_name):
     return f"{dest_dir(test_name)}/{TEST_FILE}"
 
 
-def test_package_push_mpu():
+def test_manual_package_push_():
     should_delete = True
     pkg_name = dest_dir("test_package_push_mpu")
     dest_file = dest_key("test_package_push_mpu")
@@ -39,12 +39,14 @@ def test_package_push_mpu():
     pkg.set(TEST_FILE, TEST_SRC)
 
     with raises(
-        ClientError, 
-        match=r"An error occurred \(AccessDenied\) when calling the CreateMultipartUpload operation:.*"
+        ClientError,
+        match=r"An error occurred \(AccessDenied\) when calling the PutObject operation:.*"
     ):
         pkg.push(pkg_name, TEST_BUCKET_URI, force=True)
 
-    S3ClientProvider().register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+    S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+    S3ClientProvider.register_event_options("provide-client-params.s3.CreateMultipartUpload", **USE_KMS)
+    print(f"test_package_push_mpu.pkg_name: {pkg_name} using {S3ClientProvider._event_callbacks}")
     pkg.push(pkg_name, TEST_BUCKET_URI, force=True)
 
     # Use boto3 to verify the object was uploaded with the correct encryption
