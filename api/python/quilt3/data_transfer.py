@@ -99,6 +99,10 @@ class S3ClientProvider:
             params[key] = value
 
     @classmethod
+    def reset_event_callbacks(cls):
+        cls._event_callbacks = {}
+
+    @classmethod
     def register_event_options(cls, event_name: str, **kwargs: dict) -> None:
         """Register options for S3 client events.
 

@@ -34,6 +34,23 @@ def test_client(credentials_context_manager, client, is_unsigned):
         assert (getattr(S3ClientProvider(), client).meta.config.signature_version == botocore.UNSIGNED) is is_unsigned
 
 
+def test_reset_event_callbacks():
+    # Step 1: Register a callback
+    def dummy_callback(params, **kwargs):
+        params["DummyKey"] = "DummyValue"
+
+    S3ClientProvider.register_event_callback("provide-client-params.s3.PutObject", dummy_callback)
+
+    # Step 2: Verify the callback is registered
+    assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_callbacks
+
+    # Step 3: Reset the event callbacks
+    S3ClientProvider.reset_event_callbacks()
+
+    # Step 4: Verify the callback is removed
+    assert "provide-client-params.s3.PutObject" not in S3ClientProvider._event_callbacks
+
+
 def test_add_options_safely():
     # Step 1: Define the base params
     params = {"Checksum": "1234"}
