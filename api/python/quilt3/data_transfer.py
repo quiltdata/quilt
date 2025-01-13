@@ -85,6 +85,72 @@ class S3ClientProvider:
 
     We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
     """
+    _event_callbacks = {}
+
+    @staticmethod
+    def add_options_safely(params: dict, options: dict):
+        """
+        Add options to the params dictionary safely.
+        This method ensures that the options do not overwrite existing keys in the params dictionary.
+        """
+        for key, value in options.items():
+            if key in params:
+                raise ValueError(f"Cannot override key `{key}` using options: {options}.")
+            params[key] = value
+
+    @classmethod
+    def reset_event_callbacks(cls):
+        cls._event_callbacks = {}
+
+    @classmethod
+    def register_event_options(cls, event_name: str, **kwargs: dict) -> None:
+        """Register options for S3 client events. A convenience method over register_event_callback
+        for trivial callbacks that always and only add options.
+
+        Args:
+            event_name: The name of the event to register for (e.g. 'creating-client-class')
+            kwargs: The options to be added to the client params when the event occurs
+
+        Example: Set options to use when writing objects to S3:
+        ```
+        def register_write_options(provider, **kwargs):
+            event_names = [
+                "provide-client-params.s3.PutObject",
+                "provide-client-params.s3.CopyObject",
+                "provide-client-params.s3.CreateMultipartUpload",
+                "provide-client-params.s3.CompleteMultipartUpload",
+            ]
+
+            for event_name in event_names:
+                provider.register_event_options(event_name, **kwargs)
+        ```
+        """
+
+        def callback(params, **_kwargs):
+            cls.add_options_safely(params, kwargs)
+
+        cls.register_event_callback(event_name, callback)
+
+    @classmethod
+    def register_event_callback(cls, event_name: str, callback: Callable) -> None:
+        """Register a callback for S3 client events.
+
+        Args:
+            event_name: The name of the event to register for (e.g. 'creating-client-class')
+            callback: The callback function to be called when the event occurs. The callback should take the params dict and arbitrary keyword arguments, then modify them in place.
+
+        Example: Add SSE Encryption options to put_object calls:
+        ```
+        options = {"ServerSideEncryption": "AES256"}
+        def callback(params, **_kwargs):
+            # Can add options based on the existing params
+            provider.add_options_safely(params, options)
+        provider.register_event_callback("provide-client-params.s3.PutObject", callback)
+        ```
+        """
+        if event_name in cls._event_callbacks:
+            logger.warning("Overwriting existing callback for event %s", event_name)
+        cls._event_callbacks[event_name] = callback
 
     def __init__(self):
         self._use_unsigned_client = {}  # f'{action}/{bucket}' -> use_unsigned_client_bool
@@ -161,7 +227,13 @@ class S3ClientProvider:
         if is_unsigned(session):
             conf_kwargs["signature_version"] = UNSIGNED
 
-        return session.client('s3', config=Config(**conf_kwargs))
+        s3_client = session.client('s3', config=Config(**conf_kwargs))
+
+        # Apply any stored callbacks to the new client
+        for event_name, callback in self.__class__._event_callbacks.items():
+            s3_client.meta.events.register(event_name, callback)
+
+        return s3_client
 
     def _build_standard_client(self):
         s3_client = self._build_client(lambda session: session.get_credentials() is None)
