@@ -56,12 +56,12 @@ function InputBoolean({
   )
 }
 
-function InputValue({
+function AthenaDefaultWorkgroup({
   className,
   onChange,
   value: { key, value },
   ...props
-}: FieldProps<TypedValue<string>>) {
+}: FieldProps<KeyedValue<'ui.athena.defaultWorkgroup'>>) {
   const handleChange = React.useCallback(
     (event) => onChange({ isDefault: false, key, value: event.target.value }),
     [key, onChange],
@@ -74,8 +74,9 @@ function InputValue({
       }}
       className={className}
       label={fieldI18n(key)}
-      value={value}
       onChange={handleChange}
+      placeholder="e.g. primary"
+      value={value}
     />
   )
 }
@@ -316,8 +317,8 @@ function Field({ config, value, ...props }: FieldPropsWithConfig) {
     )
   }
 
-  if (typeof value.value === 'string') {
-    return <InputValue {...props} value={value as TypedValue<string>} />
+  if (value.key === 'ui.athena.defaultWorkgroup') {
+    return <AthenaDefaultWorkgroup {...props} value={value as TypedValue<string>} />
   }
 
   if (
