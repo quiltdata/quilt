@@ -504,6 +504,35 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root title MuiTypography-h6"
     >
+      Package List: common display settings
+    </h6>
+    <div
+      className="layout"
+    >
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Display \`user_meta\` fields on separate lines, when enabled. Visibility of the \`user_meta\` can be configured in the next section.
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    className="group"
+  >
+    <h6
+      className="MuiTypography-root title MuiTypography-h6"
+    >
       Package List: selective display settings
       <p
         className="MuiTypography-root description MuiTypography-body2"
@@ -581,35 +610,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             </label>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-  <div
-    className="group"
-  >
-    <h6
-      className="MuiTypography-root title MuiTypography-h6"
-    >
-      Package List: common display settings
-    </h6>
-    <div
-      className="layout"
-    >
-      <div
-        className="MuiFormControl-root"
-      >
-        <label
-          className="MuiFormControlLabel-root"
-        >
-          <div
-            id="checkbox"
-          />
-          <span
-            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-          >
-            Display \`user_meta\` fields on separate lines
-          </span>
-        </label>
       </div>
     </div>
   </div>
