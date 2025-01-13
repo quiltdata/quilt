@@ -2,7 +2,7 @@ import pathlib
 
 import boto3
 from botocore.exceptions import ClientError
-from pytest import raises, mark
+from pytest import mark, raises
 
 from quilt3 import Bucket, Package, delete_package
 from quilt3.data_transfer import S3ClientProvider

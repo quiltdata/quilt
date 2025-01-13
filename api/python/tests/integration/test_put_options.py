@@ -320,7 +320,7 @@ class TestPutOptions(QuiltTestCase):
 
         mock_complete_mpu.assert_called()
         mock_create_mpu.assert_called()
-        mock_get_object.assert_called()  
+        mock_get_object.assert_called()
         mock_is_mpu.assert_called()
         mock_list_objects.assert_called
         mock_upload_part.assert_called()

@@ -94,7 +94,7 @@ def test_register_event_callback():
 
     # Step 2: Verify the event is registered
     assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_callbacks
-    assert S3ClientProvider._event_callbacks["provide-client-params.s3.PutObject"] == dummy_callback
+    assert S3ClientProvider._event_callbacks["provide-client-params.s3.PutObject"] == dummy_callback  # noqa: W0143
 
 
 def test_callback_execution():
