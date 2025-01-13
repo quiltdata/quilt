@@ -47,7 +47,7 @@ def test_manual_package_push_():
 
     S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
     S3ClientProvider.register_event_options("provide-client-params.s3.CreateMultipartUpload", **USE_KMS)
-    print(f"test_package_push_mpu.pkg_name: {pkg_name} using {S3ClientProvider._event_callbacks}")
+    print(f"test_package_push_mpu.pkg_name: {pkg_name} using {S3ClientProvider._event_handlers}")
     pkg.push(pkg_name, TEST_BUCKET_URI, force=True)
 
     # Use boto3 to verify the object was uploaded with the correct encryption

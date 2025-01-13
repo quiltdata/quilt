@@ -34,21 +34,21 @@ def test_client(credentials_context_manager, client, is_unsigned):
         assert (getattr(S3ClientProvider(), client).meta.config.signature_version == botocore.UNSIGNED) is is_unsigned
 
 
-def test_reset_event_callbacks():
-    # Step 1: Register a callback
-    def dummy_callback(params, **kwargs):
+def test_reset_event_handlers():
+    # Step 1: Register a handler
+    def dummy_handler(params, **kwargs):
         params["DummyKey"] = "DummyValue"
 
-    S3ClientProvider.register_event_callback("provide-client-params.s3.PutObject", dummy_callback)
+    S3ClientProvider.register_event_handler("provide-client-params.s3.PutObject", dummy_handler)
 
-    # Step 2: Verify the callback is registered
-    assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_callbacks
+    # Step 2: Verify the handler is registered
+    assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_handlers
 
-    # Step 3: Reset the event callbacks
-    S3ClientProvider.reset_event_callbacks()
+    # Step 3: Reset the event handlers
+    S3ClientProvider.reset_event_handlers()
 
-    # Step 4: Verify the callback is removed
-    assert "provide-client-params.s3.PutObject" not in S3ClientProvider._event_callbacks
+    # Step 4: Verify the handler is removed
+    assert "provide-client-params.s3.PutObject" not in S3ClientProvider._event_handlers
 
 
 def test_add_options_safely():
@@ -76,40 +76,40 @@ def test_register_event_options():
     options = {"ServerSideEncryption": "AES256"}
     S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **options)
 
-    # Step 2: Verify a callback is registered
-    assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_callbacks
+    # Step 2: Verify a handler is registered
+    assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_handlers
 
-    # Step 3: Verify the callback updates the params
+    # Step 3: Verify the handler updates the params
     params = {}
-    S3ClientProvider._event_callbacks["provide-client-params.s3.PutObject"](params)
+    S3ClientProvider._event_handlers["provide-client-params.s3.PutObject"](params)
     assert params["ServerSideEncryption"] == "AES256"
 
 
-def test_register_event_callback():
-    # Step 1: Register an event and callback
-    def dummy_callback(params, **kwargs):
+def test_register_event_handler():
+    # Step 1: Register an event and handler
+    def dummy_handler(params, **kwargs):
         params["DummyKey"] = "DummyValue"
 
-    S3ClientProvider.register_event_callback("provide-client-params.s3.PutObject", dummy_callback)
+    S3ClientProvider.register_event_handler("provide-client-params.s3.PutObject", dummy_handler)
 
     # Step 2: Verify the event is registered
-    assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_callbacks
-    assert callable(S3ClientProvider._event_callbacks["provide-client-params.s3.PutObject"])
+    assert "provide-client-params.s3.PutObject" in S3ClientProvider._event_handlers
+    assert callable(S3ClientProvider._event_handlers["provide-client-params.s3.PutObject"])
 
 
-def test_callback_execution():
-    # Step 1: Register a callback that modifies params
+def test_handler_execution():
+    # Step 1: Register a handler that modifies params
     options = {"ServerSideEncryption": "AES256"}
 
-    def callback(params, **_kwargs):
+    def handler(params, **_kwargs):
         S3ClientProvider.add_options_safely(params, options)
 
-    S3ClientProvider.register_event_callback("provide-client-params.s3.PutObject", callback)
+    S3ClientProvider.register_event_handler("provide-client-params.s3.PutObject", handler)
 
     # Step 2: Simulate triggering the event and modifying params
     params = {}
-    callback_func = S3ClientProvider._event_callbacks["provide-client-params.s3.PutObject"]
-    callback_func(params)
+    handler_func = S3ClientProvider._event_handlers["provide-client-params.s3.PutObject"]
+    handler_func(params)
 
     # Step 3: Verify params were modified
     assert params["ServerSideEncryption"] == "AES256"

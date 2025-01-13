@@ -116,9 +116,9 @@ class TestPutOptions(QuiltTestCase):
     @staticmethod
     def update_client_params_for_call(call_name, params):
         event_name = f"provide-client-params.s3.{call_name}"
-        callback = S3ClientProvider._event_callbacks.get(event_name)
-        if callback:
-            callback(params)
+        handler = S3ClientProvider._event_handlers.get(event_name)
+        if handler:
+            handler(params)
 
     @classmethod
     def mock_put_object_side_effect(cls, Bucket, Key, Body, **kwargs):
@@ -163,7 +163,7 @@ class TestPutOptions(QuiltTestCase):
         }
 
     def test_update_client_params_for_call(self):
-        S3ClientProvider._event_callbacks = {}
+        S3ClientProvider._event_handlers = {}
         params = {}
         self.update_client_params_for_call("PutObject", params)
         assert not params
@@ -174,7 +174,7 @@ class TestPutOptions(QuiltTestCase):
 
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
     def test_bucket_put_file(self, mock_put_object):
-        S3ClientProvider.reset_event_callbacks()
+        S3ClientProvider.reset_event_handlers()
         dest = "test_bucket_put_file_dest_key"
 
         # Simulate AccessDenied error
@@ -199,7 +199,7 @@ class TestPutOptions(QuiltTestCase):
     def test_bucket_put_dir(
         self, mock_complete_mpu, mock_create_mpu, mock_copy_object, mock_head_object, mock_put_object, mock_upload_part
     ):
-        S3ClientProvider.reset_event_callbacks()
+        S3ClientProvider.reset_event_handlers()
         dest = dest_dir("test_bucket_put_dir")
 
         mock_complete_mpu.return_value = {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}
@@ -228,7 +228,7 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     def test_package_push(self, mock_get_object, mock_list_objects, mock_put_object):
         """Package push !mpu -> put_object"""
-        S3ClientProvider.reset_event_callbacks()
+        S3ClientProvider.reset_event_handlers()
         mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
@@ -256,7 +256,7 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
     def test_package_entry_fetch(self, mock_copy_object, mock_head_object, mock_is_mpu):
         """_copy_remote_file !mpu -> copy_object"""
-        S3ClientProvider.reset_event_callbacks()
+        S3ClientProvider.reset_event_handlers()
         mock_copy_object.side_effect = self.mock_copy_object_side_effect
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_is_mpu.return_value = False
@@ -294,7 +294,7 @@ class TestPutOptions(QuiltTestCase):
         mock_upload_part,
     ):
         """_copy_local_file mpu -> create_multipart_upload"""
-        S3ClientProvider.reset_event_callbacks()
+        S3ClientProvider.reset_event_handlers()
         mock_complete_mpu.return_value = {
             "Location": "test-location",
             "VersionId": "test-version-id",
@@ -343,7 +343,7 @@ class TestPutOptions(QuiltTestCase):
         mock_upload_part,
     ):
         """_copy_remote_file mpu -> create_multipart_upload"""
-        S3ClientProvider.reset_event_callbacks()
+        S3ClientProvider.reset_event_handlers()
         mock_complete_mpu.return_value = {
             "Location": "test-location",
             "VersionId": "test-version-id",

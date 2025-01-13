@@ -85,7 +85,7 @@ class S3ClientProvider:
 
     We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
     """
-    _event_callbacks = {}
+    _event_handlers = {}
 
     @staticmethod
     def add_options_safely(params: dict, options: dict):
@@ -99,13 +99,13 @@ class S3ClientProvider:
             params[key] = value
 
     @classmethod
-    def reset_event_callbacks(cls):
-        cls._event_callbacks = {}
+    def reset_event_handlers(cls):
+        cls._event_handlers = {}
 
     @classmethod
     def register_event_options(cls, event_name: str, **kwargs: dict) -> None:
-        """Register options for S3 client events. A convenience method over register_event_callback
-        for trivial callbacks that always and only add options.
+        """Register options for S3 client events. A convenience method over register_event_handler
+        for trivial handlers that always and only add options.
 
         Args:
             event_name: The name of the event to register for (e.g. 'creating-client-class')
@@ -126,31 +126,33 @@ class S3ClientProvider:
         ```
         """
 
-        def callback(params, **_kwargs):
+        def handler(params, **_kwargs):
             cls.add_options_safely(params, kwargs)
 
-        cls.register_event_callback(event_name, callback)
+        cls.register_event_handler(event_name, handler)
 
     @classmethod
-    def register_event_callback(cls, event_name: str, callback: Callable) -> None:
-        """Register a callback for S3 client events.
+    def register_event_handler(cls, event_name: str, handler: Callable) -> None:
+        """Register a handler for S3 client events.
 
         Args:
             event_name: The name of the event to register for (e.g. 'creating-client-class')
-            callback: The callback function to be called when the event occurs. The callback should take the params dict and arbitrary keyword arguments, then modify them in place.
+            handler: The handler function to be called when the event occurs.
+            The handler should take the params dict and arbitrary keyword arguments,
+            then modify them in place.
 
         Example: Add SSE Encryption options to put_object calls:
         ```
         options = {"ServerSideEncryption": "AES256"}
-        def callback(params, **_kwargs):
+        def handler(params, **_kwargs):
             # Can add options based on the existing params
             provider.add_options_safely(params, options)
-        provider.register_event_callback("provide-client-params.s3.PutObject", callback)
+        provider.register_event_handler("provide-client-params.s3.PutObject", handler)
         ```
         """
-        if event_name in cls._event_callbacks:
-            logger.warning("Overwriting existing callback for event %s", event_name)
-        cls._event_callbacks[event_name] = callback
+        if event_name in cls._event_handlers:
+            logger.warning("Overwriting existing handler for event %s", event_name)
+        cls._event_handlers[event_name] = handler
 
     def __init__(self):
         self._use_unsigned_client = {}  # f'{action}/{bucket}' -> use_unsigned_client_bool
@@ -229,9 +231,9 @@ class S3ClientProvider:
 
         s3_client = session.client('s3', config=Config(**conf_kwargs))
 
-        # Apply any stored callbacks to the new client
-        for event_name, callback in self.__class__._event_callbacks.items():
-            s3_client.meta.events.register(event_name, callback)
+        # Apply any stored handlers to the new client
+        for event_name, handler in self.__class__._event_handlers.items():
+            s3_client.meta.events.register(event_name, handler)
 
         return s3_client
 
