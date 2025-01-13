@@ -181,8 +181,8 @@ const I18N_FIELDS = {
   'ui.blocks.meta': '"METADATA"',
   'ui.blocks.qurator': 'Qurator assistance',
 
-  'ui.blocks.meta.user_meta.expanded': 'User metadata',
-  'ui.blocks.meta.workflows.expanded': 'Workflow',
+  'ui.blocks.meta.user_meta.expanded': 'Auto-expand "User Metadata" field',
+  'ui.blocks.meta.workflows.expanded': 'Auto-expand "Workflow" field',
 
   'ui.blocks.gallery.files': 'Images in the directory listing on bucket pages',
   'ui.blocks.gallery.overview': 'Images on the Bucket overview page',
@@ -200,8 +200,8 @@ const I18N_FIELDS = {
 const I18N_GROUPS = {
   // NOTE: Combine all meta.*.expanded keys into one group
   'custom_group.expanded_meta': {
-    title: 'Metadata on the package page',
-    description: 'Auto-expand JSON blocks in Metadata section',
+    title: 'Metadata Display',
+    description: 'Display settings for JSON blocks in Metadata section on object and package pages',
   },
 
   // NOTE: Additional group keys that not in the original config
