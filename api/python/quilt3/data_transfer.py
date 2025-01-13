@@ -104,7 +104,8 @@ class S3ClientProvider:
 
     @classmethod
     def register_event_options(cls, event_name: str, **kwargs: dict) -> None:
-        """Register options for S3 client events.
+        """Register options for S3 client events. A convenience method over register_event_callback
+        for trivial callbacks that always and only add options.
 
         Args:
             event_name: The name of the event to register for (e.g. 'creating-client-class')
@@ -136,9 +137,9 @@ class S3ClientProvider:
 
         Args:
             event_name: The name of the event to register for (e.g. 'creating-client-class')
-            callback: The callback function to be called when the event occurs
+            callback: The callback function to be called when the event occurs. The callback should take the params dict and arbitrary keyword arguments, then modify them in place.
 
-        Example: Add SSE Encryption to put_object calls:
+        Example: Add SSE Encryption options to put_object calls:
         ```
         options = {"ServerSideEncryption": "AES256"}
         def callback(params, **_kwargs):
