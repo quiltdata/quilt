@@ -194,54 +194,77 @@ const I18N_FIELDS = {
   'ui.nav.packages': '"PACKAGES"',
   'ui.nav.queries': '"QUERIES"',
 
-  'ui.package_description.multiline': 'Display `user_meta` fields on separate lines',
+  'ui.package_description.multiline':
+    'Display `user_meta` fields on separate lines, when enabled. Visibility of the `user_meta` can be configured in the next section.',
 }
 
-const I18N_GROUPS = {
+const GROUPS = {
   // NOTE: Combine all meta.*.expanded keys into one group
   'custom_group.expanded_meta': {
-    title: 'Metadata on the package page',
     description: 'Auto-expand JSON blocks in Metadata section',
+    sortIndex: 0,
+    title: 'Metadata on the package page',
   },
 
   // NOTE: Additional group keys that not in the original config
-  'custom_group.common_package_description': 'Package List: common display settings',
-  'custom_group.qurator': 'Qurator',
+  'custom_group.common_package_description': {
+    sortIndex: 10,
+    title: 'Package List: common display settings',
+  },
+  'custom_group.qurator': {
+    sortIndex: 0,
+    title: 'Qurator',
+  },
 
-  'ui.athena': 'Athena',
+  'ui.athena': {
+    sortIndex: 30,
+    title: 'Athena',
+  },
   'ui.nav': {
-    title: 'Navigation items',
     description: 'Show tabs at the top of the bucket pages',
+    sortIndex: 0,
+    title: 'Navigation items',
   },
   'ui.blocks': {
-    title: 'Sections',
     description: 'Show UI sections',
+    sortIndex: 0,
+    title: 'Sections',
   },
   'ui.blocks.gallery': {
-    title: 'Galleries',
     description: 'Show image galleries',
+    sortIndex: 0,
+    title: 'Galleries',
   },
   'ui.actions': {
-    title: 'Actions',
     description: 'Show buttons and menu items',
+    sortIndex: 0,
+    title: 'Actions',
   },
   'ui.package_description': {
-    title: 'Package List: selective display settings',
     description: 'Selectively apply display settings to matching packages',
+    sortIndex: 20,
+    title: 'Package List: selective display settings',
   },
   'ui.source_buckets': {
-    title: 'Source buckets for packages',
     description:
       'Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"',
+    sortIndex: 0,
+    title: 'Source buckets for packages',
   },
 }
+
+type GroupKey = keyof typeof GROUPS
 
 function fieldI18n(key: string): string {
   return I18N_FIELDS[key as keyof typeof I18N_FIELDS] ?? key
 }
 
-function groupI18n(key: string): string | { title: string; description: string } {
-  return I18N_GROUPS[key as keyof typeof I18N_GROUPS] ?? key
+function groupData(key: GroupKey): {
+  description?: string
+  sortIndex: number
+  title: string
+} {
+  return GROUPS[key] ?? key
 }
 
 interface FieldProps<V = KeyedValue> {
@@ -328,14 +351,14 @@ interface GroupProps {
   className: string
   config: Config
   disabled?: boolean
-  id: keyof typeof I18N_GROUPS
+  id: GroupKey
   onChange: (v: KeyedValue) => void
   values: Config[keyof Config][]
 }
 
 function Group({ className, config, disabled, id, onChange, values }: GroupProps) {
   const classes = useGroupStyles()
-  const i18n = groupI18n(id)
+  const i18n = groupData(id)
   const title = typeof i18n === 'string' ? i18n : i18n.title
   const description = typeof i18n !== 'string' && i18n.description
   const layout = React.useMemo(() => {
@@ -400,7 +423,7 @@ const useStyles = M.makeStyles((t) => ({
 // Group keys so 'a.b.c', and 'a.b.d' are in the same 'a.b' group
 // Also, move some config keys into standalone groups
 //       or combine some keys into a new group
-function parseGroupKey(key: keyof Config): keyof typeof I18N_GROUPS {
+function parseGroupKey(key: keyof Config): GroupKey {
   if (key === 'ui.blocks.qurator') {
     // NOTE: Move into a standalone group
     return 'custom_group.qurator'
@@ -415,9 +438,9 @@ function parseGroupKey(key: keyof Config): keyof typeof I18N_GROUPS {
   }
   const keyParts = key.split('.')
   if (keyParts.length > 2) {
-    return keyParts.slice(0, -1).join('.') as keyof typeof I18N_GROUPS
+    return keyParts.slice(0, -1).join('.') as GroupKey
   }
-  return key as keyof typeof I18N_GROUPS
+  return key as GroupKey
 }
 
 export default function BucketPreferences({
@@ -441,7 +464,7 @@ export default function BucketPreferences({
             [groupKey]: [...(memo[groupKey] || []), value],
           }
         },
-        {} as Record<keyof typeof I18N_GROUPS, KeyedValue[]>,
+        {} as Record<GroupKey, KeyedValue[]>,
       ),
     [config],
   )
@@ -471,17 +494,22 @@ export default function BucketPreferences({
         <JsonValidationErrors className={classes.error} error={errors} />
       )}
 
-      {Object.entries(grouped).map(([id, values]) => (
-        <Group
-          className={classes.group}
-          config={config}
-          disabled={disabled}
-          id={id as keyof typeof I18N_GROUPS}
-          key={id}
-          onChange={handleChange}
-          values={values}
-        />
-      ))}
+      {Object.entries(grouped)
+        .toSorted(
+          ([idA], [idB]) =>
+            groupData(idA as GroupKey).sortIndex - groupData(idB as GroupKey).sortIndex,
+        )
+        .map(([id, values]) => (
+          <Group
+            className={classes.group}
+            config={config}
+            disabled={disabled}
+            id={id as GroupKey}
+            key={id}
+            onChange={handleChange}
+            values={values}
+          />
+        ))}
     </div>
   )
 }
