@@ -166,7 +166,7 @@ class TestPutOptions(QuiltTestCase):
         S3ClientProvider._event_callbacks = {}
         params = {}
         self.update_client_params_for_call("PutObject", params)
-        assert params == {}
+        assert not params
 
         S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         self.update_client_params_for_call("PutObject", params)

@@ -2,7 +2,7 @@ import pathlib
 
 import boto3
 from botocore.exceptions import ClientError
-from pytest import raises
+from pytest import raises, mark
 
 from quilt3 import Bucket, Package, delete_package
 from quilt3.data_transfer import S3ClientProvider
@@ -29,6 +29,7 @@ def dest_key(test_name):
     return f"{dest_dir(test_name)}/{TEST_FILE}"
 
 
+@mark.skip(reason="This test requires specific credentials to run")
 def test_manual_package_push_():
     should_delete = True
     pkg_name = dest_dir("test_package_push_mpu")
