@@ -209,5 +209,5 @@ export function stringify(config: Config): string {
       value.isDefault ? memo : assocPath(memo, value.value as Json, key.split('.')),
     {},
   )
-  return JSON.stringify(aux)
+  return YAML.stringify(aux)
 }
