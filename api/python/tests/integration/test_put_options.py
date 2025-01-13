@@ -303,10 +303,10 @@ class TestPutOptions(QuiltTestCase):
             "ChecksumSHA256": "test-checksum-sha256",
         }
         mock_create_mpu.side_effect = self.mock_copy_object_side_effect
-        # mock_get_object.side_effect = self.mock_get_object_side_effect
+        mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_is_mpu.return_value = True
-        # mock_list_objects.side_effect = self.mock_list_objects_side_effect
+        mock_list_objects.side_effect = self.mock_list_objects_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_upload_part.return_value = {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}
 
