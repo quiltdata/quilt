@@ -246,21 +246,15 @@ class TestPutOptions(QuiltTestCase):
         mock_list_objects.assert_called()
         mock_put_object.assert_called()
 
-    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
     @patch("quilt3.data_transfer.is_mpu")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
-    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
-    def test_package_entry_fetch(
-        self, mock_copy_object, mock_get_object, mock_head_object, mock_is_mpu, mock_list_objects
-    ):
+    def test_package_entry_fetch(self, mock_copy_object, mock_head_object, mock_is_mpu):
         """_copy_remote_file !mpu -> copy_object"""
         S3ClientProvider.reset_event_callbacks()
         mock_copy_object.side_effect = self.mock_copy_object_side_effect
-        mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_is_mpu.return_value = False
-        mock_list_objects.side_effect = self.mock_list_objects_side_effect
 
         mock_entry = MockEntry("test_package_entry_fetch")
         pkg_entry = mock_entry.pkg_entry
@@ -269,14 +263,13 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=COPY_MSG):
             pkg_entry.fetch(uri_dest)
 
+        S3ClientProvider.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
         new_entry = pkg_entry.fetch(uri_dest)
         assert new_entry is not None
 
         mock_copy_object.assert_called()
-        mock_get_object.assert_called()
         mock_head_object.assert_called()
         mock_is_mpu.assert_called()
-        mock_list_objects.assert_called()
 
     @patch("quilt3.data_transfer.is_mpu")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.upload_part")
