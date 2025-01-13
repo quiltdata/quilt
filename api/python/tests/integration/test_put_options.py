@@ -280,7 +280,6 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
     @patch("quilt3.data_transfer.is_mpu")
-    @patch("quilt3.data_transfer.S3ClientProvider.standard_client.head_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.create_multipart_upload")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.complete_multipart_upload")
@@ -289,7 +288,6 @@ class TestPutOptions(QuiltTestCase):
         mock_complete_mpu,
         mock_create_mpu,
         mock_get_object,
-        mock_head_object,
         mock_is_mpu,
         mock_list_objects,
         mock_put_object,
@@ -304,7 +302,6 @@ class TestPutOptions(QuiltTestCase):
         }
         mock_create_mpu.side_effect = self.mock_copy_object_side_effect
         mock_get_object.side_effect = self.mock_get_object_side_effect
-        mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_is_mpu.return_value = True
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
@@ -323,6 +320,9 @@ class TestPutOptions(QuiltTestCase):
 
         mock_complete_mpu.assert_called()
         mock_create_mpu.assert_called()
+        mock_get_object.assert_called()  
+        mock_is_mpu.assert_called()
+        mock_list_objects.assert_called
         mock_upload_part.assert_called()
 
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.upload_part_copy")
@@ -372,4 +372,8 @@ class TestPutOptions(QuiltTestCase):
 
         mock_complete_mpu.assert_called()
         mock_create_mpu.assert_called()
+        # mock_get_object.assert_called()  -- called indirectly; causes error if not defined
+        mock_head_object.assert_called()
+        mock_is_mpu.assert_called()
+        mock_list_objects.assert_called
         mock_upload_part.assert_called()
