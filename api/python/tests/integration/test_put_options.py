@@ -202,9 +202,9 @@ class TestPutOptions(QuiltTestCase):
         S3ClientProvider.reset_event_callbacks()
         dest = dest_dir("test_bucket_put_dir")
 
-        mock_complete_mpu.side_effect = self.mock_copy_object_side_effect
+        mock_complete_mpu.return_value = {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}
         mock_copy_object.side_effect = self.mock_copy_object_side_effect
-        mock_create_mpu.side_effect = self.mock_copy_object_side_effect
+        # mock_create_mpu.side_effect = self.mock_create_mpu_side_effect
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_upload_part.return_value = {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}
@@ -216,8 +216,12 @@ class TestPutOptions(QuiltTestCase):
         S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         S3_BUCKET.put_dir(dest, DATA_DIR)
 
+        mock_upload_part.assert_called()
         mock_head_object.assert_called()
         mock_put_object.assert_called()
+        mock_copy_object.assert_called()
+        # mock_create_mpu.assert_called()
+        mock_complete_mpu.assert_called()
 
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
@@ -239,6 +243,7 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=ERR_MSG):
             pkg.push(pkg_name, TEST_URI, force=True)
 
+        S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         pkg.build(pkg_name, TEST_URI)
         pkg.push(pkg_name, TEST_URI, force=True)
 
@@ -271,7 +276,6 @@ class TestPutOptions(QuiltTestCase):
         mock_head_object.assert_called()
         mock_is_mpu.assert_called()
 
-    @patch("quilt3.data_transfer.is_mpu")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.upload_part")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.list_objects_v2")
@@ -299,10 +303,10 @@ class TestPutOptions(QuiltTestCase):
             "ChecksumSHA256": "test-checksum-sha256",
         }
         mock_create_mpu.side_effect = self.mock_copy_object_side_effect
-        mock_get_object.side_effect = self.mock_get_object_side_effect
+        # mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_is_mpu.return_value = True
-        mock_list_objects.side_effect = self.mock_list_objects_side_effect
+        # mock_list_objects.side_effect = self.mock_list_objects_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
         mock_upload_part.return_value = {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}
 
@@ -313,6 +317,8 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=ERR_MSG):
             pkg.push(pkg_name, TEST_URI, force=True)
 
+        S3ClientProvider.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
+        S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         pkg.push(pkg_name, TEST_URI, force=True)
 
         mock_complete_mpu.assert_called()
@@ -360,6 +366,7 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=COPY_MSG):
             pkg_entry.fetch(uri_dest)
 
+        S3ClientProvider.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
         new_entry = pkg_entry.fetch(uri_dest)
         assert new_entry is not None
 
