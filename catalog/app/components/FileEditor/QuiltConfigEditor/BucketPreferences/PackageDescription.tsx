@@ -124,9 +124,12 @@ function PackageHandle({
 const useStyles = M.makeStyles((t) => ({
   root: {
     animation: '$appear 0.3s ease-out',
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
     display: 'grid',
     gridTemplateRows: '1fr 1fr 1fr',
-    rowGap: t.spacing(2),
+    padding: t.spacing(2, 2, 0),
+    rowGap: t.spacing(1),
   },
   '@keyframes appear': {
     '0%': { opacity: 0 },
@@ -194,8 +197,9 @@ const usePackageDescriptionsListStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    rowGap: t.spacing(4),
-    columnGap: t.spacing(8),
+    rowGap: t.spacing(2),
+    columnGap: t.spacing(2),
+    marginTop: t.spacing(1),
   },
 }))
 

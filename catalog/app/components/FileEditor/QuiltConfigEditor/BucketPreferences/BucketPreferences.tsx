@@ -344,7 +344,7 @@ const useGroupStyles = M.makeStyles((t) => ({
   },
   layout: {
     display: 'grid',
-    gridColumnGap: t.spacing(8),
+    gridColumnGap: t.spacing(2),
     gridRowGap: t.spacing(1),
   },
 }))
