@@ -235,11 +235,11 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
     <h6
       className="MuiTypography-root title MuiTypography-h6"
     >
-      Metadata on the package page
+      Metadata Display
       <p
         className="MuiTypography-root description MuiTypography-body2"
       >
-        Auto-expand JSON blocks in Metadata section
+        Display settings for JSON blocks in Metadata section on object and package pages
       </p>
     </h6>
     <div
@@ -257,7 +257,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            User metadata
+            Auto-expand "User Metadata" field
           </span>
         </label>
       </div>
@@ -273,7 +273,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            Workflow
+            Auto-expand "Workflow" field
           </span>
         </label>
       </div>
