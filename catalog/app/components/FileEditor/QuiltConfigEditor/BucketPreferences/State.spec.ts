@@ -50,7 +50,10 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         key: 'ui.nav.files',
         value: true,
       }
-      expect(stringify(config)).toBe(JSON.stringify({ ui: { nav: { files: true } } }))
+      expect(stringify(config)).toBe(`ui:
+  nav:
+    files: true
+`)
     })
   })
 
