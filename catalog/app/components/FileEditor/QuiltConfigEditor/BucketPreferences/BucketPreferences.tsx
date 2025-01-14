@@ -210,6 +210,7 @@ const GROUPS = {
   },
 
   'ui.athena': {
+    description: '',
     sortIndex: 30,
     title: 'Athena',
   },
@@ -234,6 +235,7 @@ const GROUPS = {
     title: 'Actions',
   },
   'ui.package_description_multiline': {
+    description: '',
     sortIndex: 10,
     title: 'Package List: common display settings',
   },
@@ -254,14 +256,6 @@ type GroupKey = keyof typeof GROUPS
 
 function fieldI18n(key: string): string {
   return I18N_FIELDS[key as keyof typeof I18N_FIELDS] ?? key
-}
-
-function groupData(key: GroupKey): {
-  description?: string
-  sortIndex: number
-  title: string
-} {
-  return GROUPS[key] ?? key
 }
 
 interface FieldProps<V = KeyedValue> {
@@ -355,9 +349,7 @@ interface GroupProps {
 
 function Group({ className, config, disabled, id, onChange, values }: GroupProps) {
   const classes = useGroupStyles()
-  const i18n = groupData(id)
-  const title = typeof i18n === 'string' ? i18n : i18n.title
-  const description = typeof i18n !== 'string' && i18n.description
+  const i18n = GROUPS[id]
   const layout = React.useMemo(() => {
     switch (id) {
       case 'custom_group.expanded_meta':
@@ -371,10 +363,10 @@ function Group({ className, config, disabled, id, onChange, values }: GroupProps
   return (
     <div className={className}>
       <M.Typography className={classes.title} variant="h6">
-        {title}
-        {description && (
+        {i18n.title}
+        {i18n.description && (
           <M.Typography className={classes.description} variant="body2">
-            {description}
+            {i18n.description}
           </M.Typography>
         )}
       </M.Typography>
@@ -452,7 +444,7 @@ export default function BucketPreferences({
     () =>
       Object.values(config).reduce(
         (memo, value) => {
-          let groupKey = parseGroupKey(value.key)
+          const groupKey = parseGroupKey(value.key)
           return {
             ...memo,
             [groupKey]: [...(memo[groupKey] || []), value],
@@ -496,7 +488,7 @@ export default function BucketPreferences({
       {Object.entries(grouped)
         .toSorted(
           ([idA], [idB]) =>
-            groupData(idA as GroupKey).sortIndex - groupData(idB as GroupKey).sortIndex,
+            GROUPS[idA as GroupKey].sortIndex - GROUPS[idB as GroupKey].sortIndex,
         )
         .map(([id, values]) => (
           <Group
