@@ -92,16 +92,19 @@ class EventHandlers:
 
     @classmethod
     def register_event_options(cls, event_name: str, **kwargs: dict) -> None:
-        """Register options for S3 client events. A convenience method over register_event_handler
-        for trivial handlers that always and only add options.
+        """Register options for boto3 events. A convenience method over register_event_handler
+        for trivial handlers that always and only add options. Note that it uses
+        `add_options_safely` to ensure that options do not overwrite existing params.
 
         Args:
-            event_name: The name of the event to register for (e.g. 'creating-client-class')
+            event_name: The name of the event to register for
+            (e.g. 'provide-client-params.s3.PutObject')
             kwargs: The options to be added to the client params when the event occurs
+            (e.g., {"ServerSideEncryption": "AES256"})
 
         Example: Set options to use when writing objects to S3:
         ```
-        def register_write_options(provider, **kwargs):
+        def register_write_options(**kwargs):
             event_names = [
                 "provide-client-params.s3.PutObject",
                 "provide-client-params.s3.CopyObject",
@@ -110,7 +113,7 @@ class EventHandlers:
             ]
 
             for event_name in event_names:
-                provider.register_event_options(event_name, **kwargs)
+                EventHandlers.register_event_options(event_name, **kwargs)
         ```
         """
 
@@ -121,21 +124,21 @@ class EventHandlers:
 
     @classmethod
     def register_event_handler(cls, event_name: str, handler: Callable) -> None:
-        """Register a handler for S3 client events.
+        """Register a handler for boto3 events.
 
         Args:
-            event_name: The name of the event to register for (e.g. 'creating-client-class')
+            event_name: The name of the event to register for (e.g. 'provide-client-params.s3.PutObject')
             handler: The handler function to be called when the event occurs.
             The handler should take the params dict and arbitrary keyword arguments,
-            then modify them in place.
+            then modify them in place. We recommmend using `add_options_safely`
+            to avoid overwriting user-specified arguments.
 
         Example: Add SSE Encryption options to put_object calls:
-        ```
-        options = {"ServerSideEncryption": "AES256"}
-        def handler(params, **_kwargs):
-            # Can add options based on the existing params
-            provider.add_options_safely(params, options)
-        provider.register_event_handler("provide-client-params.s3.PutObject", handler)
+        ``` options = {"ServerSideEncryption": "AES256"}
+            def handler(params, **kwargs):
+                # Optional logic to determine whether to add options
+                EventHandlers.add_options_safely(params, options)
+        EventHandlers.register_event_handler("provide-client-params.s3.PutObject", handler)
         ```
         """
         if event_name in cls._event_handlers:
