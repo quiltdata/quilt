@@ -181,7 +181,7 @@ const I18N_FIELDS = {
   'ui.blocks.browser': 'File listings on bucket and packages pages',
   'ui.blocks.code': '"CODE"',
   'ui.blocks.meta': '"METADATA"',
-  'ui.blocks.qurator': 'Qurator assistance',
+  'ui.blocks.qurator': '"Qurator Assistance" icon button on object and package pages',
 
   'ui.blocks.meta.user_meta.expanded': 'Auto-expand "User Metadata" field',
   'ui.blocks.meta.workflows.expanded': 'Auto-expand "Workflow" field',
@@ -213,10 +213,6 @@ const GROUPS = {
   'custom_group.common_package_description': {
     sortIndex: 10,
     title: 'Package List: common display settings',
-  },
-  'custom_group.qurator': {
-    sortIndex: 0,
-    title: 'Qurator',
   },
 
   'ui.athena': {
@@ -428,8 +424,8 @@ const useStyles = M.makeStyles((t) => ({
 //       or combine some keys into a new group
 function parseGroupKey(key: keyof Config): GroupKey {
   if (key === 'ui.blocks.qurator') {
-    // NOTE: Move into a standalone group
-    return 'custom_group.qurator'
+    // NOTE: Move into actions
+    return 'ui.actions'
   }
   if (key === 'ui.package_description_multiline') {
     // NOTE: Move into a standalone group

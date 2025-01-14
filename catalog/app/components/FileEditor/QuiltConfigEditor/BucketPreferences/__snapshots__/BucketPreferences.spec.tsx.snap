@@ -145,6 +145,22 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           </span>
         </label>
       </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          />
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "Qurator Assistance" icon button on object and package pages
+          </span>
+        </label>
+      </div>
     </div>
   </div>
   <div
@@ -356,35 +372,6 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             Image galleries alongside those defined in quilt_summarize.json
-          </span>
-        </label>
-      </div>
-    </div>
-  </div>
-  <div
-    className="group"
-  >
-    <h6
-      className="MuiTypography-root title MuiTypography-h6"
-    >
-      Qurator
-    </h6>
-    <div
-      className="layout"
-    >
-      <div
-        className="MuiFormControl-root"
-      >
-        <label
-          className="MuiFormControlLabel-root"
-        >
-          <div
-            id="checkbox"
-          />
-          <span
-            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-          >
-            Qurator assistance
           </span>
         </label>
       </div>
