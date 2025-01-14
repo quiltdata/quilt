@@ -6,7 +6,7 @@ from unittest.mock import ANY, patch
 from botocore.exceptions import ClientError
 
 from quilt3 import Bucket, Package
-from quilt3.data_transfer import PhysicalKey, S3ClientProvider
+from quilt3.data_transfer import PhysicalKey, EventHandlers
 from quilt3.packages import PackageEntry
 
 from ..utils import QuiltTestCase
@@ -116,7 +116,7 @@ class TestPutOptions(QuiltTestCase):
     @staticmethod
     def update_client_params_for_call(call_name, params):
         event_name = f"provide-client-params.s3.{call_name}"
-        handler = S3ClientProvider._event_handlers.get(event_name)
+        handler = EventHandlers._event_handlers.get(event_name)
         if handler:
             handler(params)
 
@@ -163,18 +163,18 @@ class TestPutOptions(QuiltTestCase):
         }
 
     def test_update_client_params_for_call(self):
-        S3ClientProvider._event_handlers = {}
+        EventHandlers._event_handlers = {}
         params = {}
         self.update_client_params_for_call("PutObject", params)
         assert not params
 
-        S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         self.update_client_params_for_call("PutObject", params)
         assert params == USE_KMS
 
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.put_object")
     def test_bucket_put_file(self, mock_put_object):
-        S3ClientProvider.reset_event_handlers()
+        EventHandlers.reset_event_handlers()
         dest = "test_bucket_put_file_dest_key"
 
         # Simulate AccessDenied error
@@ -185,7 +185,7 @@ class TestPutOptions(QuiltTestCase):
             S3_BUCKET.put_file(key=dest, path=TEST_SRC)
 
         # Retry with ServerSideEncryption
-        S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         S3_BUCKET.put_file(key=dest, path=TEST_SRC)
 
         mock_put_object.assert_called()
@@ -199,7 +199,7 @@ class TestPutOptions(QuiltTestCase):
     def test_bucket_put_dir(
         self, mock_complete_mpu, mock_create_mpu, mock_copy_object, mock_head_object, mock_put_object, mock_upload_part
     ):
-        S3ClientProvider.reset_event_handlers()
+        EventHandlers.reset_event_handlers()
         dest = dest_dir("test_bucket_put_dir")
 
         mock_complete_mpu.return_value = {"ETag": "test-etag", "ChecksumSHA256": "test-checksum-sha256"}
@@ -212,8 +212,8 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=ERR_MSG):
             S3_BUCKET.put_dir(dest, DATA_DIR)
 
-        S3ClientProvider.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
-        S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         S3_BUCKET.put_dir(dest, DATA_DIR)
 
         mock_upload_part.assert_called()
@@ -228,7 +228,7 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.get_object")
     def test_package_push(self, mock_get_object, mock_list_objects, mock_put_object):
         """Package push !mpu -> put_object"""
-        S3ClientProvider.reset_event_handlers()
+        EventHandlers.reset_event_handlers()
         mock_get_object.side_effect = self.mock_get_object_side_effect
         mock_list_objects.side_effect = self.mock_list_objects_side_effect
         mock_put_object.side_effect = self.mock_put_object_side_effect
@@ -243,7 +243,7 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=ERR_MSG):
             pkg.push(pkg_name, TEST_URI, force=True)
 
-        S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         pkg.build(pkg_name, TEST_URI)
         pkg.push(pkg_name, TEST_URI, force=True)
 
@@ -256,7 +256,7 @@ class TestPutOptions(QuiltTestCase):
     @patch("quilt3.data_transfer.S3ClientProvider.standard_client.copy_object")
     def test_package_entry_fetch(self, mock_copy_object, mock_head_object, mock_is_mpu):
         """_copy_remote_file !mpu -> copy_object"""
-        S3ClientProvider.reset_event_handlers()
+        EventHandlers.reset_event_handlers()
         mock_copy_object.side_effect = self.mock_copy_object_side_effect
         mock_head_object.side_effect = self.mock_get_object_side_effect
         mock_is_mpu.return_value = False
@@ -268,7 +268,7 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=COPY_MSG):
             pkg_entry.fetch(uri_dest)
 
-        S3ClientProvider.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
         new_entry = pkg_entry.fetch(uri_dest)
         assert new_entry is not None
 
@@ -294,7 +294,7 @@ class TestPutOptions(QuiltTestCase):
         mock_upload_part,
     ):
         """_copy_local_file mpu -> create_multipart_upload"""
-        S3ClientProvider.reset_event_handlers()
+        EventHandlers.reset_event_handlers()
         mock_complete_mpu.return_value = {
             "Location": "test-location",
             "VersionId": "test-version-id",
@@ -314,8 +314,8 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=ERR_MSG):
             pkg.push(pkg_name, TEST_URI, force=True)
 
-        S3ClientProvider.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
-        S3ClientProvider.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.PutObject", **USE_KMS)
         pkg.push(pkg_name, TEST_URI, force=True)
 
         mock_complete_mpu.assert_called()
@@ -343,7 +343,7 @@ class TestPutOptions(QuiltTestCase):
         mock_upload_part,
     ):
         """_copy_remote_file mpu -> create_multipart_upload"""
-        S3ClientProvider.reset_event_handlers()
+        EventHandlers.reset_event_handlers()
         mock_complete_mpu.return_value = {
             "Location": "test-location",
             "VersionId": "test-version-id",
@@ -366,7 +366,7 @@ class TestPutOptions(QuiltTestCase):
         with self.assertRaises(ClientError, msg=COPY_MSG):
             pkg_entry.fetch(uri_dest)
 
-        S3ClientProvider.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
+        EventHandlers.register_event_options("provide-client-params.s3.CopyObject", **USE_KMS)
         new_entry = pkg_entry.fetch(uri_dest)
         assert new_entry is not None
 

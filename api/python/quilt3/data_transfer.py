@@ -72,19 +72,7 @@ class S3NoValidClientError(Exception):
             setattr(self, k, v)
 
 
-class S3ClientProvider:
-    """
-    An s3_client is either signed with standard credentials or unsigned. This class exists to dynamically provide the
-    correct s3 client (either standard_client or unsigned_client) for a bucket. This means if standard credentials
-    can't read from the bucket, check if the bucket is public in which case we should be using an unsigned client.
-    This check is expensive at scale so the class also keeps track of which client to use for each bucket+api_call.
-
-    If there are no credentials available at all (i.e. you don't have AWS credentials and you don't have a
-    Quilt-provided role from quilt3.login()), the standard client will also be unsigned so that users can still
-    access public s3 buckets.
-
-    We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
-    """
+class EventHandlers:
     _event_handlers = {}
 
     @staticmethod
@@ -153,6 +141,26 @@ class S3ClientProvider:
         if event_name in cls._event_handlers:
             logger.warning("Overwriting existing handler for event %s", event_name)
         cls._event_handlers[event_name] = handler
+
+    @classmethod
+    def apply_handlers(cls, s3_client):
+        for event_name, handler in cls._event_handlers.items():
+            s3_client.meta.events.register(event_name, handler)
+
+
+class S3ClientProvider:
+    """
+    An s3_client is either signed with standard credentials or unsigned. This class exists to dynamically provide the
+    correct s3 client (either standard_client or unsigned_client) for a bucket. This means if standard credentials
+    can't read from the bucket, check if the bucket is public in which case we should be using an unsigned client.
+    This check is expensive at scale so the class also keeps track of which client to use for each bucket+api_call.
+
+    If there are no credentials available at all (i.e. you don't have AWS credentials and you don't have a
+    Quilt-provided role from quilt3.login()), the standard client will also be unsigned so that users can still
+    access public s3 buckets.
+
+    We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
+    """
 
     def __init__(self):
         self._use_unsigned_client = {}  # f'{action}/{bucket}' -> use_unsigned_client_bool
@@ -232,8 +240,7 @@ class S3ClientProvider:
         s3_client = session.client('s3', config=Config(**conf_kwargs))
 
         # Apply any stored handlers to the new client
-        for event_name, handler in self.__class__._event_handlers.items():
-            s3_client.meta.events.register(event_name, handler)
+        EventHandlers.apply_handlers(s3_client)
 
         return s3_client
 
