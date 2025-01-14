@@ -209,12 +209,6 @@ const GROUPS = {
     title: 'Metadata Display',
   },
 
-  // NOTE: Additional group keys that not in the original config
-  'custom_group.common_package_description': {
-    sortIndex: 10,
-    title: 'Package List: common display settings',
-  },
-
   'ui.athena': {
     sortIndex: 30,
     title: 'Athena',
@@ -238,6 +232,10 @@ const GROUPS = {
     description: 'Show buttons and menu items',
     sortIndex: 0,
     title: 'Actions',
+  },
+  'ui.package_description_multiline': {
+    sortIndex: 10,
+    title: 'Package List: common display settings',
   },
   'ui.package_description': {
     description: 'Selectively apply display settings to matching packages',
@@ -419,17 +417,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// Group keys so 'a.b.c', and 'a.b.d' are in the same 'a.b' group
-// Also, move some config keys into standalone groups
+// Group keys so 'ui.a.b', and 'ui.a.b' are in the same 'ui.a' group
+// Inclose single root keys into one-field groups
+// Also, move some config keys into other groups
 //       or combine some keys into a new group
 function parseGroupKey(key: keyof Config): GroupKey {
   if (key === 'ui.blocks.qurator') {
     // NOTE: Move into actions
     return 'ui.actions'
-  }
-  if (key === 'ui.package_description_multiline') {
-    // NOTE: Move into a standalone group
-    return 'custom_group.common_package_description'
   }
   if (key.match(/ui\.blocks\.meta\..*\.expanded/)) {
     // NOTE: Combine into a group
