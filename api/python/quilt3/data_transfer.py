@@ -83,12 +83,13 @@ class EventHandlers:
         """
         for key, value in options.items():
             if key in params:
-                raise ValueError(f"Cannot override key `{key}` using options: {options}.")
+                raise ValueError(f"Cannot override key `{key}` using options: {options}")
             params[key] = value
 
     @classmethod
-    def reset_event_handlers(cls):
-        cls._event_handlers = {}
+    def apply_handlers(cls, s3_client):
+        for event_name, handler in cls._event_handlers.items():
+            s3_client.meta.events.register(event_name, handler)
 
     @classmethod
     def register_event_options(cls, event_name: str, **kwargs: dict) -> None:
@@ -146,9 +147,8 @@ class EventHandlers:
         cls._event_handlers[event_name] = handler
 
     @classmethod
-    def apply_handlers(cls, s3_client):
-        for event_name, handler in cls._event_handlers.items():
-            s3_client.meta.events.register(event_name, handler)
+    def reset_event_handlers(cls):
+        cls._event_handlers = {}
 
 
 class S3ClientProvider:

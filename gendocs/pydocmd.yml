@@ -20,6 +20,7 @@ generate:
     - quilt3.login
     - quilt3.logout
     - quilt3.search
+    - quilt3.data_transfer.EventHandlers.+
 # Uncomment the following two lines in include these classes directly in api.md
 #    - Bucket+
 #    - Package+
