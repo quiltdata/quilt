@@ -60,6 +60,14 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
     files: true
 `)
     })
+
+    it('should not overwrite context default values', () => {
+      const config = parse('', {
+        'ui.actions.createPackage': false,
+        'ui.athena.defaultWorkgroup': 'Lorem ipsum',
+      })
+      expect(stringify(config)).toBe(``)
+    })
   })
 
   describe('parse', () => {
