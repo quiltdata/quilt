@@ -195,11 +195,11 @@ function PackageDescription({
 
 const usePackageDescriptionsListStyles = M.makeStyles((t) => ({
   root: {
+    columnGap: t.spacing(2),
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    rowGap: t.spacing(2),
-    columnGap: t.spacing(2),
     marginTop: t.spacing(1),
+    rowGap: t.spacing(2),
   },
 }))
 
