@@ -7,6 +7,7 @@ import JsonValidationErrors from 'components/JsonValidationErrors'
 import { docs } from 'constants/urls'
 import * as BucketConfig from 'utils/BucketConfig'
 import StyledLink from 'utils/StyledLink'
+import { JsonInvalidAgainstSchema } from 'utils/error'
 
 import type { QuiltConfigEditorProps } from '../QuiltConfigEditor'
 
@@ -195,7 +196,7 @@ const I18N_FIELDS = {
   'ui.nav.packages': '"PACKAGES"',
   'ui.nav.queries': '"QUERIES"',
 
-  'ui.package_description.multiline':
+  'ui.package_description_multiline':
     'Display `user_meta` fields on separate lines, when enabled. Visibility of the `user_meta` can be configured in the next section.',
 }
 
@@ -430,7 +431,7 @@ function parseGroupKey(key: keyof Config): GroupKey {
     // NOTE: Move into a standalone group
     return 'custom_group.qurator'
   }
-  if (key === 'ui.package_description.multiline') {
+  if (key === 'ui.package_description_multiline') {
     // NOTE: Move into a standalone group
     return 'custom_group.common_package_description'
   }
@@ -452,7 +453,7 @@ export default function BucketPreferences({
   initialValue,
   onChange,
 }: QuiltConfigEditorProps) {
-  const errors = React.useMemo(() => (error ? [error] : []), [error])
+  const [errors, setErrors] = React.useState(() => (error ? [error] : []))
 
   const [config, setConfig] = React.useState(parse(initialValue || '', {}))
   const classes = useStyles()
@@ -477,7 +478,12 @@ export default function BucketPreferences({
   )
 
   React.useEffect(() => {
-    onChange(stringify(config))
+    try {
+      onChange(stringify(config))
+    } catch (err) {
+      if (err instanceof JsonInvalidAgainstSchema) setErrors(err.errors)
+      setErrors(err instanceof Error ? [err] : [new Error(`${err}`)])
+    }
   }, [config, onChange])
 
   return (

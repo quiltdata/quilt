@@ -4,6 +4,11 @@ import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPref
 import { assocPath, parse, stringify } from './State'
 import type { Config } from './State'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({})),
+)
+
 function getValueByPath(obj: Record<string, any>, path: string[]) {
   return path.reduce((memo, key) => memo[key], obj)
 }
@@ -30,7 +35,7 @@ function getLegacyValue(key: keyof Config) {
         },
         {} as Record<string, PackagePreferencesInput>,
       )
-    case 'ui.package_description.multiline':
+    case 'ui.package_description_multiline':
       return legacyPrefs.ui.packageDescription.userMetaMultiline
     case 'ui.source_buckets':
       return legacyPrefs.ui.sourceBuckets.list

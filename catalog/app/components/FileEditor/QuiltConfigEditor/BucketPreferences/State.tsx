@@ -4,6 +4,7 @@ import type {
   BucketPreferencesInput,
   MetaBlockPreferencesInput,
 } from 'utils/BucketPreferences'
+import { validate } from 'utils/BucketPreferences'
 
 type Key = keyof Defaults
 
@@ -62,7 +63,7 @@ function parseUser(config: string) {
     'ui.nav.queries': childOfBool(json?.ui?.nav, 'queries'),
 
     'ui.package_description': json?.ui?.package_description,
-    'ui.package_description.multiline': json?.ui?.package_description_multiline,
+    'ui.package_description_multiline': json?.ui?.package_description_multiline,
 
     'ui.source_buckets': json?.ui?.sourceBuckets && Object.keys(json?.ui?.sourceBuckets),
     'ui.source_buckets.default': json?.ui?.defaultSourceBucket,
@@ -110,7 +111,7 @@ const sys: Defaults = {
       user_meta: [] as ReadonlyArray<string>,
     },
   },
-  'ui.package_description.multiline': false,
+  'ui.package_description_multiline': false,
 
   'ui.source_buckets': [],
   'ui.source_buckets.default': '',
@@ -172,8 +173,8 @@ export function parse(config: string, ext: Partial<Defaults>) {
     'ui.source_buckets.default': val('ui.source_buckets.default', user, ext),
 
     'ui.package_description': val('ui.package_description', user, ext),
-    'ui.package_description.multiline': val(
-      'ui.package_description.multiline',
+    'ui.package_description_multiline': val(
+      'ui.package_description_multiline',
       user,
       ext,
     ),
@@ -209,5 +210,6 @@ export function stringify(config: Config): string {
       value.isDefault ? memo : assocPath(memo, value.value as Json, key.split('.')),
     {},
   )
-  return YAML.stringify(aux)
+  validate(aux)
+  return YAML.stringify(aux as JsonRecord)
 }

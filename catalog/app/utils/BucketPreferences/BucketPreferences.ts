@@ -1,10 +1,11 @@
+import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as Sentry from '@sentry/react'
 
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
-import * as bucketErrors from 'containers/Bucket/errors'
 import { makeSchemaValidator } from 'utils/JSONSchema'
+import { JsonInvalidAgainstSchema } from 'utils/error'
 import * as tagged from 'utils/taggedV2'
 import type { JsonRecord } from 'utils/types'
 import * as YAML from 'utils/yaml'
@@ -187,7 +188,10 @@ const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 export function validate(data: unknown): asserts data is BucketPreferencesInput {
   const obj = typeof data === 'string' ? YAML.parse(data) : data
   const errors = bucketPreferencesValidator(obj)
-  if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
+  if (errors.length) {
+    if (errors[0] instanceof Error) throw errors
+    throw new JsonInvalidAgainstSchema({ errors: errors as ErrorObject[] })
+  }
 }
 
 function parseActions(actions?: Partial<ActionPreferences> | false): ActionPreferences {

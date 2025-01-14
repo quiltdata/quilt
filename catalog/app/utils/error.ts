@@ -64,5 +64,7 @@ export class JsonInvalidAgainstSchema extends BaseError {
         .join('.\n'),
       props,
     )
+
+    this.validationErrors = props.errors
   }
 }

@@ -10,5 +10,5 @@ export type {
   PackagePreferences,
   SourceBuckets,
 } from './BucketPreferences'
-export { Result, sourceBucket } from './BucketPreferences'
+export { Result, sourceBucket, validate } from './BucketPreferences'
 export * from './Provider'
