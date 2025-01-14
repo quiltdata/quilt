@@ -6,7 +6,7 @@ from unittest.mock import ANY, patch
 from botocore.exceptions import ClientError
 
 from quilt3 import Bucket, Package
-from quilt3.data_transfer import PhysicalKey, EventHandlers
+from quilt3.data_transfer import EventHandlers, PhysicalKey
 from quilt3.packages import PackageEntry
 
 from ..utils import QuiltTestCase
