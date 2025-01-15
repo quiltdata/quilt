@@ -102,6 +102,20 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
     defaultWorkgroup: Bar
 `)
     })
+
+    it('should stringify source buckets', () => {
+      const config = parse('', {})
+      config['ui.sourceBuckets'] = {
+        isDefault: false,
+        key: 'ui.nav.files',
+        value: ['s3://a', 's3://b'],
+      }
+      expect(stringify(config)).toBe(`ui:
+  sourceBuckets:
+    s3://a: {}
+    s3://b: {}
+`)
+    })
   })
 
   describe('parse', () => {
@@ -144,6 +158,18 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
       expect(config['ui.blocks.meta'].value).toBe(true)
       expect(config['ui.blocks.meta.user_meta.expanded'].value).toBe(true)
       expect(config['ui.blocks.meta.workflows.expanded'].value).toBe(true)
+    })
+
+    it('should parse source buckets', () => {
+      const config = parse(
+        `ui:
+   sourceBuckets:
+     s3://a: {}
+     s3://b: {}
+      `,
+        {},
+      )
+      expect(config['ui.sourceBuckets'].value).toStrictEqual(['s3://a', 's3://b'])
     })
   })
 
