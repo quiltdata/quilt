@@ -33,6 +33,14 @@ function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
     },
     [onChange],
   )
+  const handleBlur = React.useCallback(
+    (e) => {
+      const labels = e.target.value.split(',').map((x: string) => x.trim())
+      if (labels.join(',') === value.join(',')) return
+      handleChange(e, labels)
+    },
+    [handleChange, value],
+  )
   return (
     <Lab.Autocomplete
       disabled={disabled}
@@ -50,6 +58,7 @@ function JsonPaths({ disabled, onChange, size, value = [] }: JsonPathsProps) {
           helperText={error?.message}
           label="Metadata fields (JSON paths from `user_meta`)"
           placeholder="e.g. $.Some.Key, $.Another.Key"
+          onBlur={handleBlur}
         />
       )}
       size={size}
