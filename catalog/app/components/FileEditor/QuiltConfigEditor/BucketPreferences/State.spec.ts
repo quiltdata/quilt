@@ -68,6 +68,40 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
       })
       expect(stringify(config)).toBe(``)
     })
+
+    it('should keep unmodified user values', () => {
+      const userConfig = `ui:
+  actions:
+    createPackage: false
+  athena:
+    defaultWorkgroup: Foo bar
+`
+      const config = parse(userConfig, {
+        'ui.athena.defaultWorkgroup': 'Lorem ipsum',
+      })
+      expect(stringify(config)).toBe(userConfig)
+    })
+
+    it('should rewrite user values', () => {
+      const config = parse(
+        `ui:
+  athena:
+    defaultWorkgroup: Foo
+`,
+        {
+          'ui.athena.defaultWorkgroup': 'Lorem ipsum',
+        },
+      )
+      config['ui.athena.defaultWorkgroup'] = {
+        isDefault: false,
+        key: 'ui.athena.defaultWorkgroup',
+        value: 'Bar',
+      }
+      expect(stringify(config)).toBe(`ui:
+  athena:
+    defaultWorkgroup: Bar
+`)
+    })
   })
 
   describe('parse', () => {
