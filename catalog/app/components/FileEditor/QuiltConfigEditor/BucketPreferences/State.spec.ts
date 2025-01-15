@@ -37,9 +37,9 @@ function getLegacyValue(key: keyof Config) {
       )
     case 'ui.package_description_multiline':
       return legacyPrefs.ui.packageDescription.userMetaMultiline
-    case 'ui.source_buckets':
+    case 'ui.sourceBuckets':
       return legacyPrefs.ui.sourceBuckets.list
-    case 'ui.source_buckets.default':
+    case 'ui.defaultSourceBucket':
       return legacyPrefs.ui.sourceBuckets.getDefault()
     default:
       return getValueByPath(legacyPrefs, key.split('.'))

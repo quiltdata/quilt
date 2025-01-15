@@ -65,8 +65,8 @@ function parseUser(config: string) {
     'ui.package_description': json?.ui?.package_description,
     'ui.package_description_multiline': json?.ui?.package_description_multiline,
 
-    'ui.source_buckets': json?.ui?.sourceBuckets && Object.keys(json?.ui?.sourceBuckets),
-    'ui.source_buckets.default': json?.ui?.defaultSourceBucket,
+    'ui.sourceBuckets': json?.ui?.sourceBuckets && Object.keys(json?.ui?.sourceBuckets),
+    'ui.defaultSourceBucket': json?.ui?.defaultSourceBucket,
 
     'ui.athena.defaultWorkgroup': json?.ui?.athena?.defaultWorkgroup,
   }
@@ -113,8 +113,8 @@ const sys: Defaults = {
   },
   'ui.package_description_multiline': false,
 
-  'ui.source_buckets': [],
-  'ui.source_buckets.default': '',
+  'ui.sourceBuckets': [],
+  'ui.defaultSourceBucket': '',
 }
 
 function val<K extends Key>(
@@ -169,10 +169,13 @@ export function parse(config: string, ext: Partial<Defaults>) {
     'ui.nav.packages': val('ui.nav.packages', user, ext),
     'ui.nav.queries': val('ui.nav.queries', user, ext),
 
-    'ui.source_buckets': val('ui.source_buckets', user, ext),
-    'ui.source_buckets.default': val('ui.source_buckets.default', user, ext),
+    'ui.sourceBuckets': val('ui.sourceBuckets', user, ext),
+    // TODO: on the next iteration of design, try to keep the `default` inside `sourceBuckets`,
+    //       most likely, by tweaking `stringify` function
+    'ui.defaultSourceBucket': val('ui.defaultSourceBucket', user, ext),
 
     'ui.package_description': val('ui.package_description', user, ext),
+    // TODO: on the next iteration of design, try to keep the `multiline` inside `package_descrpition`
     'ui.package_description_multiline': val(
       'ui.package_description_multiline',
       user,
@@ -205,11 +208,20 @@ export function assocPath(obj: JsonRecord, value: Json, path: string[]): JsonRec
 }
 
 export function stringify(config: Config): string {
-  const aux = Object.entries(config).reduce(
-    (memo, [key, value]) =>
-      value.isDefault ? memo : assocPath(memo, value.value as Json, key.split('.')),
-    {},
-  )
+  const aux = Object.entries(config).reduce((memo, [key, value]) => {
+    if (value.isDefault) return memo
+    if (key === 'ui.sourceBuckets') {
+      const sourceBuckets = (value.value as string[]).reduce(
+        (acc: JsonRecord, bucket: string) => ({
+          ...acc,
+          [bucket]: {},
+        }),
+        {},
+      )
+      return assocPath(memo, sourceBuckets as Json, key.split('.'))
+    }
+    return assocPath(memo, value.value as Json, key.split('.'))
+  }, {} as JsonRecord)
   validate(aux)
-  return YAML.stringify(aux as JsonRecord)
+  return YAML.stringify(aux)
 }

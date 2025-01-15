@@ -90,7 +90,7 @@ function InputDefaultSourceBucket({
   className,
   disabled,
 }: FieldPropsWithConfig<TypedValue<string>>) {
-  const options = config['ui.source_buckets'].value
+  const options = config['ui.sourceBuckets'].value
   const handleChange = React.useCallback(
     (event) => onChange({ isDefault: false, value: event.target.value as string, key }),
     [key, onChange],
@@ -244,7 +244,7 @@ const GROUPS = {
     sortIndex: 20,
     title: 'Package List: selective display settings',
   },
-  'ui.source_buckets': {
+  'ui.sourceBuckets': {
     description:
       'Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"',
     sortIndex: 0,
@@ -285,23 +285,23 @@ function Field({ config, value, ...props }: FieldPropsWithConfig) {
     )
   }
 
-  if (value.key === 'ui.source_buckets') {
+  if (value.key === 'ui.sourceBuckets') {
     return (
       <InputSourceBuckets
         {...props}
         className={cx(props.className, classes.margin)}
-        value={value as KeyedValue<'ui.source_buckets'>}
+        value={value as KeyedValue<'ui.sourceBuckets'>}
       />
     )
   }
 
-  if (value.key === 'ui.source_buckets.default') {
+  if (value.key === 'ui.defaultSourceBucket') {
     return (
       <InputDefaultSourceBucket
         {...props}
         className={cx(props.className, classes.margin)}
         config={config}
-        value={value as KeyedValue<'ui.source_buckets.default'>}
+        value={value as KeyedValue<'ui.defaultSourceBucket'>}
       />
     )
   }
@@ -417,6 +417,10 @@ function parseGroupKey(key: keyof Config): GroupKey {
   if (key === 'ui.blocks.qurator') {
     // NOTE: Move into actions
     return 'ui.actions'
+  }
+  if (key === 'ui.defaultSourceBucket') {
+    // NOTE: render sourceBuckets and defaultSourceBucket in the same group
+    return 'ui.sourceBuckets'
   }
   if (key.match(/ui\.blocks\.meta\..*\.expanded/)) {
     // NOTE: Combine into a group
