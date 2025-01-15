@@ -116,6 +116,55 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
     s3://b: {}
 `)
     })
+
+    it('should stringify every custom field', () => {
+      const userConfig = `ui:
+  actions:
+    copyPackage: false
+    createPackage: false
+    deleteRevision: true
+    downloadObject: false
+    downloadPackage: false
+    openInDesktop: true
+    revisePackage: false
+    writeFile: false
+  blocks:
+    analytics: false
+    browser: false
+    code: false
+    meta:
+      user_meta:
+        expanded: 2
+      workflows:
+        expanded: 3
+    gallery:
+      files: false
+      overview: false
+      packages: false
+      summarize: false
+    qurator: false
+  nav:
+    files: false
+    packages: false
+    queries: false
+  sourceBuckets:
+    s3://a: {}
+    s3://b: {}
+    s3://c: {}
+  defaultSourceBucket: s3://b
+  package_description:
+    ^prefix/namespace$:
+      message: false
+      user_meta:
+        - $.Some.Key
+        - $.Another.Key
+  package_description_multiline: true
+  athena:
+    defaultWorkgroup: Foo
+`
+      const config = parse(userConfig, {})
+      expect(stringify(config)).toBe(userConfig)
+    })
   })
 
   describe('parse', () => {
@@ -170,6 +219,106 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         {},
       )
       expect(config['ui.sourceBuckets'].value).toStrictEqual(['s3://a', 's3://b'])
+    })
+
+    it('should parse every custom field', () => {
+      const config = parse(
+        `ui:
+  actions:
+    copyPackage: false
+    createPackage: false
+    deleteRevision: true
+    downloadObject: false
+    downloadPackage: false
+    revisePackage: false
+    writeFile: false
+    openInDesktop: true
+  blocks:
+    analytics: false
+    browser: false
+    code: false
+    meta:
+      user_meta:
+        expanded: 2
+      workflows:
+        expanded: 3
+    gallery:
+      files: false
+      overview: false
+      packages: false
+      summarize: false
+    qurator: false
+  nav:
+    files: false
+    packages: false
+    queries: false
+  sourceBuckets:
+    s3://a: {}
+    s3://b: {}
+    s3://c: {}
+  defaultSourceBucket: s3://b
+  package_description:
+    ^prefix/namespace$:
+      message: false
+      user_meta:
+        - $.Some.Key
+        - $.Another.Key
+  package_description_multiline: true
+  athena:
+    defaultWorkgroup: Foo
+`,
+        {},
+      )
+      expect(
+        Object.entries(config).reduce(
+          (memo, [key, value]) => ({
+            ...memo,
+            [key]: value.value,
+          }),
+          {},
+        ),
+      ).toStrictEqual({
+        'ui.actions.copyPackage': false,
+        'ui.actions.createPackage': false,
+        'ui.actions.deleteRevision': true,
+        'ui.actions.downloadObject': false,
+        'ui.actions.downloadPackage': false,
+        'ui.actions.openInDesktop': true,
+        'ui.actions.revisePackage': false,
+        'ui.actions.writeFile': false,
+
+        'ui.athena.defaultWorkgroup': 'Foo',
+
+        'ui.blocks.analytics': false,
+        'ui.blocks.browser': false,
+        'ui.blocks.code': false,
+
+        'ui.blocks.meta': true,
+        'ui.blocks.meta.user_meta.expanded': 2,
+        'ui.blocks.meta.workflows.expanded': 3,
+
+        'ui.blocks.gallery.files': false,
+        'ui.blocks.gallery.overview': false,
+        'ui.blocks.gallery.packages': false,
+        'ui.blocks.gallery.summarize': false,
+
+        'ui.blocks.qurator': false,
+
+        'ui.nav.files': false,
+        'ui.nav.packages': false,
+        'ui.nav.queries': false,
+
+        'ui.package_description': {
+          '^prefix/namespace$': {
+            message: false,
+            user_meta: ['$.Some.Key', '$.Another.Key'],
+          },
+        },
+        'ui.package_description_multiline': true,
+
+        'ui.sourceBuckets': ['s3://a', 's3://b', 's3://c'],
+        'ui.defaultSourceBucket': 's3://b',
+      })
     })
   })
 

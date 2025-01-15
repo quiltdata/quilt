@@ -24,16 +24,12 @@ jest.mock(
   jest.fn(() => ({
     ...jest.requireActual('@material-ui/core'),
     Checkbox: jest.fn(({ checked }: { checked: boolean }) => (
-      <div id="checkbox">{checked}</div>
+      <div id="checkbox">{checked.toString()}</div>
     )),
     TextField: jest.fn(({ value }: { value: React.ReactNode }) => (
       <div id="text-field">{value}</div>
     )),
-    Select: jest.fn(({ options, value }: { options?: string[]; value: string }) => (
-      <div id="select">
-        {value} from [{options?.join(', ')}]
-      </div>
-    )),
+    Select: jest.fn(({ value }: { value: string }) => <div id="select">{value}</div>),
     makeStyles: jest.fn((cb: any) => () => {
       const classes = typeof cb === 'function' ? cb(theme) : cb
       return Object.keys(classes).reduce(
@@ -63,6 +59,64 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefer
   it('render form with default values', () => {
     const tree = renderer
       .create(<BucketPreferences className="root" error={null} onChange={noop} />)
+      .toJSON()
+    expect(tree).toMatchSnapshot()
+  })
+
+  it('render form config where every value is custom', () => {
+    const config = `ui:
+  actions:
+    copyPackage: false
+    createPackage: false
+    deleteRevision: true
+    downloadObject: false
+    downloadPackage: false
+    openInDesktop: true
+    revisePackage: false
+    writeFile: false
+  blocks:
+    analytics: false
+    browser: false
+    code: false
+    meta:
+      user_meta:
+        expanded: 2
+      workflows:
+        expanded: 3
+    gallery:
+      files: false
+      overview: false
+      packages: false
+      summarize: false
+    qurator: false
+  nav:
+    files: false
+    packages: false
+    queries: false
+  sourceBuckets:
+    s3://a: {}
+    s3://b: {}
+    s3://c: {}
+  defaultSourceBucket: s3://b
+  package_description:
+    ^prefix/namespace$:
+      message: false
+      user_meta:
+        - $.Some.Key
+        - $.Another.Key
+  package_description_multiline: true
+  athena:
+    defaultWorkgroup: Foo
+`
+    const tree = renderer
+      .create(
+        <BucketPreferences
+          initialValue={config}
+          className="root"
+          error={null}
+          onChange={noop}
+        />,
+      )
       .toJSON()
     expect(tree).toMatchSnapshot()
   })
