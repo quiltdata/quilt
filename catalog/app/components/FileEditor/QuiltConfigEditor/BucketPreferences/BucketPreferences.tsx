@@ -410,7 +410,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 // Group keys so 'ui.a.b', and 'ui.a.b' are in the same 'ui.a' group
-// Inclose single root keys into one-field groups
+// Enclose single root keys into one-field groups
 // Also, move some config keys into other groups
 //       or combine some keys into a new group
 function parseGroupKey(key: keyof Config): GroupKey {
