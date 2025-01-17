@@ -13,7 +13,7 @@ Example for overriding `ServerSideEncryption` parameter for certain S3 operation
 ```python
 def event_handler(params, **kwargs):
     # Be mindful with parameters you set here.
-    # Specifically we it's not recommended to override/delete already set parameters
+    # Specifically it's not recommended to override/delete already set parameters
     # because that can break quilt3 logic.
     params.setdefault("ServerSideEncryption", "AES256")
 
