@@ -167,7 +167,7 @@ class S3ClientProvider:
         client_kwargs = {
             "config": Config(**conf_kwargs),
         }
-        hook = hooks.get_build_client_hook()
+        hook = hooks.get_build_s3_client_hook()
         return (
             self._build_client_base(session, client_kwargs)
             if hook is None else
