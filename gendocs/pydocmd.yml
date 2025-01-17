@@ -39,6 +39,8 @@ generate:
   - quilt3.admin.tabulator+
 
 - Hooks.md:
+  # don't do quilt3.hooks+ because pydocmd renders BuildClientBase and BuildClientHook
+  # in uninformative way
   - quilt3.hooks.get_build_s3_client_hook
   - quilt3.hooks.set_build_s3_client_hook
 
