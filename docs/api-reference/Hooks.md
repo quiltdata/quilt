@@ -36,12 +36,3 @@ __Returns__
 
 Old build client hook.
 
-Examples:
-```python
-    >>> def hook(build_client_base, session, client_kwargs):
-    ...     print("Building client")
-    ...     return build_client_base(session, client_kwargs)
-    ...
-    >>> set_build_client_hook(hook)
-```
-
