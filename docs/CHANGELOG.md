@@ -17,7 +17,7 @@ Entries inside each section should be ordered by type:
 
 ## Python API
 
-* [Added] `quilt3.hooks`: `get_build_s3_client_hook()` and `set_build_s3_client_hook()` functions for customization of S3 client building ([#4289](https://github.com/quiltdata/quilt/pull/4289))
+* [Added] `quilt3.hooks`: `set_build_s3_client_hook()` function for customizing S3 client ([#4289](https://github.com/quiltdata/quilt/pull/4289))
 
 # 6.2.0 - 2025-01-14
 
