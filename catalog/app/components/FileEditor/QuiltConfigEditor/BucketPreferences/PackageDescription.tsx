@@ -8,6 +8,15 @@ import type { PackagePreferencesInput } from 'utils/BucketPreferences/BucketPref
 
 import type { KeyedValue } from './State'
 
+// TODO:
+//   - Option to reset values to defaults (delete them from the config)
+//     * easy for athena and default source bucket
+//     * don't know how for checkboxes
+//   - Update utils/BucketPreferences on write
+//   - Validate package description, don't allow empty string because we have '.*'
+//   - Add new package description explicitly with button
+//   - invalidate defaultSourceBucket on sourceBuckets update
+
 interface JsonPathsProps {
   disabled?: boolean
   onChange: (value: string[]) => void
