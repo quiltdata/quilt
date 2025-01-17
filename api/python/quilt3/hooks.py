@@ -31,7 +31,7 @@ def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[Bu
     ```python
     def event_handler(params, **kwargs):
         # Be mindful with parameters you set here.
-        # Specifically we it's not recommended to override/delete already set parameters
+        # Specifically it's not recommended to override/delete already set parameters
         # because that can break quilt3 logic.
         params.setdefault("ServerSideEncryption", "AES256")
 
