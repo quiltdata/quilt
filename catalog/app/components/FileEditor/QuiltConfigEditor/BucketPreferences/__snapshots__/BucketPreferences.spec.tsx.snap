@@ -614,6 +614,15 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
               </span>
             </label>
           </div>
+          <div
+            id="icon-button"
+          >
+            <div
+              id="icon"
+            >
+              close
+            </div>
+          </div>
         </div>
         <div
           className="root"
@@ -1282,6 +1291,15 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
                 Display commit message
               </span>
             </label>
+          </div>
+          <div
+            id="icon-button"
+          >
+            <div
+              id="icon"
+            >
+              close
+            </div>
           </div>
         </div>
         <div

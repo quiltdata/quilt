@@ -138,7 +138,13 @@ const useStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridTemplateRows: '1fr 1fr 1fr',
     padding: t.spacing(2, 2, 0),
+    position: 'relative',
     rowGap: t.spacing(1),
+  },
+  close: {
+    position: 'absolute',
+    right: t.spacing(1),
+    top: t.spacing(1),
   },
   '@keyframes appear': {
     '0%': { opacity: 0 },
@@ -152,6 +158,7 @@ interface PackageDescriptionProps {
   handlePattern: string
   onChange: (handlePattern: string, value: PackagePreferencesInput) => void
   onRename: (oldHandlePattern: string, newHandlePattern: string) => void
+  onDelete?: (handlePattern: string) => void
   size: 'small' | 'medium'
   value: PackagePreferencesInput
 }
@@ -161,6 +168,7 @@ function PackageDescription({
   disabled,
   handlePattern,
   onChange,
+  onDelete,
   onRename,
   size,
   value,
@@ -177,6 +185,10 @@ function PackageDescription({
   const handleLabels = React.useCallback(
     (user_meta: string[]) => onChange(handlePattern, { ...value, user_meta }),
     [handlePattern, onChange, value],
+  )
+  const handleDelete = React.useCallback(
+    () => onDelete && onDelete(handlePattern),
+    [handlePattern, onDelete],
   )
   return (
     <div className={cx(classes.root, className)}>
@@ -198,6 +210,11 @@ function PackageDescription({
         size={size}
         value={value.message}
       />
+      {onDelete && (
+        <M.IconButton className={classes.close} onClick={handleDelete} size="small">
+          <M.Icon>close</M.Icon>
+        </M.IconButton>
+      )}
     </div>
   )
 }
@@ -261,6 +278,16 @@ export default function PackageDescriptionsList({
     [onChange, value],
   )
 
+  const handleDelete = React.useCallback(
+    (key: string) => {
+      const { [key]: deleted, ...rest } = value
+      onChange({
+        ...rest,
+      })
+    },
+    [onChange, value],
+  )
+
   const packageHandles = React.useMemo(() => Object.entries(value), [value])
 
   return (
@@ -274,6 +301,7 @@ export default function PackageDescriptionsList({
           size={size}
           onRename={handleKeyChange}
           onChange={handleValueChange}
+          onDelete={handleDelete}
         />
       ))}
       <PackageDescription

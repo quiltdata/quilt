@@ -26,6 +26,12 @@ jest.mock(
     Checkbox: jest.fn(({ checked }: { checked: boolean }) => (
       <div id="checkbox">{checked.toString()}</div>
     )),
+    IconButton: jest.fn(({ children }: { children: React.ReactNode }) => (
+      <div id="icon-button">{children}</div>
+    )),
+    Icon: jest.fn(({ children }: { children: string }) => (
+      <div id="icon">{children}</div>
+    )),
     TextField: jest.fn(({ value }: { value: React.ReactNode }) => (
       <div id="text-field">{value}</div>
     )),
