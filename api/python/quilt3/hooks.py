@@ -51,13 +51,6 @@ def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[Bu
 
     Returns:
         Old build client hook.
-
-    Examples:
-        >>> def hook(build_client_base, session, client_kwargs):
-        ...     print("Building client")
-        ...     return build_client_base(session, client_kwargs)
-        ...
-        >>> set_build_client_hook(hook)
     """
     global _build_client_hook
     old_hook = _build_client_hook

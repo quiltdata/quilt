@@ -15,7 +15,7 @@ def test_build_client_hooks():
         def hook(build_client_base, session, client_kwargs):
             client = build_client_base(session, client_kwargs)
             # use register_first and * to ensure that our hook runs before the stubber's one
-            client.meta.events.register_first(f"before-parameter-build.*.*", event_handler)
+            client.meta.events.register_first("before-parameter-build.*.*", event_handler)
 
             nonlocal stubber
             stubber = Stubber(client)
