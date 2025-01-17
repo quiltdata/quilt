@@ -18,6 +18,9 @@ import { EditorInputType } from './types'
 export { detect, isSupportedFileType } from './loader'
 
 const QuiltSummarize = React.lazy(() => import('./QuiltConfigEditor/QuiltSummarize'))
+const BucketPreferences = React.lazy(
+  () => import('./QuiltConfigEditor/BucketPreferences'),
+)
 
 interface EditorProps extends EditorState {
   className: string
@@ -35,7 +38,11 @@ function EditorSuspended({
   onChange,
   editing,
 }: EditorProps) {
-  if (editing.brace !== '__quiltConfig' && editing.brace !== '__quiltSummarize') {
+  if (
+    editing.brace !== '__quiltConfig' &&
+    editing.brace !== '__quiltSummarize' &&
+    editing.brace !== '__bucketPreferences'
+  ) {
     loadMode(editing.brace || 'plain_text') // TODO: loaders#typeText.brace
   }
 
@@ -51,6 +58,8 @@ function EditorSuspended({
     switch (editing.brace) {
       case '__quiltConfig':
         return <QuiltConfigEditor {...initialProps} handle={handle} />
+      case '__bucketPreferences':
+        return <BucketPreferences {...initialProps} />
       case '__quiltSummarize':
         return <QuiltSummarize {...initialProps} />
       default:
@@ -75,6 +84,8 @@ function EditorSuspended({
       switch (editing.brace) {
         case '__quiltConfig':
           return <QuiltConfigEditor {...props} handle={handle} />
+        case '__bucketPreferences':
+          return <BucketPreferences {...props} />
         case '__quiltSummarize':
           return <QuiltSummarize {...props} />
         default:
