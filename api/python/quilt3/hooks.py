@@ -4,11 +4,13 @@ import boto3
 
 
 class BuildClientBase(T.Protocol):
-    def __call__(self, session: boto3.Session, client_kwargs: dict): ...
+    def __call__(self, session: boto3.Session, client_kwargs: dict[str, T.Any], **kwargs): ...
 
 
 class BuildClientHook(T.Protocol):
-    def __call__(self, build_client_base: BuildClientBase, session: boto3.Session, client_kwargs: dict): ...
+    def __call__(
+        self, build_client_base: BuildClientBase, session: boto3.Session, client_kwargs: dict[str, T.Any], **kwargs
+    ): ...
 
 
 _build_client_hook = None
@@ -35,8 +37,8 @@ def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[Bu
         # because that can break quilt3 logic.
         params.setdefault("ServerSideEncryption", "AES256")
 
-    def hook(build_client_base, session, client_kwargs):
-        client = build_client_base(session, client_kwargs)
+    def hook(build_client_base, session, client_kwargs, **kwargs):
+        client = build_client_base(session, client_kwargs, **kwargs)
         for op in (
             "CreateMultipartUpload",
             "CopyObject",

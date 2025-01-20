@@ -17,8 +17,8 @@ def event_handler(params, **kwargs):
     # because that can break quilt3 logic.
     params.setdefault("ServerSideEncryption", "AES256")
 
-def hook(build_client_base, session, client_kwargs):
-    client = build_client_base(session, client_kwargs)
+def hook(build_client_base, session, client_kwargs, **kwargs):
+    client = build_client_base(session, client_kwargs, **kwargs)
     for op in (
         "CreateMultipartUpload",
         "CopyObject",
