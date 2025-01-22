@@ -19,6 +19,8 @@ def event_handler(params, **kwargs):
 
 def hook(build_client_base, session, client_kwargs, **kwargs):
     client = build_client_base(session, client_kwargs, **kwargs)
+    # Docs for boto3 events system we use below:
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/events.html
     for op in (
         "CreateMultipartUpload",
         "CopyObject",

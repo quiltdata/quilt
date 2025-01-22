@@ -39,6 +39,8 @@ def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[Bu
 
     def hook(build_client_base, session, client_kwargs, **kwargs):
         client = build_client_base(session, client_kwargs, **kwargs)
+        # Docs for boto3 events system we use below:
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/events.html
         for op in (
             "CreateMultipartUpload",
             "CopyObject",
