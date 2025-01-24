@@ -38,6 +38,12 @@ generate:
   - quilt3.admin.sso_config+
   - quilt3.admin.tabulator+
 
+- Hooks.md:
+  # don't do quilt3.hooks+ because pydocmd renders BuildClientBase and BuildClientHook
+  # in uninformative way
+  - quilt3.hooks.get_build_s3_client_hook
+  - quilt3.hooks.set_build_s3_client_hook
+
 # MkDocs pages configuration. The `<<` operator is sugar added by pydocmd
 # that allows you to use an external Markdown file (eg. your project's README)
 # in the documentation. The path must be relative to current working directory.

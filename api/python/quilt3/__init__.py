@@ -9,7 +9,7 @@ from pathlib import Path
 
 __version__ = Path(Path(__file__).parent, "VERSION").read_text().strip()
 
-from . import admin
+from . import admin, hooks
 from .api import (
     config,
     copy,

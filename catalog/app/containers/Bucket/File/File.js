@@ -210,6 +210,42 @@ function CenteredProgress() {
   )
 }
 
+const useFileEditorSectionStyles = M.makeStyles(() => ({
+  title: {
+    alignItems: 'center',
+    display: 'flex',
+    flexGrow: 1,
+  },
+  button: {
+    margin: '0 0 0 auto',
+    textTransform: 'none',
+  },
+}))
+
+function FileEditorSection({ preview, onPreview, children }) {
+  const classes = useFileEditorSectionStyles()
+  return (
+    <Section
+      icon="text_fields"
+      heading={
+        <div className={classes.title}>
+          Edit content
+          {onPreview && (
+            <FileEditor.PreviewButton
+              className={classes.button}
+              preview={preview}
+              onPreview={onPreview}
+            />
+          )}
+        </div>
+      }
+      expandable={false}
+    >
+      {children}
+    </Section>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
@@ -250,15 +286,6 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginBottom: t.spacing(2),
     flexWrap: 'wrap',
-  },
-  editTitle: {
-    alignItems: 'center',
-    display: 'flex',
-    flexGrow: 1,
-  },
-  editButton: {
-    margin: '0 0 0 auto',
-    textTransform: 'none',
   },
   preview: {
     width: '100%',
@@ -490,27 +517,16 @@ export default function File() {
                 prefs,
               )}
               {editorState.editing ? (
-                <Section
-                  icon="text_fields"
-                  heading={
-                    <div className={classes.editTitle}>
-                      Edit content
-                      {editorState.onPreview && (
-                        <FileEditor.PreviewButton
-                          className={classes.editButton}
-                          {...editorState}
-                        />
-                      )}
-                    </div>
-                  }
-                  expandable={false}
+                <FileEditorSection
+                  onPreview={editorState.onPreview}
+                  preview={editorState.preview}
                 >
                   <FileEditor.Editor
                     {...editorState}
                     className={classes.editor}
                     handle={handle}
                   />
-                </Section>
+                </FileEditorSection>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                   <div className={classes.preview}>
@@ -528,9 +544,17 @@ export default function File() {
           ),
           _: () =>
             editorState.editing ? (
-              <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                <FileEditor.Editor {...editorState} empty handle={handle} />
-              </Section>
+              <FileEditorSection
+                onPreview={editorState.onPreview}
+                preview={editorState.preview}
+              >
+                <FileEditor.Editor
+                  {...editorState}
+                  className={classes.editor}
+                  empty
+                  handle={handle}
+                />
+              </FileEditorSection>
             ) : (
               <>
                 <Message headline="No Such Object">
