@@ -10,6 +10,7 @@ Set build S3 client hook.
 
 Example for overriding `ServerSideEncryption` parameter for certain S3 operations:
 
+<!--pytest.mark.skip-->
 ```python
 from quilt3.hooks import set_build_s3_client_hook
 
