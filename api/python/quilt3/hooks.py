@@ -50,7 +50,7 @@ def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[Bu
         ):
             client.meta.events.register(f"before-parameter-build.s3.{op}", event_handler)
         return client
-    
+
     old_hook = set_build_s3_client_hook(hook)
     ```
 
