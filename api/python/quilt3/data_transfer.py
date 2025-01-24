@@ -41,7 +41,7 @@ from tenacity import (
 )
 from tqdm import tqdm
 
-from . import util
+from . import hooks, util
 from .session import get_boto3_session
 from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
@@ -153,6 +153,10 @@ class S3ClientProvider:
     def get_boto_session(self):
         return get_boto3_session()
 
+    @staticmethod
+    def _build_client_base(session, client_kwargs):
+        return session.client('s3', **client_kwargs)
+
     def _build_client(self, is_unsigned):
         session = self.get_boto_session()
         conf_kwargs = {
@@ -160,8 +164,15 @@ class S3ClientProvider:
         }
         if is_unsigned(session):
             conf_kwargs["signature_version"] = UNSIGNED
-
-        return session.client('s3', config=Config(**conf_kwargs))
+        client_kwargs = {
+            "config": Config(**conf_kwargs),
+        }
+        hook = hooks.get_build_s3_client_hook()
+        return (
+            self._build_client_base(session, client_kwargs)
+            if hook is None else
+            hook(self._build_client_base, session, client_kwargs)
+        )
 
     def _build_standard_client(self):
         s3_client = self._build_client(lambda session: session.get_credentials() is None)
