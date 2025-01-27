@@ -18,7 +18,7 @@ jobs:
           # - pkgevents
           - pkgpush
           # - preview
-          # - s3hash
+          - s3hash
           # - status_reports
           # - tabular_preview
           # - transcode
