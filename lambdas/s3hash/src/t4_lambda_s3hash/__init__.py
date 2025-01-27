@@ -453,12 +453,12 @@ async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyRes
             CopySource=location.boto_args,
             CopySourceIfMatch=etag,
         )
-        return CopyResult(version=resp["VersionId"])
+        return CopyResult(version=resp.get("VersionId"))
 
     async with create_mpu(target) as mpu:
         part_upload_results = await upload_parts(mpu, location, etag, part_defs)
         resp = await mpu.complete(part_upload_results)
-        return CopyResult(version=resp["VersionId"])
+        return CopyResult(version=resp.get("VersionId"))
 
 
 # XXX: move decorators to shared?
