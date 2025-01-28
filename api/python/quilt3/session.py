@@ -35,6 +35,8 @@ def _load_auth():
     except FileNotFoundError:
         return {}
 
+# 2. Save this authentication data to a local file (auth.json)
+
 
 def _save_auth(cfg):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
@@ -62,6 +64,7 @@ def get_registry_url():
     return get_from_config('registryUrl')
 
 
+# 1. First, make a POST request to {registry_url}/api/token with the refresh token
 def _update_auth(refresh_token, timeout=None):
     try:
         response = requests.post(
@@ -82,6 +85,7 @@ def _update_auth(refresh_token, timeout=None):
     if error is not None:
         raise QuiltException("Failed to log in: %s" % error)
 
+    # This will return JSON keys: refresh_token, access_token, expires_at
     return dict(
         refresh_token=data['refresh_token'],
         access_token=data['access_token'],
@@ -100,6 +104,8 @@ def _handle_response(resp, **kwargs):
             raise QuiltException(data['message'])
         except ValueError:
             raise QuiltException("Unexpected failure: error %s" % resp.status_code)
+
+# 4. Read auth.json to return value auth info, updating if necessary
 
 
 def _create_auth(timeout=None):
@@ -123,6 +129,8 @@ def _create_auth(timeout=None):
             _save_auth(contents)
 
     return auth
+
+# 5. Use that auth info to create a session object and add the auth token to the headers
 
 
 def _create_session(auth):
@@ -185,6 +193,7 @@ def open_url(url):
         print("Failed to launch the browser: %s" % ex)
 
 
+# 0. This is where the login flow starts
 def login():
     """
     Authenticate to your Quilt stack and assume the role assigned to you by
@@ -210,24 +219,30 @@ def login():
     print()
     refresh_token = input("Enter the code from the webpage: ")
 
+    # 0.1 The code we paste in becomes the refresh token.
+    # 0.2 That is passed to `login_with_token`
     login_with_token(refresh_token)
+
+# 0.3 `login_with_token`` does the actual authentication
 
 
 def login_with_token(refresh_token):
     """
     Authenticate using an existing token.
     """
-    # Get an access token and a new refresh token.
+    # 1. Use that refresh_token to get the access token and next refresh token (as `auth`)
     auth = _update_auth(refresh_token)
 
+    # 2. Add this authentication data to the local dict (auth.json)
     url = get_registry_url()
     contents = _load_auth()
     contents[url] = auth
     _save_auth(contents)
 
+    # 2.1 Unset the _session variable
     clear_session()
 
-    # use registry-provided credentials
+    # 2.2 Reset to use registry-provided credentials
     _refresh_credentials()
 
 
