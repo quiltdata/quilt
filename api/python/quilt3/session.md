@@ -153,3 +153,43 @@ class QuiltProvider(CredentialProvider):
 The key part is passing `_refresh_credentials` as the refresh_using parameter to
 `RefreshableCredentials.create_from_metadata()`. This function will be called
 whenever the credentials need to be refreshed.
+
+### 4. Rust Implementation
+
+> Does `aws-sdk-rust` have a Rust equivalent of `botocore.credentials.CredentialProvider`
+
+[aws-config](https://crates.io/crates/aws-config) is a Rust crate that provides
+a similar functionality to `botocore.credentials.CredentialProvider`. It allows
+you to load AWS credentials from various sources, including environment
+variables, shared credentials file, and AWS config file.
+
+> How would I implement quilt3.login (as described above) in quilt-rs?
+
+Based on the provided code and requirements, here's how I would implement
+`quilt3.login` in Rust:
+
+1. First, create a new module [auth.rs](./auth.rs) to handle authentication.
+2. Then modify the existing [client.rs](./client.rs) to use these credentials:
+3. Add a CLI command in [src/cli/model.rs](./cli-model.rs) to handle the login
+   process.
+4. Add dependencies to [Cargo.toml](./Cargo.toml) for handling HTTP requests and
+   JSON parsing.
+
+This implementation:
+
+1. Verifies the registry URL exists
+2. Opens a browser for the user to get their refresh token
+3. Prompts for and collects the refresh token
+4. Exchanges the refresh token for auth tokens via POST request
+5. Caches the tokens in the user's data directory
+6. Gets initial AWS credentials using the access token
+7. Saves those credentials for future use
+
+The credentials can then be used to create authenticated S3 clients when needed.
+
+Key differences from the Python implementation:
+
+1. Uses Rust's async/await for asynchronous operations
+2. Leverages Rust's type system for better safety
+3. Uses the aws-sdk-rust crate instead of boto3
+4. Implements proper error handling using Rust's Result type
