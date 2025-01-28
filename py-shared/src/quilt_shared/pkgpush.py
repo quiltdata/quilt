@@ -108,7 +108,7 @@ class ChecksumResult(pydantic.BaseModel):
 
 
 class CopyResult(pydantic.BaseModel):
-    version: str
+    version: T.Optional[str]
 
 
 class PackagePushParams(pydantic.BaseModel):

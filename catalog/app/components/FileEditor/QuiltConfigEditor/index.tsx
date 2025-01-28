@@ -8,16 +8,11 @@ import Skeleton from '../Skeleton'
 import Dummy from './Dummy'
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
 
-const BucketPreferences = React.lazy(() => import('./BucketPreferences'))
 const Workflows = React.lazy(() => import('./Workflows'))
 
 const QuiltConfigEditorSuspended = React.lazy(() => import('./QuiltConfigEditor'))
 
 function getConfigDetailsFetcher(handle: Model.S3.S3ObjectLocation) {
-  if (
-    quiltConfigs.bucketPreferences.some((quiltConfig) => quiltConfig.includes(handle.key))
-  )
-    return BucketPreferences
   if (quiltConfigs.workflows.includes(handle.key)) return Workflows
   return Dummy
 }

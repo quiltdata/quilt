@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Add Markdown preview when creating the Markdown file ([#4293](https://github.com/quiltdata/quilt/pull/4293))
+- [Added] Visual editor for the Bucket UI config (`.quilt/catalog/config.yaml`) ([#4261](https://github.com/quiltdata/quilt/pull/4261))
 - [Added] Button to add a `quilt_summarize.json` to a package ([#4273](https://github.com/quiltdata/quilt/pull/4273))
 - [Added] Admin: Link to bucket UI config from the bucket settings screen ([#4273](https://github.com/quiltdata/quilt/pull/4273))
 - [Added] Admin: Tabulator Settings (open query) ([#4255](https://github.com/quiltdata/quilt/pull/4255))

@@ -13,7 +13,17 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
-# unreleased - YYYY-MM-DD
+# 6.3.0 - 2025-01-24
+
+## Python API
+
+* [Added] `quilt3.hooks`: `set_build_s3_client_hook()` function for customizing S3 client ([#4289](https://github.com/quiltdata/quilt/pull/4289))
+
+# 6.2.0 - 2025-01-14
+
+## CLI
+
+* [Fixed] Fix installation of `quilt3[catalog]` ([#4287](https://github.com/quiltdata/quilt/pull/4287))
 
 ## Python API
 

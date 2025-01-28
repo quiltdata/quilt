@@ -83,10 +83,12 @@ or is empty the feature "Add files from Bucket" is disabled
 that is selected by default; if it doesn't match any bucket then it's ignored
 * `ui.package_description` - a dictionary
 that maps package handle regular expressions
-or literals to JSONPath expressions of fields to show from package metadata
+to JSONPath expressions of fields to show from package metadata
 in the package list view.
 * `ui.package_description_multiline: True` - expands package metadata's root key/values
 * `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
+
+![Alongside text editor users can use visual form to modify the config](../imgs/bucket-preferences-editor.png)
 
 #### `ui.sourceBuckets` example
 
@@ -122,7 +124,7 @@ ui:
       user_meta:
         - $.labels
     # for any package with a handle prefix of foo
-    foo/*:
+    ^foo/.*:
       # JSONPath expressions to the fields to display
       user_meta:
         - $.key1.key2

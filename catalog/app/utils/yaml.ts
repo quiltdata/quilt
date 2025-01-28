@@ -3,6 +3,8 @@ import yaml from 'js-yaml'
 import * as Types from 'utils/types'
 
 export function stringify(inputObj?: Types.JsonRecord): string {
+  // https://github.com/nodeca/js-yaml/issues/694
+  if (inputObj && !Object.keys(inputObj).length) return ''
   return yaml.dump(inputObj)
 }
 
