@@ -37,7 +37,12 @@ To enable Qurator Omni:
 
 2. **Configure Claude Model**:  
    - Login to the Amazon Bedrock console.
-   - Ensure that the Claude 3.5 Sonnet V2 (`anthropic.claude-3-5-sonnet-20241022-v2:0`) inference profile is available in the same region as your Quilt deployment. Check [Model support by AWS Region](https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html) for details.
+   - Ensure that the Claude 3.5 Sonnet V2
+     (`anthropic.claude-3-5-sonnet-20241022-v2:0`) inference profile is
+     available in the same region as your Quilt deployment. Check [Model support
+     by AWS
+     Region](https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html)
+     for details.
    - Enable the model by configuring it within your Bedrock environment.
    - Carefully monitor the model’s cost implications. The Claude model is
      charged based on usage, so ensure that you have the necessary budget
