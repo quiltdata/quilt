@@ -206,17 +206,22 @@
                 "items": {
                   "type": "string",
                   "description": "JSONPath to string or array of strings inside user_meta",
-                  "examples": ["$.key", "$.metaKeyParent.metaKeyChild", "$[key with a space]", "$..*"]
+                  "examples": [
+                    "$.key",
+                    "$.metaKeyParent.metaKeyChild",
+                    "$[key with a space]",
+                    "$..*"
+                  ]
                 }
               }
             }
           },
           "examples": [
             {
-              "*": {
+              ".*": {
                 "message": true
               },
-              "foo/bar": {
+              "^prefix/.*": {
                 "message": false,
                 "user_meta": "$.metaKeyParent.metaKeyChild"
               }
