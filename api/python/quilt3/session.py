@@ -223,7 +223,7 @@ def login():
     # 0.2 That is passed to `login_with_token`
     login_with_token(refresh_token)
 
-# 0.3 `login_with_token`` does the actual authentication
+# 0.3 `login_with_token` does the actual authentication
 
 
 def login_with_token(refresh_token):

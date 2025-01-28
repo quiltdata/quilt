@@ -56,7 +56,7 @@ invocations of the CLI or API.
 ## 6. (Re)Create a Session
 
 Clear the old session (if any) and call `refresh_credentials()` to create a new
-one. This calls POST on `{registry_url}/api/auth/get_credentials` with the
+one. This calls GET on `{registry_url}/api/auth/get_credentials` with the
 `access_token` to get the credentials.
 
 ```python
@@ -123,7 +123,7 @@ def load(self):
 The purpose of _refresh_credentials() is to:
 
 - Get fresh AWS credentials from the Quilt registry by making a request to /api/auth/get_credentials
-- Save these credentials locally in a standardized format:
+- Save these credentials locally in a standardized format
 
 ### 3. QuiltProvider
 
@@ -136,7 +136,6 @@ It inherits from `botocore.credentials.CredentialProvider` and implements the
 refresh mechanism through RefreshableCredentials:
 
 ```python
-Copy code
 class QuiltProvider(CredentialProvider):
     METHOD = 'quilt-registry'
     CANONICAL_NAME = 'QuiltRegistry'
