@@ -39,6 +39,7 @@ from quilt_shared.pkgpush import (
     PackageConstructEntry,
     PackageConstructParams,
     PackagePromoteParams,
+    PackagePushParams,
     PackagePushResult,
     S3CopyLambdaParams,
     S3HashLambdaParams,
@@ -529,7 +530,7 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     return PackagePushResult(top_hash=TopHash(top_hash))
 
 
-class PackagePrefixParams(PackageConstructParams):
+class PackagePrefixParams(PackagePushParams):
     prefix: str  # XXX: validate with regex?
 
 
