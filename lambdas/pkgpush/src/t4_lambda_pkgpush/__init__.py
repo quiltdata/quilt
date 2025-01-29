@@ -527,3 +527,20 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
     # XXX: return mtime?
     return PackagePushResult(top_hash=TopHash(top_hash))
+
+
+class PackagePrefixParams(PackageConstructParams):
+    prefix: str  # XXX: validate with regex?
+
+
+def package_prefix_sqs(event, context):
+    for record in event["Records"]:
+        params = PackagePrefixParams.parse_raw(record["body"])
+        pkg = quilt3.Package()
+        pkg.set_meta(params.user_meta or {})
+        pkg.set_dir(".", params.prefix)
+        pkg._build(
+            name=params.name,
+            registry=f"s3://{params.bucket}",
+            message=params.message,
+        )
