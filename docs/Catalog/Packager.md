@@ -26,7 +26,7 @@ _[TBD: Does this generate an SNS notice on completion?]_
 The simplest way to enable package creation is through the Admin Settings GUI,
 which supports the following built-in event sources:
 
-![Admin Settings](imgs/packager-admin-gui.png)
+![Admin Settings](../imgs/package-admin-gui.png)
 
 ### AWS Health Omics
 
@@ -40,7 +40,7 @@ created in that same bucket with the name `omics-quilt/3395667`.
 When enabled, this will create a package from any folder containing an
 `ro-crate-manifest.json`. [RO-Crate](https://www.researchobject.org/ro-crate/)
 is a metadata standard for describing research data, which is also used by the
-latest versions of [nf-prov(nf-prov)].
+latest versions of [nf-prov](https://github.com/nextflow-io/nf-prov).
 
 The package will be created in the same bucket as the sentinel file, using the
 last two path components as the package name. If there are fewer than two
@@ -50,7 +50,7 @@ components, it will use a default prefix or suffix.
 
 EDP is a high-end add-on to Quilt that coalesces multiple S3 uploads into a
 single `package-objects-ready` event, where it infers the appropriate top-level
-foldler.  When enabled, QPS will create a package from the `bucket` and `prefix`
+folder.  When enabled, QPS will create a package from the `bucket` and `prefix`
 provided in that event.
 
 ## SQS Message Processing
@@ -132,7 +132,7 @@ Topic for S3 PutObject URIs that end in `manifest.json` into a package creation 
 ## REST API Endpoints
 
 In addition, you can create packages directly via the REST API,
-available the `PACKAGER_ENDPOINT` output of your Quilt stack.
+available as the `PACKAGER_ENDPOINT` output of your Quilt stack.
 The following methods are available:
 
 ```sh
