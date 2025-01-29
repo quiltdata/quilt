@@ -147,6 +147,7 @@ POST /package/from-args  // Create package with explicit arguments
 
 Creating a package from a URI:
 
+<!--pytest.mark.skip-->
 ```bash
 curl -X POST $PACKAGER_ENDPOINT \
      -H "Content-Type: application/json" \
