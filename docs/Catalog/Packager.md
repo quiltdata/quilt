@@ -135,10 +135,10 @@ In addition, you can create packages directly via the REST API,
 available as the `PACKAGER_ENDPOINT` output of your Quilt stack.
 The following methods are available:
 
-```sh
-GET /health          // Health check endpoint
-GET /info            // Service information and configuration
-GET /queue           // View messages in the packaging queue
+```plaintext
+GET /health              // Health check endpoint
+GET /info                // Service information and configuration
+GET /queue               // View messages in the packaging queue
 POST /package/from-uri   // Create package from S3 URI
 POST /package/from-args  // Create package with explicit arguments
 ```
