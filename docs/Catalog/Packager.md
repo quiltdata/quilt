@@ -19,29 +19,136 @@ standardization. It consists of:
 In addition to supporting your custom data pipelines, QPS can be used to build
 integrations with genomics workflows and ELNs (Electronic Lab Notebooks).
 
-## Features
+_[TBD: Does this generate an SNS notice on completion?]_
 
-### Admin Settings
+## Admin Settings
 
-The following options are configurable through the Catalog Admin Settings:
+The simplest way to enable package creation is through the Admin Settings GUI,
+which supports the following built-in event sources:
 
-- Built-in QPE event processing (enabled by default)
-- EDP event handling (disabled by default)
-- Omics Completion events (disabled by default)
-- S3 SNS event processing by file suffix (default: 'metadata.json')
+![Admin Settings](imgs/packager-admin-gui.png)
 
-### Bucket Configuration
+### AWS Health Omics
 
-Administrators can configure QPE to process events across multiple buckets:
+When enabled, this will create a package from the URI provided in any
+`aws.omics` event with `detail.status` of "COMPLETED".  For example, if the
+`runOutputUri` is `s3://quilt-example/omics-quilt/3395667`, the package will be
+created in that same bucket with the name `omics-quilt/3395667`.
 
-- Global settings for all stack buckets
-- Selective bucket processing via picklist or regex
-- Bucket exclusion via blacklist
+### `ro-crate-manifest.json` Sentinel Files
 
-## Security
+When enabled, this will create a package from any folder containing an
+`ro-crate-manifest.json`. [RO-Crate](https://www.researchobject.org/ro-crate/)
+is a metadata standard for describing research data, which is also used by the
+latest versions of [nf-prov(nf-prov)].
 
-QPE operates with the following security considerations:
+The package will be created in the same bucket as the sentinel file, using the
+last two path components as the package name. If there are fewer than two
+components, it will use a default prefix or suffix.
 
-- Uses default ReadWrite role permissions for stack buckets
-- API-level access control
-- Event validation and sanitization
+### Event-Driven Packaging (EDP)
+
+EDP is a high-end add-on to Quilt that coalesces multiple S3 uploads into a
+single `package-objects-ready` event, where it infers the appropriate top-level
+foldler.  When enabled, QPS will create a package from the `bucket` and `prefix`
+provided in that event.
+
+## SQS Message Processing
+
+The primary interface to the Quilt Packaging Service is through the
+`QuiltPackager` SQS queue in the same account and region as your Quilt stack,
+i.e., `https://sqs.${AWS_REGION}.amazonaws.com/${AWS_ACCOUNT}/QuiltPackager`.
+
+There are a wide range of low-code and no-code AWS services that can generate
+SQS events. To use it, simply post a message whose body is the stringified JSON
+of a package description:
+
+```json
+{
+    "source_uri": "s3://data_bucket/folder/to/be/packaged",
+    "registry": "s3://package_bucket",  // may be the same as `data_bucket`
+    "pkg_name": "prefix/suffix",
+    "metadata": { "key": "value" },  // optional dictionary
+    "message": "Commit message for the package revision", // optional string
+    "should_copy": false // optional boolean
+    // false = point to data in the source bucket
+    // true = copy data to the package bucket
+}
+```
+
+## Default EventBridge Rules
+
+For convenience, we also provide custom EventBridge rules that can be used to
+create packages. Any event that matches one of these rules will be sent to the
+`QuiltPackager` SQS queue.
+
+1. The `detail-type` is `package-objects-request`
+2. The `detail` must either be the package description (as above) or an S3 URI
+   of the folder to package:
+
+```json
+{
+    "uri": "s3://data_bucket/folder/to/be/packaged",
+}
+```
+
+## Custom EventBridge Rules
+
+You can write your own Rules that use Input Transformers to convert any event
+into one of these formats. Here's an example of a Rule that will convert any SNS
+Topic for S3 PutObject URIs that end in `manifest.json` into a package creation request:
+
+```json
+{
+  "EventPattern": {
+    "source": ["aws.s3"],
+    "detail-type": ["Object Created"],
+    "detail": {
+      "bucket": { "name": ["bkt"] },
+      "object": {
+        "key": [{ "prefix": "path/to/folder/" }]
+      }
+    }
+  },
+  "Targets": [
+    {
+      "Id": "TargetID",
+      "Arn": "arn:aws:events:region:account-id:event-bus/default",
+      "InputTransformer": {
+        "InputPathsMap": {
+          "bucketName": "$.Records[0].s3.bucket.name",
+          "objectKey": "$.Records[0].s3.object.key"
+        },
+        "InputTemplate": "{\
+          \"detail-type\": \"package-object-request\", \
+          \"detail\": { \"uri\": \"s3://<bucketName>/<objectKey>\" } \
+        }"
+      }
+    }
+  ]
+}
+```
+
+## REST API Endpoints
+
+In addition, you can create packages directly via the REST API,
+available the `PACKAGER_ENDPOINT` output of your Quilt stack.
+The following methods are available:
+
+```sh
+GET /health          // Health check endpoint
+GET /info            // Service information and configuration
+GET /queue           // View messages in the packaging queue
+POST /package/from-uri   // Create package from S3 URI
+POST /package/from-args  // Create package with explicit arguments
+```
+
+### Package Creation Examples
+
+Creating a package from a URI:
+
+```bash
+curl -X POST $PACKAGER_ENDPOINT \
+     -H "Content-Type: application/json" \
+     -d '{"uri": "s3://bucket/path/to/data?key=value"}'
+```
