@@ -10,10 +10,10 @@ standardization. It consists of:
 
 1. Admin Settings GUI to enable package creation for:
    1. AWS Health Omics
-   2. `ro-crate-manifest.json` sentinel files
+   2. Research Object Crates (RO-Crates)
    3. Quilt's Event-Driven Packaging (EDP) system
-2. An SQS queue that will process package descriptions
-3. EventBridge rules for either an S3 URI or a full package description
+2. EventBridge rules for either an S3 URI or a full package description
+3. An SQS queue that will process package descriptions
 4. A complete REST API for package creation
 
 In addition to supporting your custom data pipelines, QPS can be used to build
@@ -129,27 +129,15 @@ Topic for S3 PutObject URIs that end in `manifest.json` into a package creation 
 }
 ```
 
-## REST API Endpoints
-
-In addition, you can create packages directly via the REST API,
-available as the `PACKAGER_ENDPOINT` output of your Quilt stack.
-The following methods are available:
-
-```plaintext
-GET /health              // Health check endpoint
-GET /info                // Service information and configuration
-GET /queue               // View messages in the packaging queue
-POST /package/from-uri   // Create package from S3 URI
-POST /package/from-args  // Create package with explicit arguments
-```
-
 ### Package Creation Examples
 
 Creating a package from a URI:
 
 <!--pytest.mark.skip-->
 ```bash
-curl -X POST $PACKAGER_ENDPOINT \
+pip install aws-sigv4
+curl --aws-sigv4 "aws:amz:$AWS_REGION:es" --user "key:secret" \
+ -X POST $PACKAGER_SQS_URL \
      -H "Content-Type: application/json" \
      -d '{"uri": "s3://bucket/path/to/data?key=value"}'
 ```
