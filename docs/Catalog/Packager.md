@@ -141,3 +141,14 @@ curl --aws-sigv4 "aws:amz:$AWS_REGION:es" --user "key:secret" \
      -H "Content-Type: application/json" \
      -d '{"uri": "s3://bucket/path/to/data?key=value"}'
 ```
+
+## Notes
+
+1. **Permissions**: The packager lambda runs with Read/Write permissions to all
+buckets associated with the Quilt stack. If you ask it to package a folder from
+or to a bucket that it doesn't have access to, it will fail.
+1. **Multiple Stacks**: Events are processed from the default bus, so if you
+   have two stacks in the same account and region, and you enable one of our
+   default rules on both of them, they will both try to process the same event.
+   This could cause problems if they try writing to a shared bucket, so you
+   should avoid that. Use custom, bucket-specific rules instead.
