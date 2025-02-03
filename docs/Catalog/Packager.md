@@ -82,7 +82,7 @@ For convenience, we also provide custom EventBridge rules that can be used to
 create packages. Any event that matches one of these rules will be sent to the
 `QuiltPackager` SQS queue.
 
-1. The `detail-type` is `package-objects-request`
+1. The `detail-type` is `package-objects-ready`
 2. The `detail` must either be the package description (as above) or an S3 URI
    of the folder to package:
 
