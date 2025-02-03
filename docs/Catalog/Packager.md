@@ -135,11 +135,11 @@ Creating a package from a URI:
 
 <!--pytest.mark.skip-->
 ```bash
-pip install aws-sigv4
-curl --aws-sigv4 "aws:amz:$AWS_REGION:es" --user "key:secret" \
- -X POST $PACKAGER_SQS_URL \
-     -H "Content-Type: application/json" \
-     -d '{"uri": "s3://bucket/path/to/data?key=value"}'
+pip install awscli
+aws sqs send-message \
+    --region $AWS_REGION \
+    --queue-url $PACKAGER_SQS_URL \
+    --message-body '{"uri": "s3://bucket/path/to/data?key=value"}'
 ```
 
 ## Notes
