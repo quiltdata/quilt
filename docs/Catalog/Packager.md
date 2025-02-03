@@ -127,8 +127,9 @@ Topic for S3 PutObject URIs that end in `manifest.json` into a package creation 
 
 EDP is a high-end add-on to Quilt that coalesces multiple S3 uploads into a
 single `package-objects-ready` event, where it infers the appropriate top-level
-folder.  EDP writes to its own EventBridge bus, so you would need to [Pipe](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-pipes.html) it to
-the default bus to trigger the Quilt Packaging Service.
+folder.  EDP writes to its own EventBridge bus, so you would need to
+[Pipe](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-pipes.html)
+it to the default bus to trigger the Quilt Packaging Service.
 
 ### Package Creation Examples
 
