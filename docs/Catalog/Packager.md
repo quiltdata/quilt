@@ -11,7 +11,6 @@ standardization. It consists of:
 1. Admin Settings GUI to enable package creation for:
    1. AWS Health Omics
    2. Research Object Crates (RO-Crates)
-   3. Quilt's Event-Driven Packaging (EDP) system
 2. EventBridge rules for either an S3 URI or a full package description
 3. An SQS queue that will process package descriptions
 4. A complete REST API for package creation
@@ -45,13 +44,6 @@ latest versions of [nf-prov](https://github.com/nextflow-io/nf-prov).
 The package will be created in the same bucket as the sentinel file, using the
 last two path components as the package name. If there are fewer than two
 components, it will use a default prefix or suffix.
-
-### Event-Driven Packaging (EDP)
-
-EDP is a high-end add-on to Quilt that coalesces multiple S3 uploads into a
-single `package-objects-ready` event, where it infers the appropriate top-level
-folder.  When enabled, QPS will create a package from the `bucket` and `prefix`
-provided in that event.
 
 ## SQS Message Processing
 
@@ -130,6 +122,13 @@ Topic for S3 PutObject URIs that end in `manifest.json` into a package creation 
   ]
 }
 ```
+
+### Event-Driven Packaging (EDP)
+
+EDP is a high-end add-on to Quilt that coalesces multiple S3 uploads into a
+single `package-objects-ready` event, where it infers the appropriate top-level
+folder.  EDP writes to its own EventBridge bus, so you would need to [Pipe](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-pipes.html) it to
+the default bus to trigger the Quilt Packaging Service.
 
 ### Package Creation Examples
 
