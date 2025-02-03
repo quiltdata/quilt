@@ -65,11 +65,13 @@ of a package description:
 
 ```json
 {
-    "source_uri": "s3://data_bucket/folder/to/be/packaged",
-    "registry": "s3://package_bucket",  // may be the same as `data_bucket`
-    "pkg_name": "prefix/suffix",
+    "source_prefix": "s3://data_bucket/folder/to/be/packaged",
+    "registry": "package_bucket",  // may be the same as `data_bucket`
+    "package_name": "prefix/suffix",
     "metadata": { "key": "value" },  // optional dictionary
+    "metadata_uri": "metadata.json", // alternative to `metadata`, relative or absolute
     "message": "Commit message for the package revision", // optional string
+    "workflow": "alpha",
     "should_copy": false // optional boolean
     // false = point to data in the source bucket
     // true = copy data to the package bucket
