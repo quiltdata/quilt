@@ -11,8 +11,8 @@ import StyledLink from 'utils/StyledLink'
 
 import OPEN_QUERY_QUERY from './gql/TabulatorOpenQuery.generated'
 import SET_OPEN_QUERY_MUTATION from './gql/SetTabulatorOpenQuery.generated'
-import { useEventRuleToggle } from './gql/EventRuleQuery.generated'
-import { useEventRuleToggleMutation } from './gql/SetEventRule.generated'
+import { useEventRuleToggle } from './gql/EventRuleToggleQuery.generated'
+import { useEventRuleToggleMutation } from './gql/EventRuleToggleMutation.generated'
 
 interface ToggleProps {
   checked: boolean
