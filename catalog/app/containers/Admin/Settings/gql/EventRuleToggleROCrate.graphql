@@ -1,4 +1,4 @@
-mutation EventRuleToggle($enableRule: Boolean!) {
+mutation EventRuleToggleROCrate($enableRule: Boolean!) {
   eventRuleToggle(ruleType: ROCRATE, enableRule: $enableRule) {
     ... on EventRuleToggleSuccess {
       ruleArn

@@ -1,4 +1,4 @@
-mutation EventRuleToggle($enableRule: Boolean!) {
+mutation EventRuleToggleOmics($enableRule: Boolean!) {
   eventRuleToggle(ruleType: OMICS, enableRule: $enableRule) {
     ... on EventRuleToggleSuccess {
       ruleArn
