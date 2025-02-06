@@ -1,0 +1,8 @@
+mutation SetEventRule($type: EventRuleType!, $enabled: Boolean!) {
+  admin {
+    setEventRule(type: $type, enabled: $enabled) {
+      omics
+      rocrate
+    }
+  }
+}

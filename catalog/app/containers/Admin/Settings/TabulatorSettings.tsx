@@ -66,11 +66,23 @@ function Toggle({ checked }: ToggleProps) {
   )
 }
 
-interface EventRuleToggleProps {
-  checked: boolean
+enum EventRuleType {
+  OMICS = 'OMICS',
+  ROCRATE = 'ROCRATE'
 }
 
-function EventRuleToggle({ checked }: EventRuleToggleProps) {
+interface EventRuleState {
+  omics: boolean
+  rocrate: boolean
+}
+
+interface EventRuleToggleProps {
+  type: EventRuleType
+  checked: boolean
+  disabled?: boolean
+}
+
+function EventRuleToggle({ type, checked, disabled }: EventRuleToggleProps) {
   const { push: notify } = Notifications.use()
   const mutate = GQL.useMutation(SET_EVENT_RULE_MUTATION)
   const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
@@ -80,16 +92,20 @@ function EventRuleToggle({ checked }: EventRuleToggleProps) {
       if (mutation) return
       setMutation({ enabled })
       try {
-        await mutate({ enabled })
+        await mutate({ type, enabled })
       } catch (e) {
         Sentry.captureException(e)
-        notify(`Failed to update event rule settings: ${e}`)
+        notify(`Failed to update ${type.toLowerCase()} event rule settings: ${e}`)
       } finally {
         setMutation(null)
       }
     },
-    [mutate, notify, mutation],
+    [mutate, notify, mutation, type],
   )
+
+  const label = type === EventRuleType.OMICS 
+    ? "Enable event rules for Omics package events"
+    : "Enable event rules for RO-Crate package events"
 
   return (
     <>
@@ -98,14 +114,14 @@ function EventRuleToggle({ checked }: EventRuleToggleProps) {
           <M.Switch
             checked={mutation?.enabled ?? checked}
             onChange={handleChange}
-            disabled={!!mutation}
+            disabled={disabled || !!mutation}
           />
         }
-        label="Enable event rules for package events"
+        label={label}
       />
       <M.FormHelperText>
-        When enabled, package events will trigger configured event rules.{' '}
-        <StyledLink href={`${docs}/advanced-features/events`} target="_blank">
+        When enabled, {type.toLowerCase()} package events will trigger configured event rules.{' '}
+        <StyledLink href={`${docs}/advanced-features/events#${type.toLowerCase()}`} target="_blank">
           Learn more
         </StyledLink>{' '}
         in the documentation.
@@ -138,11 +154,28 @@ export default function TabulatorSettings() {
       })}
       <M.Box mt={2}>
         {GQL.fold(eventRuleQuery, {
-          data: ({ admin }) => <EventRuleToggle checked={admin.eventRuleEnabled} />,
+          data: ({ admin }) => (
+            <>
+              <EventRuleToggle 
+                type={EventRuleType.OMICS}
+                checked={admin.eventRuleEnabled.omics}
+              />
+              <M.Box mt={2}>
+                <EventRuleToggle
+                  type={EventRuleType.ROCRATE}
+                  checked={admin.eventRuleEnabled.rocrate}
+                />
+              </M.Box>
+            </>
+          ),
           fetching: () => (
             <>
               <Skeleton width="40%" height={38} />
               <Skeleton width="80%" height={20} mt="3px" />
+              <M.Box mt={2}>
+                <Skeleton width="40%" height={38} />
+                <Skeleton width="80%" height={20} mt="3px" />
+              </M.Box>
             </>
           ),
           error: (e) => (
