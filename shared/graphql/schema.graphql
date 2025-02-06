@@ -543,6 +543,17 @@ type Me {
 
 union SwitchRoleResult = Me | InvalidInput | OperationError
 
+enum EventRuleType {
+  OMICS
+  ROCRATE
+}
+
+type EventRuleToggleSuccess {
+  ruleArn: String!
+}
+
+union EventRuleToggleResult = EventRuleToggleSuccess | OperationError
+
 type Query {
   me: Me
 
@@ -965,4 +976,15 @@ type Mutation {
     ttl: Int! = 180
   ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
+
+  """
+  Enable or disable an EventBridge rule.
+  Requires admin privileges.
+  """
+  eventRuleToggle(
+    """Type of EventBridge rule to modify"""
+    ruleType: EventRuleType!,
+    """Whether to enable (true) or disable (false) the rule"""
+    enableRule: Boolean!
+  ): EventRuleToggleResult @admin
 }
