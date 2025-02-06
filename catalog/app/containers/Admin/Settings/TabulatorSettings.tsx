@@ -11,7 +11,7 @@ import StyledLink from 'utils/StyledLink'
 
 import OPEN_QUERY_QUERY from './gql/TabulatorOpenQuery.generated'
 import SET_OPEN_QUERY_MUTATION from './gql/SetTabulatorOpenQuery.generated'
-import EVENT_RULE_QUERY from './gql/EventRuleQuery.generated'
+import { useEventRuleToggle } from './gql/EventRuleQuery.generated'
 import { useEventRuleToggleMutation } from './gql/SetEventRule.generated'
 
 interface ToggleProps {
@@ -137,7 +137,7 @@ function EventRuleToggle({ type, checked, disabled }: EventRuleToggleProps) {
 
 export default function TabulatorSettings() {
   const tabulatorQuery = GQL.useQuery(OPEN_QUERY_QUERY)
-  const eventRuleQuery = GQL.useQuery(EVENT_RULE_QUERY)
+  const eventRuleQuery = useEventRuleToggle()
 
   return (
     <M.FormGroup>

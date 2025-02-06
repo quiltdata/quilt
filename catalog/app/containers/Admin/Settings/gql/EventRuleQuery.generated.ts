@@ -2,23 +2,31 @@ import * as Types from 'model/graphql/types.generated'
 import * as Operations from '@graphql/operations'
 import * as Apollo from '@apollo/client'
 
-export const EventRuleQueryDocument = /* GraphQL */ `
-  query EventRuleQuery {
+export const EventRuleToggleDocument = /* GraphQL */ `
+  query EventRuleToggle {
     admin {
-      eventRuleEnabled
+      eventRuleEnabled {
+        OMICS
+        ROCRATE
+      }
     }
   }
 `
 
-export type EventRuleQueryQuery = {
-  admin: { eventRuleEnabled: boolean }
+export type EventRuleToggleQuery = {
+  admin: { 
+    eventRuleEnabled: {
+      OMICS: boolean
+      ROCRATE: boolean
+    }
+  }
 }
 
-export function useEventRuleQuery(
-  baseOptions?: Apollo.QueryHookOptions<EventRuleQueryQuery>,
+export function useEventRuleToggle(
+  baseOptions?: Apollo.QueryHookOptions<EventRuleToggleQuery>,
 ) {
   const options = { ...baseOptions }
-  return Apollo.useQuery<EventRuleQueryQuery>(EventRuleQueryDocument, options)
+  return Apollo.useQuery<EventRuleToggleQuery>(EventRuleToggleDocument, options)
 }
 
-export type EventRuleQueryQueryHookResult = ReturnType<typeof useEventRuleQuery>
+export type EventRuleToggleQueryHookResult = ReturnType<typeof useEventRuleToggle>

@@ -1,4 +1,4 @@
-query {
+query EventRuleToggle {
   admin {
     eventRuleEnabled {
       OMICS
