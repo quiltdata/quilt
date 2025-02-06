@@ -12,7 +12,7 @@ import StyledLink from 'utils/StyledLink'
 import OPEN_QUERY_QUERY from './gql/TabulatorOpenQuery.generated'
 import SET_OPEN_QUERY_MUTATION from './gql/SetTabulatorOpenQuery.generated'
 import EVENT_RULE_QUERY from './gql/EventRuleQuery.generated'
-import SET_EVENT_RULE_MUTATION from './gql/SetEventRule.generated'
+import { useEventRuleToggleMutation } from './gql/SetEventRule.generated'
 
 interface ToggleProps {
   checked: boolean
@@ -84,7 +84,7 @@ interface EventRuleToggleProps {
 
 function EventRuleToggle({ type, checked, disabled }: EventRuleToggleProps) {
   const { push: notify } = Notifications.use()
-  const mutate = GQL.useMutation(SET_EVENT_RULE_MUTATION)
+  const [toggleEventRule] = useEventRuleToggleMutation()
   const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
 
   const handleChange = React.useCallback(
@@ -92,7 +92,12 @@ function EventRuleToggle({ type, checked, disabled }: EventRuleToggleProps) {
       if (mutation) return
       setMutation({ enabled })
       try {
-        await mutate({ type, enabled })
+        await toggleEventRule({ 
+          variables: { 
+            ruleType: type,
+            enableRule: enabled
+          }
+        })
       } catch (e) {
         Sentry.captureException(e)
         notify(`Failed to update ${type.toLowerCase()} event rule settings: ${e}`)

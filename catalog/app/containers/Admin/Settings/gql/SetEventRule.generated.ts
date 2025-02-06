@@ -2,30 +2,39 @@ import * as Types from 'model/graphql/types.generated'
 import * as Operations from '@graphql/operations'
 import * as Apollo from '@apollo/client'
 
-export const SetEventRuleMutationDocument = /* GraphQL */ `
-  mutation SetEventRuleMutation($enabled: Boolean!) {
+export const EventRuleToggleMutationDocument = /* GraphQL */ `
+  mutation EventRuleToggle($ruleType: EventRuleType!, $enableRule: Boolean!) {
     admin {
-      setEventRule(enabled: $enabled)
+      eventRuleToggle(ruleType: $ruleType, enableRule: $enableRule) {
+        OMICS
+        ROCRATE
+      }
     }
   }
 `
 
-export type SetEventRuleMutationMutationVariables = {
-  enabled: boolean
+export type EventRuleToggleMutationVariables = {
+  ruleType: EventRuleType
+  enableRule: boolean
 }
 
-export type SetEventRuleMutationMutation = {
-  admin: { setEventRule: boolean }
+export type EventRuleToggleMutation = {
+  admin: { 
+    eventRuleToggle: {
+      OMICS: boolean
+      ROCRATE: boolean
+    }
+  }
 }
 
-export function useSetEventRuleMutation(
-  baseOptions?: Apollo.MutationHookOptions<SetEventRuleMutationMutation, SetEventRuleMutationMutationVariables>,
+export function useEventRuleToggleMutation(
+  baseOptions?: Apollo.MutationHookOptions<EventRuleToggleMutation, EventRuleToggleMutationVariables>,
 ) {
   const options = { ...baseOptions }
-  return Apollo.useMutation<SetEventRuleMutationMutation, SetEventRuleMutationMutationVariables>(
-    SetEventRuleMutationDocument,
+  return Apollo.useMutation<EventRuleToggleMutation, EventRuleToggleMutationVariables>(
+    EventRuleToggleMutationDocument,
     options,
   )
 }
 
-export type SetEventRuleMutationMutationHookResult = ReturnType<typeof useSetEventRuleMutation>
+export type EventRuleToggleMutationHookResult = ReturnType<typeof useEventRuleToggleMutation>

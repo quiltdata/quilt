@@ -1,6 +1,6 @@
-mutation SetEventRule($type: EventRuleType!, $enabled: Boolean!) {
+mutation EventRuleToggle($ruleType: EventRuleType!, $enableRule: Boolean!) {
   admin {
-    setEventRule(type: $type, enabled: $enabled) {
+    eventRuleToggle(ruleType: $ruleType, enableRule: $enableRule) {
       OMICS
       ROCRATE
     }
