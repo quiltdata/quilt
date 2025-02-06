@@ -1,0 +1,12 @@
+mutation EventRuleToggle($enableRule: Boolean!) {
+  eventRuleToggle(ruleType: OMICS, enableRule: $enableRule) {
+    ... on EventRuleToggleSuccess {
+      ruleArn
+    }
+    ... on OperationError {
+      message
+      name
+      context
+    }
+  }
+}
