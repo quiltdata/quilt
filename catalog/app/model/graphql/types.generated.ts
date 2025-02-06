@@ -302,6 +302,18 @@ export interface EmptySearchResultSet {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
+export type EventRuleToggleResult = EventRuleToggleSuccess | OperationError
+
+export interface EventRuleToggleSuccess {
+  readonly __typename: 'EventRuleToggleSuccess'
+  readonly ruleArn: Scalars['String']
+}
+
+export enum EventRuleType {
+  OMICS = 'OMICS',
+  ROCRATE = 'ROCRATE',
+}
+
 export interface IPackageUserMetaFacet {
   readonly path: Scalars['String']
 }
@@ -437,6 +449,11 @@ export interface Mutation {
   readonly browsingSessionCreate: BrowsingSessionCreateResult
   readonly browsingSessionRefresh: BrowsingSessionRefreshResult
   readonly browsingSessionDispose: BrowsingSessionDisposeResult
+  /**
+   * Enable or disable an EventBridge rule.
+   * Requires admin privileges.
+   */
+  readonly eventRuleToggle: Maybe<EventRuleToggleResult>
 }
 
 export interface MutationswitchRoleArgs {
@@ -532,6 +549,11 @@ export interface MutationbrowsingSessionRefreshArgs {
 
 export interface MutationbrowsingSessionDisposeArgs {
   id: Scalars['ID']
+}
+
+export interface MutationeventRuleToggleArgs {
+  ruleType: EventRuleType
+  enableRule: Scalars['Boolean']
 }
 
 export interface MyRole {
