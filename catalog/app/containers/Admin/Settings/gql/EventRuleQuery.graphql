@@ -1,8 +1,0 @@
-query EventRuleToggle {
-  admin {
-    eventRuleEnabled {
-      OMICS
-      ROCRATE
-    }
-  }
-}

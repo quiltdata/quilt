@@ -1,8 +1,0 @@
-mutation EventRuleToggle($ruleType: EventRuleType!, $enableRule: Boolean!) {
-  admin {
-    eventRuleToggle(ruleType: $ruleType, enableRule: $enableRule) {
-      OMICS
-      ROCRATE
-    }
-  }
-}

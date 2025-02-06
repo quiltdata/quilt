@@ -11,8 +11,6 @@ import StyledLink from 'utils/StyledLink'
 
 import OPEN_QUERY_QUERY from './gql/TabulatorOpenQuery.generated'
 import SET_OPEN_QUERY_MUTATION from './gql/SetTabulatorOpenQuery.generated'
-import { useEventRuleToggle } from './gql/EventRuleToggleQuery.generated'
-import { useEventRuleToggleMutation } from './gql/EventRuleToggleMutation.generated'
 
 interface ToggleProps {
   checked: boolean
@@ -66,82 +64,12 @@ function Toggle({ checked }: ToggleProps) {
   )
 }
 
-enum EventRuleType {
-  OMICS = 'OMICS',
-  ROCRATE = 'ROCRATE'
-}
-
-interface EventRuleState {
-  OMICS: boolean
-  ROCRATE: boolean
-}
-
-interface EventRuleToggleProps {
-  type: EventRuleType
-  checked: boolean
-  disabled?: boolean
-}
-
-function EventRuleToggle({ type, checked, disabled }: EventRuleToggleProps) {
-  const { push: notify } = Notifications.use()
-  const [toggleEventRule] = useEventRuleToggleMutation()
-  const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
-
-  const handleChange = React.useCallback(
-    async (_event, enabled: boolean) => {
-      if (mutation) return
-      setMutation({ enabled })
-      try {
-        await toggleEventRule({ 
-          variables: { 
-            ruleType: type,
-            enableRule: enabled
-          }
-        })
-      } catch (e) {
-        Sentry.captureException(e)
-        notify(`Failed to update ${type.toLowerCase()} event rule settings: ${e}`)
-      } finally {
-        setMutation(null)
-      }
-    },
-    [mutate, notify, mutation, type],
-  )
-
-  const label = type === EventRuleType.OMICS 
-    ? "Enable event rules for Omics package events"
-    : "Enable event rules for RO-Crate package events"
-
-  return (
-    <>
-      <M.FormControlLabel
-        control={
-          <M.Switch
-            checked={mutation?.enabled ?? checked}
-            onChange={handleChange}
-            disabled={disabled || !!mutation}
-          />
-        }
-        label={label}
-      />
-      <M.FormHelperText>
-        When enabled, {type.toLowerCase()} package events will trigger configured event rules.{' '}
-        <StyledLink href={`${docs}/advanced-features/events#${type.toLowerCase()}`} target="_blank">
-          Learn more
-        </StyledLink>{' '}
-        in the documentation.
-      </M.FormHelperText>
-    </>
-  )
-}
-
 export default function TabulatorSettings() {
-  const tabulatorQuery = GQL.useQuery(OPEN_QUERY_QUERY)
-  const eventRuleQuery = useEventRuleToggle()
+  const query = GQL.useQuery(OPEN_QUERY_QUERY)
 
   return (
     <M.FormGroup>
-      {GQL.fold(tabulatorQuery, {
+      {GQL.fold(query, {
         data: ({ admin }) => <Toggle checked={admin.tabulatorOpenQuery} />,
         fetching: () => (
           <>
@@ -157,41 +85,6 @@ export default function TabulatorSettings() {
           </Lab.Alert>
         ),
       })}
-      <M.Box mt={2}>
-        {GQL.fold(eventRuleQuery, {
-          data: ({ admin }) => (
-            <>
-              <EventRuleToggle 
-                type={EventRuleType.OMICS}
-                checked={admin.eventRuleEnabled.OMICS}
-              />
-              <M.Box mt={2}>
-                <EventRuleToggle
-                  type={EventRuleType.ROCRATE}
-                  checked={admin.eventRuleEnabled.ROCRATE}
-                />
-              </M.Box>
-            </>
-          ),
-          fetching: () => (
-            <>
-              <Skeleton width="40%" height={38} />
-              <Skeleton width="80%" height={20} mt="3px" />
-              <M.Box mt={2}>
-                <Skeleton width="40%" height={38} />
-                <Skeleton width="80%" height={20} mt="3px" />
-              </M.Box>
-            </>
-          ),
-          error: (e) => (
-            <Lab.Alert severity="error">
-              Could not fetch event rule settings:
-              <br />
-              {e.message}
-            </Lab.Alert>
-          ),
-        })}
-      </M.Box>
     </M.FormGroup>
   )
 }
