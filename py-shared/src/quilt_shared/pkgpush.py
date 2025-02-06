@@ -105,6 +105,8 @@ class MPURef(pydantic.BaseModel):
 
 class ChecksumResult(pydantic.BaseModel):
     checksum: Checksum
+    version: T.Optional[str]
+    size: int
 
 
 class CopyResult(pydantic.BaseModel):

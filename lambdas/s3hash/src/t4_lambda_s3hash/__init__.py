@@ -398,19 +398,31 @@ async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str
     if obj_attrs:
         checksum = get_compliant_checksum(obj_attrs)
         if checksum is not None:
-            return ChecksumResult(checksum=checksum)
+            return ChecksumResult(
+                checksum=checksum,
+                version=version,
+                size=total_size,
+            )
 
-        etag, total_size = obj_attrs["ETag"], obj_attrs["ObjectSize"]
+        etag, total_size, version = obj_attrs["ETag"], obj_attrs["ObjectSize"], obj_attrs.get("VersionId")
     else:
         resp = await S3.get().head_object(**location.boto_args)
-        etag, total_size = resp["ETag"], resp["ContentLength"]
+        etag, total_size, version = resp["ETag"], resp["ContentLength"], resp.get("VersionId")
 
     if total_size == 0:
-        return ChecksumResult(checksum=Checksum.empty())
+        return ChecksumResult(
+            checksum=Checksum.empty(),
+            version=version,
+            size=total_size,
+        )
 
     if not CHUNKED_CHECKSUMS:
         checksum = await compute_checksum_legacy(location)
-        return ChecksumResult(checksum=checksum)
+        return ChecksumResult(
+            checksum=checksum,
+            version=version,
+            size=total_size,
+        )
 
     part_defs = get_parts_for_size(total_size)
 
@@ -425,7 +437,11 @@ async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str
         )
 
     checksum = Checksum.for_parts(part_checksums)
-    return ChecksumResult(checksum=checksum)
+    return ChecksumResult(
+        checksum=checksum,
+        version=version,
+        size=total_size,
+    )
 
 
 # XXX: move decorators to shared?
