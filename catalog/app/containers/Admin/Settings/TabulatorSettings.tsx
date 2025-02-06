@@ -72,8 +72,8 @@ enum EventRuleType {
 }
 
 interface EventRuleState {
-  omics: boolean
-  rocrate: boolean
+  OMICS: boolean
+  ROCRATE: boolean
 }
 
 interface EventRuleToggleProps {
@@ -158,12 +158,12 @@ export default function TabulatorSettings() {
             <>
               <EventRuleToggle 
                 type={EventRuleType.OMICS}
-                checked={admin.eventRuleEnabled.omics}
+                checked={admin.eventRuleEnabled.OMICS}
               />
               <M.Box mt={2}>
                 <EventRuleToggle
                   type={EventRuleType.ROCRATE}
-                  checked={admin.eventRuleEnabled.rocrate}
+                  checked={admin.eventRuleEnabled.ROCRATE}
                 />
               </M.Box>
             </>
