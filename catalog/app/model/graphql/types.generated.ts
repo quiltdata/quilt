@@ -302,6 +302,14 @@ export interface EmptySearchResultSet {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
+export type EventRuleStatusResult = EventRuleStatusSuccess | OperationError
+
+export interface EventRuleStatusSuccess {
+  readonly __typename: 'EventRuleStatusSuccess'
+  readonly ruleArn: Scalars['String']
+  readonly enabled: Scalars['Boolean']
+}
+
 export type EventRuleToggleResult = EventRuleToggleSuccess | OperationError
 
 export interface EventRuleToggleSuccess {
@@ -917,6 +925,11 @@ export interface Query {
   readonly role: Maybe<Role>
   readonly defaultRole: Maybe<Role>
   readonly status: StatusResult
+  /**
+   * Get the enabled/disabled status of an EventBridge rule.
+   * Requires admin privileges.
+   */
+  readonly eventRuleStatus: Maybe<EventRuleStatusResult>
 }
 
 export interface QuerybucketConfigArgs {
@@ -973,6 +986,10 @@ export interface QuerypolicyArgs {
 
 export interface QueryroleArgs {
   id: Scalars['ID']
+}
+
+export interface QueryeventRuleStatusArgs {
+  ruleType: EventRuleType
 }
 
 export type Role = UnmanagedRole | ManagedRole

@@ -552,7 +552,13 @@ type EventRuleToggleSuccess {
   ruleArn: String!
 }
 
+type EventRuleStatusSuccess {
+  ruleArn: String!
+  enabled: Boolean!
+}
+
 union EventRuleToggleResult = EventRuleToggleSuccess | OperationError
+union EventRuleStatusResult = EventRuleStatusSuccess | OperationError
 
 type Query {
   me: Me
@@ -589,6 +595,15 @@ type Query {
   role(id: ID!): Role @admin
   defaultRole: Role @admin
   status: StatusResult! @admin
+
+  """
+  Get the enabled/disabled status of an EventBridge rule.
+  Requires admin privileges.
+  """
+  eventRuleStatus(
+    """Type of EventBridge rule to check"""
+    ruleType: EventRuleType!
+  ): EventRuleStatusResult @admin
 }
 
 input BucketAddInput {
