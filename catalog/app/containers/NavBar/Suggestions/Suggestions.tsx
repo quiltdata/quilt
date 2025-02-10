@@ -62,7 +62,7 @@ function SuggestionsList({ items, selected }: SuggestionsProps) {
       <div className={classes.help}>
         Learn the{' '}
         <StyledLink
-          href={`${docs}/quilt-platform-catalog-user/searchquery#search-bar`}
+          href={`${docs}/quilt-platform-catalog-user/search#search-bar`}
           target="_blank"
         >
           advanced search syntax
