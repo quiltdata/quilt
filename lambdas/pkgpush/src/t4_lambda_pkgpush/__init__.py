@@ -571,6 +571,10 @@ def package_prefix_sqs(event, context):
 
     with setup_user_boto_session(boto3.Session()):
         for record in event["Records"]:
+            import pprint
+
+            pprint.pprint(record)
+
             params = PackagerEvent.parse_raw(record["body"])
 
             prefix_pk = PhysicalKey.from_url(params.source_prefix)
