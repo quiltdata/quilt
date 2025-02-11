@@ -539,6 +539,20 @@ class PackagerEvent(pydantic.BaseModel):
     workflow: T.Optional[str] = None
     commit_message: T.Optional[str] = None
 
+    # XXX: copied from shared
+    # XXX: is this sane here?
+    @property
+    def workflow_normalized(self):
+        # use default
+        if self.workflow is None:
+            return ...
+
+        # not selected
+        if self.workflow == "":
+            return None
+
+        return self.workflow
+
 
 def _infer_pkg_name_from_prefix(prefix: str) -> str:
     default_prefix = "quilt-packager"
@@ -581,7 +595,7 @@ def package_prefix_sqs(event, context):
             pkg.set_dir(".", f"s3://{prefix_pk.bucket}/{prefix}")
             pkg._validate_with_workflow(
                 registry=package_registry,
-                workflow=params.workflow,  # XXX: allow to use default
+                workflow=params.workflow_normalized,
                 name=pkg_name,
                 message=params.commit_message,
             )
