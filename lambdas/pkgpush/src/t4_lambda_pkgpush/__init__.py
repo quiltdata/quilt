@@ -602,8 +602,8 @@ def package_prefix_sqs(event, context):
                 metadata = json.load(s3.get_object(**s3_params)["Body"])
 
             pkg = quilt3.Package()
-            pkg.set_meta(metadata or {})
             pkg.set_dir(".", f"s3://{prefix_pk.bucket}/{prefix}")
+            pkg.set_meta(metadata or {})
             pkg._validate_with_workflow(
                 registry=package_registry,
                 workflow=params.workflow_normalized,
