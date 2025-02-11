@@ -592,7 +592,14 @@ def package_prefix_sqs(event, context):
             assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
             metadata = params.metadata
             if params.metadata_uri is not None:
-                metadata = json.load(s3.get_object(Bucket=prefix_pk.bucket, Key=params.metadata_uri)["Body"])
+                metadata_uri_pk = PhysicalKey.from_url(params.metadata_uri)
+                s3_params = {
+                    "Bucket": metadata_uri_pk.bucket,
+                    "Key": metadata_uri_pk.path,
+                }
+                if metadata_uri_pk.version_id:
+                    s3_params["VersionId"] = metadata_uri_pk.version_id
+                metadata = json.load(s3.get_object(**s3_params)["Body"])
 
             pkg = quilt3.Package()
             pkg.set_meta(metadata or {})
