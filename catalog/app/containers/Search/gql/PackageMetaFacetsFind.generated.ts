@@ -6,6 +6,7 @@ export type containers_Search_gql_PackageMetaFacetsFindQueryVariables = Types.Ex
   buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
   searchString: Types.Maybe<Types.Scalars['String']>
   filter: Types.Maybe<Types.PackagesSearchFilter>
+  latestOnly: Types.Scalars['Boolean']
   path: Types.Scalars['String']
 }>
 
@@ -82,6 +83,14 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
         },
         {
           kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'latestOnly' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'Boolean' } },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'path' } },
           type: {
             kind: 'NonNullType',
@@ -113,6 +122,11 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
                 kind: 'Argument',
                 name: { kind: 'Name', value: 'filter' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'latestOnly' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'latestOnly' } },
               },
             ],
             selectionSet: {
