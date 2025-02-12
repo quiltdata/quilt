@@ -1,0 +1,13 @@
+query {
+  eventRuleStatus(ruleType: ROCRATE) {
+    ... on EventRuleStatusSuccess {
+      ruleArn
+      enabled
+    }
+    ... on OperationError {
+      name
+      message
+      context
+    }
+  }
+}
