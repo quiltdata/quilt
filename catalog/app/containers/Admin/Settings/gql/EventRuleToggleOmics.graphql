@@ -1,14 +1,14 @@
 mutation EventRuleToggleOmics($enableRule: Boolean!) {
-    admin {
-        eventRuleToggle(ruleType: OMICS, enableRule: $enableRule) {
-            ... on EventRuleToggleSuccess {
-                ruleArn
-            }
-            ... on OperationError {
-                message
-                name
-                context
-            }
-        }
+  admin {
+    eventRuleToggle(ruleType: OMICS, enableRule: $enableRule) {
+      ... on EventRuleToggleSuccess {
+        ruleArn
+      }
+      ... on OperationError {
+        message
+        name
+        context
+      }
     }
+  }
 }

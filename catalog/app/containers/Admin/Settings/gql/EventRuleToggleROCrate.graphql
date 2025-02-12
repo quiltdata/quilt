@@ -1,14 +1,14 @@
 mutation EventRuleToggleROCrate($enableRule: Boolean!) {
-    admin {
-        eventRuleToggle(ruleType: ROCRATE, enableRule: $enableRule) {
-            ... on EventRuleToggleSuccess {
-                ruleArn
-            }
-            ... on OperationError {
-                message
-                name
-                context
-            }
-        }
+  admin {
+    eventRuleToggle(ruleType: ROCRATE, enableRule: $enableRule) {
+      ... on EventRuleToggleSuccess {
+        ruleArn
+      }
+      ... on OperationError {
+        message
+        name
+        context
+      }
     }
+  }
 }
