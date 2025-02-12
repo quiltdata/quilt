@@ -596,14 +596,9 @@ type Query {
   defaultRole: Role @admin
   status: StatusResult! @admin
 
-  """
-  Get the enabled/disabled status of an EventBridge rule.
-  Requires admin privileges.
-  """
   eventRuleStatus(
-    """Type of EventBridge rule to check"""
     ruleType: EventRuleType!
-  ): EventRuleStatusResult @admin
+  ): EventRuleStatus! @admin
 }
 
 input BucketAddInput {
@@ -992,14 +987,8 @@ type Mutation {
   ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
 
-  """
-  Enable or disable an EventBridge rule.
-  Requires admin privileges.
-  """
   eventRuleToggle(
-    """Type of EventBridge rule to modify"""
     ruleType: EventRuleType!,
-    """Whether to enable (true) or disable (false) the rule"""
     enableRule: Boolean!
-  ): EventRuleToggleResult @admin
+  ): EventRuleToggle! @admin
 }
