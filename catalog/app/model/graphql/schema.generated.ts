@@ -264,6 +264,40 @@ export default {
               },
             ],
           },
+          {
+            name: 'eventRuleToggle',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'EventRuleToggleResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'ruleType',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'enableRule',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
       },
@@ -319,6 +353,29 @@ export default {
               },
             },
             args: [],
+          },
+          {
+            name: 'eventRuleStatus',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'EventRuleStatusResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'ruleType',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
           },
         ],
         interfaces: [],
@@ -2624,37 +2681,6 @@ export default {
               },
             ],
           },
-          {
-            name: 'eventRuleToggle',
-            type: {
-              kind: 'UNION',
-              name: 'EventRuleToggleResult',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'ruleType',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
-                  },
-                },
-              },
-              {
-                name: 'enableRule',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Boolean',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
         ],
         interfaces: [],
       },
@@ -4595,26 +4621,6 @@ export default {
               },
             },
             args: [],
-          },
-          {
-            name: 'eventRuleStatus',
-            type: {
-              kind: 'UNION',
-              name: 'EventRuleStatusResult',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'ruleType',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
-                  },
-                },
-              },
-            ],
           },
         ],
         interfaces: [],

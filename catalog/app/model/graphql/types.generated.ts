@@ -49,6 +49,7 @@ export interface AdminMutations {
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
+  readonly eventRuleToggle: EventRuleToggleResult
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -71,12 +72,22 @@ export interface AdminMutationssetTabulatorOpenQueryArgs {
   enabled: Scalars['Boolean']
 }
 
+export interface AdminMutationseventRuleToggleArgs {
+  ruleType: EventRuleType
+  enableRule: Scalars['Boolean']
+}
+
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
   readonly ssoConfig: Maybe<SsoConfig>
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
   readonly tabulatorOpenQuery: Scalars['Boolean']
+  readonly eventRuleStatus: EventRuleStatusResult
+}
+
+export interface AdminQuerieseventRuleStatusArgs {
+  ruleType: EventRuleType
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -457,11 +468,6 @@ export interface Mutation {
   readonly browsingSessionCreate: BrowsingSessionCreateResult
   readonly browsingSessionRefresh: BrowsingSessionRefreshResult
   readonly browsingSessionDispose: BrowsingSessionDisposeResult
-  /**
-   * Enable or disable an EventBridge rule.
-   * Requires admin privileges.
-   */
-  readonly eventRuleToggle: Maybe<EventRuleToggleResult>
 }
 
 export interface MutationswitchRoleArgs {
@@ -557,11 +563,6 @@ export interface MutationbrowsingSessionRefreshArgs {
 
 export interface MutationbrowsingSessionDisposeArgs {
   id: Scalars['ID']
-}
-
-export interface MutationeventRuleToggleArgs {
-  ruleType: EventRuleType
-  enableRule: Scalars['Boolean']
 }
 
 export interface MyRole {
@@ -925,11 +926,6 @@ export interface Query {
   readonly role: Maybe<Role>
   readonly defaultRole: Maybe<Role>
   readonly status: StatusResult
-  /**
-   * Get the enabled/disabled status of an EventBridge rule.
-   * Requires admin privileges.
-   */
-  readonly eventRuleStatus: Maybe<EventRuleStatusResult>
 }
 
 export interface QuerybucketConfigArgs {
@@ -986,10 +982,6 @@ export interface QuerypolicyArgs {
 
 export interface QueryroleArgs {
   id: Scalars['ID']
-}
-
-export interface QueryeventRuleStatusArgs {
-  ruleType: EventRuleType
 }
 
 export type Role = UnmanagedRole | ManagedRole

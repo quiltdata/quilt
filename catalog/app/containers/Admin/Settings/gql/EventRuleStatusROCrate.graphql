@@ -1,5 +1,0 @@
-query {
-  admin {
-    eventRuleStatus(ruleType: ROCRATE)
-  }
-}
