@@ -42,7 +42,7 @@
           "title": "Name",
           "maxLength": 255,
           "minLength": 1,
-          "pattern": "^[a-z][a-z0-9_-]*$",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
           "type": "string"
         },
         "type": {
