@@ -562,6 +562,7 @@ type Query {
     searchString: String
     filter: PackagesSearchFilter
     userMetaFilters: [PackageUserMetaPredicate!]
+    latestOnly: Boolean! = false
   ): PackagesSearchResult!
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
