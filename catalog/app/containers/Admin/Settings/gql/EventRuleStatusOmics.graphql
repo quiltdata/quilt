@@ -1,13 +1,15 @@
 query {
-  eventRuleStatus(ruleType: OMICS) {
-    ... on EventRuleStatusSuccess {
-      ruleArn
-      enabled
+    admin {
+        eventRuleStatus(ruleType: OMICS) {
+            ... on EventRuleStatusSuccess {
+                ruleArn
+                enabled
+            }
+            ... on OperationError {
+                name
+                message
+                context
+            }
+        }
     }
-    ... on OperationError {
-      name
-      message
-      context
-    }
-  }
 }
