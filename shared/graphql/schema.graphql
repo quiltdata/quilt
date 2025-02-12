@@ -522,27 +522,6 @@ type SsoConfig {
   uploader: User!
 }
 
-type AdminQueries {
-  user: UserAdminQueries!
-  ssoConfig: SsoConfig
-  isDefaultRoleSettingDisabled: Boolean!
-  tabulatorOpenQuery: Boolean!
-}
-
-type MyRole {
-  name: String!
-}
-
-type Me {
-  name: String!
-  email: String!
-  isAdmin: Boolean!
-  role: MyRole!
-  roles: [MyRole!]!
-}
-
-union SwitchRoleResult = Me | InvalidInput | OperationError
-
 enum EventRuleType {
   OMICS
   ROCRATE
@@ -559,6 +538,30 @@ type EventRuleStatusSuccess {
 
 union EventRuleToggleResult = EventRuleToggleSuccess | OperationError
 union EventRuleStatusResult = EventRuleStatusSuccess | OperationError
+
+type AdminQueries {
+  user: UserAdminQueries!
+  ssoConfig: SsoConfig
+  isDefaultRoleSettingDisabled: Boolean!
+  tabulatorOpenQuery: Boolean!
+  eventRuleStatus(
+    ruleType: EventRuleType!
+  ): EventRuleStatusResult!
+}
+
+type MyRole {
+  name: String!
+}
+
+type Me {
+  name: String!
+  email: String!
+  isAdmin: Boolean!
+  role: MyRole!
+  roles: [MyRole!]!
+}
+
+union SwitchRoleResult = Me | InvalidInput | OperationError
 
 type Query {
   me: Me
@@ -595,10 +598,6 @@ type Query {
   role(id: ID!): Role @admin
   defaultRole: Role @admin
   status: StatusResult! @admin
-
-  eventRuleStatus(
-    ruleType: EventRuleType!
-  ): EventRuleStatus! @admin
 }
 
 input BucketAddInput {
@@ -936,6 +935,10 @@ type AdminMutations {
   bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
+  eventRuleToggle(
+    ruleType: EventRuleType!,
+    enableRule: Boolean!
+  ): EventRuleToggleResult!
 }
 
 type Mutation {
@@ -987,8 +990,4 @@ type Mutation {
   ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
 
-  eventRuleToggle(
-    ruleType: EventRuleType!,
-    enableRule: Boolean!
-  ): EventRuleToggle! @admin
 }
