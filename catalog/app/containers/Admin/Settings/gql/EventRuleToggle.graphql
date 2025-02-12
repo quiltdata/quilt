@@ -1,0 +1,9 @@
+mutation($ruleType: EventRuleType!, $enableRule: Boolean!) {
+    admin {
+        eventRuleToggle(ruleType: $ruleType, enableRule: $enableRule) {
+            ... on EventRuleToggleSuccess {
+                ruleArn
+            }
+        }
+    }
+}
