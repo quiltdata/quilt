@@ -1,14 +1,14 @@
 query {
   admin {
     rocrate: eventRuleStatus(ruleType: ROCRATE) {
-        ... on EventRuleStatusSuccess {
-            enabled
-        }
+      ... on EventRuleStatusSuccess {
+        enabled
+      }
     }
     omics: eventRuleStatus(ruleType: OMICS) {
-        ... on EventRuleStatusSuccess {
-            enabled
-        }
+      ... on EventRuleStatusSuccess {
+        enabled
+      }
     }
   }
 }
