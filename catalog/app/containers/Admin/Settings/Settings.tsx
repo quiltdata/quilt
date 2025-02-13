@@ -13,6 +13,7 @@ import * as validators from 'utils/validators'
 import * as Form from '../Form'
 import SearchSettings from './SearchSettings'
 import TabulatorSettings from './TabulatorSettings'
+import EventRuleSettings from './EventRuleSettings'
 import ThemeEditor from './ThemeEditor'
 
 function useBeta(): [boolean, (b: boolean) => Promise<void>] {
@@ -335,6 +336,9 @@ export default function Settings() {
       </M.Typography>
       <M.Paper className={classes.group}>
         <TabulatorSettings />
+      </M.Paper>
+      <M.Paper className={classes.group}>
+        <EventRuleSettings />
       </M.Paper>
     </div>
   )

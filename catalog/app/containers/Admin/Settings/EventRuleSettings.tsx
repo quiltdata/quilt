@@ -56,7 +56,7 @@ const Toggle: React.FC<ToggleProps> = ({ ruleType, enableRule }) => {
   )
 }
 
-const EventRuleSettings: React.FC = () => {
+export default function EventRuleSettings() {
   const query = GQL.useQuery(EventRuleStatus)
 
   return (
@@ -99,5 +99,3 @@ const EventRuleSettings: React.FC = () => {
     </M.FormGroup>
   )
 }
-
-export default EventRuleSettings
