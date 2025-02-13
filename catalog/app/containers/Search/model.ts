@@ -73,6 +73,7 @@ interface PackagesSearchUrlState extends SearchUrlStateBase {
   resultType: ResultType.QuiltPackage
   filter: FilterStateForResultType<ResultType.QuiltPackage>
   userMetaFilters: UserMetaFilters
+  latestOnly: boolean
 }
 
 export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
@@ -554,6 +555,7 @@ export function parseSearchParams(qs: string): SearchUrlState {
         resultType,
         filter: PackagesSearchFilterIO.fromURLSearchParams(params),
         userMetaFilters: UserMetaFilters.fromURLSearchParams(params, META_PREFIX),
+        latestOnly: params.get('rev') === 'latest',
       }
     default:
       assertNever(resultType)
@@ -584,6 +586,7 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
     case ResultType.QuiltPackage:
       appendParams(PackagesSearchFilterIO.toURLSearchParams(state.filter))
       appendParams(state.userMetaFilters.toURLSearchParams(META_PREFIX))
+      if (state.latestOnly) params.set('rev', 'latest')
       break
     default:
       assertNever(state)
@@ -649,6 +652,7 @@ function useFirstPagePackagesQuery(state: SearchUrlState) {
         state.resultType === ResultType.QuiltPackage
           ? state.userMetaFilters.toGQL()
           : null,
+      latestOnly: state.resultType === ResultType.QuiltPackage ? state.latestOnly : false,
     },
     {
       pause: state.resultType !== ResultType.QuiltPackage,
@@ -772,6 +776,7 @@ export function AvailablePackagesMetaFilters({
     searchString: model.state.searchString,
     buckets: model.state.buckets,
     filter,
+    latestOnly: model.state.latestOnly,
   })
 
   return GQL.fold(query, {
@@ -906,6 +911,7 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
     buckets: model.state.buckets,
     filter,
     path,
+    latestOnly: model.state.latestOnly,
   })
 
   const facets = React.useMemo(() => {
@@ -1164,6 +1170,7 @@ export function usePackageUserMetaFacetExtents(path: string): {
       searchString: model.state.searchString,
       buckets: model.state.buckets,
       filter: PackagesSearchFilterIO.toGQL(model.state.filter),
+      latestOnly: model.state.latestOnly,
       path,
       type: typeInfo.inputType,
     },
@@ -1250,6 +1257,7 @@ function useSearchUIModel() {
               resultType,
               filter: PackagesSearchFilterIO.initialState,
               userMetaFilters: new UserMetaFilters(),
+              latestOnly: false,
             }
           case ResultType.S3Object:
             return {
@@ -1403,6 +1411,7 @@ function useSearchUIModel() {
             resultType,
             filter: PackagesSearchFilterIO.initialState,
             userMetaFilters: new UserMetaFilters(),
+            latestOnly: false,
           }
         case ResultType.S3Object:
           return {
