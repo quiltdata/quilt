@@ -1377,6 +1377,15 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
+  const setPackagesLatestOnly = React.useCallback(
+    (latestOnly: boolean) =>
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
+        return { ...s, latestOnly }
+      }),
+    [updateUrlState],
+  )
+
   const clearFilters = React.useCallback(() => {
     updateUrlState((s) => {
       switch (s.resultType) {
@@ -1447,6 +1456,8 @@ function useSearchUIModel() {
         activatePackagesMetaFilter,
         deactivatePackagesMetaFilter,
         setPackagesMetaFilter,
+
+        setPackagesLatestOnly,
 
         clearFilters,
         reset,
