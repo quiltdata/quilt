@@ -25,6 +25,10 @@
           "$ref": "#/definitions/ParquetParser"
         }
       ]
+    },
+    "handle_errors": {
+      "title": "Handle Errors",
+      "type": "boolean"
     }
   },
   "required": [
