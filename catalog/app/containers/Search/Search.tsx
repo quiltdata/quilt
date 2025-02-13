@@ -690,11 +690,45 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   )
 }
 
+const usePackagesRevisionFilterStyles = M.makeStyles((t) => ({
+  root: {
+    marginBottom: t.spacing(2),
+  },
+}))
+
+function PackagesRevisionFilter() {
+  const classes = usePackagesRevisionFilterStyles()
+
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const { setPackagesLatestOnly } = model.actions
+
+  const handleChange = React.useCallback(
+    (_event: unknown, checked: boolean) => {
+      setPackagesLatestOnly(checked)
+    },
+    [setPackagesLatestOnly],
+  )
+
+  return (
+    <M.FormControlLabel
+      className={classes.root}
+      control={<M.Switch checked={model.state.latestOnly} onChange={handleChange} />}
+      label="Search only latest revisions"
+    />
+  )
+}
+
 const PACKAGES_FILTERS_PRIMARY = ['workflow', 'modified'] as const
 
 const PACKAGES_FILTERS_SECONDARY = ['size', 'name', 'hash', 'entries', 'comment'] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
+  root: {
+    // make room for overflowing controls (e.g. a switch)
+    marginLeft: '-12px',
+    paddingLeft: '12px',
+  },
   metadata: {
     marginTop: t.spacing(3),
   },
@@ -725,7 +759,10 @@ function PackageFilters({ className }: PackageFiltersProps) {
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
   return (
-    <div className={className}>
+    <div className={cx(classes.root, className)}>
+      <div className={classes.title}>Revisions</div>
+      <PackagesRevisionFilter />
+
       <div className={classes.title}>Filter by</div>
 
       {activeFilters.map((f) => (

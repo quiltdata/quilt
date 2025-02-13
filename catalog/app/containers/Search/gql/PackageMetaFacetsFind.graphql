@@ -2,9 +2,15 @@ query (
   $buckets: [String!]
   $searchString: String
   $filter: PackagesSearchFilter
+  $latestOnly: Boolean!
   $path: String!
 ) {
-  searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
+  searchPackages(
+    buckets: $buckets
+    searchString: $searchString
+    filter: $filter
+    latestOnly: $latestOnly
+  ) {
     __typename
     ... on PackagesSearchResultSet {
       filteredUserMetaFacets(path: $path) {
