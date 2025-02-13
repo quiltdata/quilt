@@ -334,6 +334,13 @@ export default function Settings() {
       <M.Typography variant="h5" className={classes.title}>
         Auto-Packaging Settings
       </M.Typography>
+      <M.Typography variant="body1" className={classes.title}>
+        When enabled, these rules automatically create packages when the corresponding
+        events are received.
+        <br />
+        Subscribe to AUTO_PACKAGING_TOPIC_ARN to be notified when the packaging begins and
+        ends.
+      </M.Typography>
       <M.Paper className={classes.group}>
         <EventRuleSettings />
       </M.Paper>
