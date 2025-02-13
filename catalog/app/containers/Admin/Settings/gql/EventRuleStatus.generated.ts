@@ -2,13 +2,9 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Settings_gql_EventRuleStatusQueryVariables = Types.Exact<{
-  [key: string]: never
-}>
+export type GetEventRuleStatusQueryVariables = Types.Exact<{ [key: string]: never }>
 
-export type containers_Admin_Settings_gql_EventRuleStatusQuery = {
-  readonly __typename: 'Query'
-} & {
+export type GetEventRuleStatusQuery = { readonly __typename: 'Query' } & {
   readonly admin: { readonly __typename: 'AdminQueries' } & {
     readonly rocrate:
       | ({ readonly __typename: 'EventRuleStatusSuccess' } & Pick<
@@ -25,13 +21,13 @@ export type containers_Admin_Settings_gql_EventRuleStatusQuery = {
   }
 }
 
-export const containers_Admin_Settings_gql_EventRuleStatusDocument = {
+export const GetEventRuleStatusDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_Settings_gql_EventRuleStatus' },
+      name: { kind: 'Name', value: 'GetEventRuleStatus' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -108,9 +104,6 @@ export const containers_Admin_Settings_gql_EventRuleStatusDocument = {
       },
     },
   ],
-} as unknown as DocumentNode<
-  containers_Admin_Settings_gql_EventRuleStatusQuery,
-  containers_Admin_Settings_gql_EventRuleStatusQueryVariables
->
+} as unknown as DocumentNode<GetEventRuleStatusQuery, GetEventRuleStatusQueryVariables>
 
-export { containers_Admin_Settings_gql_EventRuleStatusDocument as default }
+export { GetEventRuleStatusDocument as default }
