@@ -25,6 +25,10 @@
           "$ref": "#/definitions/ParquetParser"
         }
       ]
+    },
+    "continue_on_error": {
+      "title": "Continue On Error",
+      "type": "boolean"
     }
   },
   "required": [
