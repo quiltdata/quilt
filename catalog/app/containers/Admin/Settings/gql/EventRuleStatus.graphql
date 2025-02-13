@@ -1,4 +1,4 @@
-query {
+query GetEventRuleStatus {
   admin {
     rocrate: eventRuleStatus(ruleType: ROCRATE) {
       ... on EventRuleStatusSuccess {
