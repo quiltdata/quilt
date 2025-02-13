@@ -332,13 +332,16 @@ export default function Settings() {
       </M.Grid>
 
       <M.Typography variant="h5" className={classes.title}>
+        Auto-Packaging Settings
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <EventRuleSettings />
+      </M.Paper>
+      <M.Typography variant="h5" className={classes.title}>
         Tabulator Settings
       </M.Typography>
       <M.Paper className={classes.group}>
         <TabulatorSettings />
-      </M.Paper>
-      <M.Paper className={classes.group}>
-        <EventRuleSettings />
       </M.Paper>
     </div>
   )

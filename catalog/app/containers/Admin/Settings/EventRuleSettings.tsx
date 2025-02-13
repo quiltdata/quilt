@@ -90,7 +90,7 @@ export default function EventRuleSettings() {
         ),
         error: (e) => (
           <Lab.Alert severity="error">
-            Could not fetch tabulator settings:
+            Could not fetch Auto-Packaging settings:
             <br />
             {e.message}
           </Lab.Alert>
