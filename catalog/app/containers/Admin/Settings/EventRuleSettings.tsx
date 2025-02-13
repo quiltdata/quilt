@@ -31,9 +31,7 @@ const Toggle: React.FC<ToggleProps> = ({ ruleType, enableRule }) => {
       if (mutation) return
       setMutation({ enabled })
       try {
-        console.log('Attempting toggle with:', { ruleType, enableRule: enabled })
-        const result = await toggle({ ruleType, enableRule: enabled })
-        console.log('Toggle result:', result)
+        await toggle({ ruleType, enableRule: enabled })
       } catch (e) {
         Sentry.captureException(e)
         notify(`Failed to update event rule settings: ${e}`)
@@ -60,7 +58,6 @@ const Toggle: React.FC<ToggleProps> = ({ ruleType, enableRule }) => {
 
 export default function EventRuleSettings() {
   const query = GQL.useQuery(EventRuleStatus)
-  console.log('EventRuleStatus query result:', query)
 
   return (
     <M.FormGroup>
