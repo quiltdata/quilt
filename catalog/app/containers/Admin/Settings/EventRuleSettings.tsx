@@ -16,12 +16,12 @@ interface ToggleProps {
   enableRule: boolean
 }
 
-const description = {
+const descriptions = {
   [EventRuleType.OMICS]: 'Package Omics completion events',
   [EventRuleType.ROCRATE]: 'Package Nextflow runs (with nf-prov WorkflowRun RO Crates)',
 }
 
-function Toggle({ ruleType, enableRule }: ToggleProps) {
+const Toggle: React.FC<ToggleProps> = ({ ruleType, enableRule }) => {
   const { push: notify } = Notifications.use()
   const toggle = GQL.useMutation(EventRuleToggle)
   const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
@@ -43,35 +43,44 @@ function Toggle({ ruleType, enableRule }: ToggleProps) {
   )
 
   return (
-    <>
-      <M.FormControlLabel
-        control={
-          <M.Switch
-            checked={mutation?.enabled ?? enableRule}
-            onChange={handleChange}
-            disabled={!!mutation}
-          />
-        }
-        label={description[ruleType]}
-      />
-    </>
+    <M.FormControlLabel
+      control={
+        <M.Switch
+          checked={mutation?.enabled ?? enableRule}
+          onChange={handleChange}
+          disabled={!!mutation}
+        />
+      }
+      label={descriptions[ruleType]}
+    />
   )
 }
 
-export default function EventRuleSettings() {
+const EventRuleSettings: React.FC = () => {
   const query = GQL.useQuery(EventRuleStatus)
+
   return (
     <M.FormGroup>
       {GQL.fold(query, {
         data: ({ admin }) => (
-          <Toggle
-            ruleType={EventRuleType.OMICS}
-            enableRule={
-              admin.omics.__typename === 'EventRuleStatusSuccess'
-                ? admin.omics.enabled
-                : false
-            }
-          />
+          <>
+            <Toggle
+              ruleType={EventRuleType.OMICS}
+              enableRule={
+                admin.omics.__typename === 'EventRuleStatusSuccess'
+                  ? admin.omics.enabled
+                  : false
+              }
+            />
+            <Toggle
+              ruleType={EventRuleType.ROCRATE}
+              enableRule={
+                admin.rocrate.__typename === 'EventRuleStatusSuccess'
+                  ? admin.rocrate.enabled
+                  : false
+              }
+            />
+          </>
         ),
         fetching: () => (
           <>
@@ -90,3 +99,5 @@ export default function EventRuleSettings() {
     </M.FormGroup>
   )
 }
+
+export default EventRuleSettings
