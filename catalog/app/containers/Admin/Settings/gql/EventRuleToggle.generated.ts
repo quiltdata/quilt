@@ -9,14 +9,11 @@ export type containers_Admin_Settings_gql_EventRuleToggleMutationVariables = Typ
 
 export type containers_Admin_Settings_gql_EventRuleToggleMutation = {
   readonly __typename: 'Mutation'
-} & {
-  readonly admin: { readonly __typename: 'AdminMutations' } & {
-    readonly eventRuleToggle:
-      | ({ readonly __typename: 'EventRuleToggleSuccess' } & Pick<
-          Types.EventRuleToggleSuccess,
-          'ruleArn'
-        >)
-      | { readonly __typename: 'OperationError' }
+  readonly admin: {
+    readonly __typename: 'AdminMutations'
+    readonly eventRuleToggle: {
+      readonly success: boolean
+    }
   }
 }
 
@@ -78,19 +75,7 @@ export const containers_Admin_Settings_gql_EventRuleToggleDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      {
-                        kind: 'InlineFragment',
-                        typeCondition: {
-                          kind: 'NamedType',
-                          name: { kind: 'Name', value: 'EventRuleToggleSuccess' },
-                        },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'ruleArn' } },
-                          ],
-                        },
-                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'success' } }
                     ],
                   },
                 },
