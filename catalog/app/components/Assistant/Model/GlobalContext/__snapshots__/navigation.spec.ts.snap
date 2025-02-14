@@ -446,6 +446,11 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                           "title": "Result filters (system metadata)",
                           "type": "array",
                         },
+                        "latestOnly": {
+                          "description": "Search only latest revisions",
+                          "title": "Latest only",
+                          "type": "boolean",
+                        },
                         "resultType": {
                           "enum": [
                             "p",

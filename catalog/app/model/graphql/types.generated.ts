@@ -953,6 +953,7 @@ export interface QuerysearchPackagesArgs {
   searchString: Maybe<Scalars['String']>
   filter: Maybe<PackagesSearchFilter>
   userMetaFilters: Maybe<ReadonlyArray<PackageUserMetaPredicate>>
+  latestOnly?: Scalars['Boolean']
 }
 
 export interface QuerysearchMoreObjectsArgs {

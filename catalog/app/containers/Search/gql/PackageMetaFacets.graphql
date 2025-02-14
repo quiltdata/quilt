@@ -1,5 +1,15 @@
-query ($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter) {
-  searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
+query (
+  $buckets: [String!]
+  $searchString: String
+  $filter: PackagesSearchFilter
+  $latestOnly: Boolean!
+) {
+  searchPackages(
+    buckets: $buckets
+    searchString: $searchString
+    filter: $filter
+    latestOnly: $latestOnly
+  ) {
     __typename
     ... on PackagesSearchResultSet {
       stats {

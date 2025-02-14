@@ -4358,6 +4358,17 @@ export default {
                   },
                 },
               },
+              {
+                name: 'latestOnly',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
             ],
           },
           {
