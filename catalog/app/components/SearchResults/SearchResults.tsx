@@ -115,9 +115,7 @@ function PackageHeader({ bucket, handle, hash, showBucket }: $TSFixMe) {
             &nbsp;/{' '}
           </>
         )}
-        <CrumbLink to={urls.bucketPackageTree(bucket, handle, hash)}>
-          {handle}
-        </CrumbLink>
+        <CrumbLink to={urls.bucketPackageTree(bucket, handle, hash)}>{handle}</CrumbLink>
       </span>
       <M.Box flexGrow={1} />
     </Heading>
