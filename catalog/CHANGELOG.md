@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Search Results: Don't show package hash in the header ([#4319](https://github.com/quiltdata/quilt/pull/4319))
+- [Changed] Default package search to latest revisions only ([#4319](https://github.com/quiltdata/quilt/pull/4319))
 - [Added] Search: A switch to search only the latest revisions ([#4316](https://github.com/quiltdata/quilt/pull/4316))
 - [Changed] Tabulator: Allow uppercase letters in column names ([#4314](https://github.com/quiltdata/quilt/pull/4314))
 - [Fixed] Add Markdown preview when creating the Markdown file ([#4293](https://github.com/quiltdata/quilt/pull/4293))
