@@ -25,14 +25,17 @@ const Toggle: React.FC<ToggleProps> = ({ ruleType, enableRule }) => {
   const { push: notify } = Notifications.use()
   const toggle = GQL.useMutation(EventRuleToggle)
   const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
+  const [localEnabled, setLocalEnabled] = React.useState(enableRule)
 
   const handleChange = React.useCallback(
     async (_event, enabled: boolean) => {
       if (mutation) return
       setMutation({ enabled })
+      setLocalEnabled(enabled)
       try {
         await toggle({ ruleType, enableRule: enabled })
       } catch (e) {
+        setLocalEnabled(!enabled)
         Sentry.captureException(e)
         notify(`Failed to update event rule settings: ${e}`)
       } finally {
@@ -45,11 +48,7 @@ const Toggle: React.FC<ToggleProps> = ({ ruleType, enableRule }) => {
   return (
     <M.FormControlLabel
       control={
-        <M.Switch
-          checked={mutation?.enabled ?? enableRule}
-          onChange={handleChange}
-          disabled={!!mutation}
-        />
+        <M.Switch checked={localEnabled} onChange={handleChange} disabled={!!mutation} />
       }
       label={descriptions[ruleType]}
     />
