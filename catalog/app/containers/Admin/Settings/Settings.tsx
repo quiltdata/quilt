@@ -13,6 +13,7 @@ import * as validators from 'utils/validators'
 import * as Form from '../Form'
 import SearchSettings from './SearchSettings'
 import TabulatorSettings from './TabulatorSettings'
+import EventRuleSettings from './EventRuleSettings'
 import ThemeEditor from './ThemeEditor'
 
 function useBeta(): [boolean, (b: boolean) => Promise<void>] {
@@ -330,6 +331,19 @@ export default function Settings() {
         </M.Grid>
       </M.Grid>
 
+      <M.Typography variant="h5" className={classes.title}>
+        Auto-Packaging Settings
+      </M.Typography>
+      <M.Typography variant="body1" className={classes.title}>
+        When enabled, these rules automatically create packages when the corresponding
+        events are received.
+        <br />
+        Subscribe to AUTO_PACKAGING_TOPIC_ARN to be notified when the packaging begins and
+        ends.
+      </M.Typography>
+      <M.Paper className={classes.group}>
+        <EventRuleSettings />
+      </M.Paper>
       <M.Typography variant="h5" className={classes.title}>
         Tabulator Settings
       </M.Typography>

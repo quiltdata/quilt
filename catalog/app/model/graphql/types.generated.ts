@@ -49,6 +49,7 @@ export interface AdminMutations {
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
+  readonly eventRuleToggle: EventRuleToggleResult
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -71,12 +72,22 @@ export interface AdminMutationssetTabulatorOpenQueryArgs {
   enabled: Scalars['Boolean']
 }
 
+export interface AdminMutationseventRuleToggleArgs {
+  ruleType: EventRuleType
+  enableRule: Scalars['Boolean']
+}
+
 export interface AdminQueries {
   readonly __typename: 'AdminQueries'
   readonly user: UserAdminQueries
   readonly ssoConfig: Maybe<SsoConfig>
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
   readonly tabulatorOpenQuery: Scalars['Boolean']
+  readonly eventRuleStatus: EventRuleStatusResult
+}
+
+export interface AdminQuerieseventRuleStatusArgs {
+  ruleType: EventRuleType
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -300,6 +311,26 @@ export interface DatetimeSearchPredicate {
 export interface EmptySearchResultSet {
   readonly __typename: 'EmptySearchResultSet'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export type EventRuleStatusResult = EventRuleStatusSuccess | OperationError
+
+export interface EventRuleStatusSuccess {
+  readonly __typename: 'EventRuleStatusSuccess'
+  readonly ruleArn: Scalars['String']
+  readonly enabled: Scalars['Boolean']
+}
+
+export type EventRuleToggleResult = EventRuleToggleSuccess | OperationError
+
+export interface EventRuleToggleSuccess {
+  readonly __typename: 'EventRuleToggleSuccess'
+  readonly ruleArn: Scalars['String']
+}
+
+export enum EventRuleType {
+  OMICS = 'OMICS',
+  ROCRATE = 'ROCRATE',
 }
 
 export interface IPackageUserMetaFacet {

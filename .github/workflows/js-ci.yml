@@ -21,7 +21,7 @@ jobs:
           cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - run: npm run test:only
       - run: npm run build
       - env:
           BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}

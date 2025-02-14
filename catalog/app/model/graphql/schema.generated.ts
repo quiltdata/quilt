@@ -264,6 +264,40 @@ export default {
               },
             ],
           },
+          {
+            name: 'eventRuleToggle',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'EventRuleToggleResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'ruleType',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'enableRule',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Boolean',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
       },
@@ -319,6 +353,29 @@ export default {
               },
             },
             args: [],
+          },
+          {
+            name: 'eventRuleStatus',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'EventRuleStatusResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'ruleType',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
           },
         ],
         interfaces: [],
@@ -1325,6 +1382,84 @@ export default {
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'EventRuleStatusResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'EventRuleStatusSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'EventRuleStatusSuccess',
+        fields: [
+          {
+            name: 'ruleArn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'enabled',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'EventRuleToggleResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'EventRuleToggleSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'EventRuleToggleSuccess',
+        fields: [
+          {
+            name: 'ruleArn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
