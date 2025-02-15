@@ -7,6 +7,7 @@ export type containers_Search_gql_FirstPagePackagesQueryVariables = Types.Exact<
   searchString: Types.Maybe<Types.Scalars['String']>
   filter: Types.Maybe<Types.PackagesSearchFilter>
   userMetaFilters: Types.Maybe<ReadonlyArray<Types.PackageUserMetaPredicate>>
+  latestOnly: Types.Scalars['Boolean']
   order: Types.Maybe<Types.SearchResultOrder>
 }>
 
@@ -102,6 +103,14 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
         },
         {
           kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'latestOnly' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'Boolean' } },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
           type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultOrder' } },
         },
@@ -138,6 +147,11 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                   kind: 'Variable',
                   name: { kind: 'Name', value: 'userMetaFilters' },
                 },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'latestOnly' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'latestOnly' } },
               },
             ],
             selectionSet: {

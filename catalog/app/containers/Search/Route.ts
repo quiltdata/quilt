@@ -21,6 +21,10 @@ const PackageSearchParamsSchema = S.Struct({
     title: 'Result filters (user metadata)',
     description: 'Filter results by user metadata',
   }),
+  latestOnly: S.optional(S.Boolean).annotations({
+    title: 'Latest only',
+    description: 'Search only latest revisions',
+  }),
 }).annotations({
   title: 'Package-specific search parameters',
 })
@@ -34,11 +38,13 @@ const PackageSearchParamsFromSearchParams = S.transform(
       resultType: SearchModel.ResultType.QuiltPackage as const,
       filter: S.decodeSync(Filter.PackageFilter.fromSearchParams)(params),
       userMetaFilters: S.decodeSync(UserMetaFilters.fromSearchParams)(params),
+      latestOnly: params.rev?.[0] === 'latest',
     }),
     // json api to qs
     encode: (toI) => ({
       ...S.encodeSync(Filter.PackageFilter.fromSearchParams)(toI.filter || []),
       ...S.encodeSync(UserMetaFilters.fromSearchParams)(toI.userMetaFilters || []),
+      ...(toI.latestOnly ? { rev: ['latest'] } : {}),
     }),
   },
 )

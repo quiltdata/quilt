@@ -1,12 +1,16 @@
 {
   "extends": [
-    "config:base",
+    "config:recommended",
     ":maintainLockFilesWeekly",
     ":prHourlyLimitNone",
     ":prConcurrentLimitNone",
     ":dependencyDashboardApproval"
   ],
-  "enabledManagers": ["npm"],
+  "enabledManagers": [
+    "npm"
+  ],
   "rangeStrategy": "bump",
-  "labels": ["js dependencies"]
+  "labels": [
+    "js dependencies"
+  ]
 }
