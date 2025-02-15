@@ -59,9 +59,13 @@ export function readSpreadsheet(file: File): Promise<ExcelJS.Worksheet> {
       reject(reader.error)
     }
     reader.onload = async () => {
-      const workbook = new ExcelJS.Workbook()
-      await workbook.xlsx.load(reader.result as ArrayBuffer)
-      resolve(workbook.worksheets[0])
+      try {
+        const workbook = new ExcelJS.Workbook()
+        await workbook.xlsx.load(reader.result as ArrayBuffer)
+        resolve(workbook.worksheets[0])
+      } catch (error) {
+        reject(error)
+      }
     }
     reader.readAsArrayBuffer(file)
   })
