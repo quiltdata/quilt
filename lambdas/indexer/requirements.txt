@@ -22,7 +22,7 @@ charset-normalizer==3.4.0
     # via
     #   pdfminer-six
     #   requests
-cryptography==44.0.0
+cryptography==44.0.1
     # via pdfminer-six
 elasticsearch==6.8.2
     # via es_indexer (setup.py)

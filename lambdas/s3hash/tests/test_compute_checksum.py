@@ -321,7 +321,14 @@ async def test_mpu_multi(s3_stub: Stubber):
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_TOP))
 
 
-async def test_mpu_multi_complete(s3_stub: Stubber):
+@pytest.mark.parametrize(
+    "response, result_version_id",
+    [
+        ({}, None),
+        ({"VersionId": "test-version-id"}, "test-version-id"),
+    ],
+)
+async def test_mpu_multi_complete(s3_stub: Stubber, response, result_version_id):
     ETAG = "test-etag"
     SIZE = s3hash.MIN_PART_SIZE + 1
     s3_stub.add_response(
@@ -383,12 +390,9 @@ async def test_mpu_multi_complete(s3_stub: Stubber):
         },
     )
 
-    RESULT_VERSION_ID = "result-version-id"
     s3_stub.add_response(
         "complete_multipart_upload",
-        {
-            "VersionId": RESULT_VERSION_ID,
-        },
+        response,
         {
             **DEST.boto_args,
             "UploadId": MPU_ID,
@@ -403,4 +407,4 @@ async def test_mpu_multi_complete(s3_stub: Stubber):
 
     res = await s3hash.copy(LOC, DEST)
 
-    assert res == s3hash.CopyResult(version=RESULT_VERSION_ID)
+    assert res == s3hash.CopyResult(version=result_version_id)
