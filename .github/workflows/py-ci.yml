@@ -73,6 +73,8 @@ jobs:
           python-version: '3.11'
       - name: install poetry
         run: python -m pip install poetry
+      - name: install current version of quilt
+        run: python -m pip install api/python
       - name: install deps
         run: cd testdocs && poetry install
       - name: test codeblocks

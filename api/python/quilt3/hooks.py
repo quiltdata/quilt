@@ -31,6 +31,8 @@ def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[Bu
     Example for overriding `ServerSideEncryption` parameter for certain S3 operations:
 
     ```python
+    from quilt3.hooks import set_build_s3_client_hook
+
     def event_handler(params, **kwargs):
         # Be mindful with parameters you set here.
         # Specifically it's not recommended to override/delete already set parameters
@@ -48,6 +50,8 @@ def set_build_s3_client_hook(hook: T.Optional[BuildClientHook]) -> T.Optional[Bu
         ):
             client.meta.events.register(f"before-parameter-build.s3.{op}", event_handler)
         return client
+
+    old_hook = set_build_s3_client_hook(hook)
     ```
 
     Args:
