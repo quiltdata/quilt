@@ -33,7 +33,9 @@ export function parseSpreadsheet(
 ): Record<string, MetadataValue> {
   const rows: MetadataValue[][] = []
   sheet.eachRow((row) => {
-    rows.push(row.values.slice(1))
+    if (Array.isArray(row.values)) {
+      rows.push(row.values.slice(1))
+    }
   })
   const maxSize = rows.reduce((memo, row) => R.max(memo, row.length), 0)
   return pipeThru(rows)(

@@ -155,7 +155,7 @@ describe('utils/spreadsheets', () => {
     })
 
     it('parse invalid data with no error', () => {
-      const sheet = ['123']
+      const sheet = ['123'] // rejected by compiler
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({})
     })
 
