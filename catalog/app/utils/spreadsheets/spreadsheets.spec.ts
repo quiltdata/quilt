@@ -39,7 +39,7 @@ describe('utils/spreadsheets', () => {
     })
   })
 
-  describe('parseSpreadsheet', async () => {
+  describe('parseSpreadsheet', () => {
     const csv = dedent`
                 a,b,c
                 d,"e,i,j,k",f
