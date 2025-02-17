@@ -1,5 +1,5 @@
 query ($buckets: [String!], $searchString: String) {
-  searchPackages(buckets: $buckets, searchString: $searchString) {
+  searchPackages(buckets: $buckets, searchString: $searchString, latestOnly: true) {
     __typename
     ... on PackagesSearchResultSet {
       stats {
