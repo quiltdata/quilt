@@ -694,6 +694,14 @@ const usePackagesRevisionFilterStyles = M.makeStyles((t) => ({
   root: {
     marginBottom: t.spacing(2),
   },
+  hintIcon: {
+    color: t.palette.divider,
+    marginLeft: '4px',
+    verticalAlign: '-4px',
+    '&:hover': {
+      color: t.palette.text.secondary,
+    },
+  },
 }))
 
 function PackagesRevisionFilter() {
@@ -705,7 +713,7 @@ function PackagesRevisionFilter() {
 
   const handleChange = React.useCallback(
     (_event: unknown, checked: boolean) => {
-      setPackagesLatestOnly(checked)
+      setPackagesLatestOnly(!checked)
     },
     [setPackagesLatestOnly],
   )
@@ -713,8 +721,20 @@ function PackagesRevisionFilter() {
   return (
     <M.FormControlLabel
       className={classes.root}
-      control={<M.Switch checked={model.state.latestOnly} onChange={handleChange} />}
-      label="Search only latest revisions"
+      control={<M.Switch checked={!model.state.latestOnly} onChange={handleChange} />}
+      label={
+        <>
+          Include historical versions
+          <M.Tooltip
+            arrow
+            title="Enable to show matches from prior versions, versus only in the latest revision"
+          >
+            <M.Icon className={classes.hintIcon} fontSize="small">
+              help_outline
+            </M.Icon>
+          </M.Tooltip>
+        </>
+      }
     />
   )
 }
@@ -1230,7 +1250,10 @@ function ResultsCount() {
 
 const useResultsStyles = M.makeStyles((t) => ({
   root: {
+    // make space for box shadows
+    margin: '-4px',
     overflow: 'hidden',
+    padding: '4px',
   },
   button: {
     '& + &': {
