@@ -10,7 +10,7 @@ jobs:
   test-catalog:
     runs-on: ubuntu-latest
     env:
-      NODE_OPTIONS: --max-old-space-size=6144
+      NODE_OPTIONS: --max-old-space-size=7168
     defaults:
       run:
         working-directory: catalog
