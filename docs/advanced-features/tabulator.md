@@ -1,5 +1,5 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-> NOTE: This feature requires Quilt stack version 1.55.0 or higher
+> NOTE: This feature requires Quilt Platform version 1.55.0 or higher
 
 Tabulator aggregates tabular data objects across multiple packages using AWS
 Athena. Admins define schemas and data sources for CSV, TSV, or Parquet files,
@@ -69,12 +69,14 @@ parser:
 
 In addition to the columns defined in the schema, Tabulator will add:
 
-- any named capture groups from the logical key regular expression
+- any named capture groups from the `logical_key` or `package_name` regular expression
 - `$pkg_name` for the package name
 - `$logical_key` for the object as referenced by the package
 - `$physical_key` for the underlying S3 URI
 - `$top_hash` for the revision of the package containing the object (currently
   we query only the `latest` package revision)
+- `$issue` for any problems encountered while parsing the file (new in Quilt
+  Platform version 1.58)
 
 ### Using Athena to Access Tabulator
 
@@ -88,10 +90,33 @@ Console, Athena views, or JDBC connectors. This is especially useful for
 customers who want to access Tabulator from external services, such as Tableau
 and Spotfire.
 
+### Support for Missing Columns
+
+> Available since Quilt Platform version 1.58
+
+If a file is missing a column defined in the schema, Tabulator will add a note
+to the `$issue` column for all the rows in that table.
+
+If the column is nullable (which is the default), then for that file:
+
+- The value will be `null` for that column.
+- All other columns will be populated as usual.
+- The `$issue` column will contain a WARNING that the column is missing.
+
+![Tabulator Issue](../imgs/tabulator-issue.png)
+
+If the column is not nullable, then for that file:
+
+- Only a single row will be added to the table.
+- The value will be `null` for all columns.
+- The `$issue` column will contain an ERROR that the column is missing.
+
 ### Caveats
 
 1. **Schema Consistency**: All files in the package that match the logical key
-   must have the same schema as defined in the configuration.
+   must have the exact same schema as defined in the configuration (unless using
+   Quilt Platform version 1.58 or higher, in which case missing columns will be
+   ignored).
 2. **Memory Usage**: Tabulator may fail on large files (> 10 GB), files with
    large rows (> 100 KB), and large numbers of files (> 10000). Additionally,
    Athena has a 16 MB limit per row.
