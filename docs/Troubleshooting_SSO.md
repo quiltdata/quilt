@@ -79,4 +79,4 @@ If the issue persists after these checks, provide the following information to y
 3. SAML assertion (if applicable) or decoded OIDC token.
 4. ECS logs (if relevant) for backend verification.
 
-Following these steps will help diagnose and resolve most SSO redirect loop issues efficiently across Azure, Google, and Okta.
+Following these steps should help you diagnose and resolve most SSO redirect loop issues efficiently across Azure, Google, and Okta.
