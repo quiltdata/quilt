@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD013 -->
-# Troubleshooting Guide: SSO Redirect Loop Issues (Azure, Google, Okta)
+# Troubleshooting Guide: SSO Redirect Loop Issues
 
 ## Overview
 
@@ -50,7 +50,7 @@ Use browser DevTools (F12) to examine the authentication flow:
 Incorrect claims or missing attributes can cause authentication failures.
 
 - If using **SAML**, use **SAML-tracer (Firefox)** or **Fiddler** to inspect assertions.
-- If using **OIDC**, paste the ID token into [jwt.ms](https://jwt.ms/) or [jwt.io](https://jwt.io/) to check claims.
+- If using **OIDC**, paste the ID token into [jwt.io](https://jwt.io/) or [jwt.ms](https://jwt.ms/) to check claims.
 - Ensure the **issuer (iss)** and **audience (aud)** claims match what the application expects.
 
 ## Step 5: Collect ECS Logs (If Applicable)
