@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Tabulator: Support `continue_on_error` config option ([#4328](https://github.com/quiltdata/quilt/pull/4328))
 - [Added] Search: A switch to search only the latest revisions ([#4316](https://github.com/quiltdata/quilt/pull/4316))
 - [Changed] Tabulator: Allow uppercase letters in column names ([#4314](https://github.com/quiltdata/quilt/pull/4314))
 - [Fixed] Add Markdown preview when creating the Markdown file ([#4293](https://github.com/quiltdata/quilt/pull/4293))
