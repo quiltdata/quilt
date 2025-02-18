@@ -70,7 +70,8 @@
   * [Contributing](CONTRIBUTING.md)
   * [Frequently Asked Questions](FAQ.md)
   * [Troubleshooting](Troubleshooting.md)
-
+    * [SSO Redirect Loop](Troubleshooting_SSO.md)
+  
 ## Quilt Ecosystem Integrations
 
 * [Benchling Packager](examples/benchling.md)
