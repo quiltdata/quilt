@@ -41,6 +41,7 @@ parser:
   format: csv  # or `parquet`
   delimiter: "\t"
   header: true
+continue_after_error: true
 ```
 
 1. **Schema**: The schema defines the columns in the table. Each column must
@@ -90,12 +91,15 @@ Console, Athena views, or JDBC connectors. This is especially useful for
 customers who want to access Tabulator from external services, such as Tableau
 and Spotfire.
 
-### Support for Missing Columns
+### Continuing After Errors
 
 > Available since Quilt Platform version 1.58
 
-If a file is missing a column defined in the schema, Tabulator will add a note
-to the `$issue` column for all the rows in that table.
+Normally, if Tabulator encounters an error while processing a file, it will
+abort the query and return an error. However, if you set `continue_after_error`
+to `true` in the configuration, Tabulator will continue processing the rest of
+the files in the package, and add a note to the `$issue` column for the file or
+rows that had the error.
 
 If the column is nullable (which is the default), then for that file:
 
