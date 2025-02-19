@@ -535,7 +535,7 @@ class PackagerEvent(pydantic.BaseModel):
     source_prefix: str
     registry: str | None = None
     package_name: str | None = None
-    metadata: str | None = None
+    metadata: dict[str, T.Any] | None = None
     metadata_uri: str | None = None
     workflow: str | None = None
     commit_message: str | None = None
@@ -576,9 +576,8 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
     default_prefix = "quilt-packager"
     default_suffix = "pkg"
 
-    parts = [re.sub(r"[^\w-]", "_", p) for p in prefix.split("/") if p][-2:]
-    if len(parts) < 2:
-        parts = [default_prefix, parts[0] if parts else default_suffix]
+    parts = [re.sub(r"[^\w-]", "_", p) for p in prefix.split("/") if p]
+    parts = ["_".join(parts[:-1]) or default_prefix, parts[-1] if parts else default_suffix]
     return "/".join(parts)
 
 
@@ -607,7 +606,7 @@ def package_prefix(event, context):
 
     prefix_pk = params.get_source_prefix_pk()
 
-    pkg_name = params.package_name or infer_pkg_name_from_prefix(prefix_pk.path)
+    pkg_name = infer_pkg_name_from_prefix(prefix_pk.path) if params.package_name is None else params.package_name
 
     dst_bucket = params.registry or prefix_pk.bucket
     registry_url = f"s3://{dst_bucket}"
@@ -617,6 +616,7 @@ def package_prefix(event, context):
     metadata = params.metadata
     if metadata_uri_pk := params.get_metadata_uri_pk():
         metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+    assert metadata is None or isinstance(metadata, dict)  # XXX: does this make sense?
 
     pkg = quilt3.Package()
     pkg.set_dir(".", str(prefix_pk), meta=metadata)
