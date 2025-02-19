@@ -3,6 +3,7 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import functools
+import itertools
 import json
 import logging
 import os
@@ -117,7 +118,7 @@ def invoke_hash_lambda(
     pk: PhysicalKey,
     credentials: AWSCredentials,
     scratch_buckets: T.Dict[str, str],
-) -> Checksum:
+) -> ChecksumResult:
     result = invoke_lambda(
         function_name=S3_HASH_LAMBDA,
         params=S3HashLambdaParams(
@@ -127,7 +128,7 @@ def invoke_hash_lambda(
         ),
         err_prefix="S3HashLambda",
     )
-    return ChecksumResult(**result).checksum
+    return ChecksumResult(**result)
 
 
 def calculate_pkg_entry_hash(
@@ -135,7 +136,10 @@ def calculate_pkg_entry_hash(
     credentials: AWSCredentials,
     scratch_buckets: T.Dict[str, str],
 ):
-    pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
+    checksum_result = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets)
+    pkg_entry.hash = checksum_result.checksum.dict()
+    pkg_entry.size = checksum_result.size
+    pkg.physical_key = PhysicalKey(pkg_entry.physical_key.bucket, pkg_entry.physical_key.path, checksum_result.version)
 
 
 def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
@@ -585,7 +589,15 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
 @functools.cache
 def setup_user_boto_session_once():
     global user_boto_session
-    user_boto_session = get_user_boto_session()
+    return user_boto_session := get_user_boto_session()
+
+
+def get_scratch_buckets() -> T.Dict[str, str]:
+    return json.load(s3.get_object(Bucket=SERVICE_BUCKET, Key="scratch_buckets.json")["Body"])
+
+
+def list_objects(bucket, prefix):
+    return itertools.chain.from_iterable(map(lambda p: p.get('Contents', []), s3.get_paginator('list_objects_v2').paginate(Bucket=bucket, Prefix=prefix)))
 
 
 def package_prefix_sqs(event, context):
@@ -619,7 +631,26 @@ def package_prefix(event, context):
     assert metadata is None or isinstance(metadata, dict)  # XXX: does this make sense?
 
     pkg = quilt3.Package()
-    pkg.set_dir(".", str(prefix_pk), meta=metadata)
+
+    bytes_to_hash = 0
+    prefix_len = len(prefix_pk.path)
+    for i, obj in enumerate(list_objects(prefix_pk.bucket, prefix_pk.path)):
+        if i > MAX_FILES_TO_HASH:
+            raise Exception  # XXX: error handling
+        size = obj["Size"]
+        bytes_to_hash += size
+        if bytes_to_hash > MAX_BYTES_TO_HASH:
+            raise Exception  # XXX: error
+        pkg.set(
+            obj["Key"][prefix_len:],
+            quilt3.packages.PackageEntry(
+                PhysicalKey(prefix_pk.bucket, obj["Key"], None),
+                size,
+                None,
+                None,
+            ),
+        )
+    pkg.set_meta(meta=metadata)
     pkg._validate_with_workflow(
         registry=package_registry,
         workflow=params.workflow_normalized,
