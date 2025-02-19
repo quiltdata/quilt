@@ -138,8 +138,9 @@ def calculate_pkg_entry_hash(
 ):
     checksum_result = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets)
     pkg_entry.hash = checksum_result.checksum.dict()
-    pkg_entry.size = checksum_result.size
-    pkg.physical_key = PhysicalKey(pkg_entry.physical_key.bucket, pkg_entry.physical_key.path, checksum_result.version)
+    # We need make these in case of unversioned PK.
+    assert pkg_entry.size == checksum_result.size  # make sure we hashed object of the same size
+    pkg_entry.physical_key = PhysicalKey(pkg_entry.physical_key.bucket, pkg_entry.physical_key.path, checksum_result.version)
 
 
 def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
@@ -657,6 +658,7 @@ def package_prefix(event, context):
         name=pkg_name,
         message=params.commit_message,
     )
+    calculate_pkg_hashes(pkg, get_scratch_buckets())
     pkg._build(
         name=pkg_name,
         registry=registry_url,
