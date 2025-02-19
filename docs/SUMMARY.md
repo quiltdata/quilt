@@ -9,6 +9,7 @@
 ## Quilt Platform (Catalog) User
 
 * [About the Catalog](walkthrough/working-with-the-catalog.md)
+* [Auto-Packaging](Catalog/Packager.md)
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
 * [Embeddable iFrames](Catalog/Embed.md)
