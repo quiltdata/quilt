@@ -6,6 +6,7 @@ import functools
 import json
 import logging
 import os
+import re
 import tempfile
 import typing as T
 
@@ -39,7 +40,6 @@ from quilt_shared.pkgpush import (
     PackageConstructEntry,
     PackageConstructParams,
     PackagePromoteParams,
-    PackagePushParams,
     PackagePushResult,
     S3CopyLambdaParams,
     S3HashLambdaParams,
@@ -554,13 +554,12 @@ class PackagerEvent(pydantic.BaseModel):
         return self.workflow
 
 
-def _infer_pkg_name_from_prefix(prefix: str) -> str:
+def infer_pkg_name_from_prefix(prefix: str) -> str:
+    # XXX: check defaults are sane
     default_prefix = "quilt-packager"
     default_suffix = "pkg"
 
-    # prefix = prefix.strip("/")
-    # assert prefix  # XXX
-    parts = [p for p in prefix.split("/") if p][-2:]
+    parts = [re.sub(r"[^\w-]", "_", p) for p in prefix.split("/") if p][-2:]
     if len(parts) < 2:
         parts = [default_prefix, parts[0] if parts else default_suffix]
     return "/".join(parts)
@@ -583,7 +582,7 @@ def package_prefix_sqs(event, context):
             # XXX: do we allow empty prefix (it looks like a bad idea to pkg the whole bucket?
             prefix = prefix_pk.path if prefix_pk.path.endswith("/") else prefix_pk.path.rsplit("/", 1)[0] + "/"
 
-            pkg_name = params.package_name or _infer_pkg_name_from_prefix(prefix)
+            pkg_name = params.package_name or infer_pkg_name_from_prefix(prefix)
 
             dst_bucket = params.registry or prefix_pk.bucket
             registry_url = f"s3://{dst_bucket}"
@@ -593,13 +592,7 @@ def package_prefix_sqs(event, context):
             metadata = params.metadata
             if params.metadata_uri is not None:
                 metadata_uri_pk = PhysicalKey.from_url(params.metadata_uri)
-                s3_params = {
-                    "Bucket": metadata_uri_pk.bucket,
-                    "Key": metadata_uri_pk.path,
-                }
-                if metadata_uri_pk.version_id:
-                    s3_params["VersionId"] = metadata_uri_pk.version_id
-                metadata = json.load(s3.get_object(**s3_params)["Body"])
+                metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
 
             pkg = quilt3.Package()
             pkg.set_dir(".", f"s3://{prefix_pk.bucket}/{prefix}")
