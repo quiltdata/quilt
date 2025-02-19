@@ -6,6 +6,7 @@ import functools
 import json
 import logging
 import os
+import re
 import tempfile
 import typing as T
 
@@ -14,6 +15,7 @@ import botocore.client
 import botocore.credentials
 import botocore.exceptions
 import pydantic
+import rfc3986
 
 # Must be done before importing quilt3.
 os.environ["QUILT_DISABLE_CACHE"] = "true"  # noqa: E402
@@ -527,3 +529,101 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
     # XXX: return mtime?
     return PackagePushResult(top_hash=TopHash(top_hash))
+
+
+class PackagerEvent(pydantic.BaseModel):
+    source_prefix: str
+    registry: T.Optional[str] = None
+    package_name: T.Optional[str] = None
+    metadata: T.Optional[dict] = None
+    metadata_uri: T.Optional[str] = None
+    workflow: T.Optional[str] = None
+    commit_message: T.Optional[str] = None
+
+    def get_source_prefix_pk(self) -> PhysicalKey:
+        pk = PhysicalKey.from_url(self.source_prefix)
+        assert not pk.is_local()  # XXX: error handling
+        return pk
+
+    def get_metadata_uri_pk(self) -> T.Optional[PhysicalKey]:
+        if self.metadata_uri is None:
+            return None
+        pk = PhysicalKey.from_url(rfc3986.uri_reference(self.metadata_uri).resolve_with(self.source_prefix).unsplit())
+        assert not pk.is_local()  # XXX: error handling
+        return pk
+
+    # XXX: copied from shared
+    # XXX: is this sane here?
+    @property
+    def workflow_normalized(self):
+        # use default
+        if self.workflow is None:
+            return ...
+
+        # not selected
+        if self.workflow == "":
+            return None
+
+        return self.workflow
+
+
+def infer_pkg_name_from_prefix(prefix: str) -> str:
+    # XXX: check defaults are sane
+    default_prefix = "quilt-packager"
+    default_suffix = "pkg"
+
+    parts = [re.sub(r"[^\w-]", "_", p) for p in prefix.split("/") if p][-2:]
+    if len(parts) < 2:
+        parts = [default_prefix, parts[0] if parts else default_suffix]
+    return "/".join(parts)
+
+
+# XXX is this sane?
+@functools.cache
+def setup_user_boto_session_once():
+    global user_boto_session
+    user_boto_session = get_user_boto_session()
+
+
+def package_prefix_sqs(event, context):
+    import pprint
+
+    pprint.pprint(event)
+
+    assert len(event["Records"]) == 1  # XXX: not sure it makes sense to check this
+
+    setup_user_boto_session_once()
+
+    for record in event["Records"]:
+        params = PackagerEvent.parse_raw(record["body"])
+
+        prefix_pk = params.get_source_prefix_pk()
+        # XXX: make sure this works OK if no slash at the end
+        # XXX: do we allow empty prefix (it looks like a bad idea to pkg the whole bucket?
+        prefix = prefix_pk.path if prefix_pk.path.endswith("/") else prefix_pk.path.rsplit("/", 1)[0] + "/"
+
+        pkg_name = params.package_name or infer_pkg_name_from_prefix(prefix)
+
+        dst_bucket = params.registry or prefix_pk.bucket
+        registry_url = f"s3://{dst_bucket}"
+        package_registry = get_package_registry(registry_url)
+
+        assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
+        metadata = params.metadata
+        if metadata_uri_pk := params.get_metadata_uri_pk():
+            metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+
+        pkg = quilt3.Package()
+        pkg.set_dir(".", f"s3://{prefix_pk.bucket}/{prefix}")
+        pkg.set_meta(metadata or {})
+        pkg._validate_with_workflow(
+            registry=package_registry,
+            workflow=params.workflow_normalized,
+            name=pkg_name,
+            message=params.commit_message,
+        )
+        pkg._build(
+            name=pkg_name,
+            registry=registry_url,
+            message=params.commit_message,
+        )
