@@ -600,7 +600,7 @@ def package_prefix_sqs(event, context):
         assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
         metadata = params.metadata
         if params.metadata_uri is not None:
-            metadata_uri = rfc3986.uri_reference(params.metadata_uri).resolve_with(params.source_prefix)
+            metadata_uri = rfc3986.uri_reference(params.metadata_uri).resolve_with(params.source_prefix).unsplit()
             metadata_uri_pk = PhysicalKey.from_url(metadata_uri)
             assert not metadata_uri_pk.is_local()  # XXX: error handling
             metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
