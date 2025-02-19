@@ -22,6 +22,7 @@ def test_infer_pkg_name_from_prefix(prefix, expected):
 
     assert t4_lambda_pkgpush.infer_pkg_name_from_prefix(prefix) == expected
 
+
 @pytest.mark.parametrize(
     "source_prefix, expected_pk",
     [
