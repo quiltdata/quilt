@@ -533,19 +533,23 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
 class PackagerEvent(pydantic.BaseModel):
     source_prefix: str
-    registry: T.Optional[str] = None
-    package_name: T.Optional[str] = None
-    metadata: T.Optional[dict] = None
-    metadata_uri: T.Optional[str] = None
-    workflow: T.Optional[str] = None
-    commit_message: T.Optional[str] = None
+    registry: str | None = None
+    package_name: str | None = None
+    metadata: str | None = None
+    metadata_uri: str | None = None
+    workflow: str | None = None
+    commit_message: str | None = None
 
     def get_source_prefix_pk(self) -> PhysicalKey:
         pk = PhysicalKey.from_url(self.source_prefix)
         assert not pk.is_local()  # XXX: error handling
-        return pk
+        return PhysicalKey(
+            pk.bucket,
+            pk.path if pk.path.endswith("/") or not pk.path else pk.path.rsplit("/", 1)[0] + "/",
+            None,
+        )
 
-    def get_metadata_uri_pk(self) -> T.Optional[PhysicalKey]:
+    def get_metadata_uri_pk(self) -> PhysicalKey | None:
         if self.metadata_uri is None:
             return None
         pk = PhysicalKey.from_url(rfc3986.uri_reference(self.metadata_uri).resolve_with(self.source_prefix).unsplit())
@@ -590,40 +594,40 @@ def package_prefix_sqs(event, context):
 
     pprint.pprint(event)
 
-    assert len(event["Records"]) == 1  # XXX: not sure it makes sense to check this
+    assert len(event["Records"]) == 1  # XXX: does it really make sense to refuse processing multiple records?
 
     setup_user_boto_session_once()
 
     for record in event["Records"]:
-        params = PackagerEvent.parse_raw(record["body"])
+        package_prefix(record["body"], context)
 
-        prefix_pk = params.get_source_prefix_pk()
-        # XXX: make sure this works OK if no slash at the end
-        # XXX: do we allow empty prefix (it looks like a bad idea to pkg the whole bucket?
-        prefix = prefix_pk.path if prefix_pk.path.endswith("/") else prefix_pk.path.rsplit("/", 1)[0] + "/"
 
-        pkg_name = params.package_name or infer_pkg_name_from_prefix(prefix)
+def package_prefix(event, context):
+    params = PackagerEvent.parse_raw(event)
 
-        dst_bucket = params.registry or prefix_pk.bucket
-        registry_url = f"s3://{dst_bucket}"
-        package_registry = get_package_registry(registry_url)
+    prefix_pk = params.get_source_prefix_pk()
 
-        assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
-        metadata = params.metadata
-        if metadata_uri_pk := params.get_metadata_uri_pk():
-            metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+    pkg_name = params.package_name or infer_pkg_name_from_prefix(prefix_pk.path)
 
-        pkg = quilt3.Package()
-        pkg.set_dir(".", f"s3://{prefix_pk.bucket}/{prefix}")
-        pkg.set_meta(metadata or {})
-        pkg._validate_with_workflow(
-            registry=package_registry,
-            workflow=params.workflow_normalized,
-            name=pkg_name,
-            message=params.commit_message,
-        )
-        pkg._build(
-            name=pkg_name,
-            registry=registry_url,
-            message=params.commit_message,
-        )
+    dst_bucket = params.registry or prefix_pk.bucket
+    registry_url = f"s3://{dst_bucket}"
+    package_registry = get_package_registry(registry_url)
+
+    assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
+    metadata = params.metadata
+    if metadata_uri_pk := params.get_metadata_uri_pk():
+        metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+
+    pkg = quilt3.Package()
+    pkg.set_dir(".", str(prefix_pk), meta=metadata)
+    pkg._validate_with_workflow(
+        registry=package_registry,
+        workflow=params.workflow_normalized,
+        name=pkg_name,
+        message=params.commit_message,
+    )
+    pkg._build(
+        name=pkg_name,
+        registry=registry_url,
+        message=params.commit_message,
+    )

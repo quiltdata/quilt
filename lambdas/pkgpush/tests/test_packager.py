@@ -22,6 +22,25 @@ def test_infer_pkg_name_from_prefix(prefix, expected):
 
     assert t4_lambda_pkgpush.infer_pkg_name_from_prefix(prefix) == expected
 
+@pytest.mark.parametrize(
+    "source_prefix, expected_pk",
+    [
+        ("s3://bucket", PhysicalKey("bucket", "", None)),
+        ("s3://bucket/", PhysicalKey("bucket", "", None)),
+        ("s3://bucket/test/", PhysicalKey("bucket", "test/", None)),
+        ("s3://bucket/test//", PhysicalKey("bucket", "test//", None)),
+        ("s3://bucket/test//metadata.json?versionId=1", PhysicalKey("bucket", "test//", None)),
+    ],
+)
+def test_get_source_prefix_pk(source_prefix, expected_pk):
+    assert (
+        t4_lambda_pkgpush.PackagerEvent(
+            source_prefix=source_prefix,
+            metadata_uri="s3://bucket/metadata.json",
+        ).get_source_prefix_pk()
+        == expected_pk
+    )
+
 
 @pytest.mark.parametrize(
     "source_prefix, metadata_uri, expected_pk",
@@ -37,6 +56,11 @@ def test_infer_pkg_name_from_prefix(prefix, expected):
             "s3://bucket/metadata.json?versionId=1",
             "s3://other-bucket/other.json",
             PhysicalKey("other-bucket", "other.json", None),
+        ),
+        (
+            "s3://bucket/metadata.json?versionId=1",
+            "s3://other-bucket/other.json?versionId=2",
+            PhysicalKey("other-bucket", "other.json", "2"),
         ),
     ],
 )
