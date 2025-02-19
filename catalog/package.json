@@ -136,7 +136,7 @@
     "use-debounce": "^9.0.4",
     "use-resize-observer": "^9.1.0",
     "uuid": "^9.0.1",
-    "vega": "^5.25.0",
+    "vega": "^5.31.0",
     "vega-embed": "^6.22.2",
     "vega-lite": "^5.14.1",
     "warning": "^4.0.3",
