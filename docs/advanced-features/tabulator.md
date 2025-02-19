@@ -41,7 +41,7 @@ parser:
   format: csv  # or `parquet`
   delimiter: "\t"
   header: true
-continue_after_error: true
+continue_on_error: true
 ```
 
 1. **Schema**: The schema defines the columns in the table. Each column must
@@ -96,7 +96,7 @@ and Spotfire.
 > Available since Quilt Platform version 1.58
 
 Normally, if Tabulator encounters an error while processing a file, it will
-abort the query and return an error. However, if you set `continue_after_error`
+abort the query and return an error. However, if you set `continue_on_error`
 to `true` in the configuration, Tabulator will continue processing the rest of
 the files in the package, and add a note to the `$issue` column for the file or
 rows that had the error.
