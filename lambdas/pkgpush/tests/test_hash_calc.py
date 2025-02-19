@@ -10,7 +10,7 @@ import t4_lambda_pkgpush
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.pkgpush import Checksum, ChecksumType
+from quilt_shared.pkgpush import Checksum, ChecksumResult, ChecksumType
 from quilt_shared.types import NonEmptyStr
 
 CREDENTIALS = AWSCredentials(
@@ -82,7 +82,11 @@ def test_calculate_pkg_entry_hash(
 ):
     invoke_hash_lambda_mock = mocker.patch(
         "t4_lambda_pkgpush.invoke_hash_lambda",
-        return_value=Checksum(type=ChecksumType.SHA256_CHUNKED, value="base64hash"),
+        return_value=ChecksumResult(
+            checksum=Checksum(type=ChecksumType.SHA256_CHUNKED, value="base64hash"),
+            size=entry_without_hash.size,
+            version=entry_without_hash.physical_key.version_id,
+        )
     )
 
     t4_lambda_pkgpush.calculate_pkg_entry_hash(
@@ -97,18 +101,26 @@ def test_calculate_pkg_entry_hash(
         SCRATCH_BUCKETS,
     )
 
-    assert entry_without_hash.hash == invoke_hash_lambda_mock.return_value.dict()
+    assert entry_without_hash.hash == invoke_hash_lambda_mock.return_value.checksum.dict()
 
 
 def test_invoke_hash_lambda(lambda_stub: Stubber):
     checksum = {"type": "sha2-256-chunked", "value": "base64hash"}
     pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
+    size = 42
 
     lambda_stub.add_response(
         "invoke",
         service_response={
             "Payload": io.BytesIO(
-                b'{"result": {"checksum": %s}}' % json.dumps(checksum).encode()
+                (
+                    '{"result": {"checksum": %s, "size": %s, "version": "%s"}}'
+                    % (
+                        json.dumps(checksum),
+                        size,
+                        pk.version_id,
+                    )
+                ).encode()
             ),
         },
         expected_params={
@@ -131,9 +143,10 @@ def test_invoke_hash_lambda(lambda_stub: Stubber):
         },
     )
 
-    assert (
-        t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS, SCRATCH_BUCKETS)
-        == checksum
+    assert t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS, SCRATCH_BUCKETS) == ChecksumResult(
+        checksum=Checksum(**checksum),
+        size=size,
+        version=pk.version_id,
     )
 
 

@@ -598,7 +598,11 @@ def get_scratch_buckets() -> T.Dict[str, str]:
 
 
 def list_objects(bucket, prefix):
-    return itertools.chain.from_iterable(map(lambda p: p.get('Contents', []), s3.get_paginator('list_objects_v2').paginate(Bucket=bucket, Prefix=prefix)))
+    return itertools.chain.from_iterable(
+        map(
+            lambda p: p.get("Contents", []), s3.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix=prefix)
+        )
+    )
 
 
 def package_prefix_sqs(event, context):

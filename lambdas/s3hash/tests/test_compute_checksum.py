@@ -61,19 +61,26 @@ EXPECTED_MPU_PARAMS = {
 async def test_compliant(s3_stub: Stubber):
     checksum = "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="
     checksum_hash = "WZ1xAz1wCsiSoOSPphsSXS9ZlBu0XaGQlETUPG7gurI="
+    size = 1048576
+    version = "test-version"
 
     s3_stub.add_response(
         "get_object_attributes",
         {
             "Checksum": {"ChecksumSHA256": checksum},
-            "ObjectSize": 1048576,  # below the threshold
+            "ObjectSize": size,  # below the threshold
+            "VersionId": version,
         },
         EXPECTED_GETATTR_PARAMS,
     )
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(base64.b64decode(checksum_hash)))
+    assert res == s3hash.ChecksumResult(
+        checksum=s3hash.Checksum.sha256_chunked(base64.b64decode(checksum_hash)),
+        size=size,
+        version=version,
+    )
 
 
 SHA256_EMPTY = bytes.fromhex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
@@ -88,12 +95,15 @@ SHA256_EMPTY = bytes.fromhex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca4
 )
 async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
     mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
+    size = 0
+    version = "test-version"
 
     s3_stub.add_response(
         "get_object_attributes",
         {
             "Checksum": {"ChecksumSHA256": "doesnt matter"},
             "ObjectSize": 0,
+            "VersionId": version,
             "ETag": "any",
         },
         EXPECTED_GETATTR_PARAMS,
@@ -101,7 +111,7 @@ async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber,
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=expected)
+    assert res == s3hash.ChecksumResult(checksum=expected, size=size, version=version)
 
 
 @pytest.mark.parametrize(
@@ -113,6 +123,8 @@ async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber,
 )
 async def test_empty_no_access(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
     mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
+    size = 0
+    version = "test-version"
 
     s3_stub.add_client_error(
         "get_object_attributes",
@@ -124,14 +136,15 @@ async def test_empty_no_access(chunked: bool, expected: s3hash.Checksum, s3_stub
         "head_object",
         {
             "ETag": '"test-etag"',
-            "ContentLength": 0,
+            "ContentLength": size,
+            "VersionId": version,
         },
         LOC.boto_args,
     )
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=expected)
+    assert res == s3hash.ChecksumResult(checksum=expected, size=size, version=version)
 
 
 async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
@@ -140,12 +153,13 @@ async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
         "AccessDenied",
         expected_params=EXPECTED_GETATTR_PARAMS,
     )
+    size = s3hash.MAX_PART_SIZE + 1
 
     s3_stub.add_response(
         "head_object",
         {
             "ETag": '"test-etag"',
-            "ContentLength": s3hash.MAX_PART_SIZE + 1,
+            "ContentLength": size,
         },
         LOC.boto_args,
     )
@@ -161,7 +175,7 @@ async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     checksum_hex = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256(checksum_hex))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256(checksum_hex), size=size, version=None)
 
 
 def stub_bucket_region(s3_stub: Stubber):
@@ -209,9 +223,10 @@ async def test_mpu_single(s3_stub: Stubber):
     ETAG = "test-etag"
     PART_ETAG = "part-etag"
     SIZE = 1048576
+    VERSION = "test-version"
     s3_stub.add_response(
         "get_object_attributes",
-        {"ObjectSize": SIZE, "ETag": ETAG},
+        {"ObjectSize": SIZE, "ETag": ETAG, "VersionId": VERSION},
         EXPECTED_GETATTR_PARAMS,
     )
 
@@ -251,12 +266,17 @@ async def test_mpu_single(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_HASH))
+    assert res == s3hash.ChecksumResult(
+        checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_HASH),
+        size=SIZE,
+        version=VERSION,
+    )
 
 
 async def test_mpu_multi(s3_stub: Stubber):
     ETAG = "test-etag"
     SIZE = s3hash.MIN_PART_SIZE + 1
+    VERSION = "test-version"
     s3_stub.add_response(
         "get_object_attributes",
         {"ObjectSize": SIZE, "ETag": ETAG},
@@ -318,7 +338,11 @@ async def test_mpu_multi(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_TOP))
+    assert res == s3hash.ChecksumResult(
+        checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_TOP),
+        size=SIZE,
+        version=None,
+    )
 
 
 @pytest.mark.parametrize(
