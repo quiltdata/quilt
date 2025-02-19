@@ -522,11 +522,31 @@ type SsoConfig {
   uploader: User!
 }
 
+enum EventRuleType {
+  OMICS
+  ROCRATE
+}
+
+type EventRuleToggleSuccess {
+  ruleArn: String!
+}
+
+type EventRuleStatusSuccess {
+  ruleArn: String!
+  enabled: Boolean!
+}
+
+union EventRuleToggleResult = EventRuleToggleSuccess | OperationError
+union EventRuleStatusResult = EventRuleStatusSuccess | OperationError
+
 type AdminQueries {
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
   tabulatorOpenQuery: Boolean!
+  eventRuleStatus(
+    ruleType: EventRuleType!
+  ): EventRuleStatusResult!
 }
 
 type MyRole {
@@ -916,6 +936,10 @@ type AdminMutations {
   bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
+  eventRuleToggle(
+    ruleType: EventRuleType!,
+    enableRule: Boolean!
+  ): EventRuleToggleResult!
 }
 
 type Mutation {
@@ -966,4 +990,5 @@ type Mutation {
     ttl: Int! = 180
   ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
+
 }
