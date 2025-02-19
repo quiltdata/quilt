@@ -96,24 +96,22 @@ and Spotfire.
 > Available since Quilt Platform version 1.58
 
 Normally, if Tabulator encounters an error while processing a file, it will
-abort the query and return an error. However, if you set `continue_on_error`
-to `true` in the configuration, Tabulator will continue processing the rest of
-the files in the package, and add a note to the `$issue` column for the file or
+abort the query and return an error. However, if you set `continue_on_error` to
+`true` in the configuration, Tabulator will continue processing the rest of the
+files in the package, and add an ERROR to the `$issue` column for the file or
 rows that had the error.
-
-If the column is nullable (which is the default), then for that file:
-
-- The value will be `null` for that column.
-- All other columns will be populated as usual.
-- The `$issue` column will contain a WARNING that the column is missing.
 
 ![Tabulator Issue](../imgs/tabulator-issue.png)
 
-If the column is not nullable, then for that file:
+If the error is due to a file missing a column from the schema (and the `continue_on_error` flag is set to `true`), then:
 
-- Only a single row will be added to the table.
-- The value will be `null` for all columns.
-- The `$issue` column will contain an ERROR that the column is missing.
+- If the missing column is `nullable` (which is the default), a `null` value
+  will be added to that column, but all other columns will be populated for all
+  rows.
+- If the missing column is `not nullable`, the file will be skipped, and a
+  single row with all nulls (except for the `$issue` column) will be added to
+  the table
+
 
 ### Caveats
 
