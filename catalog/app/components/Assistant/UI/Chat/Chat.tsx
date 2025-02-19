@@ -358,6 +358,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   devTools: {
     height: '50%',
+    position: 'relative',
   },
   historyContainer: {
     flexGrow: 1,

@@ -29,6 +29,7 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
             params: {
               resultType: 'p',
               filter: [],
+              latestOnly: false,
               userMetaFilters: [
                 {
                   path: '/author',
