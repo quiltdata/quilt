@@ -522,11 +522,22 @@ type SsoConfig {
   uploader: User!
 }
 
+type PackagerEventRule {
+  name: String!
+  enabled: Boolean!
+}
+
+type PackagerAdminQueries {
+  eventRules: [PackagerEventRule!]!
+  eventRule(name: String!): PackagerEventRule
+}
+
 type AdminQueries {
   user: UserAdminQueries!
   ssoConfig: SsoConfig
   isDefaultRoleSettingDisabled: Boolean!
   tabulatorOpenQuery: Boolean!
+  packager: PackagerAdminQueries!
 }
 
 type MyRole {
@@ -910,12 +921,19 @@ type TabulatorOpenQueryResult {
   tabulatorOpenQuery: Boolean!
 }
 
+union PackagerEventRuleToggleResult = PackagerEventRule | OperationError | InvalidInput
+
+type PackagerAdminMutations {
+  toggleEventRule(name: String!, enabled: Boolean!): PackagerEventRuleToggleResult!
+}
+
 type AdminMutations {
   user: UserAdminMutations!
   setSsoConfig(config: String): SetSsoConfigResult
   bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
   bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
   setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
+  packager: PackagerAdminMutations!
 }
 
 type Mutation {
