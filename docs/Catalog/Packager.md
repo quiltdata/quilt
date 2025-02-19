@@ -33,7 +33,7 @@ created in that same bucket with the name `omics-quilt/3395667`.
 When enabled, this will create a package from any folder containing an
 `ro-crate-manifest.json`. [RO-Crate](https://www.researchobject.org/ro-crate/)
 is a metadata standard for describing research data.  The Workflow Run working
-group adds three additional profiles, which are supported the latest versions of
+group adds three additional profiles, which are supported in the latest versions of
 [nf-prov](https://github.com/nextflow-io/nf-prov). You need to explicitly
 configure it to use wrroc, using a `nextflow.config` file [like this](https://github.com/famosab/wrrocmetatest):
 
@@ -111,8 +111,7 @@ explicitly specifying any of the following fields:
 
 ## Custom EventBridge Rules
 
-You can write your own Rules that use Input Transformers to convert any
-EventBridge event in your account(from any bus, in any region) into a
+EventBridge event in your account (from any bus, in any region) into a
 conforming SQS message.
 
 ### Example: Event-Driven Packaging (EDP)
