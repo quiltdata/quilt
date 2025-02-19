@@ -103,7 +103,7 @@ the remaining files and records any issues in the `$issue` column.
 
 If a file is missing a specified column:
 
-- If `nullable` (the default), the column is is filled with null, while other
+- If `nullable` (the default), the column is filled with null, while other
 columns for all rows remain populated.
 
 - If not nullable, the file is skipped, and a single row of nulls for all
@@ -113,8 +113,7 @@ columns (except `$issue`) is added.
 
 1. **Schema Consistency**: All files in the package that match the logical key
    must have the exact same schema as defined in the configuration (unless using
-   Quilt Platform version 1.58 or higher, in which case missing columns will be
-   ignored).
+   Quilt Platform version 1.58 or higher, and using `continue_on_error: true`).
 2. **Memory Usage**: Tabulator may fail on large files (> 10 GB), files with
    large rows (> 100 KB), and large numbers of files (> 10000). Additionally,
    Athena has a 16 MB limit per row.
