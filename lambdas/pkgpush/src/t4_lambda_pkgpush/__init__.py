@@ -590,7 +590,7 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
 @functools.cache
 def setup_user_boto_session_once():
     global user_boto_session
-    return user_boto_session := get_user_boto_session()
+    user_boto_session = get_user_boto_session()
 
 
 def get_scratch_buckets() -> T.Dict[str, str]:
