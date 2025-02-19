@@ -15,6 +15,7 @@ import botocore.client
 import botocore.credentials
 import botocore.exceptions
 import pydantic
+import rfc3986
 
 # Must be done before importing quilt3.
 os.environ["QUILT_DISABLE_CACHE"] = "true"  # noqa: E402
@@ -565,46 +566,56 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
     return "/".join(parts)
 
 
+# XXX is this sane?
+@functools.cache
+def setup_user_boto_session_once():
+    global get_user_boto_session
+    get_user_boto_session = get_user_boto_session()
+
+
 def package_prefix_sqs(event, context):
+    import pprint
+
+    pprint.pprint(event)
+
     assert len(event["Records"]) == 1  # XXX: not sure it makes sense to check this
 
-    with setup_user_boto_session(boto3.Session()):
-        for record in event["Records"]:
-            import pprint
+    setup_user_boto_session_once()
 
-            pprint.pprint(record)
+    for record in event["Records"]:
+        params = PackagerEvent.parse_raw(record["body"])
 
-            params = PackagerEvent.parse_raw(record["body"])
+        prefix_pk = PhysicalKey.from_url(params.source_prefix)
+        assert not prefix_pk.is_local()  # XXX: error handling
+        # XXX: make sure this works OK if no slash at the end
+        # XXX: do we allow empty prefix (it looks like a bad idea to pkg the whole bucket?
+        prefix = prefix_pk.path if prefix_pk.path.endswith("/") else prefix_pk.path.rsplit("/", 1)[0] + "/"
 
-            prefix_pk = PhysicalKey.from_url(params.source_prefix)
-            assert not prefix_pk.is_local()  # XXX: error handling
-            # XXX: make sure this works OK if no slash at the end
-            # XXX: do we allow empty prefix (it looks like a bad idea to pkg the whole bucket?
-            prefix = prefix_pk.path if prefix_pk.path.endswith("/") else prefix_pk.path.rsplit("/", 1)[0] + "/"
+        pkg_name = params.package_name or infer_pkg_name_from_prefix(prefix)
 
-            pkg_name = params.package_name or infer_pkg_name_from_prefix(prefix)
+        dst_bucket = params.registry or prefix_pk.bucket
+        registry_url = f"s3://{dst_bucket}"
+        package_registry = get_package_registry(registry_url)
 
-            dst_bucket = params.registry or prefix_pk.bucket
-            registry_url = f"s3://{dst_bucket}"
-            package_registry = get_package_registry(registry_url)
+        assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
+        metadata = params.metadata
+        if params.metadata_uri is not None:
+            metadata_uri = rfc3986.uri_reference(params.metadata_uri).resolve_with(params.source_prefix)
+            metadata_uri_pk = PhysicalKey.from_url(metadata_uri)
+            assert not metadata_uri_pk.is_local()  # XXX: error handling
+            metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
 
-            assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
-            metadata = params.metadata
-            if params.metadata_uri is not None:
-                metadata_uri_pk = PhysicalKey.from_url(params.metadata_uri)
-                metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
-
-            pkg = quilt3.Package()
-            pkg.set_dir(".", f"s3://{prefix_pk.bucket}/{prefix}")
-            pkg.set_meta(metadata or {})
-            pkg._validate_with_workflow(
-                registry=package_registry,
-                workflow=params.workflow_normalized,
-                name=pkg_name,
-                message=params.commit_message,
-            )
-            pkg._build(
-                name=pkg_name,
-                registry=registry_url,
-                message=params.commit_message,
-            )
+        pkg = quilt3.Package()
+        pkg.set_dir(".", f"s3://{prefix_pk.bucket}/{prefix}")
+        pkg.set_meta(metadata or {})
+        pkg._validate_with_workflow(
+            registry=package_registry,
+            workflow=params.workflow_normalized,
+            name=pkg_name,
+            message=params.commit_message,
+        )
+        pkg._build(
+            name=pkg_name,
+            registry=registry_url,
+            message=params.commit_message,
+        )
