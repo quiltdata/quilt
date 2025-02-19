@@ -1,6 +1,6 @@
 import pytest
 
-import quilt3.util
+from quilt3.util import validate_package_name, PhysicalKey
 import t4_lambda_pkgpush
 
 DEFAULT_PKG_NAME_PREFIX = "quilt-packager"
@@ -18,6 +18,33 @@ DEFAULT_PKG_NAME_SUFFIX = "pkg"
     ],
 )
 def test_infer_pkg_name_from_prefix(prefix, expected):
-    quilt3.util.validate_package_name(expected)
+    validate_package_name(expected)
 
     assert t4_lambda_pkgpush.infer_pkg_name_from_prefix(prefix) == expected
+
+
+@pytest.mark.parametrize(
+    "source_prefix, metadata_uri, expected_pk",
+    [
+        ("s3://bucket/metadata.json", "other.json", PhysicalKey("bucket", "other.json", None)),
+        ("s3://bucket/metadata.json", "//other-bucket/other.json", PhysicalKey("other-bucket", "other.json", None)),
+        (
+            "s3://bucket/metadata.json?versionId=1",
+            "//other-bucket/other.json",
+            PhysicalKey("other-bucket", "other.json", None),
+        ),
+        (
+            "s3://bucket/metadata.json?versionId=1",
+            "s3://other-bucket/other.json",
+            PhysicalKey("other-bucket", "other.json", None),
+        ),
+    ],
+)
+def test_get_metadata_uri_pk(source_prefix, metadata_uri, expected_pk):
+    assert (
+        t4_lambda_pkgpush.PackagerEvent(
+            source_prefix=source_prefix,
+            metadata_uri=metadata_uri,
+        ).get_metadata_uri_pk()
+        == expected_pk
+    )

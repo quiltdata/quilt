@@ -540,6 +540,18 @@ class PackagerEvent(pydantic.BaseModel):
     workflow: T.Optional[str] = None
     commit_message: T.Optional[str] = None
 
+    def get_source_prefix_pk(self) -> PhysicalKey:
+        pk = PhysicalKey.from_url(self.source_prefix)
+        assert not pk.is_local()  # XXX: error handling
+        return pk
+
+    def get_metadata_uri_pk(self) -> T.Optional[PhysicalKey]:
+        if self.metadata_uri is None:
+            return None
+        pk = PhysicalKey.from_url(rfc3986.uri_reference(self.metadata_uri).resolve_with(self.source_prefix).unsplit())
+        assert not pk.is_local()  # XXX: error handling
+        return pk
+
     # XXX: copied from shared
     # XXX: is this sane here?
     @property
@@ -569,8 +581,8 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
 # XXX is this sane?
 @functools.cache
 def setup_user_boto_session_once():
-    global get_user_boto_session
-    get_user_boto_session = get_user_boto_session()
+    global user_boto_session
+    user_boto_session = get_user_boto_session()
 
 
 def package_prefix_sqs(event, context):
@@ -585,8 +597,7 @@ def package_prefix_sqs(event, context):
     for record in event["Records"]:
         params = PackagerEvent.parse_raw(record["body"])
 
-        prefix_pk = PhysicalKey.from_url(params.source_prefix)
-        assert not prefix_pk.is_local()  # XXX: error handling
+        prefix_pk = params.get_source_prefix_pk()
         # XXX: make sure this works OK if no slash at the end
         # XXX: do we allow empty prefix (it looks like a bad idea to pkg the whole bucket?
         prefix = prefix_pk.path if prefix_pk.path.endswith("/") else prefix_pk.path.rsplit("/", 1)[0] + "/"
@@ -599,10 +610,7 @@ def package_prefix_sqs(event, context):
 
         assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
         metadata = params.metadata
-        if params.metadata_uri is not None:
-            metadata_uri = rfc3986.uri_reference(params.metadata_uri).resolve_with(params.source_prefix).unsplit()
-            metadata_uri_pk = PhysicalKey.from_url(metadata_uri)
-            assert not metadata_uri_pk.is_local()  # XXX: error handling
+        if metadata_uri_pk := params.get_metadata_uri_pk():
             metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
 
         pkg = quilt3.Package()
