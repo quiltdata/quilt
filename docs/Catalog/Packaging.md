@@ -12,7 +12,7 @@ standardization. It consists of:
    1. AWS Health Omics
    2. Nextflow workflows using  `nf-prov`'s WRROC ([Workflow Run
       RO-Crate](https://www.researchobject.org/workflow-run-crate/)) format
-2. An SQS queue that will process package descriptions
+2. SQS queue that will process package descriptions
 3. Documentation for creating custom EventBridge rules to invoke that queue
 
 ## Admin Settings
@@ -31,16 +31,15 @@ same bucket with the name `omics-quilt/3395667`.
 
 ### Workflow Run RO-Crate
 
-When enabled, this will create a package when ingesting any folder containing an
 When enabled, this will create a package when indexing any folder containing an
-`ro-crate-manifest.json`.  Indexing happens when the bucket is added to the stack,
-or when a folder is written to a bucket already in the stack.
+`ro-crate-manifest.json`.  Indexing happens when the bucket is added to the
+stack, or when a folder is written to a bucket already in the stack.
 
 [RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
 describing research data.  The Workflow Run working group adds three additional
 profiles, which are supported in the latest versions of
 [nf-prov](https://github.com/nextflow-io/nf-prov). You will need to explicitly
-configure `nf-prov` to use wrroc, by using a `nextflow.config` file [like
+configure `nf-prov` to use `wrroc`, by using a `nextflow.config` file [like
 this](https://github.com/famosab/wrrocmetatest):
 
 ```groovy
@@ -69,17 +68,17 @@ Note that Research Objects identify people using an ORCID iD, which anyone can
 get for free at [the ORDiD website](https://orcid.org/).
 
 The package will be created in the same bucket as the `outdir`, with the package
-name inferred from the folder key. For example, if the key is `my/s3/folder`,
-the package name will be `my_s3/folder`.
+name inferred from the S3 key. For example, if the key is
+`my/s3/folder/ro-crate-manifest.json`, the package name will be `my_s3/folder`.
 
 ## SQS Message Processing
 
-The primary interface to the Packaging Engine is through the
-SQS queue in the same account and region as your Quilt stack,
-listed in `PackagerQueue` under the Outputs. The queue URL will look something like:
+The primary interface to the Packaging Engine is through an SQS queue in the
+same account and region as your Quilt stack, listed in `PackagerQueue` under the
+Outputs. The queue URL will look something like:
 
 ```text
-https://sqs.us-east-1.amazonaws.com/XXXXXXXXXXXX/PackagerQueue-XXXXXXXXXXXX
+https://sqs.us-east-1.amazonaws.com/XXX/PackagerQueue-XXX
 ```
 
 The body of the message is the stringified JSON of a package description.
@@ -91,7 +90,9 @@ There is only one required parameter:
 }
 ```
 
-This will create a package in the same bucket as the source folder, with the
+This is assumed to be a folder if it ends in a `/`; otherwise, we will remove
+the last component of the path to get the folder. The contents of the folder
+will be used create a package in the same bucket as the source folder, with the
 package name being inferred from the source URI.
 
 Optionally, you can control the package name, metadata, and other settings by
@@ -99,11 +100,11 @@ explicitly specifying any of the following fields:
 
 ```jsonc
 {
-  "source_prefix": "s3://data_bucket/source/folder/",  // If URI ends with slash, treats entire path as folder. Without slash, treats last segment as file and packages parent folder
-  "registry": "package_bucket",  // may be the same as `data_bucket`
+  "source_prefix": "s3://data_bucket/source/folder/", // trailing '/' for folder
+  "registry": "package_bucket", // may be the same as `data_bucket`
   "package_name": "prefix/suffix",
-  "metadata": { "key": "value" },  // object
-  "metadata_uri": "metadata.json", // alternative to `metadata`, relative or absolute
+  "metadata": { "key": "value" }, // object
+  "metadata_uri": "metadata.json", // S3 URI to read, relative or absolute
   "commit_message": "Commit message for the package revision", // string
   "workflow": "alpha", // name of a valid metadata workflow
 }
@@ -117,15 +118,15 @@ CLI:
 
 <!--pytest.mark.skip-->
 ```bash
-export QUEUE_URL=https://sqs.us-east-1.amazonaws.com/XXXXXXXXXXXX/PackagerQueue-XXXXXXXXXXXX
+export QUEUE_URL=https://sqs.us-east-1.amazonaws.com/XXX/PackagerQueue-XXX
 aws sqs send-message --queue-url $QUEUE_URL \
 --message-body '{"source_prefix":"s3://data_bucket/source/folder/"}'
 ```
 
 ## Custom EventBridge Rules
 
-EventBridge rules can be used to transform any EventBridge event in your account (from any bus, in any region) into a
-conforming SQS message.
+EventBridge rules can be used to transform any EventBridge event in your account
+(from any bus, in any region) into a conforming SQS message.
 
 ### Example: Event-Driven Packaging (EDP)
 
@@ -136,10 +137,10 @@ folder. When ready, it creates an event like this on its own EventBridge bus:
 ```json
 {
   "version":"0",
-  "id":"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "id":"XXXXXXXXXXXXXX",
   "detail-type":"package-objects-ready",
   "source":"com.quiltdata.edp",
-  "account":"XXXXXXXXXXXX",
+  "account":"XXX",
   "time":"2022-12-08T20:01:34Z",
   "region":"us-east-1",
   "resources":[
@@ -153,8 +154,8 @@ folder. When ready, it creates an event like this on its own EventBridge bus:
 }
 ```
 
-Here is an example of an EventBridge rule that will use the above event
-to trigger packager queue:
+Here is an example of an EventBridge rule you can write that will use the above
+event to trigger packager queue:
 
 ```json
 {
@@ -166,7 +167,7 @@ to trigger packager queue:
   "Targets": [
     {
       "Id": "SQS_PackagerQueue",
-      "Arn": "arn:aws:sqs:us-east-1:XXXXXXXXXXXX:PackagerQueue-XXXXXXXXXXXX",
+      "Arn": "arn:aws:sqs:us-east-1:XXX:PackagerQueue-XXX",
       "InputTransformer": {
         "InputPathsMap": {
           "bucket": "$.detail.bucket",
@@ -184,6 +185,6 @@ to trigger packager queue:
 1. The package creation process is asynchronous, so you may need to wait a few
    minutes before the package is available (longer if the source data is large).
 2. If you send the same message multiple times before the folder is updated, it
-   will not actually create a new revision, since the content hash is the same.
-   However, that would still waste computational cycles, so you should avoid
-   doing so.
+   will not actually create a new revision, since the content hash will be the
+   same. However, that would still waste computational cycles, so you should
+   avoid doing so.
