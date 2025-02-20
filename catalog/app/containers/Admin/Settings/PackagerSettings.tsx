@@ -4,8 +4,10 @@ import * as Lab from '@material-ui/lab'
 import * as Sentry from '@sentry/react'
 
 import Skeleton from 'components/Skeleton'
+import { docs } from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import * as GQL from 'utils/GraphQL'
+import StyledLink from 'utils/StyledLink'
 
 import RULES_QUERY from './gql/PackagerEventRules.generated'
 import TOGGLE_RULE_MUTATION from './gql/PackagerToggleEventRule.generated'
@@ -56,14 +58,6 @@ export default function PackagerSettings() {
 
   return (
     <M.FormGroup>
-      {/* TODO: docs link? */}
-      <M.FormHelperText>
-        When enabled, these rules automatically create packages when the corresponding
-        events are received.
-        <br />
-        Subscribe to AUTO_PACKAGING_TOPIC_ARN to be notified when the packaging begins and
-        ends.
-      </M.FormHelperText>
       {GQL.fold(query, {
         data: (d) =>
           d.admin.packager.eventRules.map((rule) => <Toggle key={rule.name} {...rule} />),
@@ -81,6 +75,17 @@ export default function PackagerSettings() {
           </Lab.Alert>
         ),
       })}
+      <M.FormHelperText>
+        When enabled, these rules automatically create packages when the corresponding
+        events are received.{' '}
+        <StyledLink
+          href={`${docs}/quilt-platform-catalog-user/packaging`}
+          target="_blank"
+        >
+          Learn more
+        </StyledLink>{' '}
+        in the documentation.
+      </M.FormHelperText>
     </M.FormGroup>
   )
 }
