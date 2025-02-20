@@ -620,6 +620,26 @@ def package_prefix(event, context):
 
     pkg = quilt3.Package()
     pkg.set_dir(".", str(prefix_pk), meta=metadata)
+    # TODO: check while listing objects
+    size_to_hash = 0
+    for i, (_, pkg_entry) in enumerate(pkg.walk()):
+        if i > MAX_FILES_TO_HASH:
+            raise PkgpushException(
+                "TooManyFilesToHash",
+                {
+                    "num_files": i,
+                    "max_files": MAX_FILES_TO_HASH,
+                },
+            )
+        size_to_hash += pkg_entry.size
+        if size_to_hash > MAX_BYTES_TO_HASH:
+            raise PkgpushException(
+                "PackageTooLargeToHash",
+                {
+                    "size": size_to_hash,
+                    "max_size": MAX_BYTES_TO_HASH,
+                },
+            )
     pkg._validate_with_workflow(
         registry=package_registry,
         workflow=params.workflow_normalized,
