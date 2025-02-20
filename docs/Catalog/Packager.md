@@ -1,16 +1,16 @@
-# Auto-Packaging
+# Packaging Engine
 
 ## Overview
 
-Auto-Packaging in the Quilt Platform allows administrators and
+The Quilt Packaging Engine in the Quilt Platform allows administrators and
 developers to automate the process of creating Quilt packages from data stored
 in Amazon S3. It serves as a key component in Quilt's SDMS (Scientific Data
 Management System) strategy, enabling automated data ingestion and
 standardization. It consists of:
 
-1. Admin Settings GUI to enable package creation for:
+1. Admin Settings GUI to enable package creation based on notifications from:
    1. AWS Health Omics
-   2. Nextflow workflows using  `nf-prov`'s WRROC (Workflow Run RO-Crate) format
+   2. Nextflow workflows using  `nf-prov`'s WRROC ([Workflow Run RO-Crate](https://www.researchobject.org/workflow-run-crate/)) format
 2. An SQS queue that will process package descriptions
 3. Documentation for creating custom EventBridge rules to invoke that queue
 
@@ -23,19 +23,23 @@ which supports the following built-in event sources:
 
 ### AWS Health Omics
 
-When enabled, this will create a package from the URI provided in any
-`aws.omics` event with `detail.status` of "COMPLETED".  For example, if the
-`runOutputUri` is `s3://quilt-example/omics-quilt/3395667`, the package will be
-created in that same bucket with the name `omics-quilt/3395667`.
+When enabled, this will create a package from the `runOutputUri` provided in a
+`aws.omics` completion event. For example, if the `runOutputUri` is
+`s3://quilt-example/omics-quilt/3395667`, the package will be created in that
+same bucket with the name `omics-quilt/3395667`.
 
 ### Workflow Run RO-Crate
 
-When enabled, this will create a package from any folder containing an
-`ro-crate-manifest.json`. [RO-Crate](https://www.researchobject.org/ro-crate/)
-is a metadata standard for describing research data.  The Workflow Run working
-group adds three additional profiles, which are supported in the latest versions of
-[nf-prov](https://github.com/nextflow-io/nf-prov). You need to explicitly
-configure it to use wrroc, using a `nextflow.config` file [like this](https://github.com/famosab/wrrocmetatest):
+When enabled, this will create a package when ingesting any folder containing an
+`ro-crate-manifest.json`.  Ingest happens when the bucket is added to the stack,
+or when a folder is written to a bucket already in the stack.
+
+[RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
+describing research data.  The Workflow Run working group adds three additional
+profiles, which are supported in the latest versions of
+[nf-prov](https://github.com/nextflow-io/nf-prov). You will need to explicitly
+configure `nf-prov` to use wrroc, by using a `nextflow.config` file [like
+this](https://github.com/famosab/wrrocmetatest):
 
 ```groovy
 plugins {
@@ -62,13 +66,13 @@ prov {
 Note that Research Objects identify people using an ORCID iD, which anyone can
 get for free at [the ORDiD website](https://orcid.org/).
 
-The package will be created in the same bucket as the `outdir`, using the
-last two path components as the package name. If there are fewer than two
-components, it will use a default prefix or suffix.
+The package will be created in the same bucket as the `outdir`, with the package
+name inferred from the folder key. For example, if the key is `my/s3/folder`,
+the package name will be `my_s3/folder`.
 
 ## SQS Message Processing
 
-The primary interface to the Auto-Packaging is through the
+The primary interface to the Packaging Engine is through the
 SQS queue in the same account and region as your Quilt stack,
 listed in `PackagerQueue` under the Outputs. The queue URL will look something like:
 
@@ -86,10 +90,7 @@ There is only one required parameter:
 ```
 
 This will create a package in the same bucket as the source folder, with the
-package name being the last two components of the source URI (e.g., `source/folder`).
-By default, it will assume the last component is a metadata file, and
-try to parse that as json.
-If you are specifying a folder, you should instead end the URI with a `/`.
+package name being inferred from the source URI.
 
 Optionally, you can control the package name, metadata, and other settings by
 explicitly specifying any of the following fields:
@@ -101,11 +102,8 @@ explicitly specifying any of the following fields:
   "package_name": "prefix/suffix",
   "metadata": { "key": "value" },  // dictionary
   "metadata_uri": "metadata.json", // alternative to `metadata`, relative or absolute
-  "message": "Commit message for the package revision", // string
+  "commit_message": "Commit message for the package revision", // string
   "workflow": "alpha", // name of a valid metadata workflow
-  "should_copy": false // boolean
-  // false = point to data in the source bucket (default)
-  // true = copy data to the package bucket
 }
 ```
 
@@ -118,11 +116,7 @@ conforming SQS message.
 
 EDP is a high-end add-on to Quilt that coalesces multiple S3 uploads into a
 single `package-objects-ready` event, where it infers the appropriate top-level
-folder.  EDP writes to its own EventBridge bus, so you need to
-[Pipe](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-pipes.html)
-it to the default bus to trigger the Auto-Packaging.
-
-When ready, it creates an event like this:
+folder. When ready, it creates an event like this on its own EventBridge bus:
 
 ```json
 {
@@ -163,7 +157,7 @@ to trigger packager queue:
           "bucket": "$.detail.bucket",
           "prefix": "$.detail.prefix"
         },
-        "InputTemplate": "{ \"source_prefix\":\"s3://<bucket>/<prefix>/\" }"
+        "InputTemplate": "{ \"source_prefix\":\"s3://<bucket>/<prefix>\" }"
       }
     }
   ]
@@ -177,6 +171,6 @@ to trigger packager queue:
 2. The SQS queue currently only accepts requests from EventBridge events via
    custom rules.  Contact us at `support@quiltdata.io` if you have a use case
    for which that is too restrictive.
-3. If you send the same message multiple times, it will not actually create a
-   new revision, since the content hash is the same.  However, it will waste
-   computational cycles, so you should avoid it.
+3. If you send the same message multiple times before the folder is updated, it
+   will not actually create a new revision, since the content hash is the same.
+   However, that would waste computational cycles, so you should avoid doing that.
