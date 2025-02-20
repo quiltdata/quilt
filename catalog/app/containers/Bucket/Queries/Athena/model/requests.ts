@@ -550,6 +550,7 @@ async function fetchCatalogName(
     )
   } catch (error) {
     if (isAwsErrorAccessDenied(error)) {
+      if (catalogName === 'AwsDataCatalog') return catalogName
       Log.info(`Fetching "${catalogName}" catalog name failed: ${error.code}`)
     } else {
       Log.error(`Fetching "${catalogName}" catalog name failed:`, error)
