@@ -73,7 +73,7 @@ export default function TabulatorSettings() {
         data: ({ admin }) => <Toggle checked={admin.tabulatorOpenQuery} />,
         fetching: () => (
           <>
-            <Skeleton width="40%" height={38} />
+            <Skeleton width="40%" height={24} my="7px" />
             <Skeleton width="80%" height={20} mt="3px" />
           </>
         ),

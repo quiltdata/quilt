@@ -59,11 +59,28 @@ export default function PackagerSettings() {
   return (
     <M.FormGroup>
       {GQL.fold(query, {
-        data: (d) =>
-          d.admin.packager.eventRules.map((rule) => <Toggle key={rule.name} {...rule} />),
+        data: (d) => (
+          <>
+            {d.admin.packager.eventRules.map((rule) => (
+              <Toggle key={rule.name} {...rule} />
+            ))}
+            <M.FormHelperText>
+              When enabled, these rules automatically create packages when the
+              corresponding events are received.{' '}
+              <StyledLink
+                href={`${docs}/quilt-platform-catalog-user/packaging`}
+                target="_blank"
+              >
+                Learn more
+              </StyledLink>{' '}
+              in the documentation.
+            </M.FormHelperText>
+          </>
+        ),
         fetching: () => (
           <>
-            <Skeleton width="40%" height={38} />
+            <Skeleton width="60%" height={24} my="7px" />
+            <Skeleton width="40%" height={24} my="7px" />
             <Skeleton width="80%" height={20} mt="3px" />
           </>
         ),
@@ -75,17 +92,6 @@ export default function PackagerSettings() {
           </Lab.Alert>
         ),
       })}
-      <M.FormHelperText>
-        When enabled, these rules automatically create packages when the corresponding
-        events are received.{' '}
-        <StyledLink
-          href={`${docs}/quilt-platform-catalog-user/packaging`}
-          target="_blank"
-        >
-          Learn more
-        </StyledLink>{' '}
-        in the documentation.
-      </M.FormHelperText>
     </M.FormGroup>
   )
 }
