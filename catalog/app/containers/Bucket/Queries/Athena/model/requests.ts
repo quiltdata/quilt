@@ -550,7 +550,6 @@ async function fetchCatalogName(
     )
   } catch (error) {
     if (isAwsErrorAccessDenied(error)) {
-      if (catalogName === 'AwsDataCatalog') return catalogName
       Log.info(`Fetching "${catalogName}" catalog name failed: ${error.code}`)
     } else {
       Log.error(`Fetching "${catalogName}" catalog name failed:`, error)
@@ -573,7 +572,11 @@ async function fetchCatalogNames(
       .filter(Boolean)
       .sort()
     const available = (
-      await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
+      await Promise.all(
+        parsed.map((name) =>
+          name === 'AwsDataCatalog' ? name : fetchCatalogName(athena, workgroup, name),
+        ),
+      )
     ).filter(Boolean)
     const list = (prev?.list || []).concat(available as Workgroup[])
     return {
