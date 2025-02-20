@@ -605,7 +605,11 @@ def package_prefix_sqs(event, context):
 
     pprint.pprint(event)
 
-    assert len(event["Records"]) == 1  # XXX: does it really make sense to refuse processing multiple records?
+    if len(event["Records"]) != 1:
+        raise PkgpushException(
+            "InvalidNumberOfRecords",
+            {"details": "This lambda can only process one record at a time", "records_received": len(event["Records"])}
+        )
 
     for record in event["Records"]:
         package_prefix(record["body"], context)
