@@ -10,7 +10,8 @@ standardization. It consists of:
 
 1. Admin Settings GUI to enable package creation based on notifications from:
    1. AWS Health Omics
-   2. Nextflow workflows using  `nf-prov`'s WRROC ([Workflow Run RO-Crate](https://www.researchobject.org/workflow-run-crate/)) format
+   2. Nextflow workflows using  `nf-prov`'s WRROC ([Workflow Run
+      RO-Crate](https://www.researchobject.org/workflow-run-crate/)) format
 2. An SQS queue that will process package descriptions
 3. Documentation for creating custom EventBridge rules to invoke that queue
 
@@ -107,6 +108,18 @@ explicitly specifying any of the following fields:
 }
 ```
 
+### SendMessage API
+
+If you have appropriate IAM permissions, and the SQS URL, you can send a message
+to the queue using the AWS SDK or the AWS CLI. Here is an example using the AWS
+CLI:
+
+```bash
+export QUEUE_URL=https://sqs.us-east-1.amazonaws.com/XXXXXXXXXXXX/PackagerQueue-XXXXXXXXXXXX
+aws sqs send-message --queue-url $QUEUE_URL \
+--message-body '{"source_prefix":"s3://data_bucket/source/folder/"}'
+```
+
 ## Custom EventBridge Rules
 
 EventBridge event in your account (from any bus, in any region) into a
@@ -168,9 +181,7 @@ to trigger packager queue:
 
 1. The package creation process is asynchronous, so you may need to wait a few
    minutes before the package is available (longer if the source data is large).
-2. The SQS queue currently only accepts requests from EventBridge events via
-   custom rules.  Contact us at `support@quiltdata.io` if you have a use case
-   for which that is too restrictive.
-3. If you send the same message multiple times before the folder is updated, it
+2. If you send the same message multiple times before the folder is updated, it
    will not actually create a new revision, since the content hash is the same.
-   However, that would waste computational cycles, so you should avoid doing that.
+   However, that would still waste computational cycles, so you should avoid
+   doing so.
