@@ -588,6 +588,10 @@ def setup_user_boto_session_once():
     user_boto_session = get_user_boto_session()
 
 
+def get_scratch_buckets() -> T.Dict[str, str]:
+    return json.load(s3.get_object(Bucket=SERVICE_BUCKET, Key="scratch-buckets.json")["Body"])
+
+
 def package_prefix_sqs(event, context):
     import pprint
 
@@ -646,6 +650,7 @@ def package_prefix(event, context):
         name=pkg_name,
         message=params.commit_message,
     )
+    calculate_pkg_hashes(pkg, get_scratch_buckets())
     pkg._build(
         name=pkg_name,
         registry=registry_url,
