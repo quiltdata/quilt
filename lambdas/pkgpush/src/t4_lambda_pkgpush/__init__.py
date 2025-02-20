@@ -608,7 +608,10 @@ def package_prefix_sqs(event, context):
     if len(event["Records"]) != 1:
         raise PkgpushException(
             "InvalidNumberOfRecords",
-            {"details": "This lambda can only process one record at a time", "records_received": len(event["Records"])}
+            {
+                "details": "This lambda can only process one record at a time",
+                "records_received": len(event["Records"]),
+            },
         )
 
     for record in event["Records"]:
