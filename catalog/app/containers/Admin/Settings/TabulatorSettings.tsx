@@ -53,7 +53,7 @@ function Toggle({ checked }: ToggleProps) {
         <b>CAUTION:</b> When enabled, Tabulator defers all access control to AWS and does
         not enforce any extra restrictions.{' '}
         <StyledLink
-          href={`${docs}/advanced-features/tabulator#open-query`}
+          href={`${docs}/quilt-platform-administrator/advanced/tabulator#open-query`}
           target="_blank"
         >
           Learn more
@@ -73,7 +73,7 @@ export default function TabulatorSettings() {
         data: ({ admin }) => <Toggle checked={admin.tabulatorOpenQuery} />,
         fetching: () => (
           <>
-            <Skeleton width="40%" height={38} />
+            <Skeleton width="40%" height={24} my="7px" />
             <Skeleton width="80%" height={20} mt="3px" />
           </>
         ),
