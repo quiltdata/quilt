@@ -13,7 +13,9 @@ Incorrect redirect URIs are a common cause of SSO loops.
 - **Google**: Go to **Google Admin Console > Security > Set up single sign-on (SSO)**.
 - **Okta**: Go to **Okta Admin > Applications > [Your App] > Sign On**.
 
-Ensure the **redirect URI** matches exactly what your system expects, including:
+Ensure the **redirect URI** matches exactly what is expected,
+as documented in the Quilt [technical reference](https://docs.quiltdata.com/quilt-platform-administrator/technical-reference#single-sign-on-sso).
+This includes:
 
 - Case sensitivity (Azure and Okta are case-sensitive!)
 - Proper `https://` scheme
@@ -53,10 +55,10 @@ Incorrect claims or missing attributes can cause authentication failures.
 - If using **OIDC**, paste the ID token into [jwt.io](https://jwt.io/) or [jwt.ms](https://jwt.ms/) to check claims.
 - Ensure the **issuer (iss)** and **audience (aud)** claims match what the application expects.
 
-## Step 5: Collect ECS Logs (If Applicable)
+## Step 5: Collect ClouldWatch Logs for ECS
 
-If your system provides ECS logs, collect and analyze them:
-
+Follow the usual [troubleshooting steps](https://docs.quiltdata.com/quilt-python-sdk/more/troubleshooting#elastic-container-service-ecs) to collect the ECS logs for the registry service:
+ 
 - Look for authentication-related errors or unexpected redirects.
 - Verify that the expected redirect URIs are being returned.
 
@@ -77,6 +79,6 @@ If the issue persists after these checks, provide the following information to y
 1. SSO Provider Sign-In Logs with error codes.
 2. Browser Network logs (HAR file) showing redirects.
 3. SAML assertion (if applicable) or decoded OIDC token.
-4. ECS logs (if relevant) for backend verification.
+4. ECS logs from the registry.
 
 Following these steps should help you diagnose and resolve most SSO redirect loop issues efficiently across Azure, Google, and Okta.
