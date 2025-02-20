@@ -3,8 +3,8 @@ import pytest
 import t4_lambda_pkgpush
 from quilt3.util import PhysicalKey, validate_package_name
 
-DEFAULT_PKG_NAME_PREFIX = "quilt-packager"
-DEFAULT_PKG_NAME_SUFFIX = "pkg"
+DEFAULT_PKG_NAME_PREFIX = "package"
+DEFAULT_PKG_NAME_SUFFIX = "null"
 
 
 @pytest.mark.parametrize(

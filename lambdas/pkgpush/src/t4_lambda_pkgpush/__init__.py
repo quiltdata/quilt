@@ -581,9 +581,8 @@ class PackagerEvent(pydantic.BaseModel):
 
 
 def infer_pkg_name_from_prefix(prefix: str) -> str:
-    # XXX: check defaults are sane
-    default_prefix = "quilt-packager"
-    default_suffix = "pkg"
+    default_prefix = "package"
+    default_suffix = "null"
 
     parts = [re.sub(r"[^\w-]", "-", p) for p in prefix.split("/") if p]
     parts = ["_".join(parts[:-1]) or default_prefix, parts[-1] if parts else default_suffix]
