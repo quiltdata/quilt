@@ -12,6 +12,7 @@
 * [Bucket Browsing](Catalog/FileBrowser.md)
 * [Document Previews](Catalog/Preview.md)
 * [Embeddable iFrames](Catalog/Embed.md)
+* [Packaging Engine](Catalog/Packaging.md)
 * [Query](Catalog/Query.md)
 * [Quilt+ URIs](Catalog/URI.md)
 * [Qurator Omni](Catalog/Qurator.md) AI Assistant
