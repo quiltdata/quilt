@@ -1,4 +1,3 @@
-<!--pytest-codeblocks:skipfile-->
 # Packaging Engine
 
 ## Overview
@@ -33,7 +32,8 @@ same bucket with the name `omics-quilt/3395667`.
 ### Workflow Run RO-Crate
 
 When enabled, this will create a package when ingesting any folder containing an
-`ro-crate-manifest.json`.  Ingest happens when the bucket is added to the stack,
+When enabled, this will create a package when indexing any folder containing an
+`ro-crate-manifest.json`.  Indexing happens when the bucket is added to the stack,
 or when a folder is written to a bucket already in the stack.
 
 [RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
@@ -78,7 +78,7 @@ The primary interface to the Packaging Engine is through the
 SQS queue in the same account and region as your Quilt stack,
 listed in `PackagerQueue` under the Outputs. The queue URL will look something like:
 
-```url
+```text
 https://sqs.us-east-1.amazonaws.com/XXXXXXXXXXXX/PackagerQueue-XXXXXXXXXXXX
 ```
 
@@ -99,10 +99,10 @@ explicitly specifying any of the following fields:
 
 ```jsonc
 {
-  "source_prefix": "s3://data_bucket/source/folder/",
+  "source_prefix": "s3://data_bucket/source/folder/",  // If URI ends with slash, treats entire path as folder. Without slash, treats last segment as file and packages parent folder
   "registry": "package_bucket",  // may be the same as `data_bucket`
   "package_name": "prefix/suffix",
-  "metadata": { "key": "value" },  // dictionary
+  "metadata": { "key": "value" },  // object
   "metadata_uri": "metadata.json", // alternative to `metadata`, relative or absolute
   "commit_message": "Commit message for the package revision", // string
   "workflow": "alpha", // name of a valid metadata workflow
@@ -115,6 +115,7 @@ If you have appropriate IAM permissions, and the SQS URL, you can send a message
 to the queue using the AWS SDK or the AWS CLI. Here is an example using the AWS
 CLI:
 
+<!--pytest.mark.skip-->
 ```bash
 export QUEUE_URL=https://sqs.us-east-1.amazonaws.com/XXXXXXXXXXXX/PackagerQueue-XXXXXXXXXXXX
 aws sqs send-message --queue-url $QUEUE_URL \
@@ -123,7 +124,7 @@ aws sqs send-message --queue-url $QUEUE_URL \
 
 ## Custom EventBridge Rules
 
-EventBridge event in your account (from any bus, in any region) into a
+EventBridge rules can be used to transform any EventBridge event in your account (from any bus, in any region) into a
 conforming SQS message.
 
 ### Example: Event-Driven Packaging (EDP)
