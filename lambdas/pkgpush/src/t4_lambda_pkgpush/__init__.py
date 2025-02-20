@@ -583,7 +583,7 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
     default_prefix = "quilt-packager"
     default_suffix = "pkg"
 
-    parts = [re.sub(r"[^\w-]", "_", p) for p in prefix.split("/") if p]
+    parts = [re.sub(r"[^\w-]", "-", p) for p in prefix.split("/") if p]
     parts = ["_".join(parts[:-1]) or default_prefix, parts[-1] if parts else default_suffix]
     return "/".join(parts)
 
