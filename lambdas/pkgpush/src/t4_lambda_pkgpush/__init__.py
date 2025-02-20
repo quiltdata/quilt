@@ -561,7 +561,8 @@ class PackagerEvent(pydantic.BaseModel):
         if self.metadata_uri is None:
             return None
         pk = PhysicalKey.from_url(rfc3986.uri_reference(self.metadata_uri).resolve_with(self.source_prefix).unsplit())
-        assert not pk.is_local()  # XXX: error handling
+        if pk.is_local():
+            raise PkgpushException("InvalidLocalPhysicalKey", {"physical_key": str(pk)})
         return pk
 
     # XXX: copied from shared
