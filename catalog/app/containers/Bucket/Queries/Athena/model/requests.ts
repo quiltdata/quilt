@@ -543,6 +543,10 @@ async function fetchCatalogName(
   workgroup: Workgroup,
   catalogName: CatalogName,
 ): Promise<CatalogName | null> {
+  // This is default place where we create tables for quilt packages
+  // We show it regardless of permissions
+  if (catalogName === 'AwsDataCatalog') return catalogName
+
   try {
     return (
       (await athena.getDataCatalog({ Name: catalogName, WorkGroup: workgroup }).promise())
@@ -572,13 +576,9 @@ async function fetchCatalogNames(
       .filter(Boolean)
       .sort()
     const available = (
-      await Promise.all(
-        parsed.map((name) =>
-          name === 'AwsDataCatalog' ? name : fetchCatalogName(athena, workgroup, name),
-        ),
-      )
+      await Promise.all(parsed.map((name) => fetchCatalogName(athena, workgroup, name)))
     ).filter(Boolean)
-    const list = (prev?.list || []).concat(available as Workgroup[])
+    const list = (prev?.list || []).concat(available as CatalogName[])
     return {
       list,
       next: catalogsOutput.NextToken,
