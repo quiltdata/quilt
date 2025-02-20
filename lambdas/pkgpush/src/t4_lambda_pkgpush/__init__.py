@@ -540,6 +540,13 @@ class PackagerEvent(pydantic.BaseModel):
     workflow: str | None = None
     commit_message: str | None = None
 
+    @pydantic.root_validator
+    def validate_metadata(cls, values):
+        metadata, metadata_uri = values["metadata"], values["metadata_uri"]
+        if metadata is not None and metadata_uri is not None:
+            raise ValueError("metadata and metadata_uri are mutually exclusive")
+        return values
+
     def get_source_prefix_pk(self) -> PhysicalKey:
         pk = PhysicalKey.from_url(self.source_prefix)
         assert not pk.is_local()  # XXX: error handling
@@ -583,7 +590,7 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
 
 # XXX is this sane?
 @functools.cache
-def setup_user_boto_session_once():
+def setup_user_boto_session_from_default():
     global user_boto_session
     user_boto_session = get_user_boto_session()
 
@@ -598,8 +605,6 @@ def package_prefix_sqs(event, context):
     pprint.pprint(event)
 
     assert len(event["Records"]) == 1  # XXX: does it really make sense to refuse processing multiple records?
-
-    setup_user_boto_session_once()
 
     for record in event["Records"]:
         package_prefix(record["body"], context)
@@ -616,11 +621,12 @@ def package_prefix(event, context):
     registry_url = f"s3://{dst_bucket}"
     package_registry = get_package_registry(registry_url)
 
-    assert params.metadata is None or params.metadata_uri is None  # XXX: error handling
     metadata = params.metadata
     if metadata_uri_pk := params.get_metadata_uri_pk():
         metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
-    assert metadata is None or isinstance(metadata, dict)  # XXX: does this make sense?
+        assert isinstance(metadata, dict)  # XXX: does this make sense?
+
+    setup_user_boto_session_from_default()
 
     pkg = quilt3.Package()
     pkg.set_dir(".", str(prefix_pk), meta=metadata)
@@ -635,6 +641,7 @@ def package_prefix(event, context):
                     "max_files": MAX_FILES_TO_HASH,
                 },
             )
+        assert isinstance(pkg_entry.size, int)
         size_to_hash += pkg_entry.size
         if size_to_hash > MAX_BYTES_TO_HASH:
             raise PkgpushException(
