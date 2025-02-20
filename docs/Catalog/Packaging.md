@@ -130,9 +130,10 @@ EventBridge rules can be used to transform any EventBridge event in your account
 
 ### Example: Event-Driven Packaging (EDP)
 
-EDP is a high-end add-on to Quilt that coalesces multiple S3 uploads into a
-single `package-objects-ready` event, where it infers the appropriate top-level
-folder. When ready, it creates an event like this on its own EventBridge bus:
+[Event-Driven Packaging](../advanced-features/event-driven-packaging.md) is a
+high-end add-on to Quilt that coalesces multiple S3 uploads into a single
+`package-objects-ready` event, where it infers the appropriate top-level folder.
+When ready, it creates an event like this on its own EventBridge bus:
 
 ```json
 {
