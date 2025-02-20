@@ -589,7 +589,7 @@ def setup_user_boto_session_once():
 
 
 def get_scratch_buckets() -> T.Dict[str, str]:
-    return json.load(s3.get_object(Bucket=SERVICE_BUCKET, Key="scratch_buckets.json")["Body"])
+    return json.load(s3.get_object(Bucket=SERVICE_BUCKET, Key="scratch-buckets.json")["Body"])
 
 
 def package_prefix_sqs(event, context):
