@@ -821,6 +821,7 @@ export interface PackagerEventRule {
   readonly __typename: 'PackagerEventRule'
   readonly name: Scalars['String']
   readonly enabled: Scalars['Boolean']
+  readonly description: Scalars['String']
 }
 
 export type PackagerEventRuleToggleResult =

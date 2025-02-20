@@ -4,6 +4,7 @@ query {
       eventRules {
         name
         enabled
+        description
       }
     }
   }

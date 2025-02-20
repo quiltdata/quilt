@@ -10,18 +10,13 @@ import * as GQL from 'utils/GraphQL'
 import RULES_QUERY from './gql/PackagerEventRules.generated'
 import TOGGLE_RULE_MUTATION from './gql/PackagerToggleEventRule.generated'
 
-// TODO: get descriptions from the backend
-// const descriptions = {
-//   omics: 'Package Omics completion events',
-//   ro_crate: 'Package Nextflow runs (with nf-prov WorkflowRun RO Crates)',
-// }
-
 interface ToggleProps {
   name: string
   enabled: boolean
+  description: string
 }
 
-function Toggle({ name, enabled }: ToggleProps) {
+function Toggle({ name, enabled, description }: ToggleProps) {
   const { push: notify } = Notifications.use()
   const toggle = GQL.useMutation(TOGGLE_RULE_MUTATION)
   const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
@@ -51,8 +46,7 @@ function Toggle({ name, enabled }: ToggleProps) {
           disabled={!!mutation}
         />
       }
-      // TODO: get description from the backend
-      label={name}
+      label={description}
     />
   )
 }
@@ -72,9 +66,7 @@ export default function PackagerSettings() {
       </M.FormHelperText>
       {GQL.fold(query, {
         data: (d) =>
-          d.admin.packager.eventRules.map((rule) => (
-            <Toggle key={rule.name} name={rule.name} enabled={rule.enabled} />
-          )),
+          d.admin.packager.eventRules.map((rule) => <Toggle key={rule.name} {...rule} />),
         fetching: () => (
           <>
             <Skeleton width="40%" height={38} />

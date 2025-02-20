@@ -14,7 +14,7 @@ export type containers_Admin_Settings_gql_PackagerEventRulesQuery = {
       readonly eventRules: ReadonlyArray<
         { readonly __typename: 'PackagerEventRule' } & Pick<
           Types.PackagerEventRule,
-          'name' | 'enabled'
+          'name' | 'enabled' | 'description'
         >
       >
     }
@@ -51,6 +51,10 @@ export const containers_Admin_Settings_gql_PackagerEventRulesDocument = {
                           selections: [
                             { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'enabled' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'description' },
+                            },
                           ],
                         },
                       },
