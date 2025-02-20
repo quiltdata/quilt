@@ -549,7 +549,8 @@ class PackagerEvent(pydantic.BaseModel):
 
     def get_source_prefix_pk(self) -> PhysicalKey:
         pk = PhysicalKey.from_url(self.source_prefix)
-        assert not pk.is_local()  # XXX: error handling
+        if pk.is_local():
+            raise PkgpushException("InvalidLocalPhysicalKey", {"physical_key": str(pk)})
         return PhysicalKey(
             pk.bucket,
             pk.path if pk.path.endswith("/") or not pk.path else pk.path.rsplit("/", 1)[0] + "/",
@@ -624,7 +625,8 @@ def package_prefix(event, context):
     metadata = params.metadata
     if metadata_uri_pk := params.get_metadata_uri_pk():
         metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
-        assert isinstance(metadata, dict)  # XXX: does this make sense?
+        if not isinstance(metadata, dict):
+            raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
 
     setup_user_boto_session_from_default()
 
