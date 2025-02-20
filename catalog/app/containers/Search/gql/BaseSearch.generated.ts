@@ -152,6 +152,11 @@ export const containers_Search_gql_BaseSearchDocument = {
                   name: { kind: 'Name', value: 'searchString' },
                 },
               },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'latestOnly' },
+                value: { kind: 'BooleanValue', value: true },
+              },
             ],
             selectionSet: {
               kind: 'SelectionSet',
