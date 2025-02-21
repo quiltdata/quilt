@@ -108,7 +108,7 @@ def invoke_lambda(*, function_name: str, params: pydantic.BaseModel, err_prefix:
         raise PkgpushException(f"{err_prefix}UnhandledError", parsed)
 
     if "error" in parsed:
-        raise PkgpushException(f"{err_prefix}rror", parsed["error"])
+        raise PkgpushException(f"{err_prefix}Error", parsed["error"])
 
     return parsed["result"]
 
