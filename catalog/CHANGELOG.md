@@ -19,6 +19,7 @@ where verb is one of
 ## Changes
 
 - [Added] Packager Admin GUI ([#4331](https://github.com/quiltdata/quilt/pull/4331))
+- [Fixed] Athena: always show `AwsDataCatalog` in Data catalog selection ([#4335](https://github.com/quiltdata/quilt/pull/4335))
 - [Changed] Search Results: Don't show package hash in the header ([#4319](https://github.com/quiltdata/quilt/pull/4319))
 - [Changed] Default package search to latest revisions only ([#4319](https://github.com/quiltdata/quilt/pull/4319))
 - [Changed] Tabulator: Support `continue_on_error` config option ([#4328](https://github.com/quiltdata/quilt/pull/4328))
