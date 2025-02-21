@@ -16,7 +16,7 @@ export type containers_Admin_Settings_gql_PackagerToggleEventRuleMutation = {
       readonly toggleEventRule:
         | ({ readonly __typename: 'PackagerEventRule' } & Pick<
             Types.PackagerEventRule,
-            'name' | 'enabled' | 'description'
+            'name' | 'enabled'
           >)
         | ({ readonly __typename: 'OperationError' } & Pick<
             Types.OperationError,
@@ -166,10 +166,6 @@ export const containers_Admin_Settings_gql_PackagerToggleEventRuleDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'enabled' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'description' },
                                   },
                                 ],
                               },

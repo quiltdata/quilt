@@ -525,7 +525,6 @@ type SsoConfig {
 type PackagerEventRule {
   name: String!
   enabled: Boolean!
-  description: String!
 }
 
 type PackagerAdminQueries {

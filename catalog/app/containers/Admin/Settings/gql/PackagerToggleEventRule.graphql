@@ -15,7 +15,6 @@ mutation ($name: String!, $enabled: Boolean!) {
         ... on PackagerEventRule {
           name
           enabled
-          description
         }
       }
     }

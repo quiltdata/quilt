@@ -3704,18 +3704,6 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'description',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },
