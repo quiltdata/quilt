@@ -16,6 +16,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Entrypoint for Quilt Packaging Engine ([#4304](https://github.com/quiltdata/quilt/pull/4304))
 - [Fixed] Fix promotion with data copy to unversioned buckets ([#4300](https://github.com/quiltdata/quilt/pull/4300))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
 - [Changed] Use per-region scratch buckets ([#3923](https://github.com/quiltdata/quilt/pull/3923))
