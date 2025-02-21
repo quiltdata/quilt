@@ -332,7 +332,7 @@ export default function Settings() {
       </M.Grid>
 
       <M.Typography variant="h5" className={classes.title}>
-        Configure Packaging Engine
+        Packaging Engine Settings
       </M.Typography>
       <M.Paper className={classes.group}>
         <PackagerSettings />
