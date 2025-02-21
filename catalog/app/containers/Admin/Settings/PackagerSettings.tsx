@@ -12,13 +12,39 @@ import StyledLink from 'utils/StyledLink'
 import RULES_QUERY from './gql/PackagerEventRules.generated'
 import TOGGLE_RULE_MUTATION from './gql/PackagerToggleEventRule.generated'
 
+const LABELS = {
+  omics: (
+    <>
+      Auto-package{' '}
+      <StyledLink
+        href="https://docs.aws.amazon.com/omics/latest/dev/eventbridge.html"
+        target="_blank"
+      >
+        AWS HealthOmics
+      </StyledLink>{' '}
+      outputs
+    </>
+  ),
+  ro_crate: (
+    <>
+      Auto-package Nextflow outputs (requires nf-prov with{' '}
+      <StyledLink
+        href="https://github.com/nextflow-io/nf-prov/blob/main/docs/WRROC.md"
+        target="_blank"
+      >
+        Workflow Run RO-Crates
+      </StyledLink>
+      )
+    </>
+  ),
+}
+
 interface ToggleProps {
   name: string
   enabled: boolean
-  description: string
 }
 
-function Toggle({ name, enabled, description }: ToggleProps) {
+function Toggle({ name, enabled }: ToggleProps) {
   const { push: notify } = Notifications.use()
   const toggle = GQL.useMutation(TOGGLE_RULE_MUTATION)
   const [mutation, setMutation] = React.useState<{ enabled: boolean } | null>(null)
@@ -48,7 +74,7 @@ function Toggle({ name, enabled, description }: ToggleProps) {
           disabled={!!mutation}
         />
       }
-      label={description}
+      label={LABELS[name as keyof typeof LABELS] || name}
     />
   )
 }
