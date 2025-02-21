@@ -565,8 +565,6 @@ class PackagerEvent(pydantic.BaseModel):
             raise PkgpushException("InvalidLocalPhysicalKey", {"physical_key": str(pk)})
         return pk
 
-    # XXX: copied from shared
-    # XXX: is this sane here?
     @property
     def workflow_normalized(self):
         # use default
@@ -589,7 +587,6 @@ def infer_pkg_name_from_prefix(prefix: str) -> str:
     return "/".join(parts)
 
 
-# XXX is this sane?
 @functools.cache
 def setup_user_boto_session_from_default():
     global user_boto_session
