@@ -74,11 +74,12 @@ name inferred from the S3 key. For example, if the key is
 ## SQS Message Processing
 
 The primary interface to the Packaging Engine is through an SQS queue in the
-same account and region as your Quilt stack, listed in `PackagerQueue` under the
-Outputs. The queue URL will look something like:
+same account and region as your Quilt stack, listed as `PackagerQueueArn` and
+`PackagerQueueUrl` under the Outputs tab. The URL will be something
+like:
 
 ```text
-https://sqs.us-east-1.amazonaws.com/XXX/PackagerQueue-XXX
+https://sqs.us-east-1.amazonaws.com/XXX/stack-name-PackagerQueue-XXX
 ```
 
 The body of the message is the stringified JSON of a package description.
@@ -103,12 +104,14 @@ explicitly specifying any of the following fields:
   "source_prefix": "s3://data_bucket/source/folder/", // trailing '/' for folder
   "registry": "package_bucket", // may be the same as `data_bucket`
   "package_name": "prefix/suffix",
-  "metadata": { "key": "value" }, // object
+  "metadata": { "key": "value" }, // object (or metadata URI, but not both)
   "metadata_uri": "metadata.json", // S3 URI to read, relative or absolute
   "commit_message": "Commit message for the package revision", // string
   "workflow": "alpha", // name of a valid metadata workflow
 }
 ```
+
+The job will fail if you try to specify both `metadata` and `metadata_uri`.
 
 ### SendMessage API
 
@@ -125,8 +128,8 @@ aws sqs send-message --queue-url $QUEUE_URL \
 
 ## Custom EventBridge Rules
 
-EventBridge rules can be used to transform any EventBridge event in your account
-(from any bus, in any region) into a conforming SQS message.
+EventBridge rules can be used to transform EventBridge events from any bus in
+your account into a conforming SQS message.
 
 ### Example: Event-Driven Packaging (EDP)
 
@@ -155,30 +158,62 @@ When ready, it creates an event like this on its own EventBridge bus:
 }
 ```
 
-Here is an example of an EventBridge rule you can write that will use the above
-event to trigger packager queue:
+The following Python code creates an EventBridge rule that targets the packager
+queue when matching that event:
 
-```json
-{
-  "EventPattern": {
+```python
+import boto3
+import json
+
+# AWS Region and Account Details
+region = "us-east-1"
+account_id = "XXXXXXXXXXXX"
+sqs_queue_name = "PackagerQueue-XXXXXXXXXXXX"
+sqs_arn = f"arn:aws:sqs:{region}:{account_id}:{sqs_queue_name}"
+
+# Initialize AWS Clients
+eventbridge = boto3.client("events", region_name=region)
+
+# Step 1: Create EventBridge Rule
+
+event_pattern = {
     "source": ["com.quiltdata.edp"],
     "detail-type": ["package-objects-ready"]
-  },
-  "State": "ENABLED",
-  "Targets": [
-    {
-      "Id": "SQS_PackagerQueue",
-      "Arn": "arn:aws:sqs:us-east-1:XXX:PackagerQueue-XXX",
-      "InputTransformer": {
-        "InputPathsMap": {
-          "bucket": "$.detail.bucket",
-          "prefix": "$.detail.prefix"
-        },
-        "InputTemplate": "{ \"source_prefix\":\"s3://<bucket>/<prefix>\" }"
-      }
-    }
-  ]
 }
+
+response = eventbridge.put_rule(
+    Name="RouteEDPEventsToSQS",
+    EventPattern=json.dumps(event_pattern),
+    State="ENABLED",
+    Description="Routes package-objects-ready events to SQS",
+)
+
+print(f"EventBridge Rule Created: {response['RuleArn']}")
+
+# Step 2: Attach the SQS Target with Input Transformation
+
+targets = [
+    {
+        "Id": "SQS_PackagerQueue",
+        "Arn": sqs_arn,
+        "InputTransformer": {
+            "InputPathsMap": {
+                "bucket": "$.detail.bucket",
+                "prefix": "$.detail.prefix"
+            },
+            "InputTemplate": """{
+                \"source_prefix\": \"s3://<bucket>/<prefix>metadata.json\"
+            }"""
+        }
+    }
+]
+
+response = eventbridge.put_targets(
+    Rule=rule_name,
+    Targets=targets
+)
+
+print("SQS Target Attached to EventBridge Rule:", response)
 ```
 
 ## Caveats
