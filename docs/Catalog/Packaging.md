@@ -65,7 +65,7 @@ prov {
 ```
 
 Note that Research Objects identify people using an ORCID iD, which anyone can
-get for free at [the ORDiD website](https://orcid.org/).
+get for free at [the ORCID website](https://orcid.org/).
 
 The package will be created in the same bucket as the `outdir`, with the package
 name inferred from the S3 key. For example, if the key is
@@ -93,7 +93,7 @@ There is only one required parameter:
 
 This is assumed to be a folder if it ends in a `/`; otherwise, we will remove
 the last component of the path to get the folder. The contents of the folder
-will be used create a package in the same bucket as the source folder, with the
+will be used to create a package in the same bucket as the source folder, with the
 package name being inferred from the source URI.
 
 Optionally, you can control the package name, metadata, and other settings by
@@ -209,7 +209,7 @@ targets = [
 ]
 
 response = eventbridge.put_targets(
-    Rule=rule_name,
+    Rule="RouteEDPEventsToSQS",
     Targets=targets
 )
 
