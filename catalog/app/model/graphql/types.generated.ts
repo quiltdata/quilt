@@ -49,6 +49,7 @@ export interface AdminMutations {
   readonly bucketSetTabulatorTable: BucketSetTabulatorTableResult
   readonly bucketRenameTabulatorTable: BucketSetTabulatorTableResult
   readonly setTabulatorOpenQuery: TabulatorOpenQueryResult
+  readonly packager: PackagerAdminMutations
 }
 
 export interface AdminMutationssetSsoConfigArgs {
@@ -77,6 +78,7 @@ export interface AdminQueries {
   readonly ssoConfig: Maybe<SsoConfig>
   readonly isDefaultRoleSettingDisabled: Scalars['Boolean']
   readonly tabulatorOpenQuery: Scalars['Boolean']
+  readonly packager: PackagerAdminQueries
 }
 
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
@@ -794,6 +796,37 @@ export interface PackageWorkflow {
   readonly config: Scalars['String']
   readonly id: Maybe<Scalars['String']>
 }
+
+export interface PackagerAdminMutations {
+  readonly __typename: 'PackagerAdminMutations'
+  readonly toggleEventRule: PackagerEventRuleToggleResult
+}
+
+export interface PackagerAdminMutationstoggleEventRuleArgs {
+  name: Scalars['String']
+  enabled: Scalars['Boolean']
+}
+
+export interface PackagerAdminQueries {
+  readonly __typename: 'PackagerAdminQueries'
+  readonly eventRules: ReadonlyArray<PackagerEventRule>
+  readonly eventRule: Maybe<PackagerEventRule>
+}
+
+export interface PackagerAdminQuerieseventRuleArgs {
+  name: Scalars['String']
+}
+
+export interface PackagerEventRule {
+  readonly __typename: 'PackagerEventRule'
+  readonly name: Scalars['String']
+  readonly enabled: Scalars['Boolean']
+}
+
+export type PackagerEventRuleToggleResult =
+  | PackagerEventRule
+  | OperationError
+  | InvalidInput
 
 export interface PackagesSearchFilter {
   readonly modified: Maybe<DatetimeSearchPredicate>

@@ -8,6 +8,7 @@ setup(
     install_requires=[
         "boto3 ~= 1.28",
         "pydantic ~= 1.10",
+        "rfc3986 ~= 2.0",
         (
             "quilt3 @ https://github.com/quiltdata/quilt/archive/"
             "5c2b79128fe4d5d1e6093ff6a7d11d09d3315843.zip"
