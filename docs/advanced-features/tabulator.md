@@ -104,7 +104,7 @@ the remaining files and records any issues in the `$issue` column.
 If a file is missing a specified column:
 
 - If `nullable` (the default), the column is filled with null, while other
-columns for all rows remain populated.
+  columns for all rows remain populated.
 
 - If not nullable, the file is skipped, and a single row of nulls for all
 columns (except `$issue`) is added.
