@@ -79,7 +79,7 @@ jobs:
       - name: install deps
         run: poetry install
       - name: install current version of quilt
-        run: poetry run pip install api/python
+        run: poetry run pip install ../api/python
       - name: test codeblocks
         run: poetry run pytest --codeblocks ../docs
 
