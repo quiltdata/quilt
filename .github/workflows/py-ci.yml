@@ -66,6 +66,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
+    defaults:
+      run:
+        working-directory: testdocs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -74,9 +77,11 @@ jobs:
       - name: install poetry
         run: python -m pip install poetry
       - name: install deps
-        run: cd testdocs && poetry install
+        run: poetry install
+      - name: install current version of quilt
+        run: poetry run pip install ../api/python
       - name: test codeblocks
-        run: cd testdocs && poetry run pytest --codeblocks ../docs
+        run: poetry run pytest --codeblocks ../docs
 
   test-client:
     strategy:
