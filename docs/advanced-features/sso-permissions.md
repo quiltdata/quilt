@@ -1,7 +1,7 @@
 <!-- markdownlint-disable no-blanks-blockquote -->
 # SSO permissions mapping
 
-> This feature requires Quilt stack version 1.54.0 or higher
+> This feature requires Quilt Platform version 1.54.0 or higher
 
 ## Overview
 
