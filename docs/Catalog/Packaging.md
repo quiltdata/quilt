@@ -1,17 +1,20 @@
 # Packaging Engine
 
+> This feature requires Quilt Platform version 1.58.0 or higher
+
 ## Overview
 
 The Quilt Packaging Engine in the Quilt Platform allows administrators and
 developers to automate the process of creating Quilt packages from data stored
-in Amazon S3. It serves as a key component in Quilt's SDMS (Scientific Data
-Management System) strategy, enabling automated data ingestion and
-standardization. It consists of:
+in Amazon S3. It serves as a key component of Quilt's functionality as a
+Scientific Data Management System, enabling automated data ingestion and
+standardization. It currently consists of:
 
 1. Admin Settings GUI to enable package creation based on notifications from:
    1. AWS Health Omics
-   2. Nextflow workflows using  `nf-prov`'s WRROC ([Workflow Run
-      RO-Crate](https://www.researchobject.org/workflow-run-crate/)) format
+   2. Nextflow workflows using  the WRROC ([Workflow Run
+      RO-Crate](https://www.researchobject.org/workflow-run-crate/)) format from
+      [nf-prov](https://github.com/nextflow-io/nf-prov).
 2. SQS queue that will process package descriptions
 3. Documentation for creating custom EventBridge rules to invoke that queue
 
@@ -31,9 +34,9 @@ same bucket with the name `omics-quilt/3395667`.
 
 ### Workflow Run RO-Crate
 
-When enabled, this will create a package when indexing any folder containing an
-`ro-crate-manifest.json`.  Indexing happens when the bucket is added to the
-stack, or when a folder is written to a bucket already in the stack.
+When enabled, this will create a package from the enclosing folder when an
+`ro-crate-manifest.json` file is written to a bucket that is already part of the
+stack.
 
 [RO-Crate](https://www.researchobject.org/ro-crate/) is a metadata standard for
 describing research data.  The Workflow Run working group adds three additional
@@ -71,16 +74,26 @@ The package will be created in the same bucket as the `outdir`, with the package
 name inferred from the S3 key. For example, if the key is
 `my/s3/folder/ro-crate-manifest.json`, the package name will be `my_s3/folder`.
 
-## SQS Message Processing
+## Architecture
 
-The primary interface to the Packaging Engine is through an SQS queue in the
-same account and region as your Quilt stack, listed as `PackagerQueueArn` and
-`PackagerQueueUrl` under the Outputs tab. The URL will be something
-like:
+The Quilt Packaging Engine is built on top of the existing packaging lambdas
+used by the Quilt Platform, including the ability to parallelize creation of S3
+Checksums for existing objects. We have exposed this functionality to customers
+via an SQS queue, which is invoked by the EventBridge rules created by the Admin
+Settings GUI.
+
+### SQS Parameters
+
+You can also send messages directly to the SQS queue, which is part of the Quilt
+stack. The queue information will be listed as `PackagerQueueArn` and
+`PackagerQueueUrl` under the `Outputs` tab in CloudFormation section of the AWS
+Console. The URL will be something like:
 
 ```text
-https://sqs.us-east-1.amazonaws.com/XXX/stack-name-PackagerQueue-XXX
+https://sqs.REGION.amazonaws.com/ACCOUNT_ID/stack-name-PackagerQueue-XXX
 ```
+
+Where REGION and ACCOUNT_ID will be the same as for the Quilt stack.
 
 The body of the message is the stringified JSON of a package description.
 There is only one required parameter:
@@ -93,8 +106,8 @@ There is only one required parameter:
 
 This is assumed to be a folder if it ends in a `/`; otherwise, we will remove
 the last component of the path to get the folder. The contents of the folder
-will be used to create a package in the same bucket as the source folder, with the
-package name being inferred from the source URI.
+will be used to create a package in the same bucket as the source folder, with
+the package name being inferred from the source URI.
 
 Optionally, you can control the package name, metadata, and other settings by
 explicitly specifying any of the following fields:
@@ -126,16 +139,16 @@ aws sqs send-message --queue-url $QUEUE_URL \
 --message-body '{"source_prefix":"s3://data_bucket/source/folder/"}'
 ```
 
-## Custom EventBridge Rules
+### Custom EventBridge Rules
 
 EventBridge rules can be used to transform EventBridge events from any bus in
 your account into a conforming SQS message.
 
-### Example: Event-Driven Packaging (EDP)
+#### Example: Event-Driven Packaging (EDP)
 
-[Event-Driven Packaging](../advanced-features/event-driven-packaging.md) is a
-high-end add-on to Quilt that coalesces multiple S3 uploads into a single
-`package-objects-ready` event, where it infers the appropriate top-level folder.
+[Event-Driven Packaging](../advanced-features/event-driven-packaging.md),
+currently in private preview, coalesces multiple S3 uploads into a single
+`package-objects-ready` event, which infers the appropriate top-level folder.
 When ready, it creates an event like this on its own EventBridge bus:
 
 ```json
