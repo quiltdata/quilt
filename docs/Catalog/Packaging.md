@@ -174,6 +174,7 @@ When ready, it creates an event like this on its own EventBridge bus:
 The following Python code creates an EventBridge rule that targets the packager
 queue when matching that event:
 
+<!--pytest.mark.skip-->
 ```python
 import boto3
 import json
