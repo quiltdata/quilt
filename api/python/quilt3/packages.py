@@ -1105,7 +1105,7 @@ class Package:
         return self._dump(writable_file)
 
     def _dump(self, writable_file):
-        json_encode = json.JSONEncoder(ensure_ascii=False).encode
+        json_encode = json.JSONEncoder(ensure_ascii=False, allow_nan=False).encode
 
         def dumps(obj):
             data = json_encode(obj)
