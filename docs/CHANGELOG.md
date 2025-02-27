@@ -13,6 +13,12 @@ Entries inside each section should be ordered by type:
 ## CLI
 !-->
 
+# unreleased - YYYY-MM-DD
+
+## Python API
+
+* [Changed] **BREAKING:** Forbid using non-finite `float`s in package metadata. Previously that was allowed and resulted in a package manifests that are not compliant to RFC 8259 ([#4340](https://github.com/quiltdata/quilt/pull/4340))
+
 # 6.3.0 - 2025-01-24
 
 ## Python API
