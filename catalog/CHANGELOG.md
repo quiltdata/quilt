@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Simplify button name: "Add quilt_summarize" -> "Configure Summary" ([#4337](https://github.com/quiltdata/quilt/pull/4337))
 - [Added] Packager Admin GUI ([#4331](https://github.com/quiltdata/quilt/pull/4331))
 - [Fixed] Athena: always show `AwsDataCatalog` in Data catalog selection ([#4335](https://github.com/quiltdata/quilt/pull/4335))
 - [Changed] Search Results: Don't show package hash in the header ([#4319](https://github.com/quiltdata/quilt/pull/4319))

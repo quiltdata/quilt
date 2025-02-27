@@ -706,7 +706,7 @@ export function ConfigureAppearance({
         <StyledTooltip title="Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.">
           <RRDom.Link to={summarize} className={classes.button}>
             <M.Button color="primary" size="small" variant="outlined">
-              Add quilt_summarize
+              Configure Summary
             </M.Button>
           </RRDom.Link>
         </StyledTooltip>
