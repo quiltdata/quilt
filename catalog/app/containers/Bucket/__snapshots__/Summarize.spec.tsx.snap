@@ -19,7 +19,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render both lin
       <div
         id="button"
       >
-        Add quilt_summarize
+        Configure Summary
       </div>
     </a>
   </div>
@@ -52,7 +52,7 @@ exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_su
       <div
         id="button"
       >
-        Add quilt_summarize
+        Configure Summary
       </div>
     </a>
   </div>
