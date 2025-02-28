@@ -38,13 +38,13 @@ const PackageSearchParamsFromSearchParams = S.transform(
       resultType: SearchModel.ResultType.QuiltPackage as const,
       filter: S.decodeSync(Filter.PackageFilter.fromSearchParams)(params),
       userMetaFilters: S.decodeSync(UserMetaFilters.fromSearchParams)(params),
-      latestOnly: params.rev?.[0] === 'latest',
+      latestOnly: params.rev?.[0] !== 'all',
     }),
     // json api to qs
     encode: (toI) => ({
       ...S.encodeSync(Filter.PackageFilter.fromSearchParams)(toI.filter || []),
       ...S.encodeSync(UserMetaFilters.fromSearchParams)(toI.userMetaFilters || []),
-      ...(toI.latestOnly ? { rev: ['latest'] } : {}),
+      ...((toI.latestOnly ?? true) ? {} : { rev: ['all'] }),
     }),
   },
 )

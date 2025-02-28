@@ -18,6 +18,12 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Simplify button name: "Add quilt_summarize" -> "Configure Summary" ([#4337](https://github.com/quiltdata/quilt/pull/4337))
+- [Added] Packager Admin GUI ([#4331](https://github.com/quiltdata/quilt/pull/4331))
+- [Fixed] Athena: always show `AwsDataCatalog` in Data catalog selection ([#4335](https://github.com/quiltdata/quilt/pull/4335))
+- [Changed] Search Results: Don't show package hash in the header ([#4319](https://github.com/quiltdata/quilt/pull/4319))
+- [Changed] Default package search to latest revisions only ([#4319](https://github.com/quiltdata/quilt/pull/4319))
+- [Changed] Tabulator: Support `continue_on_error` config option ([#4328](https://github.com/quiltdata/quilt/pull/4328))
 - [Added] Search: A switch to search only the latest revisions ([#4316](https://github.com/quiltdata/quilt/pull/4316))
 - [Changed] Tabulator: Allow uppercase letters in column names ([#4314](https://github.com/quiltdata/quilt/pull/4314))
 - [Fixed] Add Markdown preview when creating the Markdown file ([#4293](https://github.com/quiltdata/quilt/pull/4293))

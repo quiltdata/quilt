@@ -72,6 +72,8 @@ requests==2.32.3
     #   requests-futures
 requests-futures==1.0.0
     # via quilt3
+rfc3986==2.0.0
+    # via t4_lambda_pkgpush (setup.py)
 rpds-py==0.21.0
     # via
     #   jsonschema

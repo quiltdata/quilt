@@ -6,6 +6,7 @@ import functools
 import json
 import logging
 import os
+import re
 import tempfile
 import typing as T
 
@@ -14,6 +15,7 @@ import botocore.client
 import botocore.credentials
 import botocore.exceptions
 import pydantic
+import rfc3986
 
 # Must be done before importing quilt3.
 os.environ["QUILT_DISABLE_CACHE"] = "true"  # noqa: E402
@@ -106,7 +108,7 @@ def invoke_lambda(*, function_name: str, params: pydantic.BaseModel, err_prefix:
         raise PkgpushException(f"{err_prefix}UnhandledError", parsed)
 
     if "error" in parsed:
-        raise PkgpushException(f"{err_prefix}rror", parsed["error"])
+        raise PkgpushException(f"{err_prefix}Error", parsed["error"])
 
     return parsed["result"]
 
@@ -527,3 +529,143 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
     # XXX: return mtime?
     return PackagePushResult(top_hash=TopHash(top_hash))
+
+
+class PackagerEvent(pydantic.BaseModel):
+    source_prefix: str
+    registry: str | None = None
+    package_name: str | None = None
+    metadata: dict[str, T.Any] | None = None
+    metadata_uri: str | None = None
+    workflow: str | None = None
+    commit_message: str | None = None
+
+    @pydantic.root_validator
+    def validate_metadata(cls, values):
+        metadata, metadata_uri = values["metadata"], values["metadata_uri"]
+        if metadata is not None and metadata_uri is not None:
+            raise ValueError("metadata and metadata_uri are mutually exclusive")
+        return values
+
+    def get_source_prefix_pk(self) -> PhysicalKey:
+        pk = PhysicalKey.from_url(self.source_prefix)
+        if pk.is_local():
+            raise PkgpushException("InvalidLocalPhysicalKey", {"physical_key": str(pk)})
+        return PhysicalKey(
+            pk.bucket,
+            pk.path if pk.path.endswith("/") or not pk.path else pk.path.rsplit("/", 1)[0] + "/",
+            None,
+        )
+
+    def get_metadata_uri_pk(self) -> PhysicalKey | None:
+        if self.metadata_uri is None:
+            return None
+        pk = PhysicalKey.from_url(rfc3986.uri_reference(self.metadata_uri).resolve_with(self.source_prefix).unsplit())
+        if pk.is_local():
+            raise PkgpushException("InvalidLocalPhysicalKey", {"physical_key": str(pk)})
+        return pk
+
+    @property
+    def workflow_normalized(self):
+        # use default
+        if self.workflow is None:
+            return ...
+
+        # not selected
+        if self.workflow == "":
+            return None
+
+        return self.workflow
+
+
+def infer_pkg_name_from_prefix(prefix: str) -> str:
+    default_prefix = "package"
+    default_suffix = "null"
+
+    parts = [re.sub(r"[^\w-]", "-", p) for p in prefix.split("/") if p]
+    parts = ["_".join(parts[:-1]) or default_prefix, parts[-1] if parts else default_suffix]
+    return "/".join(parts)
+
+
+@functools.cache
+def setup_user_boto_session_from_default():
+    global user_boto_session
+    user_boto_session = get_user_boto_session()
+
+
+def get_scratch_buckets() -> T.Dict[str, str]:
+    return json.load(s3.get_object(Bucket=SERVICE_BUCKET, Key="scratch-buckets.json")["Body"])
+
+
+def package_prefix_sqs(event, context):
+    import pprint
+
+    pprint.pprint(event)
+
+    if len(event["Records"]) != 1:
+        raise PkgpushException(
+            "InvalidNumberOfRecords",
+            {
+                "details": "This lambda can only process one record at a time",
+                "records_received": len(event["Records"]),
+            },
+        )
+
+    for record in event["Records"]:
+        package_prefix(record["body"], context)
+
+
+def package_prefix(event, context):
+    params = PackagerEvent.parse_raw(event)
+
+    prefix_pk = params.get_source_prefix_pk()
+
+    pkg_name = infer_pkg_name_from_prefix(prefix_pk.path) if params.package_name is None else params.package_name
+
+    dst_bucket = params.registry or prefix_pk.bucket
+    registry_url = f"s3://{dst_bucket}"
+    package_registry = get_package_registry(registry_url)
+
+    metadata = params.metadata
+    if metadata_uri_pk := params.get_metadata_uri_pk():
+        metadata = json.load(s3.get_object(**S3ObjectSource.from_pk(metadata_uri_pk).boto_args)["Body"])
+        if not isinstance(metadata, dict):
+            raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
+
+    setup_user_boto_session_from_default()
+
+    pkg = quilt3.Package()
+    pkg.set_dir(".", str(prefix_pk), meta=metadata)
+    # TODO: check while listing objects
+    size_to_hash = 0
+    for i, (_, pkg_entry) in enumerate(pkg.walk()):
+        if i > MAX_FILES_TO_HASH:
+            raise PkgpushException(
+                "TooManyFilesToHash",
+                {
+                    "num_files": i,
+                    "max_files": MAX_FILES_TO_HASH,
+                },
+            )
+        assert isinstance(pkg_entry.size, int)
+        size_to_hash += pkg_entry.size
+        if size_to_hash > MAX_BYTES_TO_HASH:
+            raise PkgpushException(
+                "PackageTooLargeToHash",
+                {
+                    "size": size_to_hash,
+                    "max_size": MAX_BYTES_TO_HASH,
+                },
+            )
+    pkg._validate_with_workflow(
+        registry=package_registry,
+        workflow=params.workflow_normalized,
+        name=pkg_name,
+        message=params.commit_message,
+    )
+    calculate_pkg_hashes(pkg, get_scratch_buckets())
+    pkg._build(
+        name=pkg_name,
+        registry=registry_url,
+        message=params.commit_message,
+    )
