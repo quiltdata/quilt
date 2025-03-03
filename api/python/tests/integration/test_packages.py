@@ -1,6 +1,7 @@
 """ Integration tests for Quilt Packages. """
 import io
 import locale
+import math
 import os
 import pathlib
 import shutil
@@ -2036,6 +2037,29 @@ class PackageTest(QuiltTestCase):
 
                 # This would fail if non-ASCII chars were encoded using escape sequences.
                 Package().set_meta({'a': '💩' * 2_000}).dump(buf)
+
+    def test_dump_manifest_nan(self):
+        for v in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=v):
+                meta = {"nan": v}
+                pkg = Package().set_meta(meta)
+
+                with pytest.raises(ValueError, match="Out of range float values are not JSON compliant"):
+                    with open(os.devnull, "wb") as f:
+                        pkg.dump(f)
+
+    def test_load_manifest_nan(self):
+        """
+        Package.load() can load a manifest with non-finite float values (for backwards compatibility).
+        """
+        for v, predicate in (
+            ("NaN", math.isnan),
+            ("Infinity", math.isinf),
+            ("-Infinity", lambda x: math.isinf(x) and x < 0),
+        ):
+            with self.subTest(value=v):
+                pkg = quilt3.Package.load(io.StringIO('{"version": "v0", "user_meta": {"test": %s}}' % v))
+                assert predicate(pkg.meta["test"])
 
 
 class PackageTestV2(PackageTest):
