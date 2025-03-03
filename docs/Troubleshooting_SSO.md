@@ -58,7 +58,7 @@ Incorrect claims or missing attributes can cause authentication failures.
 ## Step 5: Collect ClouldWatch Logs for ECS
 
 Follow the usual [troubleshooting steps](https://docs.quiltdata.com/quilt-python-sdk/more/troubleshooting#elastic-container-service-ecs) to collect the ECS logs for the registry service:
- 
+
 - Look for authentication-related errors or unexpected redirects.
 - Verify that the expected redirect URIs are being returned.
 
