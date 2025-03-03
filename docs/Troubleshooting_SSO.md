@@ -55,7 +55,7 @@ Incorrect claims or missing attributes can cause authentication failures.
 - If using **OIDC**, paste the ID token into [jwt.io](https://jwt.io/) or [jwt.ms](https://jwt.ms/) to check claims.
 - Ensure the **issuer (iss)** and **audience (aud)** claims match what the application expects.
 
-## Step 5: Collect ClouldWatch Logs for ECS
+## Step 5: Collect CloudWatch Logs for ECS
 
 Follow the usual [troubleshooting steps](https://docs.quiltdata.com/quilt-python-sdk/more/troubleshooting#elastic-container-service-ecs) to collect the ECS logs for the registry service:
 
