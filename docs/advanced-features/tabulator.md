@@ -104,7 +104,7 @@ returns an error. As of Quilt Platform version 1.58:
 
 - If `continue_on_error` is set to true, Tabulator will also skip files with
    other errors (e.g. non-nullable columns, malformed CSVs with non-numeric
-   strings in numeric columns).  It will add a single line with non-nullable
+   strings in numeric columns). It will add a single line with non-nullable
    columns set to a type-appropriate default value (e.g., 0 or "") and record
    that fact in the `$issue` column.
 
