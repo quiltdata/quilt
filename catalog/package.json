@@ -71,7 +71,7 @@
     "d3-scale": "^4.0.2",
     "date-fns": "^2.30.0",
     "dedent": "^1.5.1",
-    "dompurify": "^3.1.6",
+    "dompurify": "^3.2.4",
     "echarts": "^5.5.0",
     "effect": "^3.10.19",
     "final-form": "^4.20.9",
