@@ -27,6 +27,10 @@ const PackageRevisions = RT.mkLazy(
   () => import('./PackageRevisions'),
   SuspensePlaceholder,
 )
+const PackageSearchRedirect = RT.mkLazy(
+  () => import('./PackageSearchRedirect'),
+  SuspensePlaceholder,
+)
 const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
 const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 
@@ -111,8 +115,11 @@ export default function Bucket() {
             <Route path={paths.bucketOverview} exact>
               <Overview />
             </Route>
-            <Route path={paths.bucketPackageList} exact>
+            <Route path={paths.bucketPackageListOld} exact>
               <PackageList />
+            </Route>
+            <Route path={paths.bucketPackageList} exact>
+              <PackageSearchRedirect />
             </Route>
             <Route path={paths.bucketPackageDetail} exact>
               <PackageTree />
