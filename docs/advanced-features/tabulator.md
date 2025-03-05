@@ -98,7 +98,7 @@ and Spotfire.
 If Tabulator encounters an error while processing a file, it normally stops and
 returns an error. As of Quilt Platform version 1.58:
 
-- If a file is missing a `nullable` column (the default), Tabulator
+- If a file is missing a `nullable` column (the default), Tabulator will
    automatically fill that column with null, record that fact in the `$issue`
    column and continue processing the remaining files.
 
