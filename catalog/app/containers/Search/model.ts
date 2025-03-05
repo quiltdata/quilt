@@ -555,7 +555,7 @@ export function parseSearchParams(qs: string): SearchUrlState {
         resultType,
         filter: PackagesSearchFilterIO.fromURLSearchParams(params),
         userMetaFilters: UserMetaFilters.fromURLSearchParams(params, META_PREFIX),
-        latestOnly: params.get('rev') === 'latest',
+        latestOnly: params.get('rev') !== 'all',
       }
     default:
       assertNever(resultType)
@@ -586,7 +586,7 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
     case ResultType.QuiltPackage:
       appendParams(PackagesSearchFilterIO.toURLSearchParams(state.filter))
       appendParams(state.userMetaFilters.toURLSearchParams(META_PREFIX))
-      if (state.latestOnly) params.set('rev', 'latest')
+      if (!state.latestOnly) params.set('rev', 'all')
       break
     default:
       assertNever(state)
@@ -652,7 +652,7 @@ function useFirstPagePackagesQuery(state: SearchUrlState) {
         state.resultType === ResultType.QuiltPackage
           ? state.userMetaFilters.toGQL()
           : null,
-      latestOnly: state.resultType === ResultType.QuiltPackage ? state.latestOnly : false,
+      latestOnly: state.resultType === ResultType.QuiltPackage ? state.latestOnly : true,
     },
     {
       pause: state.resultType !== ResultType.QuiltPackage,
@@ -1257,7 +1257,7 @@ function useSearchUIModel() {
               resultType,
               filter: PackagesSearchFilterIO.initialState,
               userMetaFilters: new UserMetaFilters(),
-              latestOnly: false,
+              latestOnly: true,
             }
           case ResultType.S3Object:
             return {
@@ -1420,7 +1420,7 @@ function useSearchUIModel() {
             resultType,
             filter: PackagesSearchFilterIO.initialState,
             userMetaFilters: new UserMetaFilters(),
-            latestOnly: false,
+            latestOnly: true,
           }
         case ResultType.S3Object:
           return {
