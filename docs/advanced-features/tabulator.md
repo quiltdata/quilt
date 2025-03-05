@@ -96,18 +96,19 @@ and Spotfire.
 > Available since Quilt Platform version 1.58
 
 If Tabulator encounters an error while processing a file, it normally stops and
-returns an error. However, if `continue_on_error` is set to true, it processes
-the remaining files and records any issues in the `$issue` column.
+returns an error. As of Quilt Platform version 1.58
+
+1. If a file is missing a `nullable` column (the default), Tabulator will
+   automatically fill that column with null, record that fact in the `$issue`
+   column and continue processing the remaining files.
+
+2. if `continue_on_error` is set to true, Tabulator will also skip files with
+   other errors (e.g. non-nullable columns, malformed CSVs with non-numeric
+   strings in numeric columns).  It will add a single line with non-nullable
+   columns set to a default value (e.g., 0) and record that fact in the `$issue`
+   column.
 
 ![Tabulator Issue](../imgs/tabulator-issue.png)
-
-If a file is missing a specified column:
-
-- If `nullable` (the default), the column is filled with null, while other
-  columns for all rows remain populated.
-
-- If not nullable, the file is skipped, and a single row of nulls for all
-columns (except `$issue`) is added.
 
 ### Caveats
 
