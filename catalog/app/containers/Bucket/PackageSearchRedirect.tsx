@@ -48,14 +48,16 @@ export default function PackageSearchRedirect() {
     order: SearchModel.ResultOrder.NEWEST,
     params: {
       resultType: SearchModel.ResultType.QuiltPackage,
-      filter: workflow
-        ? [
-            {
-              key: 'workflow',
-              predicate: { terms: [workflow] },
-            },
-          ]
-        : undefined,
+      filter: [
+        {
+          key: 'workflow',
+          predicate: { terms: workflow ? [workflow] : [] },
+        },
+        {
+          key: 'name',
+          predicate: {},
+        },
+      ],
     },
   })
 
