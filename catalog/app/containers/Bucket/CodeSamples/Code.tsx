@@ -1,14 +1,12 @@
+import cx from 'classnames'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
-
-import Section, { SectionProps } from '../Section'
 
 function highlight(str: string, lang?: string) {
   if (lang && hljs.getLanguage(lang)) {
@@ -28,10 +26,8 @@ const useLineOfCodeStyles = M.makeStyles((t) => ({
   root: {
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
-    overflowX: 'auto',
-    overflowY: 'hidden',
-    whiteSpace: 'pre',
     minHeight: t.typography.body2.fontSize,
+    whiteSpace: 'pre',
     '&:hover $help': {
       opacity: 1,
     },
@@ -70,56 +66,47 @@ function LineOfCode({ lang, text, help }: LineOfCodeProps) {
 
 const useStyles = M.makeStyles((t) => ({
   container: {
+    borderRadius: '2px',
+    overflow: 'auto',
+    background: t.palette.grey[300],
+    padding: '4px',
+  },
+  label: {
+    display: 'inline-flex',
     alignItems: 'center',
-    display: 'flex',
-    marginBottom: t.spacing(-2),
-    marginLeft: t.spacing(3),
-    marginTop: t.spacing(-2),
   },
   btn: {
-    height: 32,
+    marginLeft: t.spacing(1),
   },
-  code: {
+  root: {
     width: '100%',
   },
 }))
 
-interface CodeProps extends Partial<SectionProps> {
-  children: { label: string; contents: string; hl?: string }[]
-  defaultSelected?: number
+interface CodeProps {
+  className: string
+  children: { label: string; contents: string; hl?: string }
 }
 
-export default function Code({ defaultSelected = 0, children, ...props }: CodeProps) {
+export default function Code({ className, children }: CodeProps) {
   const classes = useStyles()
   const { push } = Notifications.use()
-
-  const [selectedIndex, select] = React.useState(defaultSelected)
-  const handleChange = React.useCallback(
-    (e, newIdx) => {
-      e.stopPropagation()
-      if (newIdx == null) return
-      select(newIdx)
-    },
-    [select],
-  )
-
-  const selected = children[selectedIndex]
 
   const handleCopy = React.useCallback(
     (e) => {
       e.stopPropagation()
-      copyToClipboard(selected.contents)
+      copyToClipboard(children.contents)
       push('Code has been copied to clipboard')
     },
-    [selected.contents, push],
+    [children.contents, push],
   )
 
   const lines = React.useMemo(
     () =>
-      selected.contents.split('\n').map((line, index) => {
+      children.contents.split('\n').map((line, index) => {
         // Find [[ URL ]] and put it to help prop
         const matched = line.match(/(.*) \[\[(.*)\]\]/)
-        const key = selected.label + index
+        const key = children.label + index
         if (!matched || !matched[1] || !matched[2]) {
           return {
             key,
@@ -132,47 +119,32 @@ export default function Code({ defaultSelected = 0, children, ...props }: CodePr
           text: matched[1],
         }
       }),
-    [selected.contents, selected.label],
+    [children.contents, children.label],
   )
 
   return (
-    <Section
-      icon="code"
-      heading="Code"
-      extraSummary={({ expanded }) => (
-        <M.Fade in={expanded}>
-          <div className={classes.container}>
-            <Lab.ToggleButtonGroup
-              size="small"
-              value={selectedIndex}
-              exclusive
-              onChange={handleChange}
-            >
-              {children.map(({ label }, idx) => (
-                <Lab.ToggleButton value={idx} key={label} className={classes.btn}>
-                  {label}
-                </Lab.ToggleButton>
-              ))}
-            </Lab.ToggleButtonGroup>
-            <M.Box ml={1} />
-            <M.IconButton onClick={handleCopy} title="Copy to clipboard">
-              <M.Icon style={{ fontSize: 18 }}>file_copy</M.Icon>
-            </M.IconButton>
-          </div>
-        </M.Fade>
-      )}
-      {...props}
-    >
-      <div className={classes.code}>
+    <div className={cx(classes.root, className)}>
+      <M.Typography className={classes.label} variant="subtitle2" gutterBottom>
+        {children.label}
+        <M.IconButton
+          onClick={handleCopy}
+          title="Copy to clipboard"
+          size="small"
+          className={classes.btn}
+        >
+          <M.Icon fontSize="inherit">file_copy</M.Icon>
+        </M.IconButton>
+      </M.Typography>
+      <div className={classes.container}>
         {lines.map((line) => (
           <LineOfCode
             help={line.help}
             key={line.key}
-            lang={selected.hl}
+            lang={children.hl}
             text={line.text}
           />
         ))}
       </div>
-    </Section>
+    </div>
   )
 }
