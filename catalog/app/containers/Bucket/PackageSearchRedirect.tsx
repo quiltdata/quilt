@@ -2,36 +2,62 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as S from '@effect/schema/Schema'
-// import * as M from '@material-ui/core'
 
+import Placeholder from 'components/Placeholder'
 import SearchRoute from 'containers/Search/Route'
 import * as SearchModel from 'containers/Search/model'
+import * as AWS from 'utils/AWS'
+import { useData } from 'utils/Data'
+import * as workflows from 'utils/workflows'
+
+import * as requests from './requests'
 
 // params -> location
 const encode = S.encodeSync(SearchRoute.paramsSchema)
 
+const LOADING = Symbol('loading')
+
 export default function PackageSearchRedirect() {
+  // XXX: respect other route params? (filter, sort, p(age))
   const { bucket } = RR.useParams<{ bucket: string }>()
   invariant(!!bucket, '`bucket` must be defined')
 
-  // get the workflows config
-  // redirect to search with the following params:
-  // - current bucket selected
-  // - mode: packages
-  // - sort: latest
-  // - default workflow selected if configured
-  // respect route params? (filter, sort, p(age))
+  const s3 = AWS.S3.use()
+  const data = useData(requests.workflowsConfig, { s3, bucket })
 
-  const loc = React.useMemo(
+  const workflow: string | null | typeof LOADING = React.useMemo(
     () =>
-      encode({
-        buckets: [bucket],
-        order: SearchModel.ResultOrder.NEWEST,
-        params: {
-          resultType: SearchModel.ResultType.QuiltPackage,
+      data.case({
+        Ok: (wcfg: workflows.WorkflowsConfig) => {
+          const available = wcfg.workflows.filter(
+            (w) => !w.isDisabled && typeof w.slug === 'string',
+          )
+          const found = available.find((w) => w.isDefault) ?? available[0]
+          return found?.slug || null
         },
+        Err: () => null,
+        _: () => LOADING,
       }),
-    [bucket],
+    [data],
   )
-  return <RR.Redirect to={loc}>go to search</RR.Redirect>
+
+  if (workflow === LOADING) return <Placeholder color="text.secondary" />
+
+  const loc = encode({
+    buckets: [bucket],
+    order: SearchModel.ResultOrder.NEWEST,
+    params: {
+      resultType: SearchModel.ResultType.QuiltPackage,
+      filter: workflow
+        ? [
+            {
+              key: 'workflow',
+              predicate: { terms: [workflow] },
+            },
+          ]
+        : undefined,
+    },
+  })
+
+  return <RR.Redirect to={loc} />
 }
