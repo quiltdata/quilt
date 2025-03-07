@@ -69,6 +69,16 @@ const useQuiltSyncStyles = M.makeStyles((t) => ({
   divider: {
     margin: t.spacing(2, 0),
   },
+  uriLink: {
+    display: 'block',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    padding: t.spacing(1),
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    flex: 1,
+  },
 }))
 
 interface QuiltSyncProps {
@@ -79,18 +89,18 @@ interface QuiltSyncProps {
 
 function QuiltSync({ className, fileHandle, uri }: QuiltSyncProps) {
   const classes = useQuiltSyncStyles()
+  const uriString = PackageUri.stringify(uri)
 
   return (
     <div className={className}>
       <div className={classes.link}>
-        <M.TextField
-          size="small"
-          onFocus={(e) => e.target.select()}
-          fullWidth
-          inputProps={{ readOnly: true }}
-          value={PackageUri.stringify(uri)}
-          variant="outlined"
-        />
+        <StyledLink
+          className={classes.uriLink}
+          href={uriString}
+          title={uriString}
+        >
+          {uriString}
+        </StyledLink>
         <M.IconButton className={classes.copy} onClick={() => {}}>
           <M.Icon fontSize="inherit">file_copy</M.Icon>
         </M.IconButton>
