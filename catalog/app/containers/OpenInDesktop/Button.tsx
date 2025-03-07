@@ -32,11 +32,7 @@ export default function Button({ className, children, uri }: ButtonProps) {
   const [tooltipOpen, setTooltipOpen] = React.useState(false)
   const anchorRef = React.useRef<HTMLDivElement>(null)
 
-  const handleMainButtonClick = () => {
-    window.location.href = PackageUri.stringify(uri)
-  }
-
-  const handleDropdownClick = () => {
+  const handleButtonClick = () => {
     setTooltipOpen((prevOpen) => !prevOpen)
   }
 
@@ -45,39 +41,37 @@ export default function Button({ className, children, uri }: ButtonProps) {
   }
 
   return (
-    <>
+    <M.ClickAwayListener onClickAway={handleClose}>
       <div ref={anchorRef}>
-        <M.ButtonGroup className={className} variant="contained" color="primary">
-          <M.Button 
-            className={classes.mainButton}
-            onClick={handleMainButtonClick}
-            startIcon={<M.Icon>download</M.Icon>}
-          >
-            Open in Desktop
-          </M.Button>
-          <M.Button 
-            className={classes.dropdownButton}
-            onClick={handleDropdownClick}
-          >
-            <M.Icon>arrow_drop_down</M.Icon>
-          </M.Button>
-        </M.ButtonGroup>
+        <StyledTooltip
+          classes={classes}
+          interactive
+          maxWidth="xl"
+          open={tooltipOpen}
+          placement="bottom-end"
+          title={children}
+          PopperProps={{
+            anchorEl: anchorRef.current,
+            disablePortal: true,
+          }}
+        >
+          <M.ButtonGroup className={className} variant="contained" color="primary">
+            <M.Button 
+              className={classes.mainButton}
+              onClick={handleButtonClick}
+              startIcon={<M.Icon>download</M.Icon>}
+            >
+              Open in Desktop
+            </M.Button>
+            <M.Button 
+              className={classes.dropdownButton}
+              onClick={handleButtonClick}
+            >
+              <M.Icon>arrow_drop_down</M.Icon>
+            </M.Button>
+          </M.ButtonGroup>
+        </StyledTooltip>
       </div>
-      <StyledTooltip
-        classes={classes}
-        interactive
-        maxWidth="xl"
-        open={tooltipOpen}
-        placement="bottom-end"
-        title={children}
-        onClose={handleClose}
-        PopperProps={{
-          anchorEl: anchorRef.current,
-          disablePortal: true,
-        }}
-      >
-        <span></span>
-      </StyledTooltip>
-    </>
+    </M.ClickAwayListener>
   )
 }
