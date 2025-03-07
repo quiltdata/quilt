@@ -1,8 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Buttons from 'components/Buttons'
-import * as PackageUri from 'utils/PackageUri'
 import StyledTooltip from 'utils/StyledTooltip'
 
 const useStyles = M.makeStyles((t) => ({
@@ -10,24 +8,14 @@ const useStyles = M.makeStyles((t) => ({
     width: t.spacing(60),
     padding: 0,
   },
-  dropdownButton: {
-    minWidth: 'auto',
-    paddingLeft: t.spacing(0.5),
-    paddingRight: t.spacing(0.5),
-  },
-  mainButton: {
-    display: 'flex',
-    alignItems: 'center',
-  },
 }))
 
 interface ButtonProps {
   className?: string
-  uri: PackageUri.PackageUri
   children: NonNullable<React.ReactNode>
 }
 
-export default function Button({ className, children, uri }: ButtonProps) {
+export default function Button({ className, children }: ButtonProps) {
   const classes = useStyles()
   const [tooltipOpen, setTooltipOpen] = React.useState(false)
   const anchorRef = React.useRef<HTMLDivElement>(null)
@@ -55,19 +43,13 @@ export default function Button({ className, children, uri }: ButtonProps) {
             disablePortal: true,
           }}
         >
-          <M.ButtonGroup className={className} variant="contained" color="primary">
-            <M.Button 
-              className={classes.mainButton}
+          <M.ButtonGroup className={className} variant="outlined" size="small">
+            <M.Button
               onClick={handleButtonClick}
               startIcon={<M.Icon>download</M.Icon>}
+              endIcon={<M.Icon>arrow_drop_down</M.Icon>}
             >
               Open in Desktop
-            </M.Button>
-            <M.Button 
-              className={classes.dropdownButton}
-              onClick={handleButtonClick}
-            >
-              <M.Icon>arrow_drop_down</M.Icon>
             </M.Button>
           </M.ButtonGroup>
         </StyledTooltip>

@@ -415,10 +415,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                           </Successors.Button>
                         )}
                         {actions.downloadPackage && (
-                          <OpenInDesktop.Button
-                            className={classes.button}
-                            uri={packageUri}
-                          >
+                          <OpenInDesktop.Button className={classes.button}>
                             <OpenInDesktop.Options
                               hashOrTag={hashOrTag}
                               uri={packageUri}
@@ -777,10 +774,7 @@ function FileDisplay({
                           !deleted &&
                           !archived &&
                           ui.actions.downloadPackage && (
-                            <OpenInDesktop.Button
-                              className={classes.button}
-                              uri={packageUri}
-                            >
+                            <OpenInDesktop.Button className={classes.button}>
                               <OpenInDesktop.Options
                                 fileHandle={handle}
                                 hashOrTag={hashOrTag}
