@@ -115,8 +115,33 @@ const useStyles = M.makeStyles((t) => ({
   container: {
     padding: t.spacing(2),
   },
-  tabs: {
+  tabsContainer: {
+    display: 'flex',
     borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0`,
+    overflow: 'hidden',
+  },
+  tabButton: {
+    flex: 1,
+    padding: t.spacing(1),
+    border: 'none',
+    borderRadius: 0,
+    backgroundColor: t.palette.background.paper,
+    color: t.palette.text.secondary,
+    fontSize: t.typography.button.fontSize,
+    fontFamily: t.typography.fontFamily,
+    fontWeight: t.typography.button.fontWeight,
+    textTransform: 'none',
+    '&:hover': {
+      backgroundColor: t.palette.action.hover,
+    },
+  },
+  activeTab: {
+    color: t.palette.primary.main,
+    borderBottom: `2px solid ${t.palette.primary.main}`,
+  },
+  divider: {
+    alignSelf: 'center',
+    height: '60%',
   },
   tab: {
     animation: `$show 150ms ease-out`,
@@ -142,11 +167,20 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   const [tab, setTab] = React.useState(0)
   return (
     <div className={classes.root}>
-      <M.Paper className={classes.tabs} elevation={1}>
-        <M.Tabs variant="fullWidth" value={tab}>
-          <M.Tab label="QuiltSync" onClick={() => setTab(0)} />
-          <M.Tab label="Quilt3" onClick={() => setTab(1)} />
-        </M.Tabs>
+      <M.Paper className={classes.tabsContainer} elevation={1}>
+        <button 
+          className={`${classes.tabButton} ${tab === 0 ? classes.activeTab : ''}`}
+          onClick={() => setTab(0)}
+        >
+          QuiltSync
+        </button>
+        <M.Divider orientation="vertical" className={classes.divider} />
+        <button 
+          className={`${classes.tabButton} ${tab === 1 ? classes.activeTab : ''}`}
+          onClick={() => setTab(1)}
+        >
+          Quilt3
+        </button>
       </M.Paper>
       <div className={classes.container}>
         {tab === 0 && (
