@@ -20,6 +20,7 @@ import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
+import StyledTooltip from 'utils/StyledTooltip'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
@@ -468,7 +469,18 @@ export default function File() {
             />
           )}
           {downloadable && (
-            <FileView.DownloadButton className={classes.button} handle={handle} />
+            <StyledTooltip
+              classes={classes}
+              enterDelay={1000}
+              interactive
+              maxWidth="xl"
+              placement="bottom-end"
+              title={<FileCodeSamples bucket={bucket} path={path} />}
+            >
+              <div>
+                <FileView.DownloadButton className={classes.button} handle={handle} />
+              </div>
+            </StyledTooltip>
           )}
           {BucketPreferences.Result.match(
             {
@@ -500,7 +512,6 @@ export default function File() {
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}

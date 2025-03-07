@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { Breakpoint } from '@material-ui/core/styles/createBreakpoints'
 
 const useStyles = M.makeStyles((t) => ({
   tooltip: {
@@ -10,7 +11,8 @@ const useStyles = M.makeStyles((t) => ({
     border: `1px solid ${t.palette.divider}`,
     boxShadow: t.shadows[8],
     color: t.palette.text.primary,
-    maxWidth: t.spacing(30),
+    maxWidth: ({ maxWidth }: { maxWidth?: Breakpoint }) =>
+      maxWidth != null ? t.breakpoints.width(maxWidth) / 4 : '',
     padding: t.spacing(1),
   },
   arrow: {
@@ -18,11 +20,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface StyledTooltipProps extends M.TooltipProps {
+  maxWidth?: Breakpoint
+}
+
 export default function StyledTooltip({
   classes: externalCls = {},
+  maxWidth,
   ...props
-}: M.TooltipProps) {
-  const internalCls = useStyles()
+}: StyledTooltipProps) {
+  const internalCls = useStyles({ maxWidth })
   const classes = React.useMemo(
     () => R.mergeWith(cx, internalCls, externalCls),
     [internalCls, externalCls],

@@ -11,10 +11,11 @@ import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as BucketPreferences from 'utils/BucketPreferences'
+import StyledTooltip from 'utils/StyledTooltip'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
@@ -298,14 +299,24 @@ export default function Dir() {
                     </Successors.Button>
                   )}
                   {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
-                    <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
-                      <Buttons.Iconized
-                        className={classes.button}
-                        label="Download directory"
-                        icon="archive"
-                        type="submit"
-                      />
-                    </FileView.ZipDownloadForm>
+                    <StyledTooltip
+                      enterDelay={1000}
+                      interactive
+                      maxWidth="lg"
+                      placement="bottom-end"
+                      title={<DirCodeSamples bucket={bucket} path={path} />}
+                    >
+                      <div>
+                        <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
+                          <Buttons.Iconized
+                            className={classes.button}
+                            label="Download directory"
+                            icon="archive"
+                            type="submit"
+                          />
+                        </FileView.ZipDownloadForm>
+                      </div>
+                    </StyledTooltip>
                   )}
                 </>
               ),
@@ -322,16 +333,6 @@ export default function Dir() {
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>
       </div>
-
-      {BucketPreferences.Result.match(
-        {
-          Ok: ({ ui: { blocks } }) =>
-            blocks.code && <DirCodeSamples bucket={bucket} path={path} gutterBottom />,
-          Pending: () => null,
-          Init: () => null,
-        },
-        prefs,
-      )}
 
       {data.case({
         Err: displayError(),
