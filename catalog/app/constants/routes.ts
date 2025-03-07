@@ -188,6 +188,16 @@ export const bucketAthenaExecution = route(
     `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
 )
 
+export const bucketWorkflowList = route(
+  '/b/:bucket/workflows/',
+  (bucket: string) => `/b/${bucket}/workflows`,
+)
+
+export const bucketWorkflowDetail = route(
+  '/b/:bucket/workflows/:slug',
+  (bucket: string, workflow: string) => `/b/${bucket}/workflows/${workflow}`,
+)
+
 // Legacy stuff
 export const legacyPackages = route(
   `/package/:path+`,
