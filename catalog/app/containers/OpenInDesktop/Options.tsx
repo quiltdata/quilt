@@ -111,37 +111,38 @@ function QuiltSync({ className, fileHandle, uri }: QuiltSyncProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
+  root: {
+    overflow: 'hidden',
+  },
   container: {
     padding: t.spacing(2),
   },
   tabsContainer: {
-    display: 'flex',
     borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0`,
-    overflow: 'hidden',
+    display: 'flex',
+    height: t.spacing(5),
   },
   tabButton: {
     flex: 1,
-    padding: t.spacing(1),
-    border: 'none',
-    borderRadius: 0,
-    backgroundColor: t.palette.background.paper,
     color: t.palette.text.secondary,
-    fontSize: t.typography.button.fontSize,
-    fontFamily: t.typography.fontFamily,
-    fontWeight: t.typography.button.fontWeight,
+    borderRadius: 0,
     textTransform: 'none',
+    position: 'relative',
     '&:hover': {
       backgroundColor: t.palette.action.hover,
     },
   },
   activeTab: {
-    color: t.palette.primary.main,
-    borderBottom: `2px solid ${t.palette.primary.main}`,
-  },
-  divider: {
-    alignSelf: 'center',
-    height: '60%',
+    '&:after': {
+      animation: `$activate 150ms ease-out`,
+      content: '""',
+      position: 'absolute',
+      bottom: '-2px',
+      left: 0,
+      right: 0,
+      height: '2px',
+      backgroundColor: t.palette.primary.main,
+    },
   },
   tab: {
     animation: `$show 150ms ease-out`,
@@ -152,6 +153,14 @@ const useStyles = M.makeStyles((t) => ({
     },
     '100%': {
       opacity: '1',
+    },
+  },
+  '@keyframes activate': {
+    '0%': {
+      transform: 'scaleX(0.5)',
+    },
+    '100%': {
+      opacity: 'scaleX(1)',
     },
   },
 }))
@@ -168,19 +177,19 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   return (
     <div className={classes.root}>
       <M.Paper className={classes.tabsContainer} elevation={1}>
-        <button 
+        <M.Button
           className={`${classes.tabButton} ${tab === 0 ? classes.activeTab : ''}`}
           onClick={() => setTab(0)}
         >
           QuiltSync
-        </button>
-        <M.Divider orientation="vertical" className={classes.divider} />
-        <button 
+        </M.Button>
+        <M.Divider orientation="vertical" />
+        <M.Button
           className={`${classes.tabButton} ${tab === 1 ? classes.activeTab : ''}`}
           onClick={() => setTab(1)}
         >
           Quilt3
-        </button>
+        </M.Button>
       </M.Paper>
       <div className={classes.container}>
         {tab === 0 && (
