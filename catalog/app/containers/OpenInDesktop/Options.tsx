@@ -14,32 +14,23 @@ import PackageCodeSamples from '../Bucket/CodeSamples/Package'
 import * as Selection from '../Bucket/Selection'
 
 interface DownloadFileProps {
-  className?: string
   fileHandle: Model.S3.S3ObjectLocation
 }
 
-function DownloadFile({ className, fileHandle }: DownloadFileProps) {
+function DownloadFile({ fileHandle }: DownloadFileProps) {
   const url = AWS.Signer.useDownloadUrl(fileHandle)
   return (
-    <div className={className}>
-      <M.Button
-        startIcon={<M.Icon>arrow_downward</M.Icon>}
-        className={className}
-        href={url}
-        download
-      >
-        Download file
-      </M.Button>
-    </div>
+    <M.Button startIcon={<M.Icon>arrow_downward</M.Icon>} href={url} download>
+      Download file
+    </M.Button>
   )
 }
 
 interface DownloadDirProps {
-  className?: string
   uri: PackageUri.PackageUri
 }
 
-function DownloadDir({ className, uri }: DownloadDirProps) {
+function DownloadDir({ uri }: DownloadDirProps) {
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
 
@@ -54,7 +45,6 @@ function DownloadDir({ className, uri }: DownloadDirProps) {
       : `package/${uri.bucket}/${uri.name}/${uri.hash}`
   return (
     <FileView.ZipDownloadForm
-      className={className}
       suffix={downloadPath}
       files={Selection.toHandlesList(slt.selection).map(({ key }) => key)}
     >
@@ -69,7 +59,6 @@ const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
     alignItems: 'center',
     display: 'flex',
-    marginBottom: t.spacing(1),
   },
   copy: {
     flexShrink: 0,
@@ -109,7 +98,7 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
           <M.Icon fontSize="inherit">file_copy</M.Icon>
         </M.IconButton>
       </div>
-      <M.Typography variant="body2">
+      <M.Typography variant="caption">
         Don't have QuiltSync?{' '}
         <StyledLink href="" target="_blank">
           Download it here
@@ -152,15 +141,13 @@ const useStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.primary.main,
     },
   },
-  download: {
-    margin: t.spacing(1, 0),
-  },
   quiltSync: {
-    padding: t.spacing(2, 0),
+    padding: t.spacing(0, 0, 2),
     borderBottom: `1px solid ${t.palette.divider}`,
+    marginBottom: t.spacing(1),
   },
   tab: {
-    padding: t.spacing(0, 2),
+    padding: t.spacing(2, 2, 1),
     animation: `$show 150ms ease-out`,
   },
   '@keyframes show': {
@@ -211,9 +198,9 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
         <div className={classes.tab}>
           <QuiltSync className={classes.quiltSync} uri={uri} />
           {fileHandle ? (
-            <DownloadFile className={classes.download} fileHandle={fileHandle} />
+            <DownloadFile fileHandle={fileHandle} />
           ) : (
-            <DownloadDir className={classes.download} uri={uri} />
+            <DownloadDir uri={uri} />
           )}
         </div>
       )}

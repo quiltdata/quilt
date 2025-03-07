@@ -10,9 +10,7 @@ import Code from './Code'
 
 const useStyles = M.makeStyles((t) => ({
   code: {
-    '& + &': {
-      marginTop: t.spacing(2),
-    },
+    marginBottom: t.spacing(2),
   },
 }))
 
@@ -32,11 +30,16 @@ const TEMPLATES = {
 }
 
 interface FileCodeSamplesProps {
+  className?: string
   bucket: string
   path: string
 }
 
-export default function FileCodeSamples({ bucket, path }: FileCodeSamplesProps) {
+export default function FileCodeSamples({
+  className,
+  bucket,
+  path,
+}: FileCodeSamplesProps) {
   const classes = useStyles()
   const code = React.useMemo(
     () => [
@@ -54,7 +57,7 @@ export default function FileCodeSamples({ bucket, path }: FileCodeSamplesProps) 
     [bucket, path],
   )
   return (
-    <div>
+    <div className={className}>
       {code.map((c) => (
         <Code key={c.hl} className={classes.code}>
           {c}

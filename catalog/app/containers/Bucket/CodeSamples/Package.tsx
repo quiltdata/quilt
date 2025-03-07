@@ -11,9 +11,7 @@ import Code from './Code'
 
 const useStyles = M.makeStyles((t) => ({
   code: {
-    '& + &': {
-      marginTop: t.spacing(2),
-    },
+    marginBottom: t.spacing(2),
   },
 }))
 

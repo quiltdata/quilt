@@ -288,6 +288,9 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
     flexWrap: 'wrap',
   },
+  tooltip: {
+    padding: t.spacing(0, 1),
+  },
   preview: {
     width: '100%',
   },
@@ -470,12 +473,17 @@ export default function File() {
           )}
           {downloadable && (
             <StyledTooltip
-              classes={classes}
               enterDelay={1000}
               interactive
               maxWidth="xl"
               placement="bottom-end"
-              title={<FileCodeSamples bucket={bucket} path={path} />}
+              title={
+                <FileCodeSamples
+                  className={classes.tooltip}
+                  bucket={bucket}
+                  path={path}
+                />
+              }
             >
               <div>
                 <FileView.DownloadButton className={classes.button} handle={handle} />

@@ -168,6 +168,9 @@ const useStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(0.5),
     },
   },
+  tooltip: {
+    padding: t.spacing(0, 1),
+  },
 }))
 
 interface DirParams {
@@ -302,9 +305,15 @@ export default function Dir() {
                     <StyledTooltip
                       enterDelay={1000}
                       interactive
-                      maxWidth="lg"
+                      maxWidth="xl"
                       placement="bottom-end"
-                      title={<DirCodeSamples bucket={bucket} path={path} />}
+                      title={
+                        <DirCodeSamples
+                          className={classes.tooltip}
+                          bucket={bucket}
+                          path={path}
+                        />
+                      }
                     >
                       <div>
                         <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>

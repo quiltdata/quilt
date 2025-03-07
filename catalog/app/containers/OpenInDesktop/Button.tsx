@@ -1,12 +1,16 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import StyledTooltip from 'utils/StyledTooltip'
 
 const useStyles = M.makeStyles((t) => ({
   tooltip: {
     width: t.spacing(60),
     padding: 0,
+    [t.breakpoints.down('sm')]: {
+      width: 'calc(100vw - 16px)',
+    },
   },
 }))
 
@@ -43,15 +47,15 @@ export default function Button({ className, children }: ButtonProps) {
             disablePortal: true,
           }}
         >
-          <M.ButtonGroup className={className} variant="outlined" size="small">
-            <M.Button
-              onClick={handleButtonClick}
-              startIcon={<M.Icon>download</M.Icon>}
-              endIcon={<M.Icon>arrow_drop_down</M.Icon>}
-            >
-              Open in Desktop
-            </M.Button>
-          </M.ButtonGroup>
+          <Buttons.Iconized
+            className={className}
+            endIcon={<M.Icon>arrow_drop_down</M.Icon>}
+            onClick={handleButtonClick}
+            size="small"
+            icon="download"
+            variant="outlined"
+            label="Open in Desktop"
+          />
         </StyledTooltip>
       </div>
     </M.ClickAwayListener>
