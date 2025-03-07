@@ -76,12 +76,12 @@ export default function PackageCodeSamples({
   const code = React.useMemo(
     () => [
       {
-        label: 'Python',
+        label: 'Install using Quilt3 Python API',
         hl: 'python',
         contents: TEMPLATES.PY(bucket, name, path, hashDisplay),
       },
       {
-        label: 'CLI',
+        label: 'Install using Quilt3 CLI',
         hl: 'bash',
         contents: [
           TEMPLATES.CLI_DOWNLOAD(bucket, name, path, hashDisplay),

@@ -2,10 +2,12 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import invariant from 'invariant'
 
+import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
+import copyToClipboard from 'utils/clipboard'
 
 import * as FileView from '../Bucket/FileView'
 import PackageCodeSamples from '../Bucket/CodeSamples/Package'
@@ -20,17 +22,21 @@ interface DownloadProps {
 function Download({ className, fileHandle, uri }: DownloadProps) {
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
+
+  const url = AWS.Signer.useDownloadUrl(fileHandle)
   if (fileHandle) {
-    return AWS.Signer.withDownloadUrl(fileHandle, (url: string) => (
-      <M.Button
-        startIcon={<M.Icon>arrow_downward</M.Icon>}
-        className={className}
-        href={url}
-        download
-      >
-        Download file
-      </M.Button>
-    ))
+    return (
+      <div className={className}>
+        <M.Button
+          startIcon={<M.Icon>arrow_downward</M.Icon>}
+          className={className}
+          href={url}
+          download
+        >
+          Download file
+        </M.Button>
+      </div>
+    )
   }
 
   const downloadLabel = !slt.isEmpty // eslint-disable-line no-nested-ternary
@@ -44,6 +50,7 @@ function Download({ className, fileHandle, uri }: DownloadProps) {
       : `package/${uri.bucket}/${uri.name}/${uri.hash}`
   return (
     <FileView.ZipDownloadForm
+      className={className}
       suffix={downloadPath}
       files={Selection.toHandlesList(slt.selection).map(({ key }) => key)}
     >
@@ -56,66 +63,55 @@ function Download({ className, fileHandle, uri }: DownloadProps) {
 
 const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
+    marginBottom: t.spacing(1),
   },
   copy: {
     flexShrink: 0,
     marginLeft: t.spacing(1),
-  },
-  app: {
-    margin: t.spacing(1, 0),
-  },
-  divider: {
-    margin: t.spacing(2, 0),
   },
   uriLink: {
     display: 'block',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    padding: t.spacing(1),
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
     flex: 1,
   },
 }))
 
 interface QuiltSyncProps {
   className?: string
-  fileHandle?: Model.S3.S3ObjectLocation
   uri: PackageUri.PackageUri
 }
 
-function QuiltSync({ className, fileHandle, uri }: QuiltSyncProps) {
+function QuiltSync({ className, uri }: QuiltSyncProps) {
   const classes = useQuiltSyncStyles()
+  const { push } = Notifications.use()
   const uriString = PackageUri.stringify(uri)
+
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(uriString)
+    push('Code has been copied to clipboard')
+  }, [uriString, push])
 
   return (
     <div className={className}>
       <div className={classes.link}>
-        <StyledLink
-          className={classes.uriLink}
-          href={uriString}
-          title={uriString}
-        >
+        <StyledLink className={classes.uriLink} href={uriString} title={uriString}>
           {uriString}
         </StyledLink>
-        <M.IconButton className={classes.copy} onClick={() => {}}>
+        <M.IconButton className={classes.copy} onClick={handleCopy} size="small">
           <M.Icon fontSize="inherit">file_copy</M.Icon>
         </M.IconButton>
       </div>
-      <M.Typography variant="body2" className={classes.app}>
+      <M.Typography variant="body2">
         Don't have QuiltSync?{' '}
         <StyledLink href="" target="_blank">
           Download it here
         </StyledLink>
         .
       </M.Typography>
-
-      <M.Divider className={classes.divider} />
-
-      <Download className={className} fileHandle={fileHandle} uri={uri} />
     </div>
   )
 }
@@ -123,9 +119,6 @@ function QuiltSync({ className, fileHandle, uri }: QuiltSyncProps) {
 const useStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
-  },
-  container: {
-    padding: t.spacing(2),
   },
   tabsContainer: {
     borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0`,
@@ -143,6 +136,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   activeTab: {
+    color: t.palette.text.primary,
     '&:after': {
       animation: `$activate 150ms ease-out`,
       content: '""',
@@ -154,7 +148,15 @@ const useStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.primary.main,
     },
   },
+  download: {
+    margin: t.spacing(1, 0),
+  },
+  quiltSync: {
+    padding: t.spacing(2, 0),
+    borderBottom: `1px solid ${t.palette.divider}`,
+  },
   tab: {
+    padding: t.spacing(0, 2),
     animation: `$show 150ms ease-out`,
   },
   '@keyframes show': {
@@ -201,14 +203,15 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
           Quilt3
         </M.Button>
       </M.Paper>
-      <div className={classes.container}>
-        {tab === 0 && (
-          <QuiltSync className={classes.tab} uri={uri} fileHandle={fileHandle} />
-        )}
-        {tab === 1 && (
-          <PackageCodeSamples className={classes.tab} hashOrTag={hashOrTag} {...uri} />
-        )}
-      </div>
+      {tab === 0 && (
+        <div className={classes.tab}>
+          <QuiltSync className={classes.quiltSync} uri={uri} />
+          <Download className={classes.download} fileHandle={fileHandle} uri={uri} />
+        </div>
+      )}
+      {tab === 1 && (
+        <PackageCodeSamples className={classes.tab} hashOrTag={hashOrTag} {...uri} />
+      )}
     </div>
   )
 }
