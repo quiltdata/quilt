@@ -13,31 +13,35 @@ import * as FileView from '../Bucket/FileView'
 import PackageCodeSamples from '../Bucket/CodeSamples/Package'
 import * as Selection from '../Bucket/Selection'
 
-interface DownloadProps {
+interface DownloadFileProps {
   className?: string
-  fileHandle?: Model.S3.S3ObjectLocation
+  fileHandle: Model.S3.S3ObjectLocation
+}
+
+function DownloadFile({ className, fileHandle }: DownloadFileProps) {
+  const url = AWS.Signer.useDownloadUrl(fileHandle)
+  return (
+    <div className={className}>
+      <M.Button
+        startIcon={<M.Icon>arrow_downward</M.Icon>}
+        className={className}
+        href={url}
+        download
+      >
+        Download file
+      </M.Button>
+    </div>
+  )
+}
+
+interface DownloadDirProps {
+  className?: string
   uri: PackageUri.PackageUri
 }
 
-function Download({ className, fileHandle, uri }: DownloadProps) {
+function DownloadDir({ className, uri }: DownloadDirProps) {
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
-
-  const url = AWS.Signer.useDownloadUrl(fileHandle)
-  if (fileHandle) {
-    return (
-      <div className={className}>
-        <M.Button
-          startIcon={<M.Icon>arrow_downward</M.Icon>}
-          className={className}
-          href={url}
-          download
-        >
-          Download file
-        </M.Button>
-      </div>
-    )
-  }
 
   const downloadLabel = !slt.isEmpty // eslint-disable-line no-nested-ternary
     ? 'Download ZIP (selected files only)'
@@ -206,7 +210,11 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
       {tab === 0 && (
         <div className={classes.tab}>
           <QuiltSync className={classes.quiltSync} uri={uri} />
-          <Download className={classes.download} fileHandle={fileHandle} uri={uri} />
+          {fileHandle ? (
+            <DownloadFile className={classes.download} fileHandle={fileHandle} />
+          ) : (
+            <DownloadDir className={classes.download} uri={uri} />
+          )}
         </div>
       )}
       {tab === 1 && (
