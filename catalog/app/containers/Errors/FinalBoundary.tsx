@@ -113,6 +113,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
                 </M.Typography>
               </>
             }
+            maxWidth="md"
           >
             <M.Button
               className={classes.button}

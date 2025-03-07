@@ -2,12 +2,17 @@ import { basename } from 'path'
 
 import dedent from 'dedent'
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
 
-import type { SectionProps } from '../Section'
-
 import Code from './Code'
+
+const useStyles = M.makeStyles((t) => ({
+  code: {
+    marginBottom: t.spacing(2),
+  },
+}))
 
 const TEMPLATES = {
   PY: (bucket: string, path: string) =>
@@ -24,30 +29,40 @@ const TEMPLATES = {
     `,
 }
 
-interface FileCodeSamplesProps extends Partial<SectionProps> {
+interface FileCodeSamplesProps {
+  className?: string
   bucket: string
   path: string
 }
 
 export default function FileCodeSamples({
+  className,
   bucket,
   path,
-  ...props
 }: FileCodeSamplesProps) {
+  const classes = useStyles()
   const code = React.useMemo(
     () => [
       {
-        label: 'Python',
+        label: 'Download using Quilt3 Python API',
         hl: 'python',
         contents: TEMPLATES.PY(bucket, path),
       },
       {
-        label: 'CLI',
+        label: 'Download using AWS SDK CLI',
         hl: 'bash',
         contents: TEMPLATES.CLI(bucket, path),
       },
     ],
     [bucket, path],
   )
-  return <Code {...props}>{code}</Code>
+  return (
+    <div className={className}>
+      {code.map((c) => (
+        <Code key={c.hl} className={classes.code}>
+          {c}
+        </Code>
+      ))}
+    </div>
+  )
 }

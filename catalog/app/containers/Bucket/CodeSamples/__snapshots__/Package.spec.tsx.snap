@@ -4,7 +4,7 @@ exports[`containers/Bucket/CodeSamples/Package renders catalog property 1`] = `
 <div>
   <dl>
     <dt>
-      Python
+      Install using Quilt3 Python API
       :
     </dt>
      
@@ -25,23 +25,13 @@ q3.Package.install("name", path="path", top_hash="hash", registry="s3://bucket",
   </dl>
   <dl>
     <dt>
-      CLI
+      Install using Quilt3 CLI
       :
     </dt>
      
     <dd>
       # Download package [[https://docs.quiltdata.com/quilt-python-sdk-developers/api-reference/cli#install]]
 quilt3 install "name" --path "path" --top-hash hash --registry s3://bucket --dest .
-    </dd>
-  </dl>
-  <dl>
-    <dt>
-      URI
-      :
-    </dt>
-     
-    <dd>
-      quilt+s3://bucket#package=name@hash&path=path&catalog=catalog
     </dd>
   </dl>
 </div>

@@ -131,7 +131,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
   if (!typeHelps.length) return null
 
   return (
-    <StyledTooltip title={<TypeHelp typeHelps={typeHelps} />}>
+    <StyledTooltip maxWidth="md" title={<TypeHelp typeHelps={typeHelps} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,

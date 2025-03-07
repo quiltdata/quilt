@@ -1,9 +1,8 @@
 import * as React from 'react'
 
+import * as Buttons from 'components/Buttons'
 import cfg from 'constants/config'
 import mkStorage from 'utils/storage'
-
-import * as Buttons from 'components/Buttons'
 
 import * as FileView from './FileView'
 import * as Selection from './Selection'
@@ -11,7 +10,6 @@ import * as Selection from './Selection'
 interface DownloadButtonProps {
   className: string
   label: string
-  onClick: () => void
   path?: string
   selection: Selection.ListingSelection
 }
@@ -20,22 +18,9 @@ export function DownloadButton({
   className,
   selection,
   label,
-  onClick,
   path,
 }: DownloadButtonProps) {
   if (cfg.noDownload) return null
-
-  if (cfg.desktop) {
-    return (
-      <Buttons.Iconized
-        className={className}
-        label={label}
-        icon="archive"
-        type="submit"
-        onClick={onClick}
-      />
-    )
-  }
 
   return (
     <FileView.ZipDownloadForm

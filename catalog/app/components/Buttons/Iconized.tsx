@@ -16,6 +16,7 @@ interface ButtonIconizedProps extends M.IconButtonProps {
   label: string
   rotate?: boolean
   variant?: 'text' | 'outlined' | 'contained'
+  endIcon?: React.ReactNode
 }
 
 export default function ButtonIconized({

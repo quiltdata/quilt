@@ -2,14 +2,18 @@ import dedent from 'dedent'
 
 import * as R from 'ramda'
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
-import * as PackageUri from 'utils/PackageUri'
 import * as s3paths from 'utils/s3paths'
 
-import type { SectionProps } from '../Section'
-
 import Code from './Code'
+
+const useStyles = M.makeStyles((t) => ({
+  code: {
+    marginBottom: t.spacing(2),
+  },
+}))
 
 // TODO: use markdown templates + prism code highlighter + autolinker plugin
 
@@ -48,34 +52,34 @@ const TEMPLATES = {
     `,
 }
 
-interface PackageCodeSamplesProps extends Partial<SectionProps> {
+interface PackageCodeSamplesProps {
+  className?: string
   bucket: string
   name: string
   hash: string
   hashOrTag: string
   path: string
-  catalog: string
 }
 
 export default function PackageCodeSamples({
+  className,
   bucket,
   name,
   hash,
   hashOrTag,
   path,
-  catalog,
-  ...props
 }: PackageCodeSamplesProps) {
+  const classes = useStyles()
   const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
   const code = React.useMemo(
     () => [
       {
-        label: 'Python',
+        label: 'Install using Quilt3 Python API',
         hl: 'python',
         contents: TEMPLATES.PY(bucket, name, path, hashDisplay),
       },
       {
-        label: 'CLI',
+        label: 'Install using Quilt3 CLI',
         hl: 'bash',
         contents: [
           TEMPLATES.CLI_DOWNLOAD(bucket, name, path, hashDisplay),
@@ -84,13 +88,17 @@ export default function PackageCodeSamples({
           .filter(Boolean)
           .join('\n\n'),
       },
-      {
-        label: 'URI',
-        hl: 'uri',
-        contents: PackageUri.stringify({ bucket, name, hash, path, catalog }),
-      },
     ],
-    [bucket, name, hashDisplay, hash, path, catalog],
+    [bucket, name, hashDisplay, path],
   )
-  return <Code {...props}>{code}</Code>
+
+  return (
+    <div className={className}>
+      {code.map((c) => (
+        <Code key={c.hl} className={classes.code}>
+          {c}
+        </Code>
+      ))}
+    </div>
+  )
 }

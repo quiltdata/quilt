@@ -183,6 +183,7 @@ export function MissingSourceBucket({ className, children }: MissingSourceBucket
       className={className}
       classes={classes}
       interactive
+      maxWidth="md"
       title={
         <ErrorBoundary>
           <MissingSourceBucketTooltip />
