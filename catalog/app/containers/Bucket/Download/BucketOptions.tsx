@@ -61,9 +61,32 @@ function CodePanel({ handle }: CodePanelProps) {
 
 interface OptionsProps {
   handle: Model.S3.S3ObjectLocation
+  hideDownload?: boolean
+  hideCode?: boolean
 }
 
-export default function Options({ handle }: OptionsProps) {
+export default function Options({ handle, hideDownload, hideCode }: OptionsProps) {
+  // If both panels are hidden, show nothing
+  if (hideDownload && hideCode) return null
+  
+  // If one panel is hidden, show only the other one
+  if (hideDownload) {
+    return (
+      <TabPanel>
+        <CodePanel handle={handle} />
+      </TabPanel>
+    )
+  }
+  
+  if (hideCode) {
+    return (
+      <TabPanel>
+        <DownloadPanel handle={handle} />
+      </TabPanel>
+    )
+  }
+  
+  // Otherwise show tabs with both panels
   return (
     <Tabs labels={['Download', 'Code']}>
       {(activeTab) => (

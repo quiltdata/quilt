@@ -147,10 +147,33 @@ interface OptionsProps {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
+  hideDownload?: boolean
+  hideCode?: boolean
 }
 
 // FIXME: configure hiding tabs in Props, so we can manage it in Embed views
-export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
+export default function Options({ fileHandle, hashOrTag, uri, hideDownload, hideCode }: OptionsProps) {
+  // If both panels are hidden, show nothing
+  if (hideDownload && hideCode) return null
+  
+  // If one panel is hidden, show only the other one
+  if (hideDownload) {
+    return (
+      <TabPanel>
+        <CodePanel hashOrTag={hashOrTag} uri={uri} />
+      </TabPanel>
+    )
+  }
+  
+  if (hideCode) {
+    return (
+      <TabPanel>
+        <DownloadPanel fileHandle={fileHandle} uri={uri} />
+      </TabPanel>
+    )
+  }
+  
+  // Otherwise show tabs with both panels
   return (
     <Tabs labels={['QuiltSync', 'Code']}>
       {(activeTab) => (
