@@ -89,19 +89,15 @@ function CodePanel({ handle }: CodePanelProps) {
   )
 }
 
-type DisplayOptions =
-  | { hideDownload: true; hideCode?: never }
-  | { hideDownload?: never; hideCode: true }
-  | { hideDownload?: never; hideCode?: never }
-
-type OptionsProps = DisplayOptions & {
+interface OptionsProps {
   handle: Handle
+  hide?: 'download' | 'code'
 }
 
-export default function Options({ handle, hideDownload, hideCode }: OptionsProps) {
-  if (hideDownload) return <CodePanel handle={handle} />
+export default function Options({ handle, hide }: OptionsProps) {
+  if (hide === 'download') return <CodePanel handle={handle} />
 
-  if (hideCode) return <DownloadPanel handle={handle} />
+  if (hide === 'code') return <DownloadPanel handle={handle} />
 
   return (
     <Tabs labels={['Download', 'Code']}>

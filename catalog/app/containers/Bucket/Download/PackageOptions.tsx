@@ -158,27 +158,22 @@ function CodePanel({ hashOrTag, uri }: CodePanelProps) {
   )
 }
 
-type DisplayOptions =
-  | { hideDownload: true; hideCode?: never }
-  | { hideDownload?: never; hideCode: true }
-  | { hideDownload?: never; hideCode?: never }
-
-type OptionsProps = DisplayOptions & {
+interface OptionsProps {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
+  hide?: 'download' | 'code'
 }
 
 export default function Options({
   fileHandle,
   hashOrTag,
   uri,
-  hideDownload,
-  hideCode,
+  hide,
 }: OptionsProps) {
-  if (hideDownload) return <CodePanel hashOrTag={hashOrTag} uri={uri} />
+  if (hide === 'download') return <CodePanel hashOrTag={hashOrTag} uri={uri} />
 
-  if (hideCode) return <DownloadPanel fileHandle={fileHandle} uri={uri} />
+  if (hide === 'code') return <DownloadPanel fileHandle={fileHandle} uri={uri} />
 
   return (
     <Tabs labels={['QuiltSync', 'Code']}>
