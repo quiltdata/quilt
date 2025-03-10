@@ -20,6 +20,20 @@ function DownloadFile({ fileHandle }: DownloadFileProps) {
   )
 }
 
+interface DownloadDirProps {
+  dirHandle: Model.S3.S3ObjectLocation
+}
+
+function DownloadDir({ dirHandle }: DownloadDirProps) {
+  return (
+    <FileView.ZipDownloadForm suffix={`dir/${dirHandle}/${dirHandle}`}>
+      <M.Button startIcon={<M.Icon>archive</M.Icon>} type="submit">
+        Download ZIP (directory)
+      </M.Button>
+    </FileView.ZipDownloadForm>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
@@ -80,12 +94,10 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface OptionsProps {
-  bucket: string
-  path: string
-  fileHandle?: Model.S3.S3ObjectLocation
+  handle: Model.S3.S3ObjectLocation
 }
 
-export default function Options({ bucket, fileHandle, path }: OptionsProps) {
+export default function Options({ handle }: OptionsProps) {
   const classes = useStyles()
   const [tab, setTab] = React.useState(0)
   return (
@@ -107,22 +119,26 @@ export default function Options({ bucket, fileHandle, path }: OptionsProps) {
       </M.Paper>
       {tab === 0 && (
         <div className={classes.tab}>
-          {fileHandle ? (
-            <DownloadFile fileHandle={fileHandle} />
+          {handle.version ? (
+            <DownloadFile fileHandle={handle} />
           ) : (
-            <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
-              <M.Button startIcon={<M.Icon>archive</M.Icon>} type="submit">
-                Download ZIP (directory)
-              </M.Button>
-            </FileView.ZipDownloadForm>
+            <DownloadDir dirHandle={handle} />
           )}
         </div>
       )}
       {tab === 1 &&
-        (fileHandle ? (
-          <FileCodeSamples className={classes.tab} bucket={bucket} path={path} />
+        (handle.version ? (
+          <FileCodeSamples
+            className={classes.tab}
+            bucket={handle.bucket}
+            path={handle.key}
+          />
         ) : (
-          <DirCodeSamples className={classes.tab} bucket={bucket} path={path} />
+          <DirCodeSamples
+            className={classes.tab}
+            bucket={handle.bucket}
+            path={handle.key}
+          />
         ))}
     </div>
   )

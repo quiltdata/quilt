@@ -263,6 +263,8 @@ export default function Dir() {
     [paths],
   )
 
+  const dirHandle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
@@ -303,7 +305,7 @@ export default function Dir() {
 
                   {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
                     <Download.Button className={classes.button}>
-                      <Options bucket={bucket} path={path} />
+                      <Options handle={dirHandle} />
                     </Download.Button>
                   )}
                 </>
