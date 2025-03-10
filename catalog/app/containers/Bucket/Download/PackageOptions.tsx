@@ -57,15 +57,14 @@ function DownloadDir({ uri }: DownloadDirProps) {
   )
 }
 
-const useQuiltSyncStyles = M.makeStyles({
+const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
-    alignItems: 'center',
-    display: 'flex',
+    marginBottom: t.spacing(0.5),
   },
   copy: {
     width: 'auto',
   },
-})
+}))
 
 interface QuiltSyncProps {
   className?: string
@@ -84,16 +83,14 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
 
   return (
     <div className={className}>
-      <div className={classes.link}>
-        <M.ButtonGroup style={{ marginBottom: '4px' }} variant="outlined" fullWidth>
-          <M.Button startIcon={<M.Icon>download</M.Icon>} href={uriString}>
-            Open in QuiltSync
-          </M.Button>
-          <M.Button className={classes.copy} onClick={handleCopy}>
-            <M.Icon fontSize="inherit">file_copy_outlined</M.Icon>
-          </M.Button>
-        </M.ButtonGroup>
-      </div>
+      <M.ButtonGroup variant="outlined" fullWidth className={classes.link}>
+        <M.Button startIcon={<M.Icon>download</M.Icon>} href={uriString}>
+          Open in QuiltSync
+        </M.Button>
+        <M.Button className={classes.copy} onClick={handleCopy}>
+          <M.Icon fontSize="inherit">file_copy_outlined</M.Icon>
+        </M.Button>
+      </M.ButtonGroup>
       <M.Typography variant="caption">
         Don't have QuiltSync?{' '}
         <StyledLink href="" target="_blank">
@@ -111,9 +108,9 @@ const useDownloadPanelStyles = M.makeStyles((t) => ({
     maxWidth: t.spacing(60),
   },
   quiltSync: {
-    padding: t.spacing(0, 0, 2),
     borderBottom: `1px solid ${t.palette.divider}`,
     marginBottom: t.spacing(1),
+    paddingBottom: t.spacing(1),
   },
 }))
 
