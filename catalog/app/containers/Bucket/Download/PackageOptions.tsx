@@ -12,6 +12,7 @@ import copyToClipboard from 'utils/clipboard'
 import * as FileView from '../FileView'
 import PackageCodeSamples from '../CodeSamples/Package'
 import * as Selection from '../Selection'
+import OptionsTabs, { Tab, useStyles } from './OptionsTabs'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
@@ -109,65 +110,6 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    overflow: 'hidden',
-  },
-  tabsContainer: {
-    borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0`,
-    display: 'flex',
-    height: t.spacing(5),
-  },
-  tabButton: {
-    flex: 1,
-    color: t.palette.text.secondary,
-    borderRadius: 0,
-    textTransform: 'none',
-    position: 'relative',
-    '&:hover': {
-      backgroundColor: t.palette.action.hover,
-    },
-  },
-  activeTab: {
-    color: t.palette.text.primary,
-    '&:after': {
-      animation: `$activate 150ms ease-out`,
-      content: '""',
-      position: 'absolute',
-      bottom: '-2px',
-      left: 0,
-      right: 0,
-      height: '2px',
-      backgroundColor: t.palette.primary.main,
-    },
-  },
-  quiltSync: {
-    padding: t.spacing(0, 0, 2),
-    borderBottom: `1px solid ${t.palette.divider}`,
-    marginBottom: t.spacing(1),
-  },
-  tab: {
-    padding: t.spacing(2, 2, 1),
-    animation: `$show 150ms ease-out`,
-  },
-  '@keyframes show': {
-    '0%': {
-      opacity: 0.3,
-    },
-    '100%': {
-      opacity: '1',
-    },
-  },
-  '@keyframes activate': {
-    '0%': {
-      transform: 'scaleX(0.5)',
-    },
-    '100%': {
-      opacity: 'scaleX(1)',
-    },
-  },
-}))
-
 interface OptionsProps {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
@@ -177,37 +119,28 @@ interface OptionsProps {
 // FIXME: configure hiding tabs in Props, so we can manage it in Embed views
 export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   const classes = useStyles()
-  const [tab, setTab] = React.useState(0)
-  return (
-    <div className={classes.root}>
-      <M.Paper className={classes.tabsContainer} elevation={1}>
-        <M.Button
-          className={`${classes.tabButton} ${tab === 0 ? classes.activeTab : ''}`}
-          onClick={() => setTab(0)}
-        >
-          QuiltSync
-        </M.Button>
-        <M.Divider orientation="vertical" />
-        <M.Button
-          className={`${classes.tabButton} ${tab === 1 ? classes.activeTab : ''}`}
-          onClick={() => setTab(1)}
-        >
-          Code
-        </M.Button>
-      </M.Paper>
-      {tab === 0 && (
-        <div className={classes.tab}>
+  
+  const tabs: Tab[] = [
+    {
+      label: 'QuiltSync',
+      content: (
+        <>
           <QuiltSync className={classes.quiltSync} uri={uri} />
           {fileHandle ? (
             <DownloadFile fileHandle={fileHandle} />
           ) : (
             <DownloadDir uri={uri} />
           )}
-        </div>
-      )}
-      {tab === 1 && (
-        <PackageCodeSamples className={classes.tab} hashOrTag={hashOrTag} {...uri} />
-      )}
-    </div>
-  )
+        </>
+      ),
+    },
+    {
+      label: 'Code',
+      content: (
+        <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+      ),
+    },
+  ]
+
+  return <OptionsTabs tabs={tabs} />
 }

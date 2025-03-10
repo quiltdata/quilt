@@ -6,6 +6,7 @@ import * as AWS from 'utils/AWS'
 
 import * as FileView from '../FileView'
 import { DirCodeSamples, FileCodeSamples } from '../CodeSamples/Bucket'
+import OptionsTabs, { Tab } from './OptionsTabs'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
@@ -34,112 +35,35 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    overflow: 'hidden',
-  },
-  tabsContainer: {
-    borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0`,
-    display: 'flex',
-    height: t.spacing(5),
-  },
-  tabButton: {
-    flex: 1,
-    color: t.palette.text.secondary,
-    borderRadius: 0,
-    textTransform: 'none',
-    position: 'relative',
-    '&:hover': {
-      backgroundColor: t.palette.action.hover,
-    },
-  },
-  activeTab: {
-    color: t.palette.text.primary,
-    '&:after': {
-      animation: `$activate 150ms ease-out`,
-      content: '""',
-      position: 'absolute',
-      bottom: '-2px',
-      left: 0,
-      right: 0,
-      height: '2px',
-      backgroundColor: t.palette.primary.main,
-    },
-  },
-  quiltSync: {
-    padding: t.spacing(0, 0, 2),
-    borderBottom: `1px solid ${t.palette.divider}`,
-    marginBottom: t.spacing(1),
-  },
-  tab: {
-    padding: t.spacing(2, 2, 1),
-    animation: `$show 150ms ease-out`,
-  },
-  '@keyframes show': {
-    '0%': {
-      opacity: 0.3,
-    },
-    '100%': {
-      opacity: '1',
-    },
-  },
-  '@keyframes activate': {
-    '0%': {
-      transform: 'scaleX(0.5)',
-    },
-    '100%': {
-      opacity: 'scaleX(1)',
-    },
-  },
-}))
-
 interface OptionsProps {
   handle: Model.S3.S3ObjectLocation
 }
 
 export default function Options({ handle }: OptionsProps) {
-  const classes = useStyles()
-  const [tab, setTab] = React.useState(0)
-  return (
-    <div className={classes.root}>
-      <M.Paper className={classes.tabsContainer} elevation={1}>
-        <M.Button
-          className={`${classes.tabButton} ${tab === 0 ? classes.activeTab : ''}`}
-          onClick={() => setTab(0)}
-        >
-          Download
-        </M.Button>
-        <M.Divider orientation="vertical" />
-        <M.Button
-          className={`${classes.tabButton} ${tab === 1 ? classes.activeTab : ''}`}
-          onClick={() => setTab(1)}
-        >
-          Code
-        </M.Button>
-      </M.Paper>
-      {tab === 0 && (
-        <div className={classes.tab}>
-          {handle.version ? (
-            <DownloadFile fileHandle={handle} />
-          ) : (
-            <DownloadDir dirHandle={handle} />
-          )}
-        </div>
-      )}
-      {tab === 1 &&
-        (handle.version ? (
-          <FileCodeSamples
-            className={classes.tab}
-            bucket={handle.bucket}
-            path={handle.key}
-          />
-        ) : (
-          <DirCodeSamples
-            className={classes.tab}
-            bucket={handle.bucket}
-            path={handle.key}
-          />
-        ))}
-    </div>
-  )
+  const tabs: Tab[] = [
+    {
+      label: 'Download',
+      content: handle.version ? (
+        <DownloadFile fileHandle={handle} />
+      ) : (
+        <DownloadDir dirHandle={handle} />
+      ),
+    },
+    {
+      label: 'Code',
+      content: handle.version ? (
+        <FileCodeSamples
+          bucket={handle.bucket}
+          path={handle.key}
+        />
+      ) : (
+        <DirCodeSamples
+          bucket={handle.bucket}
+          path={handle.key}
+        />
+      ),
+    },
+  ]
+
+  return <OptionsTabs tabs={tabs} />
 }
