@@ -28,7 +28,6 @@ import { readableBytes } from 'utils/string'
 
 import AssistButton from '../AssistButton'
 import * as Download from '../Download'
-import Options from '../Download/Bucket'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import Section from '../Section'
@@ -473,7 +472,9 @@ export default function File() {
           )}
           {downloadable && (
             <Download.Button className={classes.button}>
-              <Options bucket={bucket} path={path} fileHandle={handle} />
+              <div>
+                <Download.BucketOptions handle={handle} />
+              </div>
             </Download.Button>
           )}
           {BucketPreferences.Result.match(

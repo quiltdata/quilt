@@ -20,7 +20,6 @@ import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
 import * as Download from './Download'
-import Options from './Download/Bucket'
 import * as AssistantContext from './DirAssistantContext'
 import * as Listing from './Listing'
 import Menu from './Menu'
@@ -305,7 +304,7 @@ export default function Dir() {
 
                   {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
                     <Download.Button className={classes.button}>
-                      <Options handle={dirHandle} />
+                      <Download.BucketOptions handle={dirHandle} />
                     </Download.Button>
                   )}
                 </>

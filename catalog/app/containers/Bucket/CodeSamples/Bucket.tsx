@@ -84,15 +84,13 @@ interface FileCodeSamplesProps {
 
 export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProps) {
   const classes = useStyles()
+  const apiDest = basename(path)
+  const cliDest = ''
+  const props = { className: classes.code, bucket, path }
   return (
     <div className={className}>
-      <Quilt3Fetch
-        className={classes.code}
-        bucket={bucket}
-        path={path}
-        dest={`./${basename(path)}`}
-      />
-      <CliFetch className={classes.code} bucket={bucket} path={path} dest="." />
+      <Quilt3Fetch {...props} dest={apiDest} />
+      <CliFetch {...props} dest={cliDest} />
     </div>
   )
 }
@@ -106,17 +104,13 @@ interface DirCodeSamplesProps {
 export function DirCodeSamples({ className, bucket, path }: DirCodeSamplesProps) {
   const classes = useStyles()
   const dest = path ? basename(path) : bucket
+  const props = { className: classes.code, bucket, path }
   return (
     <div className={className}>
-      <Quilt3List className={classes.code} bucket={bucket} path={path} />
-      <Quilt3Fetch
-        className={classes.code}
-        bucket={bucket}
-        path={path}
-        dest={`./${dest}`}
-      />
-      <CliList className={classes.code} bucket={bucket} path={path} />
-      <CliFetch className={classes.code} bucket={bucket} path={path} dest={`./${dest}`} />
+      <Quilt3List {...props} />
+      <Quilt3Fetch {...props} dest={dest} />
+      <CliList {...props} />
+      <CliFetch {...props} dest={dest} />
     </div>
   )
 }

@@ -9,9 +9,9 @@ import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
-import * as FileView from '../Bucket/FileView'
-import PackageCodeSamples from '../Bucket/CodeSamples/Package'
-import * as Selection from '../Bucket/Selection'
+import * as FileView from '../FileView'
+import PackageCodeSamples from '../CodeSamples/Package'
+import * as Selection from '../Selection'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation

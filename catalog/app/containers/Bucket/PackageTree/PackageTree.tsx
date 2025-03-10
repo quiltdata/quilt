@@ -15,7 +15,6 @@ import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
-import * as OpenInDesktop from 'containers/OpenInDesktop'
 import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -420,7 +419,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             className={classes.button}
                             label="Open in Desktop"
                           >
-                            <OpenInDesktop.Options
+                            <Download.PackageOptions
                               hashOrTag={hashOrTag}
                               uri={packageUri}
                             />
@@ -782,7 +781,7 @@ function FileDisplay({
                               className={classes.button}
                               label="Open in Desktop"
                             >
-                              <OpenInDesktop.Options
+                              <Download.PackageOptions
                                 fileHandle={handle}
                                 hashOrTag={hashOrTag}
                                 uri={packageUri}

@@ -48,15 +48,17 @@ export default function Button({ className, children, label }: ButtonProps) {
             disablePortal: true,
           }}
         >
-          <Buttons.Iconized
-            className={className}
-            endIcon={<M.Icon>arrow_drop_down</M.Icon>}
-            onClick={handleButtonClick}
-            size="small"
-            icon="download"
-            variant="outlined"
-            label={label || 'Download'}
-          />
+          <div>
+            <Buttons.Iconized
+              className={className}
+              endIcon={<M.Icon>arrow_drop_down</M.Icon>}
+              onClick={handleButtonClick}
+              size="small"
+              icon="download"
+              variant="outlined"
+              label={label || 'Download'}
+            />
+          </div>
         </StyledTooltip>
       </div>
     </M.ClickAwayListener>
