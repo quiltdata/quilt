@@ -91,13 +91,11 @@ function CodePanel({ handle }: CodePanelProps) {
 
 interface OptionsProps {
   handle: Handle
-  hide?: 'download' | 'code'
+  hideCode?: boolean
 }
 
-export default function Options({ handle, hide }: OptionsProps) {
-  if (hide === 'download') return <CodePanel handle={handle} />
-
-  if (hide === 'code') return <DownloadPanel handle={handle} />
+export default function Options({ handle, hideCode }: OptionsProps) {
+  if (hideCode) return <DownloadPanel handle={handle} />
 
   return (
     <Tabs labels={['Download', 'Code']}>

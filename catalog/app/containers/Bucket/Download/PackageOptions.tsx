@@ -162,18 +162,16 @@ interface OptionsProps {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
-  hide?: 'download' | 'code'
+  hideCode?: boolean
 }
 
 export default function Options({
   fileHandle,
   hashOrTag,
   uri,
-  hide,
+  hideCode,
 }: OptionsProps) {
-  if (hide === 'download') return <CodePanel hashOrTag={hashOrTag} uri={uri} />
-
-  if (hide === 'code') return <DownloadPanel fileHandle={fileHandle} uri={uri} />
+  if (hideCode) return <DownloadPanel fileHandle={fileHandle} uri={uri} />
 
   return (
     <Tabs labels={['QuiltSync', 'Code']}>
