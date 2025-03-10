@@ -20,7 +20,7 @@ import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
-import StyledTooltip from 'utils/StyledTooltip'
+import * as OpenInDesktop from 'containers/OpenInDesktop'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
@@ -28,7 +28,7 @@ import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import AssistButton from '../AssistButton'
-import FileCodeSamples from '../CodeSamples/File'
+import Options from '../Download/Bucket'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import Section from '../Section'
@@ -472,23 +472,9 @@ export default function File() {
             />
           )}
           {downloadable && (
-            <StyledTooltip
-              enterDelay={1000}
-              interactive
-              maxWidth="xl"
-              placement="bottom-end"
-              title={
-                <FileCodeSamples
-                  className={classes.tooltip}
-                  bucket={bucket}
-                  path={path}
-                />
-              }
-            >
-              <div>
-                <FileView.DownloadButton className={classes.button} handle={handle} />
-              </div>
-            </StyledTooltip>
+            <OpenInDesktop.Button className={classes.button}>
+              <Options bucket={bucket} path={path} fileHandle={handle} />
+            </OpenInDesktop.Button>
           )}
           {BucketPreferences.Result.match(
             {

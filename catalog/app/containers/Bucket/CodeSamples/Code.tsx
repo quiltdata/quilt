@@ -5,7 +5,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
-import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
 function highlight(str: string, lang?: string) {
@@ -22,110 +21,68 @@ function highlight(str: string, lang?: string) {
   return str
 }
 
-const useLineOfCodeStyles = M.makeStyles((t) => ({
-  root: {
-    fontFamily: t.typography.monospace.fontFamily,
-    fontSize: t.typography.body2.fontSize,
-    minHeight: t.typography.body2.fontSize,
-    whiteSpace: 'pre',
-    '&:hover $help': {
-      opacity: 1,
-    },
-  },
-  help: {
-    display: 'inline-block',
-    marginLeft: t.spacing(0.5),
-    opacity: 0.3,
-  },
-}))
-
-interface LineOfCodeProps {
-  lang?: string
-  text: string
-  help?: string
-}
-function LineOfCode({ lang, text, help }: LineOfCodeProps) {
-  const classes = useLineOfCodeStyles()
-  return (
-    <div className={classes.root}>
-      {lang === 'uri' ? (
-        <StyledLink href={text} target={text.startsWith('http') ? '_blank' : '_self'}>
-          {text}
-        </StyledLink>
-      ) : (
-        highlight(text, lang)
-      )}
-      {help && (
-        <StyledLink href={help} className={classes.help} target="_blank">
-          [?]
-        </StyledLink>
-      )}
-    </div>
-  )
-}
-
 const useStyles = M.makeStyles((t) => ({
   container: {
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.body2.fontSize,
+
+    background: t.palette.grey[300],
     borderRadius: '2px',
     overflow: 'auto',
-    background: t.palette.grey[300],
     padding: '4px',
+    position: 'relative',
   },
   label: {
-    display: 'inline-flex',
     alignItems: 'center',
+    display: 'inline-flex',
   },
   btn: {
     marginLeft: t.spacing(1),
+    position: 'absolute',
+    right: '4px',
+    top: '4px',
   },
   root: {
     width: '100%',
   },
+  line: {
+    textIndent: t.spacing(-4),
+    paddingLeft: t.spacing(4),
+  },
 }))
 
 interface CodeProps {
+  lines: string[]
   className: string
-  children: { label: string; contents: string; hl?: string }
+  help: string
+  hl: string
+  label: string
 }
 
-export default function Code({ className, children }: CodeProps) {
+export default function Code({ className, help, hl, label, lines }: CodeProps) {
   const classes = useStyles()
   const { push } = Notifications.use()
 
   const handleCopy = React.useCallback(
     (e) => {
       e.stopPropagation()
-      copyToClipboard(children.contents)
+      copyToClipboard(lines.join('\n'))
       push('Code has been copied to clipboard')
     },
-    [children.contents, push],
-  )
-
-  const lines = React.useMemo(
-    () =>
-      children.contents.split('\n').map((line, index) => {
-        // Find [[ URL ]] and put it to help prop
-        const matched = line.match(/(.*) \[\[(.*)\]\]/)
-        const key = children.label + index
-        if (!matched || !matched[1] || !matched[2]) {
-          return {
-            key,
-            text: line,
-          }
-        }
-        return {
-          help: matched[2],
-          key,
-          text: matched[1],
-        }
-      }),
-    [children.contents, children.label],
+    [lines, push],
   )
 
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography className={classes.label} variant="subtitle2" gutterBottom>
-        {children.label}
+        {label}
+        <a href={help} target="_blank">
+          <M.IconButton size="small" style={{ marginLeft: '4px' }}>
+            <M.Icon fontSize="inherit">help</M.Icon>
+          </M.IconButton>
+        </a>
+      </M.Typography>
+      <div className={classes.container}>
         <M.IconButton
           onClick={handleCopy}
           title="Copy to clipboard"
@@ -134,15 +91,10 @@ export default function Code({ className, children }: CodeProps) {
         >
           <M.Icon fontSize="inherit">file_copy</M.Icon>
         </M.IconButton>
-      </M.Typography>
-      <div className={classes.container}>
-        {lines.map((line) => (
-          <LineOfCode
-            help={line.help}
-            key={line.key}
-            lang={children.hl}
-            text={line.text}
-          />
+        {lines.map((line, index) => (
+          <p key={`${line}_${index}`} className={classes.line}>
+            {highlight(line, hl)}
+          </p>
         ))}
       </div>
     </div>

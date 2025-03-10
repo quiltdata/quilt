@@ -6,8 +6,6 @@ import { useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
-import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
@@ -15,8 +13,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
-import DirCodeSamples from 'containers/Bucket/CodeSamples/Dir'
-import * as FileView from 'containers/Bucket/FileView'
 import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
@@ -123,14 +119,8 @@ export default function Dir() {
           {BreadCrumbs.render(crumbs)}
         </div>
         <M.Box flexGrow={1} />
-        {!cfg.noDownload && (
-          <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`} newTab>
-            <Buttons.Iconized label="Download directory" icon="archive" type="submit" />
-          </FileView.ZipDownloadForm>
-        )}
+        {/* FIXME: ADD DOWNLOAD BUTTON */}
       </M.Box>
-
-      {!ecfg.hideCode && <DirCodeSamples bucket={bucket} path={path} gutterBottom />}
 
       {data.case({
         Err: displayError(),

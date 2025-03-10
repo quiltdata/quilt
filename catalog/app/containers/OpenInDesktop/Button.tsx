@@ -15,11 +15,12 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface ButtonProps {
+  label?: string
   className?: string
   children: NonNullable<React.ReactNode>
 }
 
-export default function Button({ className, children }: ButtonProps) {
+export default function Button({ className, children, label }: ButtonProps) {
   const classes = useStyles()
   const [tooltipOpen, setTooltipOpen] = React.useState(false)
   const anchorRef = React.useRef<HTMLDivElement>(null)
@@ -54,7 +55,7 @@ export default function Button({ className, children }: ButtonProps) {
             size="small"
             icon="download"
             variant="outlined"
-            label="Open in Desktop"
+            label={label || 'Download'}
           />
         </StyledTooltip>
       </div>

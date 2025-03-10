@@ -15,14 +15,13 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledTooltip from 'utils/StyledTooltip'
+import * as OpenInDesktop from 'containers/OpenInDesktop'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
-import DirCodeSamples from './CodeSamples/Dir'
+import Options from './Download/Bucket'
 import * as AssistantContext from './DirAssistantContext'
-import * as FileView from './FileView'
 import * as Listing from './Listing'
 import Menu from './Menu'
 import * as PD from './PackageDialog'
@@ -301,31 +300,11 @@ export default function Dir() {
                       Create package
                     </Successors.Button>
                   )}
+
                   {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
-                    <StyledTooltip
-                      enterDelay={1000}
-                      interactive
-                      maxWidth="xl"
-                      placement="bottom-end"
-                      title={
-                        <DirCodeSamples
-                          className={classes.tooltip}
-                          bucket={bucket}
-                          path={path}
-                        />
-                      }
-                    >
-                      <div>
-                        <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
-                          <Buttons.Iconized
-                            className={classes.button}
-                            label="Download directory"
-                            icon="archive"
-                            type="submit"
-                          />
-                        </FileView.ZipDownloadForm>
-                      </div>
-                    </StyledTooltip>
+                    <OpenInDesktop.Button className={classes.button}>
+                      <Options bucket={bucket} path={path} />
+                    </OpenInDesktop.Button>
                   )}
                 </>
               ),

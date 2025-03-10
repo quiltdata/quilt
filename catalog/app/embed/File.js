@@ -20,7 +20,6 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
-import FileCodeSamples from 'containers/Bucket/CodeSamples/File'
 import Analytics from 'containers/Bucket/File/Analytics'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
@@ -359,9 +358,10 @@ export default function File() {
         </div>
         <div className={classes.actions}>
           <FileProperties data={versionExistsData} />
-          {downloadable && (
-            <FileView.DownloadButton className={classes.button} handle={handle} />
-          )}
+          {downloadable &&
+            {
+              /* FIXME: ADD DOWNLOAD BUTTON */
+            }}
         </div>
       </div>
       {objExistsData.case({
@@ -380,7 +380,6 @@ export default function File() {
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              {!ecfg.hideCode && <FileCodeSamples {...{ bucket, path }} />}
               {!ecfg.hideAnalytics && !!cfg.analyticsBucket && (
                 <Analytics {...{ bucket, path }} />
               )}

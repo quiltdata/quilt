@@ -174,6 +174,7 @@ interface OptionsProps {
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
 }
 
+// FIXME: configure hiding tabs in Props, so we can manage it in Embed views
 export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   const classes = useStyles()
   const [tab, setTab] = React.useState(0)
@@ -191,7 +192,7 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
           className={`${classes.tabButton} ${tab === 1 ? classes.activeTab : ''}`}
           onClick={() => setTab(1)}
         >
-          Quilt3
+          Code
         </M.Button>
       </M.Paper>
       {tab === 0 && (
