@@ -6,7 +6,7 @@ import StyledTooltip from 'utils/StyledTooltip'
 
 const useStyles = M.makeStyles((t) => ({
   tooltip: {
-    width: t.spacing(60),
+    minWidth: t.spacing(60),
     padding: 0,
     [t.breakpoints.down('sm')]: {
       width: 'calc(100vw - 16px)',
@@ -42,7 +42,7 @@ export default function Button({ className, children, label }: ButtonProps) {
           maxWidth="xl"
           open={tooltipOpen}
           placement="bottom-end"
-          title={children}
+          title={<div>{children}</div>}
           PopperProps={{
             anchorEl: anchorRef.current,
             disablePortal: true,

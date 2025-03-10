@@ -472,9 +472,7 @@ export default function File() {
           )}
           {downloadable && (
             <Download.Button className={classes.button}>
-              <div>
-                <Download.BucketOptions handle={handle} />
-              </div>
+              <Download.BucketOptions handle={handle} />
             </Download.Button>
           )}
           {BucketPreferences.Result.match(
