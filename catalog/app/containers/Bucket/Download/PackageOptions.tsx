@@ -103,10 +103,6 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
 }
 
 const useDownloadPanelStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(40),
-    maxWidth: t.spacing(60),
-  },
   quiltSync: {
     borderBottom: `1px solid ${t.palette.divider}`,
     marginBottom: t.spacing(1),
@@ -123,18 +119,12 @@ function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
   const classes = useDownloadPanelStyles()
 
   return (
-    <TabPanel className={classes.root}>
+    <TabPanel>
       <QuiltSync className={classes.quiltSync} uri={uri} />
       {fileHandle ? <DownloadFile fileHandle={fileHandle} /> : <DownloadDir uri={uri} />}
     </TabPanel>
   )
 }
-
-const useCodePanelStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(80),
-  },
-}))
 
 interface CodePanelProps {
   hashOrTag: string
@@ -142,9 +132,8 @@ interface CodePanelProps {
 }
 
 function CodePanel({ hashOrTag, uri }: CodePanelProps) {
-  const classes = useCodePanelStyles()
   return (
-    <TabPanel className={classes.root}>
+    <TabPanel>
       <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
     </TabPanel>
   )

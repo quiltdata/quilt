@@ -44,20 +44,13 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
   )
 }
 
-const useDownloadPanelStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(30),
-  },
-}))
-
 interface DownloadPanelProps {
   handle: Handle
 }
 
 function DownloadPanel({ handle }: DownloadPanelProps) {
-  const classes = useDownloadPanelStyles()
   return (
-    <TabPanel className={classes.root}>
+    <TabPanel>
       {isFile(handle) ? (
         <DownloadFile fileHandle={handle} />
       ) : (
@@ -67,20 +60,13 @@ function DownloadPanel({ handle }: DownloadPanelProps) {
   )
 }
 
-const useCodePanelStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(70),
-  },
-}))
-
 interface CodePanelProps {
   handle: Handle
 }
 
 function CodePanel({ handle }: CodePanelProps) {
-  const classes = useCodePanelStyles()
   return (
-    <TabPanel className={classes.root}>
+    <TabPanel>
       {isFile(handle) ? (
         <FileCodeSamples bucket={handle.bucket} path={handle.key} />
       ) : (

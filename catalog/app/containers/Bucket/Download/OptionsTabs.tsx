@@ -30,6 +30,10 @@ export function TabPanel({ children, className }: TabPanelProps) {
 const useStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
+    transition: t.transitions.create('width', {
+      duration: t.transitions.duration.standard,
+      easing: t.transitions.easing.easeInOut,
+    }),
   },
   tabsContainer: {
     borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0`,
@@ -59,6 +63,12 @@ const useStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.primary.main,
     },
   },
+  downloadWidth: {
+    width: t.spacing(40),
+  },
+  codeWidth: {
+    width: t.spacing(80),
+  },
   '@keyframes activate': {
     '0%': {
       transform: 'scaleX(0.5)',
@@ -79,7 +89,7 @@ export function Tabs({ labels, children }: TabsProps) {
   const [activeTab, setActiveTab] = React.useState(0)
 
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, activeTab === 0 ? classes.downloadWidth : classes.codeWidth)}>
       <M.Paper className={classes.tabsContainer} elevation={1}>
         <M.Button
           className={cx(classes.tabButton, { [classes.activeTab]: activeTab === 0 })}
