@@ -60,37 +60,33 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export interface Tab {
-  label: string
-  content: React.ReactNode
-}
-
 interface OptionsTabsProps {
-  tabs: Tab[]
+  labels: string[]
+  children: (activeTab: number) => React.ReactNode
   initialTab?: number
 }
 
-export default function OptionsTabs({ tabs, initialTab = 0 }: OptionsTabsProps) {
+export default function OptionsTabs({ labels, children, initialTab = 0 }: OptionsTabsProps) {
   const classes = useStyles()
   const [activeTab, setActiveTab] = React.useState(initialTab)
   
   return (
     <div className={classes.root}>
       <M.Paper className={classes.tabsContainer} elevation={1}>
-        {tabs.map((tab, index) => (
+        {labels.map((label, index) => (
           <React.Fragment key={index}>
             {index > 0 && <M.Divider orientation="vertical" />}
             <M.Button
               className={`${classes.tabButton} ${activeTab === index ? classes.activeTab : ''}`}
               onClick={() => setActiveTab(index)}
             >
-              {tab.label}
+              {label}
             </M.Button>
           </React.Fragment>
         ))}
       </M.Paper>
       <div className={classes.tab}>
-        {tabs[activeTab].content}
+        {children(activeTab)}
       </div>
     </div>
   )

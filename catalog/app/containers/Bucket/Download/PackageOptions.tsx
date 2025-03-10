@@ -12,7 +12,7 @@ import copyToClipboard from 'utils/clipboard'
 import * as FileView from '../FileView'
 import PackageCodeSamples from '../CodeSamples/Package'
 import * as Selection from '../Selection'
-import OptionsTabs, { Tab, useStyles } from './OptionsTabs'
+import OptionsTabs, { useStyles } from './OptionsTabs'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
@@ -119,28 +119,31 @@ interface OptionsProps {
 // FIXME: configure hiding tabs in Props, so we can manage it in Embed views
 export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   const classes = useStyles()
+  const labels = ['QuiltSync', 'Code']
   
-  const tabs: Tab[] = [
-    {
-      label: 'QuiltSync',
-      content: (
-        <>
-          <QuiltSync className={classes.quiltSync} uri={uri} />
-          {fileHandle ? (
-            <DownloadFile fileHandle={fileHandle} />
-          ) : (
-            <DownloadDir uri={uri} />
-          )}
-        </>
-      ),
-    },
-    {
-      label: 'Code',
-      content: (
-        <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
-      ),
-    },
-  ]
-
-  return <OptionsTabs tabs={tabs} />
+  return (
+    <OptionsTabs labels={labels}>
+      {(activeTab) => {
+        switch (activeTab) {
+          case 0:
+            return (
+              <>
+                <QuiltSync className={classes.quiltSync} uri={uri} />
+                {fileHandle ? (
+                  <DownloadFile fileHandle={fileHandle} />
+                ) : (
+                  <DownloadDir uri={uri} />
+                )}
+              </>
+            )
+          case 1:
+            return (
+              <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+            )
+          default:
+            return null
+        }
+      }}
+    </OptionsTabs>
+  )
 }
