@@ -355,13 +355,6 @@ export default function File() {
       }),
     }),
   })
-  const hideCode = BucketPreferences.Result.match(
-    {
-      Ok: ({ ui }) => !ui.blocks.code,
-      _: R.T,
-    },
-    prefs,
-  )
 
   const viewModes = useViewModes(mode)
 
@@ -477,11 +470,21 @@ export default function File() {
               onClick={() => bookmarks.toggle('main', handle)}
             />
           )}
-          {downloadable && (
-            <Download.Button className={classes.button}>
-              <Download.BucketOptions handle={handle} hideCode={hideCode} />
-            </Download.Button>
-          )}
+          {downloadable &&
+            BucketPreferences.Result.match(
+              {
+                Ok: ({ ui: { blocks } }) => (
+                  <Download.Button className={classes.button}>
+                    <Download.BucketOptions handle={handle} hideCode={!blocks.code} />
+                  </Download.Button>
+                ),
+                Pending: () => (
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                ),
+                Inint: () => null,
+              },
+              prefs,
+            )}
           {BucketPreferences.Result.match(
             {
               // XXX: only show this when the object exists?
