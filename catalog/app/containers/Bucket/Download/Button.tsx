@@ -38,22 +38,6 @@ export default function Button({ className, children, label }: ButtonProps) {
     setPopupOpen(false)
   }
 
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        handleClose()
-      }
-    }
-
-    if (popupOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [popupOpen])
-
   return (
     <div ref={rootRef} className={classes.root}>
       <Buttons.Iconized
@@ -66,9 +50,11 @@ export default function Button({ className, children, label }: ButtonProps) {
         label={label || 'Download'}
       />
       {popupOpen && (
-        <M.Paper className={classes.popup} elevation={8}>
-          {children}
-        </M.Paper>
+        <M.ClickAwayListener onClickAway={handleClose}>
+          <M.Paper className={classes.popup} elevation={8}>
+            {children}
+          </M.Paper>
+        </M.ClickAwayListener>
       )}
     </div>
   )
