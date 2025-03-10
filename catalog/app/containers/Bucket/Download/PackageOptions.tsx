@@ -12,7 +12,7 @@ import copyToClipboard from 'utils/clipboard'
 import * as FileView from '../FileView'
 import PackageCodeSamples from '../CodeSamples/Package'
 import * as Selection from '../Selection'
-import OptionsTabs, { useStyles } from './OptionsTabs'
+import OptionsTabs from './OptionsTabs'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
@@ -110,6 +110,14 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  quiltSync: {
+    padding: t.spacing(0, 0, 2),
+    borderBottom: `1px solid ${t.palette.divider}`,
+    marginBottom: t.spacing(1),
+  },
+}))
+
 interface OptionsProps {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
@@ -119,10 +127,8 @@ interface OptionsProps {
 // FIXME: configure hiding tabs in Props, so we can manage it in Embed views
 export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   const classes = useStyles()
-  const labels = ['QuiltSync', 'Code']
-  
   return (
-    <OptionsTabs labels={labels}>
+    <OptionsTabs labels={['QuiltSync', 'Code']}>
       {(activeTab) => {
         switch (activeTab) {
           case 0:
@@ -137,9 +143,7 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
               </>
             )
           case 1:
-            return (
-              <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
-            )
+            return <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
           default:
             return null
         }

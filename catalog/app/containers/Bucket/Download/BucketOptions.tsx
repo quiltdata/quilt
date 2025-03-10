@@ -40,10 +40,8 @@ interface OptionsProps {
 }
 
 export default function Options({ handle }: OptionsProps) {
-  const labels = ['Download', 'Code']
-  
   return (
-    <OptionsTabs labels={labels}>
+    <OptionsTabs labels={['Download', 'Code']}>
       {(activeTab) => {
         switch (activeTab) {
           case 0:
@@ -54,15 +52,9 @@ export default function Options({ handle }: OptionsProps) {
             )
           case 1:
             return handle.version ? (
-              <FileCodeSamples
-                bucket={handle.bucket}
-                path={handle.key}
-              />
+              <FileCodeSamples bucket={handle.bucket} path={handle.key} />
             ) : (
-              <DirCodeSamples
-                bucket={handle.bucket}
-                path={handle.key}
-              />
+              <DirCodeSamples bucket={handle.bucket} path={handle.key} />
             )
           default:
             return null

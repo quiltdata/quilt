@@ -33,11 +33,6 @@ const useStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.primary.main,
     },
   },
-  quiltSync: {
-    padding: t.spacing(0, 0, 2),
-    borderBottom: `1px solid ${t.palette.divider}`,
-    marginBottom: t.spacing(1),
-  },
   tab: {
     padding: t.spacing(2, 2, 1),
     animation: `$show 150ms ease-out`,
@@ -61,35 +56,31 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface OptionsTabsProps {
-  labels: string[]
+  labels: [string, string]
   children: (activeTab: number) => React.ReactNode
-  initialTab?: number
 }
 
-export default function OptionsTabs({ labels, children, initialTab = 0 }: OptionsTabsProps) {
+export default function OptionsTabs({ labels, children }: OptionsTabsProps) {
   const classes = useStyles()
-  const [activeTab, setActiveTab] = React.useState(initialTab)
-  
+  const [activeTab, setActiveTab] = React.useState(0)
+
   return (
     <div className={classes.root}>
       <M.Paper className={classes.tabsContainer} elevation={1}>
-        {labels.map((label, index) => (
-          <React.Fragment key={index}>
-            {index > 0 && <M.Divider orientation="vertical" />}
-            <M.Button
-              className={`${classes.tabButton} ${activeTab === index ? classes.activeTab : ''}`}
-              onClick={() => setActiveTab(index)}
-            >
-              {label}
-            </M.Button>
-          </React.Fragment>
-        ))}
+        <M.Button
+          className={`${classes.tabButton} ${activeTab === 0 ? classes.activeTab : ''}`}
+          onClick={() => setActiveTab(0)}
+        >
+          {labels[0]}
+        </M.Button>
+        <M.Button
+          className={`${classes.tabButton} ${activeTab === 1 ? classes.activeTab : ''}`}
+          onClick={() => setActiveTab(1)}
+        >
+          {labels[1]}
+        </M.Button>
       </M.Paper>
-      <div className={classes.tab}>
-        {children(activeTab)}
-      </div>
+      <div className={classes.tab}>{children(activeTab)}</div>
     </div>
   )
 }
-
-export { useStyles }
