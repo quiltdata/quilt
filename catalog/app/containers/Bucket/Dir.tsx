@@ -15,11 +15,11 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as OpenInDesktop from 'containers/OpenInDesktop'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
+import * as Download from './Download'
 import Options from './Download/Bucket'
 import * as AssistantContext from './DirAssistantContext'
 import * as Listing from './Listing'
@@ -302,9 +302,9 @@ export default function Dir() {
                   )}
 
                   {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
-                    <OpenInDesktop.Button className={classes.button}>
+                    <Download.Button className={classes.button}>
                       <Options bucket={bucket} path={path} />
-                    </OpenInDesktop.Button>
+                    </Download.Button>
                   )}
                 </>
               ),

@@ -33,6 +33,7 @@ import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
 import AssistButton from '../AssistButton'
+import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import * as Listing from '../Listing'
@@ -415,7 +416,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                           </Successors.Button>
                         )}
                         {actions.downloadPackage && (
-                          <OpenInDesktop.Button
+                          <Download.Button
                             className={classes.button}
                             label="Open in Desktop"
                           >
@@ -423,7 +424,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                               hashOrTag={hashOrTag}
                               uri={packageUri}
                             />
-                          </OpenInDesktop.Button>
+                          </Download.Button>
                         )}
                         <RevisionMenu
                           className={classes.button}
@@ -777,7 +778,7 @@ function FileDisplay({
                           !deleted &&
                           !archived &&
                           ui.actions.downloadPackage && (
-                            <OpenInDesktop.Button
+                            <Download.Button
                               className={classes.button}
                               label="Open in Desktop"
                             >
@@ -786,7 +787,7 @@ function FileDisplay({
                                 hashOrTag={hashOrTag}
                                 uri={packageUri}
                               />
-                            </OpenInDesktop.Button>
+                            </Download.Button>
                           )}
                         {ui.blocks.qurator && !deleted && !archived && (
                           <AssistButton edge="end" />

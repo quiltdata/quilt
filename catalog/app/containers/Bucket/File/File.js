@@ -20,7 +20,6 @@ import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
-import * as OpenInDesktop from 'containers/OpenInDesktop'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
@@ -28,6 +27,7 @@ import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import AssistButton from '../AssistButton'
+import * as Download from '../Download'
 import Options from '../Download/Bucket'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
@@ -472,9 +472,9 @@ export default function File() {
             />
           )}
           {downloadable && (
-            <OpenInDesktop.Button className={classes.button}>
+            <Download.Button className={classes.button}>
               <Options bucket={bucket} path={path} fileHandle={handle} />
-            </OpenInDesktop.Button>
+            </Download.Button>
           )}
           {BucketPreferences.Result.match(
             {
