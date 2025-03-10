@@ -89,7 +89,12 @@ export function Tabs({ labels, children }: TabsProps) {
   const [activeTab, setActiveTab] = React.useState(0)
 
   return (
-    <div className={cx(classes.root, activeTab === 0 ? classes.downloadWidth : classes.codeWidth)}>
+    <div
+      className={cx(classes.root, {
+        [classes.downloadWidth]: activeTab === 0,
+        [classes.codeWidth]: activeTab === 1,
+      })}
+    >
       <M.Paper className={classes.tabsContainer} elevation={1}>
         <M.Button
           className={cx(classes.tabButton, { [classes.activeTab]: activeTab === 0 })}
