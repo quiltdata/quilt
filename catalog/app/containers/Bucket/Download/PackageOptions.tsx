@@ -143,19 +143,18 @@ function CodePanel({ hashOrTag, uri }: CodePanelProps) {
   return <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
 }
 
-interface OptionsProps {
+type DisplayOptions = 
+  | { hideDownload: true; hideCode?: never }
+  | { hideDownload?: never; hideCode: true }
+  | { hideDownload?: never; hideCode?: never }
+
+interface OptionsProps extends DisplayOptions {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
-  hideDownload?: boolean
-  hideCode?: boolean
 }
 
-// FIXME: configure hiding tabs in Props, so we can manage it in Embed views
 export default function Options({ fileHandle, hashOrTag, uri, hideDownload, hideCode }: OptionsProps) {
-  // If both panels are hidden, show nothing
-  if (hideDownload && hideCode) return null
-  
   // If one panel is hidden, show only the other one
   if (hideDownload) {
     return (

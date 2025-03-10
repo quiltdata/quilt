@@ -59,16 +59,16 @@ function CodePanel({ handle }: CodePanelProps) {
   )
 }
 
-interface OptionsProps {
+type DisplayOptions = 
+  | { hideDownload: true; hideCode?: never }
+  | { hideDownload?: never; hideCode: true }
+  | { hideDownload?: never; hideCode?: never }
+
+interface OptionsProps extends DisplayOptions {
   handle: Model.S3.S3ObjectLocation
-  hideDownload?: boolean
-  hideCode?: boolean
 }
 
 export default function Options({ handle, hideDownload, hideCode }: OptionsProps) {
-  // If both panels are hidden, show nothing
-  if (hideDownload && hideCode) return null
-  
   // If one panel is hidden, show only the other one
   if (hideDownload) {
     return (
