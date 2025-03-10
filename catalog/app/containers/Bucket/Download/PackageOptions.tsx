@@ -57,23 +57,15 @@ function DownloadDir({ uri }: DownloadDirProps) {
   )
 }
 
-const useQuiltSyncStyles = M.makeStyles((t) => ({
+const useQuiltSyncStyles = M.makeStyles({
   link: {
     alignItems: 'center',
     display: 'flex',
   },
   copy: {
-    flexShrink: 0,
-    marginLeft: t.spacing(1),
+    width: 'auto',
   },
-  uriLink: {
-    display: 'block',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    flex: 1,
-  },
-}))
+})
 
 interface QuiltSyncProps {
   className?: string
@@ -87,18 +79,20 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
 
   const handleCopy = React.useCallback(() => {
     copyToClipboard(uriString)
-    push('Code has been copied to clipboard')
+    push('URI has been copied to clipboard')
   }, [uriString, push])
 
   return (
     <div className={className}>
       <div className={classes.link}>
-        <StyledLink className={classes.uriLink} href={uriString} title={uriString}>
-          {uriString}
-        </StyledLink>
-        <M.IconButton className={classes.copy} onClick={handleCopy} size="small">
-          <M.Icon fontSize="inherit">file_copy</M.Icon>
-        </M.IconButton>
+        <M.ButtonGroup style={{ marginBottom: '4px' }} variant="outlined" fullWidth>
+          <M.Button startIcon={<M.Icon>download</M.Icon>} href={uriString}>
+            Open in QuiltSync
+          </M.Button>
+          <M.Button className={classes.copy} onClick={handleCopy}>
+            <M.Icon fontSize="inherit">file_copy_outlined</M.Icon>
+          </M.Button>
+        </M.ButtonGroup>
       </div>
       <M.Typography variant="caption">
         Don't have QuiltSync?{' '}
