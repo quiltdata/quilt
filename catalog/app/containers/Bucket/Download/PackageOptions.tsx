@@ -165,12 +165,7 @@ interface OptionsProps {
   hideCode?: boolean
 }
 
-export default function Options({
-  fileHandle,
-  hashOrTag,
-  uri,
-  hideCode,
-}: OptionsProps) {
+export default function Options({ fileHandle, hashOrTag, uri, hideCode }: OptionsProps) {
   if (hideCode) return <DownloadPanel fileHandle={fileHandle} uri={uri} />
 
   return (
