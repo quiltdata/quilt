@@ -6,13 +6,12 @@ import PackageCodeSamples from './PackageCodeSamples'
 jest.mock(
   './Code',
   () =>
-    ({
-      children: { label, contents },
-    }: {
-      children: { label: string; contents: string }
-    }) => (
-      <dl key={label}>
-        <dt>{label}:</dt> <dd>{contents}</dd>
+    ({ label, help, lines }: { label: string; help: string; lines: string[] }) => (
+      <dl key={label} data-help={help}>
+        <dt>{label}:</dt>
+        {lines.map((l, i) => (
+          <dd key={`${l}_${i}`}>{l}</dd>
+        ))}
       </dl>
     ),
 )
