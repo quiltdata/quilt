@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import typing as T
 
-import pydantic
+import pydantic.v1
 
 from .aws import AWSCredentials
 from .types import NonEmptyStr
@@ -14,7 +14,7 @@ if T.TYPE_CHECKING:
     from quilt3.util import PhysicalKey
 
 
-class TopHash(pydantic.ConstrainedStr):
+class TopHash(pydantic.v1.ConstrainedStr):
     min_length = 64
     max_length = 64
     regex = r"^[0-9a-f]+$"
@@ -22,7 +22,7 @@ class TopHash(pydantic.ConstrainedStr):
     to_lower = True
 
 
-class S3ObjectSource(pydantic.BaseModel):
+class S3ObjectSource(pydantic.v1.BaseModel):
     bucket: str
     key: str
     version: T.Optional[str]
@@ -42,7 +42,7 @@ class S3ObjectSource(pydantic.BaseModel):
         return boto_args
 
 
-class S3ObjectDestination(pydantic.BaseModel):
+class S3ObjectDestination(pydantic.v1.BaseModel):
     bucket: str
     key: str
 
@@ -60,13 +60,13 @@ class S3ObjectDestination(pydantic.BaseModel):
         }
 
 
-class S3HashLambdaParams(pydantic.BaseModel):
+class S3HashLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     scratch_buckets: T.Dict[str, str]
     location: S3ObjectSource
 
 
-class S3CopyLambdaParams(pydantic.BaseModel):
+class S3CopyLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     location: S3ObjectSource
     target: S3ObjectDestination
@@ -77,7 +77,7 @@ class ChecksumType(str, enum.Enum):
     SHA256_CHUNKED = "sha2-256-chunked"
 
 
-class Checksum(pydantic.BaseModel):
+class Checksum(pydantic.v1.BaseModel):
     type: ChecksumType
     value: str
 
@@ -89,7 +89,7 @@ class Checksum(pydantic.BaseModel):
 
 
 # XXX: maybe it doesn't make sense outside of s3hash lambda
-class MPURef(pydantic.BaseModel):
+class MPURef(pydantic.v1.BaseModel):
     bucket: str
     key: str
     id: str
@@ -103,15 +103,15 @@ class MPURef(pydantic.BaseModel):
         }
 
 
-class ChecksumResult(pydantic.BaseModel):
+class ChecksumResult(pydantic.v1.BaseModel):
     checksum: Checksum
 
 
-class CopyResult(pydantic.BaseModel):
+class CopyResult(pydantic.v1.BaseModel):
     version: T.Optional[str]
 
 
-class PackagePushParams(pydantic.BaseModel):
+class PackagePushParams(pydantic.v1.BaseModel):
     bucket: NonEmptyStr
     # XXX: validate package name?
     # e.g. quilt3.util.validate_package_name(name)
@@ -133,11 +133,11 @@ class PackagePushParams(pydantic.BaseModel):
         return self.workflow
 
 
-class PackagePushResult(pydantic.BaseModel):
+class PackagePushResult(pydantic.v1.BaseModel):
     top_hash: TopHash
 
 
-class PackagePromoteSource(pydantic.BaseModel):
+class PackagePromoteSource(pydantic.v1.BaseModel):
     bucket: NonEmptyStr
     name: NonEmptyStr
     hash: TopHash
@@ -151,7 +151,7 @@ class PackageConstructParams(PackagePushParams):
     scratch_buckets: T.Dict[str, str]
 
 
-class PackageConstructEntry(pydantic.BaseModel):
+class PackageConstructEntry(pydantic.v1.BaseModel):
     logical_key: NonEmptyStr
     physical_key: NonEmptyStr
     size: T.Optional[int] = None
