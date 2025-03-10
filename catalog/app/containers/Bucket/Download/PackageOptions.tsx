@@ -127,10 +127,10 @@ function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
   const classes = useStyles()
 
   return (
-    <>
+    <TabPanel>
       <QuiltSync className={classes.quiltSync} uri={uri} />
       {fileHandle ? <DownloadFile fileHandle={fileHandle} /> : <DownloadDir uri={uri} />}
-    </>
+    </TabPanel>
   )
 }
 
@@ -140,50 +140,44 @@ interface CodePanelProps {
 }
 
 function CodePanel({ hashOrTag, uri }: CodePanelProps) {
-  return <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+  return (
+    <TabPanel>
+      <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+    </TabPanel>
+  )
 }
 
-type DisplayOptions = 
+type DisplayOptions =
   | { hideDownload: true; hideCode?: never }
   | { hideDownload?: never; hideCode: true }
   | { hideDownload?: never; hideCode?: never }
 
-interface OptionsProps extends DisplayOptions {
+type OptionsProps = DisplayOptions & {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
 }
 
-export default function Options({ fileHandle, hashOrTag, uri, hideDownload, hideCode }: OptionsProps) {
-  // If one panel is hidden, show only the other one
-  if (hideDownload) {
-    return (
-      <TabPanel>
-        <CodePanel hashOrTag={hashOrTag} uri={uri} />
-      </TabPanel>
-    )
-  }
-  
-  if (hideCode) {
-    return (
-      <TabPanel>
-        <DownloadPanel fileHandle={fileHandle} uri={uri} />
-      </TabPanel>
-    )
-  }
-  
-  // Otherwise show tabs with both panels
+export default function Options({
+  fileHandle,
+  hashOrTag,
+  uri,
+  hideDownload,
+  hideCode,
+}: OptionsProps) {
+  if (hideDownload) return <CodePanel hashOrTag={hashOrTag} uri={uri} />
+
+  if (hideCode) return <DownloadPanel fileHandle={fileHandle} uri={uri} />
+
   return (
     <Tabs labels={['QuiltSync', 'Code']}>
-      {(activeTab) => (
-        <TabPanel>
-          {!activeTab ? (
-            <DownloadPanel fileHandle={fileHandle} uri={uri} />
-          ) : (
-            <CodePanel hashOrTag={hashOrTag} uri={uri} />
-          )}
-        </TabPanel>
-      )}
+      {(activeTab) =>
+        !activeTab ? (
+          <DownloadPanel fileHandle={fileHandle} uri={uri} />
+        ) : (
+          <CodePanel hashOrTag={hashOrTag} uri={uri} />
+        )
+      }
     </Tabs>
   )
 }
