@@ -8,8 +8,16 @@ import * as FileView from '../FileView'
 import { DirCodeSamples, FileCodeSamples } from '../CodeSamples/Bucket'
 import { Tabs, TabPanel } from './OptionsTabs'
 
+type FileHandle = Model.S3.S3ObjectLocation
+type DirHandle = { bucket: string; path: string }
+type Handle = FileHandle | DirHandle
+
+function isFile(handle: Handle): handle is FileHandle {
+  return 'key' in handle && !!handle.key
+}
+
 interface DownloadFileProps {
-  fileHandle: Model.S3.S3ObjectLocation
+  fileHandle: FileHandle
 }
 
 function DownloadFile({ fileHandle }: DownloadFileProps) {
@@ -22,7 +30,7 @@ function DownloadFile({ fileHandle }: DownloadFileProps) {
 }
 
 interface DownloadDirProps {
-  dirHandle: Model.S3.S3ObjectLocation
+  dirHandle: DirHandle
 }
 
 function DownloadDir({ dirHandle }: DownloadDirProps) {
@@ -36,13 +44,13 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
 }
 
 interface DownloadPanelProps {
-  handle: Model.S3.S3ObjectLocation
+  handle: Handle
 }
 
 function DownloadPanel({ handle }: DownloadPanelProps) {
   return (
     <TabPanel>
-      {handle.version ? (
+      {isFile(handle) ? (
         <DownloadFile fileHandle={handle} />
       ) : (
         <DownloadDir dirHandle={handle} />
@@ -52,16 +60,16 @@ function DownloadPanel({ handle }: DownloadPanelProps) {
 }
 
 interface CodePanelProps {
-  handle: Model.S3.S3ObjectLocation
+  handle: Handle
 }
 
 function CodePanel({ handle }: CodePanelProps) {
   return (
     <TabPanel>
-      {handle.version ? (
+      {isFile(handle) ? (
         <FileCodeSamples bucket={handle.bucket} path={handle.key} />
       ) : (
-        <DirCodeSamples bucket={handle.bucket} path={handle.key} />
+        <DirCodeSamples bucket={handle.bucket} path={handle.path} />
       )}
     </TabPanel>
   )
@@ -73,7 +81,7 @@ type DisplayOptions =
   | { hideDownload?: never; hideCode?: never }
 
 type OptionsProps = DisplayOptions & {
-  handle: Model.S3.S3ObjectLocation
+  handle: Handle
 }
 
 export default function Options({ handle, hideDownload, hideCode }: OptionsProps) {
