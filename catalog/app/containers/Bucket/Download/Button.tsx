@@ -2,12 +2,17 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Buttons from 'components/Buttons'
-import StyledTooltip from 'utils/StyledTooltip'
 
 const useStyles = M.makeStyles((t) => ({
-  tooltip: {
+  root: {
+    position: 'relative',
+  },
+  popup: {
+    position: 'absolute',
+    top: 'calc(100% + 16px)',
+    right: 0,
+    zIndex: t.zIndex.tooltip,
     minWidth: t.spacing(60),
-    padding: 0,
     [t.breakpoints.down('sm')]: {
       width: 'calc(100vw - 16px)',
     },
@@ -22,45 +27,49 @@ interface ButtonProps {
 
 export default function Button({ className, children, label }: ButtonProps) {
   const classes = useStyles()
-  const [tooltipOpen, setTooltipOpen] = React.useState(false)
-  const anchorRef = React.useRef<HTMLDivElement>(null)
+  const [popupOpen, setPopupOpen] = React.useState(false)
+  const rootRef = React.useRef<HTMLDivElement>(null)
 
   const handleButtonClick = () => {
-    setTooltipOpen((prevOpen) => !prevOpen)
+    setPopupOpen((prevOpen) => !prevOpen)
   }
 
   const handleClose = () => {
-    setTooltipOpen(false)
+    setPopupOpen(false)
   }
 
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        handleClose()
+      }
+    }
+
+    if (popupOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [popupOpen])
+
   return (
-    <M.ClickAwayListener onClickAway={handleClose}>
-      <div ref={anchorRef}>
-        <StyledTooltip
-          classes={classes}
-          interactive
-          maxWidth="xl"
-          open={tooltipOpen}
-          placement="bottom-end"
-          title={<div>{children}</div>}
-          PopperProps={{
-            anchorEl: anchorRef.current,
-            disablePortal: true,
-          }}
-        >
-          <div>
-            <Buttons.Iconized
-              className={className}
-              endIcon={<M.Icon>arrow_drop_down</M.Icon>}
-              onClick={handleButtonClick}
-              size="small"
-              icon="download"
-              variant="outlined"
-              label={label || 'Download'}
-            />
-          </div>
-        </StyledTooltip>
-      </div>
-    </M.ClickAwayListener>
+    <div ref={rootRef} className={classes.root}>
+      <Buttons.Iconized
+        className={className}
+        endIcon={<M.Icon>arrow_drop_down</M.Icon>}
+        onClick={handleButtonClick}
+        size="small"
+        icon="download"
+        variant="outlined"
+        label={label || 'Download'}
+      />
+      {popupOpen && (
+        <M.Paper className={classes.popup} elevation={8}>
+          {children}
+        </M.Paper>
+      )}
+    </div>
   )
 }
