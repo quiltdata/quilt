@@ -118,6 +118,35 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface DownloadPanelProps {
+  fileHandle?: Model.S3.S3ObjectLocation
+  uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
+}
+
+function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
+  const classes = useStyles()
+  
+  return (
+    <>
+      <QuiltSync className={classes.quiltSync} uri={uri} />
+      {fileHandle ? (
+        <DownloadFile fileHandle={fileHandle} />
+      ) : (
+        <DownloadDir uri={uri} />
+      )}
+    </>
+  )
+}
+
+interface CodePanelProps {
+  hashOrTag: string
+  uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
+}
+
+function CodePanel({ hashOrTag, uri }: CodePanelProps) {
+  return <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+}
+
 interface OptionsProps {
   hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
@@ -126,24 +155,14 @@ interface OptionsProps {
 
 // FIXME: configure hiding tabs in Props, so we can manage it in Embed views
 export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
-  const classes = useStyles()
   return (
     <OptionsTabs labels={['QuiltSync', 'Code']}>
       {(activeTab) => {
         switch (activeTab) {
           case 0:
-            return (
-              <>
-                <QuiltSync className={classes.quiltSync} uri={uri} />
-                {fileHandle ? (
-                  <DownloadFile fileHandle={fileHandle} />
-                ) : (
-                  <DownloadDir uri={uri} />
-                )}
-              </>
-            )
+            return <DownloadPanel fileHandle={fileHandle} uri={uri} />
           case 1:
-            return <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+            return <CodePanel hashOrTag={hashOrTag} uri={uri} />
           default:
             return null
         }

@@ -35,6 +35,30 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
   )
 }
 
+interface DownloadPanelProps {
+  handle: Model.S3.S3ObjectLocation
+}
+
+function DownloadPanel({ handle }: DownloadPanelProps) {
+  return handle.version ? (
+    <DownloadFile fileHandle={handle} />
+  ) : (
+    <DownloadDir dirHandle={handle} />
+  )
+}
+
+interface CodePanelProps {
+  handle: Model.S3.S3ObjectLocation
+}
+
+function CodePanel({ handle }: CodePanelProps) {
+  return handle.version ? (
+    <FileCodeSamples bucket={handle.bucket} path={handle.key} />
+  ) : (
+    <DirCodeSamples bucket={handle.bucket} path={handle.key} />
+  )
+}
+
 interface OptionsProps {
   handle: Model.S3.S3ObjectLocation
 }
@@ -45,17 +69,9 @@ export default function Options({ handle }: OptionsProps) {
       {(activeTab) => {
         switch (activeTab) {
           case 0:
-            return handle.version ? (
-              <DownloadFile fileHandle={handle} />
-            ) : (
-              <DownloadDir dirHandle={handle} />
-            )
+            return <DownloadPanel handle={handle} />
           case 1:
-            return handle.version ? (
-              <FileCodeSamples bucket={handle.bucket} path={handle.key} />
-            ) : (
-              <DirCodeSamples bucket={handle.bucket} path={handle.key} />
-            )
+            return <CodePanel handle={handle} />
           default:
             return null
         }
