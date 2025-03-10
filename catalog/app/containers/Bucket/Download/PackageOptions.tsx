@@ -10,9 +10,10 @@ import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
 import * as FileView from '../FileView'
-import PackageCodeSamples from '../CodeSamples/Package'
 import * as Selection from '../Selection'
+
 import { Tabs, TabPanel } from './OptionsTabs'
+import PackageCodeSamples from './PackageCodeSamples'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation

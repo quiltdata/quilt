@@ -1,7 +1,7 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
 
-import PackageCodeSamples from './Package'
+import PackageCodeSamples from './PackageCodeSamples'
 
 jest.mock(
   './Code',

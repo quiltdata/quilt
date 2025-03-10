@@ -5,7 +5,8 @@ import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 
 import * as FileView from '../FileView'
-import { DirCodeSamples, FileCodeSamples } from '../CodeSamples/Bucket'
+
+import { DirCodeSamples, FileCodeSamples } from './BucketCodeSamples'
 import { Tabs, TabPanel } from './OptionsTabs'
 
 type FileHandle = Model.S3.S3ObjectLocation
