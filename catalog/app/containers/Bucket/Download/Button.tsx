@@ -8,11 +8,12 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   popup: {
-    position: 'absolute',
-    top: 'calc(100% + 16px)',
-    right: 0,
-    zIndex: t.zIndex.tooltip,
     minWidth: t.spacing(60),
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    transform: `translate(${t.spacing(5)}px, ${t.spacing(5)}px)`,
+    zIndex: t.zIndex.modal,
     [t.breakpoints.down('sm')]: {
       width: 'calc(100vw - 16px)',
     },
