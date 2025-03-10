@@ -66,16 +66,9 @@ interface OptionsProps {
 export default function Options({ handle }: OptionsProps) {
   return (
     <OptionsTabs labels={['Download', 'Code']}>
-      {(activeTab) => {
-        switch (activeTab) {
-          case 0:
-            return <DownloadPanel handle={handle} />
-          case 1:
-            return <CodePanel handle={handle} />
-          default:
-            return null
-        }
-      }}
+      {(activeTab) =>
+        !activeTab ? <DownloadPanel handle={handle} /> : <CodePanel handle={handle} />
+      }
     </OptionsTabs>
   )
 }

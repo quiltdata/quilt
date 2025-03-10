@@ -125,15 +125,11 @@ interface DownloadPanelProps {
 
 function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
   const classes = useStyles()
-  
+
   return (
     <>
       <QuiltSync className={classes.quiltSync} uri={uri} />
-      {fileHandle ? (
-        <DownloadFile fileHandle={fileHandle} />
-      ) : (
-        <DownloadDir uri={uri} />
-      )}
+      {fileHandle ? <DownloadFile fileHandle={fileHandle} /> : <DownloadDir uri={uri} />}
     </>
   )
 }
@@ -158,14 +154,11 @@ export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   return (
     <OptionsTabs labels={['QuiltSync', 'Code']}>
       {(activeTab) => {
-        switch (activeTab) {
-          case 0:
-            return <DownloadPanel fileHandle={fileHandle} uri={uri} />
-          case 1:
-            return <CodePanel hashOrTag={hashOrTag} uri={uri} />
-          default:
-            return null
-        }
+        !activeTab ? (
+          <DownloadPanel fileHandle={fileHandle} uri={uri} />
+        ) : (
+          <CodePanel hashOrTag={hashOrTag} uri={uri} />
+        )
       }}
     </OptionsTabs>
   )
