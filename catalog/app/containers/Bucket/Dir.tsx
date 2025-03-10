@@ -288,7 +288,7 @@ export default function Dir() {
           <Selection.Control className={cx(classes.button)} />
           {BucketPreferences.Result.match(
             {
-              Ok: ({ ui: { actions } }) => (
+              Ok: ({ ui: { actions, blocks } }) => (
                 <>
                   {actions.createPackage && (
                     <Successors.Button
@@ -302,9 +302,12 @@ export default function Dir() {
                     </Successors.Button>
                   )}
 
-                  {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
+                  {!cfg.noDownload && actions.downloadObject && (
                     <Download.Button className={classes.button}>
-                      <Download.BucketOptions handle={dirHandle} />
+                      <Download.BucketOptions
+                        handle={dirHandle}
+                        hideCode={!blocks.code}
+                      />
                     </Download.Button>
                   )}
                 </>

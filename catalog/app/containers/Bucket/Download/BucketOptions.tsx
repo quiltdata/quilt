@@ -94,7 +94,7 @@ interface OptionsProps {
   hideCode?: boolean
 }
 
-export default function Options({ handle, hideCode }: OptionsProps) {
+export default function Optiots({ handle, hideCode }: OptionsProps) {
   if (hideCode) return <DownloadPanel handle={handle} />
 
   return (

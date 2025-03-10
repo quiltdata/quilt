@@ -384,7 +384,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
               <TopBar crumbs={crumbs}>
                 {BucketPreferences.Result.match(
                   {
-                    Ok: ({ ui: { actions } }) => (
+                    Ok: ({ ui: { actions, blocks } }) => (
                       <>
                         {actions.downloadPackage && (
                           <Selection.Control
@@ -421,6 +421,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                           >
                             <Download.PackageOptions
                               hashOrTag={hashOrTag}
+                              hideCode={!blocks.code}
                               uri={packageUri}
                             />
                           </Download.Button>
@@ -771,12 +772,12 @@ function FileDisplay({
                 )}
                 {BucketPreferences.Result.match(
                   {
-                    Ok: ({ ui }) => (
+                    Ok: ({ ui: { actions, blocks } }) => (
                       <>
                         {!cfg.noDownload &&
                           !deleted &&
                           !archived &&
-                          ui.actions.downloadPackage && (
+                          actions.downloadPackage && (
                             <Download.Button
                               className={classes.button}
                               label="Open in Desktop"
@@ -785,10 +786,11 @@ function FileDisplay({
                                 fileHandle={handle}
                                 hashOrTag={hashOrTag}
                                 uri={packageUri}
+                                hideCode={!blocks.code}
                               />
                             </Download.Button>
                           )}
-                        {ui.blocks.qurator && !deleted && !archived && (
+                        {blocks.qurator && !deleted && !archived && (
                           <AssistButton edge="end" />
                         )}
                       </>

@@ -23,11 +23,10 @@ function highlight(str: string, lang?: string) {
 
 const useStyles = M.makeStyles((t) => ({
   container: {
-    fontFamily: t.typography.monospace.fontFamily,
-    fontSize: t.typography.body2.fontSize,
-
     background: t.palette.grey[300],
     borderRadius: '2px',
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.body2.fontSize,
     overflow: 'auto',
     padding: '4px',
     position: 'relative',
@@ -37,10 +36,16 @@ const useStyles = M.makeStyles((t) => ({
     display: 'inline-flex',
   },
   btn: {
+    background: t.palette.grey[300],
     marginLeft: t.spacing(1),
+    opacity: 0.7,
+    padding: t.spacing(0.5),
     position: 'absolute',
-    right: '4px',
-    top: '4px',
+    right: 0,
+    top: 0,
+    '&:hover': {
+      opacity: 1,
+    },
   },
   root: {
     width: '100%',
@@ -83,14 +88,11 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
         </a>
       </M.Typography>
       <div className={classes.container}>
-        <M.IconButton
-          onClick={handleCopy}
-          title="Copy to clipboard"
-          size="small"
-          className={classes.btn}
-        >
-          <M.Icon fontSize="inherit">file_copy</M.Icon>
-        </M.IconButton>
+        <div className={classes.btn}>
+          <M.IconButton onClick={handleCopy} title="Copy to clipboard" size="small">
+            <M.Icon fontSize="inherit">file_copy</M.Icon>
+          </M.IconButton>
+        </div>
         {lines.map((line, index) => (
           <p key={`${line}_${index}`} className={classes.line}>
             {highlight(line, hl)}

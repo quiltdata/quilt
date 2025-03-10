@@ -355,6 +355,13 @@ export default function File() {
       }),
     }),
   })
+  const hideCode = BucketPreferences.Result.match(
+    {
+      Ok: ({ ui }) => !ui.blocks.code,
+      _: R.T,
+    },
+    prefs,
+  )
 
   const viewModes = useViewModes(mode)
 
@@ -472,7 +479,7 @@ export default function File() {
           )}
           {downloadable && (
             <Download.Button className={classes.button}>
-              <Download.BucketOptions handle={handle} />
+              <Download.BucketOptions handle={handle} hideCode={hideCode} />
             </Download.Button>
           )}
           {BucketPreferences.Result.match(

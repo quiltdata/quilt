@@ -21,6 +21,7 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import Analytics from 'containers/Bucket/File/Analytics'
+import * as Download from 'containers/Bucket/Download'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
@@ -307,7 +308,10 @@ export default function File() {
       }),
     })
 
-  const handle = { bucket, key: path, version }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version }),
+    [bucket, path, version],
+  )
 
   const withPreview = (callback) =>
     requests.ObjectExistence.case({
@@ -358,10 +362,11 @@ export default function File() {
         </div>
         <div className={classes.actions}>
           <FileProperties data={versionExistsData} />
-          {downloadable &&
-            {
-              /* FIXME: ADD DOWNLOAD BUTTON */
-            }}
+          {downloadable && (
+            <Download.Button className={classes.button}>
+              <Download.BucketOptions handle={handle} hideCode={!ecfg.hideCode} />
+            </Download.Button>
+          )}
         </div>
       </div>
       {objExistsData.case({

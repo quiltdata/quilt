@@ -6,6 +6,7 @@ import { useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
@@ -13,6 +14,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
+import * as Download from 'containers/Bucket/Download'
 import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
@@ -112,6 +114,8 @@ export default function Dir() {
     scoped ? basename(ecfg.scope) : 'ROOT',
   )
 
+  const dirHandle = React.useMemo(() => ({ bucket, path }), [bucket, path])
+
   return (
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
@@ -119,7 +123,11 @@ export default function Dir() {
           {BreadCrumbs.render(crumbs)}
         </div>
         <M.Box flexGrow={1} />
-        {/* FIXME: ADD DOWNLOAD BUTTON */}
+        {!cfg.noDownload && (
+          <Download.Button className={classes.button}>
+            <Download.BucketOptions handle={dirHandle} hideCode={!ecfg.hideCode} />
+          </Download.Button>
+        )}
       </M.Box>
 
       {data.case({
