@@ -2,6 +2,30 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import cx from 'classnames'
 
+const useTabPanelStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2, 2, 1),
+    animation: `$show 150ms ease-out`,
+  },
+  '@keyframes show': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: '1',
+    },
+  },
+}))
+
+interface TabPanelProps {
+  children: React.ReactNode
+}
+
+export function TabPanel({ children }: TabPanelProps) {
+  const classes = useTabPanelStyles()
+  return <div className={classes.root}>{children}</div>
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
@@ -32,18 +56,6 @@ const useStyles = M.makeStyles((t) => ({
       right: 0,
       height: '2px',
       backgroundColor: t.palette.primary.main,
-    },
-  },
-  tab: {
-    padding: t.spacing(2, 2, 1),
-    animation: `$show 150ms ease-out`,
-  },
-  '@keyframes show': {
-    '0%': {
-      opacity: 0.3,
-    },
-    '100%': {
-      opacity: '1',
     },
   },
   '@keyframes activate': {
@@ -85,15 +97,3 @@ export function Tabs({ labels, children }: TabsProps) {
     </div>
   )
 }
-
-interface TabPanelProps {
-  children: React.ReactNode
-}
-
-export function TabPanel({ children }: TabPanelProps) {
-  const classes = useStyles()
-  return <div className={classes.tab}>{children}</div>
-}
-
-// Default export for backward compatibility
-export default Tabs
