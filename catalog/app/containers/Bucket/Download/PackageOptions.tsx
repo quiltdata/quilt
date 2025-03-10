@@ -12,7 +12,7 @@ import copyToClipboard from 'utils/clipboard'
 import * as FileView from '../FileView'
 import PackageCodeSamples from '../CodeSamples/Package'
 import * as Selection from '../Selection'
-import OptionsTabs from './OptionsTabs'
+import { Tabs, TabPanel } from './OptionsTabs'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
@@ -152,14 +152,16 @@ interface OptionsProps {
 // FIXME: configure hiding tabs in Props, so we can manage it in Embed views
 export default function Options({ fileHandle, hashOrTag, uri }: OptionsProps) {
   return (
-    <OptionsTabs labels={['QuiltSync', 'Code']}>
-      {(activeTab) => {
-        !activeTab ? (
-          <DownloadPanel fileHandle={fileHandle} uri={uri} />
-        ) : (
-          <CodePanel hashOrTag={hashOrTag} uri={uri} />
-        )
-      }}
-    </OptionsTabs>
+    <Tabs labels={['QuiltSync', 'Code']}>
+      {(activeTab) => (
+        <TabPanel>
+          {!activeTab ? (
+            <DownloadPanel fileHandle={fileHandle} uri={uri} />
+          ) : (
+            <CodePanel hashOrTag={hashOrTag} uri={uri} />
+          )}
+        </TabPanel>
+      )}
+    </Tabs>
   )
 }

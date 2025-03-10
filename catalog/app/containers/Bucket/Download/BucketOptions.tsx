@@ -6,7 +6,7 @@ import * as AWS from 'utils/AWS'
 
 import * as FileView from '../FileView'
 import { DirCodeSamples, FileCodeSamples } from '../CodeSamples/Bucket'
-import OptionsTabs from './OptionsTabs'
+import { Tabs, TabPanel } from './OptionsTabs'
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
@@ -65,10 +65,12 @@ interface OptionsProps {
 
 export default function Options({ handle }: OptionsProps) {
   return (
-    <OptionsTabs labels={['Download', 'Code']}>
-      {(activeTab) =>
-        !activeTab ? <DownloadPanel handle={handle} /> : <CodePanel handle={handle} />
-      }
-    </OptionsTabs>
+    <Tabs labels={['Download', 'Code']}>
+      {(activeTab) => (
+        <TabPanel>
+          {!activeTab ? <DownloadPanel handle={handle} /> : <CodePanel handle={handle} />}
+        </TabPanel>
+      )}
+    </Tabs>
   )
 }

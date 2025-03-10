@@ -56,12 +56,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface OptionsTabsProps {
+interface TabsProps {
   labels: [string, string]
   children: (activeTab: number) => React.ReactNode
 }
 
-export default function OptionsTabs({ labels, children }: OptionsTabsProps) {
+export function Tabs({ labels, children }: TabsProps) {
   const classes = useStyles()
   const [activeTab, setActiveTab] = React.useState(0)
 
@@ -81,7 +81,19 @@ export default function OptionsTabs({ labels, children }: OptionsTabsProps) {
           {labels[1]}
         </M.Button>
       </M.Paper>
-      <div className={classes.tab}>{children(activeTab)}</div>
+      {children(activeTab)}
     </div>
   )
 }
+
+interface TabPanelProps {
+  children: React.ReactNode
+}
+
+export function TabPanel({ children }: TabPanelProps) {
+  const classes = useStyles()
+  return <div className={classes.tab}>{children}</div>
+}
+
+// Default export for backward compatibility
+export default Tabs
