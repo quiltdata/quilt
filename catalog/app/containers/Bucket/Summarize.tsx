@@ -703,7 +703,10 @@ export function ConfigureAppearance({
   return (
     <div className={classes.root}>
       {!hasSummarizeJson && (
-        <StyledTooltip title="Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.">
+        <StyledTooltip
+          maxWidth="md"
+          title="Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package."
+        >
           <RRDom.Link to={summarize} className={classes.button}>
             <M.Button color="primary" size="small" variant="outlined">
               Configure Summary
@@ -712,7 +715,10 @@ export function ConfigureAppearance({
         </StyledTooltip>
       )}
       {!hasReadme && (
-        <StyledTooltip title="Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.">
+        <StyledTooltip
+          maxWidth="md"
+          title="Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package."
+        >
           <RRDom.Link to={readme} className={classes.button}>
             <M.Button color="primary" size="small" variant="contained">
               Add README

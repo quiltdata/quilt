@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const useCodeStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.grey[300],
     borderRadius: '2px',
@@ -19,6 +19,6 @@ interface CodeProps {
 }
 
 export default function Code({ className, children }: CodeProps) {
-  const classes = useCodeStyles()
+  const classes = useStyles()
   return <code className={cx(classes.root, className)}>{children}</code>
 }
