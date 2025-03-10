@@ -14,18 +14,6 @@ import PackageCodeSamples from '../CodeSamples/Package'
 import * as Selection from '../Selection'
 import { Tabs, TabPanel } from './OptionsTabs'
 
-const useDownloadPanelStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(60),
-  },
-}))
-
-const useCodePanelStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(80),
-  },
-}))
-
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
 }
@@ -122,7 +110,11 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useDownloadPanelStyles = M.makeStyles((t) => ({
+  root: {
+    minWidth: t.spacing(40),
+    maxWidth: t.spacing(60),
+  },
   quiltSync: {
     padding: t.spacing(0, 0, 2),
     borderBottom: `1px solid ${t.palette.divider}`,
@@ -136,16 +128,21 @@ interface DownloadPanelProps {
 }
 
 function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
-  const classes = useStyles()
-  const panelClasses = useDownloadPanelStyles()
+  const classes = useDownloadPanelStyles()
 
   return (
-    <TabPanel className={panelClasses.root}>
+    <TabPanel className={classes.root}>
       <QuiltSync className={classes.quiltSync} uri={uri} />
       {fileHandle ? <DownloadFile fileHandle={fileHandle} /> : <DownloadDir uri={uri} />}
     </TabPanel>
   )
 }
+
+const useCodePanelStyles = M.makeStyles((t) => ({
+  root: {
+    minWidth: t.spacing(80),
+  },
+}))
 
 interface CodePanelProps {
   hashOrTag: string
