@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import cx from 'classnames'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -68,13 +69,13 @@ export default function OptionsTabs({ labels, children }: OptionsTabsProps) {
     <div className={classes.root}>
       <M.Paper className={classes.tabsContainer} elevation={1}>
         <M.Button
-          className={`${classes.tabButton} ${activeTab === 0 ? classes.activeTab : ''}`}
+          className={cx(classes.tabButton, { [classes.activeTab]: activeTab === 0 })}
           onClick={() => setActiveTab(0)}
         >
           {labels[0]}
         </M.Button>
         <M.Button
-          className={`${classes.tabButton} ${activeTab === 1 ? classes.activeTab : ''}`}
+          className={cx(classes.tabButton, { [classes.activeTab]: activeTab === 1 })}
           onClick={() => setActiveTab(1)}
         >
           {labels[1]}
