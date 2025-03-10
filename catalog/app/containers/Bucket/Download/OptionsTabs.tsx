@@ -19,11 +19,12 @@ const useTabPanelStyles = M.makeStyles((t) => ({
 
 interface TabPanelProps {
   children: React.ReactNode
+  className?: string
 }
 
-export function TabPanel({ children }: TabPanelProps) {
+export function TabPanel({ children, className }: TabPanelProps) {
   const classes = useTabPanelStyles()
-  return <div className={classes.root}>{children}</div>
+  return <div className={cx(classes.root, className)}>{children}</div>
 }
 
 const useStyles = M.makeStyles((t) => ({

@@ -8,7 +8,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   popup: {
-    minWidth: t.spacing(60),
     position: 'absolute',
     right: 0,
     top: 0,

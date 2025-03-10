@@ -16,6 +16,18 @@ function isFile(handle: Handle): handle is FileHandle {
   return 'key' in handle && !!handle.key
 }
 
+const useDownloadPanelStyles = M.makeStyles((t) => ({
+  root: {
+    minWidth: t.spacing(30),
+  },
+}))
+
+const useCodePanelStyles = M.makeStyles((t) => ({
+  root: {
+    minWidth: t.spacing(80),
+  },
+}))
+
 interface DownloadFileProps {
   fileHandle: FileHandle
 }
@@ -48,8 +60,9 @@ interface DownloadPanelProps {
 }
 
 function DownloadPanel({ handle }: DownloadPanelProps) {
+  const classes = useDownloadPanelStyles()
   return (
-    <TabPanel>
+    <TabPanel className={classes.root}>
       {isFile(handle) ? (
         <DownloadFile fileHandle={handle} />
       ) : (
@@ -64,8 +77,9 @@ interface CodePanelProps {
 }
 
 function CodePanel({ handle }: CodePanelProps) {
+  const classes = useCodePanelStyles()
   return (
-    <TabPanel>
+    <TabPanel className={classes.root}>
       {isFile(handle) ? (
         <FileCodeSamples bucket={handle.bucket} path={handle.key} />
       ) : (
