@@ -262,7 +262,7 @@ export default function Dir() {
     [paths],
   )
 
-  const dirHandle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
+  const dirHandle = React.useMemo(() => ({ bucket, path }), [bucket, path])
 
   return (
     <M.Box pt={2} pb={4}>
