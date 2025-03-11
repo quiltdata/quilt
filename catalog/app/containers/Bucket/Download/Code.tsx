@@ -1,6 +1,4 @@
-import cx from 'classnames'
 import hljs from 'highlight.js'
-import 'highlight.js/styles/default.css'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -31,11 +29,7 @@ const useStyles = M.makeStyles((t) => ({
     padding: '4px',
     position: 'relative',
   },
-  label: {
-    alignItems: 'center',
-    display: 'inline-flex',
-  },
-  btn: {
+  copy: {
     background: t.palette.grey[300],
     marginLeft: t.spacing(1),
     opacity: 0.7,
@@ -47,8 +41,13 @@ const useStyles = M.makeStyles((t) => ({
       opacity: 1,
     },
   },
-  root: {
-    width: '100%',
+  help: {
+    display: 'inline-block',
+    marginLeft: t.spacing(0.5),
+    verticalAlign: 'bottom',
+  },
+  label: {
+    marginBottom: t.spacing(0.5),
   },
   line: {
     textIndent: t.spacing(-4),
@@ -78,17 +77,17 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
   )
 
   return (
-    <div className={cx(classes.root, className)}>
-      <M.Typography className={classes.label} variant="subtitle2" gutterBottom>
+    <div className={className}>
+      <M.Typography className={classes.label} variant="subtitle2">
         {label}
-        <a href={help} target="_blank">
-          <M.IconButton size="small" style={{ marginLeft: '4px' }}>
+        <a href={help} target="_blank" className={classes.help}>
+          <M.IconButton size="small">
             <M.Icon fontSize="inherit">help</M.Icon>
           </M.IconButton>
         </a>
       </M.Typography>
       <div className={classes.container}>
-        <div className={classes.btn}>
+        <div className={classes.copy}>
           <M.IconButton onClick={handleCopy} title="Copy to clipboard" size="small">
             <M.Icon fontSize="inherit">file_copy</M.Icon>
           </M.IconButton>

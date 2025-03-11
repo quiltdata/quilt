@@ -301,7 +301,6 @@ export default function Dir() {
                       Create package
                     </Successors.Button>
                   )}
-
                   {!cfg.noDownload && actions.downloadObject && (
                     <Download.Button className={classes.button}>
                       <Download.BucketOptions

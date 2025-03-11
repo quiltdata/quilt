@@ -27,29 +27,21 @@ interface ButtonProps {
 
 export default function Button({ className, children, label }: ButtonProps) {
   const classes = useStyles()
-  const [popupOpen, setPopupOpen] = React.useState(false)
-  const rootRef = React.useRef<HTMLDivElement>(null)
-
-  const handleButtonClick = () => {
-    setPopupOpen((prevOpen) => !prevOpen)
-  }
-
-  const handleClose = () => {
-    setPopupOpen(false)
-  }
-
+  const [opened, setOpened] = React.useState(false)
+  const handleClick = React.useCallback(() => setOpened((o) => !o), [])
+  const handleClose = React.useCallback(() => setOpened(false), [])
   return (
-    <div ref={rootRef} className={classes.root}>
+    <div className={classes.root}>
       <Buttons.Iconized
         className={className}
         endIcon={<M.Icon>arrow_drop_down</M.Icon>}
-        onClick={handleButtonClick}
-        size="small"
         icon="download"
-        variant="outlined"
         label={label || 'Download'}
+        onClick={handleClick}
+        size="small"
+        variant="outlined"
       />
-      {popupOpen && (
+      {opened && (
         <M.ClickAwayListener onClickAway={handleClose}>
           <M.Paper className={classes.popup} elevation={8}>
             {children}

@@ -4,8 +4,8 @@ import cx from 'classnames'
 
 const useTabPanelStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(2, 2, 1),
     animation: `$show 150ms ease-out`,
+    padding: t.spacing(2, 2, 1),
   },
   '@keyframes show': {
     '0%': {
@@ -88,6 +88,18 @@ export function Tabs({ labels, children }: TabsProps) {
   const classes = useStyles()
   const [activeTab, setActiveTab] = React.useState(0)
 
+  const renderTab = React.useCallback(
+    (tab: number) => (
+      <M.Button
+        className={cx(classes.tabButton, { [classes.activeTab]: activeTab === tab })}
+        onClick={() => setActiveTab(tab)}
+      >
+        {labels[tab]}
+      </M.Button>
+    ),
+    [activeTab, classes, labels],
+  )
+
   return (
     <div
       className={cx(classes.root, {
@@ -96,18 +108,8 @@ export function Tabs({ labels, children }: TabsProps) {
       })}
     >
       <M.Paper className={classes.tabsContainer} elevation={1}>
-        <M.Button
-          className={cx(classes.tabButton, { [classes.activeTab]: activeTab === 0 })}
-          onClick={() => setActiveTab(0)}
-        >
-          {labels[0]}
-        </M.Button>
-        <M.Button
-          className={cx(classes.tabButton, { [classes.activeTab]: activeTab === 1 })}
-          onClick={() => setActiveTab(1)}
-        >
-          {labels[1]}
-        </M.Button>
+        {renderTab(0)}
+        {renderTab(1)}
       </M.Paper>
       {children(activeTab)}
     </div>

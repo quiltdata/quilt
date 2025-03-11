@@ -87,7 +87,11 @@ export default function Optiots({ handle, hideCode }: OptionsProps) {
   return (
     <Tabs labels={['Download', 'Code']}>
       {(activeTab) =>
-        !activeTab ? <DownloadPanel handle={handle} /> : <CodePanel handle={handle} />
+        activeTab === 0 ? (
+          <DownloadPanel handle={handle} />
+        ) : (
+          <CodePanel handle={handle} />
+        )
       }
     </Tabs>
   )

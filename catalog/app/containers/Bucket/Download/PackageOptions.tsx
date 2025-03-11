@@ -5,6 +5,7 @@ import invariant from 'invariant'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
@@ -117,10 +118,19 @@ interface DownloadPanelProps {
 
 function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
   const classes = useDownloadPanelStyles()
-
+  const { prefs } = BucketPreferences.use()
   return (
     <TabPanel>
-      <QuiltSync className={classes.quiltSync} uri={uri} />
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) =>
+            actions.openInDesktop && (
+              <QuiltSync className={classes.quiltSync} uri={uri} />
+            ),
+          _: () => null,
+        },
+        prefs,
+      )}
       {fileHandle ? <DownloadFile fileHandle={fileHandle} /> : <DownloadDir uri={uri} />}
     </TabPanel>
   )
@@ -152,7 +162,7 @@ export default function Options({ fileHandle, hashOrTag, uri, hideCode }: Option
   return (
     <Tabs labels={['QuiltSync', 'Code']}>
       {(activeTab) =>
-        !activeTab ? (
+        activeTab === 0 ? (
           <DownloadPanel fileHandle={fileHandle} uri={uri} />
         ) : (
           <CodePanel hashOrTag={hashOrTag} uri={uri} />
