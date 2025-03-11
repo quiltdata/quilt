@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as urls from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
@@ -92,10 +93,9 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
       </M.ButtonGroup>
       <M.Typography variant="caption">
         Don't have QuiltSync?{' '}
-        <StyledLink href="" target="_blank">
+        <StyledLink href={urls.quiltSync} target="_blank">
           Download it here
         </StyledLink>
-        .
       </M.Typography>
     </div>
   )
