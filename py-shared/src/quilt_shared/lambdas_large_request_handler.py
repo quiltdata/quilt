@@ -5,7 +5,7 @@ import functools
 import tempfile
 import typing as T
 
-import pydantic
+import pydantic.v1
 
 from . import const
 
@@ -15,7 +15,7 @@ if T.TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
 
 
-class VersionId(pydantic.ConstrainedStr):
+class VersionId(pydantic.v1.ConstrainedStr):
     strip_whitespace = True
     min_length = 1
     max_length = 1024
@@ -88,7 +88,7 @@ def large_request_handler(
 ):
     def inner(f: T.Callable[[T.IO[bytes]], FnReturn]):
         @functools.wraps(f)
-        @pydantic.validate_arguments
+        @pydantic.v1.validate_arguments
         def wrapper(version_id: VersionId) -> FnReturn:
             with request_from_file(
                 bucket=bucket,
