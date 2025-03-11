@@ -14,7 +14,7 @@ import boto3
 import botocore.client
 import botocore.credentials
 import botocore.exceptions
-import pydantic
+import pydantic.v1
 import rfc3986
 
 # Must be done before importing quilt3.
@@ -96,7 +96,7 @@ class PkgpushException(LambdaError):
         return cls(name, {"details": qe.message})
 
 
-def invoke_lambda(*, function_name: str, params: pydantic.BaseModel, err_prefix: str):
+def invoke_lambda(*, function_name: str, params: pydantic.v1.BaseModel, err_prefix: str):
     resp = lambda_.invoke(
         FunctionName=function_name,
         Payload=params.json(exclude_defaults=True),
@@ -225,7 +225,7 @@ def copy_file_list(
 get_user_boto_session = boto3.Session
 
 
-class Event(pydantic.BaseModel):
+class Event(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     params: T.Any
 
@@ -242,7 +242,7 @@ def setup_user_boto_session(session):
 
 def auth(f):
     @functools.wraps(f)
-    @pydantic.validate_arguments
+    @pydantic.v1.validate_arguments
     def wrapper(event: Event):
         with setup_user_boto_session(get_user_boto_session(**event.credentials.boto_args)):
             return f(event.params)
@@ -270,7 +270,7 @@ def exception_handler(f):
         except PkgpushException as e:
             logger.exception("PkgpushException")
             return {"error": e.dict()}
-        except pydantic.ValidationError as e:
+        except pydantic.v1.ValidationError as e:
             # XXX: make it .info()?
             logger.exception("ValidationError")
             # XXX: expose advanced pydantic error reporting capabilities?
@@ -392,7 +392,7 @@ def _push_pkg_to_successor(
 @exception_handler
 @auth
 @setup_telemetry
-@pydantic.validate_arguments
+@pydantic.v1.validate_arguments
 def promote_package(params: PackagePromoteParams) -> PackagePushResult:
     def get_pkg(src_registry: S3PackageRegistryV1):
         quilt3.util.validate_package_name(params.src.name)
@@ -531,7 +531,7 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     return PackagePushResult(top_hash=TopHash(top_hash))
 
 
-class PackagerEvent(pydantic.BaseModel):
+class PackagerEvent(pydantic.v1.BaseModel):
     source_prefix: str
     registry: str | None = None
     package_name: str | None = None
@@ -540,7 +540,7 @@ class PackagerEvent(pydantic.BaseModel):
     workflow: str | None = None
     commit_message: str | None = None
 
-    @pydantic.root_validator
+    @pydantic.v1.root_validator
     def validate_metadata(cls, values):
         metadata, metadata_uri = values["metadata"], values["metadata_uri"]
         if metadata is not None and metadata_uri is not None:

@@ -15,7 +15,7 @@ import aiobotocore.config
 import aiobotocore.response
 import aiobotocore.session
 import botocore.exceptions
-import pydantic
+import pydantic.v1
 
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_errors import LambdaError
@@ -188,7 +188,7 @@ def hash_parts(parts: T.Sequence[bytes]) -> bytes:
     return hashlib.sha256(b"".join(parts)).digest()
 
 
-class PartDef(pydantic.BaseModel):
+class PartDef(pydantic.v1.BaseModel):
     part_number: int
     range: T.Optional[T.Tuple[int, int]]
 
@@ -287,7 +287,7 @@ async def compute_part_checksums(
     return checksums
 
 
-class PartUploadResult(pydantic.BaseModel):
+class PartUploadResult(pydantic.v1.BaseModel):
     etag: str
     sha256: str  # base64-encoded
 
@@ -300,7 +300,7 @@ class PartUploadResult(pydantic.BaseModel):
 
 
 class MPURef(MPURefBase):
-    _completed: bool = pydantic.PrivateAttr(default=False)
+    _completed: bool = pydantic.v1.PrivateAttr(default=False)
 
     @property
     def completed(self):
@@ -370,7 +370,7 @@ def lambda_wrapper(f) -> T.Callable[[AnyDict, LambdaContext], AnyDict]:
                 )
             except asyncio.TimeoutError:
                 raise LambdaError("Timeout")
-            except pydantic.ValidationError as e:
+            except pydantic.v1.ValidationError as e:
                 # XXX: make it .info()?
                 logger.exception("ValidationError")
                 # TODO: expose advanced pydantic error reporting capabilities
@@ -430,7 +430,7 @@ async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str
 
 # XXX: move decorators to shared?
 @lambda_wrapper
-@pydantic.validate_arguments
+@pydantic.v1.validate_arguments
 async def lambda_handler(
     *,
     credentials: AWSCredentials,
@@ -463,7 +463,7 @@ async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyRes
 
 # XXX: move decorators to shared?
 @lambda_wrapper
-@pydantic.validate_arguments
+@pydantic.v1.validate_arguments
 async def lambda_handler_copy(
     *,
     credentials: AWSCredentials,
