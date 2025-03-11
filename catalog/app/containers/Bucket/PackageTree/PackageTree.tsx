@@ -417,7 +417,9 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                         {actions.downloadPackage && (
                           <Download.Button
                             className={classes.button}
-                            label="Open in Desktop"
+                            label={
+                              !packageUri.path && slt.isEmpty ? 'Get package' : undefined
+                            }
                           >
                             <Download.PackageOptions
                               hashOrTag={hashOrTag}
@@ -779,10 +781,7 @@ function FileDisplay({
                           !deleted &&
                           !archived &&
                           actions.downloadPackage && (
-                            <Download.Button
-                              className={classes.button}
-                              label="Open in Desktop"
-                            >
+                            <Download.Button className={classes.button} label="Get file">
                               <Download.PackageOptions
                                 fileHandle={handle}
                                 hashOrTag={hashOrTag}

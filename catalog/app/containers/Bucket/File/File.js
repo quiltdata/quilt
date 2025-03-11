@@ -474,7 +474,7 @@ export default function File() {
             BucketPreferences.Result.match(
               {
                 Ok: ({ ui: { blocks } }) => (
-                  <Download.Button className={classes.button}>
+                  <Download.Button className={classes.button} label="Get file">
                     <Download.BucketOptions handle={handle} hideCode={!blocks.code} />
                   </Download.Button>
                 ),

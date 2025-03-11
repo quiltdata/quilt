@@ -363,7 +363,7 @@ export default function File() {
         <div className={classes.actions}>
           <FileProperties data={versionExistsData} />
           {downloadable && (
-            <Download.Button className={classes.button}>
+            <Download.Button className={classes.button} label="Get file">
               <Download.BucketOptions handle={handle} hideCode={!ecfg.hideCode} />
             </Download.Button>
           )}

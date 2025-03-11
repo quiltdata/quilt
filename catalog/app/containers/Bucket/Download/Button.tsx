@@ -28,7 +28,11 @@ interface ButtonProps {
   children: NonNullable<React.ReactNode>
 }
 
-export default function Button({ className, children, label }: ButtonProps) {
+export default function Button({
+  className,
+  children,
+  label = 'Get files',
+}: ButtonProps) {
   const classes = useStyles()
   const [opened, setOpened] = React.useState(false)
   const handleClick = React.useCallback(() => setOpened((o) => !o), [])
@@ -39,7 +43,7 @@ export default function Button({ className, children, label }: ButtonProps) {
         className={className}
         endIcon={<M.Icon>arrow_drop_down</M.Icon>}
         icon="download"
-        label={label || 'Download'}
+        label={label}
         onClick={handleClick}
         size="small"
         variant="outlined"
