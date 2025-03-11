@@ -422,6 +422,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             <Download.PackageOptions
                               hashOrTag={hashOrTag}
                               hideCode={!blocks.code}
+                              selection={slt.isEmpty ? undefined : slt.selection}
                               uri={packageUri}
                             />
                           </Download.Button>

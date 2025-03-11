@@ -1,6 +1,5 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import invariant from 'invariant'
 
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
@@ -30,26 +29,25 @@ function DownloadFile({ fileHandle }: DownloadFileProps) {
 }
 
 interface DownloadDirProps {
+  selection?: Selection.ListingSelection
   uri: PackageUri.PackageUri
 }
 
-function DownloadDir({ uri }: DownloadDirProps) {
-  const slt = Selection.use()
-  invariant(slt.inited, 'Selection must be used within a Selection.Provider')
-
-  const downloadLabel = !slt.isEmpty // eslint-disable-line no-nested-ternary
-    ? 'Download ZIP (selected files only)'
+function DownloadDir({ selection, uri }: DownloadDirProps) {
+  const isSelectionEmpty = typeof selection === 'undefined'
+  const downloadLabel = !isSelectionEmpty // eslint-disable-line no-nested-ternary
+    ? 'Download ZIP (selected files)'
     : uri.path
       ? 'Download ZIP (sub-package)'
       : 'Download ZIP (entire package)'
   const downloadPath =
-    uri.path && slt.isEmpty
+    uri.path && isSelectionEmpty
       ? `package/${uri.bucket}/${uri.name}/${uri.hash}/${uri.path}`
       : `package/${uri.bucket}/${uri.name}/${uri.hash}`
   return (
     <FileView.ZipDownloadForm
+      files={selection && Selection.toHandlesList(selection).map(({ key }) => key)}
       suffix={downloadPath}
-      files={Selection.toHandlesList(slt.selection).map(({ key }) => key)}
     >
       <M.Button startIcon={<M.Icon>archive</M.Icon>} type="submit">
         {downloadLabel}
@@ -113,10 +111,11 @@ const useDownloadPanelStyles = M.makeStyles((t) => ({
 
 interface DownloadPanelProps {
   fileHandle?: Model.S3.S3ObjectLocation
+  selection?: Selection.ListingSelection
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
 }
 
-function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
+function DownloadPanel({ fileHandle, selection, uri }: DownloadPanelProps) {
   const classes = useDownloadPanelStyles()
   const { prefs } = BucketPreferences.use()
   return (
@@ -131,7 +130,11 @@ function DownloadPanel({ fileHandle, uri }: DownloadPanelProps) {
         },
         prefs,
       )}
-      {fileHandle ? <DownloadFile fileHandle={fileHandle} /> : <DownloadDir uri={uri} />}
+      {fileHandle ? (
+        <DownloadFile fileHandle={fileHandle} />
+      ) : (
+        <DownloadDir selection={selection} uri={uri} />
+      )}
     </TabPanel>
   )
 }
@@ -150,20 +153,27 @@ function CodePanel({ hashOrTag, uri }: CodePanelProps) {
 }
 
 interface OptionsProps {
-  hashOrTag: string
   fileHandle?: Model.S3.S3ObjectLocation
-  uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
+  hashOrTag: string
   hideCode?: boolean
+  selection?: Selection.ListingSelection
+  uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
 }
 
-export default function Options({ fileHandle, hashOrTag, uri, hideCode }: OptionsProps) {
+export default function Options({
+  fileHandle,
+  hashOrTag,
+  hideCode,
+  selection,
+  uri,
+}: OptionsProps) {
   if (hideCode) return <DownloadPanel fileHandle={fileHandle} uri={uri} />
 
   return (
     <Tabs labels={['QuiltSync', 'Code']}>
       {(activeTab) =>
         activeTab === 0 ? (
-          <DownloadPanel fileHandle={fileHandle} uri={uri} />
+          <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
         ) : (
           <CodePanel hashOrTag={hashOrTag} uri={uri} />
         )
