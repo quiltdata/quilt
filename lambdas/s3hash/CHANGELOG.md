@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Bump pydantic to v2 ([#4355](https://github.com/quiltdata/quilt/pull/4355))
 - [Fixed] Fix copy to unversioned buckets ([#4300](https://github.com/quiltdata/quilt/pull/4300))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
 - [Fixed] Fix invalid checksum for some non-canonical objects with existing checksum ([#4062](https://github.com/quiltdata/quilt/pull/4062))
