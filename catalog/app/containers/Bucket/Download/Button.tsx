@@ -17,6 +17,9 @@ const useStyles = M.makeStyles((t) => ({
       width: 'calc(100vw - 16px)',
     },
   },
+  backdrop: {
+    zIndex: t.zIndex.drawer,
+  },
 }))
 
 interface ButtonProps {
@@ -41,12 +44,12 @@ export default function Button({ className, children, label }: ButtonProps) {
         size="small"
         variant="outlined"
       />
+
+      <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
       {opened && (
-        <M.ClickAwayListener onClickAway={handleClose}>
-          <M.Paper className={classes.popup} elevation={8}>
-            {children}
-          </M.Paper>
-        </M.ClickAwayListener>
+        <M.Paper className={classes.popup} elevation={8}>
+          {children}
+        </M.Paper>
       )}
     </div>
   )
