@@ -124,7 +124,7 @@ export default function Dir() {
         </div>
         <M.Box flexGrow={1} />
         {!cfg.noDownload && (
-          <Download.Button className={classes.button}>
+          <Download.Button>
             <Download.BucketOptions handle={dirHandle} hideCode={!ecfg.hideCode} />
           </Download.Button>
         )}
