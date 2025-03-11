@@ -21,8 +21,9 @@ interface ButtonIconizedProps extends M.IconButtonProps {
 
 export default function ButtonIconized({
   className,
-  label,
+  endIcon,
   icon,
+  label,
   rotate,
   variant = 'outlined',
   ...props
@@ -43,6 +44,7 @@ export default function ButtonIconized({
   ) : (
     <M.Button
       className={className}
+      endIcon={endIcon}
       size="small"
       startIcon={iconElement}
       variant={variant}
