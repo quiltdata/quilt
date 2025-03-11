@@ -167,7 +167,8 @@ export default function Options({
   selection,
   uri,
 }: OptionsProps) {
-  if (hideCode) return <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
+  if (hideCode)
+    return <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
 
   return (
     <Tabs labels={['QuiltSync', 'Code']}>
