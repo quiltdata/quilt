@@ -5,6 +5,7 @@ import cx from 'classnames'
 const useTabPanelStyles = M.makeStyles((t) => ({
   root: {
     animation: `$show 150ms ease-out`,
+    minWidth: t.spacing(40),
     padding: t.spacing(2, 2, 1),
   },
   '@keyframes show': {

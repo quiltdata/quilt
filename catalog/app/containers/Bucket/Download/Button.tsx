@@ -13,7 +13,7 @@ const useStyles = M.makeStyles((t) => ({
     top: 0,
     transform: `translate(${t.spacing(5)}px, ${t.spacing(5)}px)`,
     zIndex: t.zIndex.modal,
-    [t.breakpoints.down('sm')]: {
+    [t.breakpoints.down('xs')]: {
       width: 'calc(100vw - 16px)',
     },
   },
