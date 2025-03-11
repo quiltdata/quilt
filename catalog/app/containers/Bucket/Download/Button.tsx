@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   backdrop: {
-    zIndex: t.zIndex.drawer,
+    zIndex: t.zIndex.modal - 1,
   },
 }))
 

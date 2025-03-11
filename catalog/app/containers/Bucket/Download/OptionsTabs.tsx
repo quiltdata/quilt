@@ -74,7 +74,7 @@ const useStyles = M.makeStyles((t) => ({
       transform: 'scaleX(0.5)',
     },
     '100%': {
-      opacity: 'scaleX(1)',
+      transform: 'scaleX(1)',
     },
   },
 }))

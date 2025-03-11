@@ -16,7 +16,7 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(1),
   },
   arrow: {
-    color: t.palette.common.white,
+    color: t.palette.background.paper,
   },
 }))
 

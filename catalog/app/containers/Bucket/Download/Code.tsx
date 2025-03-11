@@ -80,7 +80,7 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
     <div className={className}>
       <M.Typography className={classes.label} variant="subtitle2">
         {label}
-        <a href={help} target="_blank" className={classes.help}>
+        <a href={help} target="_blank" rel="noopener noreferrer" className={classes.help}>
           <M.IconButton size="small">
             <M.Icon fontSize="inherit">help</M.Icon>
           </M.IconButton>

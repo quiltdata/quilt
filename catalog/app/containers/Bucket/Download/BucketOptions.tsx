@@ -36,7 +36,7 @@ interface DownloadDirProps {
 
 function DownloadDir({ dirHandle }: DownloadDirProps) {
   return (
-    <FileView.ZipDownloadForm suffix={`dir/${dirHandle}/${dirHandle}`}>
+    <FileView.ZipDownloadForm suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}>
       <M.Button startIcon={<M.Icon>archive</M.Icon>} type="submit">
         Download ZIP (directory)
       </M.Button>
@@ -81,7 +81,7 @@ interface OptionsProps {
   hideCode?: boolean
 }
 
-export default function Optiots({ handle, hideCode }: OptionsProps) {
+export default function Options({ handle, hideCode }: OptionsProps) {
   if (hideCode) return <DownloadPanel handle={handle} />
 
   return (
