@@ -12,12 +12,22 @@ function highlight(str: string, lang?: string) {
       // eslint-disable-next-line react/no-danger
       return <span dangerouslySetInnerHTML={{ __html: value }} />
     } catch (err) {
-      // istanbul ignore next
       console.error(err) // eslint-disable-line no-console
     }
   }
   return str
 }
+
+interface LineOfCodeProps {
+  className: string
+  hl: string
+  line: string
+}
+
+const LineOfCode = React.memo(({ line, hl, className }: LineOfCodeProps) => {
+  const code = React.useMemo(() => highlight(line, hl), [line, hl])
+  return <p className={className}>{code}</p>
+})
 
 const useStyles = M.makeStyles((t) => ({
   container: {
@@ -93,9 +103,12 @@ export default function Code({ className, help, hl, label, lines }: CodeProps) {
           </M.IconButton>
         </div>
         {lines.map((line, index) => (
-          <p key={`${line}_${index}`} className={classes.line}>
-            {highlight(line, hl)}
-          </p>
+          <LineOfCode
+            className={classes.line}
+            hl={hl}
+            key={`${line}_${index}`}
+            line={line}
+          />
         ))}
       </div>
     </div>
