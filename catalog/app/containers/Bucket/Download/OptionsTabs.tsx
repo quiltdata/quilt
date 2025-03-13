@@ -82,14 +82,13 @@ const useStyles = M.makeStyles((t) => ({
 
 type TabType = 'download' | 'code'
 
-const TABS_LABELS = {
+const TABS_LABELS: Record<TabType, string> = {
   download: 'Download',
   code: 'Code',
 }
 
 interface TabsProps {
-  download: React.ReactNode
-  code: React.ReactNode
+  [key in TabType]: React.ReactNode
 }
 
 export function Tabs({ download, code }: TabsProps) {
