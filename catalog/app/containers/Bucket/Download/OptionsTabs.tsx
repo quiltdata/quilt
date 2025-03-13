@@ -88,10 +88,11 @@ const TABS_LABELS = {
 }
 
 interface TabsProps {
-  children: (activeTab: TabType) => React.ReactNode
+  download: React.ReactNode
+  code: React.ReactNode
 }
 
-export function Tabs({ children }: TabsProps) {
+export function Tabs({ download, code }: TabsProps) {
   const classes = useStyles()
   const [activeTab, setActiveTab] = React.useState<TabType>('download')
 
@@ -118,7 +119,9 @@ export function Tabs({ children }: TabsProps) {
         {renderTab('download')}
         {renderTab('code')}
       </M.Paper>
-      {children(activeTab)}
+      <TabPanel>
+        {activeTab === 'download' ? download : code}
+      </TabPanel>
     </div>
   )
 }
