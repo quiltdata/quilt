@@ -87,9 +87,7 @@ const TABS_LABELS: Record<TabType, string> = {
   code: 'Code',
 }
 
-interface TabsProps {
-  [key in TabType]: React.ReactNode
-}
+type TabsProps = Record<TabType, React.ReactNode>
 
 export function Tabs({ download, code }: TabsProps) {
   const classes = useStyles()

@@ -167,7 +167,9 @@ export default function Options({
   selection,
   uri,
 }: OptionsProps) {
-  const download = <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
+  const download = (
+    <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
+  )
 
   if (hideCode) return download
 
