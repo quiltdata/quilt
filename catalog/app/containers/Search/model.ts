@@ -31,7 +31,11 @@ export enum ResultType {
 
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
-export const DEFAULT_ORDER = Model.GQLTypes.SearchResultOrder.BEST_MATCH
+export const ResultOrder = Model.GQLTypes.SearchResultOrder
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type ResultOrder = Model.GQLTypes.SearchResultOrder
+
+export const DEFAULT_ORDER = ResultOrder.BEST_MATCH
 
 const FACETS_VISIBLE = 5
 // don't show facet filter if under this threshold
@@ -61,7 +65,7 @@ export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 interface SearchUrlStateBase {
   searchString: string | null
   buckets: readonly string[]
-  order: Model.GQLTypes.SearchResultOrder
+  order: ResultOrder
 }
 
 interface ObjectsSearchUrlState extends SearchUrlStateBase {
@@ -78,13 +82,13 @@ interface PackagesSearchUrlState extends SearchUrlStateBase {
 
 export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
 
-function parseOrder(input: string | null): Model.GQLTypes.SearchResultOrder {
-  return Object.values(Model.GQLTypes.SearchResultOrder).includes(input as any)
-    ? (input as Model.GQLTypes.SearchResultOrder)
+function parseOrder(input: string | null): ResultOrder {
+  return Object.values(ResultOrder).includes(input as any)
+    ? (input as ResultOrder)
     : DEFAULT_ORDER
 }
 
-function serializeOrder(order: Model.GQLTypes.SearchResultOrder): string | null {
+function serializeOrder(order: ResultOrder): string | null {
   return order === DEFAULT_ORDER ? null : order
 }
 
@@ -1240,7 +1244,7 @@ function useSearchUIModel() {
   )
 
   const setOrder = React.useCallback(
-    (order: Model.GQLTypes.SearchResultOrder) => {
+    (order: ResultOrder) => {
       updateUrlState((s) => ({ ...s, order }))
     },
     [updateUrlState],

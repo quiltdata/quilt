@@ -124,6 +124,12 @@ export const bucketPackageList = route(
 )
 export type BucketPackageListArgs = Parameters<typeof bucketPackageList.url>
 
+export const bucketPackageListOld = route(
+  '/b/:bucket/packages_/',
+  (bucket: string, { filter, sort, p }: BucketPackageListOpts = {}) =>
+    `/b/${bucket}/packages_/${mkSearch({ filter, sort, p })}`,
+)
+
 interface BucketPackageDetailOpts {
   action?: string
 }
@@ -180,6 +186,16 @@ export const bucketAthenaExecution = route(
   '/b/:bucket/queries/athena/:workgroup/:queryExecutionId',
   (bucket: string, workgroup: string, queryExecutionId: string) =>
     `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
+)
+
+export const bucketWorkflowList = route(
+  '/b/:bucket/workflows/',
+  (bucket: string) => `/b/${bucket}/workflows`,
+)
+
+export const bucketWorkflowDetail = route(
+  '/b/:bucket/workflows/:slug',
+  (bucket: string, workflow: string) => `/b/${bucket}/workflows/${workflow}`,
 )
 
 // Legacy stuff
