@@ -61,7 +61,7 @@ const useStyles = M.makeStyles((t) => ({
       left: 0,
       right: 0,
       height: '2px',
-      backgroundColor: t.palette.primary.main,
+      backgroundColor: t.palette.secondary.main,
     },
   },
   downloadWidth: {
