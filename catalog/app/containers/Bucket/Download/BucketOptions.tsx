@@ -82,13 +82,10 @@ interface OptionsProps {
 }
 
 export default function Options({ handle, hideCode }: OptionsProps) {
-  if (hideCode) 
-    return <DownloadPanel handle={handle} />
+  const download = <DownloadPanel handle={handle} />
 
-  return (
-    <Tabs
-      download={<DownloadPanel handle={handle} />}
-      code={<CodePanel handle={handle} />}
-    />
-  )
+  if (hideCode) return download
+
+  const code = <CodePanel handle={handle} />
+  return <Tabs {...{ download, code }} />
 }

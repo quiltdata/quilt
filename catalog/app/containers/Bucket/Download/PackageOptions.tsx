@@ -145,7 +145,6 @@ interface CodePanelProps {
 }
 
 function CodePanel({ hashOrTag, uri }: CodePanelProps) {
-  console.log('CodePanel', hashOrTag, uri)
   return (
     <TabPanel>
       <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
