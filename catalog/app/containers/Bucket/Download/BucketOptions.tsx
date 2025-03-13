@@ -50,13 +50,13 @@ interface DownloadPanelProps {
 
 function DownloadPanel({ handle }: DownloadPanelProps) {
   return (
-    <>
+    <TabPanel>
       {isFile(handle) ? (
         <DownloadFile fileHandle={handle} />
       ) : (
         <DownloadDir dirHandle={handle} />
       )}
-    </>
+    </TabPanel>
   )
 }
 
@@ -65,10 +65,14 @@ interface CodePanelProps {
 }
 
 function CodePanel({ handle }: CodePanelProps) {
-  return isFile(handle) ? (
-    <FileCodeSamples bucket={handle.bucket} path={handle.key} />
-  ) : (
-    <DirCodeSamples bucket={handle.bucket} path={handle.path} />
+  return (
+    <TabPanel>
+      {isFile(handle) ? (
+        <FileCodeSamples bucket={handle.bucket} path={handle.key} />
+      ) : (
+        <DirCodeSamples bucket={handle.bucket} path={handle.path} />
+      )}
+    </TabPanel>
   )
 }
 
@@ -79,11 +83,7 @@ interface OptionsProps {
 
 export default function Options({ handle, hideCode }: OptionsProps) {
   if (hideCode) 
-    return (
-      <TabPanel>
-        <DownloadPanel handle={handle} />
-      </TabPanel>
-    )
+    return <DownloadPanel handle={handle} />
 
   return (
     <Tabs

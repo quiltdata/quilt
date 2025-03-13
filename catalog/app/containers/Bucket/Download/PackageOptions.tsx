@@ -119,7 +119,7 @@ function DownloadPanel({ fileHandle, selection, uri }: DownloadPanelProps) {
   const classes = useDownloadPanelStyles()
   const { prefs } = BucketPreferences.use()
   return (
-    <>
+    <TabPanel>
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { actions } }) =>
@@ -135,7 +135,7 @@ function DownloadPanel({ fileHandle, selection, uri }: DownloadPanelProps) {
       ) : (
         <DownloadDir selection={selection} uri={uri} />
       )}
-    </>
+    </TabPanel>
   )
 }
 
@@ -146,7 +146,11 @@ interface CodePanelProps {
 
 function CodePanel({ hashOrTag, uri }: CodePanelProps) {
   console.log('CodePanel', hashOrTag, uri)
-  return <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+  return (
+    <TabPanel>
+      <PackageCodeSamples hashOrTag={hashOrTag} {...uri} />
+    </TabPanel>
+  )
 }
 
 interface OptionsProps {
@@ -165,11 +169,7 @@ export default function Options({
   uri,
 }: OptionsProps) {
   if (hideCode)
-    return (
-      <TabPanel>
-        <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
-      </TabPanel>
-    )
+    return <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
 
   return (
     <Tabs

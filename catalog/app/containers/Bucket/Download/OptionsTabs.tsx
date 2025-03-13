@@ -119,9 +119,7 @@ export function Tabs({ download, code }: TabsProps) {
         {renderTab('download')}
         {renderTab('code')}
       </M.Paper>
-      <TabPanel>
-        {activeTab === 'download' ? download : code}
-      </TabPanel>
+      {activeTab === 'download' ? download : code}
     </div>
   )
 }
