@@ -64,10 +64,10 @@ const useStyles = M.makeStyles((t) => ({
       backgroundColor: t.palette.secondary.main,
     },
   },
-  downloadWidth: {
+  download: {
     width: t.spacing(40),
   },
-  codeWidth: {
+  code: {
     width: t.spacing(80),
   },
   '@keyframes activate': {
@@ -109,12 +109,7 @@ export function Tabs({ download, code }: TabsProps) {
   )
 
   return (
-    <div
-      className={cx(classes.root, {
-        [classes.downloadWidth]: activeTab === 'download',
-        [classes.codeWidth]: activeTab === 'code',
-      })}
-    >
+    <div className={cx(classes.root, classes[activeTab])}>
       <M.Paper className={classes.tabsContainer} elevation={1}>
         {renderTab('download')}
         {renderTab('code')}
