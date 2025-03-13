@@ -87,7 +87,7 @@ export default function Options({ handle, hideCode }: OptionsProps) {
   return (
     <Tabs>
       {(activeTab) =>
-        activeTab === 0 ? (
+        activeTab === 'download' ? (
           <DownloadPanel handle={handle} />
         ) : (
           <CodePanel handle={handle} />

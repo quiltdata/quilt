@@ -80,21 +80,28 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+type TabType = 'download' | 'code'
+
+const TABS_LABELS = {
+  download: 'Download',
+  code: 'Code',
+}
+
 interface TabsProps {
-  children: (activeTab: number) => React.ReactNode
+  children: (activeTab: TabType) => React.ReactNode
 }
 
 export function Tabs({ children }: TabsProps) {
   const classes = useStyles()
-  const [activeTab, setActiveTab] = React.useState(0)
+  const [activeTab, setActiveTab] = React.useState<TabType>('download')
 
   const renderTab = React.useCallback(
-    (tab: number) => (
+    (tab: TabType) => (
       <M.Button
         className={cx(classes.tabButton, { [classes.activeTab]: activeTab === tab })}
         onClick={() => setActiveTab(tab)}
       >
-        {tab === 0 ? 'Download' : 'Code'}
+        {TABS_LABELS[tab]}
       </M.Button>
     ),
     [activeTab, classes],
@@ -103,13 +110,13 @@ export function Tabs({ children }: TabsProps) {
   return (
     <div
       className={cx(classes.root, {
-        [classes.downloadWidth]: activeTab === 0,
-        [classes.codeWidth]: activeTab === 1,
+        [classes.downloadWidth]: activeTab === 'download',
+        [classes.codeWidth]: activeTab === 'code',
       })}
     >
       <M.Paper className={classes.tabsContainer} elevation={1}>
-        {renderTab(0)}
-        {renderTab(1)}
+        {renderTab('download')}
+        {renderTab('code')}
       </M.Paper>
       {children(activeTab)}
     </div>
