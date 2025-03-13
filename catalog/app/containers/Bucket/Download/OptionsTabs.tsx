@@ -81,11 +81,10 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface TabsProps {
-  labels: [string, string]
   children: (activeTab: number) => React.ReactNode
 }
 
-export function Tabs({ labels, children }: TabsProps) {
+export function Tabs({ children }: TabsProps) {
   const classes = useStyles()
   const [activeTab, setActiveTab] = React.useState(0)
 
@@ -95,10 +94,10 @@ export function Tabs({ labels, children }: TabsProps) {
         className={cx(classes.tabButton, { [classes.activeTab]: activeTab === tab })}
         onClick={() => setActiveTab(tab)}
       >
-        {labels[tab]}
+        {tab === 0 ? 'Download' : 'Code'}
       </M.Button>
     ),
-    [activeTab, classes, labels],
+    [activeTab, classes],
   )
 
   return (

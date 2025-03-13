@@ -171,7 +171,7 @@ export default function Options({
     return <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
 
   return (
-    <Tabs labels={['Download', 'Code']}>
+    <Tabs>
       {(activeTab) =>
         activeTab === 0 ? (
           <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
