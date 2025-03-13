@@ -481,7 +481,7 @@ export default function File() {
                 Pending: () => (
                   <Buttons.Skeleton className={classes.button} size="small" />
                 ),
-                Inint: () => null,
+                Init: () => null,
               },
               prefs,
             )}
