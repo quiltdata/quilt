@@ -7,13 +7,11 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
-import type { ResultOf } from '@graphql-typed-document-node/core'
 
 import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
-import * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -21,57 +19,19 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
 import * as Format from 'utils/format'
-import parseSearch from 'utils/parseSearch'
-import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
 import { JsonRecord } from 'utils/types'
-import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
 
-import PACKAGE_COUNT_QUERY from './gql/PackageCount.generated'
-import PACKAGE_LIST_QUERY from './gql/PackageList.generated'
+import * as UIModel from './UIModel'
 
 const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-package'
 
-const PER_PAGE = 30
-
-const SORT_OPTIONS = [
-  {
-    key: 'modified',
-    value: Model.GQLTypes.PackageListOrder.MODIFIED,
-    label: 'Updated',
-  },
-  {
-    key: 'name',
-    value: Model.GQLTypes.PackageListOrder.NAME,
-    label: 'Name',
-  },
-] as const
-
-type SortMode = (typeof SORT_OPTIONS)[number]['key']
-
-const DEFAULT_SORT = SORT_OPTIONS[0]
-
-// Possible values are 'modified', 'name'
-const storage = mkStorage({ sortPackagesBy: 'SORT_PACKAGES_BY' })
-
-const getSort = (key: unknown) => {
-  if (!key) return DEFAULT_SORT
-  return SORT_OPTIONS.find((o) => o.key === key) || DEFAULT_SORT
-}
-
-type CountsProps = NonNullable<
-  NonNullable<
-    ResultOf<typeof PACKAGE_LIST_QUERY>['packages']
-  >['page'][number]['accessCounts']
->
-
-function Counts({ counts, total }: CountsProps) {
+function Counts({ counts, total }: UIModel.AccessCounts) {
   const [cursor, setCursor] = React.useState<number | null>(null)
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -380,10 +340,6 @@ const usePackageStyles = M.makeStyles((t) => ({
   },
 }))
 
-type PackageProps = NonNullable<
-  ResultOf<typeof PACKAGE_LIST_QUERY>['packages']
->['page'][number]
-
 function Package({
   name,
   modified,
@@ -391,7 +347,7 @@ function Package({
   bucket,
   accessCounts,
   revision,
-}: PackageProps) {
+}: UIModel.PackageSelection) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
   const selectiveMeta = useSelectiveMeta(name, revision)
@@ -444,9 +400,9 @@ const useSortDropdownStyles = M.makeStyles((t) => ({
 }))
 
 interface SortDropdownProps {
-  value: SortMode
-  options: typeof SORT_OPTIONS
-  makeSortUrl: (mode: SortMode) => string
+  value: UIModel.SortMode
+  options: typeof UIModel.SORT_OPTIONS
+  makeSortUrl: (mode: UIModel.SortMode) => string
 }
 
 function SortDropdown({ value, options, makeSortUrl }: SortDropdownProps) {
@@ -466,13 +422,14 @@ function SortDropdown({ value, options, makeSortUrl }: SortDropdownProps) {
 
   const handleClick = React.useCallback(
     (key) => {
-      storage.set('sortPackagesBy', key)
+      // TODO: use UIModel
+      UIModel.storage.set('sortPackagesBy', key)
       close()
     },
     [close],
   )
 
-  const selected = getSort(value)
+  const selected = UIModel.getSort(value)
 
   return (
     <>
@@ -534,100 +491,25 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface PackageListProps {
-  bucket: string
-  sort?: string
-  filter?: string
-  page?: number
-}
-
-function PackageList({ bucket, sort, filter, page }: PackageListProps) {
-  const history = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
+function PackageList() {
   const classes = useStyles()
 
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
 
-  const computedPage = page || 1
-  const computedSort = getSort(sort)
-  const computedFilter = filter || ''
-  const filtering = useDebouncedInput(computedFilter, 500)
-
-  const totalCountQuery = GQL.useQuery(PACKAGE_COUNT_QUERY, { bucket, filter: null })
-
-  const filteredCountQuery = GQL.useQuery(PACKAGE_COUNT_QUERY, {
-    bucket,
-    filter: filter || null,
-  })
-
-  const packagesQuery = GQL.useQuery(PACKAGE_LIST_QUERY, {
-    bucket,
-    filter: filter || null,
-    order: computedSort.value,
-    page: computedPage,
-    perPage: PER_PAGE,
-  })
-
-  const makeSortUrl = React.useCallback(
-    (s) =>
-      urls.bucketPackageList(bucket, {
-        filter,
-        sort: s === DEFAULT_SORT.key ? undefined : s,
-        // reset page if sort order changed
-        p: s === computedSort.key ? page : undefined,
-      }),
-    [urls, bucket, filter, computedSort, page],
-  )
-
-  const makePageUrl = React.useCallback(
-    (newP) =>
-      urls.bucketPackageList(bucket, { filter, sort, p: newP !== 1 ? newP : undefined }),
-    [urls, bucket, filter, sort],
-  )
-
-  // set filter query param on filter input change (debounced)
-  React.useEffect(() => {
-    if (filtering.value !== computedFilter) {
-      history.push(
-        urls.bucketPackageList(bucket, { filter: filtering.value || undefined, sort }),
-      )
-    }
-  }, [history, urls, bucket, sort, filtering.value, computedFilter])
-
-  // set sort query param to previously selected
-  const sortPackagesBy = storage.load()?.sortPackagesBy
-  React.useEffect(() => {
-    if (sort || sort === sortPackagesBy) return
-    switch (sortPackagesBy) {
-      case 'modified':
-      case 'name':
-        history.replace(makeSortUrl(sortPackagesBy))
-      // no default
-    }
-  }, [history, makeSortUrl, sort, sortPackagesBy])
+  const model = UIModel.use()
 
   // scroll to top on page change
-  usePrevious(computedPage, (prev) => {
-    if (prev && computedPage !== prev && scrollRef.current) {
+  usePrevious(model.computed.page, (prev) => {
+    if (prev && model.computed.page !== prev && scrollRef.current) {
       scrollRef.current.scrollIntoView()
     }
   })
 
   const { prefs } = BucketPreferences.use()
 
-  const createDialog = PD.usePackageCreationDialog({
-    bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
-  const openPackageCreationDialog = React.useCallback(
-    () => createDialog.open(),
-    [createDialog],
-  )
-
   return (
     <>
-      {createDialog.render({
+      {model.packageCreationDialog.dialog.render({
         successTitle: 'Package created',
         successRenderMessage: ({ packageLink }) => (
           <>Package {packageLink} successfully created</>
@@ -635,7 +517,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
         title: 'Create package',
       })}
 
-      {GQL.fold(totalCountQuery, {
+      {GQL.fold(model.totalCountQuery, {
         fetching: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box mt={{ xs: 0, sm: 3 }} display="flex" justifyContent="space-between">
@@ -685,7 +567,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                           <M.Button
                             variant="contained"
                             color="primary"
-                            onClick={openPackageCreationDialog}
+                            onClick={model.packageCreationDialog.open}
                           >
                             Create package
                           </M.Button>
@@ -719,7 +601,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                   position="relative"
                 >
                   <M.InputBase
-                    {...filtering.input}
+                    {...model.filtering.input}
                     placeholder="Filter packages"
                     classes={{ input: classes.input }}
                     fullWidth
@@ -727,10 +609,10 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                       <M.Icon className={classes.searchIcon}>search</M.Icon>
                     }
                     endAdornment={
-                      <M.Fade in={!!filtering.input.value}>
+                      <M.Fade in={!!model.filtering.input.value}>
                         <M.IconButton
                           className={classes.clear}
-                          onClick={() => filtering.set('')}
+                          onClick={() => model.filtering.set('')}
                         >
                           <M.Icon>clear</M.Icon>
                         </M.IconButton>
@@ -749,7 +631,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                             size="large"
                             color="primary"
                             style={{ paddingTop: 7, paddingBottom: 7 }}
-                            onClick={openPackageCreationDialog}
+                            onClick={model.packageCreationDialog.open}
                           >
                             Create package
                           </M.Button>
@@ -766,14 +648,14 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                 )}
                 <M.Box component={M.Paper} className={classes.paper}>
                   <SortDropdown
-                    value={computedSort.key}
-                    options={SORT_OPTIONS}
-                    makeSortUrl={makeSortUrl}
+                    value={model.computed.sort.key}
+                    options={UIModel.SORT_OPTIONS}
+                    makeSortUrl={model.makeSortUrl}
                   />
                 </M.Box>
               </M.Box>
 
-              {GQL.fold(filteredCountQuery, {
+              {GQL.fold(model.filteredCountQuery, {
                 fetching: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
                 error: displayError(),
                 data: (filteredCountData) => {
@@ -793,18 +675,20 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                     )
                   }
 
-                  const pages = Math.ceil(filteredCount / PER_PAGE)
+                  const pages = Math.ceil(filteredCount / UIModel.PER_PAGE)
 
-                  if (computedPage > pages) {
-                    return <RRDom.Redirect to={makePageUrl(pages)} />
+                  if (model.computed.page > pages) {
+                    return <RRDom.Redirect to={model.makePageUrl(pages)} />
                   }
 
                   return (
                     <>
-                      {GQL.fold(packagesQuery, {
+                      {GQL.fold(model.packagesQuery, {
                         fetching: () => {
                           const items =
-                            computedPage < pages ? PER_PAGE : filteredCount % PER_PAGE
+                            model.computed.page < pages
+                              ? UIModel.PER_PAGE
+                              : filteredCount % UIModel.PER_PAGE
                           return R.range(0, items).map((i) => <PackageSkel key={i} />)
                         },
                         error: displayError(),
@@ -814,7 +698,13 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                           )),
                       })}
                       {pages > 1 && (
-                        <Pagination {...{ pages, page: computedPage, makePageUrl }} />
+                        <Pagination
+                          {...{
+                            pages,
+                            page: model.computed.page,
+                            makePageUrl: model.makePageUrl,
+                          }}
+                        />
                       )}
                     </>
                   )
@@ -828,18 +718,25 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   )
 }
 
+// function PackageListLayout() {
+//   return (
+//     <>
+//       filters
+//       results
+//     </>
+//   )
+// }
+
 export default function PackageListWrapper() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  const location = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
-
-  const { sort, filter, p } = parseSearch(location.search, true)
-  const page = p ? parseInt(p, 10) : undefined
   return (
     <>
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageList {...{ bucket, sort, filter, page }} />
+        <UIModel.Provider>
+          <PackageList />
+        </UIModel.Provider>
       </WithPackagesSupport>
     </>
   )
