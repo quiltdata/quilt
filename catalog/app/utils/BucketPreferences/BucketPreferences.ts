@@ -146,7 +146,7 @@ const defaultPreferences: BucketPreferences = {
       deleteRevision: false,
       downloadObject: true,
       downloadPackage: true,
-      openInDesktop: false,
+      openInDesktop: true,
       revisePackage: true,
       writeFile: true,
     },
@@ -343,14 +343,6 @@ export const sourceBucket = (bucket: string): BucketPreferencesInput => ({
   ui: {
     sourceBuckets: {
       [bucket]: {},
-    },
-  },
-})
-
-export const openInDesktop = (): BucketPreferencesInput => ({
-  ui: {
-    actions: {
-      openInDesktop: true,
     },
   },
 })

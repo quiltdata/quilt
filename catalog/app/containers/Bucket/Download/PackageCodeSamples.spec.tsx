@@ -1,19 +1,18 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
 
-import PackageCodeSamples from './Package'
+import PackageCodeSamples from './PackageCodeSamples'
 
 jest.mock(
   './Code',
   () =>
-    ({ children }: { children: { label: string; contents: string }[] }) => (
-      <div>
-        {children.map(({ label, contents }) => (
-          <dl key={label}>
-            <dt>{label}:</dt> <dd>{contents}</dd>
-          </dl>
+    ({ label, help, lines }: { label: string; help: string; lines: string[] }) => (
+      <dl key={label} data-help={help}>
+        <dt>{label}:</dt>
+        {lines.map((l, i) => (
+          <dd key={`${l}_${i}`}>{l}</dd>
         ))}
-      </div>
+      </dl>
     ),
 )
 

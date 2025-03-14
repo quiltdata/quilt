@@ -27,7 +27,7 @@ import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import AssistButton from '../AssistButton'
-import FileCodeSamples from '../CodeSamples/File'
+import * as Download from '../Download'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import Section from '../Section'
@@ -287,6 +287,9 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
     flexWrap: 'wrap',
   },
+  tooltip: {
+    padding: t.spacing(0, 1),
+  },
   preview: {
     width: '100%',
   },
@@ -467,9 +470,21 @@ export default function File() {
               onClick={() => bookmarks.toggle('main', handle)}
             />
           )}
-          {downloadable && (
-            <FileView.DownloadButton className={classes.button} handle={handle} />
-          )}
+          {downloadable &&
+            BucketPreferences.Result.match(
+              {
+                Ok: ({ ui: { blocks } }) => (
+                  <Download.Button className={classes.button} label="Get file">
+                    <Download.BucketOptions handle={handle} hideCode={!blocks.code} />
+                  </Download.Button>
+                ),
+                Pending: () => (
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                ),
+                Init: () => null,
+              },
+              prefs,
+            )}
           {BucketPreferences.Result.match(
             {
               // XXX: only show this when the object exists?
@@ -500,7 +515,6 @@ export default function File() {
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}

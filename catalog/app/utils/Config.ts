@@ -15,6 +15,7 @@ export interface ConfigJson {
 
   mode: Mode
   alwaysRequiresAuth: boolean
+  /** @deprecated */
   desktop?: boolean
 
   analyticsBucket?: string
@@ -90,6 +91,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
   noDownload: !!cfg.noDownload,
   noOverviewImages: !!cfg.noOverviewImages,
+  /** @deprecated */
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
   qurator: !!cfg.qurator,

@@ -20,8 +20,8 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
-import FileCodeSamples from 'containers/Bucket/CodeSamples/File'
 import Analytics from 'containers/Bucket/File/Analytics'
+import * as Download from 'containers/Bucket/Download'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
@@ -308,7 +308,10 @@ export default function File() {
       }),
     })
 
-  const handle = { bucket, key: path, version }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version }),
+    [bucket, path, version],
+  )
 
   const withPreview = (callback) =>
     requests.ObjectExistence.case({
@@ -360,7 +363,9 @@ export default function File() {
         <div className={classes.actions}>
           <FileProperties data={versionExistsData} />
           {downloadable && (
-            <FileView.DownloadButton className={classes.button} handle={handle} />
+            <Download.Button className={classes.button} label="Get file">
+              <Download.BucketOptions handle={handle} hideCode={!ecfg.hideCode} />
+            </Download.Button>
           )}
         </div>
       </div>
@@ -380,7 +385,6 @@ export default function File() {
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              {!ecfg.hideCode && <FileCodeSamples {...{ bucket, path }} />}
               {!ecfg.hideAnalytics && !!cfg.analyticsBucket && (
                 <Analytics {...{ bucket, path }} />
               )}

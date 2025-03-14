@@ -80,7 +80,7 @@ const sys: Defaults = {
   'ui.actions.deleteRevision': false,
   'ui.actions.downloadObject': true,
   'ui.actions.downloadPackage': true,
-  'ui.actions.openInDesktop': false,
+  'ui.actions.openInDesktop': true,
   'ui.actions.revisePackage': true,
   'ui.actions.writeFile': true,
 
