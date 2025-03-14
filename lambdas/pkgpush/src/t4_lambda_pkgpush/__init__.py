@@ -37,6 +37,7 @@ from quilt_shared.lambdas_large_request_handler import (
 from quilt_shared.pkgpush import (
     Checksum,
     ChecksumResult,
+    ChecksumType,
     CopyResult,
     PackageConstructEntry,
     PackageConstructParams,
@@ -138,7 +139,46 @@ def calculate_pkg_entry_hash(
     pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
 
 
+def calculate_pkg_entry_local(
+    pkg_entry: quilt3.packages.PackageEntry,
+    get_bucket_s3_client,
+    scratch_buckets: dict[str, str],
+):
+    s3 = get_bucket_s3_client(pkg_entry.physical_key.bucket)
+    boto_params = {
+        "Bucket": pkg_entry.physical_key.bucket,
+        "Key": pkg_entry.physical_key.path,
+    }
+    if version_id := pkg_entry.physical_key.version_id:
+        boto_params["VersionId"] = version_id
+    resp = s3.copy_object(
+        CopySource=boto_params,
+        Bucket=scratch_buckets[pkg_entry.physical_key.bucket],
+        Key=pkg_entry.physical_key.path,
+        ChecksumAlgorithm="SHA256",
+    )
+    # FIXME: use correct type and encode
+    pkg_entry.hash = Checksum(type=ChecksumType.SHA256, value=resp["CopyObjectResult"]["ChecksumSHA256"]).model_dump()
+
+
+@functools.cache
+def get_bucket_region(bucket: str) -> str:
+    """
+    Lookup the region for a given bucket.
+    """
+    try:
+        resp = s3.head_bucket(Bucket=bucket)
+    except botocore.exceptions.ClientError as e:
+        resp = e.response
+        if resp.get("Error", {}).get("Code") == "404":
+            raise
+
+    assert "ResponseMetadata" in resp
+    return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
+
+
 def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
+    entries_local = []
     entries = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
@@ -154,19 +194,47 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
                 },
             )
 
-        entries.append(entry)
+        # TODO
+        # if not entry.size:
+        #     # TODO: don't make any requests
+        if entry.size < 8 * 2**20:  # TODO: use constant from shared place
+            entries_local.append(entry)
+        else:
+            entries.append(entry)
 
     # Schedule longer tasks first so we don't end up waiting for a single long task.
+    entries_local.sort(key=lambda entry: entry.size, reverse=True)
     entries.sort(key=lambda entry: entry.size, reverse=True)
+    local_concurrency = 1_000 - S3_HASH_LAMBDA_CONCURRENCY
+    credentials = AWSCredentials.from_boto_session(user_boto_session)
+
+    @functools.cache
+    def get_region_s3_client(region: str):
+        return boto3.client(
+            "s3",
+            region_name=region,
+            config=botocore.client.Config(max_pool_connections=local_concurrency),
+            **credentials.boto_args,
+        )
+
+    def get_bucket_s3_client(bucket: str):
+        return get_region_s3_client(get_bucket_region(bucket))
+
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
-    ) as pool:
-        credentials = AWSCredentials.from_boto_session(user_boto_session)
+    ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=local_concurrency) as local_pool:
+        # TODO: use while and wait() to finish on first error
         fs = [
             pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
             for entry in entries
         ]
+        fs_local = [
+            local_pool.submit(calculate_pkg_entry_local, entry, get_bucket_s3_client, scratch_buckets)
+            for entry in entries_local
+        ]
         for f in concurrent.futures.as_completed(fs):
+            f.result()
+        for f in concurrent.futures.as_completed(fs_local):
             f.result()
 
 
