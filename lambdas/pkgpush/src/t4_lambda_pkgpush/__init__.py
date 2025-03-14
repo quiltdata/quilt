@@ -141,10 +141,11 @@ def calculate_pkg_entry_hash(
 
 def calculate_pkg_entry_local(
     pkg_entry: quilt3.packages.PackageEntry,
-    get_bucket_s3_client,
+    get_region_s3_client,
     scratch_buckets: dict[str, str],
 ):
-    s3 = get_bucket_s3_client(pkg_entry.physical_key.bucket)
+    region = get_bucket_region(pkg_entry.physical_key.bucket)
+    s3 = get_region_s3_client(region)
     boto_params = {
         "Bucket": pkg_entry.physical_key.bucket,
         "Key": pkg_entry.physical_key.path,
@@ -153,7 +154,7 @@ def calculate_pkg_entry_local(
         boto_params["VersionId"] = version_id
     resp = s3.copy_object(
         CopySource=boto_params,
-        Bucket=scratch_buckets[pkg_entry.physical_key.bucket],
+        Bucket=scratch_buckets[region],
         Key=pkg_entry.physical_key.path,
         ChecksumAlgorithm="SHA256",
     )
@@ -217,9 +218,6 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
             **credentials.boto_args,
         )
 
-    def get_bucket_s3_client(bucket: str):
-        return get_region_s3_client(get_bucket_region(bucket))
-
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
     ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=local_concurrency) as local_pool:
@@ -229,7 +227,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
             for entry in entries
         ]
         fs_local = [
-            local_pool.submit(calculate_pkg_entry_local, entry, get_bucket_s3_client, scratch_buckets)
+            local_pool.submit(calculate_pkg_entry_local, entry, get_region_s3_client, scratch_buckets)
             for entry in entries_local
         ]
         for f in concurrent.futures.as_completed(fs):
