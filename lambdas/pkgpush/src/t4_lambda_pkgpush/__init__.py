@@ -155,7 +155,7 @@ def calculate_pkg_entry_local(
     resp = s3.copy_object(
         CopySource=boto_params,
         Bucket=scratch_buckets[region],
-        Key=pkg_entry.physical_key.path,
+        Key="user-requests/checksum-upload-tmp",  # TODO: move to constant in shared place
         ChecksumAlgorithm="SHA256",
     )
     # FIXME: use correct type and encode
