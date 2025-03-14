@@ -32,8 +32,8 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
     transition: t.transitions.create('width', {
-      duration: t.transitions.duration.standard,
-      easing: t.transitions.easing.easeInOut,
+      duration: t.transitions.duration.short,
+      easing: t.transitions.easing.easeOut,
     }),
   },
   tabsContainer: {
@@ -93,16 +93,13 @@ export function Tabs({ download, code }: TabsProps) {
   const classes = useStyles()
   const [activeTab, setActiveTab] = React.useState<TabType>('download')
 
-  const renderTab = React.useCallback(
-    (tab: TabType) => (
-      <M.Button
-        className={cx(classes.tabButton, { [classes.activeTab]: activeTab === tab })}
-        onClick={() => setActiveTab(tab)}
-      >
-        {TABS_LABELS[tab]}
-      </M.Button>
-    ),
-    [activeTab, classes],
+  const renderTab = (tab: TabType) => (
+    <M.Button
+      className={cx(classes.tabButton, { [classes.activeTab]: activeTab === tab })}
+      onClick={() => setActiveTab(tab)}
+    >
+      {TABS_LABELS[tab]}
+    </M.Button>
   )
 
   return (
