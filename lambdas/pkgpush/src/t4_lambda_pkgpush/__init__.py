@@ -159,7 +159,7 @@ def calculate_pkg_entry_local(
         ChecksumAlgorithm="SHA256",
     )
     # FIXME: use correct type and encode
-    pkg_entry.hash = Checksum(type=ChecksumType.SHA256, value=resp["CopyObjectResult"]["ChecksumSHA256"]).model_dump()
+    pkg_entry.hash = Checksum(type=ChecksumType.SHA256, value=resp["CopyObjectResult"]["ChecksumSHA256"]).dict()
 
 
 @functools.cache
