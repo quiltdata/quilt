@@ -6,6 +6,7 @@ import functools
 import json
 import logging
 import os
+import random
 import re
 import tempfile
 import typing as T
@@ -155,7 +156,7 @@ def calculate_pkg_entry_local(
     resp = s3.copy_object(
         CopySource=boto_params,
         Bucket=scratch_buckets[region],
-        Key="user-requests/checksum-upload-tmp",  # TODO: move to constant in shared place
+        Key=f"user-requests/{random.randbytes(4).hex()}/checksum-upload-tmp",  # TODO: move to constant in shared place
         ChecksumAlgorithm="SHA256",
     )
     # FIXME: use correct type and encode
