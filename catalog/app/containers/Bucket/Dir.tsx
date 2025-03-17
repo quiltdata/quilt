@@ -11,17 +11,16 @@ import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
-import DirCodeSamples from './CodeSamples/Dir'
+import * as Download from './Download'
 import * as AssistantContext from './DirAssistantContext'
-import * as FileView from './FileView'
 import * as Listing from './Listing'
 import Menu from './Menu'
 import * as PD from './PackageDialog'
@@ -167,6 +166,9 @@ const useStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(0.5),
     },
   },
+  tooltip: {
+    padding: t.spacing(0, 1),
+  },
 }))
 
 interface DirParams {
@@ -260,6 +262,8 @@ export default function Dir() {
     [paths],
   )
 
+  const dirHandle = React.useMemo(() => ({ bucket, path }), [bucket, path])
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
@@ -284,7 +288,7 @@ export default function Dir() {
           <Selection.Control className={cx(classes.button)} />
           {BucketPreferences.Result.match(
             {
-              Ok: ({ ui: { actions } }) => (
+              Ok: ({ ui: { actions, blocks } }) => (
                 <>
                   {actions.createPackage && (
                     <Successors.Button
@@ -297,15 +301,13 @@ export default function Dir() {
                       Create package
                     </Successors.Button>
                   )}
-                  {!cfg.noDownload && !cfg.desktop && actions.downloadObject && (
-                    <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
-                      <Buttons.Iconized
-                        className={classes.button}
-                        label="Download directory"
-                        icon="archive"
-                        type="submit"
+                  {!cfg.noDownload && actions.downloadObject && (
+                    <Download.Button className={classes.button}>
+                      <Download.BucketOptions
+                        handle={dirHandle}
+                        hideCode={!blocks.code}
                       />
-                    </FileView.ZipDownloadForm>
+                    </Download.Button>
                   )}
                 </>
               ),
@@ -322,16 +324,6 @@ export default function Dir() {
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>
       </div>
-
-      {BucketPreferences.Result.match(
-        {
-          Ok: ({ ui: { blocks } }) =>
-            blocks.code && <DirCodeSamples bucket={bucket} path={path} gutterBottom />,
-          Pending: () => null,
-          Init: () => null,
-        },
-        prefs,
-      )}
 
       {data.case({
         Err: displayError(),

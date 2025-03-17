@@ -531,7 +531,7 @@ function Hint({ children }: HintProps) {
   const classes = useHintStyles()
   const tooltipClasses = React.useMemo(() => ({ tooltip: classes.tooltip }), [classes])
   return (
-    <StyledTooltip arrow title={children} classes={tooltipClasses}>
+    <StyledTooltip arrow maxWidth="md" title={children} classes={tooltipClasses}>
       <M.Icon fontSize="small" className={classes.icon}>
         help
       </M.Icon>
