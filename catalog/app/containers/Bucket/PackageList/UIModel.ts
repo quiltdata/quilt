@@ -13,6 +13,7 @@ import useDebouncedInput from 'utils/useDebouncedInput'
 import useMemoEq from 'utils/useMemoEq'
 
 import * as PD from '../PackageDialog'
+import * as Workflows from '../StubWorkflows'
 
 import PACKAGE_COUNT_QUERY from './gql/PackageCount.generated'
 import PACKAGE_LIST_QUERY from './gql/PackageList.generated'
@@ -74,6 +75,37 @@ function useUrlState(): PackageListUrlState {
   const page = p ? parseInt(p, 10) : undefined
 
   return useMemoEq({ bucket, sort, filter, page }, Eff.Function.identity)
+}
+
+function usePackageCreationDialog(bucket: string) {
+  const dialog = PD.usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+
+  const open = React.useCallback(() => dialog.open(), [dialog])
+
+  return React.useMemo(() => ({ dialog, open }), [dialog, open])
+}
+
+export const ALL = 'ALL'
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type ALL = typeof ALL
+export const NONE = 'NONE'
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type NONE = typeof NONE
+
+export type WorkflowSelection = Workflows.Workflow | ALL | NONE
+
+function useWorkflows() {
+  const config = Workflows.stub
+  const [selected, select] = React.useState<WorkflowSelection>(ALL)
+  // TODO: nest metadata filter state under the selected workflow
+  return React.useMemo(
+    () => ({ config, selected, select }) as const,
+    [config, selected, select],
+  )
 }
 
 function useUIModel() {
@@ -175,16 +207,9 @@ function useUIModel() {
     }
   }, [history, makeSortUrl, urlState.sort, sortPackagesBy])
 
-  const createDialog = PD.usePackageCreationDialog({
-    bucket: urlState.bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
+  const packageCreationDialog = usePackageCreationDialog(urlState.bucket)
 
-  const openPackageCreationDialog = React.useCallback(
-    () => createDialog.open(),
-    [createDialog],
-  )
+  const workflows = useWorkflows()
 
   return useMemoEq(
     {
@@ -202,10 +227,8 @@ function useUIModel() {
       packagesQuery,
       makeSortUrl,
       makePageUrl,
-      packageCreationDialog: {
-        dialog: createDialog,
-        open: openPackageCreationDialog,
-      },
+      packageCreationDialog,
+      workflows,
     },
     Eff.Function.identity,
   )

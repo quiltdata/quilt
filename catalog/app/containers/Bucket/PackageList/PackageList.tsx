@@ -9,9 +9,11 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as Buttons from 'components/Buttons'
+import * as FiltersUI from 'components/Filters'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
+import * as FilterWidget from 'containers/Search/FilterWidget'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -30,6 +32,8 @@ import { displayError } from '../errors'
 import * as UIModel from './UIModel'
 
 const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-package'
+
+type ChildrenWithClassName = React.PropsWithChildren<{ className?: string }>
 
 function Counts({ counts, total }: UIModel.AccessCounts) {
   const [cursor, setCursor] = React.useState<number | null>(null)
@@ -422,7 +426,6 @@ function SortDropdown({ value, options, makeSortUrl }: SortDropdownProps) {
 
   const handleClick = React.useCallback(
     (key) => {
-      // TODO: use UIModel
       UIModel.storage.set('sortPackagesBy', key)
       close()
     },
@@ -460,6 +463,185 @@ function SortDropdown({ value, options, makeSortUrl }: SortDropdownProps) {
         ))}
       </M.Menu>
     </>
+  )
+}
+
+const useColumnTitleStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.h6,
+    lineHeight: `${t.spacing(4.5)}px`,
+  },
+}))
+
+function ColumnTitle({ className, children }: ChildrenWithClassName) {
+  const classes = useColumnTitleStyles()
+  return <div className={cx(classes.root, className)}>{children}</div>
+}
+
+const useFilterSectionStyles = M.makeStyles((t) => ({
+  root: {
+    marginBottom: t.spacing(2),
+    paddingBottom: t.spacing(1),
+    position: 'relative',
+    '&:after': {
+      background: t.palette.divider,
+      border: `1px solid ${t.palette.background.paper}`,
+      borderWidth: '1px 0',
+      content: '""',
+      height: '3px',
+      left: '25%',
+      position: 'absolute',
+      right: '25%',
+      bottom: 0,
+    },
+  },
+}))
+
+function FilterSection({ children, className }: ChildrenWithClassName) {
+  const classes = useFilterSectionStyles()
+  return <div className={cx(classes.root, className)}>{children}</div>
+}
+
+function PackageNameFilter() {
+  // const model = UIModel.use()
+
+  const predicateState = {
+    _tag: 'KeywordWildcard' as const,
+    wildcard: '',
+  }
+
+  // const { setPackagesMetaFilter } = model.actions
+
+  const change = React.useCallback((/*state: any*/) => {}, [])
+
+  // const { fetching, extents } = UIModel.usePackageUserMetaFacetExtents(path)
+
+  return (
+    <FilterSection>
+      <FiltersUI.Container
+        // className={className}
+        defaultExpanded
+        // onDeactivate={deactivate}
+        title="Package name"
+      >
+        <FilterWidget.KeywordWildcardFilterWidget
+          state={predicateState}
+          onChange={change}
+        />
+      </FiltersUI.Container>
+    </FilterSection>
+  )
+}
+
+const useWorkflowSelectorStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+  },
+}))
+
+function WorkflowSelector() {
+  const classes = useWorkflowSelectorStyles()
+  const model = UIModel.use()
+
+  const selectionToValue = (w: UIModel.WorkflowSelection) =>
+    w === UIModel.ALL || w === UIModel.NONE ? w : `ID:${w.id}`
+
+  const selectionFromValue = React.useCallback(
+    (v: string) => {
+      if (v === UIModel.ALL || v === UIModel.NONE) return v
+      const id = v.slice(3) // "ID:" prefix
+      return model.workflows.config.workflows.find((x) => x.id === id) ?? UIModel.NONE
+    },
+    [model.workflows.config.workflows],
+  )
+
+  const selectWorkflow = model.workflows.select
+
+  const onChange = React.useCallback(
+    (evt: React.ChangeEvent<{ value: unknown }>) => {
+      selectWorkflow(selectionFromValue(evt.target.value as string))
+    },
+    [selectWorkflow, selectionFromValue],
+  )
+
+  const workflow =
+    typeof model.workflows.selected === 'string' ? null : model.workflows.selected
+
+  return (
+    <M.Paper className={classes.root}>
+      <ColumnTitle>Workflow</ColumnTitle>
+
+      <M.Select value={selectionToValue(model.workflows.selected)} onChange={onChange}>
+        <M.MenuItem value={UIModel.ALL}>All workflows</M.MenuItem>
+        {model.workflows.config.workflows.map((w) => (
+          <M.MenuItem key={w.id} value={selectionToValue(w)}>
+            {w.name}
+          </M.MenuItem>
+        ))}
+        <M.MenuItem value={UIModel.NONE}>No workflow</M.MenuItem>
+      </M.Select>
+
+      {workflow?.metadataSchema?.fields?.map((f) => (
+        <div key={f.label}>
+          {f.label} ({f.type})
+        </div>
+      ))}
+    </M.Paper>
+  )
+}
+
+function MetaFilters() {
+  return <>aggregated metadata filters</>
+}
+
+const useFiltersSectionStyles = M.makeStyles((t) => ({
+  filtersRoot: {
+    alignContent: 'start',
+    display: 'grid',
+    gridRowGap: t.spacing(2),
+    gridTemplateRows: 'auto',
+    paddingBottom: t.spacing(12), // space reserved for "Scroll to top"
+    // TODO: Make scroll for sidebar
+    // TODO: Also, consider that buckets filter disappears
+    // overflow: 'hidden auto',
+    // padding: t.spacing(0.5, 0, 0),
+    // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
+  },
+  metadata: {
+    marginTop: t.spacing(3),
+  },
+  title: {
+    ...t.typography.h6,
+    fontWeight: 400,
+    marginBottom: t.spacing(1),
+  },
+}))
+
+function FiltersSection() {
+  const classes = useFiltersSectionStyles()
+
+  // const model = UIModel.use()
+
+  // const { order: activeFilters, predicates } = model.state.filter
+  //
+  // const availableFilters = PACKAGES_FILTERS_PRIMARY.filter((f) => !predicates[f])
+  // const moreFilters = PACKAGES_FILTERS_SECONDARY.filter((f) => !predicates[f])
+  //
+  // const [expanded, setExpanded] = React.useState(false)
+  // const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
+
+  return (
+    <div className={classes.filtersRoot}>
+      <ColumnTitle>Find packages</ColumnTitle>
+
+      <PackageNameFilter />
+
+      <WorkflowSelector />
+
+      <div>other generic filters</div>
+
+      <MetaFilters />
+    </div>
   )
 }
 
@@ -594,6 +776,8 @@ function PackageList() {
             <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
               <M.Box position="relative" top={-80} ref={scrollRef} />
               <M.Box display="flex" mt={{ xs: 0, sm: 3 }}>
+                <M.Box>{totalCountData.packages.total} packages</M.Box>
+                {/*
                 <M.Box
                   component={M.Paper}
                   className={classes.paper}
@@ -620,6 +804,7 @@ function PackageList() {
                     }
                   />
                 </M.Box>
+                */}
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
                 {BucketPreferences.Result.match(
                   {
@@ -718,14 +903,26 @@ function PackageList() {
   )
 }
 
-// function PackageListLayout() {
-//   return (
-//     <>
-//       filters
-//       results
-//     </>
-//   )
-// }
+const useLayoutStyles = M.makeStyles((t) => ({
+  layoutRoot: {
+    [t.breakpoints.up('md')]: {
+      alignItems: 'start',
+      display: 'grid',
+      gridColumnGap: t.spacing(2),
+      gridTemplateColumns: `${t.spacing(40)}px auto`,
+    },
+  },
+}))
+
+function PackageListLayout() {
+  const classes = useLayoutStyles()
+  return (
+    <div className={classes.layoutRoot}>
+      <FiltersSection />
+      <PackageList />
+    </div>
+  )
+}
 
 export default function PackageListWrapper() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
@@ -735,7 +932,7 @@ export default function PackageListWrapper() {
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <UIModel.Provider>
-          <PackageList />
+          <PackageListLayout />
         </UIModel.Provider>
       </WithPackagesSupport>
     </>
