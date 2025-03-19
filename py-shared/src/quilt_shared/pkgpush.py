@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import random
 import typing as T
 
 import pydantic.v1
@@ -160,3 +161,7 @@ class PackageConstructEntry(pydantic.v1.BaseModel):
     # optional `user_meta` property,
     # see PackageEntry._meta vs PackageEntry.meta.
     meta: T.Optional[T.Dict[str, T.Any]] = None
+
+
+def make_scratch_key() -> str:
+    return f"user-requests/{random.randbytes(4).hex()}/checksum-upload-tmp"

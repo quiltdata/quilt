@@ -147,17 +147,13 @@ def calculate_pkg_entry_local(
 ):
     region = get_bucket_region(pkg_entry.physical_key.bucket)
     s3 = get_region_s3_client(region)
-    boto_params = {
-        "Bucket": pkg_entry.physical_key.bucket,
-        "Key": pkg_entry.physical_key.path,
-    }
-    if version_id := pkg_entry.physical_key.version_id:
-        boto_params["VersionId"] = version_id
     resp = s3.copy_object(
-        CopySource=boto_params,
+        CopySource=S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
         Bucket=scratch_buckets[region],
         Key=f"user-requests/{random.randbytes(4).hex()}/checksum-upload-tmp",  # TODO: move to constant in shared place
         ChecksumAlgorithm="SHA256",
+        # TODO: make sure for unversioned objects
+        # CopySourceIfMatch=etag,
     )
     # FIXME: use correct type and encode
     pkg_entry.hash = Checksum(type=ChecksumType.SHA256, value=resp["CopyObjectResult"]["ChecksumSHA256"]).dict()
@@ -724,6 +720,9 @@ def package_prefix(event, context):
                     "max_size": MAX_BYTES_TO_HASH,
                 },
             )
+    import pprint
+
+    pprint.pprint(params.dict())
     pkg._validate_with_workflow(
         registry=package_registry,
         workflow=params.workflow_normalized,
