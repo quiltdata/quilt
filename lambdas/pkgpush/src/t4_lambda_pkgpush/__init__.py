@@ -720,9 +720,6 @@ def package_prefix(event, context):
                     "max_size": MAX_BYTES_TO_HASH,
                 },
             )
-    import pprint
-
-    pprint.pprint(params.dict())
     pkg._validate_with_workflow(
         registry=package_registry,
         workflow=params.workflow_normalized,
