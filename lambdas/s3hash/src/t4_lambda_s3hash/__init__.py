@@ -20,9 +20,10 @@ import pydantic.v1
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import Checksum as ChecksumBase
-from quilt_shared.pkgpush import ChecksumResult, ChecksumType, CopyResult
+from quilt_shared.pkgpush import ChecksumResult, CopyResult
 from quilt_shared.pkgpush import MPURef as MPURefBase
 from quilt_shared.pkgpush import S3ObjectDestination, S3ObjectSource
+from quilt_shared.pkgpush import make_scratch_key
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
@@ -64,20 +65,6 @@ async def aio_context(credentials: AWSCredentials):
 
 
 class Checksum(ChecksumBase):
-    @classmethod
-    def sha256(cls, value: bytes):
-        return cls(value=value.hex(), type=ChecksumType.SHA256)
-
-    @classmethod
-    def sha256_chunked(cls, value: bytes):
-        return cls(value=base64.b64encode(value).decode(), type=ChecksumType.SHA256_CHUNKED)
-
-    @classmethod
-    def for_parts(cls, checksums: T.Sequence[bytes]):
-        return cls.sha256_chunked(hash_parts(checksums))
-
-    _EMPTY_HASH = hashlib.sha256().digest()
-
     @classmethod
     def empty(cls):
         return cls.sha256_chunked(cls._EMPTY_HASH) if CHUNKED_CHECKSUMS else cls.sha256(cls._EMPTY_HASH)
@@ -132,7 +119,7 @@ async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.
             {"region": region, "bucket": location.bucket, "scratch_buckets": scratch_buckets},
         )
 
-    return S3ObjectDestination(bucket=scratch_bucket, key=SCRATCH_KEY)
+    return S3ObjectDestination(bucket=scratch_bucket, key=make_scratch_key())
 
 
 async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAttributesOutputTypeDef]:
@@ -182,10 +169,6 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
         return Checksum.sha256_chunked(base64.b64decode(checksum_value))
 
     return None
-
-
-def hash_parts(parts: T.Sequence[bytes]) -> bytes:
-    return hashlib.sha256(b"".join(parts)).digest()
 
 
 class PartDef(pydantic.v1.BaseModel):

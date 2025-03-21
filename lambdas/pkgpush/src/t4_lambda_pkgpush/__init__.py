@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import base64
 import concurrent.futures
 import contextlib
 import functools
 import json
 import logging
 import os
+import random
 import re
 import tempfile
 import typing as T
+import warnings
 
 import boto3
 import botocore.client
@@ -47,6 +50,7 @@ from quilt_shared.pkgpush import (
     S3ObjectDestination,
     S3ObjectSource,
     TopHash,
+    make_scratch_key,
 )
 
 # XXX: use pydantic to manage settings
@@ -62,8 +66,12 @@ S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
 S3_COPY_LAMBDA_CONCURRENCY = int(os.environ["S3_COPY_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
+CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
+
+MAX_CONCURRENCY = 950
+LOCAL_HASH_CONCURRENCY = MAX_CONCURRENCY  - S3_HASH_LAMBDA_CONCURRENCY
 
 logger = logging.getLogger("quilt-lambda-pkgpush")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
@@ -138,7 +146,43 @@ def calculate_pkg_entry_hash(
     pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
 
 
+def calculate_pkg_entry_local(
+    pkg_entry: quilt3.packages.PackageEntry,
+    get_region_s3_client,
+    scratch_buckets: dict[str, str],
+):
+    region = get_bucket_region(pkg_entry.physical_key.bucket)
+    s3 = get_region_s3_client(region)
+    resp = s3.copy_object(
+        CopySource=S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
+        Bucket=scratch_buckets[region],
+        Key=make_scratch_key(),
+        ChecksumAlgorithm="SHA256",
+        # TODO: make sure for unversioned objects
+        # CopySourceIfMatch=etag,
+    )
+    checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
+    pkg_entry.hash = (Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)).dict()
+
+
+@functools.cache
+def get_bucket_region(bucket: str) -> str:
+    """
+    Lookup the region for a given bucket.
+    """
+    try:
+        resp = s3.head_bucket(Bucket=bucket)
+    except botocore.exceptions.ClientError as e:
+        resp = e.response
+        if resp.get("Error", {}).get("Code") == "404":
+            raise
+
+    assert "ResponseMetadata" in resp
+    return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
+
+
 def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
+    entries_local = []
     entries = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
@@ -154,19 +198,42 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
                 },
             )
 
-        entries.append(entry)
+        if not entry.size:
+            entry.hash = (Checksum.empty_sha256_chunked() if CHUNKED_CHECKSUMS else Checksum.empty_sha256()).dict()
+        elif entry.size < 8 * 2**20:  # TODO: use constant from shared place
+            entries_local.append(entry)
+        else:
+            entries.append(entry)
 
     # Schedule longer tasks first so we don't end up waiting for a single long task.
+    entries_local.sort(key=lambda entry: entry.size, reverse=True)
     entries.sort(key=lambda entry: entry.size, reverse=True)
+    credentials = AWSCredentials.from_boto_session(user_boto_session)
+
+    @functools.cache
+    def get_region_s3_client(region: str):
+        return boto3.client(
+            "s3",
+            region_name=region,
+            config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
+            **credentials.boto_args,
+        )
+
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
-    ) as pool:
-        credentials = AWSCredentials.from_boto_session(user_boto_session)
+    ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
+        # TODO: use while and wait() to finish on first error
         fs = [
             pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
             for entry in entries
         ]
+        fs_local = [
+            local_pool.submit(calculate_pkg_entry_local, entry, get_region_s3_client, scratch_buckets)
+            for entry in entries_local
+        ]
         for f in concurrent.futures.as_completed(fs):
+            f.result()
+        for f in concurrent.futures.as_completed(fs_local):
             f.result()
 
 
@@ -615,6 +682,14 @@ def package_prefix_sqs(event, context):
         package_prefix(record["body"], context)
 
 
+def list_prefix_versions(bucket: str, prefix: str):
+    prefix_len = len(prefix)
+    paginator = s3.get_paginator("list_object_versions")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        versions = page.get("Versions", [])
+        yield versions
+
+
 def package_prefix(event, context):
     params = PackagerEvent.parse_raw(event)
 
@@ -633,37 +708,85 @@ def package_prefix(event, context):
             raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
 
     setup_user_boto_session_from_default()
+    credentials = AWSCredentials.from_boto_session(user_boto_session)
+    scratch_buckets = get_scratch_buckets()
 
     pkg = quilt3.Package()
-    pkg.set_dir(".", str(prefix_pk), meta=metadata)
-    # TODO: check while listing objects
+
+    prefix_len = len(prefix_pk.path)
     size_to_hash = 0
-    for i, (_, pkg_entry) in enumerate(pkg.walk()):
-        if i > MAX_FILES_TO_HASH:
-            raise PkgpushException(
-                "TooManyFilesToHash",
-                {
-                    "num_files": i,
-                    "max_files": MAX_FILES_TO_HASH,
-                },
-            )
-        assert isinstance(pkg_entry.size, int)
-        size_to_hash += pkg_entry.size
-        if size_to_hash > MAX_BYTES_TO_HASH:
-            raise PkgpushException(
-                "PackageTooLargeToHash",
-                {
-                    "size": size_to_hash,
-                    "max_size": MAX_BYTES_TO_HASH,
-                },
-            )
+    files_to_hash = 0
+    fs = []
+
+    @functools.cache
+    def get_region_s3_client(region: str):
+        return boto3.client(
+            "s3",
+            region_name=region,
+            config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
+            **credentials.boto_args,
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=S3_HASH_LAMBDA_CONCURRENCY
+    ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
+        # TODO: use while and wait() to finish on very first error? also we could sort pending tasks by size
+        for page in list_prefix_versions(prefix_pk.bucket, prefix_pk.path):
+            for obj in page:
+                if not obj["IsLatest"]:
+                    continue
+                key = obj["Key"]
+                size = obj["Size"]
+                if key.endswith("/"):
+                    if size != 0:
+                        warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
+                    continue
+                if (files_to_hash := files_to_hash + 1) > MAX_FILES_TO_HASH:
+                    raise PkgpushException(
+                        "TooManyFilesToHash",
+                        {
+                            "num_files": files_to_hash,
+                            "max_files": MAX_FILES_TO_HASH,
+                        },
+                    )
+                if (size_to_hash := size_to_hash + size) > MAX_BYTES_TO_HASH:
+                    raise PkgpushException(
+                        "PackageTooLargeToHash",
+                        {
+                            "size": size_to_hash,
+                            "max_size": MAX_BYTES_TO_HASH,
+                        },
+                    )
+                entry = quilt3.packages.PackageEntry(
+                    PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
+                    size,
+                    None,
+                    None,
+                )
+                pkg.set(key[prefix_len:], entry)
+                # TODO
+                # if key.endswith("/"):
+                #     continue
+                # if not size:
+                #     # TODO
+                if not entry.size:
+                    entry.hash = (Checksum.empty_sha256_chunked() if CHUNKED_CHECKSUMS else Checksum.empty_sha256()).dict()
+                elif entry.size < 8 * 2**20:  # TODO: use constant from shared place
+                    fs.append(local_pool.submit(calculate_pkg_entry_local, entry, get_region_s3_client, scratch_buckets))
+                else:
+                    fs.append(pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets))
+
+        done, _ = concurrent.futures.wait(fs, return_when=concurrent.futures.FIRST_EXCEPTION)
+        for f in done:
+            f.result()
+
+    pkg.set_meta(metadata)
     pkg._validate_with_workflow(
         registry=package_registry,
         workflow=params.workflow_normalized,
         name=pkg_name,
         message=params.commit_message,
     )
-    calculate_pkg_hashes(pkg, get_scratch_buckets())
     pkg._build(
         name=pkg_name,
         registry=registry_url,
