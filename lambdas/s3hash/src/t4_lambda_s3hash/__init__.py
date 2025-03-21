@@ -20,9 +20,10 @@ import pydantic.v1
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import Checksum as ChecksumBase
-from quilt_shared.pkgpush import ChecksumResult, ChecksumType, CopyResult
+from quilt_shared.pkgpush import ChecksumResult, CopyResult
 from quilt_shared.pkgpush import MPURef as MPURefBase
 from quilt_shared.pkgpush import S3ObjectDestination, S3ObjectSource
+from quilt_shared.pkgpush import make_scratch_key
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
@@ -118,7 +119,7 @@ async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.
             {"region": region, "bucket": location.bucket, "scratch_buckets": scratch_buckets},
         )
 
-    return S3ObjectDestination(bucket=scratch_bucket, key=SCRATCH_KEY)
+    return S3ObjectDestination(bucket=scratch_bucket, key=make_scratch_key())
 
 
 async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAttributesOutputTypeDef]:
