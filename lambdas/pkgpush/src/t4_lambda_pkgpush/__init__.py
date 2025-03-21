@@ -11,6 +11,7 @@ import random
 import re
 import tempfile
 import typing as T
+import warnings
 
 import boto3
 import botocore.client
@@ -736,6 +737,10 @@ def package_prefix(event, context):
                     continue
                 key = obj["Key"]
                 size = obj["Size"]
+                if key.endswith("/"):
+                    if size != 0:
+                        warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
+                    continue
                 if (files_to_hash := files_to_hash + 1) > MAX_FILES_TO_HASH:
                     raise PkgpushException(
                         "TooManyFilesToHash",
@@ -775,7 +780,7 @@ def package_prefix(event, context):
         for f in done:
             f.result()
 
-
+    pkg.set_meta(metadata)
     pkg._validate_with_workflow(
         registry=package_registry,
         workflow=params.workflow_normalized,
