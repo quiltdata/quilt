@@ -1,15 +1,126 @@
+import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as GQL from 'utils/GraphQL'
-import JsonDisplay from 'components/JsonDisplay'
+import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Workflows from 'utils/workflows'
 
 import * as search from './search'
 import PACKAGE_COUNT_QUERY from './gql/WorkflowPackageCount.generated'
+
+const usePackagesLinkStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.subtitle2,
+    borderTop: `1px solid ${t.palette.divider}`,
+    color: t.palette.text.secondary,
+    display: 'block',
+    padding: t.spacing(2),
+  },
+  link: {
+    '&:hover': {
+      background: t.palette.action.hover,
+      color: t.palette.text.primary,
+    },
+  },
+}))
+
+interface PackagesLinkProps {
+  bucket: string
+  workflow: string
+}
+
+function PackagesLink({ bucket, workflow }: PackagesLinkProps) {
+  const classes = usePackagesLinkStyles()
+
+  const buckets = React.useMemo(() => [bucket], [bucket])
+  const filter = React.useMemo(
+    () => ({ workflow: { terms: [workflow] } }) as any,
+    [workflow],
+  )
+  const query = GQL.useQuery(PACKAGE_COUNT_QUERY, { buckets, filter })
+
+  return GQL.fold(query, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return <span className={classes.root}>No packages</span>
+        case 'PackagesSearchResultSet':
+          return (
+            <RR.Link
+              to={search.makeUrl(bucket, workflow as string)}
+              className={cx(classes.root, classes.link)}
+            >
+              {r.stats.total} packages
+            </RR.Link>
+          )
+        case 'InvalidInput':
+          return (
+            <M.Tooltip arrow title={`Invalid input: ${r.errors[0].message}`}>
+              <span className={classes.root}>? packages</span>
+            </M.Tooltip>
+          )
+        default:
+          return Eff.absurd<never>(r)
+      }
+    },
+    fetching: () => (
+      <Skeleton className={classes.root} animate height={24} width="8rem" />
+    ),
+  })
+}
+
+const useCardStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  inner: {
+    flexGrow: 1,
+    padding: t.spacing(2),
+    position: 'relative',
+  },
+  link: {
+    ...t.typography.body1,
+    fontWeight: t.typography.fontWeightMedium,
+    lineHeight: '20px',
+  },
+  linkText: {
+    position: 'relative',
+
+    '&$disabled': {
+      color: t.palette.text.disabled,
+    },
+  },
+  disabled: {},
+  linkClickArea: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+
+    '$link:hover &': {
+      background: t.palette.action.hover,
+    },
+  },
+  name: {
+    ...t.typography.body2,
+    marginTop: t.spacing(1),
+  },
+  description: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginTop: t.spacing(1),
+  },
+  chip: {
+    float: 'right',
+    marginLeft: t.spacing(1),
+  },
+}))
 
 interface WorkflowCardProps {
   bucket: string
@@ -17,54 +128,54 @@ interface WorkflowCardProps {
 }
 
 function WorkflowCard({ bucket, workflow }: WorkflowCardProps) {
+  const classes = useCardStyles()
   const { urls } = NamedRoutes.use()
-  const buckets = React.useMemo(() => [bucket], [bucket])
-  const filter = React.useMemo(
-    () => ({ workflow: { terms: [workflow.slug] } }) as any,
-    [workflow],
-  )
-  const query = GQL.useQuery(PACKAGE_COUNT_QUERY, { buckets, filter })
+  // TODO: show schema names with links to schema files in quilt
+
   return (
-    <M.Card>
-      <M.CardContent>
-        <M.Typography variant="body1" gutterBottom>
-          <RR.Link to={urls.bucketWorkflowDetail(bucket, workflow.slug)}>
-            {workflow.name}
-          </RR.Link>
-        </M.Typography>
-        <M.Typography variant="body2" color="textSecondary" gutterBottom>
-          {workflow.description}
-        </M.Typography>
+    <M.Paper className={classes.root}>
+      <div className={classes.inner}>
+        {workflow.isDefault && (
+          <M.Chip size="small" label="Default" className={classes.chip} />
+        )}
 
-        <M.Box pt={2} />
+        {workflow.isDisabled && (
+          <M.Chip
+            size="small"
+            label="Disabled"
+            variant="outlined"
+            className={classes.chip}
+          />
+        )}
 
-        {GQL.fold(query, {
-          data: (d) => {
-            switch (d.searchPackages.__typename) {
-              case 'EmptySearchResultSet':
-                return <M.Typography>No packages</M.Typography>
-              case 'PackagesSearchResultSet':
-                const { total } = d.searchPackages.stats
-                return (
-                  <M.Typography variant="body2" gutterBottom>
-                    <RR.Link to={search.makeUrl(bucket, workflow.slug as string)}>
-                      {total} packages
-                    </RR.Link>
-                  </M.Typography>
-                )
-              case 'InvalidInput':
-                return <M.Typography>Error: Invalid input</M.Typography>
-              default:
-                Eff.absurd(d.searchPackages)
-            }
-          },
-          fetching: () => <>skeleton</>,
-        })}
+        <RR.Link
+          className={classes.link}
+          to={urls.bucketWorkflowDetail(bucket, workflow.slug)}
+        >
+          <span className={cx(classes.linkText, workflow.isDisabled && classes.disabled)}>
+            {workflow.slug}
+          </span>
+          <div className={classes.linkClickArea} />
+        </RR.Link>
 
-        <M.Box pt={2} />
-        <JsonDisplay value={workflow} />
-      </M.CardContent>
-    </M.Card>
+        <div className={classes.name}>{workflow.name}</div>
+
+        <p className={classes.description}>{workflow.description}</p>
+
+        {!!workflow.schema && (
+          <M.Typography variant="caption" color="textSecondary">
+            Metadata Schema: {workflow.schema.url}
+          </M.Typography>
+        )}
+
+        {!!workflow.entriesSchema && (
+          <M.Typography variant="caption" color="textSecondary">
+            Entries Schema: {workflow.entriesSchema}
+          </M.Typography>
+        )}
+      </div>
+      <PackagesLink bucket={bucket} workflow={workflow.slug as string} />
+    </M.Paper>
   )
 }
 
