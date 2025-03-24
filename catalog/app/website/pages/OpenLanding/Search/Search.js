@@ -32,7 +32,7 @@ const useStyles = M.makeStyles((t) => ({
   container: {
     position: 'relative',
     '&::before': {
-      background: `center -260px / 1120px no-repeat url(${img2x(bg, bg2x)})`,
+      background: `center no-repeat url(${img2x(bg, bg2x)})`,
       bottom: 0,
       content: '""',
       left: 0,
@@ -46,8 +46,8 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: 650,
-    paddingTop: t.spacing(23),
+    minHeight: 910,
+    paddingTop: t.spacing(55),
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       paddingTop: t.spacing(20),
