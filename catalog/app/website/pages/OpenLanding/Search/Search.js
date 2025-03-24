@@ -167,11 +167,11 @@ export default function Search() {
 
           <div className={classes.stats}>
             <div className={classes.stat}>
-              <div className={classes.statValue}>10.2 Billion</div>
+              <div className={classes.statValue}>477 Million</div>
               <div className={classes.statDesc}>Objects</div>
             </div>
             <div className={classes.stat}>
-              <div className={classes.statValue}>3.7 Petabytes</div>
+              <div className={classes.statValue}>1.3 Petabytes</div>
               <div className={classes.statDesc}>Of Data</div>
             </div>
             <div className={classes.stat}>
