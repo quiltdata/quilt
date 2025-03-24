@@ -1,23 +1,100 @@
+import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import JsonDisplay from 'components/JsonDisplay'
-
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as workflows from 'utils/workflows'
+import StyledLink from 'utils/StyledLink'
+import * as Format from 'utils/format'
+import * as Workflows from 'utils/workflows'
 
-// import * as search from './search'
+import * as search from './search'
 
 import PACKAGES_QUERY from './gql/WorkflowPackages.generated'
 
-const usePackageStyles = M.makeStyles((t) => ({
+type SearchPackages = Extract<
+  GQL.DataForDoc<typeof PACKAGES_QUERY>['searchPackages'],
+  { __typename: 'PackagesSearchResultSet' }
+>
+
+type Package = SearchPackages['firstPage']['hits'][0]
+
+const usePackageCardStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  inner: {
+    flexGrow: 1,
+    padding: t.spacing(2),
+    position: 'relative',
+  },
+  link: {
+    ...t.typography.body1,
+    fontWeight: t.typography.fontWeightMedium,
+    lineHeight: '20px',
+  },
+  linkText: {
+    position: 'relative',
+
+    '&$disabled': {
+      color: t.palette.text.disabled,
+    },
+  },
+  linkClickArea: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+
+    '$link:hover &': {
+      background: t.palette.action.hover,
+    },
+  },
+  updated: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginTop: t.spacing(1),
+  },
+  comment: {
+    ...t.typography.body2,
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2),
+  },
+}))
+
+interface PackageCardProps {
+  bucket: string
+  pkg: Package
+}
+
+function PackageCard({ bucket, pkg }: PackageCardProps) {
+  const classes = usePackageCardStyles()
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.Paper className={classes.root}>
+      <div className={classes.inner}>
+        <RR.Link className={classes.link} to={urls.bucketPackageDetail(bucket, pkg.name)}>
+          <span className={cx(classes.linkText)}>{pkg.name}</span>
+          <div className={classes.linkClickArea} />
+        </RR.Link>
+        <div className={classes.updated}>
+          Updated <Format.Relative value={pkg.modified} />
+        </div>
+      </div>
+      {!!pkg.comment && <div className={classes.comment}>{pkg.comment}</div>}
+    </M.Paper>
+  )
+}
+
+const usePackagesStyles = M.makeStyles((t) => ({
   grid: {
     display: 'grid',
     gap: t.spacing(2),
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(2, 1fr)',
   },
 }))
 
@@ -27,8 +104,7 @@ interface PackagesProps {
 }
 
 function Packages({ bucket, workflow }: PackagesProps) {
-  const classes = usePackageStyles()
-  const { urls } = NamedRoutes.use()
+  const classes = usePackagesStyles()
 
   const buckets = React.useMemo(() => [bucket], [bucket])
   const filter = React.useMemo(
@@ -38,68 +114,91 @@ function Packages({ bucket, workflow }: PackagesProps) {
 
   const query = GQL.useQuery(PACKAGES_QUERY, { buckets, filter })
 
-  // TODO: link to search
-  return (
-    <div>
-      {GQL.fold(query, {
-        data: (d) => {
-          switch (d.searchPackages.__typename) {
-            case 'EmptySearchResultSet':
-              return <M.Typography>No packages found for this workflow</M.Typography>
-            case 'PackagesSearchResultSet':
-              const { firstPage, stats } = d.searchPackages
-              return (
-                <>
-                  <div className={classes.grid}>
-                    {firstPage.hits.map((pkg) => (
-                      <M.Card key={pkg.id}>
-                        <M.CardContent>
-                          <RR.Link to={urls.bucketPackageDetail(bucket, pkg.name)}>
-                            <M.Typography>{pkg.name}</M.Typography>
-                          </RR.Link>
-                        </M.CardContent>
-                      </M.Card>
-                    ))}
-                  </div>
+  const searchUrl = search.makeUrl(bucket, workflow)
 
-                  <M.Box pt={2} />
-                  <M.Typography variant="body2">
-                    {/* TODO: link to pre-filled search */}
-                    Explore {stats.total} packages
-                  </M.Typography>
-                </>
-              )
-            case 'InvalidInput':
-              return <M.Typography>Error: Invalid input</M.Typography>
-            default:
-              Eff.absurd(d.searchPackages)
-          }
-        },
-        fetching: () => <M.CircularProgress />,
-      })}
-    </div>
+  return GQL.fold(query, {
+    data: (d) => {
+      switch (d.searchPackages.__typename) {
+        case 'EmptySearchResultSet':
+          return <M.Typography>No packages found for this workflow</M.Typography>
+        case 'PackagesSearchResultSet':
+          const { firstPage, stats } = d.searchPackages
+          return (
+            <>
+              <div className={classes.grid}>
+                {firstPage.hits.map((pkg) => (
+                  <PackageCard key={pkg.id} bucket={bucket} pkg={pkg} />
+                ))}
+              </div>
+
+              <M.Box pt={2}>
+                <M.Button
+                  variant="contained"
+                  color="primary"
+                  component={RR.Link}
+                  to={searchUrl}
+                >
+                  Explore {stats.total} packages
+                </M.Button>
+              </M.Box>
+            </>
+          )
+        case 'InvalidInput':
+          return <M.Typography>Error: Invalid input</M.Typography>
+        default:
+          return Eff.absurd<never>(d.searchPackages)
+      }
+    },
+    fetching: () => <M.CircularProgress />,
+  })
+}
+
+interface SchemaLinkProps {
+  label: React.ReactNode
+  schema?: Workflows.SchemaRef
+}
+
+function SchemaLink({ label, schema }: SchemaLinkProps) {
+  const { urls } = NamedRoutes.use()
+
+  if (!schema) return null
+
+  const l = schema.location
+  const to = urls.bucketFile(l.bucket, l.key, { version: l.version })
+
+  return (
+    <M.Typography variant="body2">
+      {label}: <StyledLink to={to}>{schema.name}</StyledLink>
+    </M.Typography>
   )
 }
 
 interface WorkflowDetailProps {
   bucket: string
-  workflow: workflows.Workflow
+  workflow: Workflows.Workflow
 }
 
 export default function WorkflowDetail({ bucket, workflow }: WorkflowDetailProps) {
   return (
     <>
+      <M.Typography variant="body1" gutterBottom>
+        {workflow.name}
+      </M.Typography>
+
       <M.Typography variant="body2" color="textSecondary" gutterBottom>
         {workflow.description}
       </M.Typography>
 
-      <M.Box pt={2} />
-      <JsonDisplay value={workflow} />
+      {(!!workflow.schemas.metadata || !!workflow.schemas.entries) && (
+        <M.Box pt={2}>
+          <SchemaLink label="Metadata Schema" schema={workflow.schemas.metadata} />
+          <SchemaLink label="Entries Schema" schema={workflow.schemas.entries} />
+        </M.Box>
+      )}
 
-      <M.Box pt={4} />
-      <M.Typography variant="h6" gutterBottom>
-        Most Recent Packages
-      </M.Typography>
+      <M.Box pt={3} pb={2}>
+        <M.Typography variant="h6">Most Recent Packages</M.Typography>
+      </M.Box>
       <Packages bucket={bucket} workflow={workflow.slug as string} />
     </>
   )

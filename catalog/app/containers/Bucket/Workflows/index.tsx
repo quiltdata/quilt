@@ -17,6 +17,12 @@ import Detail from './Detail'
 import * as Layout from './Layout'
 import List from './List'
 
+const useStyles = M.makeStyles((t) => ({
+  chip: {
+    marginLeft: t.spacing(1),
+  },
+}))
+
 interface WorkflowsInnerProps {
   config: Workflows.WorkflowsConfig
   bucket: string
@@ -24,6 +30,7 @@ interface WorkflowsInnerProps {
 }
 
 function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
+  const classes = useStyles()
   const { urls } = NamedRoutes.use()
 
   const workflows = React.useMemo(
@@ -47,6 +54,17 @@ function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
         </M.IconButton>{' '}
         <M.Box component="span" ml={1}>
           {slug}
+          {workflow?.isDefault && (
+            <M.Chip className={classes.chip} label="Default" size="small" />
+          )}
+          {workflow?.isDisabled && (
+            <M.Chip
+              className={classes.chip}
+              label="Disabled"
+              size="small"
+              variant="outlined"
+            />
+          )}
         </M.Box>
       </>
     )
