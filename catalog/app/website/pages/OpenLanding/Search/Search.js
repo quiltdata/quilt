@@ -31,6 +31,7 @@ const useStyles = M.makeStyles((t) => ({
   container: {
     position: 'relative',
     '&::before': {
+      animation: '$appear 0.3s ease',
       background: `center no-repeat url(${img2x(bg, bg2x)})`,
       bottom: 0,
       content: '""',
@@ -53,6 +54,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   inputRoot: {
+    animation: '$slideDown 0.3s ease',
     background: t.palette.common.white,
     borderRadius: t.typography.pxToRem(40),
     color: t.palette.getContrastText(t.palette.common.white),
@@ -92,6 +94,26 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: 'inherit',
     marginLeft: t.spacing(4),
     opacity: 0.5,
+  },
+
+  '@keyframes slideDown': {
+    '0%': {
+      opacity: 0.7,
+      transform: 'translateY(-10px)',
+    },
+    '100%': {
+      opacity: 1,
+      transform: 'translateY(0px)',
+    },
+  },
+
+  '@keyframes appear': {
+    '0%': {
+      transform: 'scale(0.95)',
+    },
+    '100%': {
+      transform: 'scale(1)',
+    },
   },
 }))
 

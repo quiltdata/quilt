@@ -11,6 +11,7 @@ import Collaborators from './Collaborators'
 
 const useBucketStyles = M.makeStyles((t) => ({
   bucket: {
+    animation: '$slideUp 0.3s ease',
     background: 'linear-gradient(to top, #1f2151, #2f306e)',
     borderRadius: t.spacing(2),
     boxShadow: [[0, 16, 40, 'rgba(0, 0, 0, 0.2)']],
@@ -73,6 +74,16 @@ const useBucketStyles = M.makeStyles((t) => ({
     },
     '&$matching': {
       background: t.palette.secondary.main,
+    },
+  },
+  '@keyframes slideUp': {
+    '0%': {
+      opacity: 0.7,
+      transform: 'translateY(10px)',
+    },
+    '100%': {
+      opacity: 1,
+      transform: 'translateY(0px)',
     },
   },
 }))
