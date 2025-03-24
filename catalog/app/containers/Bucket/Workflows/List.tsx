@@ -227,33 +227,17 @@ const useStyles = M.makeStyles((t) => ({
 
 interface WorkflowListProps {
   bucket: string
-  config: Workflows.WorkflowsConfig
+  workflows: Workflows.Workflow[]
 }
 
-export default function WorkflowList({ bucket, config }: WorkflowListProps) {
+export default function WorkflowList({ bucket, workflows }: WorkflowListProps) {
   const classes = useStyles()
 
-  const workflows = React.useMemo(
-    () => config.workflows.filter((w) => !w.isDisabled && typeof w.slug === 'string'),
-    [config.workflows],
-  )
-
   return (
-    <div className={classes.root}>
-      <h5 className={classes.heading}>Workflows</h5>
-      {workflows.length ? (
-        <div className={classes.grid}>
-          {workflows.map((workflow) => (
-            <WorkflowCard
-              key={workflow.slug as string}
-              bucket={bucket}
-              workflow={workflow}
-            />
-          ))}
-        </div>
-      ) : (
-        <M.Typography>No workflows configured for this bucket</M.Typography>
-      )}
+    <div className={classes.grid}>
+      {workflows.map((workflow) => (
+        <WorkflowCard key={workflow.slug as string} bucket={bucket} workflow={workflow} />
+      ))}
     </div>
   )
 }

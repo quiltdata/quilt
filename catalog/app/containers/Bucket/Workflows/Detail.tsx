@@ -4,12 +4,12 @@ import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
-import Message from 'components/Message'
 
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import * as workflows from 'utils/workflows'
+
+// import * as search from './search'
 
 import PACKAGES_QUERY from './gql/WorkflowPackages.generated'
 
@@ -81,16 +81,14 @@ function Packages({ bucket, workflow }: PackagesProps) {
   )
 }
 
-interface DetailProps {
+interface WorkflowDetailProps {
   bucket: string
   workflow: workflows.Workflow
 }
 
-function Detail({ bucket, workflow }: DetailProps) {
+export default function WorkflowDetail({ bucket, workflow }: WorkflowDetailProps) {
   return (
     <>
-      <M.Typography variant="h5">{workflow.name}</M.Typography>
-      <M.Box pt={2} />
       <M.Typography variant="body2" color="textSecondary" gutterBottom>
         {workflow.description}
       </M.Typography>
@@ -103,38 +101,6 @@ function Detail({ bucket, workflow }: DetailProps) {
         Most Recent Packages
       </M.Typography>
       <Packages bucket={bucket} workflow={workflow.slug as string} />
-    </>
-  )
-}
-
-interface WrapperProps {
-  bucket: string
-  slug: string
-  config: workflows.WorkflowsConfig
-}
-
-export default function WorkflowDetailWrapper({ bucket, slug, config }: WrapperProps) {
-  const { urls } = NamedRoutes.use()
-
-  const workflow = React.useMemo(
-    () => config.workflows.find((w) => w.slug === slug),
-    [config, slug],
-  )
-
-  return (
-    <>
-      <M.Box py={3}>
-        <M.Typography variant="body1">
-          <StyledLink to={urls.bucketWorkflowList(bucket)}>Workflows</StyledLink> / {slug}
-        </M.Typography>
-      </M.Box>
-      {workflow ? (
-        <Detail bucket={bucket} workflow={workflow} />
-      ) : (
-        <Message headline="Workflow Not Found">
-          Workflow "{slug}" not found in this bucket.
-        </Message>
-      )}
     </>
   )
 }
