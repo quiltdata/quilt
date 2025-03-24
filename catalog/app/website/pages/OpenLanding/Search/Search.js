@@ -16,8 +16,8 @@ import bg2x from './search-bg@2x.png'
 const useHelpStyles = M.makeStyles((t) => ({
   paper: {
     borderRadius: t.spacing(0.5),
-    marginTop: t.spacing(8),
-    maxWidth: 690,
+    marginTop: t.spacing(10.5),
+    maxWidth: t.spacing(111),
     position: 'absolute',
     width: '100%',
     zIndex: 1,
@@ -45,8 +45,8 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'center',
     minHeight: 910,
-    paddingTop: t.spacing(55),
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       paddingTop: t.spacing(20),
@@ -54,18 +54,18 @@ const useStyles = M.makeStyles((t) => ({
   },
   inputRoot: {
     background: t.palette.common.white,
-    borderRadius: t.typography.pxToRem(30),
+    borderRadius: t.typography.pxToRem(40),
     color: t.palette.getContrastText(t.palette.common.white),
-    fontSize: t.typography.pxToRem(20),
-    lineHeight: t.typography.pxToRem(60),
-    maxWidth: 750,
+    fontSize: t.typography.pxToRem(30),
+    lineHeight: t.typography.pxToRem(80),
+    maxWidth: 960,
     overflow: 'hidden',
     paddingLeft: 0,
     width: '100%',
   },
   inputInput: {
     height: 'auto',
-    padding: t.spacing(0, 4, 0, 9.5),
+    padding: t.spacing(0, 4, 0, 10),
   },
   inputOptions: {
     borderColor: t.palette.grey[300],
@@ -89,7 +89,8 @@ const useStyles = M.makeStyles((t) => ({
     maxHeight: '100%',
   },
   icon: {
-    marginLeft: t.spacing(3.5),
+    fontSize: 'inherit',
+    marginLeft: t.spacing(4),
     opacity: 0.5,
   },
 }))
