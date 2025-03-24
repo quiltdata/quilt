@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import * as GQL from 'utils/GraphQL'
 import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import * as Workflows from 'utils/workflows'
 
 import * as search from './search'
@@ -68,9 +69,31 @@ function PackagesLink({ bucket, workflow }: PackagesLinkProps) {
       }
     },
     fetching: () => (
-      <Skeleton className={classes.root} animate height={24} width="8rem" />
+      <div className={classes.root}>
+        <Skeleton animate height={22} width="8rem" />
+      </div>
     ),
   })
+}
+
+interface SchemaLinkProps {
+  label: React.ReactNode
+  schema?: Workflows.SchemaRef
+}
+
+function SchemaLink({ label, schema }: SchemaLinkProps) {
+  const { urls } = NamedRoutes.use()
+
+  if (!schema) return null
+
+  const l = schema.location
+  const to = urls.bucketFile(l.bucket, l.key, { version: l.version })
+
+  return (
+    <M.Typography variant="body2">
+      {label}: <StyledLink to={to}>{schema.name}</StyledLink>
+    </M.Typography>
+  )
 }
 
 const useCardStyles = M.makeStyles((t) => ({
@@ -82,6 +105,10 @@ const useCardStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     padding: t.spacing(2),
     position: 'relative',
+  },
+  schemas: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2),
   },
   link: {
     ...t.typography.body1,
@@ -130,7 +157,6 @@ interface WorkflowCardProps {
 function WorkflowCard({ bucket, workflow }: WorkflowCardProps) {
   const classes = useCardStyles()
   const { urls } = NamedRoutes.use()
-  // TODO: show schema names with links to schema files in quilt
 
   return (
     <M.Paper className={classes.root}>
@@ -161,29 +187,41 @@ function WorkflowCard({ bucket, workflow }: WorkflowCardProps) {
         <div className={classes.name}>{workflow.name}</div>
 
         <p className={classes.description}>{workflow.description}</p>
-
-        {!!workflow.schema && (
-          <M.Typography variant="caption" color="textSecondary">
-            Metadata Schema: {workflow.schema.url}
-          </M.Typography>
-        )}
-
-        {!!workflow.entriesSchema && (
-          <M.Typography variant="caption" color="textSecondary">
-            Entries Schema: {workflow.entriesSchema}
-          </M.Typography>
-        )}
       </div>
+
+      {(!!workflow.schemas.metadata || !!workflow.schemas.entries) && (
+        <div className={classes.schemas}>
+          <SchemaLink label="Metadata Schema" schema={workflow.schemas.metadata} />
+          <SchemaLink label="Entries Schema" schema={workflow.schemas.entries} />
+        </div>
+      )}
+
       <PackagesLink bucket={bucket} workflow={workflow.slug as string} />
     </M.Paper>
   )
 }
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    marginBottom: t.spacing(4),
+    marginTop: t.spacing(3),
+  },
+  heading: {
+    ...t.typography.h5,
+    marginBottom: t.spacing(3),
+  },
   grid: {
     display: 'grid',
     gap: t.spacing(2),
     gridTemplateColumns: 'repeat(3, 1fr)',
+
+    [t.breakpoints.down(1100)]: {
+      gridTemplateColumns: 'repeat(2, 1fr)',
+    },
+
+    [t.breakpoints.down(700)]: {
+      gridTemplateColumns: '1fr',
+    },
   },
 }))
 
@@ -201,19 +239,21 @@ export default function WorkflowList({ bucket, config }: WorkflowListProps) {
   )
 
   return (
-    <>
-      <M.Box py={3}>
-        <M.Typography variant="h5">Workflows</M.Typography>
-      </M.Box>
-      <div className={classes.grid}>
-        {workflows.map((workflow) => (
-          <WorkflowCard
-            key={workflow.slug as string}
-            bucket={bucket}
-            workflow={workflow}
-          />
-        ))}
-      </div>
-    </>
+    <div className={classes.root}>
+      <h5 className={classes.heading}>Workflows</h5>
+      {workflows.length ? (
+        <div className={classes.grid}>
+          {workflows.map((workflow) => (
+            <WorkflowCard
+              key={workflow.slug as string}
+              bucket={bucket}
+              workflow={workflow}
+            />
+          ))}
+        </div>
+      ) : (
+        <M.Typography>No workflows configured for this bucket</M.Typography>
+      )}
+    </div>
   )
 }
