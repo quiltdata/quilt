@@ -43,7 +43,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
   const { current: api } = React.useRef((...args) => window.Intercom(...args))
   if (!('dummy' in api)) api.dummy = false
   if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
-  api.isCustom = cfg.mode === 'PRODUCT' || cfg.mode === 'OPEN'
+  api.isCustom = cfg.mode === 'PRODUCT'
 
   if (api.isCustom) {
     settings.custom_launcher_selector = SELECTOR
@@ -87,7 +87,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
 
 export function IntercomProvider({ children, ...props }) {
   const { intercomAppId: appId } = cfg
-  if (!canUseDOM || !appId) {
+  if (!canUseDOM || !appId || cfg.mode === 'OPEN') {
     return children
   }
   return (
