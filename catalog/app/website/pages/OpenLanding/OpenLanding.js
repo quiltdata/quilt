@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
 // TODO: decouple NavBar layout/state from gql and auth calls
 //       and place it into components/SearchBar
@@ -12,7 +13,15 @@ import Layout from 'website/components/Layout'
 import Buckets from './Buckets'
 import Search from './Search'
 
+const useStyles = M.makeStyles((t) => ({
+  buckets: {
+    background: t.palette.primary.dark,
+    paddingBottom: t.spacing(8),
+  },
+}))
+
 export default function OpenLanding() {
+  const classes = useStyles()
   return (
     <Layout>
       <MetaTitle />
@@ -22,7 +31,10 @@ export default function OpenLanding() {
       <NavBar.Provider>
         <Search />
       </NavBar.Provider>
-      <Buckets />
+      <div className={classes.buckets}>
+        <M.Divider />
+        <Buckets />
+      </div>
     </Layout>
   )
 }
