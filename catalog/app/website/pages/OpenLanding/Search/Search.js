@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 import { useNavBar } from 'containers/NavBar/Provider'
 import Suggestions from 'containers/NavBar/Suggestions'
 
-import * as BucketConfig from 'utils/BucketConfig'
 import img2x from 'utils/img2x'
 
 import Dots from 'website/components/Backgrounds/Dots'
@@ -89,41 +88,6 @@ const useStyles = M.makeStyles((t) => ({
     height: 'auto',
     maxHeight: '100%',
   },
-  stats: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: t.spacing(8),
-    maxWidth: 860,
-    width: '100%',
-    [t.breakpoints.down('xs')]: {
-      flexDirection: 'column',
-      height: t.spacing(30),
-    },
-  },
-  stat: {
-    alignItems: 'center',
-    color: t.palette.common.white,
-    display: 'flex',
-    flexDirection: 'column',
-    textShadow: `0 3px 2px rgba(0, 0, 0, 0.2)`,
-  },
-  statValue: {
-    fontSize: t.typography.pxToRem(48),
-    fontWeight: t.typography.fontWeightBold,
-    lineHeight: 1,
-    [t.breakpoints.down('sm')]: {
-      fontSize: t.typography.pxToRem(36),
-    },
-  },
-  statDesc: {
-    fontSize: t.typography.pxToRem(24),
-    fontWeight: t.typography.fontWeightRegular,
-    lineHeight: 1.5,
-    opacity: 0.8,
-    [t.breakpoints.down('sm')]: {
-      fontSize: t.typography.pxToRem(16),
-    },
-  },
   icon: {
     marginLeft: t.spacing(3.5),
     opacity: 0.5,
@@ -133,9 +97,6 @@ const useStyles = M.makeStyles((t) => ({
 export default function Search() {
   const classes = useStyles()
   const helpClasses = useHelpStyles()
-
-  // XXX: consider using graphql directly
-  const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
   const { input, onClickAway } = useNavBar()
   const ref = React.useRef(null)
@@ -164,21 +125,6 @@ export default function Search() {
               <Suggestions classes={helpClasses} open={input.helpOpen} />
             </div>
           </M.ClickAwayListener>
-
-          <div className={classes.stats}>
-            <div className={classes.stat}>
-              <div className={classes.statValue}>477 Million</div>
-              <div className={classes.statDesc}>Objects</div>
-            </div>
-            <div className={classes.stat}>
-              <div className={classes.statValue}>1.3 Petabytes</div>
-              <div className={classes.statDesc}>Of Data</div>
-            </div>
-            <div className={classes.stat}>
-              <div className={classes.statValue}>{bucketCount}</div>
-              <div className={classes.statDesc}>S3 Buckets</div>
-            </div>
-          </div>
         </div>
       </M.Container>
     </div>
