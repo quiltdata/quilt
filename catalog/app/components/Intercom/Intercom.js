@@ -43,7 +43,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
   const { current: api } = React.useRef((...args) => window.Intercom(...args))
   if (!('dummy' in api)) api.dummy = false
   if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
-  api.isCustom = cfg.mode === 'PRODUCT'
+  api.isCustom = cfg.mode === 'PRODUCT' || cfg.mode === 'OPEN'
 
   if (api.isCustom) {
     settings.custom_launcher_selector = SELECTOR
