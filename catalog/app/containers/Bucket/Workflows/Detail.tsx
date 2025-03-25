@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
@@ -39,10 +38,6 @@ const usePackageCardStyles = M.makeStyles((t) => ({
   },
   linkText: {
     position: 'relative',
-
-    '&$disabled': {
-      color: t.palette.text.disabled,
-    },
   },
   linkClickArea: {
     bottom: 0,
@@ -84,7 +79,7 @@ function PackageCard({ bucket, pkg }: PackageCardProps) {
     <M.Paper className={classes.root}>
       <div className={classes.inner}>
         <RR.Link className={classes.link} to={urls.bucketPackageDetail(bucket, pkg.name)}>
-          <span className={cx(classes.linkText)}>{pkg.name}</span>
+          <span className={classes.linkText}>{pkg.name}</span>
           <div className={classes.linkClickArea} />
         </RR.Link>
         <div className={classes.secondary}>

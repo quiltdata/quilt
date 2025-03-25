@@ -184,7 +184,7 @@ export const bucketAthenaExecution = route(
 
 export const bucketWorkflowList = route(
   '/b/:bucket/workflows/',
-  (bucket: string) => `/b/${bucket}/workflows`,
+  (bucket: string) => `/b/${bucket}/workflows/`,
 )
 
 export const bucketWorkflowDetail = route(
