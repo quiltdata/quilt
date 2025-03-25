@@ -1034,17 +1034,17 @@ function AvailablePackagesMetaFiltersGroup({
   return children(stateOut)
 }
 
-export type SearhHitObject = Extract<
+export type SearchHitObject = Extract<
   GQL.DataForDoc<typeof FIRST_PAGE_OBJECTS_QUERY>['searchObjects'],
   { __typename: 'ObjectsSearchResultSet' }
 >['firstPage']['hits'][number]
 
-export type SearhHitPackage = Extract<
+export type SearchHitPackage = Extract<
   GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
 >['firstPage']['hits'][number]
 
-export type SearchHit = SearhHitObject | SearhHitPackage
+export type SearchHit = SearchHitObject | SearchHitPackage
 
 type PackageUserMetaFacetFull = Extract<
   GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
