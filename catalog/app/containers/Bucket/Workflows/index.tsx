@@ -19,7 +19,7 @@ import List from './List'
 
 const useStyles = M.makeStyles((t) => ({
   chip: {
-    marginLeft: t.spacing(1),
+    marginLeft: t.spacing(2),
   },
 }))
 
@@ -55,15 +55,15 @@ function WorkflowsInner({ config, bucket, slug }: WorkflowsInnerProps) {
         <M.Box component="span" ml={1}>
           {slug}
           {workflow?.isDefault && (
-            <M.Chip className={classes.chip} label="Default" size="small" />
-          )}
-          {workflow?.isDisabled && (
             <M.Chip
               className={classes.chip}
-              label="Disabled"
+              label="Default"
               size="small"
               variant="outlined"
             />
+          )}
+          {workflow?.isDisabled && (
+            <M.Chip className={classes.chip} label="Disabled" size="small" />
           )}
         </M.Box>
       </>

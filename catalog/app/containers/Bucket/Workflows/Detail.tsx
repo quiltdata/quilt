@@ -8,6 +8,7 @@ import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as Format from 'utils/format'
+import { readableBytes } from 'utils/string'
 import * as Workflows from 'utils/workflows'
 
 import * as search from './search'
@@ -54,10 +55,14 @@ const usePackageCardStyles = M.makeStyles((t) => ({
       background: t.palette.action.hover,
     },
   },
-  updated: {
+  secondary: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
     marginTop: t.spacing(1),
+  },
+  divider: {
+    marginLeft: t.spacing(0.5),
+    marginRight: t.spacing(0.5),
   },
   comment: {
     ...t.typography.body2,
@@ -74,6 +79,7 @@ interface PackageCardProps {
 function PackageCard({ bucket, pkg }: PackageCardProps) {
   const classes = usePackageCardStyles()
   const { urls } = NamedRoutes.use()
+  // XXX: selective metadata display (like in package list)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.inner}>
@@ -81,7 +87,9 @@ function PackageCard({ bucket, pkg }: PackageCardProps) {
           <span className={cx(classes.linkText)}>{pkg.name}</span>
           <div className={classes.linkClickArea} />
         </RR.Link>
-        <div className={classes.updated}>
+        <div className={classes.secondary}>
+          {readableBytes(pkg.size)}
+          <span className={classes.divider}> • </span>
           Updated <Format.Relative value={pkg.modified} />
         </div>
       </div>
@@ -95,6 +103,10 @@ const usePackagesStyles = M.makeStyles((t) => ({
     display: 'grid',
     gap: t.spacing(2),
     gridTemplateColumns: 'repeat(2, 1fr)',
+
+    [t.breakpoints.down(1100)]: {
+      gridTemplateColumns: '1fr',
+    },
   },
 }))
 
@@ -196,8 +208,8 @@ export default function WorkflowDetail({ bucket, workflow }: WorkflowDetailProps
         </M.Box>
       )}
 
-      <M.Box pt={3} pb={2}>
-        <M.Typography variant="h6">Most Recent Packages</M.Typography>
+      <M.Box mt={3} mb={2}>
+        <M.Typography variant="h5">Recent Packages</M.Typography>
       </M.Box>
       <Packages bucket={bucket} workflow={workflow.slug as string} />
     </>

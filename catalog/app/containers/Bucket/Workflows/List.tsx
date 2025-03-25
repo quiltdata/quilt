@@ -162,16 +162,16 @@ function WorkflowCard({ bucket, workflow }: WorkflowCardProps) {
     <M.Paper className={classes.root}>
       <div className={classes.inner}>
         {workflow.isDefault && (
-          <M.Chip size="small" label="Default" className={classes.chip} />
+          <M.Chip
+            className={classes.chip}
+            label="Default"
+            size="small"
+            variant="outlined"
+          />
         )}
 
         {workflow.isDisabled && (
-          <M.Chip
-            size="small"
-            label="Disabled"
-            variant="outlined"
-            className={classes.chip}
-          />
+          <M.Chip className={classes.chip} label="Disabled" size="small" />
         )}
 
         <RR.Link
