@@ -210,6 +210,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
     entries.sort(key=lambda entry: entry.size, reverse=True)
     credentials = AWSCredentials.from_boto_session(user_boto_session)
 
+    # XXX: do we really need to make a new client for each region?
     @functools.cache
     def get_region_s3_client(region: str):
         return boto3.client(
@@ -222,18 +223,15 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
     ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
-        # TODO: use while and wait() to finish on first error
         fs = [
             pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
             for entry in entries
         ]
-        fs_local = [
+        fs += [
             local_pool.submit(calculate_pkg_entry_local, entry, get_region_s3_client, scratch_buckets)
             for entry in entries_local
         ]
         for f in concurrent.futures.as_completed(fs):
-            f.result()
-        for f in concurrent.futures.as_completed(fs_local):
             f.result()
 
 
@@ -683,11 +681,9 @@ def package_prefix_sqs(event, context):
 
 
 def list_prefix_versions(bucket: str, prefix: str):
-    prefix_len = len(prefix)
     paginator = s3.get_paginator("list_object_versions")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        versions = page.get("Versions", [])
-        yield versions
+        yield from page.get("Versions", [])
 
 
 def package_prefix(event, context):
@@ -708,77 +704,47 @@ def package_prefix(event, context):
             raise PkgpushException("InvalidMetadata", {"details": "Metadata must be a JSON object"})
 
     setup_user_boto_session_from_default()
-    credentials = AWSCredentials.from_boto_session(user_boto_session)
-    scratch_buckets = get_scratch_buckets()
 
     pkg = quilt3.Package()
 
     prefix_len = len(prefix_pk.path)
     size_to_hash = 0
     files_to_hash = 0
-    fs = []
 
-    @functools.cache
-    def get_region_s3_client(region: str):
-        return boto3.client(
-            "s3",
-            region_name=region,
-            config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
-            **credentials.boto_args,
+    # XXX: Move this logic somewhere else?
+    for obj in list_prefix_versions(prefix_pk.bucket, prefix_pk.path):
+        if not obj["IsLatest"]:
+            continue
+        key = obj["Key"]
+        size = obj["Size"]
+        if key.endswith("/"):
+            if size != 0:
+                warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
+            continue
+        # XXX: disable limits?
+        if (files_to_hash := files_to_hash + 1) > MAX_FILES_TO_HASH:
+            raise PkgpushException(
+                "TooManyFilesToHash",
+                {
+                    "num_files": files_to_hash,
+                    "max_files": MAX_FILES_TO_HASH,
+                },
+            )
+        if (size_to_hash := size_to_hash + size) > MAX_BYTES_TO_HASH:
+            raise PkgpushException(
+                "PackageTooLargeToHash",
+                {
+                    "size": size_to_hash,
+                    "max_size": MAX_BYTES_TO_HASH,
+                },
+            )
+        entry = quilt3.packages.PackageEntry(
+            PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
+            size,
+            None,
+            None,
         )
-
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=S3_HASH_LAMBDA_CONCURRENCY
-    ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
-        # TODO: use while and wait() to finish on very first error? also we could sort pending tasks by size
-        for page in list_prefix_versions(prefix_pk.bucket, prefix_pk.path):
-            for obj in page:
-                if not obj["IsLatest"]:
-                    continue
-                key = obj["Key"]
-                size = obj["Size"]
-                if key.endswith("/"):
-                    if size != 0:
-                        warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
-                    continue
-                if (files_to_hash := files_to_hash + 1) > MAX_FILES_TO_HASH:
-                    raise PkgpushException(
-                        "TooManyFilesToHash",
-                        {
-                            "num_files": files_to_hash,
-                            "max_files": MAX_FILES_TO_HASH,
-                        },
-                    )
-                if (size_to_hash := size_to_hash + size) > MAX_BYTES_TO_HASH:
-                    raise PkgpushException(
-                        "PackageTooLargeToHash",
-                        {
-                            "size": size_to_hash,
-                            "max_size": MAX_BYTES_TO_HASH,
-                        },
-                    )
-                entry = quilt3.packages.PackageEntry(
-                    PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
-                    size,
-                    None,
-                    None,
-                )
-                pkg.set(key[prefix_len:], entry)
-                # TODO
-                # if key.endswith("/"):
-                #     continue
-                # if not size:
-                #     # TODO
-                if not entry.size:
-                    entry.hash = (Checksum.empty_sha256_chunked() if CHUNKED_CHECKSUMS else Checksum.empty_sha256()).dict()
-                elif entry.size < 8 * 2**20:  # TODO: use constant from shared place
-                    fs.append(local_pool.submit(calculate_pkg_entry_local, entry, get_region_s3_client, scratch_buckets))
-                else:
-                    fs.append(pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets))
-
-        done, _ = concurrent.futures.wait(fs, return_when=concurrent.futures.FIRST_EXCEPTION)
-        for f in done:
-            f.result()
+        pkg.set(key[prefix_len:], entry)
 
     pkg.set_meta(metadata)
     pkg._validate_with_workflow(
@@ -787,6 +753,7 @@ def package_prefix(event, context):
         name=pkg_name,
         message=params.commit_message,
     )
+    calculate_pkg_hashes(pkg, get_scratch_buckets())
     pkg._build(
         name=pkg_name,
         registry=registry_url,
