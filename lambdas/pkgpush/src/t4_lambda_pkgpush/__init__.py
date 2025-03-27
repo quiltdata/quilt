@@ -676,11 +676,18 @@ def package_prefix_sqs(event, context):
         package_prefix(record["body"], context)
 
 
-def list_prefix_versions(bucket: str, prefix: str):
+def list_prefix_latest_versions(bucket: str, prefix: str):
     paginator = s3.get_paginator("list_object_versions")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        yield from page.get("Versions", [])
-
+        for obj in page.get("Versions", []):
+            if not obj["IsLatest"]:
+                continue
+            key = obj["Key"]
+            if key.endswith("/"):
+                if obj["Size"] != 0:
+                    warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
+                continue
+            yield obj
 
 def package_prefix(event, context):
     params = PackagerEvent.parse_raw(event)
@@ -707,16 +714,9 @@ def package_prefix(event, context):
     size_to_hash = 0
     files_to_hash = 0
 
-    # XXX: Move this logic somewhere else?
-    for obj in list_prefix_versions(prefix_pk.bucket, prefix_pk.path):
-        if not obj["IsLatest"]:
-            continue
+    for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):
         key = obj["Key"]
         size = obj["Size"]
-        if key.endswith("/"):
-            if size != 0:
-                warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
-            continue
         # XXX: disable limits?
         if (files_to_hash := files_to_hash + 1) > MAX_FILES_TO_HASH:
             raise PkgpushException(
