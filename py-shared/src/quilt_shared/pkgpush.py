@@ -195,4 +195,5 @@ class PackageConstructEntry(pydantic.v1.BaseModel):
 
 
 def make_scratch_key() -> str:
-    return f"user-requests/{random.randbytes(4).hex()}/checksum-upload-tmp"
+    # randomize key to avoid S3 throttling
+    return f"user-requests/checksum-upload-tmp/{random.randbytes(4).hex()}/object"
