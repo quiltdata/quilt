@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
-import * as SearchResults from 'components/SearchResults'
 import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
@@ -1017,19 +1016,9 @@ interface SearchHitProps {
 function SearchHit({ hit, showBucket }: SearchHitProps) {
   switch (hit.__typename) {
     case 'SearchHitObject':
-      return (
-        <SearchResults.Hit
-          showBucket={showBucket}
-          hit={{
-            type: 'object',
-            bucket: hit.bucket,
-            path: hit.key,
-            versions: [{ id: hit.version, size: hit.size, updated: hit.modified }],
-          }}
-        />
-      )
+      return <Hit.Object showBucket={showBucket} hit={hit} />
     case 'SearchHitPackage':
-      return <Hit.Package showBucket={showBucket} {...hit} />
+      return <Hit.Package showBucket={showBucket} hit={hit} />
     default:
       assertNever(hit)
   }
@@ -1179,7 +1168,7 @@ function ResultsInner({ className }: ResultsInnerProps) {
 
   switch (r._tag) {
     case 'fetching':
-      return <ResultsSkeleton className={className} />
+      return <ResultsSkeleton className={className} type={model.state.resultType} />
     case 'error':
       return <SearchError className={className} details={r.error.message} />
     case 'data':
