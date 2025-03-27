@@ -7,7 +7,6 @@ import functools
 import json
 import logging
 import os
-import random
 import re
 import tempfile
 import typing as T
@@ -146,7 +145,7 @@ def calculate_pkg_entry_hash(
     pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
 
 
-def calculate_pkg_entry_local(
+def calculate_pkg_entry_hash_local(
     pkg_entry: quilt3.packages.PackageEntry,
     get_region_s3_client,
     scratch_buckets: dict[str, str],
@@ -158,7 +157,7 @@ def calculate_pkg_entry_local(
         Bucket=scratch_buckets[region],
         Key=make_scratch_key(),
         ChecksumAlgorithm="SHA256",
-        # TODO: make sure for unversioned objects
+        # TODO: make sure we hash the right object in case of unversioned object
         # CopySourceIfMatch=etag,
     )
     checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
@@ -228,7 +227,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
             for entry in entries
         ]
         fs += [
-            local_pool.submit(calculate_pkg_entry_local, entry, get_region_s3_client, scratch_buckets)
+            local_pool.submit(calculate_pkg_entry_hash_local, entry, get_region_s3_client, scratch_buckets)
             for entry in entries_local
         ]
         for f in concurrent.futures.as_completed(fs):
