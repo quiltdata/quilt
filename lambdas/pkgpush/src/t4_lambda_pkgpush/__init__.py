@@ -70,7 +70,7 @@ CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 
 MAX_CONCURRENCY = 1_000
-LOCAL_HASH_CONCURRENCY = MAX_CONCURRENCY  - S3_HASH_LAMBDA_CONCURRENCY
+LOCAL_HASH_CONCURRENCY = MAX_CONCURRENCY - S3_HASH_LAMBDA_CONCURRENCY
 
 logger = logging.getLogger("quilt-lambda-pkgpush")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
@@ -160,7 +160,9 @@ def calculate_pkg_entry_hash_local(
         # CopySourceIfMatch=etag,
     )
     checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
-    pkg_entry.hash = (Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)).dict()
+    pkg_entry.hash = (
+        Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)
+    ).dict()
 
 
 @functools.cache
