@@ -147,12 +147,11 @@ def calculate_pkg_entry_hash(
 
 def calculate_pkg_entry_hash_local(
     pkg_entry: quilt3.packages.PackageEntry,
-    get_region_s3_client,
+    s3_client,
     scratch_buckets: dict[str, str],
 ):
     region = get_bucket_region(pkg_entry.physical_key.bucket)
-    s3 = get_region_s3_client(region)
-    resp = s3.copy_object(
+    resp = s3_client.copy_object(
         CopySource=S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
         Bucket=scratch_buckets[region],
         Key=make_scratch_key(),
@@ -209,15 +208,11 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
     entries.sort(key=lambda entry: entry.size, reverse=True)
     credentials = AWSCredentials.from_boto_session(user_boto_session)
 
-    # XXX: do we really need to make a new client for each region?
-    @functools.cache
-    def get_region_s3_client(region: str):
-        return boto3.client(
-            "s3",
-            region_name=region,
-            config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
-            **credentials.boto_args,
-        )
+    user_s3_client = boto3.client(
+        "s3",
+        config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
+        **credentials.boto_args,
+    )
 
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
@@ -227,7 +222,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
             for entry in entries
         ]
         fs += [
-            local_pool.submit(calculate_pkg_entry_hash_local, entry, get_region_s3_client, scratch_buckets)
+            local_pool.submit(calculate_pkg_entry_hash_local, entry, user_s3_client, scratch_buckets)
             for entry in entries_local
         ]
         for f in concurrent.futures.as_completed(fs):
