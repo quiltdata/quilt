@@ -40,8 +40,6 @@ logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
 CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
 
-SCRATCH_KEY = "user-requests/checksum-upload-tmp"
-
 # How much seconds before lambda is supposed to timeout we give up.
 SECONDS_TO_CLEANUP = 1
 
