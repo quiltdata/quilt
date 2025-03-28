@@ -73,7 +73,13 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
       {preferences.files && (
         <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
       )}
-      <NavTab label="Workflows" value="workflows" to={urls.bucketWorkflowList(bucket)} />
+      {preferences.workflows && (
+        <NavTab
+          label="Workflows"
+          value="workflows"
+          to={urls.bucketWorkflowList(bucket)}
+        />
+      )}
       {preferences.packages && (
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
       )}

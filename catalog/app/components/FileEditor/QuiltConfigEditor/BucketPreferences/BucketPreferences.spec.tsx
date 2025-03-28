@@ -97,6 +97,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefer
     qurator: false
   nav:
     files: false
+    workflows: false
     packages: false
     queries: false
   sourceBuckets:
