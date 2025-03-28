@@ -1,0 +1,18 @@
+query ($buckets: [String!]!, $filter: PackagesSearchFilter!) {
+  searchPackages(buckets: $buckets, filter: $filter, latestOnly: true) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        total
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

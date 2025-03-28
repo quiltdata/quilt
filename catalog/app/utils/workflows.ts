@@ -5,11 +5,12 @@ import * as R from 'ramda'
 import workflowsConfigSchema from 'schemas/workflows-config-1.1.0.json'
 import workflowsCatalogConfigSchema from 'schemas/workflows-config_catalog-1.0.0.json'
 
+import * as bucketErrors from 'containers/Bucket/errors'
 import { makeSchemaValidator } from 'utils/JSONSchema'
 import type * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import * as YAML from 'utils/yaml'
-import * as bucketErrors from 'containers/Bucket/errors'
+import { S3ObjectLocation, parseS3Url } from 'utils/s3paths'
 
 interface WorkflowsVersion {
   base: string
@@ -56,6 +57,11 @@ export interface Schema {
   url: string
 }
 
+export interface SchemaRef {
+  name: string
+  location: S3ObjectLocation
+}
+
 export interface Workflow {
   description?: string
   isDefault: boolean
@@ -66,6 +72,10 @@ export interface Workflow {
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
+  schemas: {
+    entries?: SchemaRef
+    metadata?: SchemaRef
+  }
 }
 
 export interface WorkflowsConfig {
@@ -100,6 +110,7 @@ function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
     packageName: parsePackageNameTemplates(data.catalog?.package_handle),
     packageNamePattern: null,
     slug: hasConfig ? notSelected : notAvailable,
+    schemas: {},
   }
 }
 
@@ -123,6 +134,17 @@ function parseSchema(
     : undefined
 }
 
+const parseSchemaRef = (
+  name: string | undefined,
+  schemas: Record<string, Schema> | undefined,
+): SchemaRef | undefined =>
+  name && schemas && name in schemas
+    ? {
+        name,
+        location: parseS3Url(schemas[name]?.url),
+      }
+    : undefined
+
 function parseWorkflow(
   workflowSlug: string,
   workflow: WorkflowYaml,
@@ -143,6 +165,10 @@ function parseWorkflow(
       : null,
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
+    schemas: {
+      entries: parseSchemaRef(workflow.entries_schema, data.schemas),
+      metadata: parseSchemaRef(workflow.metadata_schema, data.schemas),
+    },
   }
 }
 

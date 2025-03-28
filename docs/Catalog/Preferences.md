@@ -14,6 +14,7 @@ key, then the following defaults are used:
 ui:
   nav:
     files: True
+    workflows: True
     packages: True
     queries: True
   actions:
@@ -47,6 +48,7 @@ ui:
 ### Properties
 
 * `ui.nav.files: False` - hide Files tab
+* `ui.nav.workflows: False` - hide Workflows tab
 * `ui.nav.packages: False` - hide Packages tab
 * `ui.nav.queries: False` - hide Queries tab
 * `ui.actions: False` - hide all buttons used to create and edit packages and files

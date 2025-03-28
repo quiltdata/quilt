@@ -461,6 +461,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
           <span
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
+            "WORKFLOWS"
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
             "PACKAGES"
           </span>
         </label>
@@ -1127,6 +1145,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             "BUCKET"
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "WORKFLOWS"
           </span>
         </label>
       </div>
