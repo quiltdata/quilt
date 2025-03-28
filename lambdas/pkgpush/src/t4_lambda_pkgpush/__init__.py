@@ -30,7 +30,7 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import LAMBDA_READ_TIMEOUT
+from quilt_shared.const import LAMBDA_READ_TIMEOUT, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
@@ -200,7 +200,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
 
         if not entry.size:
             entry.hash = (Checksum.empty_sha256_chunked() if CHUNKED_CHECKSUMS else Checksum.empty_sha256()).dict()
-        elif entry.size < 8 * 2**20:  # TODO: use constant from shared place
+        elif entry.size < MIN_PART_SIZE:
             entries_local.append(entry)
         else:
             entries.append(entry)
@@ -688,6 +688,7 @@ def list_prefix_latest_versions(bucket: str, prefix: str):
                     warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
                 continue
             yield obj
+
 
 def package_prefix(event, context):
     params = PackagerEvent.parse_raw(event)

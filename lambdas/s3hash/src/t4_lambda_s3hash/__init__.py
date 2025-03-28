@@ -18,12 +18,16 @@ import botocore.exceptions
 import pydantic.v1
 
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import Checksum as ChecksumBase
 from quilt_shared.pkgpush import ChecksumResult, CopyResult
 from quilt_shared.pkgpush import MPURef as MPURefBase
-from quilt_shared.pkgpush import S3ObjectDestination, S3ObjectSource
-from quilt_shared.pkgpush import make_scratch_key
+from quilt_shared.pkgpush import (
+    S3ObjectDestination,
+    S3ObjectSource,
+    make_scratch_key,
+)
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
@@ -68,13 +72,6 @@ class Checksum(ChecksumBase):
     @classmethod
     def empty(cls):
         return cls.sha256_chunked(cls._EMPTY_HASH) if CHUNKED_CHECKSUMS else cls.sha256(cls._EMPTY_HASH)
-
-
-# 8 MiB -- boto3 default:
-# https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
-MIN_PART_SIZE = 8 * 2**20  # 8 MiB
-MAX_PART_SIZE = 5 * 2**30  # 5 GiB
-MAX_PARTS = 10000  # Maximum number of parts per upload supported by S3
 
 
 # XXX: import this logic from quilt3 when it's available
