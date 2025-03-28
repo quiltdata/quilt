@@ -7,6 +7,7 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import { S3ObjectLocation } from 'model/S3'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
@@ -265,45 +266,60 @@ function PreviewDisplay({ handle }: PreviewDisplayProps) {
   const [expanded, setExpanded] = React.useState(false)
   const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
 
-  return (
-    <Preview.Load handle={handle} options={{ context: Preview.CONTEXT.LISTING }}>
-      {(data: $TSFixMe) => (
-        <Preview.Display
-          data={data}
-          noDownload={undefined}
-          renderContents={(children: $TSFixMe) =>
-            (<PreviewContents {...{ children, expanded, onToggle }} />) as $TSFixMe
-          }
-          renderProgress={() => <PreviewProgress />}
-          renderMessage={(message: MessageProps) => <PreviewMessage {...message} />}
-          renderAction={renderPreviewAction}
-          onData={undefined}
-          props={undefined}
-        />
-      )}
-    </Preview.Load>
-  )
+  return useBucketExistence(handle.bucket).case({
+    _: () => <PreviewProgress />,
+    Err: () => (
+      <PreviewMessage
+        heading="Bucket Does Not Exist"
+        body="Could not find the specified bucket"
+      />
+    ),
+    Ok: () => (
+      <Preview.Load handle={handle} options={{ context: Preview.CONTEXT.LISTING }}>
+        {(data: $TSFixMe) => (
+          <Preview.Display
+            data={data}
+            noDownload={undefined}
+            renderContents={(children: $TSFixMe) =>
+              (<PreviewContents {...{ children, expanded, onToggle }} />) as $TSFixMe
+            }
+            renderProgress={() => <PreviewProgress />}
+            renderMessage={(message: MessageProps) => <PreviewMessage {...message} />}
+            renderAction={renderPreviewAction}
+            onData={undefined}
+            props={undefined} // these props go to the render functions
+          />
+        )}
+      </Preview.Load>
+    ),
+  })
 }
 
 const usePreviewContentsStyles = M.makeStyles((t) => ({
   preview: {
-    paddingBottom: t.spacing(1),
-    paddingLeft: t.spacing(2),
-    paddingRight: t.spacing(2),
-    paddingTop: t.spacing(1),
+    padding: t.spacing(1),
     position: 'relative',
   },
   expanded: {},
   contents: {
     maxHeight: '106px',
     minHeight: '106px',
-    paddingBottom: t.spacing(1),
-    paddingTop: t.spacing(1),
+    padding: t.spacing(1),
     transition: 'max-height 0.2s',
+
+    '& > *:not(iframe)': {
+      // scroll `contents` div, not its children
+      overflow: 'visible',
+      width: 'auto',
+    },
 
     '& img': {
       marginLeft: 'auto',
       marginRight: 'auto',
+    },
+
+    '& audio': {
+      margin: 'auto',
     },
 
     // workarounds to speed-up notebook preview rendering:
@@ -343,8 +359,28 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     right: 0,
     zIndex: 1,
   },
+  fadeLeft: {
+    background: `linear-gradient(to right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0))`,
+    bottom: 0,
+    left: t.spacing(1),
+    pointerEvents: 'none',
+    position: 'absolute',
+    top: 0,
+    width: t.spacing(1),
+    zIndex: 1,
+  },
+  fadeRight: {
+    background: `linear-gradient(to left, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0))`,
+    bottom: 0,
+    pointerEvents: 'none',
+    position: 'absolute',
+    right: t.spacing(1),
+    top: 0,
+    width: t.spacing(1),
+    zIndex: 1,
+  },
   fadeOver: {
-    background: `linear-gradient(to top, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.4))`,
+    background: 'rgba(255, 255, 255, 0.5)',
     bottom: 0,
     cursor: 'pointer',
     height: '100%',
@@ -354,6 +390,10 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     transition: 'opacity 0.2s',
     width: '100%',
     zIndex: 1,
+
+    '$preview:hover &': {
+      background: t.palette.action.hover,
+    },
 
     '$expanded &': {
       opacity: 0,
@@ -389,6 +429,8 @@ function PreviewContents({ children, expanded, onToggle }: PreviewContentsProps)
 
       <div className={classes.fadeTop} />
       <div className={classes.fadeBottom} />
+      <div className={classes.fadeLeft} />
+      <div className={classes.fadeRight} />
       <div className={classes.fadeOver} onClick={onToggle} title="Click to expand" />
 
       <M.IconButton
