@@ -145,6 +145,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
     qurator: false
   nav:
     files: false
+    workflows: false
     packages: false
     queries: false
   sourceBuckets:
@@ -250,6 +251,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
     qurator: false
   nav:
     files: false
+    workflows: false
     packages: false
     queries: false
   sourceBuckets:
@@ -305,6 +307,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
         'ui.blocks.qurator': false,
 
         'ui.nav.files': false,
+        'ui.nav.workflows': false,
         'ui.nav.packages': false,
         'ui.nav.queries': false,
 

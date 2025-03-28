@@ -103,7 +103,8 @@ export default function PreviewDisplay({
           }),
         Unsupported: ({ handle }) =>
           renderMessage({
-            heading: 'Preview Not Available',
+            heading: 'Preview Not Supported',
+            body: 'Previewing this data type is not supported',
             action:
               !noDl &&
               AWS.Signer.withDownloadUrl(handle, (href) =>

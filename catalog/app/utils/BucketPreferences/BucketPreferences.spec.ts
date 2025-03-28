@@ -37,6 +37,7 @@ const expectedDefaults = {
     },
     nav: {
       files: true,
+      workflows: true,
       packages: true,
       queries: true,
     },

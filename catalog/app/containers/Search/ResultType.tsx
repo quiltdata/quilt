@@ -40,6 +40,7 @@ function Icon({ resultType }: IconProps) {
 
 const useResultTypeStyles = M.makeStyles((t) => ({
   root: {
+    background: t.palette.background.paper,
     border: `1px solid ${M.fade(t.palette.text.primary, 0.23)}`,
     borderRadius: t.shape.borderRadius,
   },

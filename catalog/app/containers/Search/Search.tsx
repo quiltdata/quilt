@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
-import * as SearchResults from 'components/SearchResults'
 import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
@@ -16,6 +15,7 @@ import * as Format from 'utils/format'
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
 import BucketSelector from './Buckets'
+import * as Hit from './Hit'
 import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
@@ -39,11 +39,11 @@ function ColumnTitle({ className, children }: ComponentProps) {
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
-const useFiltersButtonStyles = M.makeStyles({
+const useFiltersButtonStyles = M.makeStyles((t) => ({
   root: {
-    background: '#fff',
+    background: t.palette.background.paper,
   },
-})
+}))
 
 interface FiltersButtonProps {
   className: string
@@ -55,7 +55,7 @@ function FiltersButton({ className, onClick }: FiltersButtonProps) {
   return (
     <M.Button
       startIcon={<M.Icon fontSize="inherit">filter_list</M.Icon>}
-      variant="contained"
+      variant="outlined"
       className={cx(classes.root, className)}
       onClick={onClick}
     >
@@ -1010,38 +1010,36 @@ function Filters({ className }: FiltersProps) {
 
 interface SearchHitProps {
   hit: SearchUIModel.SearchHit
+  showBucket: boolean
 }
 
-function SearchHit({ hit }: SearchHitProps) {
+function SearchHit({ hit, showBucket }: SearchHitProps) {
   switch (hit.__typename) {
     case 'SearchHitObject':
       return (
-        <SearchResults.Hit
-          showBucket
-          hit={{
-            type: 'object',
-            bucket: hit.bucket,
-            path: hit.key,
-            versions: [{ id: hit.version, size: hit.size, updated: hit.modified }],
-          }}
+        <Hit.Object
+          showBucket={showBucket}
+          hit={hit}
+          data-testid="search-hit"
+          data-search-hit-type="file"
+          data-search-hit-bucket={hit.bucket}
+          data-search-hit-path={hit.key}
         />
       )
+
     case 'SearchHitPackage':
       return (
-        <SearchResults.Hit
-          showBucket
-          hit={{
-            type: 'package',
-            bucket: hit.bucket,
-            handle: hit.name,
-            hash: hit.hash,
-            lastModified: hit.modified,
-            meta: hit.meta,
-            tags: [],
-            comment: hit.comment,
-          }}
+        <Hit.Package
+          showBucket={showBucket}
+          hit={hit}
+          data-testid="search-hit"
+          data-search-hit-type="package"
+          data-search-hit-bucket={hit.bucket}
+          data-search-hit-package-name={hit.name}
+          data-search-hit-package-hash={hit.hash}
         />
       )
+
     default:
       assertNever(hit)
   }
@@ -1052,6 +1050,9 @@ const useLoadNextPageStyles = M.makeStyles((t) => ({
     padding: t.spacing(1, 0),
     display: 'flex',
     justifyContent: 'flex-end',
+  },
+  button: {
+    background: t.palette.background.paper,
   },
 }))
 
@@ -1072,6 +1073,7 @@ function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps
         onClick={onClick}
         variant="outlined"
         disabled={loading}
+        className={classes.button}
       >
         Load more
       </M.Button>
@@ -1090,9 +1092,16 @@ interface ResultsPageProps {
   cursor: string | null
   hits: readonly SearchUIModel.SearchHit[]
   resultType: SearchUIModel.ResultType
+  singleBucket: boolean
 }
 
-function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) {
+function ResultsPage({
+  className,
+  hits,
+  cursor,
+  resultType,
+  singleBucket,
+}: ResultsPageProps) {
   const classes = useResultsPageStyles()
   const [more, setMore] = React.useState(false)
   const loadMore = React.useCallback(() => {
@@ -1102,11 +1111,16 @@ function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) 
   return (
     <div className={className}>
       {hits.map((hit) => (
-        <SearchHit key={hit.id} hit={hit} />
+        <SearchHit key={hit.id} hit={hit} showBucket={!singleBucket} />
       ))}
       {!!cursor &&
         (more ? (
-          <NextPage after={cursor} className={classes.next} resultType={resultType} />
+          <NextPage
+            after={cursor}
+            className={classes.next}
+            resultType={resultType}
+            singleBucket={singleBucket}
+          />
         ) : (
           <LoadNextPage className={classes.next} onClick={loadMore} />
         ))}
@@ -1118,9 +1132,10 @@ interface NextPageProps {
   after: string
   resultType: SearchUIModel.ResultType
   className: string
+  singleBucket: boolean
 }
 
-function NextPage({ after, className, resultType }: NextPageProps) {
+function NextPage({ after, className, resultType, singleBucket }: NextPageProps) {
   const NextPageQuery =
     resultType === SearchUIModel.ResultType.S3Object
       ? SearchUIModel.NextPageObjectsQuery
@@ -1154,6 +1169,7 @@ function NextPage({ after, className, resultType }: NextPageProps) {
                     hits={r.data.hits}
                     cursor={r.data.cursor}
                     resultType={resultType}
+                    singleBucket={singleBucket}
                   />
                 )
               default:
@@ -1177,7 +1193,7 @@ function ResultsInner({ className }: ResultsInnerProps) {
 
   switch (r._tag) {
     case 'fetching':
-      return <ResultsSkeleton className={className} />
+      return <ResultsSkeleton className={className} type={model.state.resultType} />
     case 'error':
       return <SearchError className={className} details={r.error.message} />
     case 'data':
@@ -1207,6 +1223,7 @@ function ResultsInner({ className }: ResultsInnerProps) {
               resultType={model.state.resultType}
               hits={r.data.firstPage.hits}
               cursor={r.data.firstPage.cursor}
+              singleBucket={model.state.buckets.length === 1}
             />
           )
         default:
