@@ -5,9 +5,9 @@ import pytest
 from aiobotocore.response import StreamingBody
 from botocore.stub import Stubber
 from pytest_mock import MockerFixture
-from quilt_shared.const import MAX_PART_SIZE
 
 import t4_lambda_s3hash as s3hash
+from quilt_shared.const import MAX_PART_SIZE
 
 
 class RawStream(io.BytesIO):

@@ -4,7 +4,6 @@ from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
 
-
 SCRATCH_KEY = "test-scratch-key"
 
 
