@@ -39,11 +39,11 @@ function ColumnTitle({ className, children }: ComponentProps) {
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
-const useFiltersButtonStyles = M.makeStyles({
+const useFiltersButtonStyles = M.makeStyles((t) => ({
   root: {
-    background: '#fff',
+    background: t.palette.background.paper,
   },
-})
+}))
 
 interface FiltersButtonProps {
   className: string
@@ -55,7 +55,7 @@ function FiltersButton({ className, onClick }: FiltersButtonProps) {
   return (
     <M.Button
       startIcon={<M.Icon fontSize="inherit">filter_list</M.Icon>}
-      variant="contained"
+      variant="outlined"
       className={cx(classes.root, className)}
       onClick={onClick}
     >
@@ -1051,6 +1051,9 @@ const useLoadNextPageStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'flex-end',
   },
+  button: {
+    background: t.palette.background.paper,
+  },
 }))
 
 interface LoadNextPageProps {
@@ -1070,6 +1073,7 @@ function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps
         onClick={onClick}
         variant="outlined"
         disabled={loading}
+        className={classes.button}
       >
         Load more
       </M.Button>
