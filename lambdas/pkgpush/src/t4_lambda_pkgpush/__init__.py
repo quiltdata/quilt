@@ -69,8 +69,8 @@ CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 
-MAX_CONCURRENCY = 1_000
-LOCAL_HASH_CONCURRENCY = MAX_CONCURRENCY - S3_HASH_LAMBDA_CONCURRENCY
+MAX_LAMBDA_FILE_DESCRIPTORS = 1_000
+LOCAL_HASH_CONCURRENCY = MAX_LAMBDA_FILE_DESCRIPTORS - S3_HASH_LAMBDA_CONCURRENCY
 
 logger = logging.getLogger("quilt-lambda-pkgpush")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
@@ -208,12 +208,11 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
     # Schedule longer tasks first so we don't end up waiting for a single long task.
     entries_local.sort(key=lambda entry: entry.size, reverse=True)
     entries.sort(key=lambda entry: entry.size, reverse=True)
+    assert user_boto_session is not None
     credentials = AWSCredentials.from_boto_session(user_boto_session)
-
-    user_s3_client = boto3.client(
+    user_s3_client = user_boto_session.client(
         "s3",
         config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
-        **credentials.boto_args,
     )
 
     with concurrent.futures.ThreadPoolExecutor(
@@ -742,6 +741,10 @@ def package_prefix(event, context):
             None,
         )
         pkg.set(key[prefix_len:], entry)
+        # XXX: We know checksum algorithm here, so if it's sha256,
+        #      we can be sure there's compliant checksum in S3 for small objects.
+        #      We could replace copy_object with head_object in calculate_pkg_entry_hash_local,
+        #      but that needs benchmarking.
 
     pkg.set_meta(metadata)
     pkg._validate_with_workflow(
