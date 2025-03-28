@@ -156,7 +156,7 @@ def calculate_pkg_entry_hash_local(
         Bucket=scratch_buckets[region],
         Key=make_scratch_key(),
         ChecksumAlgorithm="SHA256",
-        # TODO: make sure we hash the right object in case of unversioned object
+        # TODO: make sure we hash the correct object in the case of an unversioned object
         # CopySourceIfMatch=etag,
     )
     checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
