@@ -167,11 +167,6 @@ interface PackageProps {
 
 export function Package({ hit, showBucket = false, ...props }: PackageProps) {
   const { urls } = NamedRoutes.use()
-  // XXX: selective metadata display (like in package list)
-  // XXX: link to a specific revision? (by hash)
-  // XXX: clickable bucket?
-  // XXX: clickable workflow?
-  // XXX: hide workflow if only one selected (same as bucket)
 
   // this is actually a string, so we need to parse it
   const metaJson = React.useMemo(() => {
@@ -186,7 +181,7 @@ export function Package({ hit, showBucket = false, ...props }: PackageProps) {
   return (
     <Card {...props}>
       <Section grow>
-        <Link to={urls.bucketPackageDetail(hit.bucket, hit.name)}>
+        <Link to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
           {showBucket && <Heading secondary>{hit.bucket} / </Heading>}
           <Heading>{hit.name}</Heading>
         </Link>
