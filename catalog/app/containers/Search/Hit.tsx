@@ -26,10 +26,10 @@ const useCardStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Card({ children }: React.PropsWithChildren<{}>) {
+function Card({ children, ...props }: React.PropsWithChildren<{}>) {
   const classes = useCardStyles()
   return (
-    <M.Paper variant="outlined" className={classes.card}>
+    <M.Paper variant="outlined" className={classes.card} {...props}>
       {children}
     </M.Paper>
   )
@@ -165,7 +165,7 @@ interface PackageProps {
   showBucket?: boolean
 }
 
-export function Package({ hit, showBucket = false }: PackageProps) {
+export function Package({ hit, showBucket = false, ...props }: PackageProps) {
   const { urls } = NamedRoutes.use()
   // XXX: selective metadata display (like in package list)
   // XXX: link to a specific revision? (by hash)
@@ -184,7 +184,7 @@ export function Package({ hit, showBucket = false }: PackageProps) {
   }, [hit.meta])
 
   return (
-    <Card>
+    <Card {...props}>
       <Section grow>
         <Link to={urls.bucketPackageDetail(hit.bucket, hit.name)}>
           {showBucket && <Heading secondary>{hit.bucket} / </Heading>}
@@ -223,11 +223,11 @@ interface ObjectProps {
   showBucket?: boolean
 }
 
-export function Object({ hit, showBucket = false }: ObjectProps) {
+export function Object({ hit, showBucket = false, ...props }: ObjectProps) {
   const { urls } = NamedRoutes.use()
 
   return (
-    <Card>
+    <Card {...props}>
       <Section grow>
         <Link to={urls.bucketFile(hit.bucket, hit.key, { version: hit.version })}>
           {showBucket && <Heading secondary>{hit.bucket} / </Heading>}
