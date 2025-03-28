@@ -33,7 +33,6 @@ const usePackageCardStyles = M.makeStyles((t) => ({
   },
   link: {
     ...t.typography.body1,
-    fontWeight: t.typography.fontWeightMedium,
     lineHeight: '20px',
   },
   linkText: {
@@ -76,7 +75,7 @@ function PackageCard({ bucket, pkg }: PackageCardProps) {
   const { urls } = NamedRoutes.use()
   // XXX: selective metadata display (like in package list)
   return (
-    <M.Paper className={classes.root}>
+    <M.Paper className={classes.root} variant="outlined">
       <div className={classes.inner}>
         <RR.Link className={classes.link} to={urls.bucketPackageDetail(bucket, pkg.name)}>
           <span className={classes.linkText}>{pkg.name}</span>
@@ -97,7 +96,8 @@ const usePackagesStyles = M.makeStyles((t) => ({
   grid: {
     display: 'grid',
     gap: t.spacing(2),
-    gridTemplateColumns: 'repeat(2, 1fr)',
+    gridTemplateColumns: '1fr 1fr',
+    marginBottom: t.spacing(2),
 
     [t.breakpoints.down(1100)]: {
       gridTemplateColumns: '1fr',
@@ -138,16 +138,14 @@ function Packages({ bucket, workflow }: PackagesProps) {
                 ))}
               </div>
 
-              <M.Box pt={2}>
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  component={RR.Link}
-                  to={searchUrl}
-                >
-                  Explore {stats.total} packages
-                </M.Button>
-              </M.Box>
+              <M.Button
+                variant="outlined"
+                color="primary"
+                component={RR.Link}
+                to={searchUrl}
+              >
+                Explore {stats.total} packages
+              </M.Button>
             </>
           )
         case 'InvalidInput':

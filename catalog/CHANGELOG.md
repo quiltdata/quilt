@@ -19,6 +19,7 @@ where verb is one of
 ## Changes
 
 - [Added] Workflow browser ([#4360](https://github.com/quiltdata/quilt/pull/4360))
+- [Changed] Facelift the Open landing ([#4361](https://github.com/quiltdata/quilt/pull/4361))
 - [Changed] Combine Download buttons and Code sections into a single Download button and popup ([#4353](https://github.com/quiltdata/quilt/pull/4353))
 - [Changed] Simplify button name: "Add quilt_summarize" -> "Configure Summary" ([#4337](https://github.com/quiltdata/quilt/pull/4337))
 - [Added] Packager Admin GUI ([#4331](https://github.com/quiltdata/quilt/pull/4331))

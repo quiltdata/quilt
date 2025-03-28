@@ -112,7 +112,6 @@ const useCardStyles = M.makeStyles((t) => ({
   },
   link: {
     ...t.typography.body1,
-    fontWeight: t.typography.fontWeightMedium,
     lineHeight: '20px',
   },
   linkText: {
@@ -136,6 +135,7 @@ const useCardStyles = M.makeStyles((t) => ({
   },
   name: {
     ...t.typography.body2,
+    fontWeight: t.typography.fontWeightLight,
     marginTop: t.spacing(1),
   },
   description: {
@@ -159,7 +159,7 @@ function WorkflowCard({ bucket, workflow }: WorkflowCardProps) {
   const { urls } = NamedRoutes.use()
 
   return (
-    <M.Paper className={classes.root}>
+    <M.Paper className={classes.root} variant="outlined">
       <div className={classes.inner}>
         {workflow.isDefault && (
           <M.Chip
