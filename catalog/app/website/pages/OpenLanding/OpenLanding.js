@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
 // TODO: decouple NavBar layout/state from gql and auth calls
 //       and place it into components/SearchBar
@@ -8,15 +9,19 @@ import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
 
 import Layout from 'website/components/Layout'
-import Contribute from 'website/components/Contribute'
-import Videos from 'website/components/Videos'
 
 import Buckets from './Buckets'
 import Search from './Search'
-import Showcase from './Showcase'
-import QuiltIsDifferent from './QuiltIsDifferent'
+
+const useStyles = M.makeStyles((t) => ({
+  buckets: {
+    background: t.palette.primary.dark,
+    paddingBottom: t.spacing(8),
+  },
+}))
 
 export default function OpenLanding() {
+  const classes = useStyles()
   return (
     <Layout>
       <MetaTitle />
@@ -26,11 +31,10 @@ export default function OpenLanding() {
       <NavBar.Provider>
         <Search />
       </NavBar.Provider>
-      <Showcase />
-      <Buckets />
-      <Videos />
-      <QuiltIsDifferent />
-      <Contribute />
+      <div className={classes.buckets}>
+        <M.Divider />
+        <Buckets />
+      </div>
     </Layout>
   )
 }

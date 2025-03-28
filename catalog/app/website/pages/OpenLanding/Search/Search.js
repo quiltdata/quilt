@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 import { useNavBar } from 'containers/NavBar/Provider'
 import Suggestions from 'containers/NavBar/Suggestions'
 
-import * as BucketConfig from 'utils/BucketConfig'
 import img2x from 'utils/img2x'
 
 import Dots from 'website/components/Backgrounds/Dots'
@@ -17,8 +16,8 @@ import bg2x from './search-bg@2x.png'
 const useHelpStyles = M.makeStyles((t) => ({
   paper: {
     borderRadius: t.spacing(0.5),
-    marginTop: t.spacing(8),
-    maxWidth: 690,
+    marginTop: t.spacing(10.5),
+    maxWidth: t.spacing(111),
     position: 'absolute',
     width: '100%',
     zIndex: 1,
@@ -32,7 +31,8 @@ const useStyles = M.makeStyles((t) => ({
   container: {
     position: 'relative',
     '&::before': {
-      background: `center -260px / 1120px no-repeat url(${img2x(bg, bg2x)})`,
+      animation: '$appear 0.3s ease',
+      background: `center no-repeat url(${img2x(bg, bg2x)})`,
       bottom: 0,
       content: '""',
       left: 0,
@@ -46,27 +46,28 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: 650,
-    paddingTop: t.spacing(23),
+    justifyContent: 'center',
+    minHeight: 910,
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       paddingTop: t.spacing(20),
     },
   },
   inputRoot: {
+    animation: '$slideDown 0.3s ease',
     background: t.palette.common.white,
-    borderRadius: t.typography.pxToRem(30),
+    borderRadius: t.typography.pxToRem(40),
     color: t.palette.getContrastText(t.palette.common.white),
-    fontSize: t.typography.pxToRem(20),
-    lineHeight: t.typography.pxToRem(60),
-    maxWidth: 750,
+    fontSize: t.typography.pxToRem(30),
+    lineHeight: t.typography.pxToRem(80),
+    maxWidth: 960,
     overflow: 'hidden',
     paddingLeft: 0,
     width: '100%',
   },
   inputInput: {
     height: 'auto',
-    padding: t.spacing(0, 4, 0, 9.5),
+    padding: t.spacing(0, 4, 0, 10),
   },
   inputOptions: {
     borderColor: t.palette.grey[300],
@@ -89,53 +90,36 @@ const useStyles = M.makeStyles((t) => ({
     height: 'auto',
     maxHeight: '100%',
   },
-  stats: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: t.spacing(8),
-    maxWidth: 860,
-    width: '100%',
-    [t.breakpoints.down('xs')]: {
-      flexDirection: 'column',
-      height: t.spacing(30),
-    },
-  },
-  stat: {
-    alignItems: 'center',
-    color: t.palette.common.white,
-    display: 'flex',
-    flexDirection: 'column',
-    textShadow: `0 3px 2px rgba(0, 0, 0, 0.2)`,
-  },
-  statValue: {
-    fontSize: t.typography.pxToRem(48),
-    fontWeight: t.typography.fontWeightBold,
-    lineHeight: 1,
-    [t.breakpoints.down('sm')]: {
-      fontSize: t.typography.pxToRem(36),
-    },
-  },
-  statDesc: {
-    fontSize: t.typography.pxToRem(24),
-    fontWeight: t.typography.fontWeightRegular,
-    lineHeight: 1.5,
-    opacity: 0.8,
-    [t.breakpoints.down('sm')]: {
-      fontSize: t.typography.pxToRem(16),
-    },
-  },
   icon: {
-    marginLeft: t.spacing(3.5),
+    fontSize: 'inherit',
+    marginLeft: t.spacing(4),
     opacity: 0.5,
+  },
+
+  '@keyframes slideDown': {
+    '0%': {
+      opacity: 0.7,
+      transform: 'translateY(-10px)',
+    },
+    '100%': {
+      opacity: 1,
+      transform: 'translateY(0px)',
+    },
+  },
+
+  '@keyframes appear': {
+    '0%': {
+      transform: 'scale(0.95)',
+    },
+    '100%': {
+      transform: 'scale(1)',
+    },
   },
 }))
 
 export default function Search() {
   const classes = useStyles()
   const helpClasses = useHelpStyles()
-
-  // XXX: consider using graphql directly
-  const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
   const { input, onClickAway } = useNavBar()
   const ref = React.useRef(null)
@@ -164,21 +148,6 @@ export default function Search() {
               <Suggestions classes={helpClasses} open={input.helpOpen} />
             </div>
           </M.ClickAwayListener>
-
-          <div className={classes.stats}>
-            <div className={classes.stat}>
-              <div className={classes.statValue}>10.2 Billion</div>
-              <div className={classes.statDesc}>Objects</div>
-            </div>
-            <div className={classes.stat}>
-              <div className={classes.statValue}>3.7 Petabytes</div>
-              <div className={classes.statDesc}>Of Data</div>
-            </div>
-            <div className={classes.stat}>
-              <div className={classes.statValue}>{bucketCount}</div>
-              <div className={classes.statDesc}>S3 Buckets</div>
-            </div>
-          </div>
         </div>
       </M.Container>
     </div>
