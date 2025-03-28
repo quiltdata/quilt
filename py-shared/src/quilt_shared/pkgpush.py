@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import base64
 import enum
+import functools
+import hashlib
+import random
 import typing as T
 
 import pydantic.v1
@@ -87,6 +91,34 @@ class Checksum(pydantic.v1.BaseModel):
     def __repr__(self):
         return f"{self.__class__.__name__}({self!s})"
 
+    @staticmethod
+    def hash_parts(parts: T.Sequence[bytes]) -> bytes:
+        return hashlib.sha256(b"".join(parts)).digest()
+
+    @classmethod
+    def sha256(cls, value: bytes):
+        return cls(value=value.hex(), type=ChecksumType.SHA256)
+
+    @classmethod
+    def sha256_chunked(cls, value: bytes):
+        return cls(value=base64.b64encode(value).decode(), type=ChecksumType.SHA256_CHUNKED)
+
+    @classmethod
+    def for_parts(cls, checksums: T.Sequence[bytes]):
+        return cls.sha256_chunked(cls.hash_parts(checksums))
+
+    _EMPTY_HASH = hashlib.sha256().digest()
+
+    @classmethod
+    @functools.cache
+    def empty_sha256(cls):
+        return cls.sha256(cls._EMPTY_HASH)
+
+    @classmethod
+    @functools.cache
+    def empty_sha256_chunked(cls):
+        return cls.sha256_chunked(cls._EMPTY_HASH)
+
 
 # XXX: maybe it doesn't make sense outside of s3hash lambda
 class MPURef(pydantic.v1.BaseModel):
@@ -160,3 +192,8 @@ class PackageConstructEntry(pydantic.v1.BaseModel):
     # optional `user_meta` property,
     # see PackageEntry._meta vs PackageEntry.meta.
     meta: T.Optional[T.Dict[str, T.Any]] = None
+
+
+def make_scratch_key() -> str:
+    # randomize key to avoid S3 throttling
+    return f"user-requests/checksum-upload-tmp/{random.randbytes(4).hex()}/object"
