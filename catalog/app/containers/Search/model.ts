@@ -618,17 +618,37 @@ export function useMakeUrl() {
   )
 }
 
-function useBaseSearchQuery({ searchString, buckets }: SearchUrlState) {
+function addMagicWildcards(s: string | null): string | null {
+  if (!s) return null
+  // Check if the string already contains special Elasticsearch syntax:
+  // - field selector: ":" (colon)
+  // - wildcards: * ?
+  // - quotes: " '
+  // - logic: AND OR
+  // - grouping: ( ) [ ] { }
+  // - fuzzy search: ~
+  if (/:|\*|\?|"|'|\bAND\b|\bOR\b|\(|\)|\[|\]|\{|\}|\~/.test(s)) return s
+  // Append trailing wildcard for substring matching
+  return `${s}*`
+}
+
+function useMagicWildcards(s: string | null): string | null {
+  return React.useMemo(() => addMagicWildcards(s), [s])
+}
+
+function useBaseSearchQuery({ searchString: s, buckets }: SearchUrlState) {
+  const searchString = useMagicWildcards(s)
   return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, buckets })
 }
 
 function useFirstPageObjectsQuery({
-  searchString,
+  searchString: s,
   buckets,
   order,
   resultType,
   filter,
 }: SearchUrlState) {
+  const searchString = useMagicWildcards(s)
   const gqlFilter = ObjectsSearchFilterIO.toGQL(
     resultType === ResultType.S3Object ? filter : ObjectsSearchFilterIO.initialState,
   )
@@ -641,10 +661,11 @@ function useFirstPageObjectsQuery({
 }
 
 function useFirstPagePackagesQuery(state: SearchUrlState) {
+  const searchString = useMagicWildcards(state.searchString)
   return GQL.useQuery(
     FIRST_PAGE_PACKAGES_QUERY,
     {
-      searchString: state.searchString,
+      searchString,
       buckets: state.buckets,
       order: state.order,
       filter: PackagesSearchFilterIO.toGQL(
@@ -776,8 +797,10 @@ export function AvailablePackagesMetaFilters({
 
   const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
 
+  const searchString = useMagicWildcards(model.state.searchString)
+
   const query = GQL.useQuery(META_FACETS_QUERY, {
-    searchString: model.state.searchString,
+    searchString,
     buckets: model.state.buckets,
     filter,
     latestOnly: model.state.latestOnly,
@@ -910,8 +933,10 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
 
   const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
 
+  const searchString = useMagicWildcards(model.state.searchString)
+
   const query = GQL.useQuery(META_FACETS_FIND_QUERY, {
-    searchString: model.state.searchString,
+    searchString,
     buckets: model.state.buckets,
     filter,
     path,
@@ -1168,10 +1193,12 @@ export function usePackageUserMetaFacetExtents(path: string): {
 
   const typeInfo = PackageUserMetaFacetTypeInfo[activated._tag]
 
+  const searchString = useMagicWildcards(model.state.searchString)
+
   const query = GQL.useQuery(
     META_FACET_QUERY,
     {
-      searchString: model.state.searchString,
+      searchString,
       buckets: model.state.buckets,
       filter: PackagesSearchFilterIO.toGQL(model.state.filter),
       latestOnly: model.state.latestOnly,
