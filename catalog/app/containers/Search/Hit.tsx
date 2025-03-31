@@ -311,6 +311,12 @@ const usePreviewContentsStyles = M.makeStyles((t) => ({
     '& img': {
       marginLeft: 'auto',
       marginRight: 'auto',
+      maxHeight: '20vh',
+      transition: 'max-height 0.2s',
+
+      '$expanded &': {
+        maxHeight: '80vh',
+      },
     },
 
     '& audio': {
