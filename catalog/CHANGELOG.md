@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Allow forms and popups in iframes when **Permissive HTML Rendering** enabled ([#4366](https://github.com/quiltdata/quilt/pull/4366))
 - [Changed] Search: Loose matching, debounce, hide empty previews ([#4367](https://github.com/quiltdata/quilt/pull/4367))
 - [Changed] Streamline search results display ([#4362](https://github.com/quiltdata/quilt/pull/4362))
 - [Added] Workflow browser ([#4360](https://github.com/quiltdata/quilt/pull/4360))
