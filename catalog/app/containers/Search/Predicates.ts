@@ -116,9 +116,9 @@ export const KeywordWildcard = make({
   tag: 'KeywordWildcard',
   state: S.Struct({
     wildcard: S.optional(S.String),
-    strict: S.Boolean,
+    strict: S.optional(S.Boolean),
   }),
-  empty: (schema) => S.decodeSync(schema)({ strict: false }),
+  empty: (schema) => S.decodeSync(schema)({}),
   str: (schema) =>
     S.transform(S.String, schema, {
       encode: ({ wildcard, strict }) => (strict ? STRICT_MARKER : '') + (wildcard ?? ''),
