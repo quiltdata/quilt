@@ -1,3 +1,4 @@
+<!-- markdownlint-disable line-length -->
 # Changelog
 
 Changes are listed in reverse chronological order (newer entries at the top).
@@ -16,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Improved package creation performance when many small (< 8 MiB) objects need to be hashed ([#4355](https://github.com/quiltdata/quilt/pull/4355))
 - [Changed] Bump pydantic to v2 ([#4355](https://github.com/quiltdata/quilt/pull/4355))
 - [Added] Entrypoint for Quilt Packaging Engine ([#4304](https://github.com/quiltdata/quilt/pull/4304))
 - [Fixed] Fix promotion with data copy to unversioned buckets ([#4300](https://github.com/quiltdata/quilt/pull/4300))

@@ -12,7 +12,7 @@ setup(
         "types-aiobotocore[s3] ~= 2.11",
         (
             "quilt_shared[pydantic,boto,quilt] @ https://github.com/quiltdata/quilt/archive/"
-            "66545c27a8a874cf555d202e2085f17f770fe286.zip"
+            "7698788139c8ea0b425b9932c1db6c8903526c28.zip"
             "#subdirectory=py-shared"
         ),
     ],
