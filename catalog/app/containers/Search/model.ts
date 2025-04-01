@@ -179,7 +179,7 @@ export const Predicates = {
     fromString: (input: string) => ({ queryString: input }),
     toString: ({ _tag, ...state }) => state.queryString.trim(),
     toGQL: ({ _tag, ...state }) => {
-      const queryString = state.queryString.trim()
+      const queryString = addMagicWildcardsQS(state.queryString.trim())
       return queryString ? ({ queryString } as Model.GQLTypes.TextSearchPredicate) : null
     },
   }),
@@ -643,10 +643,11 @@ function addMagicWildcardsQS(s: string | null): string | null {
   // - field selector: ":" (colon)
   // - wildcards: * ?
   // - quotes: " '
-  // - logic: AND OR
+  // - logic: AND OR + |
   // - grouping: ( ) [ ] { }
   // - fuzzy search: ~
-  if (/:|\*|\?|"|'|\bAND\b|\bOR\b|\(|\)|\[|\]|\{|\}|\~/.test(s)) return s
+  // - negaion: -
+  if (/:|\*|\?|"|'|\bAND\b|\bOR\b|\+|\||\(|\)|\[|\]|\{|\}|\~|-/.test(s)) return s
   // Append trailing wildcard for substring matching
   return `${s}*`
 }
