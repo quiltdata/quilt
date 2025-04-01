@@ -106,6 +106,9 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
     "KeywordWildcardPredicateState": {
       "additionalProperties": false,
       "properties": {
+        "strict": {
+          "type": "boolean",
+        },
         "wildcard": {
           "type": "string",
         },

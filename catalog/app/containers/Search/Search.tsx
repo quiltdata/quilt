@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import invariant from 'invariant'
 import * as React from 'react'
+import { useDebouncedCallback } from 'use-debounce'
 import * as M from '@material-ui/core'
 
 import * as FiltersUI from 'components/Filters'
@@ -246,23 +247,65 @@ function KeywordEnumFilterWidget({
   )
 }
 
+interface DebouncedState<T> {
+  value: T
+  set: (value: T) => void
+}
+
+function useDebouncedState<T>(
+  initialValue: T,
+  onChange: (value: T) => void,
+  delay: number,
+): DebouncedState<T> {
+  const [value, setValue] = React.useState<T>(initialValue)
+  const debouncedCallback = useDebouncedCallback(onChange, delay)
+
+  React.useEffect(() => {
+    if (!debouncedCallback.isPending()) setValue(initialValue)
+  }, [debouncedCallback, initialValue])
+
+  React.useEffect(() => () => debouncedCallback.flush(), [debouncedCallback])
+
+  const set = React.useCallback(
+    (newValue: T) => {
+      setValue(newValue)
+      debouncedCallback(newValue)
+    },
+    [debouncedCallback],
+  )
+
+  return { value, set }
+}
+
 function KeywordWildcardFilterWidget({
   state,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordWildcard']>) {
-  const handleChange = React.useCallback(
+  const handleWildcardChange = React.useCallback(
     (wildcard: string) => {
       onChange({ ...state, wildcard })
     },
     [onChange, state],
   )
+
+  const handleStrictChange = React.useCallback(
+    (strict: boolean) => {
+      onChange({ ...state, strict })
+    },
+    [onChange, state],
+  )
+
+  const debounced = useDebouncedState(state.wildcard, handleWildcardChange, 500)
+
   // TODO: link to docs:
   // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-wildcard-query.html
   return (
-    <FiltersUI.TextField
-      onChange={handleChange}
+    <FiltersUI.KeywordWildcard
+      onChange={debounced.set}
       placeholder="Match against (wildcards supported)"
-      value={state.wildcard}
+      value={debounced.value}
+      strict={state.strict}
+      onStrictChange={handleStrictChange}
     />
   )
 }
@@ -277,13 +320,16 @@ function TextFilterWidget({
     },
     [onChange, state],
   )
+
+  const debounced = useDebouncedState(state.queryString, handleChange, 500)
+
   // TODO: link to docs:
   // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-simple-query-string-query.html
   return (
     <FiltersUI.TextField
-      onChange={handleChange}
+      onChange={debounced.set}
       placeholder="Search for"
-      value={state.queryString}
+      value={debounced.value}
     />
   )
 }
@@ -739,9 +785,15 @@ function PackagesRevisionFilter() {
   )
 }
 
-const PACKAGES_FILTERS_PRIMARY = ['workflow', 'modified'] as const
+const PACKAGES_FILTERS_PRIMARY = ['workflow', 'name'] as const
 
-const PACKAGES_FILTERS_SECONDARY = ['size', 'name', 'hash', 'entries', 'comment'] as const
+const PACKAGES_FILTERS_SECONDARY = [
+  'comment',
+  'modified',
+  'size',
+  'entries',
+  'hash',
+] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
   root: {

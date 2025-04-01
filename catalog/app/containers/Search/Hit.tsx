@@ -244,7 +244,7 @@ export function Object({ hit, showBucket = false, ...props }: ObjectProps) {
         </Secondary>
       </Section>
 
-      {!hit.deleted && (
+      {!hit.deleted && hit.size > 0 && (
         <Section bare divider>
           <PreviewDisplay handle={hit} />
         </Section>
