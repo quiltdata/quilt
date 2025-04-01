@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Streamline search results display ([#4362](https://github.com/quiltdata/quilt/pull/4362))
 - [Added] Workflow browser ([#4360](https://github.com/quiltdata/quilt/pull/4360))
 - [Changed] Facelift the Open landing ([#4361](https://github.com/quiltdata/quilt/pull/4361))
 - [Changed] Combine Download buttons and Code sections into a single Download button and popup ([#4353](https://github.com/quiltdata/quilt/pull/4353))
