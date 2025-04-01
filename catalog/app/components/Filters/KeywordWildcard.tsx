@@ -59,7 +59,13 @@ export default function KeywordWildcard({
         label={
           <M.Typography variant="body2" color="textSecondary">
             Match whole term
-            <M.Tooltip arrow title="TBA">
+            <M.Tooltip
+              arrow
+              title=<>
+                Strictly match the whole term instead of a substring, * and ? wildcards
+                are allowed
+              </>
+            >
               <M.Icon className={classes.hintIcon}>help_outline</M.Icon>
             </M.Tooltip>
           </M.Typography>
