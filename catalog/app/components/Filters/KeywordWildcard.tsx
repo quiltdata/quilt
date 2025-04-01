@@ -61,10 +61,12 @@ export default function KeywordWildcard({
             Match whole term
             <M.Tooltip
               arrow
-              title=<>
-                Strictly match the whole term instead of a substring, * and ? wildcards
-                are allowed
-              </>
+              title={
+                <>
+                  Strictly match the whole term instead of a substring, * and ? wildcards
+                  are allowed
+                </>
+              }
             >
               <M.Icon className={classes.hintIcon}>help_outline</M.Icon>
             </M.Tooltip>
