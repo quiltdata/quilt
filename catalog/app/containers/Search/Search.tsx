@@ -739,9 +739,15 @@ function PackagesRevisionFilter() {
   )
 }
 
-const PACKAGES_FILTERS_PRIMARY = ['workflow', 'modified'] as const
+const PACKAGES_FILTERS_PRIMARY = ['workflow', 'name'] as const
 
-const PACKAGES_FILTERS_SECONDARY = ['size', 'name', 'hash', 'entries', 'comment'] as const
+const PACKAGES_FILTERS_SECONDARY = [
+  'comment',
+  'modified',
+  'size',
+  'entries',
+  'hash',
+] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
   root: {
