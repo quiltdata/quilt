@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Search: Loose matching, debounce, hide empty previews ([#4367](https://github.com/quiltdata/quilt/pull/4367))
 - [Changed] Streamline search results display ([#4362](https://github.com/quiltdata/quilt/pull/4362))
 - [Added] Workflow browser ([#4360](https://github.com/quiltdata/quilt/pull/4360))
 - [Changed] Facelift the Open landing ([#4361](https://github.com/quiltdata/quilt/pull/4361))
