@@ -256,13 +256,22 @@ function KeywordWildcardFilterWidget({
     },
     [onChange, state],
   )
+  const handleStrictChange = React.useCallback(
+    (strict: boolean) => {
+      onChange({ ...state, strict })
+    },
+    [onChange, state],
+  )
   // TODO: link to docs:
   // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-wildcard-query.html
+  // TODO: debounce value
   return (
-    <FiltersUI.TextField
+    <FiltersUI.KeywordWildcard
       onChange={handleChange}
       placeholder="Match against (wildcards supported)"
       value={state.wildcard}
+      strict={state.strict}
+      onStrictChange={handleStrictChange}
     />
   )
 }
