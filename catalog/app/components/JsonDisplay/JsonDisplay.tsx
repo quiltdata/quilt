@@ -52,7 +52,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   more: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   flex: {
     display: 'flex',
@@ -66,14 +66,15 @@ const useStyles = M.makeStyles((t) => ({
   iconBlank: {
     paddingRight: t.spacing(2.5),
   },
-  key: {
-    fontWeight: t.typography.fontWeightBold,
-  },
-  separator: {
+  key: {},
+  value: {
     opacity: 0.7,
   },
+  separator: {
+    opacity: 0.6,
+  },
   brace: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
 }))
 
@@ -177,11 +178,13 @@ function PrimitiveEntry({
     <div className={classes.flex}>
       {!topLevel && <IconBlank classes={classes} />}
       <Key classes={classes}>{name}</Key>
-      {typeof value === 'string' ? (
-        <StringValue value={value} />
-      ) : (
-        <NonStringValue value={value} />
-      )}
+      <div className={classes.value}>
+        {typeof value === 'string' ? (
+          <StringValue value={value} />
+        ) : (
+          <NonStringValue value={value} />
+        )}
+      </div>
     </div>
   )
 }
@@ -250,12 +253,16 @@ function CollapsedEntry({
             return (
               <span key={key}>
                 <span className={classes.brace}>&quot;</span>
-                {item.original}
+                <span className={classes.value}>{item.original}</span>
                 <span className={classes.brace}>&quot;</span>
               </span>
             )
           default:
-            return <span key={key}>{item.value}</span>
+            return (
+              <span key={key} className={classes.value}>
+                {item.value}
+              </span>
+            )
         }
       })}
     </div>

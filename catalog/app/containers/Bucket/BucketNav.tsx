@@ -25,7 +25,7 @@ function NavTab(props: NavTabProps) {
 
 interface BucketNavProps {
   bucket: string
-  section: 'es' | 'overview' | 'packages' | 'queries' | 'tree' | false // `keyof` sections object
+  section: 'es' | 'overview' | 'packages' | 'queries' | 'tree' | 'workflows' | false // `keyof` sections object
 }
 
 const useBucketNavSkeletonStyles = M.makeStyles((t) => ({
@@ -72,6 +72,13 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
       <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
       {preferences.files && (
         <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
+      )}
+      {preferences.workflows && (
+        <NavTab
+          label="Workflows"
+          value="workflows"
+          to={urls.bucketWorkflowList(bucket)}
+        />
       )}
       {preferences.packages && (
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />

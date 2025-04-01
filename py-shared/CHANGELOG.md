@@ -17,6 +17,8 @@ where verb is one of
 
 ## Changes
 
+- [Added] Move some constants and Checksum methods from s3hash lambda ([#4368](https://github.com/quiltdata/quilt/pull/4368))
+- [Added] Add `make_scratch_key()` function ([#4368](https://github.com/quiltdata/quilt/pull/4368))
 - [Changed] Bump pydantic to v2 ([#4354](https://github.com/quiltdata/quilt/pull/4354))
 - [Changed] Make version optional in `CopyResult` for unversioned dst buckets ([#4299](https://github.com/quiltdata/quilt/pull/4299))
 - [Changed] **BREAKING**: Make `AWSCredentials` frozen ([#4197](https://github.com/quiltdata/quilt/pull/4197))

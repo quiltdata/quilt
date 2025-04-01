@@ -32,9 +32,6 @@ const sortOptions = [
 const useButtonStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
-    '&:hover': {
-      background: t.palette.background.paper,
-    },
   },
 }))
 
@@ -56,14 +53,6 @@ export default function Sort({ className }: SortProps) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const model = SearchUIModel.use()
   const { setOrder } = model.actions
-  const ButtonProps = React.useMemo(
-    () => ({
-      classes: buttonClasses,
-      variant: 'contained' as const,
-      size: 'medium' as const,
-    }),
-    [buttonClasses],
-  )
   const value = React.useMemo(
     () =>
       sortOptions.find(({ valueOf }) => valueOf() === model.state.order) ||
@@ -108,7 +97,7 @@ export default function Sort({ className }: SortProps) {
       options={sortOptions}
       value={value}
       onChange={handleChange}
-      ButtonProps={ButtonProps}
+      ButtonProps={{ classes: buttonClasses, size: 'medium' }}
     >
       {sm ? <M.Icon>sort</M.Icon> : 'Sort by:'}
     </SelectDropdown>

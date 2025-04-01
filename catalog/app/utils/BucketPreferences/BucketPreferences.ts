@@ -60,7 +60,10 @@ interface BlocksPreferences {
   qurator: boolean
 }
 
-export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
+export type NavPreferences = Record<
+  'files' | 'packages' | 'workflows' | 'queries',
+  boolean
+>
 
 export interface PackagePreferencesInput {
   message?: boolean
@@ -146,7 +149,7 @@ const defaultPreferences: BucketPreferences = {
       deleteRevision: false,
       downloadObject: true,
       downloadPackage: true,
-      openInDesktop: false,
+      openInDesktop: true,
       revisePackage: true,
       writeFile: true,
     },
@@ -161,6 +164,7 @@ const defaultPreferences: BucketPreferences = {
     },
     nav: {
       files: true,
+      workflows: true,
       packages: true,
       queries: true,
     },
@@ -343,14 +347,6 @@ export const sourceBucket = (bucket: string): BucketPreferencesInput => ({
   ui: {
     sourceBuckets: {
       [bucket]: {},
-    },
-  },
-})
-
-export const openInDesktop = (): BucketPreferencesInput => ({
-  ui: {
-    actions: {
-      openInDesktop: true,
     },
   },
 })

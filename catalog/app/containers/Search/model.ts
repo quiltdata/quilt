@@ -31,7 +31,11 @@ export enum ResultType {
 
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
-export const DEFAULT_ORDER = Model.GQLTypes.SearchResultOrder.BEST_MATCH
+export const ResultOrder = Model.GQLTypes.SearchResultOrder
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type ResultOrder = Model.GQLTypes.SearchResultOrder
+
+export const DEFAULT_ORDER = ResultOrder.BEST_MATCH
 
 const FACETS_VISIBLE = 5
 // don't show facet filter if under this threshold
@@ -61,7 +65,7 @@ export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 interface SearchUrlStateBase {
   searchString: string | null
   buckets: readonly string[]
-  order: Model.GQLTypes.SearchResultOrder
+  order: ResultOrder
 }
 
 interface ObjectsSearchUrlState extends SearchUrlStateBase {
@@ -78,13 +82,13 @@ interface PackagesSearchUrlState extends SearchUrlStateBase {
 
 export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
 
-function parseOrder(input: string | null): Model.GQLTypes.SearchResultOrder {
-  return Object.values(Model.GQLTypes.SearchResultOrder).includes(input as any)
-    ? (input as Model.GQLTypes.SearchResultOrder)
+function parseOrder(input: string | null): ResultOrder {
+  return Object.values(ResultOrder).includes(input as any)
+    ? (input as ResultOrder)
     : DEFAULT_ORDER
 }
 
-function serializeOrder(order: Model.GQLTypes.SearchResultOrder): string | null {
+function serializeOrder(order: ResultOrder): string | null {
   return order === DEFAULT_ORDER ? null : order
 }
 
@@ -125,6 +129,8 @@ function Predicate<Tag extends string, State, GQLType>(input: {
     toGQL: input.toGQL,
   }
 }
+
+const STRICT_MARKER = '$s$:'
 
 export const Predicates = {
   Datetime: Predicate({
@@ -173,7 +179,7 @@ export const Predicates = {
     fromString: (input: string) => ({ queryString: input }),
     toString: ({ _tag, ...state }) => state.queryString.trim(),
     toGQL: ({ _tag, ...state }) => {
-      const queryString = state.queryString.trim()
+      const queryString = addMagicWildcardsQS(state.queryString.trim())
       return queryString ? ({ queryString } as Model.GQLTypes.TextSearchPredicate) : null
     },
   }),
@@ -193,12 +199,20 @@ export const Predicates = {
     tag: 'KeywordWildcard',
     init: {
       wildcard: '' as string,
+      strict: false,
     },
-    fromString: (wildcard: string) => ({ wildcard }),
-    toString: ({ wildcard }) => wildcard,
-    toGQL: ({ wildcard }) =>
+    fromString: (wildcard: string) => {
+      const strict = wildcard.startsWith(STRICT_MARKER)
+      if (strict) wildcard = wildcard.slice(STRICT_MARKER.length)
+      return { wildcard, strict }
+    },
+    toString: ({ wildcard, strict }) => (strict ? STRICT_MARKER : '') + (wildcard ?? ''),
+    toGQL: ({ wildcard, strict }) =>
       wildcard
-        ? ({ wildcard, terms: null } as Model.GQLTypes.KeywordSearchPredicate)
+        ? ({
+            wildcard: strict ? wildcard : addMagicWildcardsKW(wildcard),
+            terms: null,
+          } as Model.GQLTypes.KeywordSearchPredicate)
         : null,
   }),
 
@@ -614,17 +628,47 @@ export function useMakeUrl() {
   )
 }
 
-function useBaseSearchQuery({ searchString, buckets }: SearchUrlState) {
+function addMagicWildcardsKW(s: string): string {
+  if (!s) return s
+  // Check if the string already contains special Elasticsearch syntax:
+  // - wildcards: * ?
+  if (/\*|\?/.test(s)) return s
+  // Append trailing wildcard for substring matching
+  return `${s}*`
+}
+
+function addMagicWildcardsQS(s: string | null): string | null {
+  if (!s) return s
+  // Check if the string already contains special Elasticsearch syntax:
+  // - field selector: ":" (colon)
+  // - wildcards: * ?
+  // - quotes: " '
+  // - logic: AND OR + |
+  // - grouping: ( ) [ ] { }
+  // - fuzzy search: ~
+  // - negaion: -
+  if (/:|\*|\?|"|'|\bAND\b|\bOR\b|\+|\||\(|\)|\[|\]|\{|\}|\~|-/.test(s)) return s
+  // Append trailing wildcard for substring matching
+  return `${s}*`
+}
+
+function useMagicWildcardsQS(s: string | null) {
+  return React.useMemo(() => addMagicWildcardsQS(s), [s])
+}
+
+function useBaseSearchQuery({ searchString: s, buckets }: SearchUrlState) {
+  const searchString = useMagicWildcardsQS(s)
   return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, buckets })
 }
 
 function useFirstPageObjectsQuery({
-  searchString,
+  searchString: s,
   buckets,
   order,
   resultType,
   filter,
 }: SearchUrlState) {
+  const searchString = useMagicWildcardsQS(s)
   const gqlFilter = ObjectsSearchFilterIO.toGQL(
     resultType === ResultType.S3Object ? filter : ObjectsSearchFilterIO.initialState,
   )
@@ -637,10 +681,11 @@ function useFirstPageObjectsQuery({
 }
 
 function useFirstPagePackagesQuery(state: SearchUrlState) {
+  const searchString = useMagicWildcardsQS(state.searchString)
   return GQL.useQuery(
     FIRST_PAGE_PACKAGES_QUERY,
     {
-      searchString: state.searchString,
+      searchString,
       buckets: state.buckets,
       order: state.order,
       filter: PackagesSearchFilterIO.toGQL(
@@ -772,8 +817,10 @@ export function AvailablePackagesMetaFilters({
 
   const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
 
+  const searchString = useMagicWildcardsQS(model.state.searchString)
+
   const query = GQL.useQuery(META_FACETS_QUERY, {
-    searchString: model.state.searchString,
+    searchString,
     buckets: model.state.buckets,
     filter,
     latestOnly: model.state.latestOnly,
@@ -906,8 +953,10 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
 
   const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
 
+  const searchString = useMagicWildcardsQS(model.state.searchString)
+
   const query = GQL.useQuery(META_FACETS_FIND_QUERY, {
-    searchString: model.state.searchString,
+    searchString,
     buckets: model.state.buckets,
     filter,
     path,
@@ -1030,17 +1079,17 @@ function AvailablePackagesMetaFiltersGroup({
   return children(stateOut)
 }
 
-export type SearhHitObject = Extract<
+export type SearchHitObject = Extract<
   GQL.DataForDoc<typeof FIRST_PAGE_OBJECTS_QUERY>['searchObjects'],
   { __typename: 'ObjectsSearchResultSet' }
 >['firstPage']['hits'][number]
 
-export type SearhHitPackage = Extract<
+export type SearchHitPackage = Extract<
   GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
 >['firstPage']['hits'][number]
 
-export type SearchHit = SearhHitObject | SearhHitPackage
+export type SearchHit = SearchHitObject | SearchHitPackage
 
 type PackageUserMetaFacetFull = Extract<
   GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
@@ -1164,10 +1213,12 @@ export function usePackageUserMetaFacetExtents(path: string): {
 
   const typeInfo = PackageUserMetaFacetTypeInfo[activated._tag]
 
+  const searchString = useMagicWildcardsQS(model.state.searchString)
+
   const query = GQL.useQuery(
     META_FACET_QUERY,
     {
-      searchString: model.state.searchString,
+      searchString,
       buckets: model.state.buckets,
       filter: PackagesSearchFilterIO.toGQL(model.state.filter),
       latestOnly: model.state.latestOnly,
@@ -1240,7 +1291,7 @@ function useSearchUIModel() {
   )
 
   const setOrder = React.useCallback(
-    (order: Model.GQLTypes.SearchResultOrder) => {
+    (order: ResultOrder) => {
       updateUrlState((s) => ({ ...s, order }))
     },
     [updateUrlState],
