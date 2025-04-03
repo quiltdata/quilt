@@ -213,6 +213,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
     user_s3_client = user_boto_session.client(
         "s3",
         config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
+        endpoint_url="http://s3.amazonaws.com",
     )
 
     with concurrent.futures.ThreadPoolExecutor(
