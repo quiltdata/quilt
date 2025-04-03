@@ -12,14 +12,16 @@ attrs==24.2.0
     #   referencing
 aws-requests-auth==0.4.3
     # via quilt3
-boto3==1.35.70
+awscrt==0.22.0
+    # via botocore
+boto3[crt]==1.35.70
     # via
     #   quilt-shared
     #   quilt3
     #   t4_lambda_pkgpush (setup.py)
 boto3-stubs[s3,sts]==1.35.70
     # via quilt-shared
-botocore==1.35.70
+botocore[crt]==1.35.70
     # via
     #   boto3
     #   s3transfer

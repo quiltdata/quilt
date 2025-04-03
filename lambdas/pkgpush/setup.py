@@ -6,7 +6,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "boto3 ~= 1.28",
+        "boto3[crt] ~= 1.28",
         "pydantic ~= 2.10",
         "rfc3986 ~= 2.0",
         (
