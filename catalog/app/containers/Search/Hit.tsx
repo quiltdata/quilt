@@ -163,9 +163,15 @@ function Divider() {
 interface PackageProps {
   hit: SearchUIModel.SearchHitPackage
   showBucket?: boolean
+  showRevision?: boolean
 }
 
-export function Package({ hit, showBucket = false, ...props }: PackageProps) {
+export function Package({
+  hit,
+  showBucket = false,
+  showRevision = false,
+  ...props
+}: PackageProps) {
   const { urls } = NamedRoutes.use()
 
   // this is actually a string, so we need to parse it
@@ -178,6 +184,8 @@ export function Package({ hit, showBucket = false, ...props }: PackageProps) {
     }
   }, [hit.meta])
 
+  const comment = hit.comment === 'None' ? null : hit.comment
+
   return (
     <Card {...props}>
       <Section grow>
@@ -188,21 +196,32 @@ export function Package({ hit, showBucket = false, ...props }: PackageProps) {
         <Secondary>
           {readableBytes(hit.size)}
           <Divider />
-          Updated <Format.Relative value={hit.modified} />
+          <M.Tooltip arrow title={hit.modified.toLocaleString()}>
+            <span style={{ position: 'relative' }}>
+              Updated <Format.Relative value={hit.modified} />
+            </span>
+          </M.Tooltip>
           {!!hit.workflow?.id && (
             <>
-              <Divider /> <span style={{ fontWeight: 500 }}>{hit.workflow.id}</span>
+              <Divider />{' '}
+              <M.Chip size="small" variant="outlined" label={hit.workflow.id} />
+            </>
+          )}
+          {showRevision && (
+            <>
+              <Divider />{' '}
+              <M.Tooltip arrow title={hit.hash}>
+                <span style={{ position: 'relative' }}>{hit.hash.slice(0, 8)}</span>
+              </M.Tooltip>
             </>
           )}
         </Secondary>
+        {showRevision && !!comment && (
+          <Secondary>
+            <span style={{ position: 'relative', fontWeight: 300 }}>{comment}</span>
+          </Secondary>
+        )}
       </Section>
-
-      {!!hit.comment && (
-        // XXX: render this in a Secondary instead of a seprarate Section?
-        <Section divider>
-          <M.Typography variant="body2">{hit.comment}</M.Typography>
-        </Section>
-      )}
 
       {!!metaJson && (
         <Section divider>

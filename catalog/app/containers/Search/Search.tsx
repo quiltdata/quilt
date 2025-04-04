@@ -1063,9 +1063,10 @@ function Filters({ className }: FiltersProps) {
 interface SearchHitProps {
   hit: SearchUIModel.SearchHit
   showBucket: boolean
+  showRevision: boolean
 }
 
-function SearchHit({ hit, showBucket }: SearchHitProps) {
+function SearchHit({ hit, showBucket, showRevision }: SearchHitProps) {
   switch (hit.__typename) {
     case 'SearchHitObject':
       return (
@@ -1083,6 +1084,7 @@ function SearchHit({ hit, showBucket }: SearchHitProps) {
       return (
         <Hit.Package
           showBucket={showBucket}
+          showRevision={showRevision}
           hit={hit}
           data-testid="search-hit"
           data-search-hit-type="package"
@@ -1145,6 +1147,7 @@ interface ResultsPageProps {
   hits: readonly SearchUIModel.SearchHit[]
   resultType: SearchUIModel.ResultType
   singleBucket: boolean
+  latestOnly: boolean
 }
 
 function ResultsPage({
@@ -1153,6 +1156,7 @@ function ResultsPage({
   cursor,
   resultType,
   singleBucket,
+  latestOnly,
 }: ResultsPageProps) {
   const classes = useResultsPageStyles()
   const [more, setMore] = React.useState(false)
@@ -1163,7 +1167,12 @@ function ResultsPage({
   return (
     <div className={className}>
       {hits.map((hit) => (
-        <SearchHit key={hit.id} hit={hit} showBucket={!singleBucket} />
+        <SearchHit
+          key={hit.id}
+          hit={hit}
+          showBucket={!singleBucket}
+          showRevision={!latestOnly}
+        />
       ))}
       {!!cursor &&
         (more ? (
@@ -1172,6 +1181,7 @@ function ResultsPage({
             className={classes.next}
             resultType={resultType}
             singleBucket={singleBucket}
+            latestOnly={latestOnly}
           />
         ) : (
           <LoadNextPage className={classes.next} onClick={loadMore} />
@@ -1185,9 +1195,16 @@ interface NextPageProps {
   resultType: SearchUIModel.ResultType
   className: string
   singleBucket: boolean
+  latestOnly: boolean
 }
 
-function NextPage({ after, className, resultType, singleBucket }: NextPageProps) {
+function NextPage({
+  after,
+  className,
+  resultType,
+  singleBucket,
+  latestOnly,
+}: NextPageProps) {
   const NextPageQuery =
     resultType === SearchUIModel.ResultType.S3Object
       ? SearchUIModel.NextPageObjectsQuery
@@ -1222,6 +1239,7 @@ function NextPage({ after, className, resultType, singleBucket }: NextPageProps)
                     cursor={r.data.cursor}
                     resultType={resultType}
                     singleBucket={singleBucket}
+                    latestOnly={latestOnly}
                   />
                 )
               default:
@@ -1268,6 +1286,10 @@ function ResultsInner({ className }: ResultsInnerProps) {
           return <SearchError className={className} kind={kind} details={details} />
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
+          const latestOnly =
+            model.state.resultType === SearchUIModel.ResultType.QuiltPackage
+              ? model.state.latestOnly
+              : true
           return (
             <ResultsPage
               className={className}
@@ -1276,6 +1298,7 @@ function ResultsInner({ className }: ResultsInnerProps) {
               hits={r.data.firstPage.hits}
               cursor={r.data.firstPage.cursor}
               singleBucket={model.state.buckets.length === 1}
+              latestOnly={latestOnly}
             />
           )
         default:
