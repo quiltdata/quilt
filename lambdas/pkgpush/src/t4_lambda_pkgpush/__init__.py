@@ -742,9 +742,13 @@ def package_prefix(event, context):
         )
         pkg.set(key[prefix_len:], entry)
         # XXX: We know checksum algorithm here, so if it's sha256,
-        #      we can be sure there's compliant checksum in S3 for small objects.
-        #      We could replace copy_object with head_object in calculate_pkg_entry_hash_local,
-        #      but that needs benchmarking.
+        #      we can be sure there's compliant checksum in S3 for single-part objects.
+        #      We could replace copy_object with head_object in calculate_pkg_entry_hash_local.
+        #      * head_object call takes 70 msec
+        #      * copy_object time depends on file size:
+        #        * 8 MB - 350 msec
+        #        * 1 B - 35 msec
+        #        * it looks like copy_object is slower than head_object for objects >= 16 KiB
 
     pkg.set_meta(metadata)
     pkg._validate_with_workflow(
