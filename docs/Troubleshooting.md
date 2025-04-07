@@ -57,7 +57,7 @@ admin using a password (as opposed to SSO).
 ### Unable to log in
 
 The following are common causes of failed logins. In most cases we recommend
-that you check the [network panel of your browser](#browser-network-and-console)
+that you check the browser's network panel
 for details.
 
 1. SSO connector misconfigured. See [SSO](technical-reference.md#cnames) for
