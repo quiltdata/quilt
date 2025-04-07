@@ -38,7 +38,6 @@ p.push(
 
 - [Reference](https://docs.quiltdata.com/api-reference/package#package.set_dir).
 
-
 ## User creation and log in
 
 Users can either be invited directly or are _just-in-time provisioned (JIP)_
