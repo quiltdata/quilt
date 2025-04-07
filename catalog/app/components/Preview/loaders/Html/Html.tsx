@@ -196,6 +196,15 @@ function useSession(handle: FileHandle) {
   return result
 }
 
+const SANDBOX_BROWSABLE = [
+  'allow-scripts',
+  'allow-same-origin',
+  'allow-forms',
+  'allow-popups',
+].join(' ')
+
+const SANDBOX_RESTRICTED = 'allow-scripts'
+
 interface IFrameLoaderBrowsableProps {
   children: (result: $TSFixMe) => JSX.Element
   handle: FileHandle
@@ -210,7 +219,7 @@ function IFrameLoaderBrowsable({ handle, children }: IFrameLoaderBrowsableProps)
           PreviewData.IFrame({
             src: `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`,
             modes: [FileType.Html, FileType.Text],
-            sandbox: 'allow-scripts allow-same-origin',
+            sandbox: SANDBOX_BROWSABLE,
           }),
       },
       sessionData,
@@ -236,7 +245,7 @@ function IFrameLoaderSigned({ handle, browsable, children }: IFrameLoaderSignedP
       PreviewData.IFrame({
         src,
         modes: [FileType.Html, FileType.Text],
-        sandbox: browsable ? 'allow-scripts allow-same-origin' : 'allow-scripts',
+        sandbox: browsable ? SANDBOX_BROWSABLE : SANDBOX_RESTRICTED,
       }),
     ),
   )

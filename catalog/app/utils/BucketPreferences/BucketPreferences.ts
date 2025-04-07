@@ -60,7 +60,10 @@ interface BlocksPreferences {
   qurator: boolean
 }
 
-export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
+export type NavPreferences = Record<
+  'files' | 'packages' | 'workflows' | 'queries',
+  boolean
+>
 
 export interface PackagePreferencesInput {
   message?: boolean
@@ -161,6 +164,7 @@ const defaultPreferences: BucketPreferences = {
     },
     nav: {
       files: true,
+      workflows: true,
       packages: true,
       queries: true,
     },

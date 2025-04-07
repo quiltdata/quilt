@@ -193,6 +193,7 @@ const I18N_FIELDS = {
     'Image galleries alongside those defined in quilt_summarize.json',
 
   'ui.nav.files': '"BUCKET"',
+  'ui.nav.workflows': '"WORKFLOWS"',
   'ui.nav.packages': '"PACKAGES"',
   'ui.nav.queries': '"QUERIES"',
 
