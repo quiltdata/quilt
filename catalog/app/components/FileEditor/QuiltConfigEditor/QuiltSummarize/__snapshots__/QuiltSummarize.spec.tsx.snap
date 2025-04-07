@@ -133,7 +133,7 @@ exports[`QuiltSummarize Render columns 1`] = `
      
     <a
       className="root"
-      href="https://docs.quiltdata.com/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
       target="_blank"
     >
       the docs
@@ -226,7 +226,7 @@ exports[`QuiltSummarize Render empty placeholders 1`] = `
      
     <a
       className="root"
-      href="https://docs.quiltdata.com/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
       target="_blank"
     >
       the docs
@@ -319,7 +319,7 @@ exports[`QuiltSummarize Render row 1`] = `
      
     <a
       className="root"
-      href="https://docs.quiltdata.com/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
       target="_blank"
     >
       the docs

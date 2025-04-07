@@ -100,7 +100,7 @@ p.push(
 )
 ```
 
-- [Reference](https://docs.quiltdata.com/api-reference/package#package.set_dir).
+- [Reference](https://docs.quilt.bio/api-reference/package#package.set_dir).
 
 ## "Session expired" notice in the Catalog
 

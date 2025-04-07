@@ -696,7 +696,7 @@ Python
 
 # 3.1.4 - 2019-10-17
 
-* [`delete_package`](https://docs.quiltdata.com/api-reference/api#delete\_package) for a specific version via `top_hash=`
+* [`delete_package`](https://docs.quilt.bio/api-reference/api#delete\_package) for a specific version via `top_hash=`
 
 # 3.1.3 - 2019-10-11
 
@@ -711,7 +711,7 @@ Python
 
 # 3.0.0 - 2019-05-24 - Quilt 3 (formerly Quilt T4) Initial Release
 
-This is the initial release of the new and improved Quilt 3 ([formerly Quilt T4](https://github.com/quiltdata/t4)). For more information [refer to the documentation](https://docs.quiltdata.com/).
+This is the initial release of the new and improved Quilt 3 ([formerly Quilt T4](https://github.com/quiltdata/t4)). For more information [refer to the documentation](https://docs.quilt.bio/).
 
 # 2.9.15 - 2019-01-09 - Teams Config
 
@@ -937,7 +937,7 @@ Data fragments can now be downloaded in parallel leading to much faster package 
 
 ## Quilt packages live in a centralized location on your machine
 
-Quilt data packages are now available wherever you run Python. We recommend that users **quilt push all local packages to the registry before upgrading**. Further details on migration are [here](https://docs.quiltdata.com/troubleshooting.html).
+Quilt data packages are now available wherever you run Python. We recommend that users **quilt push all local packages to the registry before upgrading**. Further details on migration are [here](https://docs.quilt.bio/troubleshooting.html).
 
 ## Faster builds with build cache
 
@@ -945,11 +945,11 @@ Quilt now caches build intermediates. So if you wish to update the README of a m
 
 ## Group-level build parameters
 
-You can now specify build parameters (like transform) for all children of a group in one shot. The updated syntax and docs are [here](https://docs.quiltdata.com/buildyml.html).
+You can now specify build parameters (like transform) for all children of a group in one shot. The updated syntax and docs are [here](https://docs.quilt.bio/buildyml.html).
 
 ## quilt.yml is like requirements.txt but for data
 
-You can now express dependencies on multiple packages in a single file. Docs [here](https://docs.quiltdata.com/cli.html#installing-via-requirements-file).
+You can now express dependencies on multiple packages in a single file. Docs [here](https://docs.quilt.bio/cli.html#installing-via-requirements-file).
 
 ## Experimental: build a package from a GitHub repo
 
