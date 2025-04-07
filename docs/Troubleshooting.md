@@ -38,17 +38,6 @@ p.push(
 
 - [Reference](https://docs.quiltdata.com/api-reference/package#package.set_dir).
 
-## "Session expired" notice in the Catalog
-
-There are two reasons for encountering the "Session expired" notice
-after clicking the `RELOAD` button in the Quilt Catalog.
-
-1. Your browser cache is out of date, in which case you need to:
-    1. Delete session storage
-    1. Delete local storage
-    1. Delete cookies
-1. Your Quilt user Role has been corrupted. You will need a Quilt Admin
-user to reset your Quilt user Role to a default (**and valid**) Role.
 
 ## User creation and log in
 
@@ -143,33 +132,6 @@ To expedite the resolution of any errors encountered while using
 Quilt, please capture the following logs and share them with
 Quilt support:
 
-### Browser Network and Console
-
-1. Go to the affected page in your Quilt Catalog.
-1. Open the browser Developer tools:
-    - Google Chrome: Press **F12**, **Ctrl+Shift+I** or from the
-    Chrome menu select **More tools > Developer tools**.
-1. Select the **Network** tab.
-    1. Ensure the session is recorded:
-        - Google Chrome: Check the red button in the upper left corner is set to
-          **Record**.
-    1. Ensure **Preserve Log** is enabled.
-    1. Perform the action that triggers the error (e.g. clicking the `Download
-       package` button).
-    1. Export the logs as HAR format.
-        - Google Chrome: **Ctrl + Click** anywhere on the grid of
-        network requests and select **Save all as HAR with content**.
-    1. Save the HAR-formatted file to your localhost.
-
-        ![Save browser Network error logs as HAR
-        content](imgs/troubleshooting-logs-browser.png)
-1. Select the **Console** tab.
-    1. Perform the action that triggers the error (e.g. clicking the `Download
-       package` button).
-    1. Export the logs.
-        - Google Chrome: **Ctrl + Click** anywhere on the grid of
-        network requests and select **Save as...**.
-    1. Save the log file to your localhost.
 
 ### Elastic Container Service (ECS)
 
