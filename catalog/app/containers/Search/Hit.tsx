@@ -251,13 +251,13 @@ export function Object({ hit, showBucket = false, ...props }: ObjectProps) {
           {hit.deleted ? 'Delete Marker' : readableBytes(hit.size)}
           <Divider />
           {hit.deleted ? 'Deleted' : 'Updated'}{' '}
-          <M.Tooltip title={hit.modified.toLocaleString()}>
+          <M.Tooltip arrow title={hit.modified.toLocaleString()}>
             <span style={{ position: 'relative' }}>
               <Format.Relative value={hit.modified} />
             </span>
           </M.Tooltip>
           <Divider />
-          <M.Tooltip title={`VersionID: ${hit.version}`}>
+          <M.Tooltip arrow title={`VersionID: ${hit.version}`}>
             <span style={{ position: 'relative' }}>v.{hit.version.slice(0, 4)}</span>
           </M.Tooltip>
         </Secondary>
