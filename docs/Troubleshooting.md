@@ -131,7 +131,6 @@ To expedite the resolution of any errors encountered while using
 Quilt, please capture the following logs and share them with
 Quilt support:
 
-
 ### Elastic Container Service (ECS)
 
 1. Find the name of your Quilt stack:
