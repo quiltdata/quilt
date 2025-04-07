@@ -84,11 +84,11 @@ function Section({
 const useHeadingStyles = M.makeStyles((t) => ({
   heading: {
     ...t.typography.body1,
-    fontWeight: t.typography.fontWeightRegular,
+    fontWeight: t.typography.fontWeightMedium,
     lineHeight: '20px',
   },
   secondary: {
-    fontWeight: t.typography.fontWeightLight,
+    fontWeight: t.typography.fontWeightRegular,
     color: t.palette.text.secondary,
   },
 }))
