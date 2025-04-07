@@ -100,7 +100,7 @@ To help diagnose Catalog issues:
     1. Save the HAR-formatted file to your localhost.
 
         ![Save browser Network error logs as HAR
-        content](imgs/troubleshooting-logs-browser.png)
+        content](../imgs/troubleshooting-logs-browser.png)
 1. Select the **Console** tab.
     1. Perform the action that triggers the error (e.g. clicking the `Download
        package` button).
