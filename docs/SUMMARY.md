@@ -37,6 +37,8 @@
   * [S3 Events via EventBridge](EventBridge.md)
   * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
   * [Tabulator](advanced-features/tabulator.md)
+  * [Troubleshooting](Catalog/Troubleshooting.md)
+    * [SSO Redirect Loop](Troubleshooting_SSO.md)
 * **Best Practices**
   * [GxP for Security & Compliance](advanced-features/good-practice.md)
   * [Organizing S3 Buckets](advanced-features/s3-bucket-organization.md)
@@ -71,7 +73,6 @@
   * [Contributing](CONTRIBUTING.md)
   * [Frequently Asked Questions](FAQ.md)
   * [Troubleshooting](Troubleshooting.md)
-    * [SSO Redirect Loop](Troubleshooting_SSO.md)
   
 ## Quilt Ecosystem Integrations
 
