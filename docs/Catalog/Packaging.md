@@ -243,12 +243,13 @@ print("SQS Target Attached to EventBridge Rule:", response)
 
 > This feature requires Quilt Platform version 1.59.0 or higher
 
-Newer versions of the Packaging Engine use multiple lambdas simultaneously,
-which allows it to process larger packages within the 15-minute timeout limit
-enforced by AWS.  Because of this, the Packaging Engine will now accept requests
-to create packages larger than those allowed by [catalog
-push](https://docs.quilt.bio/quilt-python-sdk/api-reference/limitations#catalog-push).
+Newer versions leverage multiple parallel Lambda functions to support
+significantly larger packages within AWS’s 15-minute timeout limit.
 
-However, you may still run into the 15-minute timeout when trying to create very
-large packages. To determine whether this is the case, please check your admin
-email or the CloudWatch logs.
+To help you take full advantage of these improvements, the system no longer
+enforces catalog push size limits when calling the Packaging Engine directly.
+The updated engine accepts arbitrarily large requests, though some may still
+fail due to timeouts.
+
+If a packaging operation fails, please check your admin email or review the
+relevant CloudWatch logs to determine whether a timeout occurred.
