@@ -711,29 +711,10 @@ def package_prefix(event, context):
     pkg = quilt3.Package()
 
     prefix_len = len(prefix_pk.path)
-    size_to_hash = 0
-    files_to_hash = 0
 
     for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):
         key = obj["Key"]
         size = obj["Size"]
-        # XXX: disable limits?
-        if (files_to_hash := files_to_hash + 1) > MAX_FILES_TO_HASH:
-            raise PkgpushException(
-                "TooManyFilesToHash",
-                {
-                    "num_files": files_to_hash,
-                    "max_files": MAX_FILES_TO_HASH,
-                },
-            )
-        if (size_to_hash := size_to_hash + size) > MAX_BYTES_TO_HASH:
-            raise PkgpushException(
-                "PackageTooLargeToHash",
-                {
-                    "size": size_to_hash,
-                    "max_size": MAX_BYTES_TO_HASH,
-                },
-            )
         entry = quilt3.packages.PackageEntry(
             PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
             size,
