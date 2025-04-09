@@ -11,7 +11,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
      
     <a
       className="root"
-      href="https://docs.quiltdata.com/quilt-platform-administrator/preferences"
+      href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
       target="_blank"
     >
       Learn more
@@ -712,7 +712,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
      
     <a
       className="root"
-      href="https://docs.quiltdata.com/quilt-platform-administrator/preferences"
+      href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
       target="_blank"
     >
       Learn more

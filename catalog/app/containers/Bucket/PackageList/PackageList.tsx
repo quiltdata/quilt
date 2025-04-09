@@ -36,7 +36,7 @@ import { displayError } from '../errors'
 import PACKAGE_COUNT_QUERY from './gql/PackageCount.generated'
 import PACKAGE_LIST_QUERY from './gql/PackageList.generated'
 
-const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-package'
+const EXAMPLE_PACKAGE_URL = 'https://docs.quilt.bio/walkthrough/editing-a-package'
 
 const PER_PAGE = 30
 

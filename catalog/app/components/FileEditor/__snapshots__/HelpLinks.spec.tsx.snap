@@ -12,7 +12,7 @@ exports[`components/FileEditor/HelpLinks MissingSourceBucket should render 1`] =
      is empty.
      
     <a
-      href="https://docs.quiltdata.com/catalog/preferences"
+      href="https://docs.quilt.bio/catalog/preferences"
     >
       Learn more
     </a>

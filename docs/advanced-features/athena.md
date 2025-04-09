@@ -11,7 +11,7 @@ using predicates based on package or object-level metadata.
 Packages can be created from the resulting tabular data.
 To be able to create a package,
 the table must contain the columns `logical_key`, `physical_keys` (or `physical_key`) and `size`.
-(See also [Mental Model](https://docs.quiltdata.com/mentalmodel))
+(See also [Mental Model](https://docs.quilt.bio/mentalmodel))
 
 ![Athena page with results ready to be packaged](../imgs/athena-package.png)
 

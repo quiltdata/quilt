@@ -100,7 +100,7 @@ def _fix_docstring(**kwargs):
 _WORKFLOW_PARAM_DOCSTRING = (
     'workflow: workflow ID or `None` to skip workflow validation.\n'
     '        If not specified, the default workflow will be used.\n'
-    '        For details see: https://docs.quiltdata.com/advanced-usage/workflows\n'
+    '        For details see: https://docs.quilt.bio/advanced-usage/workflows\n'
 )
 
 
