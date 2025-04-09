@@ -84,6 +84,14 @@ the iframe gets the following origin:
 > An important implication of same-origin policy is that the scripts
 > executed under the same origin share LocalStorage data and cookies.
 
+### Cross-Origin Resource Sharing (CORS)
+
+> New in Quilt Platform version 1.59.0 or higher
+
+Enabling permissive rendering also disables CORS protections, so that forms and
+popups will work from iframs.  This is currently only supported in Chrome and
+Firefox.
+
 ### Package view example with permissive rendering enabled
 
 1. `report.html` is a file in a package that includes a publicly available JS
