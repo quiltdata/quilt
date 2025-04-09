@@ -1,7 +1,15 @@
 import pytest
 from botocore.stub import Stubber
+from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
+
+SCRATCH_KEY = "test-scratch-key"
+
+
+@pytest.fixture(autouse=True)
+def mock_scratch_key(mocker: MockerFixture):
+    return mocker.patch("t4_lambda_s3hash.make_scratch_key", return_value=SCRATCH_KEY)
 
 
 async def test_get_bucket_region_valid(s3_stub: Stubber):
@@ -52,7 +60,7 @@ async def test_get_bucket_region_nonexist_error(s3_stub: Stubber):
 async def test_get_mpu_dst_for_location_valid(s3_stub: Stubber):
     src_loc = s3hash.S3ObjectSource(bucket="source-bucket", key="source-key", version="source-version")
     scratch_buckets = {"us-west-2": "scratch-bucket-us-west-2"}
-    expected_dst = s3hash.S3ObjectDestination(bucket="scratch-bucket-us-west-2", key=s3hash.SCRATCH_KEY)
+    expected_dst = s3hash.S3ObjectDestination(bucket="scratch-bucket-us-west-2", key=SCRATCH_KEY)
 
     s3_stub.add_response(
         method="head_bucket",

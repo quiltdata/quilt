@@ -7,6 +7,7 @@ from botocore.stub import Stubber
 from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
+from quilt_shared.const import MAX_PART_SIZE
 
 
 class RawStream(io.BytesIO):
@@ -46,16 +47,22 @@ EXPECTED_GETATTR_PARAMS = {
 REGION = "test-region"
 SCRATCH_BUCKET = "test-scratch-bucket"
 SCRATCH_BUCKETS = {REGION: SCRATCH_BUCKET}
+SCRATCH_KEY = "test-scratch-key"
 
 MPU_DST = s3hash.S3ObjectDestination(
     bucket=SCRATCH_BUCKET,
-    key=s3hash.SCRATCH_KEY,
+    key=SCRATCH_KEY,
 )
 
 EXPECTED_MPU_PARAMS = {
     **MPU_DST.boto_args,
     "ChecksumAlgorithm": "SHA256",
 }
+
+
+@pytest.fixture(autouse=True)
+def mock_scratch_key(mocker: MockerFixture):
+    return mocker.patch("t4_lambda_s3hash.make_scratch_key", return_value=SCRATCH_KEY)
 
 
 async def test_compliant(s3_stub: Stubber):
@@ -145,7 +152,7 @@ async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
         "head_object",
         {
             "ETag": '"test-etag"',
-            "ContentLength": s3hash.MAX_PART_SIZE + 1,
+            "ContentLength": MAX_PART_SIZE + 1,
         },
         LOC.boto_args,
     )
@@ -274,7 +281,7 @@ async def test_mpu_multi(s3_stub: Stubber):
 
     CHECKSUM_1 = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
     CHECKSUM_2 = bytes.fromhex("a9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    CHECKSUM_TOP = s3hash.hash_parts([CHECKSUM_1, CHECKSUM_2])
+    CHECKSUM_TOP = s3hash.Checksum.hash_parts([CHECKSUM_1, CHECKSUM_2])
     s3_stub.add_response(
         "upload_part_copy",
         {
