@@ -89,7 +89,7 @@ the iframe gets the following origin:
 > New in Quilt Platform version 1.59.0 or higher
 
 Enabling permissive rendering also disables CORS protections, so that forms and
-popups will work from iframs.  This is currently only supported in Chrome and
+popups will work from iframes.  This is currently only supported in Chrome and
 Firefox.
 
 ### Package view example with permissive rendering enabled
