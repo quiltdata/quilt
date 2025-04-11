@@ -550,6 +550,19 @@ Note the comma after the object. Your trust relationship should now look somethi
 
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
 
+### ManagedUserRoleExtraPolicies
+
+The `ManagedUserRoleExtraPolicies` parameter allows you to add additional IAM policies to the managed user role. This is useful for granting additional permissions to users in your Quilt instance, which otherwise would be blocked by the permission boundary.
+
+Go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
+and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
+at the bottom of the page:
+
+![](imgs/ManagedUserRoleExtraPolicies.png)
+
+If other policies are already in that field, 
+you will need to add a comma before appending the ARN.
+
 ### S3 buckets with Service-Side Encryption using Key Management Service (SSE-KMS)
 
 In order for Quilt to access and index buckets encrypted with SSE-KMS, you must do three things:
@@ -580,14 +593,7 @@ create an IAM policy that explicitly enables KMS access.
 }
 ```
 
-Go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
-and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
-at the bottom of the page:
-
-![](imgs/ManagedUserRoleExtraPolicies.png)
-
-If other policies are already in that field, 
-you will need to add a comma before appending the ARN.
+Then add this policy to the `ManagedUserRoleExtraPolicies` as described above.
 
 #### 2. Add Quilt Principals to KMS Key Policy
 
