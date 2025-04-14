@@ -22,4 +22,8 @@ export const COLUMN_IDS = {
 
 export const EMPTY_VALUE = Symbol('empty')
 
-export const JSON_POINTER_PLACEHOLDER = '__*'
+export const JSON_POINTER_PLACEHOLDER = '__items*'
+
+export const JSON_POINTER_ANY_OF = '__anyOf*'
+
+export const JSON_POINTER_ONE_OF = '__oneOf*'
