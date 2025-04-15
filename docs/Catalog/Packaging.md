@@ -251,5 +251,5 @@ enforces limits on number of files and their total size when calling the
 Packaging Engine directly. The updated engine accepts arbitrarily large
 requests, though some may still fail due to timeouts.
 
-If a packaging operation fails, please check your admin email or review the
+If a packaging operation fails, please review the
 relevant CloudWatch logs to determine whether a timeout occurred.
