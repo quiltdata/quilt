@@ -272,7 +272,7 @@ export interface CollaboratorBucketConnection {
 export interface Config {
   readonly __typename: 'Config'
   readonly contentIndexingSettings: ContentIndexingSettings
-  readonly packageRoot: Maybe<Scalars['String']>
+  readonly packageRoot: Scalars['String']
 }
 
 export interface ContentIndexingSettings {
