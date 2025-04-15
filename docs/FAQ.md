@@ -8,7 +8,7 @@ p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 ```
 
 > Use a [.quiltignore
-file](https://docs.quiltdata.com/advanced-usage/.quiltignore) for more control
+file](https://docs.quilt.bio/advanced-usage/.quiltignore) for more control
 over which files `set_dir()` includes.
 
 ## How does Quilt versioning relate to S3 object versioning?
@@ -171,7 +171,7 @@ export AWS_PROFILE=your_profile
 
 The S3 permissions needed by `quilt3` are similar to
 <!-- markdownlint-disable-next-line line-length -->
-[this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies)                                                                                                  but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
+[this bucket policy](https://docs.quilt.bio/advanced/crossaccount#bucket-policies)                                                                                                  but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
 
 ## How complex can my Athena queries be?
 
@@ -243,7 +243,7 @@ in the Amazon S3 documentation.
 ## How many IPs does a standard Quilt stack require?
 
 Currently, a full size, multi-Availability Zone deployment (without
-[Voila](https://docs.quiltdata.com/catalog/visualizationdashboards#voila))
+[Voila](https://docs.quilt.bio/catalog/visualizationdashboards#voila))
 requires at least 256 IPs. This means a minimum CIDR block of `/24`.
 
 Optional additional features (such as automated data packaging) require
