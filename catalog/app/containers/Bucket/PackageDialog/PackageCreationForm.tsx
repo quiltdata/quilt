@@ -245,7 +245,7 @@ function PackageCreationForm({
   )
 
   const { config } = GQL.useQueryS(PACKAGE_ROOT_QUERY)
-  const packageRoot = config.packageRoot ?? '/'
+  const packageRoot = config.packageRoot
   const uploads = useUploads()
 
   const onFilesAction = React.useMemo(
@@ -336,14 +336,17 @@ function PackageCreationForm({
       }
     }
 
+    const prefix = s3paths.withoutPrefix(
+      '/',
+      `${s3paths.ensureNoSlash(packageRoot)}/${name}`,
+    )
+
     let uploadedEntries
     try {
       uploadedEntries = await uploads.upload({
         files: toUpload,
         bucket: successor.slug,
-        prefix: packageRoot.startsWith('/')
-          ? name + packageRoot
-          : `${name}/${packageRoot}`,
+        prefix,
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {
