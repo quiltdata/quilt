@@ -61,7 +61,7 @@ access private files in S3.
 If you wish for your HTML to access data within the enclosing package or bucket
 (at the viewer's level of permissions) and/or use origin-aware Web APIs such as
 data storage/cookies, you must opt in to `Enable permissive HTML rendering` in
-[Bucket settings](Admin.md#buckets). This explicitly allow cross-origin resource
+[Bucket settings](Admin.md#buckets). This explicitly allows cross-origin resource
 sharing (CORS).
 
 > You should _only enable this feature for buckets where you implicitly
@@ -89,8 +89,7 @@ view), the iframe gets the following origin:
 
 > New in Quilt Platform version 1.59.0 or higher
 
-Permissive HTML now includes the ability to allow forms and popups to work from
-iframes. This feature is currently only supported in Chrome and Firefox.
+Enabling Permissive HTML now allows forms and popups to work from iframes.
 
 ### Package view example with permissive rendering enabled
 
