@@ -19,6 +19,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
 import { useMutation } from 'utils/GraphQL'
+import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
@@ -45,6 +46,7 @@ import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
 import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
 import { Manifest, EMPTY_MANIFEST_ENTRIES, useManifest } from './Manifest'
+import PACKAGE_ROOT_QUERY from './gql/PackageRoot.generated'
 
 const CANCEL = 'cancel'
 const README_PATH = 'README.md'
@@ -242,6 +244,8 @@ function PackageCreationForm({
     [existingEntries, addToPackage],
   )
 
+  const { config } = GQL.useQueryS(PACKAGE_ROOT_QUERY)
+  const packageRoot = config.packageRoot ?? '/'
   const uploads = useUploads()
 
   const onFilesAction = React.useMemo(
@@ -337,7 +341,9 @@ function PackageCreationForm({
       uploadedEntries = await uploads.upload({
         files: toUpload,
         bucket: successor.slug,
-        prefix: name,
+        prefix: packageRoot.startsWith('/')
+          ? name + packageRoot
+          : `${name}/${packageRoot}`,
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {
