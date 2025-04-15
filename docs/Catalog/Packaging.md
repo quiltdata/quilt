@@ -252,4 +252,4 @@ Packaging Engine directly. The updated engine accepts arbitrarily large
 requests, though some may still fail due to timeouts.
 
 If a packaging operation fails, please review the
-relevant CloudWatch logs to determine whether a timeout occurred.
+PackagerLambdaLogGroup logs in CloudWatch to determine whether a timeout occurred.
