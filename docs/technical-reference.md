@@ -552,7 +552,12 @@ You can now configure a Quilt Role with this role (using the Catalog's admin pan
 
 ### ManagedUserRoleExtraPolicies
 
-The `ManagedUserRoleExtraPolicies` parameter allows you to add additional IAM policies to the managed user role. This is useful for granting additional permissions to users in your Quilt instance, which otherwise would be blocked by the permission boundary.
+The `ManagedUserRoleExtraPolicies` parameter allows you to add additional IAM
+policies to the managed user role. This is useful for granting additional
+permissions to users in your Quilt instance, which otherwise would be blocked by
+the permission boundary. Note that you will have to create and add the
+appropriate IAM policy first, then copy it here so it isn't blocked by the
+permission boundary.
 
 Go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
 and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
@@ -560,8 +565,7 @@ at the bottom of the page:
 
 ![](imgs/ManagedUserRoleExtraPolicies.png)
 
-If other policies are already in that field, 
-you will need to add a comma before appending the ARN.
+If there is more than one policy, separate the ARNs with commas.
 
 ### S3 buckets with Service-Side Encryption using Key Management Service (SSE-KMS)
 
