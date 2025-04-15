@@ -1204,6 +1204,15 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'packageRoot',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
