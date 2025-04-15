@@ -243,7 +243,7 @@ print("SQS Target Attached to EventBridge Rule:", response)
 
 > This feature requires Quilt Platform version 1.59.0 or higher
 
-Newer versions leverage multiple parallel Lambda functions to support
+Newer versions leverage increased concurrency to support
 significantly larger packages within AWS’s 15-minute timeout limit.
 
 To help you take full advantage of these improvements, the system no longer
