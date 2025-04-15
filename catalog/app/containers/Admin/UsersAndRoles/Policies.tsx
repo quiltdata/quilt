@@ -227,13 +227,21 @@ function Create({ close }: CreateProps) {
               <M.FormControlLabel
                 label={
                   <>
-                    Manually set ARN instead of configuring per-bucket permissions. NOTE: You will also need to add that ARN to the stack's{' '}
-                    <a href="https://docs.quilt.bio/quilt-platform-administrator/technical-reference#ManagedUserRoleExtraPolicies" target="_blank" rel="noopener noreferrer">
+                    Manually set ARN instead of configuring per-bucket permissions. NOTE:
+                    You will also need to add that ARN to the stack's{' '}
+                    <a
+                      href="https://docs.quilt.bio/quilt-platform-administrator/technical-reference#ManagedUserRoleExtraPolicies"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       ManagedUserRoleExtraPolicies
-                    </a>.
+                    </a>
+                    .
                   </>
                 }
-                control={<M.Checkbox checked={!managed} onChange={() => setManaged(!managed)} />}
+                control={
+                  <M.Checkbox checked={!managed} onChange={() => setManaged(!managed)} />
+                }
               />
 
               <M.Collapse in={!managed}>
