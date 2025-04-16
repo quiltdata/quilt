@@ -245,7 +245,7 @@ function PackageCreationForm({
   )
 
   const { config } = GQL.useQueryS(PACKAGE_ROOT_QUERY)
-  const packageRoot = config.packageRoot
+  const packageRoot = config.packageRoot ?? ''
   const uploads = useUploads()
 
   const onFilesAction = React.useMemo(
