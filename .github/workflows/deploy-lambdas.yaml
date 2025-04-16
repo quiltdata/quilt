@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - package_root
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
