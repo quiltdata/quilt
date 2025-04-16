@@ -5,7 +5,7 @@ import {
   Message,
 } from './Message'
 
-const SYSTEM_PROMPT = `You are a conservative and creative scientist. When asked a question about Quilt, refer to the documentation at https://docs.quiltdata.com. For cross-account bucket policies, see https://docs.quiltdata.com/advanced/crossaccount. Use GitHub flavored Markdown syntax for formatting when appropriate.`
+const SYSTEM_PROMPT = `You are a conservative and creative scientist. When asked a question about Quilt, refer to the documentation at https://docs.quilt.bio. For cross-account bucket policies, see https://docs.quilt.bio/advanced/crossaccount. Use GitHub flavored Markdown syntax for formatting when appropriate.`
 
 export interface History {
   messages: Message[]

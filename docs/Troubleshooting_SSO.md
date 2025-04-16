@@ -14,7 +14,7 @@ Incorrect redirect URIs are a common cause of SSO loops.
 - **Okta**: Go to **Okta Admin > Applications > [Your App] > Sign On**.
 
 Ensure the **redirect URI** matches exactly what is expected,
-as documented in the Quilt [technical reference](https://docs.quiltdata.com/quilt-platform-administrator/technical-reference#single-sign-on-sso).
+as documented in the Quilt [technical reference](https://docs.quilt.bio/quilt-platform-administrator/technical-reference#single-sign-on-sso).
 This includes:
 
 - Case sensitivity (Azure and Okta are case-sensitive!)
@@ -57,7 +57,7 @@ Incorrect claims or missing attributes can cause authentication failures.
 
 ## Step 5: Collect CloudWatch Logs for ECS
 
-Follow the usual [troubleshooting steps](https://docs.quiltdata.com/quilt-python-sdk/more/troubleshooting#elastic-container-service-ecs) to collect the ECS logs for the registry service:
+Follow the usual [troubleshooting steps](https://docs.quilt.bio/quilt-python-sdk/more/troubleshooting#elastic-container-service-ecs) to collect the ECS logs for the registry service:
 
 - Look for authentication-related errors or unexpected redirects.
 - Verify that the expected redirect URIs are being returned.
