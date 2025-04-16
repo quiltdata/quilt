@@ -423,8 +423,6 @@ def _push_pkg_to_successor(
         else:
             pkg.set_meta(params.user_meta)
 
-        dest = f"{dst_registry_url}/{params.dest_prefix}" if copy_data and params.dest_prefix is not None else None
-
         # We use _push() instead of push() for print_info=False
         # to prevent unneeded ListObjects calls during generation of
         # shortened revision hash.
@@ -436,7 +434,7 @@ def _push_pkg_to_successor(
             selector_fn=None if copy_data else lambda *_: False,
             print_info=False,
             dedupe=False,
-            dest=dest,
+            dest=f"{dst_registry_url}/{params.dest_prefix}" if copy_data and params.dest_prefix is not None else None,
             # TODO: we use force=True to keep the existing behavior,
             #       but it should be re-considered.
             force=True,
