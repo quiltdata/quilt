@@ -423,9 +423,9 @@ def _push_pkg_to_successor(
         else:
             pkg.set_meta(params.user_meta)
 
-        dest=None
+        dest = None
         if copy_data and params.dest_prefix is not None:
-            dest = dst_registry_url.join(params.dest_prefix)
+            dest = f"{dst_registry_url}/{params.dest_prefix}"
 
         # We use _push() instead of push() for print_info=False
         # to prevent unneeded ListObjects calls during generation of
