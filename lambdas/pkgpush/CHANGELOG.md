@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Prefix physical keys paths on promoting package to successor when set `QUILT_CATALOG_PACKAGE_ROOT` and `copy_data: true` ([#4380](https://github.com/quiltdata/quilt/pull/4380))
 - [Changed] Remove limits on number of files and bytes to be hashed from QPE lambda ([#4355](https://github.com/quiltdata/quilt/pull/4355))
 - [Changed] Improve packaging performance when many small (< 8 MiB) objects have to be hashed ([#4355](https://github.com/quiltdata/quilt/pull/4355))
 - [Changed] Bump pydantic to v2 ([#4355](https://github.com/quiltdata/quilt/pull/4355))

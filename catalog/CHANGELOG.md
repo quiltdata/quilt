@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Handle `QuiltPackageRoot` stack parameter to set folder prefix for packages files ([#4380](https://github.com/quiltdata/quilt/pull/4380))
+- [Added] Support setting the location where files are uploaded while creating packages using the package manipulation UIs (via GraphQL: `Config.packageRoot`) ([#4380](https://github.com/quiltdata/quilt/pull/4380))
 - [Changed] Search: Only show package comment and hash when including historical versions, adjust stylings ([#4371](https://github.com/quiltdata/quilt/pull/4371))
 - [Changed] Allow forms and popups in iframes when **Permissive HTML Rendering** enabled ([#4366](https://github.com/quiltdata/quilt/pull/4366))
 - [Changed] Search: Loose matching, debounce, hide empty previews ([#4367](https://github.com/quiltdata/quilt/pull/4367))
