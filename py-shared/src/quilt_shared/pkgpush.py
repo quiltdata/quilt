@@ -177,6 +177,7 @@ class PackagePromoteSource(pydantic.v1.BaseModel):
 
 class PackagePromoteParams(PackagePushParams):
     src: PackagePromoteSource
+    dest_prefix: T.Optional[NonEmptyStr] = None
 
 
 class PackageConstructParams(PackagePushParams):

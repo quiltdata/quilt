@@ -52,6 +52,7 @@ type ContentIndexingSettings {
 
 type Config {
   contentIndexingSettings: ContentIndexingSettings! @admin
+  packageRoot: String
 }
 
 type Canary {
