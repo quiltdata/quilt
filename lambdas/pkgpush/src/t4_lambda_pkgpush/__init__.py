@@ -434,7 +434,7 @@ def _push_pkg_to_successor(
             selector_fn=None if copy_data else lambda *_: False,
             print_info=False,
             dedupe=False,
-            dest=f"{dst_registry_url}/{params.dest_prefix}" if copy_data and params.dest_prefix is not None else None,
+            dest=f"{dst_registry_url}/{params.dest_prefix}/{params.name}" if copy_data and params.dest_prefix is not None else None,
             # TODO: we use force=True to keep the existing behavior,
             #       but it should be re-considered.
             force=True,
