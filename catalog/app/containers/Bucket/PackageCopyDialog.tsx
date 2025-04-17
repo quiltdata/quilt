@@ -147,7 +147,7 @@ function DialogForm({
           name: initialName,
           hash,
         },
-        destPrefix: successor.copyData ? cfg.packageRoot : undefined,
+        destPrefix: successor.copyData && cfg.packageRoot ? cfg.packageRoot : null,
       })
       switch (r.__typename) {
         case 'PackagePushSuccess':
