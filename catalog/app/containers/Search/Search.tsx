@@ -1047,7 +1047,7 @@ function Filters({ className }: FiltersProps) {
   const model = SearchUIModel.use()
   return (
     <div className={cx(classes.root, className)}>
-      <ColumnTitle>Search for</ColumnTitle>
+      {/* <ColumnTitle>Search for</ColumnTitle> */}
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -1376,7 +1376,7 @@ function Results({ onFilters }: ResultsProps) {
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
-        <ResultsCount />
+        {/* <ResultsCount /> */}
         <div className={classes.controls}>
           {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
           <SortSelector className={classes.button} />
@@ -1434,11 +1434,16 @@ function SearchLayout() {
   )
 }
 
-export default function Search() {
+interface SearchProps {
+  urlState?: SearchUIModel.SearchUrlState
+}
+
+export default function Search(props: SearchProps) {
   return (
-    <SearchUIModel.Provider>
+    <SearchUIModel.Provider urlState={props.urlState}>
       <AssistantContext />
-      <Layout pre={<SearchLayout />} />
+      <SearchLayout />
+      {/* <Layout pre={<SearchLayout />} /> */}
     </SearchUIModel.Provider>
   )
 }

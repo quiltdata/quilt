@@ -828,20 +828,42 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   )
 }
 
+import Search from 'containers/Search'
+import * as SearchUIModel from 'containers/Search/model'
+
 export default function PackageListWrapper() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  const location = RRDom.useLocation()
+  // const location = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
 
-  const { sort, filter, p } = parseSearch(location.search, true)
-  const page = p ? parseInt(p, 10) : undefined
+  // const { sort, filter, p } = parseSearch(location.search, true)
+  // const page = p ? parseInt(p, 10) : undefined
+  // return (
+  //   <>
+  //     <MetaTitle>{['Packages', bucket]}</MetaTitle>
+  //     <WithPackagesSupport bucket={bucket}>
+  //       <PackageList {...{ bucket, sort, filter, page }} />
+  //     </WithPackagesSupport>
+  //   </>
+  // )
+
   return (
-    <>
-      <MetaTitle>{['Packages', bucket]}</MetaTitle>
-      <WithPackagesSupport bucket={bucket}>
-        <PackageList {...{ bucket, sort, filter, page }} />
-      </WithPackagesSupport>
-    </>
+    <Search
+      urlState={{
+        resultType: SearchUIModel.ResultType.QuiltPackage,
+        filter: SearchUIModel.PackagesSearchFilterIO.fromURLSearchParams(
+          new URLSearchParams(),
+        ),
+        userMetaFilters: SearchUIModel.UserMetaFilters.fromURLSearchParams(
+          new URLSearchParams(),
+          SearchUIModel.META_PREFIX,
+        ),
+        searchString: '',
+        buckets: [bucket],
+        order: SearchUIModel.ResultOrder.NEWEST,
+        latestOnly: true,
+      }}
+    />
   )
 }
 

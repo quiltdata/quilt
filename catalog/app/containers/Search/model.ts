@@ -1263,8 +1263,9 @@ export function usePackageUserMetaFacetExtents(path: string): {
   })
 }
 
-function useSearchUIModel() {
-  const urlState = useUrlState()
+function useSearchUIModel(optUrlState?: SearchUrlState) {
+  const urlStateFromLocation = useUrlState()
+  const urlState = optUrlState || urlStateFromLocation
 
   const baseSearchQuery = useBaseSearchQuery(urlState)
   const firstPageQuery = useFirstPageQuery(urlState)
@@ -1526,8 +1527,11 @@ export type SearchUIModel = ReturnType<typeof useSearchUIModel>
 
 export const Context = React.createContext<SearchUIModel | null>(null)
 
-export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>) {
-  const state = useSearchUIModel()
+export function SearchUIModelProvider({
+  children,
+  urlState,
+}: React.PropsWithChildren<{ urlState?: SearchUrlState }>) {
+  const state = useSearchUIModel(urlState)
   return React.createElement(Context.Provider, { value: state }, children)
 }
 
