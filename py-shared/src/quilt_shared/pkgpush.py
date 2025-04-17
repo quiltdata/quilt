@@ -176,7 +176,7 @@ class PackagePromoteSource(pydantic.v1.BaseModel):
 
 
 class PackagePromoteParams(PackagePushParams):
-    # Is used to rewrite the folder prefix for the uploaded files when `copy_data: true`
+    # Used to rewrite the folder prefix for uploaded files when `copy_data: true`
     dest_prefix: T.Optional[NonEmptyStr] = None
     src: PackagePromoteSource
 
