@@ -17,6 +17,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Add optional `dest_prefix` to `PackagePromoteParams` for setting prefix to copy data to ([#](https://github.com/quiltdata/quilt/pull/))
 - [Added] Move some constants and Checksum methods from s3hash lambda ([#4368](https://github.com/quiltdata/quilt/pull/4368))
 - [Added] Add `make_scratch_key()` function ([#4368](https://github.com/quiltdata/quilt/pull/4368))
 - [Changed] Bump pydantic to v2 ([#4354](https://github.com/quiltdata/quilt/pull/4354))
