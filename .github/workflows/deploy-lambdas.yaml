@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - pkgpush-promote-handle-dest-prefix
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
