@@ -2036,7 +2036,7 @@ export default {
                 },
               },
               {
-                name: 'dest_prefix',
+                name: 'destPrefix',
                 type: {
                   kind: 'SCALAR',
                   name: 'String',

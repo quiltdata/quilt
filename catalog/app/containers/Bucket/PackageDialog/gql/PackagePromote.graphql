@@ -3,7 +3,7 @@
 # import OperationErrorSelection from "./OperationErrorSelection.graphql"
 
 mutation ($params: PackagePushParams!, $src: PackagePromoteSource!, $destPrefix: String) {
-  packagePromote(params: $params, src: $src, dest_prefix: $destPrefix) {
+  packagePromote(params: $params, src: $src, destPrefix: $destPrefix) {
     __typename
     ...PackagePushSuccessSelection
     ...InvalidInputSelection

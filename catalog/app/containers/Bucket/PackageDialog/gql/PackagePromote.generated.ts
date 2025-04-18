@@ -88,7 +88,7 @@ export const containers_Bucket_PackageDialog_gql_PackagePromoteDocument = {
               },
               {
                 kind: 'Argument',
-                name: { kind: 'Name', value: 'dest_prefix' },
+                name: { kind: 'Name', value: 'destPrefix' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'destPrefix' } },
               },
             ],
