@@ -2035,6 +2035,14 @@ export default {
                   },
                 },
               },
+              {
+                name: 'destPrefix',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
             ],
           },
           {

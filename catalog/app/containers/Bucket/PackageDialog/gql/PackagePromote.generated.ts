@@ -19,6 +19,7 @@ export type containers_Bucket_PackageDialog_gql_PackagePromoteMutationVariables 
   Types.Exact<{
     params: Types.PackagePushParams
     src: Types.PackagePromoteSource
+    destPrefix: Types.Maybe<Types.Scalars['String']>
   }>
 
 export type containers_Bucket_PackageDialog_gql_PackagePromoteMutation = {
@@ -62,6 +63,11 @@ export const containers_Bucket_PackageDialog_gql_PackagePromoteDocument = {
             },
           },
         },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'destPrefix' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+        },
       ],
       selectionSet: {
         kind: 'SelectionSet',
@@ -79,6 +85,11 @@ export const containers_Bucket_PackageDialog_gql_PackagePromoteDocument = {
                 kind: 'Argument',
                 name: { kind: 'Name', value: 'src' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'src' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'destPrefix' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'destPrefix' } },
               },
             ],
             selectionSet: {

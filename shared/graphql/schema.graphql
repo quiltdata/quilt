@@ -946,6 +946,7 @@ type Mutation {
   packagePromote(
     params: PackagePushParams!
     src: PackagePromoteSource!
+    destPrefix: String
   ): PackagePromoteResult!
   packageRevisionDelete(
     bucket: String!

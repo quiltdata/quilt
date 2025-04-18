@@ -332,12 +332,17 @@ function PackageCreationForm({
       }
     }
 
+    const prefix = s3paths.withoutPrefix(
+      '/',
+      `${s3paths.ensureNoSlash(cfg.packageRoot || '')}/${name}`,
+    )
+
     let uploadedEntries
     try {
       uploadedEntries = await uploads.upload({
         files: toUpload,
         bucket: successor.slug,
-        prefix: name,
+        prefix,
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {

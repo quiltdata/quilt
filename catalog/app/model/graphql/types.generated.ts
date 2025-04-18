@@ -453,6 +453,7 @@ export interface MutationpackageConstructArgs {
 export interface MutationpackagePromoteArgs {
   params: PackagePushParams
   src: PackagePromoteSource
+  destPrefix: Maybe<Scalars['String']>
 }
 
 export interface MutationpackageRevisionDeleteArgs {
