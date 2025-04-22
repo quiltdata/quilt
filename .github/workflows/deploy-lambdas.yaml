@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - pkgpush-promote-handle-dest-prefix
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
@@ -13,15 +14,15 @@ jobs:
     strategy:
       matrix:
         path:
-          - access_counts
-          - indexer
-          - pkgevents
+          # - access_counts
+          # - indexer
+          # - pkgevents
           - pkgpush
-          - preview
-          - s3hash
-          - status_reports
-          - tabular_preview
-          - transcode
+          # - preview
+          # - s3hash
+          # - status_reports
+          # - tabular_preview
+          # - transcode
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
