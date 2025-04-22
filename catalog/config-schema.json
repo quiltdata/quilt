@@ -103,7 +103,7 @@
     },
     "packageRoot": {
       "type": "string",
-      "description": "Package prefix where package files will be uploaded"
+      "description": "Prefix where package files will be uploaded"
     }
   },
   "required": [
