@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - frontend-package-root-create-and-promote
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
