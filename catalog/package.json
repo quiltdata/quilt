@@ -73,7 +73,7 @@
     "dedent": "^1.5.1",
     "dompurify": "^3.2.5",
     "echarts": "^5.5.0",
-    "effect": "^3.10.19",
+    "effect": "^3.14.13",
     "final-form": "^4.20.9",
     "fontfaceobserver": "^2.3.0",
     "fp-ts": "^2.16.1",
