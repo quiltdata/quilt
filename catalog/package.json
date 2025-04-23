@@ -47,7 +47,7 @@
   },
   "dependencies": {
     "@braintree/sanitize-url": "^6.0.4",
-    "@effect/platform": "^0.67.1",
+    "@effect/platform": "^0.80.13",
     "@effect/schema": "^0.75.5",
     "@finos/perspective": "^1.9.4",
     "@finos/perspective-viewer": "^1.9.4",
