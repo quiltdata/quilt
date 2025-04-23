@@ -24,6 +24,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "enum": [
             "Boolean",
           ],
+          "type": "string",
         },
         "value": {
           "$ref": "#/$defs/BooleanPredicateState",
@@ -60,6 +61,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "enum": [
             "Datetime",
           ],
+          "type": "string",
         },
         "value": {
           "$ref": "#/$defs/DatetimePredicateState",
@@ -92,6 +94,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "enum": [
             "KeywordEnum",
           ],
+          "type": "string",
         },
         "value": {
           "$ref": "#/$defs/KeywordEnumPredicateState",
@@ -124,6 +127,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "enum": [
             "KeywordWildcard",
           ],
+          "type": "string",
         },
         "value": {
           "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -156,6 +160,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "enum": [
             "Number",
           ],
+          "type": "string",
         },
         "value": {
           "$ref": "#/$defs/NumberPredicateState",
@@ -185,6 +190,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
           "enum": [
             "Text",
           ],
+          "type": "string",
         },
         "value": {
           "$ref": "#/$defs/TextPredicateState",
@@ -211,6 +217,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "enum": [
                 "home",
               ],
+              "type": "string",
             },
             "params": {
               "$id": "/schemas/{}",
@@ -238,6 +245,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "enum": [
                 "install",
               ],
+              "type": "string",
             },
             "params": {
               "$id": "/schemas/{}",
@@ -265,6 +273,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "enum": [
                 "search",
               ],
+              "type": "string",
             },
             "params": {
               "additionalProperties": false,
@@ -285,18 +294,21 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                         "BEST_MATCH",
                       ],
                       "title": "BEST_MATCH",
+                      "type": "string",
                     },
                     {
                       "enum": [
                         "NEWEST",
                       ],
                       "title": "NEWEST",
+                      "type": "string",
                     },
                     {
                       "enum": [
                         "OLDEST",
                       ],
                       "title": "OLDEST",
+                      "type": "string",
                     },
                   ],
                   "description": "Order of search results",
@@ -318,6 +330,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "modified",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/DatetimePredicateState",
@@ -337,6 +350,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "size",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/NumberPredicateState",
@@ -356,6 +370,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "name",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -375,6 +390,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "hash",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -394,6 +410,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "entries",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/NumberPredicateState",
@@ -413,6 +430,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "comment",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/TextPredicateState",
@@ -432,6 +450,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "workflow",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordEnumPredicateState",
@@ -459,6 +478,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                             "p",
                           ],
                           "title": "Result type: Quilt Package",
+                          "type": "string",
                         },
                         "userMetaFilters": {
                           "description": "Filter results by user metadata",
@@ -520,6 +540,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "modified",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/DatetimePredicateState",
@@ -539,6 +560,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "size",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/NumberPredicateState",
@@ -558,6 +580,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "ext",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordEnumPredicateState",
@@ -577,6 +600,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "key",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/KeywordWildcardPredicateState",
@@ -596,6 +620,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "content",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/TextPredicateState",
@@ -615,6 +640,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                                     "enum": [
                                       "deleted",
                                     ],
+                                    "type": "string",
                                   },
                                   "predicate": {
                                     "$ref": "#/$defs/BooleanPredicateState",
@@ -637,6 +663,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                             "o",
                           ],
                           "title": "Result type: S3 Object",
+                          "type": "string",
                         },
                       },
                       "required": [
@@ -674,6 +701,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "enum": [
                 "activate",
               ],
+              "type": "string",
             },
             "params": {
               "$id": "/schemas/{}",
@@ -701,6 +729,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "enum": [
                 "bucket.object",
               ],
+              "type": "string",
             },
             "params": {
               "additionalProperties": false,
@@ -745,6 +774,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "enum": [
                 "bucket.prefix",
               ],
+              "type": "string",
             },
             "params": {
               "additionalProperties": false,
@@ -779,6 +809,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "enum": [
                 "bucket.overview",
               ],
+              "type": "string",
             },
             "params": {
               "additionalProperties": false,
