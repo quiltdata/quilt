@@ -47,8 +47,7 @@
   },
   "dependencies": {
     "@braintree/sanitize-url": "^6.0.4",
-    "@effect/platform": "^0.67.1",
-    "@effect/schema": "^0.75.5",
+    "@effect/platform": "^0.80.13",
     "@finos/perspective": "^1.9.4",
     "@finos/perspective-viewer": "^1.9.4",
     "@finos/perspective-viewer-d3fc": "^1.9.4",
@@ -73,7 +72,7 @@
     "dedent": "^1.5.1",
     "dompurify": "^3.2.5",
     "echarts": "^5.5.0",
-    "effect": "^3.10.19",
+    "effect": "^3.14.13",
     "final-form": "^4.20.9",
     "fontfaceobserver": "^2.3.0",
     "fp-ts": "^2.16.1",

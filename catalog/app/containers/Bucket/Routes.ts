@@ -1,5 +1,5 @@
 import * as Eff from 'effect'
-import * as S from '@effect/schema/Schema'
+import { Schema as S } from 'effect'
 
 import * as routes from 'constants/routes'
 // import * as Model from 'model'

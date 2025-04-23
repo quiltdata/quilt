@@ -1,6 +1,5 @@
 import * as Eff from 'effect'
 import * as React from 'react'
-import { JSONSchema, Schema } from '@effect/schema'
 
 import * as Content from './Content'
 
@@ -24,16 +23,19 @@ export type Executor<I> = (params: I) => Eff.Effect.Effect<ResultOption>
 
 export interface Descriptor<I> {
   description?: string
-  schema: JSONSchema.JsonSchema7Root
+  schema: Eff.JSONSchema.JsonSchema7Root
   executor: Executor<I>
 }
 
 export type Collection = Record<string, Descriptor<any>>
 
-export function make<A, I>(schema: Schema.Schema<A, I>, fn: Executor<A>): Descriptor<A> {
-  const jsonSchema = JSONSchema.make(schema)
+export function make<A, I>(
+  schema: Eff.Schema.Schema<A, I>,
+  fn: Executor<A>,
+): Descriptor<A> {
+  const jsonSchema = Eff.JSONSchema.make(schema)
 
-  const decode = Schema.decodeUnknown(schema, {
+  const decode = Eff.Schema.decodeUnknown(schema, {
     errors: 'all',
     onExcessProperty: 'error',
   })
@@ -67,7 +69,7 @@ export function make<A, I>(schema: Schema.Schema<A, I>, fn: Executor<A>): Descri
 const EMPTY_DEPS: React.DependencyList = []
 
 export function useMakeTool<A, I>(
-  schema: Schema.Schema<A, I>,
+  schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
   deps: React.DependencyList = EMPTY_DEPS,
 ): Descriptor<A> {
