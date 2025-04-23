@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
@@ -84,7 +85,11 @@ function GlobalControls({ iconized }) {
       <M.Fade in={state !== 'search'}>
         <BucketSelect />
       </M.Fade>
-      <Search iconized={iconized} />
+      <Link to="/search" style={{ marginLeft: 'auto' }}>
+        <M.IconButton>
+          <M.Icon>search</M.Icon>
+        </M.IconButton>
+      </Link>
     </Container>
   )
 }
@@ -121,7 +126,11 @@ function BucketControls({ bucket, iconized }) {
       {cfg.mode === 'PRODUCT' && (
         <Collaborators bucket={bucket} hidden={state === 'search'} />
       )}
-      <Search hidden={state === 'select'} iconized={iconized} />
+      <Link to="/search" style={{ marginLeft: 'auto' }}>
+        <M.IconButton>
+          <M.Icon>search</M.Icon>
+        </M.IconButton>
+      </Link>
       <M.Fade in={state === 'select'} onEnter={focusSelect}>
         <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
       </M.Fade>
