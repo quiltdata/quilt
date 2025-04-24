@@ -67,8 +67,9 @@ function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
 
 export default function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
   const sessionId: number = redux.useSelector(AuthSelectors.sessionId)
+  console.log('sessionId', sessionId)
 
-  const authExchange = useAuthExchange()
+  const authExchange = useAuthExchange(sessionId)
 
   const scalarsExchange = React.useMemo(
     () =>

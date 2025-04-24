@@ -42,6 +42,7 @@ const authSelector = createStructuredSelector(
 function useAuthState(): AuthState {
   const { error, waiting, authenticated } = redux.useSelector(authSelector)
   const meQuery = GQL.useQuery(ME_QUERY, {}, { pause: waiting || !authenticated })
+  console.log('useAuthState', { error, waiting, authenticated, meQuery })
   if (error) return AuthState.Error(error)
   if (waiting) return AuthState.Loading()
   if (!authenticated) return AuthState.Ready(null)
