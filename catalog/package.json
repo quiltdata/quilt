@@ -115,7 +115,7 @@
     "react-helmet": "^6.1.0",
     "react-input-autosize": "^3.0.0",
     "react-redux": "^7.2.9",
-    "react-router-dom": "^5.3.4",
+    "react-router-dom": "^7.5.2",
     "react-router-hash-link": "^2.4.3",
     "react-swipeable-views": "^0.14.0",
     "react-swipeable-views-core": "^0.14.0",
