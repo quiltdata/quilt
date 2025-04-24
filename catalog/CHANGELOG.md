@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Support setting the location where files are uploaded while creating or promoting packages (using `packageRoot` config property) ([#4384](https://github.com/quiltdata/quilt/pull/4384))
 - [Changed] Search: Only show package comment and hash when including historical versions, adjust stylings ([#4371](https://github.com/quiltdata/quilt/pull/4371))
 - [Changed] Allow forms and popups in iframes when **Permissive HTML Rendering** enabled ([#4366](https://github.com/quiltdata/quilt/pull/4366))
 - [Changed] Search: Loose matching, debounce, hide empty previews ([#4367](https://github.com/quiltdata/quilt/pull/4367))
