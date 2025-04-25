@@ -203,7 +203,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
       "type": "object",
     },
   },
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "navigate to a provided route",
   "properties": {
@@ -220,7 +220,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "type": "string",
             },
             "params": {
-              "$id": "/schemas/{}",
+              "$id": "/schemas/empty",
               "anyOf": [
                 {
                   "type": "object",
@@ -248,7 +248,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "type": "string",
             },
             "params": {
-              "$id": "/schemas/{}",
+              "$id": "/schemas/empty",
               "anyOf": [
                 {
                   "type": "object",
@@ -704,7 +704,7 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
               "type": "string",
             },
             "params": {
-              "$id": "/schemas/{}",
+              "$id": "/schemas/empty",
               "anyOf": [
                 {
                   "type": "object",
