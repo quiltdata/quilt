@@ -36,6 +36,7 @@ export default function Enum({
   extents,
   value,
   onChange,
+  disabled,
   ...props
 }: EnumProps) {
   const classes = useStyles()
@@ -44,7 +45,7 @@ export default function Enum({
     [extents, selectAll],
   )
   const handleChange = React.useCallback(
-    (event, newValue: string[]) => {
+    (_event, newValue: string[]) => {
       if (!selectAll) {
         onChange(newValue)
         return
@@ -91,6 +92,7 @@ export default function Enum({
         </>
       )}
       value={selectAll && !value.length ? [selectAll] : value}
+      disabled={disabled}
     />
   )
 }

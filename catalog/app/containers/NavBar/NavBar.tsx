@@ -13,7 +13,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import bg from './bg.png'
 
-import Controls from './Controls'
 import * as NavMenu from './NavMenu'
 import * as Subscription from './Subscription'
 
@@ -45,7 +44,7 @@ function LogoLink() {
     <div className={classes.bgQuilt}>
       <div className={classes.bgCustom}>
         <Link to={urls.home()}>
-          <Logo width="27px" height="27px" src={settings?.logo?.url} />
+          <Logo width="76px" height="27px" src={settings?.logo?.url} />
         </Link>
       </div>
     </div>
@@ -197,14 +196,18 @@ function LicenseError({ restore }: LicenseErrorProps) {
   )
 }
 
-const useNavBarStyles = M.makeStyles({
+const useNavBarStyles = M.makeStyles((t) => ({
   quiltLogo: {
     margin: '0 0 3px 8px',
   },
   spacer: {
     flexGrow: 1,
   },
-})
+  search: {
+    marginRight: t.spacing(4),
+    marginLeft: 'auto',
+  },
+}))
 
 export function NavBar() {
   const classes = useNavBarStyles()
@@ -219,11 +222,21 @@ export function NavBar() {
 
   return (
     <Container>
-      {hideControls ? <div className={classes.spacer} /> : <Controls />}
+      {!collapse && <NavMenu.Links />}
+
+      {!hideControls && (
+        <Link className={classes.search} to="/search">
+          <M.Button
+            startIcon={<M.Icon>search</M.Icon>}
+            color="inherit"
+            variant="outlined"
+          >
+            Search
+          </M.Button>
+        </Link>
+      )}
 
       <Subscription.Display {...sub} />
-
-      {!collapse && <NavMenu.Links />}
 
       {sub.invalid && <LicenseError restore={sub.restore} />}
 

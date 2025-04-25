@@ -13,8 +13,12 @@ interface AvatarProps {
 
 const useAvatarStyles = M.makeStyles((t) => ({
   root: ({ index }: { index: number }) => {
-    const backgroundColor = index % 2 ? t.palette.info.main : t.palette.info.light
-    const color = backgroundColor ? t.palette.getContrastText(backgroundColor) : undefined
+    const backgroundColor = fade(
+      index % 2 ? t.palette.primary.light : t.palette.secondary.light,
+      0.8,
+    )
+    const color =
+      index % 2 ? t.palette.primary.contrastText : t.palette.secondary.contrastText
     return {
       backgroundColor,
       color,
@@ -39,13 +43,8 @@ function Avatar({ className, email, index }: AvatarProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles({
   root: {
-    // NOTE: base background color should be the same as NavBar bg
-    background: `linear-gradient(to left, ${fade(
-      '#2a2d69',
-      0,
-    )} 0, #2a2d69 32px, #2a2d69 100%)`,
     cursor: 'pointer',
     display: 'flex',
     height: '36px',
@@ -53,7 +52,6 @@ const useStyles = M.makeStyles((t) => ({
     zIndex: 1,
   },
   more: {
-    color: t.palette.common.white,
     lineHeight: '36px',
     marginLeft: '12px',
     padding: '0 16px 0 0',
@@ -80,7 +78,7 @@ const useStyles = M.makeStyles((t) => ({
       marginLeft: '4px',
     },
   },
-}))
+})
 
 interface AvatarsProps {
   className?: string

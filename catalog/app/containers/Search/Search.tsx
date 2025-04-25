@@ -1424,6 +1424,7 @@ const useStyles = M.makeStyles((t) => ({
       alignItems: 'start',
       display: 'grid',
       gridColumnGap: t.spacing(2),
+      gridRowGap: t.spacing(2),
       gridTemplateColumns: `${t.spacing(40)}px auto`,
     },
     padding: t.spacing(3),
@@ -1437,6 +1438,10 @@ const useStyles = M.makeStyles((t) => ({
     right: '2px',
     top: '10px',
   },
+  search: {
+    gridColumnEnd: '3',
+    gridColumnStart: '1',
+  },
 }))
 
 function SearchLayout() {
@@ -1444,9 +1449,36 @@ function SearchLayout() {
   const classes = useStyles()
   const isMobile = useMobileView()
   const [showFilters, setShowFilters] = React.useState(false)
+
+  const [query, setQuery] = React.useState(model.state.searchString || '')
+  const onChange = useDebouncedCallback(model.actions.setSearchString, 500)
+  const handleChange = React.useCallback(
+    (event) => {
+      setQuery(event.target.value)
+      onChange(event.target.value)
+    },
+    [onChange],
+  )
+
   return (
     <M.Container maxWidth="lg" className={classes.root}>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
+      <M.TextField
+        className={classes.search}
+        fullWidth
+        onChange={handleChange}
+        placeholder="Search"
+        size="small"
+        value={query}
+        variant="outlined"
+        InputProps={{
+          startAdornment: (
+            <M.InputAdornment position="start">
+              <M.Icon>search</M.Icon>
+            </M.InputAdornment>
+          ),
+        }}
+      />
       {isMobile ? (
         <M.Drawer anchor="left" open={showFilters} onClose={() => setShowFilters(false)}>
           <Filters className={classes.filtersMobile} />

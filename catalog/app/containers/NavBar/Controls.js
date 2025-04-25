@@ -1,6 +1,5 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
@@ -33,7 +32,7 @@ const useBucketDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketDisplay({ bucket, select, locked = false, ...props }) {
+export function BucketDisplay({ bucket, select, locked = false, ...props }) {
   const classes = useBucketDisplayStyles()
   return (
     <M.Box position="relative" {...props}>
@@ -41,6 +40,7 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
         color="inherit"
         className={cx(classes.root, { [classes.locked]: locked })}
         onClick={select}
+        size="large"
       >
         <span className={classes.s3}>s3://</span>
         <span className={classes.bucket}>{bucket}</span>
@@ -85,11 +85,7 @@ function GlobalControls({ iconized }) {
       <M.Fade in={state !== 'search'}>
         <BucketSelect />
       </M.Fade>
-      <Link to="/search" style={{ marginLeft: 'auto' }}>
-        <M.IconButton>
-          <M.Icon>search</M.Icon>
-        </M.IconButton>
-      </Link>
+      <Search iconized={iconized} />
     </Container>
   )
 }
@@ -126,11 +122,7 @@ function BucketControls({ bucket, iconized }) {
       {cfg.mode === 'PRODUCT' && (
         <Collaborators bucket={bucket} hidden={state === 'search'} />
       )}
-      <Link to="/search" style={{ marginLeft: 'auto' }}>
-        <M.IconButton>
-          <M.Icon>search</M.Icon>
-        </M.IconButton>
-      </Link>
+      <Search hidden={state === 'select'} iconized={iconized} />
       <M.Fade in={state === 'select'} onEnter={focusSelect}>
         <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
       </M.Fade>

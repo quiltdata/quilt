@@ -474,6 +474,7 @@ const useNavStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginLeft: t.spacing(3),
     marginRight: t.spacing(2),
+    marginTop: t.spacing(1),
   },
   active: {},
   link: {
@@ -485,7 +486,7 @@ const useNavStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
 
     '& + &': {
-      marginLeft: t.spacing(2),
+      marginLeft: t.spacing(4),
     },
 
     '&$active': {
@@ -493,7 +494,7 @@ const useNavStyles = M.makeStyles((t) => ({
     },
   },
   intercom: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(4),
   },
 }))
 

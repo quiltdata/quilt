@@ -12,6 +12,10 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
+import BucketSelect from 'containers/NavBar/BucketSelect'
+import { BucketDisplay } from 'containers/NavBar/Controls'
+import Collaborators from 'containers/NavBar/Collaborators'
+
 import BucketNav from './BucketNav'
 import CatchNotFound from './CatchNotFound'
 import * as Selection from './Selection'
@@ -22,7 +26,7 @@ const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
 const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
 const Overview = RT.mkLazy(() => import('./Overview'), SuspensePlaceholder)
-const PackageList = RT.mkLazy(() => import('./PackageList'), SuspensePlaceholder)
+const PackageList = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 const PackageRevisions = RT.mkLazy(
   () => import('./PackageRevisions'),
   SuspensePlaceholder,
@@ -67,17 +71,52 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: t.palette.common.white,
     color: t.palette.getContrastText(t.palette.common.white),
   },
+  container: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  bucket: {
+    marginRight: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+  },
 }))
 
 function BucketLayout({ bucket, section = false, children }) {
+  const [state, setState] = React.useState(null)
+  const select = React.useCallback(() => {
+    setState('select')
+  }, [setState])
+  const cancel = React.useCallback(() => {
+    setState(null)
+  }, [setState])
+
+  const selectRef = React.useRef()
+  React.useEffect(() => {
+    if (selectRef.current) selectRef.current.focus()
+  }, [state])
+
   const classes = useStyles()
   const bucketExistenceData = useBucketExistence(bucket)
+
   return (
     <Layout
       pre={
         <>
           <M.AppBar position="static" className={classes.appBar}>
-            <BucketNav bucket={bucket} section={section} />
+            <M.Container maxWidth="lg" className={classes.container}>
+              <div className={classes.bucket}>
+                {state === 'select' ? (
+                  <BucketSelect cancel={cancel} ref={selectRef} />
+                ) : (
+                  <>
+                    <BucketDisplay bucket={bucket} select={select} locked={!!state} />
+                    <Collaborators bucket={bucket} hidden={state === 'search'} />
+                  </>
+                )}
+              </div>
+              <BucketNav bucket={bucket} section={section} />
+            </M.Container>
           </M.AppBar>
           <M.Container maxWidth="lg">
             {bucketExistenceData.case({

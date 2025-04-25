@@ -141,8 +141,8 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
           options={bucketConfigs}
           value=""
           inputValue={inputValue}
-          onInputChange={(event, newValue) => setInputValue(newValue)}
-          onChange={(event, newValue, reason) => {
+          onInputChange={(_event, newValue) => setInputValue(newValue)}
+          onChange={(_event, newValue, reason) => {
             if (reason === 'select-option' || reason === 'create-option') {
               const to =
                 typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
@@ -198,19 +198,17 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
             )
           }
           renderInput={(inputProps) => (
-            <M.MuiThemeProvider theme={style.navTheme}>
-              <NavInput
-                {...inputProps}
-                onBlur={() => {
-                  if (cancel) cancel()
-                  setTimeout(() => {
-                    setInputValue('')
-                  }, 100)
-                }}
-                placeholder="Go to bucket"
-                inputRef={inputRef}
-              />
-            </M.MuiThemeProvider>
+            <NavInput
+              {...inputProps}
+              onBlur={() => {
+                if (cancel) cancel()
+                setTimeout(() => {
+                  setInputValue('')
+                }, 100)
+              }}
+              placeholder="Go to bucket"
+              inputRef={inputRef}
+            />
           )}
         />
       </M.MuiThemeProvider>
