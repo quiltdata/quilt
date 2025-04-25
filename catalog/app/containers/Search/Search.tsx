@@ -21,7 +21,7 @@ import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
 
-function useMobileView() {
+export function useMobileView() {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
 }
@@ -80,7 +80,7 @@ const useScrollToTopStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ScrollToTop() {
+export function ScrollToTop() {
   const trigger = M.useScrollTrigger({ disableHysteresis: true })
   const classes = useScrollToTopStyles()
   const onClick = React.useCallback(
@@ -818,7 +818,7 @@ interface PackageFiltersProps {
   className: string
 }
 
-function PackageFilters({ className }: PackageFiltersProps) {
+export function PackageFilters({ className }: PackageFiltersProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const classes = usePackageFiltersStyles()
 
@@ -969,7 +969,7 @@ interface ObjectFiltersProps {
   className: string
 }
 
-function ObjectFilters({ className }: ObjectFiltersProps) {
+export function ObjectFilters({ className }: ObjectFiltersProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.S3Object)
   const classes = useObjectFiltersStyles()
 
@@ -1047,8 +1047,7 @@ function Filters({ className }: FiltersProps) {
   const model = SearchUIModel.use()
   return (
     <div className={cx(classes.root, className)}>
-      <M.TextField variant="outlined" fullWidth />
-      {/* <ColumnTitle>Search for</ColumnTitle> */}
+      <ColumnTitle>Search for</ColumnTitle>
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -1311,7 +1310,17 @@ function ResultsInner({ className }: ResultsInnerProps) {
 }
 
 function ResultsCount() {
-  const r = SearchUIModel.use().firstPageQuery
+  const {
+    firstPageQuery,
+    state: { buckets },
+  } = SearchUIModel.use()
+  const r = firstPageQuery
+  const bucket = React.useMemo(() => {
+    if (buckets.length === 1) {
+      return buckets[0]
+    }
+    return null
+  }, [buckets])
   switch (r._tag) {
     case 'fetching':
       return <Skeleton width={140} height={24} />
@@ -1323,7 +1332,6 @@ function ResultsCount() {
         case 'InvalidInput':
           return null
         case 'ObjectsSearchResultSet':
-        case 'PackagesSearchResultSet':
           return (
             <ColumnTitle>
               <Format.Plural
@@ -1331,6 +1339,27 @@ function ResultsCount() {
                 one="1 result"
                 other={(n) => (n > 0 ? `${n} results` : 'Results')}
               />
+            </ColumnTitle>
+          )
+        case 'PackagesSearchResultSet':
+          return (
+            <ColumnTitle>
+              <Format.Plural
+                value={r.data.stats.total}
+                one="1 package"
+                other={(n) => (n > 0 ? `${n} packages` : 'Packages')}
+              />
+              {bucket && (
+                <M.Button
+                  color="primary"
+                  size="small"
+                  startIcon={<M.Icon>add</M.Icon>}
+                  style={{ marginLeft: '16px' }}
+                  variant="contained"
+                >
+                  Create new package
+                </M.Button>
+              )}
             </ColumnTitle>
           )
         default:
@@ -1371,13 +1400,14 @@ interface ResultsProps {
   onFilters: () => void
 }
 
-function Results({ onFilters }: ResultsProps) {
+export function Results({ onFilters }: ResultsProps) {
   const classes = useResultsStyles()
   const isMobile = useMobileView()
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
-        {/* <ResultsCount /> */}
+        <ResultsCount />
+
         <div className={classes.controls}>
           {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
           <SortSelector className={classes.button} />
@@ -1435,16 +1465,11 @@ function SearchLayout() {
   )
 }
 
-interface SearchProps {
-  urlState?: SearchUIModel.SearchUrlState
-}
-
-export default function Search(props: SearchProps) {
+export default function Search() {
   return (
-    <SearchUIModel.Provider urlState={props.urlState}>
+    <SearchUIModel.Provider>
       <AssistantContext />
-      <SearchLayout />
-      {/* <Layout pre={<SearchLayout />} /> */}
+      <Layout pre={<SearchLayout />} />
     </SearchUIModel.Provider>
   )
 }
