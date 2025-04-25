@@ -1047,7 +1047,7 @@ function Filters({ className }: FiltersProps) {
   const model = SearchUIModel.use()
   return (
     <div className={cx(classes.root, className)}>
-      <ColumnTitle>Search for</ColumnTitle>
+      {/* <ColumnTitle>Search for</ColumnTitle> */}
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -1418,6 +1418,77 @@ export function Results({ onFilters }: ResultsProps) {
   )
 }
 
+function isEmptySearch(urlState: SearchUIModel.SearchUrlState) {
+  return (
+    !urlState.searchString && !Object.values(urlState.filter.predicates).some(Boolean)
+  )
+}
+
+const useEmptySearchStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    margin: '0 auto',
+    maxWidth: '40rem',
+  },
+  body: {
+    marginTop: t.spacing(3),
+    fontWeight: 500,
+  },
+  list: {
+    ...t.typography.body1,
+    paddingLeft: 0,
+    margin: t.spacing(1, 0, 0),
+  },
+}))
+
+function EmptySearch() {
+  const classes = useEmptySearchStyles()
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="h4">Ready to search?</M.Typography>
+      <M.Typography
+        variant="body1"
+        className={classes.body}
+        gutterBottom
+        style={{ fontWeight: 400 }}
+      >
+        This page lets you find packages and files (objects).
+      </M.Typography>
+
+      <M.Typography variant="body1" className={classes.body} gutterBottom>
+        To get started:
+      </M.Typography>
+
+      <ul className={classes.list}>
+        <li>Type a search query in the bar above.</li>
+        <li>
+          Use the filters on the left to adjust scope — like switching between packages
+          and files, or choosing a bucket.
+        </li>
+      </ul>
+
+      <M.Typography variant="body1" className={classes.body} gutterBottom>
+        Looking for a simple list of packages?
+      </M.Typography>
+      <ul className={classes.list}>
+        <li>
+          Visit the Packages List[Bucket Selector] page to browse all packages in your
+          bucket.
+        </li>
+      </ul>
+      <M.Typography variant="body1" className={classes.body} gutterBottom>
+        Need more advanced tools?
+      </M.Typography>
+      <ul className={classes.list}>
+        <li>Try tabulator (why and how?)</li>
+        <li>Try Athena (why and how?)</li>
+        <li>Try Elastic Search (why and how?)</li>
+      </ul>
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.up('md')]: {
@@ -1464,6 +1535,7 @@ function SearchLayout() {
     <M.Container maxWidth="lg" className={classes.root}>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
       <M.TextField
+        autoFocus
         className={classes.search}
         fullWidth
         onChange={handleChange}
@@ -1492,7 +1564,11 @@ function SearchLayout() {
       ) : (
         <Filters />
       )}
-      <Results onFilters={() => setShowFilters((x) => !x)} />
+      {isEmptySearch(model.state) ? (
+        <EmptySearch />
+      ) : (
+        <Results onFilters={() => setShowFilters((x) => !x)} />
+      )}
     </M.Container>
   )
 }
