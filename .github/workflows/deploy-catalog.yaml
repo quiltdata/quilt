@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - packages-tab-search-results
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
