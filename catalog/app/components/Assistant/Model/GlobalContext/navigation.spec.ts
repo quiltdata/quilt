@@ -1,5 +1,7 @@
 import * as Eff from 'effect'
 
+import { makeJSONSchema } from '../Tool'
+
 import * as nav from './navigation'
 
 jest.mock(
@@ -11,7 +13,7 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
   describe('NavigateSchema', () => {
     describe('produced JSON Schema', () => {
       it('should match the snapshot', () => {
-        const jsonSchema = Eff.JSONSchema.make(nav.NavigateSchema)
+        const jsonSchema = makeJSONSchema(nav.NavigateSchema)
         expect(jsonSchema).toMatchSnapshot()
       })
     })
