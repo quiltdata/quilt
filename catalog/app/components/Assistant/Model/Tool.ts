@@ -29,11 +29,49 @@ export interface Descriptor<I> {
 
 export type Collection = Record<string, Descriptor<any>>
 
+/**
+ * Ensure a JSON schema is compatible with draft-2020-12 by:
+ * 1. Replacing $id: 'schemas/{}' with $id: 'schemas/empty'
+ * 2. Converting draft-04/07 items/additionalItems to draft-2020 prefixItems/items
+ */
+function convertSchema(schema: any) {
+  if (!schema || typeof schema !== 'object') return
+
+  // Process arrays
+  if (Array.isArray(schema)) {
+    schema.forEach(convertSchema)
+    return
+  }
+
+  // Process object properties recursively
+  Object.values(schema).forEach(convertSchema)
+
+  // Replace empty schema IDs produced by Effect, which are not valid according to draft-2020
+  if (schema.$id === '/schemas/{}') schema.$id = '/schemas/empty'
+
+  // Handle items and additionalItems conversion for draft-2020
+  if (Array.isArray(schema.items)) {
+    schema.prefixItems = schema.items
+    delete schema.items
+    if (schema.additionalItems !== undefined) {
+      schema.items = schema.additionalItems
+      delete schema.additionalItems
+    }
+  }
+}
+
+export function makeJSONSchema(schema: Eff.Schema.Schema<any, any>) {
+  const out = Eff.JSONSchema.make(schema)
+  out.$schema = 'https://json-schema.org/draft/2020-12/schema'
+  convertSchema(out)
+  return out
+}
+
 export function make<A, I>(
   schema: Eff.Schema.Schema<A, I>,
   fn: Executor<A>,
 ): Descriptor<A> {
-  const jsonSchema = Eff.JSONSchema.make(schema)
+  const jsonSchema = makeJSONSchema(schema)
 
   const decode = Eff.Schema.decodeUnknown(schema, {
     errors: 'all',
