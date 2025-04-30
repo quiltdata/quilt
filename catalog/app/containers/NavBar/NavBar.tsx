@@ -3,6 +3,7 @@ import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
@@ -18,17 +19,18 @@ import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
   bgQuilt: {
-    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
+    background: `${t.palette.secondary.dark} left / 48px url(${bg})`,
+    position: 'absolute',
   },
   bgCustom: {
     alignItems: 'center',
     // TODO: make UI component with this background, and DRY
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
+      backgroundColor || `${t.palette.secondary.dark} left / 48px url(${bg})`,
     borderRadius: t.spacing(0, 0, 2, 0),
     display: 'flex',
     justifyContent: 'center',
-    minHeight: t.spacing(8),
+    minHeight: t.spacing(6),
     paddingRight: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor ? t.spacing(4) : t.spacing(2),
   },
@@ -44,7 +46,7 @@ function LogoLink() {
     <div className={classes.bgQuilt}>
       <div className={classes.bgCustom}>
         <Link to={urls.home()}>
-          <Logo width="76px" height="27px" src={settings?.logo?.url} />
+          <Logo width="64px" height="24px" src={settings?.logo?.url} />
         </Link>
       </div>
     </div>
@@ -82,11 +84,11 @@ const useAppBarStyles = M.makeStyles((t) => ({
   },
   bgCustom: {
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
+      backgroundColor || `${t.palette.secondary.dark} left / 48px url(${bg})`,
     flex: '50%',
   },
   bgQuilt: {
-    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
+    background: `${t.palette.secondary.dark} left / 48px url(${bg})`,
     flex: '50%',
   },
 }))
@@ -125,8 +127,9 @@ const useHeaderStyles = M.makeStyles((t) => ({
     borderRadius: '16px 0 0 0',
     display: 'flex',
     flexGrow: 1,
-    minHeight: '64px',
+    minHeight: '32px',
     paddingLeft: ({ customBg }: { customBg: boolean }) => (customBg ? '32px' : undefined),
+    justifyContent: 'center',
   },
 }))
 
@@ -142,12 +145,11 @@ export function Header({ children }: HeaderProps) {
   })
   return (
     <M.Box>
-      <M.Toolbar />
+      <M.Toolbar variant="dense" />
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
-          <M.Toolbar disableGutters>
+          <M.Toolbar disableGutters variant="dense">
             <M.Container className={classes.container} maxWidth="lg">
-              <LogoLink />
               <div className={classes.main}>{children}</div>
             </M.Container>
           </M.Toolbar>
@@ -205,14 +207,21 @@ const useNavBarStyles = M.makeStyles((t) => ({
   },
   search: {
     marginRight: t.spacing(4),
-    marginLeft: 'auto',
+    [t.breakpoints.down('sm')]: {
+      marginRight: t.spacing(1),
+    },
+  },
+  burger: {
+    marginRight: 'auto',
+  },
+  user: {
+    display: 'flex',
+    alignItems: 'center',
   },
 }))
 
 export function NavBar() {
   const classes = useNavBarStyles()
-  const t = M.useTheme()
-  const collapse = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const settings = CatalogSettings.use()
   const sub = Subscription.useState()
@@ -222,27 +231,25 @@ export function NavBar() {
 
   return (
     <Container>
-      {!collapse && <NavMenu.Links />}
+      <NavMenu.Links className={classes.burger} />
 
-      {!hideControls && (
-        <Link className={classes.search} to="/search">
-          <M.Button
-            startIcon={<M.Icon>search</M.Icon>}
-            color="inherit"
-            variant="outlined"
-          >
-            Search
-          </M.Button>
-        </Link>
-      )}
+      <LogoLink />
 
-      <Subscription.Display {...sub} />
+      <div className={classes.user}>
+        {!hideControls && (
+          <Link className={classes.search} to="/search">
+            <Buttons.Iconized label="Search" icon="search" variant="text" />
+          </Link>
+        )}
 
-      {sub.invalid && <LicenseError restore={sub.restore} />}
+        <Subscription.Display {...sub} />
 
-      <NavMenu.Menu collapse={collapse} />
+        {sub.invalid && <LicenseError restore={sub.restore} />}
 
-      {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
+        <NavMenu.Menu />
+
+        {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
+      </div>
     </Container>
   )
 }

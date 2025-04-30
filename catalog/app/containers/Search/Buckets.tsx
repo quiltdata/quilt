@@ -35,7 +35,7 @@ export default function Buckets({ className, disabled }: BucketsProps) {
         extents={extents}
         helperText={
           model.state.buckets.length === 1 && (
-            <StyledLink to={href}>Search in other buckets</StyledLink>
+            <StyledLink to={href}>Expand search to all buckets</StyledLink>
           )
         }
         label="In buckets"
