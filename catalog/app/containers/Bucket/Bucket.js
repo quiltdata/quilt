@@ -66,15 +66,20 @@ function BucketLayout({ bucket, section = false, children }) {
   const bucketExistenceData = useBucketExistence(bucket)
 
   return (
-    <Layout pre={<BucketNav bucket={bucket} section={section} />}>
-      <M.Container maxWidth="lg">
-        {bucketExistenceData.case({
-          Ok: () => children,
-          Err: displayError(),
-          _: () => <Placeholder color="text.secondary" />,
-        })}
-      </M.Container>
-    </Layout>
+    <Layout
+      pre={
+        <>
+          <BucketNav bucket={bucket} section={section} />
+          <M.Container maxWidth="lg">
+            {bucketExistenceData.case({
+              Ok: () => children,
+              Err: displayError(),
+              _: () => <Placeholder color="text.secondary" />,
+            })}
+          </M.Container>
+        </>
+      }
+    />
   )
 }
 

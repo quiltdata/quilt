@@ -63,13 +63,14 @@ function Filters({ className }: FiltersProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    margin: t.spacing(2, 0),
     [t.breakpoints.up('md')]: {
       alignItems: 'start',
       display: 'grid',
       gridColumnGap: t.spacing(2),
       gridTemplateColumns: `${t.spacing(40)}px auto`,
+      margin: t.spacing(3, 0),
     },
-    margin: t.spacing(3, 0),
   },
   filtersMobile: {
     padding: t.spacing(2),

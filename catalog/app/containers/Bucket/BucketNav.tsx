@@ -222,9 +222,15 @@ const useControlPanelStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
+    [t.breakpoints.down('sm')]: {
+      paddingTop: t.spacing(2),
+    },
   },
   stats: {
     marginLeft: t.spacing(4),
+    [t.breakpoints.down('sm')]: {
+      display: 'none',
+    },
   },
 }))
 
@@ -265,14 +271,25 @@ const useStyles = M.makeStyles((t) => ({
   controlPanel: {
     flexGrow: 1,
     maxWidth: t.spacing(85),
+    [t.breakpoints.down('sm')]: {
+      width: '100%',
+      justifyContent: 'center',
+    },
   },
   nav: {
     display: 'flex',
-    marginLeft: 'auto',
+    [t.breakpoints.up('sm')]: {
+      marginLeft: 'auto',
+    },
   },
   skeleton: {
     height: t.spacing(2),
     margin: t.spacing(0, 2),
+  },
+  toolbar: {
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
   },
 }))
 
@@ -289,7 +306,7 @@ export default function BucketNav({ bucket, section = false }: BucketNavProps) {
       Ok: ({ ui: { nav } }) => (
         <M.AppBar position="static" className={classes.root}>
           <M.Container maxWidth="lg">
-            <M.Toolbar disableGutters>
+            <M.Toolbar disableGutters className={classes.toolbar}>
               <ControlPanel bucket={bucket} className={classes.controlPanel} />
               <Tabs
                 bucket={bucket}

@@ -1309,7 +1309,17 @@ function ResultsInner({ className }: ResultsInnerProps) {
   }
 }
 
+const useResultsCountStyles = M.makeStyles((t) => ({
+  create: {
+    marginLeft: t.spacing(2),
+    [t.breakpoints.down('sm')]: {
+      marginLeft: 'auto',
+    },
+  },
+}))
+
 function ResultsCount() {
+  const classes = useResultsCountStyles()
   const {
     firstPageQuery,
     state: { buckets },
@@ -1354,7 +1364,7 @@ function ResultsCount() {
                   color="primary"
                   size="small"
                   startIcon={<M.Icon>add</M.Icon>}
-                  style={{ marginLeft: '16px' }}
+                  className={classes.create}
                   variant="contained"
                 >
                   Create new package
