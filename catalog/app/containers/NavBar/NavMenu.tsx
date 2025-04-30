@@ -346,11 +346,7 @@ const useLinksStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface LinksProps {
-  className: string
-}
-
-export function Links({ className }: LinksProps) {
+export function Links() {
   const classes = useLinksStyles()
   const intercom = Intercom.use()
   const { urls } = NamedRoutes.use()
@@ -369,9 +365,9 @@ export function Links({ className }: LinksProps) {
   return (
     <>
       <M.IconButton
-        className={className}
         onClick={(event) => setAnchorEl(event.currentTarget)}
         edge="start"
+        color="inherit"
       >
         <M.Icon fontSize="inherit">menu</M.Icon>
       </M.IconButton>
