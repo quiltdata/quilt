@@ -25,15 +25,15 @@ function TotalSize({ bucket, className, label }: ChipProps) {
   const { urls } = NamedRoutes.use()
   return (
     <StyledTooltip title="Total size">
-      <M.Chip
+      <M.Button
         className={className}
-        clickable
+        startIcon={<M.Icon fontSize="small">pie_chart_outlined</M.Icon>}
         component={Link}
-        icon={<M.Icon fontSize="small">pie_chart_outlined</M.Icon>}
-        label={label}
         to={urls.bucketOverview(bucket)}
-        variant="outlined"
-      />
+        size="small"
+      >
+        {label}
+      </M.Button>
     </StyledTooltip>
   )
 }
@@ -42,15 +42,15 @@ function ObjectsNumber({ bucket, className, label }: ChipProps) {
   const { urls } = NamedRoutes.use()
   return (
     <StyledTooltip title="Number of objects in the bucket">
-      <M.Chip
+      <M.Button
         className={className}
-        clickable
         component={Link}
-        icon={<I.InsertDriveFileOutlined fontSize="small" />}
-        label={label}
+        startIcon={<I.InsertDriveFileOutlined fontSize="small" />}
         to={urls.bucketDir(bucket)}
-        variant="outlined"
-      />
+        size="small"
+      >
+        {label}
+      </M.Button>
     </StyledTooltip>
   )
 }
@@ -59,11 +59,10 @@ function PackagesNumber({ bucket, className, label }: ChipProps) {
   const { urls } = NamedRoutes.use()
   return (
     <StyledTooltip title="Number of packages in the bucket">
-      <M.Chip
+      <M.Button
         className={className}
-        clickable
         component={Link}
-        icon={
+        startIcon={
           <M.SvgIcon
             width="32"
             height="32"
@@ -87,10 +86,11 @@ function PackagesNumber({ bucket, className, label }: ChipProps) {
             />
           </M.SvgIcon>
         }
-        label={label}
         to={urls.bucketPackageList(bucket)}
-        variant="outlined"
-      />
+        size="small"
+      >
+        {label}
+      </M.Button>
     </StyledTooltip>
   )
 }
@@ -102,13 +102,14 @@ function CollaboratorsNumber({ bucket, className, label }: ChipProps) {
   return (
     <>
       <StyledTooltip title="Number of collaborators">
-        <M.Chip
+        <M.Button
           className={className}
-          icon={<I.VisibilityOutlined fontSize="small" />}
-          label={label}
+          startIcon={<I.VisibilityOutlined fontSize="small" />}
           onClick={handleOpen}
-          variant="outlined"
-        />
+          size="small"
+        >
+          {label}
+        </M.Button>
       </StyledTooltip>
       <Popup bucket={bucket} collaborators={[]} onClose={handleClose} open={open} />
     </>
@@ -119,6 +120,7 @@ const useStatsStyles = M.makeStyles((t) => ({
   chip: {
     marginLeft: t.spacing(1),
     paddingLeft: t.spacing(0.5),
+    color: t.palette.text.secondary,
   },
 }))
 
