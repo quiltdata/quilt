@@ -128,3 +128,16 @@ export const getBreadCrumbs = (path: string): { label: string; path: string }[] 
 export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'))
 
 export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'))
+
+/**
+ * Files in the package are backed by real files in the S3 bucket.
+ * We store them at this location in a bucket by default.
+ */
+export function canonicalKey(
+  packageName: string,
+  logicalKey: string,
+  packageRoot?: string,
+) {
+  const prefix = withoutPrefix('/', `${ensureNoSlash(packageRoot || '')}/${packageName}`)
+  return `${prefix}/${logicalKey}`
+}
