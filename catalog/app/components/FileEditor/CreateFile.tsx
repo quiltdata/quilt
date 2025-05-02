@@ -4,11 +4,10 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as Dialog from 'components/Dialog'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { isSupportedFileType } from './loader'
-import { useAddFileInPackage } from './routes'
+import { useAddFileInbucket, useAddFileInPackage } from './routes'
 
 function validateFileName(value: string) {
   if (!value) {
@@ -21,21 +20,15 @@ function validateFileName(value: string) {
 }
 
 export function useCreateFileInBucket(bucket: string, path: string) {
-  const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
-
-  // TODO: put this into FileEditor/routes
-  const toFile = React.useCallback(
-    (name: string) => urls.bucketFile(bucket, join(path, name), { edit: true }),
-    [bucket, path, urls],
-  )
+  const toFile = useAddFileInbucket(bucket)
 
   const createFile = React.useCallback(
     (name: string) => {
       if (!name) return
-      history.push(toFile(name))
+      history.push(toFile(join(path, name)))
     },
-    [history, toFile],
+    [history, toFile, path],
   )
 
   return Dialog.usePrompt({
