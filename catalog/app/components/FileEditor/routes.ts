@@ -62,7 +62,7 @@ export function useAddFileInPackage(
 }
 
 export function useAddFileInbucket(bucket: string): (logicalKey: string) => string {
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<RouteMap>()
   return React.useCallback(
     (logicalKey: string) => urls.bucketFile(bucket, logicalKey, { edit: true }),
     [bucket, urls],
