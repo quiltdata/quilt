@@ -7,87 +7,47 @@ import * as I from '@material-ui/icons'
 
 import Skeleton from 'components/Skeleton'
 import * as AuthSelectors from 'containers/Auth/selectors'
+import type * as Model from 'model'
+import * as APIConnector from 'utils/APIConnector'
+import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
+import { useData } from 'utils/Data'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import StyledTooltip from 'utils/StyledTooltip'
+import { formatQuantity, readableBytes } from 'utils/string'
+import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 import BucketSelect from 'containers/NavBar/BucketSelect'
 import { BucketDisplay } from 'containers/NavBar/Controls'
 import { Popup } from 'components/Collaborators'
 
-interface ChipProps {
-  bucket: string
+import BUCKET_COLLABORATORS from 'containers/NavBar/BucketCollaborators.generated'
+// FIXME: use custom query
+import BUCKET_CONFIG_QUERY from './Overview/gql/BucketConfig.generated'
+
+import * as requests from './requests'
+
+interface ChipLinkProps {
   className: string
   label: React.ReactNode
+  to: string
+  icon: string | React.ReactNode
+  title: string
 }
 
-function TotalSize({ bucket, className, label }: ChipProps) {
-  const { urls } = NamedRoutes.use()
+function ChipLink({ className, icon, label, to }: ChipLinkProps) {
   return (
     <StyledTooltip title="Total size">
       <M.Button
         className={className}
-        startIcon={<M.Icon fontSize="small">pie_chart_outlined</M.Icon>}
         component={Link}
-        to={urls.bucketOverview(bucket)}
         size="small"
-      >
-        {label}
-      </M.Button>
-    </StyledTooltip>
-  )
-}
-
-function ObjectsNumber({ bucket, className, label }: ChipProps) {
-  const { urls } = NamedRoutes.use()
-  return (
-    <StyledTooltip title="Number of objects in the bucket">
-      <M.Button
-        className={className}
-        component={Link}
-        startIcon={<I.InsertDriveFileOutlined fontSize="small" />}
-        to={urls.bucketDir(bucket)}
-        size="small"
-      >
-        {label}
-      </M.Button>
-    </StyledTooltip>
-  )
-}
-
-function PackagesNumber({ bucket, className, label }: ChipProps) {
-  const { urls } = NamedRoutes.use()
-  return (
-    <StyledTooltip title="Number of packages in the bucket">
-      <M.Button
-        className={className}
-        component={Link}
         startIcon={
-          <M.SvgIcon
-            width="32"
-            height="32"
-            viewBox="0 0 32 32"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ width: '16px', height: '16px' }}
-          >
-            <path
-              d="M6,2 L26,2 L32,13 L0,13 Z"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-            />
-
-            <line x1="16" y1="2" x2="16" y2="13" stroke="currentColor" strokeWidth="3" />
-            <path
-              d="M0,13 H32 V28 A3,3 0 0 1 29,31 H3 A3,3 0 0 1 0,28 Z"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-            />
-          </M.SvgIcon>
+          typeof icon === 'string' ? <M.Icon fontSize="small">{icon}</M.Icon> : icon
         }
-        to={urls.bucketPackageList(bucket)}
-        size="small"
+        to={to}
       >
         {label}
       </M.Button>
@@ -95,32 +55,152 @@ function PackagesNumber({ bucket, className, label }: ChipProps) {
   )
 }
 
-function CollaboratorsNumber({ bucket, className, label }: ChipProps) {
+interface ChipLoadingProps {
+  className: string
+}
+
+function ChipLoading({ className }: ChipLoadingProps) {
+  return (
+    <M.Button
+      className={className}
+      size="small"
+      startIcon={<M.CircularProgress size={16} />}
+    >
+      ?
+    </M.Button>
+  )
+}
+
+interface ChipErrorProps {
+  className: string
+  error: Error
+}
+
+function ChipError({ className, error }: ChipErrorProps) {
+  return (
+    <StyledTooltip title={error.message}>
+      <M.Button
+        className={className}
+        size="small"
+        startIcon={<M.Icon>error_outline</M.Icon>}
+      >
+        ?
+      </M.Button>
+    </StyledTooltip>
+  )
+}
+
+function PackagesIcon() {
+  return (
+    <M.SvgIcon
+      fontSize="small"
+      height="32"
+      style={{ width: '16px', height: '16px' }}
+      viewBox="0 0 32 32"
+      width="32"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M6,2 L26,2 L32,13 L0,13 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+      />
+
+      <line x1="16" y1="2" x2="16" y2="13" stroke="currentColor" strokeWidth="3" />
+      <path
+        d="M0,13 H32 V28 A3,3 0 0 1 29,31 H3 A3,3 0 0 1 0,28 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+      />
+    </M.SvgIcon>
+  )
+}
+
+function NoCollaborators({ className }: { className: string }) {
+  return (
+    <StyledTooltip title="Only you can see this bucket">
+      <M.IconButton className={className} size="small">
+        <I.VisibilityOffOutlined fontSize="small" />
+      </M.IconButton>
+    </StyledTooltip>
+  )
+}
+
+const NO_COLLABORATORS: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection> = []
+
+interface CollaboratorsNumberProps {
+  bucket: string
+  className: string
+}
+
+function CollaboratorsNumber({ bucket, className }: CollaboratorsNumberProps) {
+  const data = GQL.useQueryS(BUCKET_COLLABORATORS, { bucket })
+  const collaborators = data.bucketConfig?.collaborators || NO_COLLABORATORS
+  const potentialCollaborators = usePotentialCollaborators()
+  const allCollaborators: Model.Collaborators = React.useMemo(
+    () => [
+      ...(collaborators || []),
+      ...potentialCollaborators.map((collaborator) => ({
+        collaborator,
+        permissionLevel: undefined,
+      })),
+    ],
+    [collaborators, potentialCollaborators],
+  )
+  const knownNumber = allCollaborators.length
+  const hasUnmanagedRole = React.useMemo(
+    () => allCollaborators.find(({ permissionLevel }) => !permissionLevel),
+    [allCollaborators],
+  )
+
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
+
+  if (!knownNumber) return <NoCollaborators className={className} />
+
   return (
     <>
       <StyledTooltip title="Number of collaborators">
         <M.Button
           className={className}
-          startIcon={<I.VisibilityOutlined fontSize="small" />}
           onClick={handleOpen}
           size="small"
+          startIcon={<I.VisibilityOutlined fontSize="small" />}
         >
-          {label}
+          {hasUnmanagedRole ? `${knownNumber}+` : `${knownNumber}`}
         </M.Button>
       </StyledTooltip>
-      <Popup bucket={bucket} collaborators={[]} onClose={handleClose} open={open} />
+      <Popup
+        bucket={bucket}
+        collaborators={allCollaborators}
+        onClose={handleClose}
+        open={open}
+      />
     </>
   )
 }
 
+function useBucketStats(bucket: string) {
+  const s3 = AWS.S3.use()
+  const req = APIConnector.use()
+  const { bucketConfig } = GQL.useQueryS(BUCKET_CONFIG_QUERY, { bucket })
+  const overviewUrl = bucketConfig?.overviewUrl
+  return useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
+}
+
+function usePackagesStats(bucket: string) {
+  const req = APIConnector.use()
+  return useData(requests.countPackageRevisions, { req, bucket })
+}
+
 const useStatsStyles = M.makeStyles((t) => ({
   chip: {
-    marginLeft: t.spacing(1),
-    paddingLeft: t.spacing(0.5),
     color: t.palette.text.secondary,
+    marginLeft: t.spacing(1),
+    minWidth: 'auto',
   },
 }))
 
@@ -131,12 +211,66 @@ interface StatsProps {
 
 function Stats({ className, bucket }: StatsProps) {
   const classes = useStatsStyles()
+  const { urls } = NamedRoutes.use()
+  const stats = useBucketStats(bucket)
+  const pkgs = usePackagesStats(bucket)
+
+  const chipNoData = AsyncResult.mapCase({
+    Err: (error: Error) => <ChipError className={classes.chip} error={error} />,
+    Pending: () => <ChipLoading className={classes.chip} />,
+  })
+
   return (
     <div className={className}>
-      <TotalSize bucket={bucket} className={classes.chip} label="49.7 GB" />
-      <ObjectsNumber bucket={bucket} className={classes.chip} label="31.5 k" />
-      <PackagesNumber bucket={bucket} className={classes.chip} label="862" />
-      <CollaboratorsNumber bucket={bucket} className={classes.chip} label="18+" />
+      {AsyncResult.case(
+        {
+          Ok: ({ totalBytes }: { totalBytes: number }) => (
+            <ChipLink
+              className={classes.chip}
+              icon="pie_chart_outlined"
+              label={readableBytes(totalBytes)}
+              title="Total size"
+              to={urls.bucketOverview(bucket)}
+            />
+          ),
+          _: () => null,
+        },
+        chipNoData(stats.result),
+      )}
+
+      {AsyncResult.case(
+        {
+          Ok: ({ totalObjects }: { totalObjects: number }) => (
+            <ChipLink
+              className={classes.chip}
+              icon={<I.InsertDriveFileOutlined fontSize="small" />}
+              label={readableBytes(totalObjects)}
+              title="Number of objects in the bucket"
+              to={urls.bucketDir(bucket)}
+            />
+          ),
+          _: () => null,
+        },
+        chipNoData(stats.result),
+      )}
+
+      {AsyncResult.case(
+        {
+          Ok: (value: number) => (
+            <ChipLink
+              className={classes.chip}
+              icon={<PackagesIcon />}
+              label={formatQuantity(value)}
+              title="Number of packages in the bucket"
+              to={urls.bucketPackageList(bucket)}
+            />
+          ),
+          _: () => null,
+        },
+        chipNoData(pkgs.result),
+      )}
+
+      <CollaboratorsNumber bucket={bucket} className={classes.chip} />
     </div>
   )
 }
