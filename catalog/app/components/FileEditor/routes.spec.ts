@@ -1,8 +1,8 @@
 import { renderHook } from '@testing-library/react-hooks'
 
 import {
-  editFileInPackage,
   useAddFileInPackage,
+  useAddFileInbucket,
   useEditFileInPackage,
   useParams,
 } from './routes'
@@ -41,14 +41,6 @@ jest.mock('utils/NamedRoutes', () => ({
 }))
 
 describe('components/FileEditor/routes', () => {
-  describe('editFileInPackage', () => {
-    it('should create url', () => {
-      expect(
-        editFileInPackage(urls, { bucket: 'bucket', key: 'key' }, 'logicalKey', 'next'),
-      ).toEqual('bucketFile(bucket, key, {"add":"logicalKey","edit":true,"next":"next"})')
-    })
-  })
-
   describe('useEditFileInPackage', () => {
     it('should create url with redirect to package', () => {
       const { result } = renderHook(() =>
@@ -71,6 +63,13 @@ describe('components/FileEditor/routes', () => {
       expect(result.current('lk')).toBe(
         'bucketFile(b, ro/ot/n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
       )
+    })
+  })
+
+  describe('useAddFileInBucket', () => {
+    it('should create url for the new file in a bucket', () => {
+      const { result } = renderHook(() => useAddFileInbucket('b'))
+      expect(result.current('lk')).toBe(`bucketFile(b, lk, {"edit":true})`)
     })
   })
 
