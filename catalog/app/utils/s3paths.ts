@@ -138,5 +138,11 @@ export function canonicalKey(
   logicalKey: string,
   packageRoot?: string,
 ) {
+  if (!packageName) {
+    throw new Error('Package name cannot be empty')
+  }
+  if (!logicalKey) {
+    throw new Error('logicalKey name cannot be empty')
+  }
   return withoutPrefix('/', join(packageRoot || '', packageName, logicalKey))
 }
