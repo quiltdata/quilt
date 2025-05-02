@@ -4,12 +4,11 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as Dialog from 'components/Dialog'
-import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import type { PackageHandle } from 'utils/packageHandle'
-import * as s3paths from 'utils/s3paths'
 
 import { isSupportedFileType } from './loader'
+import { useAddFileInPackage } from './routes'
 
 function validateFileName(value: string) {
   if (!value) {
@@ -47,26 +46,9 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   })
 }
 
-export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?: string) {
-  const { urls } = NamedRoutes.use()
+export function useCreateFileInPackage(packageHandle: PackageHandle, prefix?: string) {
   const history = RRDom.useHistory()
-
-  // TODO: put this into FileEditor/routes
-  const toFile = React.useCallback(
-    (fileName: string) => {
-      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-      return urls.bucketFile(
-        bucket,
-        s3paths.canonicalKey(name, fileName, cfg.packageRoot),
-        {
-          add: fileName,
-          edit: true,
-          next,
-        },
-      )
-    },
-    [bucket, name, urls],
-  )
+  const toFile = useAddFileInPackage(packageHandle)
 
   const createFile = React.useCallback(
     (fileName: string) => {

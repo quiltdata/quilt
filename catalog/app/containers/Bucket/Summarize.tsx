@@ -692,14 +692,8 @@ export function ConfigureAppearance({
   path,
 }: ConfigureAppearanceProps) {
   const classes = useConfigureAppearanceStyles()
-  const readme = FileEditor.useAddFileInPackage(
-    packageHandle,
-    join(path || '', 'README.md'),
-  )
-  const summarize = FileEditor.useAddFileInPackage(
-    packageHandle,
-    join(path || '', 'quilt_summarize.json'),
-  )
+  const readme = FileEditor.useAddFileInPackage(packageHandle)
+  const summarize = FileEditor.useAddFileInPackage(packageHandle)
   return (
     <div className={classes.root}>
       {!hasSummarizeJson && (
@@ -707,7 +701,10 @@ export function ConfigureAppearance({
           maxWidth="md"
           title="Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package."
         >
-          <RRDom.Link to={summarize} className={classes.button}>
+          <RRDom.Link
+            to={summarize(join(path || '', 'quilt_summarize.json'))}
+            className={classes.button}
+          >
             <M.Button color="primary" size="small" variant="outlined">
               Configure Summary
             </M.Button>
@@ -719,7 +716,10 @@ export function ConfigureAppearance({
           maxWidth="md"
           title="Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package."
         >
-          <RRDom.Link to={readme} className={classes.button}>
+          <RRDom.Link
+            to={readme(join(path || '', 'README.md'))}
+            className={classes.button}
+          >
             <M.Button color="primary" size="small" variant="contained">
               Add README
             </M.Button>

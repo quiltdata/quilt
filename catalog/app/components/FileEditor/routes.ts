@@ -38,14 +38,23 @@ export function useEditFileInPackage(
   return editFileInPackage(urls, fileHandle, logicalKey, next)
 }
 
-export function useAddFileInPackage({ bucket, name }: PackageHandle, logicalKey: string) {
+export function useAddFileInPackage(
+  packageHandle: PackageHandle,
+): (logicalKey: string) => string {
   const { urls } = NamedRoutes.use<RouteMap>()
-  const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-  const fileHandle = React.useMemo(
-    () => ({ bucket, key: s3paths.canonicalKey(name, logicalKey, cfg.packageRoot) }),
-    [bucket, logicalKey, name],
+
+  return React.useCallback(
+    (logicalKey: string) => {
+      const { bucket, name } = packageHandle
+      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+      const fileHandle = {
+        bucket,
+        key: s3paths.canonicalKey(name, logicalKey, cfg.packageRoot),
+      }
+      return editFileInPackage(urls, fileHandle, logicalKey, next)
+    },
+    [packageHandle, urls],
   )
-  return editFileInPackage(urls, fileHandle, logicalKey, next)
 }
 
 export function useParams() {

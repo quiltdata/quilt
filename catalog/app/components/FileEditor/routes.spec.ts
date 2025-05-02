@@ -67,9 +67,9 @@ describe('components/FileEditor/routes', () => {
   describe('useAddFileInPackage', () => {
     it('should create url for the new file', () => {
       const { result } = renderHook(() =>
-        useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }, 'lk'),
+        useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }),
       )
-      expect(result.current).toBe(
+      expect(result.current('lk')).toBe(
         'bucketFile(b, ro/ot/n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
       )
     })
