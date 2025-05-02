@@ -17,15 +17,13 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import StyledTooltip from 'utils/StyledTooltip'
 import { formatQuantity, readableBytes } from 'utils/string'
-import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 import BucketSelect from 'containers/NavBar/BucketSelect'
 import { BucketDisplay } from 'containers/NavBar/Controls'
 import { Popup } from 'components/Collaborators'
 
-import BUCKET_COLLABORATORS from 'containers/NavBar/BucketCollaborators.generated'
-// FIXME: use custom query
-import BUCKET_CONFIG_QUERY from './Overview/gql/BucketConfig.generated'
+import COLLABORATORS_QUERY from './gql/Collaborators.generated'
+import BUCKET_OVERVIEW_URL_QUERY from './gql/BucketOverviewUrl.generated'
 
 import * as requests from './requests'
 
@@ -130,36 +128,41 @@ function NoCollaborators({ className }: { className: string }) {
 
 const NO_COLLABORATORS: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection> = []
 
+function useCollaborators(bucket: string) {
+  const result = GQL.useQuery(COLLABORATORS_QUERY, {
+    bucket,
+  })
+  return GQL.fold(result, {
+    data: ({ bucketConfig, potentialCollaborators }) => {
+      const collaborators = bucketConfig?.collaborators || NO_COLLABORATORS
+      return AsyncResult.Ok([
+        ...(collaborators || []),
+        ...potentialCollaborators.map((collaborator) => ({
+          collaborator,
+          permissionLevel: undefined,
+        })),
+      ])
+    },
+    fetching: () => AsyncResult.Pending(),
+    error: (error) => AsyncResult.Err(error),
+  })
+}
+
 interface CollaboratorsNumberProps {
   bucket: string
   className: string
+  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
 }
 
-function CollaboratorsNumber({ bucket, className }: CollaboratorsNumberProps) {
-  const data = GQL.useQueryS(BUCKET_COLLABORATORS, { bucket })
-  const collaborators = data.bucketConfig?.collaborators || NO_COLLABORATORS
-  const potentialCollaborators = usePotentialCollaborators()
-  const allCollaborators: Model.Collaborators = React.useMemo(
-    () => [
-      ...(collaborators || []),
-      ...potentialCollaborators.map((collaborator) => ({
-        collaborator,
-        permissionLevel: undefined,
-      })),
-    ],
-    [collaborators, potentialCollaborators],
-  )
-  const knownNumber = allCollaborators.length
+function Collaborators({ bucket, className, collaborators }: CollaboratorsNumberProps) {
   const hasUnmanagedRole = React.useMemo(
-    () => allCollaborators.find(({ permissionLevel }) => !permissionLevel),
-    [allCollaborators],
+    () => collaborators.find(({ permissionLevel }) => !permissionLevel),
+    [collaborators],
   )
 
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
-
-  if (!knownNumber) return <NoCollaborators className={className} />
 
   return (
     <>
@@ -170,12 +173,12 @@ function CollaboratorsNumber({ bucket, className }: CollaboratorsNumberProps) {
           size="small"
           startIcon={<I.VisibilityOutlined fontSize="small" />}
         >
-          {hasUnmanagedRole ? `${knownNumber}+` : `${knownNumber}`}
+          {hasUnmanagedRole ? `${collaborators.length}+` : `${collaborators.length}`}
         </M.Button>
       </StyledTooltip>
       <Popup
         bucket={bucket}
-        collaborators={allCollaborators}
+        collaborators={collaborators}
         onClose={handleClose}
         open={open}
       />
@@ -186,7 +189,7 @@ function CollaboratorsNumber({ bucket, className }: CollaboratorsNumberProps) {
 function useBucketStats(bucket: string) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
-  const { bucketConfig } = GQL.useQueryS(BUCKET_CONFIG_QUERY, { bucket })
+  const { bucketConfig } = GQL.useQueryS(BUCKET_OVERVIEW_URL_QUERY, { bucket })
   const overviewUrl = bucketConfig?.overviewUrl
   return useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
 }
@@ -212,8 +215,10 @@ interface StatsProps {
 function Stats({ className, bucket }: StatsProps) {
   const classes = useStatsStyles()
   const { urls } = NamedRoutes.use()
-  const stats = useBucketStats(bucket)
-  const pkgs = usePackagesStats(bucket)
+
+  const { result: stats } = useBucketStats(bucket)
+  const { result: pkgs } = usePackagesStats(bucket)
+  const collaborators = useCollaborators(bucket)
 
   const chipNoData = AsyncResult.mapCase({
     Err: (error: Error) => <ChipError className={classes.chip} error={error} />,
@@ -235,7 +240,7 @@ function Stats({ className, bucket }: StatsProps) {
           ),
           _: () => null,
         },
-        chipNoData(stats.result),
+        chipNoData(stats),
       )}
 
       {AsyncResult.case(
@@ -251,26 +256,41 @@ function Stats({ className, bucket }: StatsProps) {
           ),
           _: () => null,
         },
-        chipNoData(stats.result),
+        chipNoData(stats),
       )}
 
       {AsyncResult.case(
         {
-          Ok: (value: number) => (
+          Ok: (data: number) => (
             <ChipLink
               className={classes.chip}
               icon={<PackagesIcon />}
-              label={formatQuantity(value)}
+              label={formatQuantity(data)}
               title="Number of packages in the bucket"
               to={urls.bucketPackageList(bucket)}
             />
           ),
           _: () => null,
         },
-        chipNoData(pkgs.result),
+        chipNoData(pkgs),
       )}
 
-      <CollaboratorsNumber bucket={bucket} className={classes.chip} />
+      {AsyncResult.case(
+        {
+          Ok: (data: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>) =>
+            data.length ? (
+              <Collaborators
+                bucket={bucket}
+                className={classes.chip}
+                collaborators={data}
+              />
+            ) : (
+              <NoCollaborators className={classes.chip} />
+            ),
+          _: () => null,
+        },
+        chipNoData(collaborators),
+      )}
     </div>
   )
 }
