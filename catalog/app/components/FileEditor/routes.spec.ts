@@ -55,10 +55,9 @@ describe('components/FileEditor/routes', () => {
         useEditFileInPackage(
           { bucket: 'b', name: 'n', hash: 'h' },
           { bucket: 'b', key: 'k' },
-          'lk',
         ),
       )
-      expect(result.current).toBe(
+      expect(result.current('lk')).toBe(
         'bucketFile(b, k, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
       )
     })

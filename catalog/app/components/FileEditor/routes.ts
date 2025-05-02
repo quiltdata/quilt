@@ -30,12 +30,16 @@ export function editFileInPackage(
 export function useEditFileInPackage(
   packageHandle: PackageHandle,
   fileHandle: Model.S3.S3ObjectLocation,
-  logicalKey: string,
-) {
+): (logicalKey: string) => string {
   const { urls } = NamedRoutes.use<RouteMap>()
-  const { bucket, name } = packageHandle
-  const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-  return editFileInPackage(urls, fileHandle, logicalKey, next)
+  return React.useCallback(
+    (logicalKey: string) => {
+      const { bucket, name } = packageHandle
+      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+      return editFileInPackage(urls, fileHandle, logicalKey, next)
+    },
+    [fileHandle, packageHandle, urls],
+  )
 }
 
 export function useAddFileInPackage(
