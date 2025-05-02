@@ -7,6 +7,13 @@ import {
   useParams,
 } from './routes'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    packageRoot: 'ro/ot',
+  })),
+)
+
 const useParamsInternal = jest.fn(
   () =>
     ({
@@ -63,7 +70,7 @@ describe('components/FileEditor/routes', () => {
         useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }, 'lk'),
       )
       expect(result.current).toBe(
-        'bucketFile(b, n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
+        'bucketFile(b, ro/ot/n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
       )
     })
   })

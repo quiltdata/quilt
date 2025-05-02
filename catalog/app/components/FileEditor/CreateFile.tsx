@@ -4,8 +4,10 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as Dialog from 'components/Dialog'
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import type { PackageHandle } from 'utils/packageHandle'
+import * as s3paths from 'utils/s3paths'
 
 import { isSupportedFileType } from './loader'
 
@@ -53,12 +55,15 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?:
   const toFile = React.useCallback(
     (fileName: string) => {
       const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-      const key = join(name, fileName)
-      return urls.bucketFile(bucket, key, {
-        add: fileName,
-        edit: true,
-        next,
-      })
+      return urls.bucketFile(
+        bucket,
+        s3paths.canonicalKey(name, fileName, cfg.packageRoot),
+        {
+          add: fileName,
+          edit: true,
+          next,
+        },
+      )
     },
     [bucket, name, urls],
   )

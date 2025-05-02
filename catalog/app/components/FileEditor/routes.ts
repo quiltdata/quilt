@@ -1,9 +1,8 @@
-import { join } from 'path'
-
 import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
+import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -43,7 +42,7 @@ export function useAddFileInPackage({ bucket, name }: PackageHandle, logicalKey:
   const { urls } = NamedRoutes.use<RouteMap>()
   const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
   const fileHandle = React.useMemo(
-    () => ({ bucket, key: join(name, logicalKey) }),
+    () => ({ bucket, key: s3paths.canonicalKey(name, logicalKey, cfg.packageRoot) }),
     [bucket, logicalKey, name],
   )
   return editFileInPackage(urls, fileHandle, logicalKey, next)
