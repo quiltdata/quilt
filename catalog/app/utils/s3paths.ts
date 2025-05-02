@@ -136,7 +136,7 @@ export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'
 export function canonicalKey(
   packageName: string,
   logicalKey: string,
-  packageRoot?: string,
+  optPackageRoot: string = '',
 ) {
   if (!packageName) {
     throw new Error('Package name cannot be empty')
@@ -144,5 +144,5 @@ export function canonicalKey(
   if (!logicalKey) {
     throw new Error('logicalKey name cannot be empty')
   }
-  return withoutPrefix('/', join(packageRoot || '', packageName, logicalKey))
+  return withoutPrefix('/', join(optPackageRoot, packageName, logicalKey))
 }
