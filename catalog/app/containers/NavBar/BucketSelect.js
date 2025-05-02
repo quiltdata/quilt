@@ -146,7 +146,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
             const to =
               typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
             if (to && currentBucket !== to) {
-              history.push(urls.bucketRoot(to))
+              history.push(urls.bucketPackageList(to))
             }
           }
         }}
