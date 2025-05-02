@@ -1,4 +1,4 @@
-import { dirname, basename, resolve } from 'path'
+import { dirname, basename, join, resolve } from 'path'
 import { parse as parseUrl } from 'url'
 
 import * as R from 'ramda'
@@ -138,6 +138,5 @@ export function canonicalKey(
   logicalKey: string,
   packageRoot?: string,
 ) {
-  const prefix = withoutPrefix('/', `${ensureNoSlash(packageRoot || '')}/${packageName}`)
-  return `${prefix}/${logicalKey}`
+  return withoutPrefix('/', join(packageRoot || '', packageName, logicalKey))
 }

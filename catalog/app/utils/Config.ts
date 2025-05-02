@@ -96,6 +96,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
   qurator: !!cfg.qurator,
+  packageRoot: 'r/o/o/t',
 })
 
 export function prepareConfig(input: unknown) {
