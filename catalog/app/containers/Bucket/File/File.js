@@ -636,6 +636,8 @@ function useIsDirectory(handle) {
 }
 
 function HandleNoSlashDir({ children, handle }) {
+  const { urls } = NamedRoutes.use()
+
   const isObject = useIsObject(handle)
   const requestIsDirectory = useIsDirectory(handle)
 
@@ -664,7 +666,16 @@ function HandleNoSlashDir({ children, handle }) {
 
   if (isDir instanceof Error) return displayError()(isDir)
 
-  return isDir ? <RRDom.Redirect to={s3paths.ensureSlash(handle.key)} /> : children
+  return isDir ? (
+    <RRDom.Redirect
+      to={urls.bucketDir({
+        bucket: handle.bucket,
+        path: s3paths.ensureSlash(handle.key),
+      })}
+    />
+  ) : (
+    children
+  )
 }
 
 export default function FileWrapper() {
