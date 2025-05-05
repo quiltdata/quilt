@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react-hooks'
 
 import {
   useAddFileInPackage,
-  useAddFileInbucket,
+  useAddFileInBucket,
   useEditFileInPackage,
   useParams,
 } from './routes'
@@ -68,7 +68,7 @@ describe('components/FileEditor/routes', () => {
 
   describe('useAddFileInBucket', () => {
     it('should create url for the new file in a bucket', () => {
-      const { result } = renderHook(() => useAddFileInbucket('b'))
+      const { result } = renderHook(() => useAddFileInBucket('b'))
       expect(result.current('lk')).toBe(`bucketFile(b, lk, {"edit":true})`)
     })
   })

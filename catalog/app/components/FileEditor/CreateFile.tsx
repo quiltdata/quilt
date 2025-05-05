@@ -7,7 +7,7 @@ import * as Dialog from 'components/Dialog'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { isSupportedFileType } from './loader'
-import { useAddFileInbucket, useAddFileInPackage } from './routes'
+import { useAddFileInBucket, useAddFileInPackage } from './routes'
 
 function validateFileName(value: string) {
   if (!value) {
@@ -21,7 +21,7 @@ function validateFileName(value: string) {
 
 export function useCreateFileInBucket(bucket: string, path: string) {
   const history = RRDom.useHistory()
-  const toFile = useAddFileInbucket(bucket)
+  const toFile = useAddFileInBucket(bucket)
 
   const createFile = React.useCallback(
     (name: string) => {
