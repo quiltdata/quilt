@@ -586,12 +586,12 @@ function FileDisplayQuery({
         if (d.package?.revision?.dir) {
           return (
             <RRDom.Redirect
-              to={urls.bucketPackageTree({
+              to={urls.bucketPackageTree(
                 bucket,
                 name,
-                revision: props.hashOrTag,
-                path: s3paths.ensureSlash(path),
-              })}
+                props.hashOrTag,
+                s3paths.ensureSlash(path),
+              )}
             />
           )
         }

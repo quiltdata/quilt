@@ -9,7 +9,6 @@ import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
-import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import * as Bookmarks from 'containers/Bookmarks'
@@ -31,8 +30,8 @@ import AssistButton from '../AssistButton'
 import * as Download from '../Download'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
+import HandleNoSlashDir from '../HandleNoSlashDir'
 import Section from '../Section'
-import { displayError } from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { useViewModes, viewModeToSelectOption } from '../viewModes'
@@ -594,95 +593,10 @@ function File() {
   )
 }
 
-function useIsObject(handle) {
-  const [exists, setExists] = React.useState(null)
-
-  const s3 = AWS.S3.use()
-  React.useEffect(() => {
-    const { bucket, key, version } = handle
-    function resolveObjectExistence() {
-      requests
-        .getObjectExistence({
-          s3,
-          bucket,
-          key,
-          version,
-        })
-        .then(
-          requests.ObjectExistence.case({
-            Exists: () => true,
-            _: () => false,
-          }),
-        )
-        .then(setExists)
-    }
-    resolveObjectExistence()
-  }, [s3, handle])
-
-  return exists
-}
-
-function useIsDirectory(handle) {
-  const bucketListing = requests.useBucketListing()
-  return React.useCallback(async () => {
-    const { bucket, key } = handle
-    const path = s3paths.ensureSlash(key)
-    const { dirs, files } = await bucketListing({ bucket, path, maxKeys: 1 })
-    // If prefix contains at least something, then it is a directory.
-    // S3 can not have empty directories, because directories are virtual,
-    //    they are based on paths for existing keys (file)
-    return dirs.length || files.length
-  }, [bucketListing, handle])
-}
-
-function HandleNoSlashDir({ children, handle }) {
-  const { urls } = NamedRoutes.use()
-
-  const isObject = useIsObject(handle)
-  const requestIsDirectory = useIsDirectory(handle)
-
-  const [isDir, setIsDir] = React.useState(null)
-
-  React.useEffect(() => {
-    function fetchData() {
-      if (isObject === null) return
-
-      if (isObject) {
-        // If object exists, then this is 100% an object page
-        setIsDir(false)
-      }
-
-      // If directory request does not fail,
-      // and we already checked it is not a file,
-      // then it may be a directory.
-      requestIsDirectory()
-        .then(setIsDir)
-        .catch(() => setIsDir(false))
-    }
-    fetchData()
-  }, [handle, isObject, requestIsDirectory])
-
-  if (isDir === null) return <Placeholder color="text.secondary" />
-
-  if (isDir instanceof Error) return displayError()(isDir)
-
-  return isDir ? (
-    <RRDom.Redirect
-      to={urls.bucketDir({
-        bucket: handle.bucket,
-        path: s3paths.ensureSlash(handle.key),
-      })}
-    />
-  ) : (
-    children
-  )
-}
-
 export default function FileWrapper() {
   const { bucket, path: key } = RRDom.useParams()
   const location = RRDom.useLocation()
   const { version } = parseSearch(location.search)
-
   const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])
   return (
     <HandleNoSlashDir handle={handle}>
