@@ -635,12 +635,7 @@ function useIsDirectory(handle) {
   }, [bucketListing, handle])
 }
 
-export default function FileWrapper() {
-  const { bucket, path: key } = RRDom.useParams()
-  const location = RRDom.useLocation()
-  const { version } = parseSearch(location.search)
-
-  const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])
+function HandleNoSlashDir({ children, handle }) {
   const isObject = useIsObject(handle)
   const requestIsDirectory = useIsDirectory(handle)
 
@@ -669,5 +664,18 @@ export default function FileWrapper() {
 
   if (isDir instanceof Error) return displayError()(isDir)
 
-  return isDir ? <RRDom.Redirect to={s3paths.ensureSlash(key)} /> : <File />
+  return isDir ? <RRDom.Redirect to={s3paths.ensureSlash(handle.key)} /> : children
+}
+
+export default function FileWrapper() {
+  const { bucket, path: key } = RRDom.useParams()
+  const location = RRDom.useLocation()
+  const { version } = parseSearch(location.search)
+
+  const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])
+  return (
+    <HandleNoSlashDir handle={handle}>
+      <File />
+    </HandleNoSlashDir>
+  )
 }
