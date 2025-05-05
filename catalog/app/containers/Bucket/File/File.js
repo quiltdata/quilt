@@ -2,7 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, Redirect, useHistory, useLocation, useParams } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -24,7 +24,7 @@ import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
-import { up, decode, handleToHttpsUri, ensureSlash } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import AssistButton from '../AssistButton'
@@ -68,7 +68,8 @@ function VersionInfo({ bucket, path, version }) {
 
   const classes = useVersionInfoStyles()
 
-  const getHttpsUri = (v) => handleToHttpsUri({ bucket, key: path, version: v.id })
+  const getHttpsUri = (v) =>
+    s3paths.handleToHttpsUri({ bucket, key: path, version: v.id })
   const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
@@ -113,7 +114,7 @@ function VersionInfo({ bucket, path, version }) {
                   button
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
-                  component={Link}
+                  component={RRDom.Link}
                   to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
@@ -298,17 +299,17 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function File() {
-  const location = useLocation()
-  const { bucket, path: encodedPath } = useParams()
+  const location = RRDom.useLocation()
+  const { bucket, path: encodedPath } = RRDom.useParams()
 
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const history = RRDom.useHistory()
   const s3 = AWS.S3.use()
   const { prefs } = BucketPreferences.use()
 
-  const path = decode(encodedPath)
+  const path = s3paths.decode(encodedPath)
 
   const [resetKey, setResetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
@@ -408,7 +409,7 @@ function File() {
     (segPath) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(up(path), getSegmentRoute, bucket, {
+  const crumbs = BreadCrumbs.use(s3paths.up(path), getSegmentRoute, bucket, {
     tailLink: true,
     tailSeparator: true,
   })
@@ -625,7 +626,7 @@ function useIsDirectory(handle) {
   const bucketListing = requests.useBucketListing()
   return React.useCallback(async () => {
     const { bucket, key } = handle
-    const path = ensureSlash(key)
+    const path = s3paths.ensureSlash(key)
     const { dirs, files } = await bucketListing({ bucket, path, maxKeys: 1 })
     // If prefix contains at least something, then it is a directory.
     // S3 can not have empty directories, because directories are virtual,
@@ -635,8 +636,8 @@ function useIsDirectory(handle) {
 }
 
 export default function FileWrapper() {
-  const { bucket, path: key } = useParams()
-  const location = useLocation()
+  const { bucket, path: key } = RRDom.useParams()
+  const location = RRDom.useLocation()
   const { version } = parseSearch(location.search)
 
   const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])
@@ -668,5 +669,5 @@ export default function FileWrapper() {
 
   if (isDir instanceof Error) return displayError()(isDir)
 
-  return isDir ? <Redirect to={ensureSlash(key)} /> : <File />
+  return isDir ? <RRDom.Redirect to={s3paths.ensureSlash(key)} /> : <File />
 }
