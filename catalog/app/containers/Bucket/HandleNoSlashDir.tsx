@@ -63,7 +63,7 @@ function useHandleNoSlashDir(
   )
 
   React.useEffect(() => {
-    function fetchData() {
+    function resolvePageType() {
       if (isObject === null) return
 
       if (isObject) {
@@ -75,7 +75,7 @@ function useHandleNoSlashDir(
         .then((isDir) => setPageType(isDir ? 'dir' : 'file'))
         .catch((e) => setPageType(e instanceof Error ? e : new Error(`${e}`)))
     }
-    fetchData()
+    resolvePageType()
   }, [handle, isObject, requestIsDirectory])
 
   return pageType
