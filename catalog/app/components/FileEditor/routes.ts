@@ -38,12 +38,18 @@ export function useAddFileInPackage({
 }: PackageHandle): (logicalKey: string) => string {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useCallback(
-    (logicalKey: string) =>
-      urls.bucketFile(bucket, s3paths.canonicalKey(name, logicalKey, cfg.packageRoot), {
-        add: logicalKey,
-        edit: true,
-        next: urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' }),
-      }),
+    (logicalKey: string) => {
+      invariant(logicalKey, '`logicalKey` can not be empty')
+      return urls.bucketFile(
+        bucket,
+        s3paths.canonicalKey(name, logicalKey, cfg.packageRoot),
+        {
+          add: logicalKey,
+          edit: true,
+          next: urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' }),
+        },
+      )
+    },
     [bucket, name, urls],
   )
 }

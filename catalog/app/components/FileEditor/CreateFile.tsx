@@ -1,5 +1,6 @@
 import { join, extname } from 'path'
 
+import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
@@ -25,7 +26,10 @@ export function useCreateFileInBucket(bucket: string, path: string) {
 
   const createFile = React.useCallback(
     (name: string) => {
-      if (!name) return
+      invariant(
+        name,
+        '`name` should be invalidated, and `onSubmit` should not be triggered',
+      )
       history.push(toFile(join(path, name)))
     },
     [history, toFile, path],
@@ -46,6 +50,10 @@ export function useCreateFileInPackage(packageHandle: PackageHandle, prefix?: st
   const createFile = React.useCallback(
     (fileName: string) => {
       if (!fileName) return
+      invariant(
+        fileName,
+        '`fileName` should be invalidated, and `onSubmit` should not be triggered',
+      )
       history.push(toFile(fileName))
     },
     [history, toFile],
