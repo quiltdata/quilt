@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/HandleNoSlashDir redirects 1`] = `"redirect"`;
+
+exports[`containers/Bucket/HandleNoSlashDir render file content 1`] = `
+<h1>
+  It works
+</h1>
+`;
+
+exports[`containers/Bucket/HandleNoSlashDir render placeholder 1`] = `
+<h1>
+  Loading…
+</h1>
+`;

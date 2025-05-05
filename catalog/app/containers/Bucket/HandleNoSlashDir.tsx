@@ -98,8 +98,8 @@ export default function HandleNoSlashDir({ children, handle }: HandleNoSlashDirP
       const dirPage = urls.bucketDir(handle.bucket, s3paths.ensureSlash(handle.key))
       return <RRDom.Redirect to={dirPage} />
     case 'file':
-      return children
+      return <>{children}</>
     default:
-      displayError()(pageType)
+      return <>{displayError()(pageType)}</>
   }
 }
