@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - package-root-create-file-from-catalog-ui
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
