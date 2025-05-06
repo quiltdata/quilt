@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - handle-no-slash-dirs
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
