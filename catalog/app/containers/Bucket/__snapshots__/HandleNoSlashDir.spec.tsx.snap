@@ -2,14 +2,11 @@
 
 exports[`containers/Bucket/HandleNoSlashDir redirects 1`] = `"redirect"`;
 
-exports[`containers/Bucket/HandleNoSlashDir renders file content 1`] = `
-<h1>
-  It works
-</h1>
+exports[`containers/Bucket/HandleNoSlashDir renders error 1`] = `
+"Title: No Such Bucket
+Content: The specified bucket does not exist."
 `;
 
-exports[`containers/Bucket/HandleNoSlashDir renders placeholder 1`] = `
-<h1>
-  Loading…
-</h1>
-`;
+exports[`containers/Bucket/HandleNoSlashDir renders file content 1`] = `"It works!"`;
+
+exports[`containers/Bucket/HandleNoSlashDir renders placeholder 1`] = `"Loading…"`;
