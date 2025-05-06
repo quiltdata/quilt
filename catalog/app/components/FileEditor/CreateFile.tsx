@@ -24,7 +24,7 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   const history = RRDom.useHistory()
   const toFile = useAddFileInBucket(bucket)
 
-  const createFile = React.useCallback(
+  const onSubmit = React.useCallback(
     (name: string) => {
       invariant(
         name,
@@ -36,7 +36,7 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   )
 
   return Dialog.usePrompt({
-    onSubmit: createFile,
+    onSubmit,
     initialValue: 'README.md',
     title: 'Enter file name',
     validate: validateFileName,
@@ -47,9 +47,8 @@ export function useCreateFileInPackage(packageHandle: PackageHandle, prefix?: st
   const history = RRDom.useHistory()
   const toFile = useAddFileInPackage(packageHandle)
 
-  const createFile = React.useCallback(
+  const onSubmit = React.useCallback(
     (fileName: string) => {
-      if (!fileName) return
       invariant(
         fileName,
         '`fileName` should be invalidated, and `onSubmit` should not be triggered',
@@ -61,7 +60,7 @@ export function useCreateFileInPackage(packageHandle: PackageHandle, prefix?: st
 
   const defaultFileName = 'README.md'
   return Dialog.usePrompt({
-    onSubmit: createFile,
+    onSubmit,
     initialValue: prefix ? `${prefix}${defaultFileName}` : defaultFileName,
     title: 'Enter file name',
     validate: validateFileName,
