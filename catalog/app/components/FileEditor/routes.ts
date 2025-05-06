@@ -32,13 +32,13 @@ export function useEditFileInPackage(
   )
 }
 
-export function useAddFileInPackage({
-  bucket,
-  name,
-}: PackageHandle): (logicalKey: string) => string {
+export function useAddFileInPackage(
+  packageHandle: PackageHandle,
+): (logicalKey: string) => string {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useCallback(
     (logicalKey: string) => {
+      const { bucket, name } = packageHandle
       invariant(logicalKey, '`logicalKey` can not be empty')
       return urls.bucketFile(
         bucket,
@@ -50,7 +50,7 @@ export function useAddFileInPackage({
         },
       )
     },
-    [bucket, name, urls],
+    [packageHandle, urls],
   )
 }
 
