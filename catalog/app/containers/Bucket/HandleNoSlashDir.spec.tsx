@@ -72,7 +72,6 @@ describe('containers/Bucket/HandleNoSlashDir', () => {
   it('renders placeholder', async () => {
     const tree = create(<TestWrapper />)
     expect(tree.toJSON()).toMatchSnapshot()
-    tree.unmount()
   })
 
   it('renders file content', async () => {
