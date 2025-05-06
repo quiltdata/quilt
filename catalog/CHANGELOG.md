@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Detect directories and redirect to trailing-slash URLs (e.g., `catalog-host/dir` → `catalog-host/dir/`). ([#4398](https://github.com/quiltdata/quilt/pull/4398)) 
+- [Added] Detect directories and redirect to trailing-slash URLs (e.g., `catalog-host/dir` → `catalog-host/dir/`). ([#4398](https://github.com/quiltdata/quilt/pull/4398))
 - [Changed] Qurator: Switch to Claude 3.7 Sonnet ([#4343](https://github.com/quiltdata/quilt/pull/4343))
 - [Fixed] Qurator: Ensure tools schemas adhere to draft 2020-12 ([#4343](https://github.com/quiltdata/quilt/pull/4343))
 - [Added] Support setting the location where files are uploaded while creating or promoting packages (using `packageRoot` config property) ([#4384](https://github.com/quiltdata/quilt/pull/4384))
