@@ -13,21 +13,26 @@ jest.mock(
 
 jest.mock('components/Placeholder', () => () => <h1>Loading…</h1>)
 
-const headObject = jest.fn(() => ({
-  promise: () => ({}),
-}))
+const headObjectPromise = jest.fn(() => ({}))
 
-const listObjectsV2 = jest.fn(() => ({
-  promise: () => ({
-    CommonPrefixes: [{ Prefix: 'foo' }],
-  }),
+const listObjectsV2Promise = jest.fn(() => ({
+  CommonPrefixes: [{ Prefix: 'foo' }],
 }))
 
 jest.mock('utils/AWS', () => ({
   S3: {
     use: () => ({
-      headObject,
-      listObjectsV2,
+      headObject: jest.fn(() => ({
+        response: {
+          httpResponse: {
+            headers: {},
+          },
+        },
+        promise: headObjectPromise,
+      })),
+      listObjectsV2: jest.fn(() => ({
+        promise: listObjectsV2Promise,
+      })),
     }),
   },
 }))
@@ -37,84 +42,47 @@ jest.mock('react-router-dom', () => ({
   Redirect: () => 'redirect',
 }))
 
-function TestBucket({ children }: React.PropsWithChildren<{}>) {
-  return (
-    <NamedRoutes.Provider routes={{ bucketDir, bucketPackageTree }}>
-      {children}
-    </NamedRoutes.Provider>
-  )
+function wait(timeout: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve()
+    }, timeout)
+  })
 }
 
 describe('containers/Bucket/HandleNoSlashDir', () => {
-  it('render placeholder', async () => {
-    const handle = { bucket: 'b', key: 'k', version: 'some' }
-    const tree = create(
-      <TestBucket>
+  const handle = { bucket: 'b', key: 'k', version: 'some' }
+
+  function TestWrapper() {
+    return (
+      <NamedRoutes.Provider routes={{ bucketDir, bucketPackageTree }}>
         <HandleNoSlashDir handle={handle}>
           <h1>It works</h1>
         </HandleNoSlashDir>
-      </TestBucket>,
-    ).toJSON()
+      </NamedRoutes.Provider>
+    )
+  }
+
+  it('renders placeholder', async () => {
+    const tree = create(<TestWrapper />).toJSON()
     expect(tree).toMatchSnapshot()
   })
 
-  it('render file content', async () => {
-    const handle = { bucket: 'b', key: 'k', version: 'some' }
-    const tree = create(
-      <TestBucket>
-        <HandleNoSlashDir handle={handle}>
-          <h1>It works</h1>
-        </HandleNoSlashDir>
-      </TestBucket>,
-    )
-    await act(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(() => {
-            resolve()
-          }, 100)
-        }),
-    )
+  it('renders file content', async () => {
+    const tree = create(<TestWrapper />)
+    await act(() => wait(100))
     expect(tree.toJSON()).toMatchSnapshot()
   })
 
   it('redirects', async () => {
-    headObject.mockImplementation(() => ({
-      response: {
-        httpResponse: {
-          headers: {},
-        },
-      },
-      promise: () => {
-        throw {
-          code: 'NotFound',
-        }
-      },
-    }))
-    const handle = { bucket: 'b', key: 'k', version: 'some' }
-    const tree = create(
-      <TestBucket>
-        <HandleNoSlashDir handle={handle}>
-          <h1>It works</h1>
-        </HandleNoSlashDir>
-      </TestBucket>,
-    )
-    await act(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(() => {
-            resolve()
-          }, 100)
-        }),
-    )
-    await act(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(() => {
-            resolve()
-          }, 100)
-        }),
-    )
+    headObjectPromise.mockImplementation(() => {
+      throw {
+        code: 'NotFound',
+      }
+    })
+    const tree = create(<TestWrapper />)
+    await act(() => wait(100)) // object request and state change
+    await act(() => wait(100)) // listing request and state change
     expect(tree.toJSON()).toMatchSnapshot()
   })
 })
