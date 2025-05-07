@@ -16,19 +16,22 @@ const Dir = Symbol('dir')
 
 const File = Symbol('file')
 
+type IsObject = typeof Loading | boolean | Error
+
 // If object exists, then this is 100% an object page
-function useIsObject(handle: Model.S3.S3ObjectLocation) {
+function useIsObject(handle: Model.S3.S3ObjectLocation): IsObject {
   const s3 = AWS.S3.use()
-  const [exists, setExists] = React.useState<typeof Loading | boolean | Error>(Loading)
+  const [exists, setExists] = React.useState<IsObject>(Loading)
 
   const mounted = React.useRef(true)
-  const handleRequest = React.useCallback((o: boolean | Error) => {
-    if (mounted.current) {
-      setExists(o)
-    }
-  }, [])
+  const handleRequest = React.useCallback(
+    (o: IsObject) => mounted.current && setExists(o),
+    [],
+  )
 
   React.useEffect(() => {
+    handleRequest(Loading)
+
     const { bucket, key, version } = handle
     requests
       .getObjectExistence({
@@ -53,21 +56,27 @@ function useIsObject(handle: Model.S3.S3ObjectLocation) {
   return exists
 }
 
+type IsDirectory = typeof Loading | boolean | Error
+
 // If prefix contains at least something, then it is a directory.
 // S3 can not have empty directories, because directories are virtual,
 //    they are based on paths for existing keys (file)
-function useIsDirectory(handle: Model.S3.S3ObjectLocation, proceed: boolean = false) {
+function useIsDirectory(
+  handle: Model.S3.S3ObjectLocation,
+  proceed: boolean = false,
+): IsDirectory {
   const bucketListing = requests.useBucketListing()
-  const [isDir, setIsDir] = React.useState<typeof Loading | boolean | Error>(Loading)
+  const [isDir, setIsDir] = React.useState<IsDirectory>(Loading)
 
   const mounted = React.useRef(true)
-  const handleRequest = React.useCallback((d: boolean | Error) => {
-    if (mounted.current) {
-      setIsDir(d)
-    }
-  }, [])
+  const handleRequest = React.useCallback(
+    (d: IsDirectory) => mounted.current && setIsDir(d),
+    [],
+  )
 
   React.useEffect(() => {
+    handleRequest(Loading)
+
     if (!proceed) return
 
     const { bucket, key } = handle
