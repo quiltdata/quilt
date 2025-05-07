@@ -1,102 +1,17 @@
 import * as React from 'react'
+import * as R from 'ramda'
 import * as RRDom from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { useData } from 'utils/Data'
+import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
 import * as requests from './requests'
 import { displayError } from './errors'
-
-const Loading = Symbol('loading')
-
-const Dir = Symbol('dir')
-
-const File = Symbol('file')
-
-type IsObject = typeof Loading | boolean | Error
-
-// If object exists, then this is 100% an object page
-function useIsObject(handle: Model.S3.S3ObjectLocation): IsObject {
-  const s3 = AWS.S3.use()
-  const [exists, setExists] = React.useState<IsObject>(Loading)
-
-  const mounted = React.useRef(true)
-  const handleRequest = React.useCallback(
-    (o: IsObject) => mounted.current && setExists(o),
-    [],
-  )
-
-  React.useEffect(() => {
-    handleRequest(Loading)
-
-    const { bucket, key, version } = handle
-    requests
-      .getObjectExistence({ s3, bucket, key, version })
-      .then(requests.ObjectExistence.case({ Exists: () => true, _: () => false }))
-      .then(handleRequest)
-      .catch(handleRequest)
-
-    return () => {
-      mounted.current = false
-    }
-  }, [s3, handle, handleRequest])
-
-  return exists
-}
-
-type IsDirectory = typeof Loading | boolean | Error
-
-// If prefix contains at least something, then it is a directory.
-// S3 can not have empty directories, because directories are virtual,
-//    they are based on paths for existing keys (file)
-function useIsDirectory(
-  handle: Model.S3.S3ObjectLocation,
-  proceed: boolean = false,
-): IsDirectory {
-  const bucketListing = requests.useBucketListing()
-  const [isDir, setIsDir] = React.useState<IsDirectory>(Loading)
-
-  const mounted = React.useRef(true)
-  const handleRequest = React.useCallback(
-    (d: IsDirectory) => mounted.current && setIsDir(d),
-    [],
-  )
-
-  React.useEffect(() => {
-    handleRequest(Loading)
-
-    if (!proceed) return
-
-    const { bucket, key } = handle
-    const path = s3paths.ensureSlash(key)
-    bucketListing({ bucket, path, maxKeys: 1 })
-      .then(({ dirs, files }) => !!dirs.length || !!files.length)
-      .then(handleRequest)
-      .catch(handleRequest)
-
-    return () => {
-      mounted.current = false
-    }
-  }, [bucketListing, handle, proceed, handleRequest])
-
-  return isDir
-}
-
-function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
-  const isObject = useIsObject(handle)
-  const isDirectory = useIsDirectory(handle, !isObject)
-
-  if (isObject === Loading || isObject instanceof Error) return isObject
-
-  if (isObject) return File
-
-  if (isDirectory === Loading || isDirectory instanceof Error) return isDirectory
-
-  return isDirectory ? Dir : File
-}
 
 interface FallbackToDirProps {
   children: React.ReactNode
@@ -104,19 +19,57 @@ interface FallbackToDirProps {
 }
 
 export default function FallbackToDir({ children, handle }: FallbackToDirProps) {
+  const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
 
-  const pageType = useFallbackToDir(handle)
+  const objData = useData(requests.getObjectExistence, { s3, ...handle })
 
-  switch (pageType) {
-    case Loading:
-      return <Placeholder color="text.secondary" />
-    case Dir:
-      const dirPage = urls.bucketDir(handle.bucket, s3paths.ensureSlash(handle.key))
-      return <RRDom.Redirect to={dirPage} />
-    case File:
-      return <>{children}</>
-    default:
-      return <>{displayError()(pageType)}</>
-  }
+  const noAutoFetch = React.useMemo(
+    () =>
+      AsyncResult.case(
+        {
+          Ok: requests.ObjectExistence.case({ Exists: R.T, _: R.F }),
+          _: R.T,
+        },
+        objData.result,
+      ),
+    [objData.result],
+  )
+
+  const dirData = useData(requests.bucketListing, { s3, ...handle }, { noAutoFetch })
+
+  const redirectResult = React.useMemo(
+    () =>
+      AsyncResult.case(
+        {
+          Ok: requests.ObjectExistence.case({
+            Exists: R.F,
+            _: () =>
+              AsyncResult.mapCase(
+                {
+                  Ok: (isDirectory: boolean) =>
+                    isDirectory
+                      ? urls.bucketDir(handle.bucket, s3paths.ensureSlash(handle.key))
+                      : undefined,
+                },
+                dirData.result,
+              ),
+          }),
+          Err: AsyncResult.Err,
+          Pending: AsyncResult.Pending,
+          Init: AsyncResult.Init,
+        },
+        objData.result,
+      ),
+    [objData.result, dirData.result, handle, urls],
+  )
+
+  return AsyncResult.case(
+    {
+      Ok: (to?: string) => (to ? <RRDom.Redirect to={to} /> : children),
+      Err: displayError(),
+      _: () => <Placeholder color="text.secondary" />,
+    },
+    redirectResult,
+  )
 }
