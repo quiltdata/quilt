@@ -1,11 +1,18 @@
 import { renderHook } from '@testing-library/react-hooks'
 
 import {
-  editFileInPackage,
   useAddFileInPackage,
+  useAddFileInBucket,
   useEditFileInPackage,
   useParams,
 } from './routes'
+
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    packageRoot: 'ro/ot',
+  })),
+)
 
 const useParamsInternal = jest.fn(
   () =>
@@ -34,24 +41,15 @@ jest.mock('utils/NamedRoutes', () => ({
 }))
 
 describe('components/FileEditor/routes', () => {
-  describe('editFileInPackage', () => {
-    it('should create url', () => {
-      expect(
-        editFileInPackage(urls, { bucket: 'bucket', key: 'key' }, 'logicalKey', 'next'),
-      ).toEqual('bucketFile(bucket, key, {"add":"logicalKey","edit":true,"next":"next"})')
-    })
-  })
-
   describe('useEditFileInPackage', () => {
     it('should create url with redirect to package', () => {
       const { result } = renderHook(() =>
         useEditFileInPackage(
           { bucket: 'b', name: 'n', hash: 'h' },
           { bucket: 'b', key: 'k' },
-          'lk',
         ),
       )
-      expect(result.current).toBe(
+      expect(result.current('lk')).toBe(
         'bucketFile(b, k, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
       )
     })
@@ -60,11 +58,18 @@ describe('components/FileEditor/routes', () => {
   describe('useAddFileInPackage', () => {
     it('should create url for the new file', () => {
       const { result } = renderHook(() =>
-        useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }, 'lk'),
+        useAddFileInPackage({ bucket: 'b', name: 'n', hash: 'h' }),
       )
-      expect(result.current).toBe(
-        'bucketFile(b, n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
+      expect(result.current('lk')).toBe(
+        'bucketFile(b, ro/ot/n/lk, {"add":"lk","edit":true,"next":"bucketPackageDetail(b, n, {\\"action\\":\\"revisePackage\\"})"})',
       )
+    })
+  })
+
+  describe('useAddFileInBucket', () => {
+    it('should create url for the new file in a bucket', () => {
+      const { result } = renderHook(() => useAddFileInBucket('b'))
+      expect(result.current('lk')).toBe(`bucketFile(b, lk, {"edit":true})`)
     })
   })
 
