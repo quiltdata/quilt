@@ -10,9 +10,15 @@ import * as s3paths from 'utils/s3paths'
 import * as requests from './requests'
 import { displayError } from './errors'
 
+const Loading = Symbol('loading')
+
+const Dir = Symbol('dir')
+
+const File = Symbol('file')
+
 // If object exists, then this is 100% an object page
-function useIsObject(handle: Model.S3.S3ObjectLocation): null | boolean | Error {
-  const [exists, setExists] = React.useState<null | boolean | Error>(null)
+function useIsObject(handle: Model.S3.S3ObjectLocation) {
+  const [exists, setExists] = React.useState<typeof Loading | boolean | Error>(Loading)
 
   const s3 = AWS.S3.use()
   React.useEffect(() => {
@@ -40,12 +46,9 @@ function useIsObject(handle: Model.S3.S3ObjectLocation): null | boolean | Error 
 // If prefix contains at least something, then it is a directory.
 // S3 can not have empty directories, because directories are virtual,
 //    they are based on paths for existing keys (file)
-function useIsDirectory(
-  handle: Model.S3.S3ObjectLocation,
-  pause: boolean,
-): null | boolean | Error {
+function useIsDirectory(handle: Model.S3.S3ObjectLocation, pause: boolean) {
   const bucketListing = requests.useBucketListing()
-  const [isDir, setIsDir] = React.useState<null | boolean | Error>(null)
+  const [isDir, setIsDir] = React.useState<typeof Loading | boolean | Error>(Loading)
   React.useEffect(() => {
     if (pause) return
 
@@ -58,19 +61,17 @@ function useIsDirectory(
   return isDir
 }
 
-function useHandleNoSlashDir(
-  handle: Model.S3.S3ObjectLocation,
-): null | 'dir' | 'file' | Error {
+function useHandleNoSlashDir(handle: Model.S3.S3ObjectLocation) {
   const isObject = useIsObject(handle)
-  const isDirectory = useIsDirectory(handle, isObject === null)
+  const isDirectory = useIsDirectory(handle, isObject === Loading)
 
-  if (isObject === null || isObject instanceof Error) return isObject
+  if (isObject === Loading || isObject instanceof Error) return isObject
 
-  if (isObject) return 'file'
+  if (isObject) return File
 
-  if (isDirectory === null || isDirectory instanceof Error) return isDirectory
+  if (isDirectory === Loading || isDirectory instanceof Error) return isDirectory
 
-  return isDirectory ? 'dir' : 'file'
+  return isDirectory ? Dir : File
 }
 
 interface HandleNoSlashDirProps {
@@ -84,12 +85,12 @@ export default function HandleNoSlashDir({ children, handle }: HandleNoSlashDirP
   const pageType = useHandleNoSlashDir(handle)
 
   switch (pageType) {
-    case null:
+    case Loading:
       return <Placeholder color="text.secondary" />
-    case 'dir':
+    case Dir:
       const dirPage = urls.bucketDir(handle.bucket, s3paths.ensureSlash(handle.key))
       return <RRDom.Redirect to={dirPage} />
-    case 'file':
+    case File:
       return <>{children}</>
     default:
       return <>{displayError()(pageType)}</>
