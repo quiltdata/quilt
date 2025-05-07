@@ -61,7 +61,7 @@ function useIsDirectory(handle: Model.S3.S3ObjectLocation, pause: boolean) {
   return isDir
 }
 
-function useHandleNoSlashDir(handle: Model.S3.S3ObjectLocation) {
+function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
   const isObject = useIsObject(handle)
   const isDirectory = useIsDirectory(handle, isObject === Loading)
 
@@ -74,15 +74,15 @@ function useHandleNoSlashDir(handle: Model.S3.S3ObjectLocation) {
   return isDirectory ? Dir : File
 }
 
-interface HandleNoSlashDirProps {
+interface FallbackToDirProps {
   children: React.ReactNode
   handle: Model.S3.S3ObjectLocation
 }
 
-export default function HandleNoSlashDir({ children, handle }: HandleNoSlashDirProps) {
+export default function FallbackToDir({ children, handle }: FallbackToDirProps) {
   const { urls } = NamedRoutes.use()
 
-  const pageType = useHandleNoSlashDir(handle)
+  const pageType = useFallbackToDir(handle)
 
   switch (pageType) {
     case Loading:

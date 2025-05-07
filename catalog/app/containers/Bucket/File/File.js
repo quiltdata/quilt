@@ -30,7 +30,7 @@ import AssistButton from '../AssistButton'
 import * as Download from '../Download'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
-import HandleNoSlashDir from '../HandleNoSlashDir'
+import FallbackToDir from '../FallbackToDir'
 import Section from '../Section'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
@@ -599,8 +599,8 @@ export default function FileWrapper() {
   const { version } = parseSearch(location.search)
   const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])
   return (
-    <HandleNoSlashDir handle={handle}>
+    <FallbackToDir handle={handle}>
       <File />
-    </HandleNoSlashDir>
+    </FallbackToDir>
   )
 }

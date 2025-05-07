@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/FallbackToDir redirects 1`] = `"redirect"`;
+
+exports[`containers/Bucket/FallbackToDir renders error 1`] = `
+"Title: No Such Bucket
+Content: The specified bucket does not exist."
+`;
+
+exports[`containers/Bucket/FallbackToDir renders file content 1`] = `"It works!"`;
+
+exports[`containers/Bucket/FallbackToDir renders placeholder 1`] = `"Loading…"`;

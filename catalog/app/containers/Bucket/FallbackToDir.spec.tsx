@@ -4,7 +4,7 @@ import { act, create } from 'react-test-renderer'
 import { bucketDir, bucketPackageTree } from 'constants/routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import HandleNoSlashDir from './HandleNoSlashDir'
+import FallbackToDir from './FallbackToDir'
 import { NoSuchBucket } from './errors'
 
 jest.mock(
@@ -58,13 +58,13 @@ function wait(timeout: number): Promise<void> {
   })
 }
 
-describe('containers/Bucket/HandleNoSlashDir', () => {
+describe('containers/Bucket/FallbackToDir', () => {
   const handle = { bucket: 'b', key: 'k', version: 'some' }
 
   function TestWrapper() {
     return (
       <NamedRoutes.Provider routes={{ bucketDir, bucketPackageTree }}>
-        <HandleNoSlashDir handle={handle}>It works!</HandleNoSlashDir>
+        <FallbackToDir handle={handle}>It works!</FallbackToDir>
       </NamedRoutes.Provider>
     )
   }
