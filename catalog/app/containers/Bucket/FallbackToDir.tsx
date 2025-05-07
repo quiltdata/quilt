@@ -21,6 +21,13 @@ function useIsObject(handle: Model.S3.S3ObjectLocation) {
   const s3 = AWS.S3.use()
   const [exists, setExists] = React.useState<typeof Loading | boolean | Error>(Loading)
 
+  const mounted = React.useRef(true)
+  const handleRequest = React.useCallback((o: boolean | Error) => {
+    if (mounted.current) {
+      setExists(o)
+    }
+  }, [])
+
   React.useEffect(() => {
     const { bucket, key, version } = handle
     requests
@@ -36,9 +43,12 @@ function useIsObject(handle: Model.S3.S3ObjectLocation) {
           _: () => false,
         }),
       )
-      .then(setExists)
-      .catch(setExists)
-  }, [s3, handle])
+      .then(handleRequest)
+      .catch(handleRequest)
+    return () => {
+      mounted.current = false
+    }
+  }, [s3, handle, handleRequest])
 
   return exists
 }
@@ -46,26 +56,36 @@ function useIsObject(handle: Model.S3.S3ObjectLocation) {
 // If prefix contains at least something, then it is a directory.
 // S3 can not have empty directories, because directories are virtual,
 //    they are based on paths for existing keys (file)
-function useIsDirectory(handle: Model.S3.S3ObjectLocation, pause: boolean) {
+function useIsDirectory(handle: Model.S3.S3ObjectLocation, proceed: boolean = false) {
   const bucketListing = requests.useBucketListing()
   const [isDir, setIsDir] = React.useState<typeof Loading | boolean | Error>(Loading)
 
+  const mounted = React.useRef(true)
+  const handleRequest = React.useCallback((d: boolean | Error) => {
+    if (mounted.current) {
+      setIsDir(d)
+    }
+  }, [])
+
   React.useEffect(() => {
-    if (pause) return
+    if (!proceed) return
 
     const { bucket, key } = handle
     const path = s3paths.ensureSlash(key)
     bucketListing({ bucket, path, maxKeys: 1 })
-      .then(({ dirs, files }) => setIsDir(!!dirs.length || !!files.length))
-      .catch((e) => setIsDir(e instanceof Error ? e : new Error(`${e}`)))
-  }, [bucketListing, handle, pause])
+      .then(({ dirs, files }) => handleRequest(!!dirs.length || !!files.length))
+      .catch(handleRequest)
+    return () => {
+      mounted.current = false
+    }
+  }, [bucketListing, handle, proceed, handleRequest])
 
   return isDir
 }
 
 function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
   const isObject = useIsObject(handle)
-  const isDirectory = useIsDirectory(handle, isObject === Loading)
+  const isDirectory = useIsDirectory(handle, !isObject)
 
   if (isObject === Loading || isObject instanceof Error) return isObject
 
