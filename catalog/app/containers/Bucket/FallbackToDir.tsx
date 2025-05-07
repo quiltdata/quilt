@@ -34,20 +34,11 @@ function useIsObject(handle: Model.S3.S3ObjectLocation): IsObject {
 
     const { bucket, key, version } = handle
     requests
-      .getObjectExistence({
-        s3,
-        bucket,
-        key,
-        version,
-      })
-      .then(
-        requests.ObjectExistence.case({
-          Exists: () => true,
-          _: () => false,
-        }),
-      )
+      .getObjectExistence({ s3, bucket, key, version })
+      .then(requests.ObjectExistence.case({ Exists: () => true, _: () => false }))
       .then(handleRequest)
       .catch(handleRequest)
+
     return () => {
       mounted.current = false
     }
@@ -82,8 +73,10 @@ function useIsDirectory(
     const { bucket, key } = handle
     const path = s3paths.ensureSlash(key)
     bucketListing({ bucket, path, maxKeys: 1 })
-      .then(({ dirs, files }) => handleRequest(!!dirs.length || !!files.length))
+      .then(({ dirs, files }) => !!dirs.length || !!files.length)
+      .then(handleRequest)
       .catch(handleRequest)
+
     return () => {
       mounted.current = false
     }
