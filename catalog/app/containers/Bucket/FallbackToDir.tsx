@@ -18,9 +18,9 @@ const File = Symbol('file')
 
 // If object exists, then this is 100% an object page
 function useIsObject(handle: Model.S3.S3ObjectLocation) {
+  const s3 = AWS.S3.use()
   const [exists, setExists] = React.useState<typeof Loading | boolean | Error>(Loading)
 
-  const s3 = AWS.S3.use()
   React.useEffect(() => {
     const { bucket, key, version } = handle
     requests
@@ -49,6 +49,7 @@ function useIsObject(handle: Model.S3.S3ObjectLocation) {
 function useIsDirectory(handle: Model.S3.S3ObjectLocation, pause: boolean) {
   const bucketListing = requests.useBucketListing()
   const [isDir, setIsDir] = React.useState<typeof Loading | boolean | Error>(Loading)
+
   React.useEffect(() => {
     if (pause) return
 
@@ -58,6 +59,7 @@ function useIsDirectory(handle: Model.S3.S3ObjectLocation, pause: boolean) {
       .then(({ dirs, files }) => setIsDir(!!dirs.length || !!files.length))
       .catch((e) => setIsDir(e instanceof Error ? e : new Error(`${e}`)))
   }, [bucketListing, handle, pause])
+
   return isDir
 }
 
