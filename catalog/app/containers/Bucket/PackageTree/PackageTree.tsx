@@ -697,8 +697,11 @@ function FileDisplay({
     [file, packageHandle],
   )
 
-  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle, path)
-  const handleEdit = React.useCallback(() => history.push(editUrl), [editUrl, history])
+  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle)
+  const handleEdit = React.useCallback(
+    () => history.push(editUrl(path)),
+    [editUrl, history, path],
+  )
   const packageUri = React.useMemo(
     () => ({
       ...packageHandle,

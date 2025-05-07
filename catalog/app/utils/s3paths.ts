@@ -1,4 +1,4 @@
-import { dirname, basename, resolve } from 'path'
+import { dirname, basename, join, resolve } from 'path'
 import { parse as parseUrl } from 'url'
 
 import * as R from 'ramda'
@@ -128,3 +128,21 @@ export const getBreadCrumbs = (path: string): { label: string; path: string }[] 
 export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'))
 
 export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'))
+
+/**
+ * Files in the package are backed by real files in the S3 bucket.
+ * We store them at this location in a bucket by default.
+ */
+export function canonicalKey(
+  packageName: string,
+  logicalKey: string,
+  optPackageRoot: string = '',
+) {
+  if (!packageName) {
+    throw new Error('Package name cannot be empty')
+  }
+  if (!logicalKey) {
+    throw new Error('logicalKey name cannot be empty')
+  }
+  return withoutPrefix('/', join(optPackageRoot, packageName, logicalKey))
+}

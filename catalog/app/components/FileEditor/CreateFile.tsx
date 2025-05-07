@@ -1,13 +1,14 @@
 import { join, extname } from 'path'
 
+import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as Dialog from 'components/Dialog'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { isSupportedFileType } from './loader'
+import { useAddFileInBucket, useAddFileInPackage } from './routes'
 
 function validateFileName(value: string) {
   if (!value) {
@@ -20,52 +21,38 @@ function validateFileName(value: string) {
 }
 
 export function useCreateFileInBucket(bucket: string, path: string) {
-  const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
+  const toFile = useAddFileInBucket(bucket)
 
-  // TODO: put this into FileEditor/routes
-  const toFile = React.useCallback(
-    (name: string) => urls.bucketFile(bucket, join(path, name), { edit: true }),
-    [bucket, path, urls],
-  )
-
-  const createFile = React.useCallback(
+  const onSubmit = React.useCallback(
     (name: string) => {
-      if (!name) return
-      history.push(toFile(name))
+      invariant(
+        name,
+        '`name` should be invalidated, and `onSubmit` should not be triggered',
+      )
+      history.push(toFile(join(path, name)))
     },
-    [history, toFile],
+    [history, toFile, path],
   )
 
   return Dialog.usePrompt({
-    onSubmit: createFile,
+    onSubmit,
     initialValue: 'README.md',
     title: 'Enter file name',
     validate: validateFileName,
   })
 }
 
-export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?: string) {
-  const { urls } = NamedRoutes.use()
+export function useCreateFileInPackage(packageHandle: PackageHandle, prefix?: string) {
   const history = RRDom.useHistory()
+  const toFile = useAddFileInPackage(packageHandle)
 
-  // TODO: put this into FileEditor/routes
-  const toFile = React.useCallback(
+  const onSubmit = React.useCallback(
     (fileName: string) => {
-      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-      const key = join(name, fileName)
-      return urls.bucketFile(bucket, key, {
-        add: fileName,
-        edit: true,
-        next,
-      })
-    },
-    [bucket, name, urls],
-  )
-
-  const createFile = React.useCallback(
-    (fileName: string) => {
-      if (!fileName) return
+      invariant(
+        fileName,
+        '`fileName` should be invalidated, and `onSubmit` should not be triggered',
+      )
       history.push(toFile(fileName))
     },
     [history, toFile],
@@ -73,7 +60,7 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?:
 
   const defaultFileName = 'README.md'
   return Dialog.usePrompt({
-    onSubmit: createFile,
+    onSubmit,
     initialValue: prefix ? `${prefix}${defaultFileName}` : defaultFileName,
     title: 'Enter file name',
     validate: validateFileName,
