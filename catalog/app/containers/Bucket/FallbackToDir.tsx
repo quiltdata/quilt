@@ -16,73 +16,76 @@ const Dir = Symbol('dir')
 
 const File = Symbol('file')
 
-type IsObject = typeof Loading | boolean | Error
+type RequestResult<T> = typeof Loading | Error | T
 
-// If object exists, then this is 100% an object page
-function useIsObject(handle: Model.S3.S3ObjectLocation): IsObject {
-  const s3 = AWS.S3.use()
-  const [exists, setExists] = React.useState<IsObject>(Loading)
+function useRequest<T>(req: () => Promise<T>, proceed: boolean = true): RequestResult<T> {
+  const [result, setResult] = React.useState<RequestResult<T>>(Loading)
 
-  const mounted = React.useRef(true)
-  const handleRequest = React.useCallback(
-    (o: IsObject) => mounted.current && setExists(o),
+  const currentReq = React.useRef<Promise<T>>()
+
+  React.useEffect(() => {
+    setResult(Loading)
+
+    if (!proceed) {
+      currentReq.current = undefined
+      return
+    }
+
+    const p = req()
+    currentReq.current = p
+
+    function handleResult(r: T | Error) {
+      // if the request is not the current one, ignore the result
+      if (currentReq.current === p) setResult(r)
+    }
+
+    p.then(handleResult, handleResult)
+  }, [req, proceed])
+
+  // cleanup on unmount
+  React.useEffect(
+    () => () => {
+      currentReq.current = undefined
+    },
     [],
   )
 
-  React.useEffect(() => {
-    handleRequest(Loading)
-
-    const { bucket, key, version } = handle
-    requests
-      .getObjectExistence({ s3, bucket, key, version })
-      .then(requests.ObjectExistence.case({ Exists: () => true, _: () => false }))
-      .then(handleRequest)
-      .catch(handleRequest)
-
-    return () => {
-      mounted.current = false
-    }
-  }, [s3, handle, handleRequest])
-
-  return exists
+  return result
 }
 
-type IsDirectory = typeof Loading | boolean | Error
+// If object exists, then this is 100% an object page
+function useIsObject(handle: Model.S3.S3ObjectLocation) {
+  const s3 = AWS.S3.use()
+  const { bucket, key, version } = handle
+  const req = React.useCallback(
+    () =>
+      requests
+        .getObjectExistence({ s3, bucket, key, version })
+        .then(requests.ObjectExistence.case({ Exists: () => true, _: () => false })),
+    [s3, bucket, key, version],
+  )
+
+  return useRequest<boolean>(req)
+}
 
 // If prefix contains at least something, then it is a directory.
 // S3 can not have empty directories, because directories are virtual,
 //    they are based on paths for existing keys (file)
-function useIsDirectory(
-  handle: Model.S3.S3ObjectLocation,
-  proceed: boolean = false,
-): IsDirectory {
+function useIsDirectory(handle: Model.S3.S3ObjectLocation, proceed: boolean) {
   const bucketListing = requests.useBucketListing()
-  const [isDir, setIsDir] = React.useState<IsDirectory>(Loading)
 
-  const mounted = React.useRef(true)
-  const handleRequest = React.useCallback(
-    (d: IsDirectory) => mounted.current && setIsDir(d),
-    [],
+  const { bucket, key } = handle
+  const path = s3paths.ensureSlash(key)
+  const req = React.useCallback(
+    () =>
+      bucketListing({ bucket, path, maxKeys: 1 }).then(
+        ({ dirs, files }) => !!dirs.length || !!files.length,
+      ),
+
+    [bucketListing, bucket, path],
   )
 
-  React.useEffect(() => {
-    handleRequest(Loading)
-
-    if (!proceed) return
-
-    const { bucket, key } = handle
-    const path = s3paths.ensureSlash(key)
-    bucketListing({ bucket, path, maxKeys: 1 })
-      .then(({ dirs, files }) => !!dirs.length || !!files.length)
-      .then(handleRequest)
-      .catch(handleRequest)
-
-    return () => {
-      mounted.current = false
-    }
-  }, [bucketListing, handle, proceed, handleRequest])
-
-  return isDir
+  return useRequest(req, proceed)
 }
 
 function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
