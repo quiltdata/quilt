@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Detect directories and redirect to trailing-slash URLs (e.g., `catalog-host/dir` → `catalog-host/dir/`). ([#4398](https://github.com/quiltdata/quilt/pull/4398))
 - [Fixed] Respect `packageRoot` config property when creating text files using Catalog UI ([#4397](https://github.com/quiltdata/quilt/pull/4397))
 - [Changed] Qurator: Switch to Claude 3.7 Sonnet ([#4343](https://github.com/quiltdata/quilt/pull/4343))
 - [Fixed] Qurator: Ensure tools schemas adhere to draft 2020-12 ([#4343](https://github.com/quiltdata/quilt/pull/4343))
