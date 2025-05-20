@@ -3,6 +3,7 @@ import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
@@ -13,42 +14,27 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import bg from './bg.png'
 
-import Controls from './Controls'
 import * as NavMenu from './NavMenu'
 import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
-  bgQuilt: {
-    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
-  },
-  bgCustom: {
+  root: {
+    position: 'absolute',
+    minHeight: t.spacing(6),
     alignItems: 'center',
-    // TODO: make UI component with this background, and DRY
-    background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
-    borderRadius: t.spacing(0, 0, 2, 0),
     display: 'flex',
     justifyContent: 'center',
-    minHeight: t.spacing(8),
-    paddingRight: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor ? t.spacing(4) : t.spacing(2),
   },
 }))
 
 function LogoLink() {
   const settings = CatalogSettings.use()
-  const classes = useLogoLinkStyles({
-    backgroundColor: settings?.theme?.palette?.primary?.main,
-  })
+  const classes = useLogoLinkStyles()
   const { urls } = NamedRoutes.use()
   return (
-    <div className={classes.bgQuilt}>
-      <div className={classes.bgCustom}>
-        <Link to={urls.home()}>
-          <Logo width="27px" height="27px" src={settings?.logo?.url} />
-        </Link>
-      </div>
-    </div>
+    <Link to={urls.home()} className={classes.root}>
+      <Logo width="64px" height="24px" src={settings?.logo?.url} />
+    </Link>
   )
 }
 
@@ -70,26 +56,13 @@ function QuiltLink({ className }: QuiltLinkProps) {
 }
 
 const useAppBarStyles = M.makeStyles((t) => ({
-  root: {
+  root: ({ backgroundColor }: { backgroundColor?: string }) => ({
     zIndex: t.zIndex.appBar + 1,
-  },
-  bgWrapper: {
-    bottom: 0,
-    display: 'flex',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  bgCustom: {
-    background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
-    flex: '50%',
-  },
-  bgQuilt: {
-    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
-    flex: '50%',
-  },
+    background: backgroundColor || `${t.palette.secondary.dark} left / 48px url(${bg})`,
+    color: backgroundColor
+      ? t.palette.getContrastText(backgroundColor)
+      : t.palette.primary.contrastText,
+  }),
 }))
 
 interface AppBarProps {
@@ -106,30 +79,23 @@ const AppBar = React.forwardRef<HTMLDivElement, AppBarProps>(function AppBar(
   })
   return (
     <M.AppBar className={classes.root} ref={ref}>
-      <div className={classes.bgWrapper}>
-        <div className={classes.bgCustom} />
-        <div className={classes.bgQuilt} />
-      </div>
       {children}
     </M.AppBar>
   )
 })
 
-const useHeaderStyles = M.makeStyles((t) => ({
+const useHeaderStyles = M.makeStyles({
   container: {
     display: 'flex',
     alignItems: 'center',
   },
   main: {
     alignItems: 'center',
-    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
-    borderRadius: '16px 0 0 0',
     display: 'flex',
     flexGrow: 1,
-    minHeight: '64px',
-    paddingLeft: ({ customBg }: { customBg: boolean }) => (customBg ? '32px' : undefined),
+    justifyContent: 'center',
   },
-}))
+})
 
 interface HeaderProps {
   children?: React.ReactNode
@@ -143,12 +109,11 @@ export function Header({ children }: HeaderProps) {
   })
   return (
     <M.Box>
-      <M.Toolbar />
+      <M.Toolbar variant="dense" />
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
-          <M.Toolbar disableGutters>
+          <M.Toolbar disableGutters variant="dense">
             <M.Container className={classes.container} maxWidth="lg">
-              <LogoLink />
               <div className={classes.main}>{children}</div>
             </M.Container>
           </M.Toolbar>
@@ -171,14 +136,8 @@ export function Container({ children }: ContainerProps) {
 }
 
 const useLicenseErrorStyles = M.makeStyles((t) => ({
-  licenseError: {
+  root: {
     color: t.palette.error.light,
-    marginRight: t.spacing(0.5),
-
-    [t.breakpoints.down('sm')]: {
-      marginLeft: t.spacing(1.5),
-      marginRight: 0,
-    },
   },
 }))
 
@@ -190,26 +149,39 @@ function LicenseError({ restore }: LicenseErrorProps) {
   const classes = useLicenseErrorStyles()
   return (
     <M.Tooltip title="This Quilt stack is unlicensed. Contact your Quilt administrator.">
-      <M.IconButton className={classes.licenseError} onClick={restore} size="small">
+      <M.IconButton className={classes.root} onClick={restore}>
         <M.Icon>error_outline</M.Icon>
       </M.IconButton>
     </M.Tooltip>
   )
 }
 
-const useNavBarStyles = M.makeStyles({
+const useNavBarStyles = M.makeStyles((t) => ({
   quiltLogo: {
-    margin: '0 0 3px 8px',
+    background: `${t.palette.secondary.dark} left / 48px url(${bg})`,
+    padding: t.spacing(1),
+    borderRadius: '50% 50% 0 50%',
   },
-  spacer: {
-    flexGrow: 1,
+  search: {
+    marginRight: t.spacing(4),
+    [t.breakpoints.down('sm')]: {
+      marginRight: t.spacing(1),
+    },
   },
-})
+  burger: {
+    display: 'grid',
+    marginRight: 'auto',
+    gridTemplateColumns: 'auto auto',
+    gridColumnGap: t.spacing(1),
+  },
+  user: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+}))
 
 export function NavBar() {
   const classes = useNavBarStyles()
-  const t = M.useTheme()
-  const collapse = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const settings = CatalogSettings.use()
   const sub = Subscription.useState()
@@ -219,17 +191,31 @@ export function NavBar() {
 
   return (
     <Container>
-      {hideControls ? <div className={classes.spacer} /> : <Controls />}
+      <div className={classes.burger}>
+        <NavMenu.Links />
 
-      <Subscription.Display {...sub} />
+        <Subscription.Display {...sub} />
+        {sub.invalid && <LicenseError restore={sub.restore} />}
+      </div>
 
-      {!collapse && <NavMenu.Links />}
+      <LogoLink />
 
-      {sub.invalid && <LicenseError restore={sub.restore} />}
+      <div className={classes.user}>
+        {!hideControls && (
+          <Link className={classes.search} to="/search">
+            <Buttons.Iconized
+              icon="search"
+              label="Search"
+              variant="text"
+              color="inherit"
+            />
+          </Link>
+        )}
 
-      <NavMenu.Menu collapse={collapse} />
+        <NavMenu.Menu />
 
-      {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
+        {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
+      </div>
     </Container>
   )
 }

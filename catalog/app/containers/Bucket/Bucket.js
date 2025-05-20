@@ -22,7 +22,7 @@ const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
 const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
 const Overview = RT.mkLazy(() => import('./Overview'), SuspensePlaceholder)
-const PackageList = RT.mkLazy(() => import('./PackageList'), SuspensePlaceholder)
+const PackageList = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 const PackageRevisions = RT.mkLazy(
   () => import('./PackageRevisions'),
   SuspensePlaceholder,
@@ -62,23 +62,14 @@ const getBucketSection = (paths) =>
     ),
   )
 
-const useStyles = M.makeStyles((t) => ({
-  appBar: {
-    backgroundColor: t.palette.common.white,
-    color: t.palette.getContrastText(t.palette.common.white),
-  },
-}))
-
 function BucketLayout({ bucket, section = false, children }) {
-  const classes = useStyles()
   const bucketExistenceData = useBucketExistence(bucket)
+
   return (
     <Layout
       pre={
         <>
-          <M.AppBar position="static" className={classes.appBar}>
-            <BucketNav bucket={bucket} section={section} />
-          </M.AppBar>
+          <BucketNav bucket={bucket} section={section} />
           <M.Container maxWidth="lg">
             {bucketExistenceData.case({
               Ok: () => children,

@@ -21,7 +21,7 @@ import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
 
-function useMobileView() {
+export function useMobileView() {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
 }
@@ -80,7 +80,7 @@ const useScrollToTopStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ScrollToTop() {
+export function ScrollToTop() {
   const trigger = M.useScrollTrigger({ disableHysteresis: true })
   const classes = useScrollToTopStyles()
   const onClick = React.useCallback(
@@ -818,7 +818,7 @@ interface PackageFiltersProps {
   className: string
 }
 
-function PackageFilters({ className }: PackageFiltersProps) {
+export function PackageFilters({ className }: PackageFiltersProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const classes = usePackageFiltersStyles()
 
@@ -969,7 +969,7 @@ interface ObjectFiltersProps {
   className: string
 }
 
-function ObjectFilters({ className }: ObjectFiltersProps) {
+export function ObjectFilters({ className }: ObjectFiltersProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.S3Object)
   const classes = useObjectFiltersStyles()
 
@@ -1047,7 +1047,7 @@ function Filters({ className }: FiltersProps) {
   const model = SearchUIModel.use()
   return (
     <div className={cx(classes.root, className)}>
-      <ColumnTitle>Search for</ColumnTitle>
+      {/* <ColumnTitle>Search for</ColumnTitle> */}
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -1309,8 +1309,28 @@ function ResultsInner({ className }: ResultsInnerProps) {
   }
 }
 
+const useResultsCountStyles = M.makeStyles((t) => ({
+  create: {
+    marginLeft: t.spacing(2),
+    [t.breakpoints.down('sm')]: {
+      marginLeft: 'auto',
+    },
+  },
+}))
+
 function ResultsCount() {
-  const r = SearchUIModel.use().firstPageQuery
+  const classes = useResultsCountStyles()
+  const {
+    firstPageQuery,
+    state: { buckets },
+  } = SearchUIModel.use()
+  const r = firstPageQuery
+  const bucket = React.useMemo(() => {
+    if (buckets.length === 1) {
+      return buckets[0]
+    }
+    return null
+  }, [buckets])
   switch (r._tag) {
     case 'fetching':
       return <Skeleton width={140} height={24} />
@@ -1322,7 +1342,6 @@ function ResultsCount() {
         case 'InvalidInput':
           return null
         case 'ObjectsSearchResultSet':
-        case 'PackagesSearchResultSet':
           return (
             <ColumnTitle>
               <Format.Plural
@@ -1330,6 +1349,27 @@ function ResultsCount() {
                 one="1 result"
                 other={(n) => (n > 0 ? `${n} results` : 'Results')}
               />
+            </ColumnTitle>
+          )
+        case 'PackagesSearchResultSet':
+          return (
+            <ColumnTitle>
+              <Format.Plural
+                value={r.data.stats.total}
+                one="1 package"
+                other={(n) => (n > 0 ? `${n} packages` : 'Packages')}
+              />
+              {bucket && (
+                <M.Button
+                  color="primary"
+                  size="small"
+                  startIcon={<M.Icon>add</M.Icon>}
+                  className={classes.create}
+                  variant="contained"
+                >
+                  Create new package
+                </M.Button>
+              )}
             </ColumnTitle>
           )
         default:
@@ -1370,13 +1410,14 @@ interface ResultsProps {
   onFilters: () => void
 }
 
-function Results({ onFilters }: ResultsProps) {
+export function Results({ onFilters }: ResultsProps) {
   const classes = useResultsStyles()
   const isMobile = useMobileView()
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
         <ResultsCount />
+
         <div className={classes.controls}>
           {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
           <SortSelector className={classes.button} />
@@ -1387,12 +1428,84 @@ function Results({ onFilters }: ResultsProps) {
   )
 }
 
+function isEmptySearch(urlState: SearchUIModel.SearchUrlState) {
+  return (
+    !urlState.searchString && !Object.values(urlState.filter.predicates).some(Boolean)
+  )
+}
+
+const useEmptySearchStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    margin: '0 auto',
+    maxWidth: '40rem',
+  },
+  body: {
+    marginTop: t.spacing(3),
+    fontWeight: 500,
+  },
+  list: {
+    ...t.typography.body1,
+    paddingLeft: 0,
+    margin: t.spacing(1, 0, 0),
+  },
+}))
+
+function EmptySearch() {
+  const classes = useEmptySearchStyles()
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="h4">Ready to search?</M.Typography>
+      <M.Typography
+        variant="body1"
+        className={classes.body}
+        gutterBottom
+        style={{ fontWeight: 400 }}
+      >
+        This page lets you find packages and files (objects).
+      </M.Typography>
+
+      <M.Typography variant="body1" className={classes.body} gutterBottom>
+        To get started:
+      </M.Typography>
+
+      <ul className={classes.list}>
+        <li>Type a search query in the bar above.</li>
+        <li>
+          Use the filters on the left to adjust scope — like switching between packages
+          and files, or choosing a bucket.
+        </li>
+      </ul>
+
+      <M.Typography variant="body1" className={classes.body} gutterBottom>
+        Looking for a simple list of packages?
+      </M.Typography>
+      <ul className={classes.list}>
+        <li>
+          Visit the Packages List[Bucket Selector] page to browse all packages in your
+          bucket.
+        </li>
+      </ul>
+      <M.Typography variant="body1" className={classes.body} gutterBottom>
+        Need more advanced tools?
+      </M.Typography>
+      <ul className={classes.list}>
+        <li>Try tabulator (why and how?)</li>
+        <li>Try Athena (why and how?)</li>
+        <li>Try Elastic Search (why and how?)</li>
+      </ul>
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.up('md')]: {
       alignItems: 'start',
       display: 'grid',
       gridColumnGap: t.spacing(2),
+      gridRowGap: t.spacing(2),
       gridTemplateColumns: `${t.spacing(40)}px auto`,
     },
     padding: t.spacing(3),
@@ -1406,6 +1519,10 @@ const useStyles = M.makeStyles((t) => ({
     right: '2px',
     top: '10px',
   },
+  search: {
+    gridColumnEnd: '3',
+    gridColumnStart: '1',
+  },
 }))
 
 function SearchLayout() {
@@ -1413,9 +1530,37 @@ function SearchLayout() {
   const classes = useStyles()
   const isMobile = useMobileView()
   const [showFilters, setShowFilters] = React.useState(false)
+
+  const [query, setQuery] = React.useState(model.state.searchString || '')
+  const onChange = useDebouncedCallback(model.actions.setSearchString, 500)
+  const handleChange = React.useCallback(
+    (event) => {
+      setQuery(event.target.value)
+      onChange(event.target.value)
+    },
+    [onChange],
+  )
+
   return (
     <M.Container maxWidth="lg" className={classes.root}>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
+      <M.TextField
+        autoFocus
+        className={classes.search}
+        fullWidth
+        onChange={handleChange}
+        placeholder="Search"
+        size="small"
+        value={query}
+        variant="outlined"
+        InputProps={{
+          startAdornment: (
+            <M.InputAdornment position="start">
+              <M.Icon>search</M.Icon>
+            </M.InputAdornment>
+          ),
+        }}
+      />
       {isMobile ? (
         <M.Drawer anchor="left" open={showFilters} onClose={() => setShowFilters(false)}>
           <Filters className={classes.filtersMobile} />
@@ -1429,7 +1574,11 @@ function SearchLayout() {
       ) : (
         <Filters />
       )}
-      <Results onFilters={() => setShowFilters((x) => !x)} />
+      {isEmptySearch(model.state) ? (
+        <EmptySearch />
+      ) : (
+        <Results onFilters={() => setShowFilters((x) => !x)} />
+      )}
     </M.Container>
   )
 }
