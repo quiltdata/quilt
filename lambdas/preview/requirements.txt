@@ -108,7 +108,7 @@ t4-lambda-shared[mem,preview] @ https://github.com/quiltdata/quilt/archive/d496d
     # via t4_lambda_preview (setup.py)
 tinycss2==1.4.0
     # via nbconvert
-tornado==6.4.2
+tornado==6.5.1
     # via jupyter-client
 traitlets==5.14.3
     # via
