@@ -3,6 +3,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import { useDebouncedCallback } from 'use-debounce'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
@@ -12,6 +13,7 @@ import * as JSONPointer from 'utils/JSONPointer'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
+import { readableBytes } from 'utils/string'
 
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
@@ -1135,6 +1137,101 @@ function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps
   )
 }
 
+interface ViewProps {
+  hits: readonly SearchUIModel.SearchHit[]
+}
+
+interface ListViewProps extends ViewProps {
+  showBucket: boolean
+  showRevision: boolean
+}
+
+function ListView({ hits, showBucket, showRevision }: ListViewProps) {
+  return (
+    <>
+      {hits.map((hit) => (
+        <SearchHit
+          key={hit.id}
+          hit={hit}
+          showBucket={showBucket}
+          showRevision={showRevision}
+        />
+      ))}
+    </>
+  )
+}
+
+interface TableViewPackageProps {
+  hit: SearchUIModel.SearchHitPackage
+}
+
+function TableViewPackage({ hit }: TableViewPackageProps) {
+  return (
+    <M.TableRow>
+      <M.TableCell>{hit.name}</M.TableCell>
+      <M.TableCell>{readableBytes(hit.size)}</M.TableCell>
+      <M.TableCell>
+        <Format.Relative value={hit.modified} />
+      </M.TableCell>
+    </M.TableRow>
+  )
+}
+
+interface TableViewObjectProps {
+  hit: SearchUIModel.SearchHitObject
+}
+
+function TableViewObject({ hit }: TableViewObjectProps) {
+  return (
+    <M.TableRow>
+      <M.TableCell>{hit.key}</M.TableCell>
+    </M.TableRow>
+  )
+}
+
+interface TableViewHitProps {
+  hit: SearchUIModel.SearchHit
+}
+
+function TableViewHit({ hit }: TableViewHitProps) {
+  switch (hit.__typename) {
+    case 'SearchHitObject':
+      return <TableViewObject hit={hit} />
+    case 'SearchHitPackage':
+      return <TableViewPackage hit={hit} />
+    default:
+      assertNever(hit)
+  }
+}
+
+interface TableViewProps extends ViewProps {}
+
+function TableView({ hits }: TableViewProps) {
+  return (
+    <M.Table>
+      <M.TableBody>
+        {hits.map((hit) => (
+          <TableViewHit key={hit.id} hit={hit} />
+        ))}
+      </M.TableBody>
+    </M.Table>
+  )
+}
+
+function View(props: ListViewProps & TableViewProps) {
+  const {
+    state: { view },
+  } = SearchUIModel.use()
+  switch (view) {
+    case SearchUIModel.View.List:
+      return <ListView {...props} />
+    case SearchUIModel.View.Table:
+      return <TableView {...props} />
+    default:
+      assertNever(view)
+  }
+}
+
 const useResultsPageStyles = M.makeStyles((t) => ({
   next: {
     marginTop: t.spacing(1),
@@ -1166,14 +1263,7 @@ function ResultsPage({
 
   return (
     <div className={className}>
-      {hits.map((hit) => (
-        <SearchHit
-          key={hit.id}
-          hit={hit}
-          showBucket={!singleBucket}
-          showRevision={!latestOnly}
-        />
-      ))}
+      <View hits={hits} showBucket={!singleBucket} showRevision={!latestOnly} />
       {!!cursor &&
         (more ? (
           <NextPage
@@ -1371,13 +1461,28 @@ interface ResultsProps {
 }
 
 function Results({ onFilters }: ResultsProps) {
+  const model = SearchUIModel.use()
   const classes = useResultsStyles()
   const isMobile = useMobileView()
+  const { setView } = model.actions
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
         <ResultsCount />
         <div className={classes.controls}>
+          <Lab.ToggleButtonGroup
+            value={model.state.view}
+            className={classes.button}
+            exclusive
+            onChange={(_e, value) => setView(value)}
+          >
+            <Lab.ToggleButton value={SearchUIModel.View.Table}>
+              <M.Icon>grid_on</M.Icon>
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value={SearchUIModel.View.List}>
+              <M.Icon>list</M.Icon>
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
           {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
           <SortSelector className={classes.button} />
         </div>

@@ -29,7 +29,14 @@ export enum ResultType {
   S3Object = 'o',
 }
 
+export enum View {
+  Table = 't',
+  List = 'l',
+}
+
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
+
+export const DEFAULT_VIEW = View.List
 
 export const ResultOrder = Model.GQLTypes.SearchResultOrder
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -66,6 +73,7 @@ interface SearchUrlStateBase {
   searchString: string | null
   buckets: readonly string[]
   order: ResultOrder
+  view: View
 }
 
 interface ObjectsSearchUrlState extends SearchUrlStateBase {
@@ -541,6 +549,16 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
   return DEFAULT_RESULT_TYPE
 }
 
+function parseView(view: string | null): View {
+  switch (view) {
+    case View.List:
+      return View.List
+    case View.Table:
+      return View.Table
+  }
+  return DEFAULT_VIEW
+}
+
 export const META_PREFIX = 'meta.'
 
 // XXX: use @effect/schema for morphisms between url (querystring) and search state
@@ -550,12 +568,14 @@ export function parseSearchParams(qs: string): SearchUrlState {
 
   const resultType = parseResultType(params.get('t'), params.get('mode'))
 
+  const view = parseView(params.get('v'))
+
   const bucketsInput = params.get('buckets') || params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
 
   const order = parseOrder(params.get('o'))
 
-  const base = { searchString, buckets, order }
+  const base = { searchString, buckets, order, view }
   switch (resultType) {
     case ResultType.S3Object:
       return {
@@ -583,6 +603,8 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
   if (state.searchString) params.set('q', state.searchString)
 
   if (state.resultType !== DEFAULT_RESULT_TYPE) params.set('t', state.resultType)
+
+  if (state.view !== DEFAULT_VIEW) params.set('v', state.view)
 
   if (state.buckets.length) params.set('b', state.buckets.join(','))
 
@@ -1324,6 +1346,13 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
+  const setView = React.useCallback(
+    (view: View) => {
+      updateUrlState((s) => ({ ...s, view }))
+    },
+    [updateUrlState],
+  )
+
   const setBuckets = React.useCallback(
     (buckets: readonly string[]) => {
       // XXX: reset filters or smth?
@@ -1458,11 +1487,12 @@ function useSearchUIModel() {
   }, [updateUrlState])
 
   const reset = React.useCallback(() => {
-    updateUrlState(({ resultType, order }) => {
+    updateUrlState(({ resultType, order, view }) => {
       const base = {
         searchString: null,
         buckets: [],
         order,
+        view,
       }
       switch (resultType) {
         case ResultType.QuiltPackage:
@@ -1495,6 +1525,7 @@ function useSearchUIModel() {
         setOrder,
         setResultType,
         setBuckets,
+        setView,
 
         activateObjectsFilter,
         deactivateObjectsFilter,
