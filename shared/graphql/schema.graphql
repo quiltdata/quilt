@@ -501,7 +501,7 @@ type SearchHitPackage {
 
   # specific props
   comment: String
-  meta: JsonRecord # user_meta
+  meta: String # user_meta
   workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
 }

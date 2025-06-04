@@ -1114,7 +1114,7 @@ export interface SearchHitPackage {
   readonly name: Scalars['String']
   readonly hash: Scalars['String']
   readonly comment: Maybe<Scalars['String']>
-  readonly meta: Maybe<Scalars['JsonRecord']>
+  readonly meta: Maybe<Scalars['String']>
   readonly workflow: Maybe<Scalars['JsonRecord']>
 }
 
