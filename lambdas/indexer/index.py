@@ -183,7 +183,7 @@ logger = get_quilt_logger()
 s3_client = boto3.client("s3", config=botocore.config.Config(user_agent_extra=USER_AGENT_EXTRA))
 
 
-@functools.cache()
+@functools.cache
 def make_elastic():
     elastic_host = os.environ["ES_HOST"]
     session = boto3.session.Session()
