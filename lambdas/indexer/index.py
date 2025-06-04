@@ -57,8 +57,10 @@ from os.path import split
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 import boto3
 import botocore
+import elasticsearch
 import jsonpointer
 import nbformat
 from dateutil.tz import tzutc
@@ -174,10 +176,38 @@ TEST_EVENT = "s3:TestEvent"
 #  lambda in order to display accurate analytics in the Quilt catalog
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
+ELASTIC_TIMEOUT = 30
 
 
 logger = get_quilt_logger()
 s3_client = boto3.client("s3", config=botocore.config.Config(user_agent_extra=USER_AGENT_EXTRA))
+
+
+@functools.cache()
+def make_elastic():
+    elastic_host = os.environ["ES_HOST"]
+    session = boto3.session.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+    awsauth = AWSRequestsAuth(
+        # These environment variables are automatically set by Lambda
+        aws_access_key=credentials.access_key,
+        aws_secret_access_key=credentials.secret_key,
+        aws_token=credentials.token,
+        aws_host=elastic_host,
+        aws_region=session.region_name,
+        aws_service="es"
+    )
+
+    return elasticsearch.Elasticsearch(
+        hosts=[{"host": elastic_host, "port": 443}],
+        http_auth=awsauth,
+        max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+        # Give ES time to respond when under load
+        timeout=ELASTIC_TIMEOUT,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=elasticsearch.RequestsHttpConnection
+    )
 
 
 def now_like_boto3():
@@ -233,6 +263,7 @@ def should_retry_exception(exception):
     return False
 
 
+# TODO: remove
 @retry(
     stop=stop_after_attempt(MAX_RETRY),
     wait=wait_exponential(multiplier=2, min=4, max=10),
@@ -385,6 +416,16 @@ def _prepare_workflow_for_es(workflow, bucket):
         return None
 
 
+def read_manifest_entries(s3_client, bucket: str, key: str):
+    try:
+        body = s3_client.get_object(Bucket=bucket, Key=key)["Body"]
+        return map(json.loads, body.iter_lines())
+    except (botocore.exceptions.ClientError, json.JSONDecodeError) as cle:
+        print(f"Unable to S3 select manifest: {cle}")
+
+    return None
+
+
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
@@ -419,6 +460,8 @@ def index_if_package(
     except ValueError as err:
         logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
+    pkg_doc_id = key  # XXX: add hash to id?
+
     def get_pkg_data():
         try:
             package_hash = s3_client.get_object(
@@ -429,16 +472,36 @@ def index_if_package(
             return
 
         manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
-        first = select_manifest_meta(s3_client, bucket, manifest_key)
+        try:
+            manifest_body = s3_client.get_object(Bucket=bucket, Key=manifest_key)["Body"]
+        except botocore.exceptions.ClientError:
+            return
+        manifest_entries = map(json.loads, manifest_body.iter_lines())
+        first = next(manifest_entries, None)
         if not first:
             return
-        stats = select_package_stats(bucket, manifest_key)
-        if not stats:
-            return
-
         user_meta = first.get("user_meta")
 
-        return {
+        total_bytes = 0
+        total_files = 0
+        for total_files, entry in enumerate(manifest_entries, start=1):
+            total_bytes += entry["size"]
+            meta = entry.get("meta")  # XXX: both system and user metadata, do we need only user?
+
+            yield {
+                "join_field": {"name": "pkg_entry", "parent": pkg_doc_id},
+                "_routing": pkg_doc_id,
+                "_id": f"{pkg_doc_id}:{entry['logical_key']}",  # XXX: use a hash instead?
+                "pkg_entry_lk": entry["logical_key"],
+                "pkg_entry_pk": entry["physical_keys"][0],
+                "pkg_entry_size": entry["size"],
+                "pkg_entry_hash": entry["hash"],
+                "pkg_entry_metadata": json.dumps(meta) if meta else None,
+            }
+
+        yield {
+            "join_field": {"name": "pkg"},
+            "_id": pkg_doc_id,
             "key": key,
             "etag": etag,
             "version_id": version_id,
@@ -447,22 +510,46 @@ def index_if_package(
             "handle": handle,
             "pointer_file": pointer_file,
             "hash": package_hash,
-            "package_stats": stats,
+            "package_stats": {
+                "total_bytes": total_bytes,
+                "total_files": total_files,
+            },
             "metadata": json.dumps(user_meta) if user_meta else None,
             "metadata_fields": get_metadata_fields(user_meta),
             "comment": str(first.get("message", "")),
             "workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
-    data = get_pkg_data() or {}
-    doc_queue.append_document({
-        "_index": bucket + PACKAGE_INDEX_SUFFIX,
-        "_id": key,
-        "_op_type": "index" if data else "delete",
-        **data,
-    })
+    index = bucket + PACKAGE_INDEX_SUFFIX
+    make_elastic().delete_by_query(
+        index=index,
+        body={
+            "query": {
+                "parent_id": {
+                    "type": "pkg_entry",
+                    "id": pkg_doc_id,
+                }
+            }
+        },
+    )
+    doc_data = None
+    for doc_data in get_pkg_data():
+        doc_queue.append_document({
+            "_index": index,
+            "_op_type": "index",
+            **doc_data,
+        })
+    # XXX: remove it with delete_by_query from above?
+    if doc_data is None:
+        doc_queue.append_document(
+            {
+                "_index": index,
+                "_op_type": "delete",
+                "_id": pkg_doc_id,
+            }
+        )
 
-    return True
+    return doc_data is not None
 
 
 @functools.lru_cache(maxsize=None)
@@ -480,6 +567,7 @@ def get_presigner_client(bucket: str):
     )
 
 
+# TODO: remove
 def select_package_stats(bucket, manifest_key) -> Optional[dict]:
     """use s3 select to generate file stats for package"""
     logger_ = get_quilt_logger()
@@ -798,7 +886,7 @@ def handler(event, context):
     # An exception that we'll want to re-raise after the batch sends
     # TODO: handle s3:ObjectTagging:* events to keep s3_tags updated
     content_exception = None
-    batch_processor = DocumentQueue(context)
+    batch_processor = DocumentQueue(context, make_elastic())
     s3_client = make_s3_client()
     for message in event["Records"]:
         body = json.loads(message["body"])

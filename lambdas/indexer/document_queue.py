@@ -6,9 +6,6 @@ import os
 from datetime import datetime
 from math import floor
 
-import boto3
-from aws_requests_auth.aws_auth import AWSRequestsAuth
-from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
 from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
@@ -28,7 +25,6 @@ EVENT_PREFIX = {
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
-ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
@@ -78,11 +74,12 @@ class RetryError(Exception):
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
-    def __init__(self, context):
+    def __init__(self, context, es):
         """constructor"""
         self.queue = []
         self.size = 0
         self.context = context
+        self.es = es
 
     def append(
         self,
@@ -158,42 +155,19 @@ class DocumentQueue:
         if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
-    def _make_elastic(self):
-        """create elasticsearch client"""
-        elastic_host = os.environ["ES_HOST"]
-        session = boto3.session.Session()
-        credentials = session.get_credentials().get_frozen_credentials()
-        awsauth = AWSRequestsAuth(
-            # These environment variables are automatically set by Lambda
-            aws_access_key=credentials.access_key,
-            aws_secret_access_key=credentials.secret_key,
-            aws_token=credentials.token,
-            aws_host=elastic_host,
-            aws_region=session.region_name,
-            aws_service="es"
-        )
-
-        return Elasticsearch(
-            hosts=[{"host": elastic_host, "port": 443}],
-            http_auth=awsauth,
-            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
-            # Give ES time to respond when under load
-            timeout=ELASTIC_TIMEOUT,
-            use_ssl=True,
-            verify_certs=True,
-            connection_class=RequestsHttpConnection
-        )
-
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
         if not self.queue:
             return
-        elastic = self._make_elastic()
         # For response format see
         # https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
         # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
         # note that `elasticsearch` post-processes this response
-        _, errors = bulk_send(elastic, self.queue)
+        _, errors = bulk_send(
+            self.es,
+            self.queue,
+            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+        )
         if errors:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
@@ -221,7 +195,11 @@ class DocumentQueue:
                     send_again = self.queue
             # Last retry (though elasticsearch might retry 429s tho)
             if send_again:
-                _, errors = bulk_send(elastic, send_again)
+                _, errors = bulk_send(
+                    self.es,
+                    send_again,
+                    max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+                )
                 if errors:
                     raise RetryError(
                         "Failed to load messages into Elastic on second retry.\n"
@@ -244,7 +222,7 @@ def get_time_remaining(context):
     return time_remaining
 
 
-def bulk_send(elastic, list_):
+def bulk_send(elastic, list_, *, max_backoff):
     """make a bulk() call to elastic"""
     logger_ = get_quilt_logger()
     logger_.debug("bulk_send(): %s", list_)
@@ -263,5 +241,6 @@ def bulk_send(elastic, list_):
         max_retries=RETRY_429,
         # we'll process errors on our own
         raise_on_error=False,
-        raise_on_exception=False
+        raise_on_exception=False,
+        max_backoff=max_backoff,
     )
