@@ -1,4 +1,4 @@
-<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable line-length single-h1 descriptive-link-text -->
 <!--
 Entries inside each section should be ordered by type:
 1. Removed
