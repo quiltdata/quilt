@@ -57,12 +57,12 @@ from os.path import split
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
-from aws_requests_auth.aws_auth import AWSRequestsAuth
 import boto3
 import botocore
 import elasticsearch
 import jsonpointer
 import nbformat
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 from dateutil.tz import tzutc
 from document_queue import (
     EVENT_PREFIX,
@@ -201,7 +201,6 @@ def make_elastic():
     return elasticsearch.Elasticsearch(
         hosts=[{"host": elastic_host, "port": 443}],
         http_auth=awsauth,
-        max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
         # Give ES time to respond when under load
         timeout=ELASTIC_TIMEOUT,
         use_ssl=True,
