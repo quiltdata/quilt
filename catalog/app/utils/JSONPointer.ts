@@ -17,3 +17,10 @@ export function stringify(addressPath: Readonly<Path>): Pointer {
 export function parse(address: Pointer): Path {
   return address.slice(1).split('/').map(decodeFragment)
 }
+
+export function toJsonPath(address: Path | Pointer): string {
+  if (Array.isArray(address)) {
+    return `$.${address.join('.')}`
+  }
+  return `$${address.replace(/\//g, '.')}`
+}
