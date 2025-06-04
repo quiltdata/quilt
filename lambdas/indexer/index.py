@@ -489,7 +489,7 @@ def index_if_package(
 
             yield {
                 "join_field": {"name": "pkg_entry", "parent": pkg_doc_id},
-                "_routing": pkg_doc_id,
+                "routing": pkg_doc_id,
                 "_id": f"{pkg_doc_id}:{entry['logical_key']}",  # XXX: use a hash instead?
                 "pkg_entry_lk": entry["logical_key"],
                 "pkg_entry_pk": entry["physical_keys"][0],
