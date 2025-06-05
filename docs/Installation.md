@@ -168,7 +168,7 @@ Quilt when a new version is released.)
     ![](./imgs/products-list.png)
 
 1. Continue to the [CloudFormation](#cloudformation) section.
-Note: the following screenshots may differ slightly fromm what
+Note: the following screenshots may differ slightly from what
 you see in Service Catalog.
 
 #### CloudFormation
@@ -301,7 +301,7 @@ To update your Quilt stack, apply the latest CloudFormation template in the Clou
 Upgrading to the Quilt 2.0 network configuration provides improved security by means
 of isolated subnets and a preference for private routing.
 
-An upgrade the 2.0 network, unlike routine Quilt upgrades, requires you to create
+An upgrade to the 2.0 network, unlike routine Quilt upgrades, requires you to create
 a new stack with a new load balancer. You must therefore also update your
 [CNAMEs](#cnames) to point to the new load balancer.
 

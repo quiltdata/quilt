@@ -105,7 +105,7 @@ The infrastructure costs of running a Quilt stack vary with usage. Baseline infr
 
 ## Security Architecture
 
-All customer data and metadata in Quilt is stored in S3. It may also be cached in Elasticsearch Service (show in red in the diagram below). No other services in the Quilt stack store customer data.
+All customer data and metadata in Quilt is stored in S3. It may also be cached in Elasticsearch Service (shown in red in the diagram below). No other services in the Quilt stack store customer data.
 
 ![](imgs/aws-diagram-customer-data.png)
 
