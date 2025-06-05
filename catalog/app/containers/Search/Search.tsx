@@ -22,6 +22,7 @@ import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
 import ListView, { ListViewProps } from './Views/List'
 import TableView, { TableViewProps } from './Views/Table'
+import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { packageFilterLabels } from './i18n'
 
 function useMobileView() {
@@ -777,16 +778,6 @@ function PackagesRevisionFilter() {
     />
   )
 }
-
-const PACKAGES_FILTERS_PRIMARY = ['workflow', 'name'] as const
-
-const PACKAGES_FILTERS_SECONDARY = [
-  'comment',
-  'modified',
-  'size',
-  'entries',
-  'hash',
-] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
   root: {

@@ -11,6 +11,7 @@ import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
+import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { columnLabels, packageFilterLabels } from '../i18n'
 import * as SearchUIModel from '../model'
 
@@ -210,17 +211,99 @@ function ColumnActions({ className, onSearch, onSort, onClose }: ColumnActionsPr
   )
 }
 
+const useFilterGroupStyles = M.makeStyles((t) => ({
+  root: {
+    background: 'inherit',
+  },
+  auxList: {
+    background: 'inherit',
+    listStyle: 'none',
+    padding: 0,
+  },
+  nested: {
+    paddingLeft: t.spacing(3),
+  },
+  iconWrapper: {
+    minWidth: t.spacing(4),
+  },
+  icon: {
+    transition: 'ease .15s transform',
+  },
+}))
+
+interface FilterGroupProps {
+  disabled?: boolean
+  path?: string
+  items: SearchUIModel.FacetTree['children']
+}
+
+function FilterGroup({ disabled, path, items }: FilterGroupProps) {
+  const classes = useFilterGroupStyles()
+
+  function getLabel(key: string) {
+    const [type, rest] = key.split(':')
+    switch (type) {
+      case 'path':
+        return { primary: rest }
+      case 'type':
+        return { primary: rest, secondary: 'Type' }
+      default:
+        return { primary: key }
+    }
+  }
+
+  const [expanded, setExpanded] = React.useState(false)
+  const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
+
+  return (
+    <li className={cx(classes.root)}>
+      <ul className={classes.auxList}>
+        {!!path && (
+          <M.ListItem disabled={disabled} button onClick={toggleExpanded}>
+            <M.ListItemText primary={getLabel(path).primary} />
+            <M.ListItemIcon className={classes.iconWrapper}>
+              <M.Icon className={cx(classes.icon)}>
+                {expanded ? 'expand_less' : 'expand_more'}
+              </M.Icon>
+            </M.ListItemIcon>
+          </M.ListItem>
+        )}
+        <div className={cx({ [classes.nested]: !!path })}>
+          <M.Collapse in={expanded || !path}>
+            {Array.from(items).map(([p, node]) =>
+              node._tag === 'Tree' ? (
+                <FilterGroup
+                  disabled={disabled}
+                  items={node.children}
+                  key={path + p}
+                  path={p}
+                />
+              ) : (
+                <M.MenuItem key={path + p}>
+                  <M.ListItemText {...getLabel(p)} />
+                </M.MenuItem>
+              ),
+            )}
+          </M.Collapse>
+        </div>
+      </ul>
+    </li>
+  )
+}
+
 const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.default,
     bottom: 0,
     boxShadow: t.shadows[4],
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'column',
     position: 'absolute',
     right: 0,
     top: 0,
-    width: t.spacing(4),
-    cursor: 'pointer',
     transition: t.transitions.create('width'),
+    width: t.spacing(4),
     '&:hover': {
       width: t.spacing(5),
       boxShadow: t.shadows[1],
@@ -228,6 +311,10 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     '&:hover $button': {
       opacity: 1,
     },
+  },
+  add: {
+    lineHeight: `${t.spacing(4)}px`,
+    padding: t.spacing(0, 2),
   },
   head: {
     display: 'flex',
@@ -239,20 +326,99 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     transition: t.transitions.create('opacity'),
     opacity: 0.3,
   },
+  opened: {
+    width: 'auto',
+    '&:hover': {
+      width: 'auto',
+    },
+    '& $head': {
+      justifyContent: 'flex-start',
+    },
+  },
+  list: {
+    animation: t.transitions.create('$appear'),
+    background: t.palette.background.paper,
+    overflowY: 'auto',
+  },
+  listInner: {
+    background: 'inherit',
+  },
+  '@keyframes appear': {
+    '0%': {
+      opacity: 0.7,
+      transform: 'translateX(8px)',
+    },
+    '100%': {
+      opacity: 1,
+      transform: 'translateX(0)',
+    },
+  },
 }))
 
-interface AddColumnProps {
-  onClick: () => void
-}
+interface AddColumnProps {}
 
-function AddColumn({ onClick }: AddColumnProps) {
+function AddColumn({}: AddColumnProps) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [open, setOpen] = React.useState(false)
   const classes = useAddColumnStyles()
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const { predicates } = model.state.filter
+  const { activatePackagesFilter } = model.actions
+
+  const availableFilters = [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY]
+    .filter((f) => !predicates[f])
+    .filter((f) => f !== 'name')
+
+  const handleFilter = React.useCallback(
+    (filter: (typeof availableFilters)[number]) => {
+      setOpen(false)
+      activatePackagesFilter(filter)
+    },
+    [activatePackagesFilter],
+  )
+
   return (
-    <div className={classes.root} onClick={onClick}>
-      <div className={classes.head}>
-        <ColumnAction className={classes.button} icon="add" />
+    <M.ClickAwayListener onClickAway={() => setOpen(false)}>
+      <div
+        className={cx(classes.root, { [classes.opened]: open })}
+        onClick={() => setOpen(true)}
+      >
+        <div className={classes.head} ref={ref}>
+          {open ? (
+            <M.Typography variant="subtitle2" className={classes.add}>
+              Add column:
+            </M.Typography>
+          ) : (
+            <ColumnAction className={classes.button} icon="add" />
+          )}
+        </div>
+        {open && (
+          <div className={classes.list}>
+            <M.List className={classes.listInner}>
+              <M.ListSubheader>System metadata</M.ListSubheader>
+              {availableFilters.map((filter) => (
+                <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
+                  <M.ListItemText primary={packageFilterLabels[filter]} />
+                </M.MenuItem>
+              ))}
+              <M.ListSubheader>User metadata</M.ListSubheader>
+              <SearchUIModel.AvailablePackagesMetaFilters>
+                {SearchUIModel.AvailableFiltersState.match({
+                  Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
+                  Empty: () => null,
+                  Ready: ({ facets }) => (
+                    <>
+                      <FilterGroup items={facets.visible.children} />
+                      <FilterGroup items={facets.hidden.children} />
+                    </>
+                  ),
+                })}
+              </SearchUIModel.AvailablePackagesMetaFilters>
+            </M.List>
+          </div>
+        )}
       </div>
-    </div>
+    </M.ClickAwayListener>
   )
 }
 
@@ -318,7 +484,7 @@ export default function TableView({ hits }: TableViewProps) {
           </M.TableBody>
         </M.Table>
       </div>
-      <AddColumn onClick={noopFixme} />
+      <AddColumn />
     </M.Paper>
   )
 }
