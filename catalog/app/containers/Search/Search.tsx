@@ -1319,7 +1319,6 @@ const useResultsStyles = M.makeStyles((t) => ({
   },
   results: {
     marginTop: t.spacing(2),
-    overflowX: 'auto',
   },
   toolbar: {
     alignItems: 'flex-end',

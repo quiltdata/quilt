@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
@@ -59,6 +60,17 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
 }
 
 const useTableViewHitStyles = M.makeStyles((t) => ({
+  root: {
+    overflow: 'hidden',
+    position: 'relative',
+    '& th:last-child $head::after': {
+      display: 'none',
+    },
+  },
+  scrollArea: {
+    paddingRight: t.spacing(4),
+    overflowX: 'auto',
+  },
   cell: {
     whiteSpace: 'nowrap',
   },
@@ -75,37 +87,14 @@ const useTableViewHitStyles = M.makeStyles((t) => ({
       background: t.palette.divider,
       width: '1px',
     },
-    '&:hover $headButton': {
+    '&:hover $headActions': {
       opacity: 1,
     },
   },
   headActions: {
-    marginLeft: t.spacing(2),
-  },
-  headButton: {
-    width: t.spacing(4),
-    height: t.spacing(4),
     opacity: 0.3,
-    transition: 'opacity ease 0.3s',
-    '& + &': {
-      marginLeft: t.spacing(1),
-    },
-  },
-  headIcon: {
-    fontSize: '20px',
-  },
-  placeholder: {
-    position: 'relative',
-    width: t.spacing(3),
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      left: 0,
-      top: t.spacing(1.5),
-      bottom: t.spacing(1.5),
-      background: t.palette.divider,
-      width: '1px',
-    },
+    transition: t.transitions.create('opacity'),
+    marginLeft: t.spacing(2),
   },
 }))
 
@@ -139,7 +128,6 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
           <TableViewUserMeta meta={meta} pointer={key} />
         </M.TableCell>
       ))}
-      <M.TableCell className={classes.placeholder} />
     </M.TableRow>
   )
 }
@@ -171,6 +159,105 @@ function TableViewHit({ hit }: TableViewHitProps) {
   }
 }
 
+const useColumnActionStyles = M.makeStyles((t) => ({
+  root: {
+    width: t.spacing(4),
+    height: t.spacing(4),
+  },
+  icon: {
+    fontSize: '20px',
+  },
+}))
+
+interface ColumnActionProps {
+  className?: string
+  icon: string
+  onClick?: () => void
+}
+
+function ColumnAction({ className, icon, onClick }: ColumnActionProps) {
+  const classes = useColumnActionStyles()
+  return (
+    <M.IconButton className={cx(classes.root, className)} size="small" onClick={onClick}>
+      <M.Icon className={classes.icon}>{icon}</M.Icon>
+    </M.IconButton>
+  )
+}
+
+const useColumnActionsStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gridAutoFlow: 'column',
+    gridColumnGap: t.spacing(1),
+  },
+}))
+
+interface ColumnActionsProps {
+  className: string
+  onSearch: () => void
+  onSort: () => void
+  onClose?: () => void
+}
+
+function ColumnActions({ className, onSearch, onSort, onClose }: ColumnActionsProps) {
+  const classes = useColumnActionsStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <ColumnAction onClick={onSearch} icon="search" />
+      <ColumnAction onClick={onSort} icon="sort" />
+      {onClose && <ColumnAction onClick={onClose} icon="close" />}
+    </div>
+  )
+}
+
+const useAddColumnStyles = M.makeStyles((t) => ({
+  root: {
+    background: t.palette.background.default,
+    bottom: 0,
+    boxShadow: t.shadows[4],
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: t.spacing(4),
+    cursor: 'pointer',
+    transition: t.transitions.create('width'),
+    '&:hover': {
+      width: t.spacing(5),
+      boxShadow: t.shadows[1],
+    },
+    '&:hover $button': {
+      opacity: 1,
+    },
+  },
+  head: {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: t.spacing(0.75, 0),
+    borderBottom: `1px solid ${t.palette.divider}`,
+  },
+  button: {
+    transition: t.transitions.create('opacity'),
+    opacity: 0.3,
+  },
+}))
+
+interface AddColumnProps {
+  onClick: () => void
+}
+
+function AddColumn({ onClick }: AddColumnProps) {
+  const classes = useAddColumnStyles()
+  return (
+    <div className={classes.root} onClick={onClick}>
+      <div className={classes.head}>
+        <ColumnAction className={classes.button} icon="add" />
+      </div>
+    </div>
+  )
+}
+
+const noopFixme = () => {}
+
 export interface TableViewProps {
   hits: readonly SearchUIModel.SearchHit[]
 }
@@ -179,83 +266,59 @@ export default function TableView({ hits }: TableViewProps) {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const classes = useTableViewHitStyles()
   return (
-    <M.Table size="small">
-      <M.TableHead>
-        <M.TableRow>
-          <M.TableCell className={classes.cell}>
-            <div className={classes.head}>
-              Name
-              <div className={classes.headActions}>
-                <M.IconButton className={classes.headButton} size="small">
-                  <M.Icon className={classes.headIcon}>search</M.Icon>
-                </M.IconButton>
-                <M.IconButton className={classes.headButton} size="small">
-                  <M.Icon className={classes.headIcon}>sort</M.Icon>
-                </M.IconButton>
-              </div>
-            </div>
-          </M.TableCell>
-          {state.filter.order.map((filter) => (
-            <M.TableCell key={filter} className={classes.cell}>
-              <div className={classes.head}>
-                <M.Tooltip title={packageFilterLabels[filter]}>
-                  <span>{columnLabels[filter]}</span>
-                </M.Tooltip>
-                <div className={classes.headActions}>
-                  <M.IconButton className={classes.headButton} size="small">
-                    <M.Icon className={classes.headIcon}>search</M.Icon>
-                  </M.IconButton>
-                  <M.IconButton className={classes.headButton} size="small">
-                    <M.Icon className={classes.headIcon}>sort</M.Icon>
-                  </M.IconButton>
-                  <M.IconButton
-                    className={classes.headButton}
-                    size="small"
-                    onClick={() => actions.deactivatePackagesFilter(filter)}
-                  >
-                    <M.Icon className={classes.headIcon}>close</M.Icon>
-                  </M.IconButton>
+    <M.Paper className={classes.root}>
+      <div className={classes.scrollArea}>
+        <M.Table size="small">
+          <M.TableHead>
+            <M.TableRow>
+              <M.TableCell className={classes.cell}>
+                <div className={classes.head}>
+                  Name
+                  <ColumnActions
+                    className={classes.headActions}
+                    onSearch={noopFixme}
+                    onSort={noopFixme}
+                  />
                 </div>
-              </div>
-            </M.TableCell>
-          ))}
-          {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
-            <M.TableCell key={key} className={classes.cell}>
-              <div className={classes.head}>
-                {key}
-                <div className={classes.headActions}>
-                  <M.IconButton className={classes.headButton} size="small">
-                    <M.Icon className={classes.headIcon}>search</M.Icon>
-                  </M.IconButton>
-                  <M.IconButton className={classes.headButton} size="small">
-                    <M.Icon className={classes.headIcon}>sort</M.Icon>
-                  </M.IconButton>
-                  <M.IconButton
-                    className={classes.headButton}
-                    size="small"
-                    onClick={() => actions.deactivatePackagesMetaFilter(key)}
-                  >
-                    <M.Icon className={classes.headIcon}>close</M.Icon>
-                  </M.IconButton>
-                </div>
-              </div>
-            </M.TableCell>
-          ))}
-          <M.TableCell className={classes.cell}>
-            <div className={classes.head}>
-              <M.IconButton size="small" className={classes.headButton}>
-                {/* make it vertical div, fixed and overlaying with shadow */}
-                <M.Icon className={classes.headIcon}>add_circle_outline</M.Icon>
-              </M.IconButton>
-            </div>
-          </M.TableCell>
-        </M.TableRow>
-      </M.TableHead>
-      <M.TableBody>
-        {hits.map((hit) => (
-          <TableViewHit key={hit.id} hit={hit} />
-        ))}
-      </M.TableBody>
-    </M.Table>
+              </M.TableCell>
+              {state.filter.order.map((filter) => (
+                <M.TableCell key={filter} className={classes.cell}>
+                  <div className={classes.head}>
+                    <M.Tooltip title={packageFilterLabels[filter]}>
+                      <span>{columnLabels[filter]}</span>
+                    </M.Tooltip>
+                    <ColumnActions
+                      className={classes.headActions}
+                      onSearch={noopFixme}
+                      onSort={noopFixme}
+                      onClose={() => actions.deactivatePackagesFilter(filter)}
+                    />
+                  </div>
+                </M.TableCell>
+              ))}
+              {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
+                <M.TableCell key={key} className={classes.cell}>
+                  <div className={classes.head}>
+                    {key}
+                    <ColumnActions
+                      className={classes.headActions}
+                      onSearch={noopFixme}
+                      onSort={noopFixme}
+                      onClose={() => actions.deactivatePackagesMetaFilter(key)}
+                    />
+                  </div>
+                </M.TableCell>
+              ))}
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {hits.map((hit) => (
+              <TableViewHit key={hit.id} hit={hit} />
+            ))}
+          </M.TableBody>
+        </M.Table>
+      </div>
+      <AddColumn onClick={noopFixme} />
+    </M.Paper>
   )
 }
