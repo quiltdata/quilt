@@ -50,7 +50,10 @@ $ pip install git+https://github.com/quiltdata/quilt.git#subdirectory=api/python
 Quilt is a data mesh that verifies the integrity of your data so that teams can
 find, understand, and file discoveries based on data of any size or in any format.
 
+
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
+
+Quilt supports multiple deployment methods including CloudFormation, AWS Marketplace, and Terraform.
 
 ### Help and Advice
 
@@ -170,8 +173,8 @@ you see in Service Catalog.
 
 #### CloudFormation
 
-You can perform stack update and creation with the AWS Console, AWS CLI,
-Terraform, or other means.
+
+You can perform stack update and creation with the AWS Console, AWS CLI, Terraform, or other means.
 
 In all cases it is **highly recommended** that you set the `--on-failure` policy
 to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
@@ -208,6 +211,49 @@ You can monitor progress under Events. On completion you will see `CREATE_COMPLE
 1. To finish the installation, you will want to view the stack Outputs.
 
     ![](./imgs/outputs.png)
+
+#### Terraform
+
+You can also install Quilt using [Terraform](https://developer.hashicorp.com/terraform), which enables more granular infrastructure-as-code control.
+
+Terraform users **must** request a compatible CloudFormation template from Quilt:
+
+> Contact your account manager to obtain a template that works with Terraform and includes necessary variables.
+
+1. Set up your project directory as follows:
+
+    ```bash
+    quilt_stack/
+    ├── main.tf
+    └── my-company.yml
+    ```
+
+    Use [examples/main.tf](https://github.com/quiltdata/iac/blob/main/examples/main.tf) as a template.
+
+2. Define your AWS profile:
+
+    ```bash
+    export AWS_PROFILE=your-profile-name
+    ```
+
+3. Initialize Terraform:
+
+    ```bash
+    terraform init
+    ```
+
+4. Plan and apply:
+
+    ```bash
+    terraform plan -out=tfplan
+    terraform apply tfplan
+    ```
+
+5. Use `terraform output` to obtain values such as the admin password or endpoint URLs.
+
+**Note:** We recommend using [remote state](https://developer.hashicorp.com/terraform/language/state/remote) and not storing passwords in version control.
+
+> For detailed configuration options, including search sizing and common pitfalls, see the [Terraform README](https://github.com/quiltdata/iac/blob/main/README.md).
 
 #### CNAMEs
 
