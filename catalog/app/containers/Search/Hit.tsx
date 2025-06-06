@@ -13,10 +13,6 @@ import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 
 import * as SearchUIModel from './model'
-import type {
-  SearchHitPackageMatchingEntry,
-  SearchHitPackageWithMatches,
-} from './fakeMatchingEntries'
 
 const useCardStyles = M.makeStyles((t) => ({
   card: {
@@ -165,7 +161,7 @@ function Divider() {
 }
 
 interface PackageProps {
-  hit: SearchHitPackageWithMatches
+  hit: SearchUIModel.SearchHitPackage
   showBucket?: boolean
   showRevision?: boolean
 }
@@ -230,33 +226,6 @@ export function Package({
       {!!metaJson && (
         <Section divider>
           <JsonDisplay name="Metadata" value={metaJson} />
-        </Section>
-      )}
-      {!!hit.matchingEntries && hit.matchingEntries.length > 0 && (
-        <Section divider>
-          <M.Typography variant="subtitle2" gutterBottom>
-            Matching entries
-          </M.Typography>
-          <M.Table size="small">
-            <M.TableHead>
-              <M.TableRow>
-                <M.TableCell>Logical Key</M.TableCell>
-                <M.TableCell>Physical Key</M.TableCell>
-                <M.TableCell align="right">Size</M.TableCell>
-              </M.TableRow>
-            </M.TableHead>
-            <M.TableBody>
-              {hit.matchingEntries.map((e: SearchHitPackageMatchingEntry) => (
-                <M.TableRow key={e.logicalKey}>
-                  <M.TableCell>{e.logicalKey}</M.TableCell>
-                  <M.TableCell>{e.physicalKey}</M.TableCell>
-                  <M.TableCell align="right">
-                    {readableBytes(e.size)}
-                  </M.TableCell>
-                </M.TableRow>
-              ))}
-            </M.TableBody>
-          </M.Table>
         </Section>
       )}
     </Card>
