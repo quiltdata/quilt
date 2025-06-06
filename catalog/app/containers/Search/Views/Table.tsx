@@ -103,16 +103,24 @@ const useTableViewStyles = M.makeStyles((t) => ({
   },
 }))
 
-const useMatchingEntriesTableStyles = M.makeStyles({
+const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
+  root: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2, 7),
+    background: t.palette.background.default,
+  },
   cell: {
     whiteSpace: 'nowrap',
   },
   row: {
     '&:last-child $cell': {
-      borderBottom: 'none',
+      borderBottom: 0,
     },
   },
-})
+  table: {
+    width: 'auto',
+  },
+}))
 
 interface MatchingEntriesTableProps {
   entries: readonly SearchHitPackageMatchingEntry[]
@@ -122,36 +130,67 @@ function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
   const classes = useMatchingEntriesTableStyles()
 
   return (
-    <M.Table size="small">
-      <M.TableHead>
-        <M.TableRow>
-          <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
-          <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
-          <M.TableCell className={classes.cell} align="right">
-            Size
-          </M.TableCell>
-        </M.TableRow>
-      </M.TableHead>
-      <M.TableBody>
-        {entries.map((e) => (
-          <M.TableRow key={e.physicalKey} className={classes.row}>
-            <M.TableCell className={classes.cell}>{e.logicalKey}</M.TableCell>
-            <M.TableCell className={classes.cell}>{e.physicalKey}</M.TableCell>
+    <M.Paper className={classes.root}>
+      <M.Table size="small" className={classes.table}>
+        <M.TableHead>
+          <M.TableRow>
+            <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
+            <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
             <M.TableCell className={classes.cell} align="right">
-              {readableBytes(e.size)}
+              Size
             </M.TableCell>
           </M.TableRow>
-        ))}
-      </M.TableBody>
-    </M.Table>
+        </M.TableHead>
+        <M.TableBody>
+          {entries.map((e) => (
+            <M.TableRow key={e.physicalKey} className={classes.row}>
+              <M.TableCell className={classes.cell}>{e.logicalKey}</M.TableCell>
+              <M.TableCell className={classes.cell}>{e.physicalKey}</M.TableCell>
+              <M.TableCell className={classes.cell} align="right">
+                {readableBytes(e.size)}
+              </M.TableCell>
+            </M.TableRow>
+          ))}
+        </M.TableBody>
+      </M.Table>
+    </M.Paper>
   )
 }
 
-const useTableViewPackageStyles = M.makeStyles({
+const useTableViewPackageStyles = M.makeStyles((t) => ({
+  root: {
+    '&:hover $fold': {
+      opacity: 1,
+    },
+    '&:hover $navIcon': {
+      display: 'inline-block',
+    },
+  },
   cell: {
     whiteSpace: 'nowrap',
   },
-})
+  entries: {
+    borderBottom: 0,
+    padding: 0,
+    '&:last-child': {
+      padding: 0,
+    },
+  },
+  fold: {
+    opacity: 0.3,
+  },
+  navIcon: {
+    display: 'none',
+    marginLeft: t.spacing(0.5),
+    transition: t.transitions.create('transform'),
+    verticalAlign: 'bottom',
+  },
+  link: {
+    '&:hover $navIcon': {
+      transform: `translateX(${t.spacing(0.5)}px)`,
+    },
+  },
+}))
 
 interface TableViewPackageProps {
   hit: SearchHitPackageWithMatches
@@ -168,17 +207,23 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
 
   return (
     <>
-      <M.TableRow hover>
+      <M.TableRow hover className={classes.root} onClick={toggle}>
         <M.TableCell padding="checkbox">
           {!!hit.matchingEntries?.length && (
-            <M.IconButton size="small" onClick={toggle}>
-              <M.Icon>{open ? 'expand_less' : 'expand_more'}</M.Icon>
+            <M.IconButton size="small" className={classes.fold}>
+              <M.Icon>{open ? 'unfold_less' : 'unfold_more'}</M.Icon>
             </M.IconButton>
           )}
         </M.TableCell>
         <M.TableCell className={classes.cell}>
-          <RR.Link to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
+          <RR.Link
+            to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
+            className={classes.link}
+          >
             {hit.name}
+            <M.Icon fontSize="small" className={classes.navIcon}>
+              navigate_next
+            </M.Icon>
           </RR.Link>
         </M.TableCell>
         {state.filter.order.map((filter) => (
@@ -198,11 +243,9 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
       </M.TableRow>
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
-          <M.TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={colSpan}>
+          <M.TableCell className={classes.entries} colSpan={colSpan}>
             <M.Collapse in={open} timeout="auto" unmountOnExit>
-              <M.Box margin={1}>
-                <MatchingEntriesTable entries={hit.matchingEntries} />
-              </M.Box>
+              <MatchingEntriesTable entries={hit.matchingEntries} />
             </M.Collapse>
           </M.TableCell>
         </M.TableRow>
