@@ -116,6 +116,9 @@ const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
     padding: t.spacing(0.25, 0.5),
     margin: t.spacing(0, -0.5),
   },
+  matchButton: {
+    background: t.palette.warning.light,
+  },
 }))
 
 interface MatchingEntriesTableProps {
@@ -145,10 +148,10 @@ function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
               Size
             </M.TableCell>
             <M.TableCell className={classes.cell} align="center" width="120px">
-              Contents
+              Meta
             </M.TableCell>
             <M.TableCell className={classes.cell} align="center" width="80px">
-              Meta
+              Contents
             </M.TableCell>
           </M.TableRow>
         </M.TableHead>
@@ -176,11 +179,11 @@ function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
                 {e.meta ? (
                   <M.IconButton
                     size="small"
-                    className={cx(e.matchLocations.meta && classes.match)}
+                    className={cx(e.matchLocations.meta && classes.matchButton)}
                     onMouseEnter={() => handleMouseEnter(e)}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <M.Icon fontSize="inherit">data_object</M.Icon>
+                    <M.Icon fontSize="inherit">list</M.Icon>
                   </M.IconButton>
                 ) : (
                   <M.IconButton size="small" disabled>

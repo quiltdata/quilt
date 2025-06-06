@@ -1198,7 +1198,9 @@ function NextPage({
                 return (
                   <ResultsPage
                     className={className}
-                    hits={addFakeEntries(r.data.hits) as readonly SearchUIModel.SearchHit[]}
+                    hits={
+                      addFakeEntries(r.data.hits) as readonly SearchUIModel.SearchHit[]
+                    }
                     cursor={r.data.cursor}
                     resultType={resultType}
                     singleBucket={singleBucket}
@@ -1258,7 +1260,11 @@ function ResultsInner({ className }: ResultsInnerProps) {
               className={className}
               key={`${model.state.resultType}:${r.data.firstPage.cursor}`}
               resultType={model.state.resultType}
-              hits={addFakeEntries(r.data.firstPage.hits) as readonly SearchUIModel.SearchHit[]}
+              hits={
+                addFakeEntries(
+                  r.data.firstPage.hits,
+                ) as readonly SearchUIModel.SearchHit[]
+              }
               cursor={r.data.firstPage.cursor}
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}
@@ -1322,6 +1328,9 @@ const useResultsStyles = M.makeStyles((t) => ({
   results: {
     marginTop: t.spacing(2),
   },
+  toggleButton: {
+    padding: '5px',
+  },
   toolbar: {
     alignItems: 'flex-end',
     display: 'flex',
@@ -1348,11 +1357,18 @@ function Results({ onFilters }: ResultsProps) {
             className={classes.button}
             exclusive
             onChange={(_e, value) => setView(value)}
+            size="small"
           >
-            <Lab.ToggleButton value={SearchUIModel.View.Table}>
+            <Lab.ToggleButton
+              value={SearchUIModel.View.Table}
+              className={classes.toggleButton}
+            >
               <M.Icon>grid_on</M.Icon>
             </Lab.ToggleButton>
-            <Lab.ToggleButton value={SearchUIModel.View.List}>
+            <Lab.ToggleButton
+              value={SearchUIModel.View.List}
+              className={classes.toggleButton}
+            >
               <M.Icon>list</M.Icon>
             </Lab.ToggleButton>
           </Lab.ToggleButtonGroup>
