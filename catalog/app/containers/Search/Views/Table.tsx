@@ -64,7 +64,7 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
   return value || <NoValue />
 }
 
-const useTableViewHitStyles = M.makeStyles((t) => ({
+const useTableViewStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
     position: 'relative',
@@ -103,6 +103,12 @@ const useTableViewHitStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useTableViewPackageStyles = M.makeStyles({
+  cell: {
+    whiteSpace: 'nowrap',
+  },
+})
+
 interface MatchingEntriesTableProps {
   entries: readonly SearchHitPackageMatchingEntry[]
 }
@@ -137,7 +143,7 @@ interface TableViewPackageProps {
 function TableViewPackage({ hit }: TableViewPackageProps) {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const meta = hit.meta ? JSON.parse(hit.meta) : {}
-  const classes = useTableViewHitStyles()
+  const classes = useTableViewPackageStyles()
   const { urls } = NamedRoutes.use()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
@@ -489,7 +495,7 @@ export interface TableViewProps {
 
 export default function TableView({ hits }: TableViewProps) {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const classes = useTableViewHitStyles()
+  const classes = useTableViewStyles()
   return (
     <M.Paper className={classes.root}>
       <div className={classes.scrollArea}>
