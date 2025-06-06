@@ -1,4 +1,5 @@
 <!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable MD025 -->
 <!--
 Entries inside each section should be ordered by type:
 1. Removed
