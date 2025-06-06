@@ -139,6 +139,10 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
   },
   fold: {
     opacity: 0.3,
+    transition: t.transitions.create(['opacity', 'transform']),
+  },
+  rotate: {
+    transform: 'rotate(180deg)',
   },
   navIcon: {
     display: 'none',
@@ -171,7 +175,10 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
       <M.TableRow hover className={classes.root} onClick={toggle}>
         <M.TableCell padding="checkbox">
           {!!hit.matchingEntries?.length && (
-            <M.IconButton size="small" className={classes.fold}>
+            <M.IconButton
+              size="small"
+              className={cx(classes.fold, open && classes.rotate)}
+            >
               <M.Icon>{open ? 'unfold_less' : 'unfold_more'}</M.Icon>
             </M.IconButton>
           )}
