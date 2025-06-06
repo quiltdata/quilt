@@ -9,6 +9,10 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
+import type {
+  SearchHitPackageMatchingEntry,
+  SearchHitPackageWithMatches,
+} from '../fakeMatchingEntries'
 import type { Json, JsonRecord } from 'utils/types'
 
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
@@ -99,8 +103,35 @@ const useTableViewHitStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface MatchingEntriesTableProps {
+  entries: readonly SearchHitPackageMatchingEntry[]
+}
+
+function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
+  return (
+    <M.Table size="small">
+      <M.TableHead>
+        <M.TableRow>
+          <M.TableCell>Logical Key</M.TableCell>
+          <M.TableCell>Physical Key</M.TableCell>
+          <M.TableCell align="right">Size</M.TableCell>
+        </M.TableRow>
+      </M.TableHead>
+      <M.TableBody>
+        {entries.map((e) => (
+          <M.TableRow key={e.logicalKey}>
+            <M.TableCell>{e.logicalKey}</M.TableCell>
+            <M.TableCell>{e.physicalKey}</M.TableCell>
+            <M.TableCell align="right">{readableBytes(e.size)}</M.TableCell>
+          </M.TableRow>
+        ))}
+      </M.TableBody>
+    </M.Table>
+  )
+}
+
 interface TableViewPackageProps {
-  hit: SearchUIModel.SearchHitPackage
+  hit: SearchHitPackageWithMatches
 }
 
 function TableViewPackage({ hit }: TableViewPackageProps) {
@@ -108,28 +139,53 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
   const meta = hit.meta ? JSON.parse(hit.meta) : {}
   const classes = useTableViewHitStyles()
   const { urls } = NamedRoutes.use()
+  const [open, setOpen] = React.useState(false)
+  const toggle = React.useCallback(() => setOpen((x) => !x), [])
+  const colSpan =
+    2 + state.filter.order.length + state.userMetaFilters.filters.size
+
   return (
-    <M.TableRow hover>
-      <M.TableCell className={classes.cell}>
-        <RR.Link to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
-          {hit.name}
-        </RR.Link>
-      </M.TableCell>
-      {state.filter.order.map((filter) => (
-        <M.TableCell
-          className={classes.cell}
-          data-search-hit-filter={filter}
-          key={filter}
-        >
-          <TableViewSystemMeta hit={hit} filter={filter} />
+    <>
+      <M.TableRow hover>
+        <M.TableCell padding="checkbox">
+          {!!hit.matchingEntries?.length && (
+            <M.IconButton size="small" onClick={toggle}>
+              <M.Icon>{open ? 'expand_less' : 'expand_more'}</M.Icon>
+            </M.IconButton>
+          )}
         </M.TableCell>
-      ))}
-      {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
-        <M.TableCell className={classes.cell} data-search-hit-meta={key} key={key}>
-          <TableViewUserMeta meta={meta} pointer={key} />
+        <M.TableCell className={classes.cell}>
+          <RR.Link to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
+            {hit.name}
+          </RR.Link>
         </M.TableCell>
-      ))}
-    </M.TableRow>
+        {state.filter.order.map((filter) => (
+          <M.TableCell
+            className={classes.cell}
+            data-search-hit-filter={filter}
+            key={filter}
+          >
+            <TableViewSystemMeta hit={hit} filter={filter} />
+          </M.TableCell>
+        ))}
+        {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
+          <M.TableCell className={classes.cell} data-search-hit-meta={key} key={key}>
+            <TableViewUserMeta meta={meta} pointer={key} />
+          </M.TableCell>
+        ))}
+      </M.TableRow>
+      {!!hit.matchingEntries?.length && (
+        <M.TableRow>
+          <M.TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={colSpan}>
+            <M.Collapse in={open} timeout="auto" unmountOnExit>
+              <M.Box margin={1}>
+                <MatchingEntriesTable entries={hit.matchingEntries} />
+              </M.Box>
+            </M.Collapse>
+          </M.TableCell>
+        </M.TableRow>
+      )}
+    </>
   )
 }
 
@@ -139,9 +195,12 @@ interface TableViewObjectProps {
 
 function TableViewObject({ hit }: TableViewObjectProps) {
   return (
-    <M.TableRow hover>
-      <M.TableCell>{hit.key}</M.TableCell>
-    </M.TableRow>
+    <>
+      <M.TableRow hover>
+        <M.TableCell padding="checkbox" />
+        <M.TableCell>{hit.key}</M.TableCell>
+      </M.TableRow>
+    </>
   )
 }
 
@@ -154,7 +213,7 @@ function TableViewHit({ hit }: TableViewHitProps) {
     case 'SearchHitObject':
       return <TableViewObject hit={hit} />
     case 'SearchHitPackage':
-      return <TableViewPackage hit={hit} />
+      return <TableViewPackage hit={hit as SearchHitPackageWithMatches} />
     default:
       assertNever(hit)
   }
@@ -437,6 +496,7 @@ export default function TableView({ hits }: TableViewProps) {
         <M.Table size="small">
           <M.TableHead>
             <M.TableRow>
+              <M.TableCell padding="checkbox" />
               <M.TableCell className={classes.cell}>
                 <div className={classes.head}>
                   Name
