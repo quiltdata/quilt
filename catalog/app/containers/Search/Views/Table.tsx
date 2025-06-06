@@ -389,13 +389,6 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     top: 0,
     transition: t.transitions.create('width'),
     width: t.spacing(4),
-    '&:hover': {
-      width: t.spacing(5),
-      boxShadow: t.shadows[1],
-    },
-    '&:hover $button': {
-      opacity: 1,
-    },
   },
   add: {
     lineHeight: `${t.spacing(4)}px`,
@@ -413,28 +406,32 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   },
   opened: {
     width: 'auto',
-    '&:hover': {
-      width: 'auto',
-    },
+    animation: t.transitions.create('$slide'),
     '& $head': {
       justifyContent: 'flex-start',
     },
   },
   list: {
-    animation: t.transitions.create('$appear'),
+    animation: t.transitions.create('$fade'),
     background: t.palette.background.paper,
     overflowY: 'auto',
   },
   listInner: {
     background: 'inherit',
   },
-  '@keyframes appear': {
+  '@keyframes fade': {
     '0%': {
       opacity: 0.7,
-      transform: 'translateX(8px)',
     },
     '100%': {
       opacity: 1,
+    },
+  },
+  '@keyframes slide': {
+    '0%': {
+      transform: `translateX(${t.spacing(16)}px)`,
+    },
+    '100%': {
       transform: 'translateX(0)',
     },
   },
@@ -443,7 +440,6 @@ const useAddColumnStyles = M.makeStyles((t) => ({
 interface AddColumnProps {}
 
 function AddColumn({}: AddColumnProps) {
-  const ref = React.useRef<HTMLDivElement>(null)
   const [open, setOpen] = React.useState(false)
   const classes = useAddColumnStyles()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -462,48 +458,61 @@ function AddColumn({}: AddColumnProps) {
     [activatePackagesFilter],
   )
 
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleMouseEnter = React.useCallback(() => {
+    timeoutRef.current = setTimeout(() => setOpen(true), 100)
+  }, [])
+
+  const handleMouseLeave = React.useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    setOpen(false)
+  }, [])
+
   return (
-    <M.ClickAwayListener onClickAway={() => setOpen(false)}>
-      <div
-        className={cx(classes.root, { [classes.opened]: open })}
-        onClick={() => setOpen(true)}
-      >
-        <div className={classes.head} ref={ref}>
-          {open ? (
-            <M.Typography variant="subtitle2" className={classes.add}>
-              Add column:
-            </M.Typography>
-          ) : (
-            <ColumnAction className={classes.button} icon="add" />
-          )}
-        </div>
-        {open && (
-          <div className={classes.list}>
-            <M.List className={classes.listInner}>
-              <M.ListSubheader>System metadata</M.ListSubheader>
-              {availableFilters.map((filter) => (
-                <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
-                  <M.ListItemText primary={packageFilterLabels[filter]} />
-                </M.MenuItem>
-              ))}
-              <M.ListSubheader>User metadata</M.ListSubheader>
-              <SearchUIModel.AvailablePackagesMetaFilters>
-                {SearchUIModel.AvailableFiltersState.match({
-                  Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
-                  Empty: () => null,
-                  Ready: ({ facets }) => (
-                    <>
-                      <FilterGroup items={facets.visible.children} />
-                      <FilterGroup items={facets.hidden.children} />
-                    </>
-                  ),
-                })}
-              </SearchUIModel.AvailablePackagesMetaFilters>
-            </M.List>
-          </div>
+    <div
+      className={cx(classes.root, { [classes.opened]: open })}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className={classes.head}>
+        {open ? (
+          <M.Typography variant="subtitle2" className={classes.add}>
+            Add column:
+          </M.Typography>
+        ) : (
+          <ColumnAction className={classes.button} icon="add" />
         )}
       </div>
-    </M.ClickAwayListener>
+      {open && (
+        <div className={classes.list}>
+          <M.List className={classes.listInner}>
+            <M.ListSubheader>System metadata</M.ListSubheader>
+            {availableFilters.map((filter) => (
+              <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
+                <M.ListItemText primary={packageFilterLabels[filter]} />
+              </M.MenuItem>
+            ))}
+            <M.ListSubheader>User metadata</M.ListSubheader>
+            <SearchUIModel.AvailablePackagesMetaFilters>
+              {SearchUIModel.AvailableFiltersState.match({
+                Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
+                Empty: () => null,
+                Ready: ({ facets }) => (
+                  <>
+                    <FilterGroup items={facets.visible.children} />
+                    <FilterGroup items={facets.hidden.children} />
+                  </>
+                ),
+              })}
+            </SearchUIModel.AvailablePackagesMetaFilters>
+          </M.List>
+        </div>
+      )}
+    </div>
   )
 }
 
