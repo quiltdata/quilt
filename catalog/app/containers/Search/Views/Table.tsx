@@ -64,45 +64,6 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
   return value || <NoValue />
 }
 
-const useTableViewStyles = M.makeStyles((t) => ({
-  root: {
-    overflow: 'hidden',
-    position: 'relative',
-    '& th:last-child $head::after': {
-      display: 'none',
-    },
-  },
-  scrollArea: {
-    paddingRight: t.spacing(4),
-    overflowX: 'auto',
-  },
-  cell: {
-    whiteSpace: 'nowrap',
-  },
-  head: {
-    display: 'flex',
-    alignItems: 'center',
-    position: 'relative',
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      right: t.spacing(-3),
-      top: t.spacing(1),
-      bottom: t.spacing(1),
-      background: t.palette.divider,
-      width: '1px',
-    },
-    '&:hover $headActions': {
-      opacity: 1,
-    },
-  },
-  headActions: {
-    opacity: 0.3,
-    transition: t.transitions.create('opacity'),
-    marginLeft: t.spacing(2),
-  },
-}))
-
 const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
   root: {
     borderBottom: `1px solid ${t.palette.divider}`,
@@ -547,6 +508,45 @@ function AddColumn({}: AddColumnProps) {
 }
 
 const noopFixme = () => {}
+
+const useTableViewStyles = M.makeStyles((t) => ({
+  root: {
+    overflow: 'hidden',
+    position: 'relative',
+    '& th:last-child $head::after': {
+      display: 'none',
+    },
+  },
+  scrollArea: {
+    paddingRight: t.spacing(4),
+    overflowX: 'auto',
+  },
+  cell: {
+    whiteSpace: 'nowrap',
+  },
+  head: {
+    display: 'flex',
+    alignItems: 'center',
+    position: 'relative',
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      right: t.spacing(-3),
+      top: t.spacing(1),
+      bottom: t.spacing(1),
+      background: t.palette.divider,
+      width: '1px',
+    },
+    '&:hover $headActions': {
+      opacity: 1,
+    },
+  },
+  headActions: {
+    opacity: 0.3,
+    transition: t.transitions.create('opacity'),
+    marginLeft: t.spacing(2),
+  },
+}))
 
 export interface TableViewProps {
   hits: readonly SearchUIModel.SearchHit[]
