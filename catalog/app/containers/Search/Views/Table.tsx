@@ -9,12 +9,12 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
+import type { Json, JsonRecord } from 'utils/types'
+
 import type {
   SearchHitPackageMatchingEntry,
   SearchHitPackageWithMatches,
 } from '../fakeMatchingEntries'
-import type { Json, JsonRecord } from 'utils/types'
-
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { columnLabels, packageFilterLabels } from '../i18n'
 import * as SearchUIModel from '../model'
@@ -103,26 +103,43 @@ const useTableViewHitStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useMatchingEntriesTableStyles = M.makeStyles({
+  cell: {
+    whiteSpace: 'nowrap',
+  },
+  row: {
+    '&:last-child $cell': {
+      borderBottom: 'none',
+    },
+  },
+})
+
 interface MatchingEntriesTableProps {
   entries: readonly SearchHitPackageMatchingEntry[]
 }
 
 function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
+  const classes = useMatchingEntriesTableStyles()
+
   return (
     <M.Table size="small">
       <M.TableHead>
         <M.TableRow>
-          <M.TableCell>Logical Key</M.TableCell>
-          <M.TableCell>Physical Key</M.TableCell>
-          <M.TableCell align="right">Size</M.TableCell>
+          <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
+          <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
+          <M.TableCell className={classes.cell} align="right">
+            Size
+          </M.TableCell>
         </M.TableRow>
       </M.TableHead>
       <M.TableBody>
         {entries.map((e) => (
-          <M.TableRow key={e.logicalKey}>
-            <M.TableCell>{e.logicalKey}</M.TableCell>
-            <M.TableCell>{e.physicalKey}</M.TableCell>
-            <M.TableCell align="right">{readableBytes(e.size)}</M.TableCell>
+          <M.TableRow key={e.physicalKey} className={classes.row}>
+            <M.TableCell className={classes.cell}>{e.logicalKey}</M.TableCell>
+            <M.TableCell className={classes.cell}>{e.physicalKey}</M.TableCell>
+            <M.TableCell className={classes.cell} align="right">
+              {readableBytes(e.size)}
+            </M.TableCell>
           </M.TableRow>
         ))}
       </M.TableBody>
@@ -141,8 +158,7 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
   const { urls } = NamedRoutes.use()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
-  const colSpan =
-    2 + state.filter.order.length + state.userMetaFilters.filters.size
+  const colSpan = 2 + state.filter.order.length + state.userMetaFilters.filters.size
 
   return (
     <>
