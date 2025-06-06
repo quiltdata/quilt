@@ -938,6 +938,7 @@ Data fragments can now be downloaded in parallel leading to much faster package 
 
 ## Quilt packages live in a centralized location on your machine
 
+<!-- markdownlint-disable-next-line MD059 -->
 Quilt data packages are now available wherever you run Python. We recommend that users **quilt push all local packages to the registry before upgrading**. Further details on migration are [here](https://docs.quilt.bio/troubleshooting.html).
 
 ## Faster builds with build cache
@@ -946,15 +947,16 @@ Quilt now caches build intermediates. So if you wish to update the README of a m
 
 ## Group-level build parameters
 
-You can now specify build parameters (like transform) for all children of a group in one shot. The updated syntax and docs are [here](https://docs.quilt.bio/buildyml.html).
+<!-- markdownlint-disable-next-line MD059 -->
+You can now specify build parameters (like transform) for all children of a group in one shot. The updated syntax and docs are [here](https://docs.quilt.bio/buildyml.html).
 
 ## quilt.yml is like requirements.txt but for data
 
 You can now express dependencies on multiple packages in a single file. Docs [here](https://docs.quilt.bio/cli.html#installing-via-requirements-file).
 
 ## Experimental: build a package from a GitHub repo
-
 Quilt build now accepts GitHub URLs. If you use data stored on GitHub you can turn it into a Quilt package with quilt build.
+<!-- markdownlint-disable-next-line MD059 -->
 
 # 2.7.1 - 2017-11-09 - Checks: unit tests for data packages
 
