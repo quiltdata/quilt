@@ -387,7 +387,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.default,
     bottom: 0,
-    boxShadow: t.shadows[4],
+    boxShadow: t.shadows[2],
     display: 'flex',
     flexDirection: 'column',
     position: 'absolute',
