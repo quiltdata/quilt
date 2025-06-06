@@ -1,9 +1,12 @@
+import { extname } from 'path'
+
 import cx from 'classnames'
 import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import JsonDisplay from 'components/JsonDisplay'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
@@ -69,9 +72,16 @@ const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
     borderBottom: `1px solid ${t.palette.divider}`,
     padding: t.spacing(2, 7),
     background: t.palette.background.default,
+    position: 'relative',
+    width: '896px',
   },
   cell: {
     whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+  },
+  noMeta: {
+    width: t.spacing(1.5),
   },
   row: {
     '&:last-child $cell': {
@@ -79,7 +89,32 @@ const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
     },
   },
   table: {
-    width: 'auto',
+    tableLayout: 'fixed',
+  },
+  popover: {
+    position: 'absolute',
+    top: '100%',
+    trasform: 'translateY(1px)',
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
+  preview: {
+    padding: t.spacing(3, 7),
+  },
+  content: {
+    display: 'inline-block',
+    background: t.palette.background.paper,
+    borderRadius: t.shape.borderRadius,
+    fontVariant: 'small-caps',
+    padding: t.spacing(0.25, 0.5),
+    fontWeight: t.typography.fontWeightMedium,
+    margin: t.spacing(0, -0.5),
+  },
+  match: {
+    background: t.palette.warning.light,
+    padding: t.spacing(0.25, 0.5),
+    margin: t.spacing(0, -0.5),
   },
 }))
 
@@ -90,30 +125,88 @@ interface MatchingEntriesTableProps {
 function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
   const classes = useMatchingEntriesTableStyles()
 
+  const [previewEntry, setPreviewEntry] =
+    React.useState<SearchHitPackageMatchingEntry | null>(null)
+  const handleMouseEnter = React.useCallback((e: SearchHitPackageMatchingEntry) => {
+    setPreviewEntry(e)
+  }, [])
+  const handleMouseLeave = React.useCallback(() => {
+    setPreviewEntry(null)
+  }, [])
+
   return (
-    <M.Paper className={classes.root}>
+    <M.Paper square className={classes.root} elevation={0}>
       <M.Table size="small" className={classes.table}>
         <M.TableHead>
           <M.TableRow>
             <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
             <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
-            <M.TableCell className={classes.cell} align="right">
+            <M.TableCell className={classes.cell} align="right" width="80px">
               Size
+            </M.TableCell>
+            <M.TableCell className={classes.cell} align="center" width="120px">
+              Contents
+            </M.TableCell>
+            <M.TableCell className={classes.cell} align="center" width="80px">
+              Meta
             </M.TableCell>
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
           {entries.map((e) => (
-            <M.TableRow key={e.physicalKey} className={classes.row}>
-              <M.TableCell className={classes.cell}>{e.logicalKey}</M.TableCell>
-              <M.TableCell className={classes.cell}>{e.physicalKey}</M.TableCell>
+            <M.TableRow hover key={e.physicalKey} className={classes.row}>
+              <M.TableCell className={classes.cell} component="th" scope="row">
+                <span className={cx(e.matchLocations.logicalKey && classes.match)}>
+                  {e.logicalKey}
+                </span>
+              </M.TableCell>
+              <M.TableCell className={classes.cell}>
+                <span className={cx(e.matchLocations.physicalKey && classes.match)}>
+                  {e.physicalKey}
+                </span>
+              </M.TableCell>
               <M.TableCell className={classes.cell} align="right">
                 {readableBytes(e.size)}
+              </M.TableCell>
+              <M.TableCell className={classes.cell} align="center">
+                {e.meta ? (
+                  <M.IconButton
+                    size="small"
+                    className={cx(e.matchLocations.meta && classes.match)}
+                    onMouseEnter={() => handleMouseEnter(e)}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <M.Icon fontSize="inherit">data_object</M.Icon>
+                  </M.IconButton>
+                ) : (
+                  <M.IconButton size="small" disabled>
+                    <M.Divider className={classes.noMeta} />
+                  </M.IconButton>
+                )}
+              </M.TableCell>
+              <M.TableCell className={classes.cell} align="center">
+                <span
+                  className={cx(
+                    classes.content,
+                    e.matchLocations.contents && classes.match,
+                  )}
+                  onMouseEnter={() => handleMouseEnter(e)}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {extname(e.logicalKey).substring(1)}
+                </span>
               </M.TableCell>
             </M.TableRow>
           ))}
         </M.TableBody>
       </M.Table>
+      {previewEntry && (
+        <M.Paper square className={classes.popover} elevation={4}>
+          <div className={classes.preview}>
+            <JsonDisplay value={previewEntry.meta} defaultExpanded />
+          </div>
+        </M.Paper>
+      )}
     </M.Paper>
   )
 }

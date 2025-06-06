@@ -42,4 +42,17 @@ export const fakeMatchingEntries: readonly SearchHitPackageMatchingEntry[] = [
       contents: false,
     },
   },
+  {
+    logicalKey:
+      'some-long/long/long/long/long/long/long/long/long/long/long/long/long/long/name.csv',
+    meta: { description: 'test file' },
+    size: 2048,
+    physicalKey: 's3://example-bucket/data/long.csv',
+    matchLocations: {
+      logicalKey: false,
+      meta: false,
+      physicalKey: false,
+      contents: true,
+    },
+  },
 ]
