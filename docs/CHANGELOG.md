@@ -952,11 +952,12 @@ You can now specify build parameters (like transform) for all children of a grou
 
 ## quilt.yml is like requirements.txt but for data
 
+<!-- markdownlint-disable-next-line MD059 -->
 You can now express dependencies on multiple packages in a single file. Docs [here](https://docs.quilt.bio/cli.html#installing-via-requirements-file).
 
 ## Experimental: build a package from a GitHub repo
+
 Quilt build now accepts GitHub URLs. If you use data stored on GitHub you can turn it into a Quilt package with quilt build.
-<!-- markdownlint-disable-next-line MD059 -->
 
 # 2.7.1 - 2017-11-09 - Checks: unit tests for data packages
 
