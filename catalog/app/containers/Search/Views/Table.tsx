@@ -11,6 +11,10 @@ import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
+import type {
+  SearchHitPackageMatchingEntry,
+  SearchHitPackageWithMatches,
+} from '../fakeMatchingEntries'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { columnLabels, packageFilterLabels } from '../i18n'
 import * as SearchUIModel from '../model'
@@ -60,76 +64,161 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
   return value || <NoValue />
 }
 
-const useTableViewHitStyles = M.makeStyles((t) => ({
+const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
   root: {
-    overflow: 'hidden',
-    position: 'relative',
-    '& th:last-child $head::after': {
-      display: 'none',
-    },
-  },
-  scrollArea: {
-    paddingRight: t.spacing(4),
-    overflowX: 'auto',
+    borderBottom: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2, 7),
+    background: t.palette.background.default,
   },
   cell: {
     whiteSpace: 'nowrap',
   },
-  head: {
-    display: 'flex',
-    alignItems: 'center',
-    position: 'relative',
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      right: t.spacing(-3),
-      top: t.spacing(1),
-      bottom: t.spacing(1),
-      background: t.palette.divider,
-      width: '1px',
-    },
-    '&:hover $headActions': {
-      opacity: 1,
+  row: {
+    '&:last-child $cell': {
+      borderBottom: 0,
     },
   },
-  headActions: {
+  table: {
+    width: 'auto',
+  },
+}))
+
+interface MatchingEntriesTableProps {
+  entries: readonly SearchHitPackageMatchingEntry[]
+}
+
+function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
+  const classes = useMatchingEntriesTableStyles()
+
+  return (
+    <M.Paper className={classes.root}>
+      <M.Table size="small" className={classes.table}>
+        <M.TableHead>
+          <M.TableRow>
+            <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
+            <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
+            <M.TableCell className={classes.cell} align="right">
+              Size
+            </M.TableCell>
+          </M.TableRow>
+        </M.TableHead>
+        <M.TableBody>
+          {entries.map((e) => (
+            <M.TableRow key={e.physicalKey} className={classes.row}>
+              <M.TableCell className={classes.cell}>{e.logicalKey}</M.TableCell>
+              <M.TableCell className={classes.cell}>{e.physicalKey}</M.TableCell>
+              <M.TableCell className={classes.cell} align="right">
+                {readableBytes(e.size)}
+              </M.TableCell>
+            </M.TableRow>
+          ))}
+        </M.TableBody>
+      </M.Table>
+    </M.Paper>
+  )
+}
+
+const useTableViewPackageStyles = M.makeStyles((t) => ({
+  root: {
+    '&:hover $fold': {
+      opacity: 1,
+    },
+    '&:hover $navIcon': {
+      display: 'inline-block',
+    },
+  },
+  cell: {
+    whiteSpace: 'nowrap',
+  },
+  entries: {
+    borderBottom: 0,
+    padding: 0,
+    '&:last-child': {
+      padding: 0,
+    },
+  },
+  fold: {
     opacity: 0.3,
-    transition: t.transitions.create('opacity'),
-    marginLeft: t.spacing(2),
+    transition: t.transitions.create(['opacity', 'transform']),
+  },
+  rotate: {
+    transform: 'rotate(180deg)',
+  },
+  navIcon: {
+    display: 'none',
+    marginLeft: t.spacing(0.5),
+    transition: t.transitions.create('transform'),
+    verticalAlign: 'bottom',
+  },
+  link: {
+    '&:hover $navIcon': {
+      transform: `translateX(${t.spacing(0.5)}px)`,
+    },
   },
 }))
 
 interface TableViewPackageProps {
-  hit: SearchUIModel.SearchHitPackage
+  hit: SearchHitPackageWithMatches
 }
 
 function TableViewPackage({ hit }: TableViewPackageProps) {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const meta = hit.meta ? JSON.parse(hit.meta) : {}
-  const classes = useTableViewHitStyles()
+  const classes = useTableViewPackageStyles()
   const { urls } = NamedRoutes.use()
+  const [open, setOpen] = React.useState(false)
+  const toggle = React.useCallback(() => setOpen((x) => !x), [])
+  const colSpan = 2 + state.filter.order.length + state.userMetaFilters.filters.size
+
   return (
-    <M.TableRow hover>
-      <M.TableCell className={classes.cell}>
-        <RR.Link to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
-          {hit.name}
-        </RR.Link>
-      </M.TableCell>
-      {state.filter.order.map((filter) => (
-        <M.TableCell
-          className={classes.cell}
-          data-search-hit-filter={filter}
-          key={filter}
-        >
-          <TableViewSystemMeta hit={hit} filter={filter} />
+    <>
+      <M.TableRow hover className={classes.root} onClick={toggle}>
+        <M.TableCell padding="checkbox">
+          {!!hit.matchingEntries?.length && (
+            <M.IconButton
+              size="small"
+              className={cx(classes.fold, open && classes.rotate)}
+            >
+              <M.Icon>{open ? 'unfold_less' : 'unfold_more'}</M.Icon>
+            </M.IconButton>
+          )}
         </M.TableCell>
-      ))}
-      {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
-        <M.TableCell className={classes.cell} data-search-hit-meta={key} key={key}>
-          <TableViewUserMeta meta={meta} pointer={key} />
+        <M.TableCell className={classes.cell}>
+          <RR.Link
+            to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
+            className={classes.link}
+          >
+            {hit.name}
+            <M.Icon fontSize="small" className={classes.navIcon}>
+              navigate_next
+            </M.Icon>
+          </RR.Link>
         </M.TableCell>
-      ))}
-    </M.TableRow>
+        {state.filter.order.map((filter) => (
+          <M.TableCell
+            className={classes.cell}
+            data-search-hit-filter={filter}
+            key={filter}
+          >
+            <TableViewSystemMeta hit={hit} filter={filter} />
+          </M.TableCell>
+        ))}
+        {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
+          <M.TableCell className={classes.cell} data-search-hit-meta={key} key={key}>
+            <TableViewUserMeta meta={meta} pointer={key} />
+          </M.TableCell>
+        ))}
+      </M.TableRow>
+      {!!hit.matchingEntries?.length && (
+        <M.TableRow>
+          <M.TableCell className={classes.entries} colSpan={colSpan}>
+            <M.Collapse in={open} timeout="auto" unmountOnExit>
+              <MatchingEntriesTable entries={hit.matchingEntries} />
+            </M.Collapse>
+          </M.TableCell>
+        </M.TableRow>
+      )}
+    </>
   )
 }
 
@@ -139,9 +228,12 @@ interface TableViewObjectProps {
 
 function TableViewObject({ hit }: TableViewObjectProps) {
   return (
-    <M.TableRow hover>
-      <M.TableCell>{hit.key}</M.TableCell>
-    </M.TableRow>
+    <>
+      <M.TableRow hover>
+        <M.TableCell padding="checkbox" />
+        <M.TableCell>{hit.key}</M.TableCell>
+      </M.TableRow>
+    </>
   )
 }
 
@@ -154,7 +246,7 @@ function TableViewHit({ hit }: TableViewHitProps) {
     case 'SearchHitObject':
       return <TableViewObject hit={hit} />
     case 'SearchHitPackage':
-      return <TableViewPackage hit={hit} />
+      return <TableViewPackage hit={hit as SearchHitPackageWithMatches} />
     default:
       assertNever(hit)
   }
@@ -296,7 +388,6 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     background: t.palette.background.default,
     bottom: 0,
     boxShadow: t.shadows[4],
-    cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
     position: 'absolute',
@@ -304,13 +395,6 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     top: 0,
     transition: t.transitions.create('width'),
     width: t.spacing(4),
-    '&:hover': {
-      width: t.spacing(5),
-      boxShadow: t.shadows[1],
-    },
-    '&:hover $button': {
-      opacity: 1,
-    },
   },
   add: {
     lineHeight: `${t.spacing(4)}px`,
@@ -328,28 +412,32 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   },
   opened: {
     width: 'auto',
-    '&:hover': {
-      width: 'auto',
-    },
+    animation: t.transitions.create('$slide'),
     '& $head': {
       justifyContent: 'flex-start',
     },
   },
   list: {
-    animation: t.transitions.create('$appear'),
+    animation: t.transitions.create('$fade'),
     background: t.palette.background.paper,
     overflowY: 'auto',
   },
   listInner: {
     background: 'inherit',
   },
-  '@keyframes appear': {
+  '@keyframes fade': {
     '0%': {
       opacity: 0.7,
-      transform: 'translateX(8px)',
     },
     '100%': {
       opacity: 1,
+    },
+  },
+  '@keyframes slide': {
+    '0%': {
+      transform: `translateX(${t.spacing(16)}px)`,
+    },
+    '100%': {
       transform: 'translateX(0)',
     },
   },
@@ -358,7 +446,6 @@ const useAddColumnStyles = M.makeStyles((t) => ({
 interface AddColumnProps {}
 
 function AddColumn({}: AddColumnProps) {
-  const ref = React.useRef<HTMLDivElement>(null)
   const [open, setOpen] = React.useState(false)
   const classes = useAddColumnStyles()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -377,52 +464,104 @@ function AddColumn({}: AddColumnProps) {
     [activatePackagesFilter],
   )
 
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleMouseEnter = React.useCallback(() => {
+    timeoutRef.current = setTimeout(() => setOpen(true), 100)
+  }, [])
+
+  const handleMouseLeave = React.useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    setOpen(false)
+  }, [])
+
   return (
-    <M.ClickAwayListener onClickAway={() => setOpen(false)}>
-      <div
-        className={cx(classes.root, { [classes.opened]: open })}
-        onClick={() => setOpen(true)}
-      >
-        <div className={classes.head} ref={ref}>
-          {open ? (
-            <M.Typography variant="subtitle2" className={classes.add}>
-              Add column:
-            </M.Typography>
-          ) : (
-            <ColumnAction className={classes.button} icon="add" />
-          )}
-        </div>
-        {open && (
-          <div className={classes.list}>
-            <M.List className={classes.listInner}>
-              <M.ListSubheader>System metadata</M.ListSubheader>
-              {availableFilters.map((filter) => (
-                <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
-                  <M.ListItemText primary={packageFilterLabels[filter]} />
-                </M.MenuItem>
-              ))}
-              <M.ListSubheader>User metadata</M.ListSubheader>
-              <SearchUIModel.AvailablePackagesMetaFilters>
-                {SearchUIModel.AvailableFiltersState.match({
-                  Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
-                  Empty: () => null,
-                  Ready: ({ facets }) => (
-                    <>
-                      <FilterGroup items={facets.visible.children} />
-                      <FilterGroup items={facets.hidden.children} />
-                    </>
-                  ),
-                })}
-              </SearchUIModel.AvailablePackagesMetaFilters>
-            </M.List>
-          </div>
+    <div
+      className={cx(classes.root, { [classes.opened]: open })}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className={classes.head}>
+        {open ? (
+          <M.Typography variant="subtitle2" className={classes.add}>
+            Add column:
+          </M.Typography>
+        ) : (
+          <ColumnAction className={classes.button} icon="add" />
         )}
       </div>
-    </M.ClickAwayListener>
+      {open && (
+        <div className={classes.list}>
+          <M.List className={classes.listInner}>
+            <M.ListSubheader>System metadata</M.ListSubheader>
+            {availableFilters.map((filter) => (
+              <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
+                <M.ListItemText primary={packageFilterLabels[filter]} />
+              </M.MenuItem>
+            ))}
+            <M.ListSubheader>User metadata</M.ListSubheader>
+            <SearchUIModel.AvailablePackagesMetaFilters>
+              {SearchUIModel.AvailableFiltersState.match({
+                Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
+                Empty: () => null,
+                Ready: ({ facets }) => (
+                  <>
+                    <FilterGroup items={facets.visible.children} />
+                    <FilterGroup items={facets.hidden.children} />
+                  </>
+                ),
+              })}
+            </SearchUIModel.AvailablePackagesMetaFilters>
+          </M.List>
+        </div>
+      )}
+    </div>
   )
 }
 
 const noopFixme = () => {}
+
+const useTableViewStyles = M.makeStyles((t) => ({
+  root: {
+    overflow: 'hidden',
+    position: 'relative',
+    '& th:last-child $head::after': {
+      display: 'none',
+    },
+  },
+  scrollArea: {
+    paddingRight: t.spacing(4),
+    overflowX: 'auto',
+  },
+  cell: {
+    whiteSpace: 'nowrap',
+  },
+  head: {
+    display: 'flex',
+    alignItems: 'center',
+    position: 'relative',
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      right: t.spacing(-3),
+      top: t.spacing(1),
+      bottom: t.spacing(1),
+      background: t.palette.divider,
+      width: '1px',
+    },
+    '&:hover $headActions': {
+      opacity: 1,
+    },
+  },
+  headActions: {
+    opacity: 0.3,
+    transition: t.transitions.create('opacity'),
+    marginLeft: t.spacing(2),
+  },
+}))
 
 export interface TableViewProps {
   hits: readonly SearchUIModel.SearchHit[]
@@ -430,13 +569,14 @@ export interface TableViewProps {
 
 export default function TableView({ hits }: TableViewProps) {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const classes = useTableViewHitStyles()
+  const classes = useTableViewStyles()
   return (
     <M.Paper className={classes.root}>
       <div className={classes.scrollArea}>
         <M.Table size="small">
           <M.TableHead>
             <M.TableRow>
+              <M.TableCell padding="checkbox" />
               <M.TableCell className={classes.cell}>
                 <div className={classes.head}>
                   Name
