@@ -156,14 +156,18 @@ function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
           {entries.map((e) => (
             <M.TableRow hover key={e.physicalKey} className={classes.row}>
               <M.TableCell className={classes.cell} component="th" scope="row">
-                <span className={cx(e.matchLocations.logicalKey && classes.match)}>
-                  {e.logicalKey}
-                </span>
+                <M.Tooltip title={e.logicalKey}>
+                  <span className={cx(e.matchLocations.logicalKey && classes.match)}>
+                    {e.logicalKey}
+                  </span>
+                </M.Tooltip>
               </M.TableCell>
               <M.TableCell className={classes.cell}>
-                <span className={cx(e.matchLocations.physicalKey && classes.match)}>
-                  {e.physicalKey}
-                </span>
+                <M.Tooltip title={e.physicalKey}>
+                  <span className={cx(e.matchLocations.physicalKey && classes.match)}>
+                    {e.physicalKey}
+                  </span>
+                </M.Tooltip>
               </M.TableCell>
               <M.TableCell className={classes.cell} align="right">
                 {readableBytes(e.size)}
