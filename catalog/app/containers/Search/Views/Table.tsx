@@ -151,7 +151,7 @@ function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
             <M.TableCell className={classes.cell} align="center" width="120px">
               Meta
             </M.TableCell>
-            <M.TableCell className={classes.cell} align="center" width="80px">
+            <M.TableCell className={classes.cell} align="center" width="90px">
               Contents
             </M.TableCell>
           </M.TableRow>
@@ -225,7 +225,7 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
       opacity: 1,
     },
     '&:hover $navIcon': {
-      display: 'inline-block',
+      opacity: 1,
     },
   },
   cell: {
@@ -246,9 +246,10 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
     transform: 'rotate(180deg)',
   },
   navIcon: {
-    display: 'none',
+    display: 'inline-block',
     marginLeft: t.spacing(0.5),
-    transition: t.transitions.create('transform'),
+    opacity: 0,
+    transition: t.transitions.create(['transform', 'opacity']),
     verticalAlign: 'bottom',
   },
   link: {
