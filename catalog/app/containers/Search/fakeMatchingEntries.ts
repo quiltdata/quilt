@@ -1,3 +1,5 @@
+import type { SearchHitPackage } from './model'
+
 export interface SearchHitPackageEntryMatchLocations {
   logicalKey: boolean
   meta: boolean
@@ -20,7 +22,7 @@ export interface SearchHitPackageMatchLocations {
   workflow: boolean
 }
 
-export type SearchHitPackageWithMatches = import('./model').SearchHitPackage & {
+export type SearchHitPackageWithMatches = SearchHitPackage & {
   matchingEntries: readonly SearchHitPackageMatchingEntry[]
   matchLocations: SearchHitPackageMatchLocations
 }

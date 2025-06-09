@@ -1,15 +1,16 @@
-import { extname } from 'path'
+import { extname, join } from 'path'
 
 import cx from 'classnames'
 import jsonpath from 'jsonpath'
 import * as React from 'react'
-import * as RR from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
@@ -58,6 +59,7 @@ interface TableViewSystemMetaProps {
 
 function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
   const classes = useTableViewSystemMetaStyles()
+  const { urls } = NamedRoutes.use()
   switch (filter) {
     case 'workflow':
       return hit.workflow ? (
@@ -66,6 +68,12 @@ function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
         </span>
       ) : (
         <NoValue />
+      )
+    case 'hash':
+      return (
+        <StyledLink to={urls.bucketFile(hit.bucket, join('.quilt/packages', hit.hash))}>
+          {hit.hash}
+        </StyledLink>
       )
     case 'size':
       return readableBytes(hit.size)
@@ -329,7 +337,7 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
           )}
         </M.TableCell>
         <M.TableCell className={classes.cell}>
-          <RR.Link
+          <RRDom.Link
             to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
             className={classes.link}
           >
@@ -337,17 +345,19 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
             <M.Icon fontSize="small" className={classes.navIcon}>
               navigate_next
             </M.Icon>
-          </RR.Link>
+          </RRDom.Link>
         </M.TableCell>
-        {state.filter.order.map((filter) => (
-          <M.TableCell
-            className={classes.cell}
-            data-search-hit-filter={filter}
-            key={filter}
-          >
-            <TableViewSystemMeta hit={hit} filter={filter} />
-          </M.TableCell>
-        ))}
+        {state.filter.order.map((filter) =>
+          filter === 'entries' ? null : (
+            <M.TableCell
+              className={classes.cell}
+              data-search-hit-filter={filter}
+              key={filter}
+            >
+              <TableViewSystemMeta hit={hit} filter={filter} />
+            </M.TableCell>
+          ),
+        )}
         {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
           <M.TableCell className={classes.cell} data-search-hit-meta={key} key={key}>
             <TableViewUserMeta meta={meta} pointer={key} />
@@ -756,21 +766,23 @@ export default function TableView({ hits }: TableViewProps) {
                   />
                 </div>
               </M.TableCell>
-              {state.filter.order.map((filter) => (
-                <M.TableCell key={filter} className={classes.cell}>
-                  <div className={classes.head}>
-                    <M.Tooltip title={packageFilterLabels[filter]}>
-                      <span>{columnLabels[filter]}</span>
-                    </M.Tooltip>
-                    <ColumnActions
-                      className={classes.headActions}
-                      onSearch={noopFixme}
-                      onSort={noopFixme}
-                      onClose={() => actions.deactivatePackagesFilter(filter)}
-                    />
-                  </div>
-                </M.TableCell>
-              ))}
+              {state.filter.order.map((filter) =>
+                filter === 'entries' ? null : (
+                  <M.TableCell key={filter} className={classes.cell}>
+                    <div className={classes.head}>
+                      <M.Tooltip title={packageFilterLabels[filter]}>
+                        <span>{columnLabels[filter]}</span>
+                      </M.Tooltip>
+                      <ColumnActions
+                        className={classes.headActions}
+                        onSearch={noopFixme}
+                        onSort={noopFixme}
+                        onClose={() => actions.deactivatePackagesFilter(filter)}
+                      />
+                    </div>
+                  </M.TableCell>
+                ),
+              )}
               {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
                 <M.TableCell key={key} className={classes.cell}>
                   <div className={classes.head}>
