@@ -23,11 +23,21 @@ import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constan
 import { columnLabels, packageFilterLabels } from '../i18n'
 import * as SearchUIModel from '../model'
 
-const NoValue = () => (
-  <M.Box display="inline-block" width={16}>
-    <M.Divider />
-  </M.Box>
-)
+const useNoValueStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'inline-block',
+    width: t.spacing(2),
+  },
+}))
+
+function NoValue() {
+  const classes = useNoValueStyles()
+  return (
+    <div className={classes.root}>
+      <M.Divider />
+    </div>
+  )
+}
 
 const isJsonRecord = (obj: Json): obj is JsonRecord =>
   obj != null && typeof obj === 'object' && !Array.isArray(obj)
