@@ -1337,6 +1337,7 @@ function useSearchUIModel() {
               ...s,
               resultType,
               filter: ObjectsSearchFilterIO.initialState,
+              view: View.List,
             }
           default:
             return assertNever(resultType)

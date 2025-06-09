@@ -394,12 +394,20 @@ interface ColumnActionsProps {
   onClose?: () => void
 }
 
-function ColumnActions({ className, onSearch, onSort, onClose }: ColumnActionsProps) {
+function ColumnActions({
+  className,
+  // onSearch,
+  // onSort,
+  onClose,
+}: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <ColumnAction onClick={onSearch} icon="search" />
-      <ColumnAction onClick={onSort} icon="sort" />
+      {
+        // FIXME: enable search and sort
+        // <ColumnAction onClick={onSearch} icon="search" />
+        // <ColumnAction onClick={onSort} icon="sort" />
+      }
       {onClose && <ColumnAction onClick={onClose} icon="close" />}
     </div>
   )
@@ -671,7 +679,13 @@ const useTableViewStyles = M.makeStyles((t) => ({
   headActions: {
     opacity: 0.3,
     transition: t.transitions.create('opacity'),
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(0),
+    // FIXME: when add sort or search
+    // marginLeft: t.spacing(2),
+  },
+  headIcon: {
+    color: t.palette.text.secondary,
+    marginRight: t.spacing(1),
   },
 }))
 
@@ -717,7 +731,10 @@ export default function TableView({ hits }: TableViewProps) {
               {Array.from(state.userMetaFilters.filters.keys()).map((key) => (
                 <M.TableCell key={key} className={classes.cell}>
                   <div className={classes.head}>
-                    {key}
+                    <M.Icon className={classes.headIcon} fontSize="small">
+                      list
+                    </M.Icon>
+                    {key.replace(/^\//, '')}
                     <ColumnActions
                       className={classes.headActions}
                       onSearch={noopFixme}
