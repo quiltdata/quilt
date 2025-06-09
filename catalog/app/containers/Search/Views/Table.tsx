@@ -78,7 +78,7 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
   return value || <NoValue />
 }
 
-const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
+const useEntriesStyles = M.makeStyles((t) => ({
   root: {
     borderBottom: `1px solid ${t.palette.divider}`,
     padding: t.spacing(2, 7),
@@ -132,12 +132,12 @@ const useMatchingEntriesTableStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface MatchingEntriesTableProps {
+interface EntriesProps {
   entries: readonly SearchHitPackageMatchingEntry[]
 }
 
-function MatchingEntriesTable({ entries }: MatchingEntriesTableProps) {
-  const classes = useMatchingEntriesTableStyles()
+function Entries({ entries }: EntriesProps) {
+  const classes = useEntriesStyles()
 
   const [previewEntry, setPreviewEntry] =
     React.useState<SearchHitPackageMatchingEntry | null>(null)
@@ -325,7 +325,7 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
         <M.TableRow>
           <M.TableCell className={classes.entries} colSpan={colSpan}>
             <M.Collapse in={open} timeout="auto" unmountOnExit>
-              <MatchingEntriesTable entries={hit.matchingEntries} />
+              <Entries entries={hit.matchingEntries} />
             </M.Collapse>
           </M.TableCell>
         </M.TableRow>
