@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
@@ -15,6 +16,7 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 import * as NavMenu from './NavMenu'
+import { useNavBar } from './Provider'
 import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
@@ -129,6 +131,17 @@ const useHeaderStyles = M.makeStyles((t) => ({
     minHeight: '64px',
     paddingLeft: ({ customBg }: { customBg: boolean }) => (customBg ? '32px' : undefined),
   },
+  fullWidth: {
+    animation: t.transitions.create('$expand'),
+  },
+  '@keyframes expand': {
+    '0%': {
+      transform: 'scaleX(0.94)',
+    },
+    '100%': {
+      transform: 'scaleX(1)',
+    },
+  },
 }))
 
 interface HeaderProps {
@@ -141,13 +154,17 @@ export function Header({ children }: HeaderProps) {
   const classes = useHeaderStyles({
     customBg: !!settings?.theme?.palette?.primary?.main,
   })
+  const { fullWidth } = useNavBar() || {}
   return (
     <M.Box>
       <M.Toolbar />
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
           <M.Toolbar disableGutters>
-            <M.Container className={classes.container} maxWidth="lg">
+            <M.Container
+              className={cx(classes.container, fullWidth && classes.fullWidth)}
+              maxWidth={fullWidth ? false : 'lg'}
+            >
               <LogoLink />
               <div className={classes.main}>{children}</div>
             </M.Container>

@@ -1400,6 +1400,28 @@ const useStyles = M.makeStyles((t) => ({
     right: '2px',
     top: '10px',
   },
+  [SearchUIModel.View.Table]: {
+    animation: t.transitions.create('$expand'),
+  },
+  [SearchUIModel.View.List]: {
+    animation: t.transitions.create('$collapse'),
+  },
+  '@keyframes expand': {
+    '0%': {
+      transform: 'scaleX(0.94)',
+    },
+    '100%': {
+      transform: 'scaleX(1)',
+    },
+  },
+  '@keyframes collapse': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: 1,
+    },
+  },
 }))
 
 function SearchLayout() {
@@ -1407,8 +1429,12 @@ function SearchLayout() {
   const classes = useStyles()
   const isMobile = useMobileView()
   const [showFilters, setShowFilters] = React.useState(false)
+  const { view } = model.state
   return (
-    <M.Container maxWidth="lg" className={classes.root}>
+    <M.Container
+      className={cx(classes.root, classes[view])}
+      maxWidth={view === SearchUIModel.View.Table ? false : 'lg'}
+    >
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
       {isMobile ? (
         <M.Drawer anchor="left" open={showFilters} onClose={() => setShowFilters(false)}>
