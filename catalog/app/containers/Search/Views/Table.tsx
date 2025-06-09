@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import * as JSONPointer from 'utils/JSONPointer'
+import { Leaf } from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
@@ -447,6 +448,16 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const { activatePackagesMetaFilter } = model.actions
+  const activate = React.useCallback(
+    (node: Leaf<SearchUIModel.PackageUserMetaFacet>) => {
+      const type = SearchUIModel.PackageUserMetaFacetMap[node.value.__typename]
+      activatePackagesMetaFilter(node.value.path, type)
+    },
+    [activatePackagesMetaFilter],
+  )
+
   return (
     <li className={cx(classes.root)}>
       <ul className={classes.auxList}>
@@ -471,7 +482,7 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
                   path={p}
                 />
               ) : (
-                <M.MenuItem key={path + p}>
+                <M.MenuItem key={path + p} onClick={() => activate(node)}>
                   <M.ListItemText {...getLabel(p)} />
                 </M.MenuItem>
               ),
