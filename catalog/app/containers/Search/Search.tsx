@@ -1360,26 +1360,28 @@ function Results({ onFilters }: ResultsProps) {
       <div className={classes.toolbar}>
         <ResultsCount />
         <div className={classes.controls}>
-          <Lab.ToggleButtonGroup
-            value={model.state.view}
-            className={classes.button}
-            exclusive
-            onChange={(_e, value) => setView(value)}
-            size="small"
-          >
-            <Lab.ToggleButton
-              value={SearchUIModel.View.Table}
-              className={classes.toggleButton}
+          {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
+            <Lab.ToggleButtonGroup
+              value={model.state.view}
+              className={classes.button}
+              exclusive
+              onChange={(_e, value) => setView(value)}
+              size="small"
             >
-              <M.Icon>grid_on</M.Icon>
-            </Lab.ToggleButton>
-            <Lab.ToggleButton
-              value={SearchUIModel.View.List}
-              className={classes.toggleButton}
-            >
-              <M.Icon>list</M.Icon>
-            </Lab.ToggleButton>
-          </Lab.ToggleButtonGroup>
+              <Lab.ToggleButton
+                value={SearchUIModel.View.Table}
+                className={classes.toggleButton}
+              >
+                <M.Icon>grid_on</M.Icon>
+              </Lab.ToggleButton>
+              <Lab.ToggleButton
+                value={SearchUIModel.View.List}
+                className={classes.toggleButton}
+              >
+                <M.Icon>list</M.Icon>
+              </Lab.ToggleButton>
+            </Lab.ToggleButtonGroup>
+          )}
           {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
           <SortSelector className={classes.button} />
         </div>

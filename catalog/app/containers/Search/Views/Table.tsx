@@ -3,7 +3,6 @@ import { extname, join } from 'path'
 import cx from 'classnames'
 import jsonpath from 'jsonpath'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
@@ -79,7 +78,12 @@ function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
       return readableBytes(hit.size)
     case 'name':
       return (
-        <span className={cx(hit.matchLocations.name && classes.match)}>{hit.name}</span>
+        <StyledLink
+          to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
+          className={cx(hit.matchLocations.name && classes.match)}
+        >
+          {hit.name}
+        </StyledLink>
       )
     case 'comment':
       return hit.comment ? (
@@ -272,9 +276,6 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
     '&:hover $fold': {
       opacity: 1,
     },
-    '&:hover $navIcon': {
-      opacity: 1,
-    },
   },
   cell: {
     maxWidth: '500px',
@@ -296,18 +297,6 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
   rotate: {
     transform: 'rotate(180deg)',
   },
-  navIcon: {
-    display: 'inline-block',
-    marginLeft: t.spacing(0.5),
-    opacity: 0,
-    transition: t.transitions.create(['transform', 'opacity']),
-    verticalAlign: 'bottom',
-  },
-  link: {
-    '&:hover $navIcon': {
-      transform: `translateX(${t.spacing(0.5)}px)`,
-    },
-  },
 }))
 
 interface TableViewPackageProps {
@@ -318,7 +307,6 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const meta = hit.meta ? JSON.parse(hit.meta) : {}
   const classes = useTableViewPackageStyles()
-  const { urls } = NamedRoutes.use()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
   const colSpan = 2 + state.filter.order.length + state.userMetaFilters.filters.size
@@ -337,15 +325,7 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
           )}
         </M.TableCell>
         <M.TableCell className={classes.cell}>
-          <RRDom.Link
-            to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
-            className={classes.link}
-          >
-            <TableViewSystemMeta hit={hit} filter="name" />
-            <M.Icon fontSize="small" className={classes.navIcon}>
-              navigate_next
-            </M.Icon>
-          </RRDom.Link>
+          <TableViewSystemMeta hit={hit} filter="name" />
         </M.TableCell>
         {state.filter.order.map((filter) =>
           filter === 'entries' ? null : (
@@ -409,8 +389,8 @@ function TableViewHit({ hit }: TableViewHitProps) {
 
 const useColumnActionStyles = M.makeStyles((t) => ({
   root: {
-    width: t.spacing(4),
-    height: t.spacing(4),
+    width: t.spacing(3),
+    height: t.spacing(3),
   },
   icon: {
     fontSize: '20px',
@@ -570,13 +550,13 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     width: t.spacing(4),
   },
   add: {
-    lineHeight: `${t.spacing(4)}px`,
+    lineHeight: `${t.spacing(3)}px`,
     padding: t.spacing(0, 2),
   },
   head: {
     display: 'flex',
     justifyContent: 'center',
-    padding: t.spacing(0.75, 0),
+    padding: '6px 0',
     borderBottom: `1px solid ${t.palette.divider}`,
   },
   button: {
