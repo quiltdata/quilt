@@ -10,6 +10,7 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
@@ -42,17 +43,46 @@ function NoValue() {
 const isJsonRecord = (obj: Json): obj is JsonRecord =>
   obj != null && typeof obj === 'object' && !Array.isArray(obj)
 
+const useTableViewSystemMetaStyles = M.makeStyles((t) => ({
+  match: {
+    background: t.palette.warning.light,
+    padding: t.spacing(0.25, 0.5),
+    margin: t.spacing(0, -0.5),
+  },
+}))
+
 interface TableViewSystemMetaProps {
-  hit: SearchUIModel.SearchHitPackage
+  hit: SearchHitPackageWithMatches
   filter: SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
 }
 
 function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
+  const classes = useTableViewSystemMetaStyles()
   switch (filter) {
     case 'workflow':
-      return hit.workflow ? hit.workflow.id : <NoValue />
+      return hit.workflow ? (
+        <span className={cx(hit.matchLocations.workflow && classes.match)}>
+          {hit.workflow.id}
+        </span>
+      ) : (
+        <NoValue />
+      )
     case 'size':
       return readableBytes(hit.size)
+    case 'name':
+      return (
+        <span className={cx(hit.matchLocations.name && classes.match)}>{hit.name}</span>
+      )
+    case 'comment':
+      return hit.comment ? (
+        <StyledTooltip title={hit.comment} placement="bottom-start">
+          <span className={cx(hit.matchLocations.comment && classes.match)}>
+            {hit.comment}
+          </span>
+        </StyledTooltip>
+      ) : (
+        <NoValue />
+      )
     case 'modified':
       return <Format.Relative value={hit.modified} />
     default:
@@ -239,6 +269,9 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
     },
   },
   cell: {
+    maxWidth: '500px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   entries: {
@@ -300,7 +333,7 @@ function TableViewPackage({ hit }: TableViewPackageProps) {
             to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
             className={classes.link}
           >
-            {hit.name}
+            <TableViewSystemMeta hit={hit} filter="name" />
             <M.Icon fontSize="small" className={classes.navIcon}>
               navigate_next
             </M.Icon>

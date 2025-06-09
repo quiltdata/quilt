@@ -13,8 +13,16 @@ export interface SearchHitPackageMatchingEntry {
   matchLocations: SearchHitPackageEntryMatchLocations
 }
 
+export interface SearchHitPackageMatchLocations {
+  name: boolean
+  comment: boolean
+  meta: boolean
+  workflow: boolean
+}
+
 export type SearchHitPackageWithMatches = import('./model').SearchHitPackage & {
   matchingEntries: readonly SearchHitPackageMatchingEntry[]
+  matchLocations: SearchHitPackageMatchLocations
 }
 
 export const fakeMatchingEntries: readonly SearchHitPackageMatchingEntry[] = [
@@ -56,3 +64,13 @@ export const fakeMatchingEntries: readonly SearchHitPackageMatchingEntry[] = [
     },
   },
 ]
+
+export function fakeMatchingLocations(): SearchHitPackageMatchLocations {
+  const random = Math.random()
+  return {
+    name: random <= 0.25,
+    comment: random > 0.25 && random <= 0.5,
+    meta: random > 0.5 && random <= 0.75,
+    workflow: random > 0.75,
+  }
+}

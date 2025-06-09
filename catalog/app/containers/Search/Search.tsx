@@ -24,7 +24,11 @@ import ListView, { ListViewProps } from './Views/List'
 import TableView, { TableViewProps } from './Views/Table'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { packageFilterLabels } from './i18n'
-import { fakeMatchingEntries, SearchHitPackageWithMatches } from './fakeMatchingEntries'
+import {
+  SearchHitPackageWithMatches,
+  fakeMatchingEntries,
+  fakeMatchingLocations,
+} from './fakeMatchingEntries'
 
 function useMobileView() {
   const t = M.useTheme()
@@ -36,7 +40,11 @@ function addFakeEntries(
 ): readonly (SearchUIModel.SearchHit | SearchHitPackageWithMatches)[] {
   return hits.map((h) =>
     h.__typename === 'SearchHitPackage'
-      ? { ...h, matchingEntries: fakeMatchingEntries }
+      ? {
+          ...h,
+          matchingEntries: fakeMatchingEntries,
+          matchLocations: fakeMatchingLocations(),
+        }
       : h,
   )
 }
