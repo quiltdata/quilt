@@ -465,7 +465,7 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
         onClick={column.onCollapse}
         icon={column.collapsed ? 'visibility_off' : 'visibility'}
       />
-      {column.onClose && <ColumnAction onClick={column.onClose} icon="close" />}
+      {column.onClose && <ColumnAction onClick={column.onClose} icon="undo" />}
     </div>
   )
 }
