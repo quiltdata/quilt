@@ -1,4 +1,4 @@
-<!-- markdownlint-disable line-length descriptive-link-text -->
+<!-- markdownlint-disable line-length -->
 <!--
 Entries inside each section should be ordered by type:
 1. Removed
@@ -940,6 +940,7 @@ Data fragments can now be downloaded in parallel leading to much faster package 
 
 ### Quilt packages live in a centralized location on your machine
 
+<!-- markdownlint-disable-next-line descriptive-link-text -->
 Quilt data packages are now available wherever you run Python. We recommend that users **quilt push all local packages to the registry before upgrading**. Further details on migration are [here](https://docs.quilt.bio/troubleshooting.html).
 
 ### Faster builds with build cache
@@ -948,10 +949,12 @@ Quilt now caches build intermediates. So if you wish to update the README of a m
 
 ### Group-level build parameters
 
+<!-- markdownlint-disable-next-line descriptive-link-text -->
 You can now specify build parameters (like transform) for all children of a group in one shot. The updated syntax and docs are [here](https://docs.quilt.bio/buildyml.html).
 
 ### quilt.yml is like requirements.txt but for data
 
+<!-- markdownlint-disable-next-line descriptive-link-text -->
 You can now express dependencies on multiple packages in a single file. Docs [here](https://docs.quilt.bio/cli.html#installing-via-requirements-file).
 
 ### Experimental: build a package from a GitHub repo
