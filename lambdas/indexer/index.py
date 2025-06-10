@@ -48,6 +48,7 @@ See docs/EventBridge.md for more
 
 import datetime
 import functools
+import hashlib
 import json
 import os
 import pathlib
@@ -215,6 +216,10 @@ def now_like_boto3():
         'LastModified': datetime.datetime(2019, 11, 6, 3, 1, 16, tzinfo=tzutc()),
     """
     return datetime.datetime.now(tz=tzutc())
+
+
+def hash_string(s: str) -> str:
+    return hashlib.sha256(s.encode()).hexdigest()
 
 
 def get_compression(ext: str):
@@ -483,7 +488,7 @@ def index_if_package(
     except ValueError as err:
         logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
-    pkg_doc_id = key  # XXX: add hash to id?
+    pkg_doc_id = hash_string(key)
 
     def get_pkg_data():
         try:
@@ -521,7 +526,7 @@ def index_if_package(
             yield {
                 "join_field": {"name": "pkg_entry", "parent": pkg_doc_id},
                 "routing": pkg_doc_id,
-                "_id": f"{pkg_doc_id}:{entry['logical_key']}",  # XXX: use a hash instead?
+                "_id": f"{pkg_doc_id}:{hash_string(entry['logical_key'])}",
                 "pkg_entry_lk": entry["logical_key"],
                 "pkg_entry_pk": pk,
                 "pkg_entry_pk_parsed": parse_s3_physical_key(pk),
