@@ -425,6 +425,30 @@ def read_manifest_entries(s3_client, bucket: str, key: str):
     return None
 
 
+def parse_s3_physical_key(pk: str):
+    parsed = urllib.parse.urlparse(pk)
+    if parsed.scheme != "s3":
+        logger.warning("Expected S3 URL, got %s", pk)
+        return
+    if not (bucket := parsed.netloc):
+        logger.warning("Expected S3 bucket, got %s", pk)
+        return
+    assert not parsed.path or parsed.path.startswith("/")
+    path = urllib.parse.unquote(parsed.path)[1:]
+    # Parse the version ID the way the Java SDK does:
+    # https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3URI.java#L192
+    query = urllib.parse.parse_qs(parsed.query)
+    version_id = query.pop("versionId", [None])[0]
+    if query:
+        logger.warning("Unexpected S3 query string: %s in %s", parsed.query, pk)
+        return
+    return {
+        "bucket": bucket,
+        "key": path,
+        "version_id": version_id,
+    }
+
+
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
@@ -492,13 +516,15 @@ def index_if_package(
                 continue
             total_bytes += entry["size"]
             meta = entry.get("meta")  # XXX: both system and user metadata, do we need only user?
+            pk = entry["physical_keys"][0]
 
             yield {
                 "join_field": {"name": "pkg_entry", "parent": pkg_doc_id},
                 "routing": pkg_doc_id,
                 "_id": f"{pkg_doc_id}:{entry['logical_key']}",  # XXX: use a hash instead?
                 "pkg_entry_lk": entry["logical_key"],
-                "pkg_entry_pk": entry["physical_keys"][0],
+                "pkg_entry_pk": pk,
+                "pkg_entry_pk_parsed": parse_s3_physical_key(pk),
                 "pkg_entry_size": entry["size"],
                 "pkg_entry_hash": entry["hash"],
                 "pkg_entry_metadata": json.dumps(meta) if meta else None,
@@ -507,22 +533,22 @@ def index_if_package(
         yield {
             "join_field": {"name": "pkg"},
             "_id": pkg_doc_id,
-            "key": key,
-            "etag": etag,
-            "version_id": version_id,
-            "last_modified": last_modified,
-            "delete_marker": False,  # TODO: remove
-            "handle": handle,
-            "pointer_file": pointer_file,
-            "hash": package_hash,
-            "package_stats": {
+            "pkg_key": key,
+            "pkg_etag": etag,
+            "pkg_version_id": version_id,
+            "pkg_last_modified": last_modified,
+            "pkg_delete_marker": False,  # TODO: remove
+            "pkg_handle": handle,
+            "pkg_pointer_file": pointer_file,
+            "pkg_hash": package_hash,
+            "pkg_package_stats": {
                 "total_bytes": total_bytes,
                 "total_files": total_files,
             },
-            "metadata": json.dumps(user_meta) if user_meta else None,
-            "metadata_fields": get_metadata_fields(user_meta),
-            "comment": str(first.get("message", "")),
-            "workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
+            "pkg_metadata": json.dumps(user_meta) if user_meta else None,
+            "pkg_metadata_fields": get_metadata_fields(user_meta),
+            "pkg_comment": str(first.get("message", "")),
+            "pkg_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
     index = bucket + PACKAGE_INDEX_SUFFIX
