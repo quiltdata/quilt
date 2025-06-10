@@ -5,6 +5,7 @@ import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as GQL from 'utils/GraphQL'
 import JsonDisplay from 'components/JsonDisplay'
 import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
@@ -23,6 +24,8 @@ import type {
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { columnLabels, packageFilterLabels } from '../i18n'
 import * as SearchUIModel from '../model'
+
+import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
@@ -793,44 +796,89 @@ export default function TableView({ hits }: TableViewProps) {
   const [collapsed, setCollapsed] = React.useState<
     Record<ColumnHeadFilter['filter'] | ColumnHeadMeta['filter'], boolean>
   >({})
+
+  const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
+
+  const query = GQL.useQuery(META_FACETS_QUERY, {
+    searchString,
+    buckets: state.buckets,
+    filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
+    latestOnly: state.latestOnly,
+  })
+
   const columns: (ColumnHeadFilter | ColumnHeadMeta)[] = React.useMemo(
-    () => [
-      {
-        collapsed: !!collapsed.name,
-        filter: 'name' as const,
-        fullTitle: packageFilterLabels.name,
-        onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
-        onSearch: noopFixme,
-        onSort: noopFixme,
-        tag: 'filter' as const,
-        title: columnLabels.name,
-      },
-      ...state.filter.order
-        // We don't have a value for number of entries
-        .filter((filter) => filter !== 'entries')
-        .map((filter) => ({
-          collapsed: !!collapsed[filter],
-          filter,
-          fullTitle: packageFilterLabels[filter],
-          onClose: () => actions.deactivatePackagesFilter(filter),
-          onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-          onSearch: noopFixme,
-          onSort: noopFixme,
-          tag: 'filter' as const,
-          title: columnLabels[filter],
-        })),
-      ...Array.from(state.userMetaFilters.filters.keys()).map((filter) => ({
-        collapsed: !!collapsed[filter],
-        filter,
-        onClose: () => actions.deactivatePackagesMetaFilter(filter),
-        onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-        onSearch: noopFixme,
-        onSort: noopFixme,
-        tag: 'meta' as const,
-        title: filter.replace(/^\//, ''),
-      })),
-    ],
-    [actions, collapsed, state.filter, state.userMetaFilters],
+    () =>
+      GQL.fold(query, {
+        data: ({ searchPackages: r }) => {
+          switch (r.__typename) {
+            case 'EmptySearchResultSet':
+            case 'InvalidInput':
+              return []
+            case 'PackagesSearchResultSet':
+              const output: (ColumnHeadFilter | ColumnHeadMeta)[] = [
+                {
+                  collapsed: !!collapsed.name,
+                  filter: 'name' as const,
+                  fullTitle: packageFilterLabels.name,
+                  onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
+                  onSearch: noopFixme,
+                  onSort: noopFixme,
+                  tag: 'filter' as const,
+                  title: columnLabels.name,
+                },
+              ]
+
+              state.filter.order.forEach((filter) => {
+                output.push({
+                  collapsed: !!collapsed[filter],
+                  filter,
+                  fullTitle: packageFilterLabels[filter],
+                  onClose: () => actions.deactivatePackagesFilter(filter),
+                  onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+                  onSearch: noopFixme,
+                  onSort: noopFixme,
+                  tag: 'filter' as const,
+                  title: columnLabels[filter],
+                })
+              })
+              state.userMetaFilters.filters.forEach((_v, filter) => {
+                output.push({
+                  collapsed: !!collapsed[filter],
+                  filter,
+                  onClose: () => actions.deactivatePackagesMetaFilter(filter),
+                  onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+                  onSearch: noopFixme,
+                  onSort: noopFixme,
+                  tag: 'meta' as const,
+                  title: filter.replace(/^\//, ''),
+                })
+              })
+
+              if (state.filter.predicates.workflow?.terms.length === 1) {
+                r.stats.userMeta.forEach(({ path: filter }) => {
+                  output.push({
+                    collapsed: !!collapsed[filter],
+                    filter,
+                    onClose: () => actions.deactivatePackagesMetaFilter(filter),
+                    onCollapse: () =>
+                      setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+                    onSearch: noopFixme,
+                    onSort: noopFixme,
+                    tag: 'meta' as const,
+                    title: filter.replace(/^\//, ''),
+                  })
+                })
+              }
+
+              return output
+            default:
+              assertNever(r)
+          }
+        },
+        fetching: () => [],
+        error: () => [],
+      }),
+    [actions, collapsed, state.filter, state.userMetaFilters, query],
   )
   const shownColumns = React.useMemo(() => columns.filter((c) => !c.collapsed), [columns])
   return (

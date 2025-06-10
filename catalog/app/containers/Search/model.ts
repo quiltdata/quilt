@@ -674,7 +674,7 @@ function addMagicWildcardsQS(s: string | null): string | null {
   return `${s}*`
 }
 
-function useMagicWildcardsQS(s: string | null) {
+export function useMagicWildcardsQS(s: string | null) {
   return React.useMemo(() => addMagicWildcardsQS(s), [s])
 }
 
