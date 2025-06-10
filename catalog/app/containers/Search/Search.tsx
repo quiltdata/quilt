@@ -1099,15 +1099,15 @@ function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps
   )
 }
 
-function View(props: ListViewProps & TableViewProps) {
+function View(props: ListViewProps | TableViewProps) {
   const {
     state: { view },
   } = SearchUIModel.use()
   switch (view) {
     case SearchUIModel.View.List:
-      return <ListView {...props} />
+      return <ListView {...(props as ListViewProps)} />
     case SearchUIModel.View.Table:
-      return <TableView {...props} />
+      return <TableView {...(props as TableViewProps)} />
     default:
       assertNever(view)
   }
