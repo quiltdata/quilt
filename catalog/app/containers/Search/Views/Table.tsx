@@ -49,6 +49,11 @@ const useTableViewSystemMetaStyles = M.makeStyles((t) => ({
     padding: t.spacing(0.25, 0.5),
     margin: t.spacing(0, -0.5),
   },
+  expand: {
+    transform: 'rotate(90deg)',
+    margin: '-3px 0',
+    marginLeft: t.spacing(2),
+  },
 }))
 
 interface TableViewSystemMetaProps {
@@ -71,7 +76,7 @@ function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
               <StyledTooltip title={`Use keywords from ${schema.id}`} key={schema.id}>
                 <M.IconButton
                   size="small"
-                  style={{ transform: 'rotate(90deg)', marginLeft: '16px' }}
+                  className={classes.expand}
                   onClick={handleUnfold}
                 >
                   <M.Icon fontSize="inherit">unfold_more</M.Icon>
