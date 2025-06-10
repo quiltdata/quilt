@@ -21,8 +21,13 @@ export function parse(address: Pointer): Path {
 }
 
 function normalizeJsonPathSegment(fragment: Path[number]) {
+  // Return number, convert to string later,
+  // but the notation `$..123` for jsonpath is ok
   if (typeof fragment !== 'string') return fragment
-  if (fragment.indexOf(' ') < 0) return fragment
+
+  const valid = fragment.indexOf(' ') < 0 && fragment.indexOf('-') < 0
+  if (valid) return fragment
+
   return `['${fragment}']`
 }
 
@@ -30,5 +35,8 @@ export function toJsonPath(address: Path | Pointer): JsonPathExpression {
   if (!Array.isArray(address)) {
     return toJsonPath(address.split('/'))
   }
-  return `$.${address.map(normalizeJsonPathSegment).join('.')}`
+  return `$.${address.map(normalizeJsonPathSegment).join('.')}`.replace(
+    /([^\.])\.\[/g,
+    (_s, $1) => `${$1}[`,
+  )
 }
