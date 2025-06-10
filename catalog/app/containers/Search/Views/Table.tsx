@@ -52,11 +52,6 @@ const useTableViewSystemMetaStyles = M.makeStyles((t) => ({
     padding: t.spacing(0.25, 0.5),
     margin: t.spacing(0, -0.5),
   },
-  expand: {
-    transform: 'rotate(90deg)',
-    margin: '-3px 0',
-    marginLeft: t.spacing(2),
-  },
 }))
 
 interface TableViewSystemMetaProps {
@@ -67,25 +62,11 @@ interface TableViewSystemMetaProps {
 function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
   const classes = useTableViewSystemMetaStyles()
   const { urls } = NamedRoutes.use()
-  const handleUnfold = React.useCallback(() => {}, [])
-
   switch (filter) {
     case 'workflow':
       return hit.workflow ? (
         <span className={cx(hit.matchLocations.workflow && classes.match)}>
           {hit.workflow.id}
-          {Array.isArray(hit.workflow.schemas) &&
-            hit.workflow.schemas.map((schema) => (
-              <StyledTooltip title={`Use keywords from ${schema.id}`} key={schema.id}>
-                <M.IconButton
-                  size="small"
-                  className={classes.expand}
-                  onClick={handleUnfold}
-                >
-                  <M.Icon fontSize="inherit">unfold_more</M.Icon>
-                </M.IconButton>
-              </StyledTooltip>
-            ))}
         </span>
       ) : (
         <NoValue />
@@ -139,7 +120,15 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
       </M.Tooltip>
     )
   const value = jsonpath.value(meta, JSONPointer.toJsonPath(pointer))
-  return value || <NoValue />
+  switch (typeof value) {
+    case 'number':
+    case 'string':
+      return <>{value}</>
+    case 'object':
+      return <>{JSON.stringify(value)}</>
+    default:
+      return <NoValue />
+  }
 }
 
 const useEntriesStyles = M.makeStyles((t) => ({
@@ -323,7 +312,7 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
 
 interface TableViewPackageProps {
   hit: SearchHitPackageWithMatches
-  columns: (ColumnHeadFilter | ColumnHeadMeta)[]
+  columns: ColumnHead[]
 }
 
 function TableViewPackage({ columns, hit }: TableViewPackageProps) {
@@ -347,29 +336,40 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
             </M.IconButton>
           )}
         </M.TableCell>
-        {columns.map((column) =>
-          column.tag === 'filter' ? (
-            <M.TableCell
-              className={classes.cell}
-              data-search-hit-filter={column.filter}
-              key={column.filter}
-            >
-              {!column.collapsed && (
-                <TableViewSystemMeta hit={hit} filter={column.filter} />
-              )}
-            </M.TableCell>
-          ) : (
-            <M.TableCell
-              className={classes.cell}
-              data-search-hit-meta={column.filter}
-              key={column.filter}
-            >
-              {!column.collapsed && (
-                <TableViewUserMeta meta={meta} pointer={column.filter} />
-              )}
-            </M.TableCell>
-          ),
-        )}
+        {columns.map((column) => {
+          switch (column.tag) {
+            case 'filter':
+              return (
+                <M.TableCell
+                  className={classes.cell}
+                  data-search-hit-filter={column.filter}
+                  key={column.filter}
+                >
+                  {!column.collapsed && (
+                    <TableViewSystemMeta hit={hit} filter={column.filter} />
+                  )}
+                </M.TableCell>
+              )
+            case 'meta':
+              return (
+                <M.TableCell
+                  className={classes.cell}
+                  data-search-hit-meta={column.filter}
+                  key={column.filter}
+                >
+                  {!column.collapsed && (
+                    <TableViewUserMeta meta={meta} pointer={column.filter} />
+                  )}
+                </M.TableCell>
+              )
+            case 'visual':
+              return (
+                <M.TableCell className={classes.cell} key={column.filter}>
+                  {!column.collapsed && hit.bucket}
+                </M.TableCell>
+              )
+          }
+        })}
       </M.TableRow>
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
@@ -401,7 +401,7 @@ function TableViewObject({ hit }: TableViewObjectProps) {
 
 interface TableViewHitProps {
   hit: SearchUIModel.SearchHit
-  columns: (ColumnHeadFilter | ColumnHeadMeta)[]
+  columns: ColumnHead[]
 }
 
 function TableViewHit({ columns, hit }: TableViewHitProps) {
@@ -452,7 +452,7 @@ const useColumnActionsStyles = M.makeStyles((t) => ({
 
 interface ColumnActionsProps {
   className: string
-  column: ColumnHeadFilter | ColumnHeadMeta
+  column: ColumnHead
 }
 
 function ColumnActions({ className, column }: ColumnActionsProps) {
@@ -624,7 +624,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
 }))
 
 interface AddColumnProps {
-  columns: (ColumnHeadMeta | ColumnHeadFilter)[]
+  columns: ColumnHead[]
 }
 
 function AddColumn({ columns }: AddColumnProps) {
@@ -674,7 +674,9 @@ function AddColumn({ columns }: AddColumnProps) {
             Add column:
           </M.Typography>
         ) : (
-          <ColumnAction className={classes.button} icon="add" />
+          <M.Badge badgeContent={hiddenColumns.length} variant="dot">
+            <ColumnAction className={classes.button} icon="add" />
+          </M.Badge>
         )}
       </div>
       {open && (
@@ -785,17 +787,26 @@ interface ColumnHeadMeta extends ColumnHeadBase {
   title: string
 }
 
-export interface TableViewProps {
-  hits: readonly SearchHitPackageWithMatches[]
+interface ColumnHeadVisual extends ColumnHeadBase {
+  tag: 'visual'
+  filter: string
+  title: string
 }
 
-export default function TableView({ hits }: TableViewProps) {
+type ColumnHead = ColumnHeadFilter | ColumnHeadMeta | ColumnHeadVisual
+
+export interface TableViewProps {
+  hits: readonly SearchHitPackageWithMatches[]
+  showBucket: boolean
+}
+
+export default function TableView({ hits, showBucket }: TableViewProps) {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const classes = useTableViewStyles()
 
-  const [collapsed, setCollapsed] = React.useState<
-    Record<ColumnHeadFilter['filter'] | ColumnHeadMeta['filter'], boolean>
-  >({})
+  const [collapsed, setCollapsed] = React.useState<Record<ColumnHead['filter'], boolean>>(
+    {},
+  )
 
   const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
 
@@ -806,7 +817,7 @@ export default function TableView({ hits }: TableViewProps) {
     latestOnly: state.latestOnly,
   })
 
-  const columns: (ColumnHeadFilter | ColumnHeadMeta)[] = React.useMemo(
+  const columns: ColumnHead[] = React.useMemo(
     () =>
       GQL.fold(query, {
         data: ({ searchPackages: r }) => {
@@ -815,18 +826,28 @@ export default function TableView({ hits }: TableViewProps) {
             case 'InvalidInput':
               return []
             case 'PackagesSearchResultSet':
-              const output: (ColumnHeadFilter | ColumnHeadMeta)[] = [
-                {
-                  collapsed: !!collapsed.name,
-                  filter: 'name' as const,
-                  fullTitle: packageFilterLabels.name,
-                  onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
+              const output: ColumnHead[] = []
+              if (showBucket) {
+                output.push({
+                  collapsed: !!collapsed.bucket,
+                  filter: 'bucket' as const,
+                  onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
                   onSearch: noopFixme,
                   onSort: noopFixme,
-                  tag: 'filter' as const,
-                  title: columnLabels.name,
-                },
-              ]
+                  tag: 'visual' as const,
+                  title: columnLabels.bucket,
+                })
+              }
+              output.push({
+                collapsed: !!collapsed.name,
+                filter: 'name' as const,
+                fullTitle: packageFilterLabels.name,
+                onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
+                onSearch: noopFixme,
+                onSort: noopFixme,
+                tag: 'filter' as const,
+                title: columnLabels.name,
+              })
 
               state.filter.order.forEach((filter) => {
                 output.push({
@@ -878,7 +899,7 @@ export default function TableView({ hits }: TableViewProps) {
         fetching: () => [],
         error: () => [],
       }),
-    [actions, collapsed, state.filter, state.userMetaFilters, query],
+    [actions, collapsed, state.filter, state.userMetaFilters, query, showBucket],
   )
   const shownColumns = React.useMemo(() => columns.filter((c) => !c.collapsed), [columns])
   return (
@@ -897,9 +918,11 @@ export default function TableView({ hits }: TableViewProps) {
                       </M.Tooltip>
                     ) : (
                       <>
-                        <M.Icon className={classes.headIcon} fontSize="small">
-                          list
-                        </M.Icon>
+                        {column.tag === 'meta' && (
+                          <M.Icon className={classes.headIcon} fontSize="small">
+                            list
+                          </M.Icon>
+                        )}
                         {column.title}
                       </>
                     )}
