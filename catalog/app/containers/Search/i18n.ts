@@ -11,11 +11,12 @@ export const packageFilterLabels = {
 
 // Shortened filter labels
 export const columnLabels = {
-  modified: 'Modified',
-  size: 'Size',
-  name: 'Name',
-  hash: 'Hash',
-  entries: 'Entries number',
+  bucket: 'Bucket',
   comment: 'Comment',
+  entries: 'Entries number',
+  hash: 'Hash',
+  modified: 'Modified',
+  name: 'Name',
+  size: 'Size',
   workflow: 'Workflow',
 }
