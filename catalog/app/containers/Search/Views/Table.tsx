@@ -56,9 +56,29 @@ const useTableViewSystemMetaStyles = M.makeStyles((t) => ({
   },
 }))
 
+type FilterType =
+  SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
+
+function getFilterValue(hit: SearchHitPackageWithMatches, filter: FilterType) {
+  switch (filter) {
+    case 'workflow':
+      return hit.workflow ? (hit.workflow.id as string) : null
+    case 'hash':
+    case 'size':
+    case 'name':
+    case 'comment':
+    case 'modified':
+      return hit[filter]
+    case 'entries':
+      return null
+    default:
+      assertNever(filter)
+  }
+}
+
 interface TableViewSystemMetaProps {
   hit: SearchHitPackageWithMatches
-  filter: SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
+  filter: FilterType
 }
 
 function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
@@ -429,16 +449,15 @@ const useColumnActionStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ColumnActionProps {
+interface ColumnActionProps extends M.IconButtonProps {
   className?: string
   icon: string
-  onClick?: () => void
 }
 
-function ColumnAction({ className, icon, onClick }: ColumnActionProps) {
+function ColumnAction({ className, icon, ...props }: ColumnActionProps) {
   const classes = useColumnActionStyles()
   return (
-    <M.IconButton className={cx(classes.root, className)} size="small" onClick={onClick}>
+    <M.IconButton className={cx(classes.root, className)} size="small" {...props}>
       <M.Icon className={classes.icon}>{icon}</M.Icon>
     </M.IconButton>
   )
@@ -469,12 +488,6 @@ const useColumnActionsStyles = M.makeStyles((t) => ({
     gridAutoFlow: 'column',
     gridColumnGap: t.spacing(1),
   },
-  filter: {
-    left: 0,
-    padding: t.spacing(2),
-    position: 'absolute',
-    top: '100%',
-  },
 }))
 
 interface ColumnActionsProps {
@@ -484,28 +497,83 @@ interface ColumnActionsProps {
 
 function ColumnActions({ className, column }: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
-  const [open, setOpen] = React.useState(false)
+
+  const [menuOpened, setMenuOpened] = React.useState(false)
+  const showMenu = React.useCallback(() => setMenuOpened(true), [])
+  const hideMenu = React.useCallback(() => setMenuOpened(false), [])
+
+  const [filterOpened, setFilterOpened] = React.useState(false)
+  // const showFilter = React.useCallback(() => setFilterOpened(true), [])
+  const hideFilter = React.useCallback(() => setFilterOpened(false), [])
+
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+
+  const handleHide = React.useCallback(() => {
+    if (!column.filtered && column.onClose) {
+      column.onClose()
+    } else {
+      column.onCollapse()
+    }
+  }, [column])
+
+  const popoverProps: Partial<M.PopoverProps> = React.useMemo(() => {
+    const onClose = () => {
+      hideFilter()
+      hideMenu()
+    }
+    return {
+      anchorEl,
+      onClose,
+      anchorOrigin: {
+        vertical: 'bottom',
+        horizontal: 'left',
+      },
+      PaperProps: {
+        onMouseLeave: onClose,
+      },
+    }
+  }, [anchorEl, hideFilter, hideMenu])
 
   return (
-    <div className={cx(classes.root, className)}>
+    <div
+      className={cx(classes.root, className)}
+      ref={(el) => setAnchorEl(el?.parentElement || el)}
+    >
       {
         // FIXME: enable search and sort
-        <ColumnAction onClick={() => setOpen(true)} icon="search" />
+        // <ColumnAction onMouseEnter={showFilter} onClick={showFilter} icon="search" />
         // <ColumnAction onClick={onSort} icon="sort" />
       }
-      <ColumnAction
-        onClick={column.onCollapse}
-        icon={column.collapsed ? 'visibility_off' : 'visibility'}
-      />
-      {column.onClose && <ColumnAction onClick={column.onClose} icon="undo" />}
-      {open && (
-        <M.ClickAwayListener onClickAway={() => setOpen(false)}>
-          <M.Paper square className={classes.filter}>
-            {column.tag === 'filter' && <Filter filter={column.filter} />}
-            {column.tag === 'meta' && <h1>Meta filter</h1>}
-          </M.Paper>
-        </M.ClickAwayListener>
+
+      {column.filtered && (
+        <ColumnAction icon="filter_list" onClick={showMenu} onMouseEnter={showMenu} />
       )}
+
+      <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
+
+      <M.Popover open={menuOpened} {...popoverProps}>
+        <M.List dense>
+          <M.ListItem button onClick={handleHide}>
+            <M.ListItemIcon>
+              <M.Icon>visibility</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText primary="Hide column" />
+          </M.ListItem>
+          {column.filtered && (
+            <M.ListItem button onClick={column.onClose}>
+              <M.ListItemIcon>
+                <M.Icon>undo</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary="Reset filter" />
+            </M.ListItem>
+          )}
+        </M.List>
+      </M.Popover>
+
+      <M.Popover open={filterOpened} {...popoverProps}>
+        {column.tag === 'filter' && <Filter filter={column.filter} />}
+        {column.tag === 'meta' && <h1>Meta filter</h1>}
+      </M.Popover>
     </div>
   )
 }
@@ -643,6 +711,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     animation: t.transitions.create('$fade'),
     background: t.palette.background.paper,
     overflowY: 'auto',
+    flexGrow: 1,
   },
   listInner: {
     background: 'inherit',
@@ -657,7 +726,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   },
   '@keyframes slide': {
     '0%': {
-      transform: `translateX(${t.spacing(16)}px)`,
+      transform: `translateX(${t.spacing(2)}px)`,
     },
     '100%': {
       transform: 'translateX(0)',
@@ -742,12 +811,17 @@ function AddColumn({ columns }: AddColumnProps) {
                 ))}
               </>
             )}
-            <M.ListSubheader>System metadata</M.ListSubheader>
-            {availableFilters.map((filter) => (
-              <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
-                <M.ListItemText primary={PACKAGE_FILTER_LABELS[filter]} />
-              </M.MenuItem>
-            ))}
+            {!!availableFilters.length && (
+              <>
+                <M.ListSubheader>System metadata</M.ListSubheader>
+                {availableFilters.map((filter) => (
+                  <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
+                    <M.ListItemText primary={PACKAGE_FILTER_LABELS[filter]} />
+                  </M.MenuItem>
+                ))}
+              </>
+            )}
+
             <M.ListSubheader>User metadata</M.ListSubheader>
             <SearchUIModel.AvailablePackagesMetaFilters>
               {SearchUIModel.AvailableFiltersState.match({
@@ -816,11 +890,12 @@ const useTableViewStyles = M.makeStyles((t) => ({
 }))
 
 interface ColumnHeadBase {
-  onSearch: () => void
-  onSort: () => void
+  collapsed: boolean
+  filtered: boolean
   onClose?: () => void
   onCollapse: () => void
-  collapsed: boolean
+  onSearch: () => void
+  onSort: () => void
 }
 
 interface ColumnHeadFilter extends ColumnHeadBase {
@@ -857,106 +932,151 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
     {},
   )
 
+  const singleBucket = hits.every(({ bucket }) => bucket === hits[0].bucket)
+
   const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
 
-  const query = GQL.useQuery(META_FACETS_QUERY, {
-    searchString,
-    buckets: state.buckets,
-    filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
-    latestOnly: state.latestOnly,
-  })
+  const query = GQL.useQuery(
+    META_FACETS_QUERY,
+    {
+      searchString,
+      buckets: state.buckets,
+      filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
+      latestOnly: state.latestOnly,
+    },
+    { pause: state.filter.predicates.workflow?.terms.length !== 1 },
+  )
 
-  const columns: ColumnHead[] = React.useMemo(
-    () =>
-      GQL.fold(query, {
-        data: ({ searchPackages: r }) => {
-          switch (r.__typename) {
-            case 'EmptySearchResultSet':
-            case 'InvalidInput':
-              return []
-            case 'PackagesSearchResultSet':
-              const output: ColumnHead[] = []
-              if (showBucket) {
-                output.push({
-                  collapsed: !!collapsed.bucket,
-                  filter: 'bucket' as const,
-                  onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
-                  onSearch: noopFixme,
-                  onSort: noopFixme,
-                  tag: 'visual' as const,
-                  title: COLUMN_LABELS.bucket,
-                })
-              }
-              output.push({
-                collapsed: !!collapsed.name,
-                filter: 'name' as const,
-                fullTitle: PACKAGE_FILTER_LABELS.name,
-                onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
-                onSearch: noopFixme,
-                onSort: noopFixme,
-                tag: 'filter' as const,
-                title: COLUMN_LABELS.name,
-              })
+  const bucketColumn = React.useMemo(
+    () => ({
+      collapsed: !!collapsed.bucket,
+      filter: 'bucket' as const,
+      onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
+      onSearch: noopFixme,
+      onSort: noopFixme,
+      tag: 'visual' as const,
+      title: COLUMN_LABELS.bucket,
+      filtered: false,
+    }),
+    [collapsed],
+  )
+  const nameColumn = React.useMemo(
+    () => ({
+      collapsed: !!collapsed.name,
+      filter: 'name' as const,
+      fullTitle: PACKAGE_FILTER_LABELS.name,
+      onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
+      onSearch: noopFixme,
+      onSort: noopFixme,
+      tag: 'filter' as const,
+      title: COLUMN_LABELS.name,
+      filtered: false,
+    }),
+    [collapsed],
+  )
+  const fixedColumns = React.useMemo(() => {
+    if (!showBucket || singleBucket) return [nameColumn]
+    return [bucketColumn, nameColumn]
+  }, [showBucket, singleBucket, nameColumn, bucketColumn])
 
-              state.filter.order.forEach((filter) => {
-                // 'name' is added above
-                // 'entries' doesn't have values
-                if (filter !== 'name' && filter !== 'entries') {
-                  output.push({
-                    collapsed: !!collapsed[filter],
-                    filter,
-                    fullTitle: PACKAGE_FILTER_LABELS[filter],
-                    onClose: () => actions.deactivatePackagesFilter(filter),
-                    onCollapse: () =>
-                      setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-                    onSearch: noopFixme,
-                    onSort: noopFixme,
-                    tag: 'filter' as const,
-                    title: COLUMN_LABELS[filter],
-                  })
+  const filterColumns = React.useMemo(() => {
+    const output: ColumnHead[] = []
+    const modifiedFilters = SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter)
+
+    state.filter.order.forEach((filter) => {
+      // 'name' is added constantly
+      // 'entries' doesn't have values
+      const singleValue = hits.every(
+        (hit) => getFilterValue(hits[0], filter) === getFilterValue(hit, filter),
+      )
+      if (filter !== 'name' && filter !== 'entries' && !singleValue) {
+        output.push({
+          collapsed: !!collapsed[filter],
+          filter,
+          fullTitle: PACKAGE_FILTER_LABELS[filter],
+          onClose: () => actions.deactivatePackagesFilter(filter),
+          onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+          onSearch: noopFixme,
+          onSort: noopFixme,
+          tag: 'filter' as const,
+          title: COLUMN_LABELS[filter],
+          filtered: !!modifiedFilters && !!modifiedFilters[filter],
+        })
+      }
+    })
+    return output
+  }, [actions, collapsed, hits, state.filter])
+
+  const userMetaColumns = React.useMemo(() => {
+    const modifiedFilters = state.userMetaFilters.toGQL()
+    const output: ColumnHead[] = []
+    state.userMetaFilters.filters.forEach((_v, filter) => {
+      output.push({
+        collapsed: !!collapsed[filter],
+        filter,
+        onClose: () => actions.deactivatePackagesMetaFilter(filter),
+        onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+        onSearch: noopFixme,
+        onSort: noopFixme,
+        tag: 'meta' as const,
+        title: filter.replace(/^\//, ''),
+        filtered: !!modifiedFilters?.find(({ path }) => path === filter),
+      })
+    })
+    return output
+  }, [actions, collapsed, state.userMetaFilters])
+
+  const workflowColumns = React.useMemo(() => {
+    const output: ColumnHead[] = []
+    if (state.filter.predicates.workflow?.terms.length !== 1) return output
+    return GQL.fold(query, {
+      data: ({ searchPackages: r }) => {
+        switch (r.__typename) {
+          case 'EmptySearchResultSet':
+          case 'InvalidInput':
+            return []
+          case 'PackagesSearchResultSet':
+            const map = r.stats.userMeta.reduce(
+              (memo, { __typename, path }) => {
+                if (memo[path] === 'KeywordPackageUserMetaFacet') {
+                  return memo
                 }
-              })
-
-              state.userMetaFilters.filters.forEach((_v, filter) => {
+                return {
+                  ...memo,
+                  [path]: __typename,
+                }
+              },
+              {} as Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>,
+            )
+            Object.keys(map).forEach((filter) => {
+              if (!state.userMetaFilters.filters.has(filter)) {
                 output.push({
                   collapsed: !!collapsed[filter],
                   filter,
-                  onClose: () => actions.deactivatePackagesMetaFilter(filter),
+                  onClose: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
                   onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
                   onSearch: noopFixme,
                   onSort: noopFixme,
                   tag: 'meta' as const,
                   title: filter.replace(/^\//, ''),
-                })
-              })
-
-              if (state.filter.predicates.workflow?.terms.length === 1) {
-                r.stats.userMeta.forEach(({ path: filter }) => {
-                  if (!state.userMetaFilters.filters.has(filter)) {
-                    output.push({
-                      collapsed: !!collapsed[filter],
-                      filter,
-                      onClose: () => actions.deactivatePackagesMetaFilter(filter),
-                      onCollapse: () =>
-                        setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-                      onSearch: noopFixme,
-                      onSort: noopFixme,
-                      tag: 'meta' as const,
-                      title: filter.replace(/^\//, ''),
-                    })
-                  }
+                  filtered: false,
                 })
               }
+            })
 
-              return output
-            default:
-              assertNever(r)
-          }
-        },
-        fetching: () => [],
-        error: () => [],
-      }),
-    [actions, collapsed, state.filter, state.userMetaFilters, query, showBucket],
+            return output
+          default:
+            assertNever(r)
+        }
+      },
+      fetching: () => [],
+      error: () => [],
+    })
+  }, [collapsed, state.filter, state.userMetaFilters, query])
+
+  const columns: ColumnHead[] = React.useMemo(
+    () => [...fixedColumns, ...filterColumns, ...userMetaColumns, ...workflowColumns],
+    [fixedColumns, filterColumns, userMetaColumns, workflowColumns],
   )
   const shownColumns = React.useMemo(() => columns.filter((c) => !c.collapsed), [columns])
   return (
