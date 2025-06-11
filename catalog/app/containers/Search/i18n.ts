@@ -1,5 +1,5 @@
 // Descriptive filter labels
-export const packageFilterLabels = {
+export const PACKAGE_FILTER_LABELS = {
   modified: 'Last modified',
   size: 'Cumulative package size',
   name: 'Package name',
@@ -9,8 +9,17 @@ export const packageFilterLabels = {
   workflow: 'Workflow',
 }
 
+export const OBJECT_FILTER_LABELS = {
+  modified: 'Last modified',
+  size: 'Object size',
+  ext: 'Extension',
+  key: 'Object key',
+  content: 'Contents',
+  deleted: 'Delete marker',
+}
+
 // Shortened filter labels
-export const columnLabels = {
+export const COLUMN_LABELS = {
   bucket: 'Bucket',
   comment: 'Comment',
   entries: 'Entries number',

@@ -1225,6 +1225,36 @@ export const PackageUserMetaFacetTypeInfo = {
   },
 }
 
+export function usePackageSystemMetaFacetExtents(
+  field: keyof PackagesSearchFilter,
+): Extents | undefined {
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+  return GQL.fold(model.baseSearchQuery, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return undefined
+        case 'InvalidInput':
+          return undefined
+        case 'PackagesSearchResultSet':
+          if (
+            field === 'workflow' ||
+            field === 'modified' ||
+            field === 'size' ||
+            field === 'entries'
+          ) {
+            return r.stats[field]
+          }
+          return undefined
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => undefined,
+    error: () => undefined,
+  })
+}
+
 export function usePackageUserMetaFacetExtents(path: string): {
   fetching: boolean
   extents: Extents | undefined

@@ -1,6 +1,7 @@
 import { extname, join } from 'path'
 
 import cx from 'classnames'
+import invariant from 'invariant'
 import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -17,12 +18,13 @@ import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
+import FilterWidget from '../FilterWidget'
 import type {
   SearchHitPackageMatchingEntry,
   SearchHitPackageWithMatches,
 } from '../fakeMatchingEntries'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
-import { columnLabels, packageFilterLabels } from '../i18n'
+import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
 import * as SearchUIModel from '../model'
 
 import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
@@ -442,11 +444,36 @@ function ColumnAction({ className, icon, onClick }: ColumnActionProps) {
   )
 }
 
+interface FilterProps {
+  filter: keyof SearchUIModel.PackagesSearchFilter
+}
+
+function Filter({ filter }: FilterProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const predicateState = model.state.filter.predicates[filter]
+  invariant(predicateState, 'Filter not active')
+  const extents = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
+
+  const change = React.useCallback(
+    (state: $TSFixMe) => {
+      model.actions.setPackagesFilter(filter, state)
+    },
+    [model.actions, filter],
+  )
+  return <FilterWidget state={predicateState} extents={extents} onChange={change} />
+}
+
 const useColumnActionsStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
     gridAutoFlow: 'column',
     gridColumnGap: t.spacing(1),
+  },
+  filter: {
+    left: 0,
+    padding: t.spacing(2),
+    position: 'absolute',
+    top: '100%',
   },
 }))
 
@@ -457,11 +484,13 @@ interface ColumnActionsProps {
 
 function ColumnActions({ className, column }: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
+  const [open, setOpen] = React.useState(false)
+
   return (
     <div className={cx(classes.root, className)}>
       {
         // FIXME: enable search and sort
-        // <ColumnAction onClick={onSearch} icon="search" />
+        <ColumnAction onClick={() => setOpen(true)} icon="search" />
         // <ColumnAction onClick={onSort} icon="sort" />
       }
       <ColumnAction
@@ -469,6 +498,14 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
         icon={column.collapsed ? 'visibility_off' : 'visibility'}
       />
       {column.onClose && <ColumnAction onClick={column.onClose} icon="undo" />}
+      {open && (
+        <M.ClickAwayListener onClickAway={() => setOpen(false)}>
+          <M.Paper square className={classes.filter}>
+            {column.tag === 'filter' && <Filter filter={column.filter} />}
+            {column.tag === 'meta' && <h1>Meta filter</h1>}
+          </M.Paper>
+        </M.ClickAwayListener>
+      )}
     </div>
   )
 }
@@ -698,7 +735,7 @@ function AddColumn({ columns }: AddColumnProps) {
             <M.ListSubheader>System metadata</M.ListSubheader>
             {availableFilters.map((filter) => (
               <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
-                <M.ListItemText primary={packageFilterLabels[filter]} />
+                <M.ListItemText primary={PACKAGE_FILTER_LABELS[filter]} />
               </M.MenuItem>
             ))}
             <M.ListSubheader>User metadata</M.ListSubheader>
@@ -835,32 +872,37 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
                   onSearch: noopFixme,
                   onSort: noopFixme,
                   tag: 'visual' as const,
-                  title: columnLabels.bucket,
+                  title: COLUMN_LABELS.bucket,
                 })
               }
               output.push({
                 collapsed: !!collapsed.name,
                 filter: 'name' as const,
-                fullTitle: packageFilterLabels.name,
+                fullTitle: PACKAGE_FILTER_LABELS.name,
                 onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
                 onSearch: noopFixme,
                 onSort: noopFixme,
                 tag: 'filter' as const,
-                title: columnLabels.name,
+                title: COLUMN_LABELS.name,
               })
 
               state.filter.order.forEach((filter) => {
-                output.push({
-                  collapsed: !!collapsed[filter],
-                  filter,
-                  fullTitle: packageFilterLabels[filter],
-                  onClose: () => actions.deactivatePackagesFilter(filter),
-                  onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-                  onSearch: noopFixme,
-                  onSort: noopFixme,
-                  tag: 'filter' as const,
-                  title: columnLabels[filter],
-                })
+                // 'name' is added above
+                // 'entries' doesn't have values
+                if (filter !== 'name' && filter !== 'entries') {
+                  output.push({
+                    collapsed: !!collapsed[filter],
+                    filter,
+                    fullTitle: PACKAGE_FILTER_LABELS[filter],
+                    onClose: () => actions.deactivatePackagesFilter(filter),
+                    onCollapse: () =>
+                      setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+                    onSearch: noopFixme,
+                    onSort: noopFixme,
+                    tag: 'filter' as const,
+                    title: COLUMN_LABELS[filter],
+                  })
+                }
               })
               state.userMetaFilters.filters.forEach((_v, filter) => {
                 output.push({
@@ -877,17 +919,19 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
 
               if (state.filter.predicates.workflow?.terms.length === 1) {
                 r.stats.userMeta.forEach(({ path: filter }) => {
-                  output.push({
-                    collapsed: !!collapsed[filter],
-                    filter,
-                    onClose: () => actions.deactivatePackagesMetaFilter(filter),
-                    onCollapse: () =>
-                      setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-                    onSearch: noopFixme,
-                    onSort: noopFixme,
-                    tag: 'meta' as const,
-                    title: filter.replace(/^\//, ''),
-                  })
+                  if (!state.userMetaFilters.filters.has(filter)) {
+                    output.push({
+                      collapsed: !!collapsed[filter],
+                      filter,
+                      onClose: () => actions.deactivatePackagesMetaFilter(filter),
+                      onCollapse: () =>
+                        setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+                      onSearch: noopFixme,
+                      onSort: noopFixme,
+                      tag: 'meta' as const,
+                      title: filter.replace(/^\//, ''),
+                    })
+                  }
                 })
               }
 
