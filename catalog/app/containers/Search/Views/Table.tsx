@@ -615,17 +615,22 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   },
   add: {
     lineHeight: `${t.spacing(3)}px`,
-    padding: t.spacing(0, 2),
+    padding: t.spacing(0.75, 2),
   },
   head: {
     display: 'flex',
     justifyContent: 'center',
-    padding: '6px 0',
     borderBottom: `1px solid ${t.palette.divider}`,
+    '& .MuiBadge-badge': {
+      top: '6%',
+      right: '6%',
+    },
   },
   button: {
     transition: t.transitions.create('opacity'),
     opacity: 0.3,
+    height: t.spacing(4.5),
+    width: t.spacing(4.5),
   },
   opened: {
     width: 'auto',
@@ -711,7 +716,12 @@ function AddColumn({ columns }: AddColumnProps) {
             Add column:
           </M.Typography>
         ) : (
-          <M.Badge badgeContent={hiddenColumns.length} variant="dot">
+          <M.Badge
+            variant="dot"
+            color="secondary"
+            overlap="circle"
+            invisible={!hiddenColumns.length}
+          >
             <ColumnAction className={classes.button} icon="add" />
           </M.Badge>
         )}
@@ -762,11 +772,13 @@ const noopFixme = () => {}
 
 const useTableViewStyles = M.makeStyles((t) => ({
   root: {
-    overflow: 'hidden',
     position: 'relative',
     '& th:last-child $head::after': {
       display: 'none',
     },
+  },
+  scrollWrapper: {
+    overflow: 'hidden',
   },
   scrollArea: {
     paddingRight: t.spacing(4),
@@ -904,6 +916,7 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
                   })
                 }
               })
+
               state.userMetaFilters.filters.forEach((_v, filter) => {
                 output.push({
                   collapsed: !!collapsed[filter],
@@ -948,40 +961,42 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
   const shownColumns = React.useMemo(() => columns.filter((c) => !c.collapsed), [columns])
   return (
     <M.Paper className={classes.root}>
-      <div className={classes.scrollArea}>
-        <M.Table size="small">
-          <M.TableHead>
-            <M.TableRow>
-              <M.TableCell padding="checkbox" />
-              {shownColumns.map((column) => (
-                <M.TableCell className={classes.cell} key={column.filter}>
-                  <div className={classes.head}>
-                    {column.tag === 'filter' ? (
-                      <M.Tooltip title={column.fullTitle}>
-                        <span>{column.title}</span>
-                      </M.Tooltip>
-                    ) : (
-                      <>
-                        {column.tag === 'meta' && (
-                          <M.Icon className={classes.headIcon} fontSize="small">
-                            list
-                          </M.Icon>
-                        )}
-                        {column.title}
-                      </>
-                    )}
-                    <ColumnActions className={classes.headActions} column={column} />
-                  </div>
-                </M.TableCell>
+      <div className={classes.scrollWrapper}>
+        <div className={classes.scrollArea}>
+          <M.Table size="small">
+            <M.TableHead>
+              <M.TableRow>
+                <M.TableCell padding="checkbox" />
+                {shownColumns.map((column) => (
+                  <M.TableCell className={classes.cell} key={column.filter}>
+                    <div className={classes.head}>
+                      {column.tag === 'filter' ? (
+                        <M.Tooltip title={column.fullTitle}>
+                          <span>{column.title}</span>
+                        </M.Tooltip>
+                      ) : (
+                        <>
+                          {column.tag === 'meta' && (
+                            <M.Icon className={classes.headIcon} fontSize="small">
+                              list
+                            </M.Icon>
+                          )}
+                          {column.title}
+                        </>
+                      )}
+                      <ColumnActions className={classes.headActions} column={column} />
+                    </div>
+                  </M.TableCell>
+                ))}
+              </M.TableRow>
+            </M.TableHead>
+            <M.TableBody>
+              {hits.map((hit) => (
+                <TableViewHit key={hit.id} hit={hit} columns={shownColumns} />
               ))}
-            </M.TableRow>
-          </M.TableHead>
-          <M.TableBody>
-            {hits.map((hit) => (
-              <TableViewHit key={hit.id} hit={hit} columns={shownColumns} />
-            ))}
-          </M.TableBody>
-        </M.Table>
+            </M.TableBody>
+          </M.Table>
+        </div>
       </div>
       <AddColumn columns={columns} />
     </M.Paper>
