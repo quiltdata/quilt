@@ -454,14 +454,21 @@ interface ColumnActionProps extends M.IconButtonProps {
   icon: string
 }
 
-function ColumnAction({ className, icon, ...props }: ColumnActionProps) {
-  const classes = useColumnActionStyles()
-  return (
-    <M.IconButton className={cx(classes.root, className)} size="small" {...props}>
-      <M.Icon className={classes.icon}>{icon}</M.Icon>
-    </M.IconButton>
-  )
-}
+const ColumnAction = React.forwardRef<HTMLButtonElement, ColumnActionProps>(
+  function ColumnAction({ className, icon, ...props }, ref) {
+    const classes = useColumnActionStyles()
+    return (
+      <M.IconButton
+        className={cx(classes.root, className)}
+        ref={ref}
+        size="small"
+        {...props}
+      >
+        <M.Icon className={classes.icon}>{icon}</M.Icon>
+      </M.IconButton>
+    )
+  },
+)
 
 interface FilterProps {
   filter: keyof SearchUIModel.PackagesSearchFilter
@@ -545,11 +552,18 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
         // <ColumnAction onClick={onSort} icon="sort" />
       }
 
-      {column.filtered && (
-        <ColumnAction icon="filter_list" onClick={showMenu} onMouseEnter={showMenu} />
+      {column.filtered ? (
+        <>
+          <ColumnAction icon="filter_list" onClick={showMenu} onMouseEnter={showMenu} />
+          <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
+        </>
+      ) : (
+        <StyledTooltip
+          title={column.onClose ? 'Deactivate filter and hide column' : 'Hide column'}
+        >
+          <ColumnAction icon="close" onClick={handleHide} />
+        </StyledTooltip>
       )}
-
-      <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
 
       <M.Popover open={menuOpened} {...popoverProps}>
         <M.List dense>
@@ -975,6 +989,7 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
     [collapsed],
   )
   const fixedColumns = React.useMemo(() => {
+    // FIXME: I think, I need to remove `singleBucket` condition
     if (!showBucket || singleBucket) return [nameColumn]
     return [bucketColumn, nameColumn]
   }, [showBucket, singleBucket, nameColumn, bucketColumn])
@@ -984,11 +999,12 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
     const modifiedFilters = SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter)
 
     state.filter.order.forEach((filter) => {
-      // 'name' is added constantly
-      // 'entries' doesn't have values
+      // FIXME: there are hit under "Load more" that could have different values
       const singleValue = hits.every(
         (hit) => getFilterValue(hits[0], filter) === getFilterValue(hit, filter),
       )
+      // 'name' is added constantly
+      // 'entries' doesn't have values
       if (filter !== 'name' && filter !== 'entries' && !singleValue) {
         output.push({
           collapsed: !!collapsed[filter],
