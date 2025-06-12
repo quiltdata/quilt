@@ -139,17 +139,7 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
 const useEntriesStyles = M.makeStyles((t) => ({
   root: {
     borderBottom: `1px solid ${t.palette.divider}`,
-    padding: t.spacing(2, 2, 2, 7),
     background: t.palette.background.default,
-    // It is positioned where it would be without `absolute`,
-    // but it continues to stay there when table is scrolled.
-    position: 'absolute',
-    // fullWidth
-    //  - page container paddings
-    //  - sidebar width
-    //  - sidebar margin (grid gap)
-    //  - add column widget width
-    width: `calc(100vw - ${t.spacing(3 * 2)}px - ${t.spacing(40)}px - ${t.spacing(2)}px - ${t.spacing(4)}px)`,
   },
   cell: {
     whiteSpace: 'nowrap',
@@ -195,6 +185,38 @@ const useEntriesStyles = M.makeStyles((t) => ({
   matchButton: {
     background: t.palette.warning.light,
   },
+  sticky: {
+    animation: t.transitions.create(['$fade', '$grow']),
+    // It is positioned where it would be without `absolute`,
+    // but it continues to stay there when table is scrolled.
+    position: 'absolute',
+    padding: t.spacing(2, 2, 2, 7),
+    // fullWidth
+    //  - page container paddings
+    //  - sidebar width
+    //  - sidebar margin (grid gap)
+    //  - "Add column" widget width
+    width: `calc(100vw - ${t.spacing(3 * 2)}px - ${t.spacing(40)}px - ${t.spacing(2)}px - ${t.spacing(4)}px)`,
+  },
+  '@keyframes grow': {
+    '0%': {
+      transform: 'translateY(-4px)',
+    },
+    '100%': {
+      transform: 'translateY(0)',
+    },
+  },
+  '@keyframes fade': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: 1,
+    },
+  },
+  scrolling: {
+    opacity: 0.3,
+  },
 }))
 
 interface EntriesProps {
@@ -203,6 +225,8 @@ interface EntriesProps {
 
 function Entries({ entries }: EntriesProps) {
   const classes = useEntriesStyles()
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [height, setHeight] = React.useState('auto')
 
   const [previewEntry, setPreviewEntry] =
     React.useState<SearchHitPackageMatchingEntry | null>(null)
@@ -213,84 +237,91 @@ function Entries({ entries }: EntriesProps) {
     setPreviewEntry(null)
   }, [])
 
+  React.useEffect(() => {
+    if (!ref.current) return
+    setHeight(`${ref.current.clientHeight}px`)
+  }, [entries])
+
   return (
-    <M.Paper square className={classes.root} elevation={0}>
-      <M.Table size="small" className={classes.table}>
-        <M.TableHead>
-          <M.TableRow>
-            <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
-            <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
-            <M.TableCell className={classes.cell} align="right" width="80px">
-              Size
-            </M.TableCell>
-            <M.TableCell className={classes.cell} align="center" width="120px">
-              Meta
-            </M.TableCell>
-            <M.TableCell className={classes.cell} align="center" width="90px">
-              Contents
-            </M.TableCell>
-          </M.TableRow>
-        </M.TableHead>
-        <M.TableBody>
-          {entries.map((e) => (
-            <M.TableRow hover key={e.physicalKey} className={classes.row}>
-              <M.TableCell className={classes.cell} component="th" scope="row">
-                <M.Tooltip title={e.logicalKey}>
-                  <span className={cx(e.matchLocations.logicalKey && classes.match)}>
-                    {e.logicalKey}
-                  </span>
-                </M.Tooltip>
+    <div className={cx(classes.root)} style={{ height }}>
+      <div className={classes.sticky} ref={ref}>
+        <M.Table size="small" className={classes.table}>
+          <M.TableHead>
+            <M.TableRow>
+              <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
+              <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
+              <M.TableCell className={classes.cell} align="right" width="80px">
+                Size
               </M.TableCell>
-              <M.TableCell className={classes.cell}>
-                <M.Tooltip title={e.physicalKey}>
-                  <span className={cx(e.matchLocations.physicalKey && classes.match)}>
-                    {e.physicalKey}
-                  </span>
-                </M.Tooltip>
+              <M.TableCell className={classes.cell} align="center" width="120px">
+                Meta
               </M.TableCell>
-              <M.TableCell className={classes.cell} align="right">
-                {readableBytes(e.size)}
+              <M.TableCell className={classes.cell} align="center" width="90px">
+                Contents
               </M.TableCell>
-              <M.TableCell className={classes.cell} align="center">
-                {e.meta ? (
-                  <M.IconButton
-                    size="small"
-                    className={cx(e.matchLocations.meta && classes.matchButton)}
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {entries.map((e) => (
+              <M.TableRow hover key={e.physicalKey} className={classes.row}>
+                <M.TableCell className={classes.cell} component="th" scope="row">
+                  <M.Tooltip title={e.logicalKey}>
+                    <span className={cx(e.matchLocations.logicalKey && classes.match)}>
+                      {e.logicalKey}
+                    </span>
+                  </M.Tooltip>
+                </M.TableCell>
+                <M.TableCell className={classes.cell}>
+                  <M.Tooltip title={e.physicalKey}>
+                    <span className={cx(e.matchLocations.physicalKey && classes.match)}>
+                      {e.physicalKey}
+                    </span>
+                  </M.Tooltip>
+                </M.TableCell>
+                <M.TableCell className={classes.cell} align="right">
+                  {readableBytes(e.size)}
+                </M.TableCell>
+                <M.TableCell className={classes.cell} align="center">
+                  {e.meta ? (
+                    <M.IconButton
+                      size="small"
+                      className={cx(e.matchLocations.meta && classes.matchButton)}
+                      onMouseEnter={() => handleMouseEnter(e)}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <M.Icon fontSize="inherit">list</M.Icon>
+                    </M.IconButton>
+                  ) : (
+                    <M.IconButton size="small" disabled>
+                      <M.Divider className={classes.noMeta} />
+                    </M.IconButton>
+                  )}
+                </M.TableCell>
+                <M.TableCell className={classes.cell} align="center">
+                  <span
+                    className={cx(
+                      classes.content,
+                      e.matchLocations.contents && classes.match,
+                    )}
                     onMouseEnter={() => handleMouseEnter(e)}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <M.Icon fontSize="inherit">list</M.Icon>
-                  </M.IconButton>
-                ) : (
-                  <M.IconButton size="small" disabled>
-                    <M.Divider className={classes.noMeta} />
-                  </M.IconButton>
-                )}
-              </M.TableCell>
-              <M.TableCell className={classes.cell} align="center">
-                <span
-                  className={cx(
-                    classes.content,
-                    e.matchLocations.contents && classes.match,
-                  )}
-                  onMouseEnter={() => handleMouseEnter(e)}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  {extname(e.logicalKey).substring(1)}
-                </span>
-              </M.TableCell>
-            </M.TableRow>
-          ))}
-        </M.TableBody>
-      </M.Table>
-      {previewEntry && (
-        <M.Paper square className={classes.popover} elevation={4}>
-          <div className={classes.preview}>
-            <JsonDisplay value={previewEntry.meta} defaultExpanded />
-          </div>
-        </M.Paper>
-      )}
-    </M.Paper>
+                    {extname(e.logicalKey).substring(1)}
+                  </span>
+                </M.TableCell>
+              </M.TableRow>
+            ))}
+          </M.TableBody>
+        </M.Table>
+        {previewEntry && (
+          <M.Paper square className={classes.popover} elevation={4}>
+            <div className={classes.preview}>
+              <JsonDisplay value={previewEntry.meta} defaultExpanded />
+            </div>
+          </M.Paper>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -316,10 +347,11 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
   },
   fold: {
     opacity: 0.3,
-    transition: t.transitions.create(['opacity', 'transform']),
+    transition: t.transitions.create(['opacity', 'transform', 'margin']),
   },
   rotate: {
     transform: 'rotate(180deg)',
+    margin: t.spacing(2, 0),
   },
 }))
 
@@ -384,18 +416,8 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
       </M.TableRow>
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
-          <M.TableCell
-            className={classes.entries}
-            colSpan={columns.length + 1}
-            style={{
-              // Space, reserved for `absolute`-positioned table inside
-              // Height is the combined height of entries + header + paddings
-              height: open ? `${37 * hit.matchingEntries.length + 37 + 32}px` : 'auto',
-            }}
-          >
-            <M.Collapse in={open} timeout="auto" unmountOnExit>
-              <Entries entries={hit.matchingEntries} />
-            </M.Collapse>
+          <M.TableCell className={classes.entries} colSpan={columns.length + 1}>
+            {open && <Entries entries={hit.matchingEntries} />}
           </M.TableCell>
         </M.TableRow>
       )}
@@ -1096,6 +1118,7 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
     [fixedColumns, filterColumns, userMetaColumns, workflowColumns],
   )
   const shownColumns = React.useMemo(() => columns.filter((c) => !c.collapsed), [columns])
+
   return (
     <M.Paper className={classes.root}>
       <div className={classes.scrollWrapper}>
