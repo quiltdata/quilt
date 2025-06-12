@@ -6,8 +6,9 @@ import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as GQL from 'utils/GraphQL'
+import * as Preview from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
+import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -15,6 +16,7 @@ import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
@@ -163,10 +165,22 @@ const useEntriesStyles = M.makeStyles((t) => ({
     trasform: 'translateY(1px)',
     left: 0,
     right: 0,
-    zIndex: 1,
+    zIndex: 10,
+    '&::before': {
+      background: M.fade(t.palette.common.black, 0.15),
+      bottom: 0,
+      content: '""',
+      left: 0,
+      position: 'fixed',
+      right: 0,
+      top: 0,
+      zIndex: 20,
+    },
   },
   preview: {
     padding: t.spacing(3, 7),
+    position: 'relative',
+    zIndex: 30,
   },
   content: {
     display: 'inline-block',
@@ -229,6 +243,11 @@ const useEntriesStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface PreviewEntry {
+  type: 'meta' | 'content'
+  entry: SearchHitPackageMatchingEntry
+}
+
 interface EntriesProps {
   entries: readonly SearchHitPackageMatchingEntry[]
   onClose: () => void
@@ -239,13 +258,11 @@ function Entries({ entries, onClose }: EntriesProps) {
   const ref = React.useRef<HTMLDivElement>(null)
   const [height, setHeight] = React.useState('auto')
 
-  const [previewEntry, setPreviewEntry] =
-    React.useState<SearchHitPackageMatchingEntry | null>(null)
-  const handleMouseEnter = React.useCallback((e: SearchHitPackageMatchingEntry) => {
-    setPreviewEntry(e)
-  }, [])
-  const handleMouseLeave = React.useCallback(() => {
-    setPreviewEntry(null)
+  const [preview, setPreview] = React.useState<PreviewEntry | null>(null)
+  React.useEffect(() => {
+    const onScroll = () => setPreview(null)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   React.useEffect(() => {
@@ -276,32 +293,35 @@ function Entries({ entries, onClose }: EntriesProps) {
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
-            {entries.map((e) => (
-              <M.TableRow hover key={e.physicalKey} className={classes.row}>
+            {entries.map((entry) => (
+              <M.TableRow hover key={entry.physicalKey} className={classes.row}>
                 <M.TableCell className={classes.cell} component="th" scope="row">
-                  <M.Tooltip title={e.logicalKey}>
-                    <span className={cx(e.matchLocations.logicalKey && classes.match)}>
-                      {e.logicalKey}
+                  <M.Tooltip title={entry.logicalKey}>
+                    <span
+                      className={cx(entry.matchLocations.logicalKey && classes.match)}
+                    >
+                      {entry.logicalKey}
                     </span>
                   </M.Tooltip>
                 </M.TableCell>
                 <M.TableCell className={classes.cell}>
-                  <M.Tooltip title={e.physicalKey}>
-                    <span className={cx(e.matchLocations.physicalKey && classes.match)}>
-                      {e.physicalKey}
+                  <M.Tooltip title={entry.physicalKey}>
+                    <span
+                      className={cx(entry.matchLocations.physicalKey && classes.match)}
+                    >
+                      {entry.physicalKey}
                     </span>
                   </M.Tooltip>
                 </M.TableCell>
                 <M.TableCell className={classes.cell} align="right">
-                  {readableBytes(e.size)}
+                  {readableBytes(entry.size)}
                 </M.TableCell>
                 <M.TableCell className={classes.cell} align="center">
-                  {e.meta ? (
+                  {entry.meta ? (
                     <M.IconButton
                       size="small"
-                      className={cx(e.matchLocations.meta && classes.matchButton)}
-                      onMouseEnter={() => handleMouseEnter(e)}
-                      onMouseLeave={handleMouseLeave}
+                      className={cx(entry.matchLocations.meta && classes.matchButton)}
+                      onClick={() => setPreview({ type: 'meta', entry })}
                     >
                       <M.Icon fontSize="inherit">list</M.Icon>
                     </M.IconButton>
@@ -315,24 +335,42 @@ function Entries({ entries, onClose }: EntriesProps) {
                   <span
                     className={cx(
                       classes.content,
-                      e.matchLocations.contents && classes.match,
+                      entry.matchLocations.contents && classes.match,
                     )}
-                    onMouseEnter={() => handleMouseEnter(e)}
-                    onMouseLeave={handleMouseLeave}
+                    onClick={() => setPreview({ type: 'content', entry })}
                   >
-                    {extname(e.logicalKey).substring(1)}
+                    {extname(entry.logicalKey).substring(1)}
                   </span>
                 </M.TableCell>
               </M.TableRow>
             ))}
           </M.TableBody>
         </M.Table>
-        {previewEntry && (
-          <M.Paper square className={classes.popover} elevation={4}>
-            <div className={classes.preview}>
-              <JsonDisplay value={previewEntry.meta} defaultExpanded />
-            </div>
-          </M.Paper>
+        {preview && (
+          <div className={classes.popover}>
+            <M.ClickAwayListener onClickAway={() => setPreview(null)}>
+              <M.Paper square className={classes.preview} elevation={4}>
+                {preview.type === 'meta' && (
+                  <JsonDisplay value={preview.entry.meta} defaultExpanded />
+                )}
+                {preview.type === 'content' && (
+                  <Preview.Load
+                    handle={s3paths.parseS3Url(preview.entry.physicalKey)}
+                    options={{ context: Preview.CONTEXT.LISTING }}
+                  >
+                    {(data: $TSFixMe) => (
+                      <Preview.Display
+                        data={data}
+                        noDownload={undefined}
+                        onData={undefined}
+                        props={undefined} // these props go to the render functions
+                      />
+                    )}
+                  </Preview.Load>
+                )}
+              </M.Paper>
+            </M.ClickAwayListener>
+          </div>
         )}
       </div>
     </div>
