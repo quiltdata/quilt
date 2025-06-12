@@ -217,6 +217,16 @@ const useEntriesStyles = M.makeStyles((t) => ({
   scrolling: {
     opacity: 0.3,
   },
+  hide: {
+    left: t.spacing(2),
+    opacity: 0.3,
+    position: 'absolute',
+    top: t.spacing(3),
+    transition: t.transitions.create('opacity'),
+    '&:hover': {
+      opacity: 1,
+    },
+  },
 }))
 
 interface EntriesProps {
@@ -245,6 +255,9 @@ function Entries({ entries }: EntriesProps) {
   return (
     <div className={cx(classes.root)} style={{ height }}>
       <div className={classes.sticky} ref={ref}>
+        <M.IconButton className={classes.hide} size="small">
+          <M.Icon fontSize="inherit">expand_less</M.Icon>
+        </M.IconButton>
         <M.Table size="small" className={classes.table}>
           <M.TableHead>
             <M.TableRow>
@@ -350,8 +363,9 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
     transition: t.transitions.create(['opacity', 'transform', 'margin']),
   },
   rotate: {
-    transform: 'rotate(180deg)',
     margin: t.spacing(2, 0),
+    opacity: 1,
+    transform: 'rotate(180deg)',
   },
 }))
 
