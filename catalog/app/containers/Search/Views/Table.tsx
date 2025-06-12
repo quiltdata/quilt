@@ -162,10 +162,10 @@ const useEntriesStyles = M.makeStyles((t) => ({
   popover: {
     position: 'absolute',
     top: '100%',
-    trasform: 'translateY(1px)',
-    left: 0,
-    right: 0,
+    left: t.spacing(-0.5),
+    right: t.spacing(-0.5),
     zIndex: 10,
+    animation: t.transitions.create(['$growX']),
     '&::before': {
       background: M.fade(t.palette.common.black, 0.15),
       bottom: 0,
@@ -178,7 +178,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
     },
   },
   preview: {
-    padding: t.spacing(3, 7),
+    padding: t.spacing(1.5, 3, 3),
     position: 'relative',
     zIndex: 30,
   },
@@ -200,7 +200,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
     background: t.palette.warning.light,
   },
   sticky: {
-    animation: t.transitions.create(['$fade', '$grow']),
+    animation: t.transitions.create(['$fade', '$growDown']),
     // It is positioned where it would be without `absolute`,
     // but it continues to stay there when table is scrolled.
     position: 'absolute',
@@ -212,12 +212,22 @@ const useEntriesStyles = M.makeStyles((t) => ({
     //  - "Add column" widget width
     width: `calc(100vw - ${t.spacing(3 * 2)}px - ${t.spacing(40)}px - ${t.spacing(2)}px - ${t.spacing(4)}px)`,
   },
-  '@keyframes grow': {
+  '@keyframes growDown': {
     '0%': {
       transform: 'translateY(-4px)',
     },
     '100%': {
       transform: 'translateY(0)',
+    },
+  },
+  '@keyframes growX': {
+    '0%': {
+      left: 0,
+      right: 0,
+    },
+    '100%': {
+      left: t.spacing(-0.5),
+      right: t.spacing(-0.5),
     },
   },
   '@keyframes fade': {
@@ -241,6 +251,14 @@ const useEntriesStyles = M.makeStyles((t) => ({
       opacity: 1,
     },
   },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: t.spacing(2),
+  },
+  close: {
+    margin: t.spacing(-1, -2),
+  },
 }))
 
 interface PreviewEntry {
@@ -259,11 +277,6 @@ function Entries({ entries, onClose }: EntriesProps) {
   const [height, setHeight] = React.useState('auto')
 
   const [preview, setPreview] = React.useState<PreviewEntry | null>(null)
-  React.useEffect(() => {
-    const onScroll = () => setPreview(null)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   React.useEffect(() => {
     if (!ref.current) return
@@ -349,7 +362,17 @@ function Entries({ entries, onClose }: EntriesProps) {
         {preview && (
           <div className={classes.popover}>
             <M.ClickAwayListener onClickAway={() => setPreview(null)}>
-              <M.Paper square className={classes.preview} elevation={4}>
+              <M.Paper square elevation={2} className={classes.preview}>
+                <div className={classes.header}>
+                  <M.Typography variant="h6">{preview.entry.logicalKey}</M.Typography>
+                  <M.IconButton
+                    className={classes.close}
+                    onClick={() => setPreview(null)}
+                  >
+                    <M.Icon>close</M.Icon>
+                  </M.IconButton>
+                </div>
+
                 {preview.type === 'meta' && (
                   <JsonDisplay value={preview.entry.meta} defaultExpanded />
                 )}
