@@ -231,9 +231,10 @@ const useEntriesStyles = M.makeStyles((t) => ({
 
 interface EntriesProps {
   entries: readonly SearchHitPackageMatchingEntry[]
+  onClose: () => void
 }
 
-function Entries({ entries }: EntriesProps) {
+function Entries({ entries, onClose }: EntriesProps) {
   const classes = useEntriesStyles()
   const ref = React.useRef<HTMLDivElement>(null)
   const [height, setHeight] = React.useState('auto')
@@ -255,7 +256,7 @@ function Entries({ entries }: EntriesProps) {
   return (
     <div className={cx(classes.root)} style={{ height }}>
       <div className={classes.sticky} ref={ref}>
-        <M.IconButton className={classes.hide} size="small">
+        <M.IconButton className={classes.hide} size="small" onClick={onClose}>
           <M.Icon fontSize="inherit">expand_less</M.Icon>
         </M.IconButton>
         <M.Table size="small" className={classes.table}>
@@ -431,7 +432,7 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
           <M.TableCell className={classes.entries} colSpan={columns.length + 1}>
-            {open && <Entries entries={hit.matchingEntries} />}
+            {open && <Entries entries={hit.matchingEntries} onClose={toggle} />}
           </M.TableCell>
         </M.TableRow>
       )}
