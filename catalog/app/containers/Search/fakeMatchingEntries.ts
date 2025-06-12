@@ -32,7 +32,7 @@ export const fakeMatchingEntries: readonly SearchHitPackageMatchingEntry[] = [
     logicalKey: 'README.md',
     meta: null,
     size: 1024,
-    physicalKey: 's3://example-bucket/README.md',
+    physicalKey: 's3://fiskus-sandbox-dev/fiskus/sandbox-dev/README.md',
     matchLocations: {
       logicalKey: true,
       meta: false,
@@ -41,10 +41,10 @@ export const fakeMatchingEntries: readonly SearchHitPackageMatchingEntry[] = [
     },
   },
   {
-    logicalKey: 'data/file.csv',
+    logicalKey: 'ns.json',
     meta: { description: 'test file' },
     size: 2048,
-    physicalKey: 's3://example-bucket/data/file.csv',
+    physicalKey: 's3://fiskus-sandbox-dev/ns.json',
     matchLocations: {
       logicalKey: false,
       meta: true,
@@ -57,7 +57,8 @@ export const fakeMatchingEntries: readonly SearchHitPackageMatchingEntry[] = [
       'some-long/long/long/long/long/long/long/long/long/long/long/long/long/long/name.csv',
     meta: { description: 'test file' },
     size: 2048,
-    physicalKey: 's3://example-bucket/data/long.csv',
+    physicalKey:
+      's3://fiskus-sandbox-dev/fiskus/sandbox/ce06f37d-3cf9-4d22-af7a-64a310f8f838.csv',
     matchLocations: {
       logicalKey: false,
       meta: false,
