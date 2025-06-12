@@ -59,23 +59,6 @@ const useTableViewSystemMetaStyles = M.makeStyles((t) => ({
 type FilterType =
   SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
 
-function getFilterValue(hit: SearchHitPackageWithMatches, filter: FilterType) {
-  switch (filter) {
-    case 'workflow':
-      return hit.workflow ? (hit.workflow.id as string) : null
-    case 'hash':
-    case 'size':
-    case 'name':
-    case 'comment':
-    case 'modified':
-      return hit[filter]
-    case 'entries':
-      return null
-    default:
-      assertNever(filter)
-  }
-}
-
 interface TableViewSystemMetaProps {
   hit: SearchHitPackageWithMatches
   filter: FilterType
@@ -858,6 +841,10 @@ function AddColumn({ columns }: AddColumnProps) {
 
 const noopFixme = () => {}
 
+const isSingleKeyword = (
+  predicate: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate> | null,
+) => predicate && predicate._tag === 'KeywordEnum' && predicate.terms.length === 1
+
 const useTableViewStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
@@ -999,13 +986,10 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
     const modifiedFilters = SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter)
 
     state.filter.order.forEach((filter) => {
-      // FIXME: there are hit under "Load more" that could have different values
-      const singleValue = hits.every(
-        (hit) => getFilterValue(hits[0], filter) === getFilterValue(hit, filter),
-      )
       // 'name' is added constantly
       // 'entries' doesn't have values
-      if (filter !== 'name' && filter !== 'entries' && !singleValue) {
+      const singleKeyword = isSingleKeyword(state.filter.predicates[filter])
+      if (filter !== 'name' && filter !== 'entries' && !singleKeyword) {
         output.push({
           collapsed: !!collapsed[filter],
           filter,
@@ -1021,23 +1005,26 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
       }
     })
     return output
-  }, [actions, collapsed, hits, state.filter])
+  }, [actions, collapsed, state.filter])
 
   const userMetaColumns = React.useMemo(() => {
     const modifiedFilters = state.userMetaFilters.toGQL()
     const output: ColumnHead[] = []
-    state.userMetaFilters.filters.forEach((_v, filter) => {
-      output.push({
-        collapsed: !!collapsed[filter],
-        filter,
-        onClose: () => actions.deactivatePackagesMetaFilter(filter),
-        onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-        onSearch: noopFixme,
-        onSort: noopFixme,
-        tag: 'meta' as const,
-        title: filter.replace(/^\//, ''),
-        filtered: !!modifiedFilters?.find(({ path }) => path === filter),
-      })
+    state.userMetaFilters.filters.forEach((predicate, filter) => {
+      const singleKeyword = isSingleKeyword(predicate)
+      if (!singleKeyword) {
+        output.push({
+          collapsed: !!collapsed[filter],
+          filter,
+          onClose: () => actions.deactivatePackagesMetaFilter(filter),
+          onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+          onSearch: noopFixme,
+          onSort: noopFixme,
+          tag: 'meta' as const,
+          title: filter.replace(/^\//, ''),
+          filtered: !!modifiedFilters?.find(({ path }) => path === filter),
+        })
+      }
     })
     return output
   }, [actions, collapsed, state.userMetaFilters])
