@@ -1092,7 +1092,6 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
                 output.push({
                   collapsed: !!collapsed[filter],
                   filter,
-                  onClose: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
                   onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
                   onSearch: noopFixme,
                   onSort: noopFixme,
