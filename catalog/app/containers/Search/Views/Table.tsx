@@ -139,10 +139,17 @@ function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
 const useEntriesStyles = M.makeStyles((t) => ({
   root: {
     borderBottom: `1px solid ${t.palette.divider}`,
-    padding: t.spacing(2, 7),
+    padding: t.spacing(2, 2, 2, 7),
     background: t.palette.background.default,
-    position: 'relative',
-    width: '896px',
+    // It is positioned where it would be without `absolute`,
+    // but it continues to stay there when table is scrolled.
+    position: 'absolute',
+    // fullWidth
+    //  - page container paddings
+    //  - sidebar width
+    //  - sidebar margin (grid gap)
+    //  - add column widget width
+    width: `calc(100vw - ${t.spacing(3 * 2)}px - ${t.spacing(40)}px - ${t.spacing(2)}px - ${t.spacing(4)}px)`,
   },
   cell: {
     whiteSpace: 'nowrap',
@@ -302,6 +309,7 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
   entries: {
     borderBottom: 0,
     padding: 0,
+    verticalAlign: 'top',
     '&:last-child': {
       padding: 0,
     },
@@ -321,12 +329,10 @@ interface TableViewPackageProps {
 }
 
 function TableViewPackage({ columns, hit }: TableViewPackageProps) {
-  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const meta = hit.meta ? JSON.parse(hit.meta) : {}
   const classes = useTableViewPackageStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
-  const colSpan = 2 + state.filter.order.length + state.userMetaFilters.filters.size
 
   return (
     <>
@@ -378,7 +384,15 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
       </M.TableRow>
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
-          <M.TableCell className={classes.entries} colSpan={colSpan}>
+          <M.TableCell
+            className={classes.entries}
+            colSpan={columns.length + 1}
+            style={{
+              // Space, reserved for `absolute`-positioned table inside
+              // Height is the combined height of entries + header + paddings
+              height: open ? `${37 * hit.matchingEntries.length + 37 + 32}px` : 'auto',
+            }}
+          >
             <M.Collapse in={open} timeout="auto" unmountOnExit>
               <Entries entries={hit.matchingEntries} />
             </M.Collapse>
