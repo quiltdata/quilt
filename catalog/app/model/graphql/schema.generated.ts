@@ -5273,7 +5273,7 @@ export default {
             name: 'meta',
             type: {
               kind: 'SCALAR',
-              name: 'JsonRecord',
+              name: 'String',
               ofType: null,
             },
             args: [],

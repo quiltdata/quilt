@@ -29,7 +29,14 @@ export enum ResultType {
   S3Object = 'o',
 }
 
+export enum View {
+  Table = 't',
+  List = 'l',
+}
+
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
+
+export const DEFAULT_VIEW = View.List
 
 export const ResultOrder = Model.GQLTypes.SearchResultOrder
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -66,6 +73,7 @@ interface SearchUrlStateBase {
   searchString: string | null
   buckets: readonly string[]
   order: ResultOrder
+  view: View
 }
 
 interface ObjectsSearchUrlState extends SearchUrlStateBase {
@@ -541,6 +549,16 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
   return DEFAULT_RESULT_TYPE
 }
 
+function parseView(view: string | null): View {
+  switch (view) {
+    case View.List:
+      return View.List
+    case View.Table:
+      return View.Table
+  }
+  return DEFAULT_VIEW
+}
+
 export const META_PREFIX = 'meta.'
 
 // XXX: use @effect/schema for morphisms between url (querystring) and search state
@@ -550,12 +568,14 @@ export function parseSearchParams(qs: string): SearchUrlState {
 
   const resultType = parseResultType(params.get('t'), params.get('mode'))
 
+  const view = parseView(params.get('v'))
+
   const bucketsInput = params.get('buckets') || params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
 
   const order = parseOrder(params.get('o'))
 
-  const base = { searchString, buckets, order }
+  const base = { searchString, buckets, order, view }
   switch (resultType) {
     case ResultType.S3Object:
       return {
@@ -583,6 +603,8 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
   if (state.searchString) params.set('q', state.searchString)
 
   if (state.resultType !== DEFAULT_RESULT_TYPE) params.set('t', state.resultType)
+
+  if (state.view !== DEFAULT_VIEW) params.set('v', state.view)
 
   if (state.buckets.length) params.set('b', state.buckets.join(','))
 
@@ -652,7 +674,7 @@ function addMagicWildcardsQS(s: string | null): string | null {
   return `${s}*`
 }
 
-function useMagicWildcardsQS(s: string | null) {
+export function useMagicWildcardsQS(s: string | null) {
   return React.useMemo(() => addMagicWildcardsQS(s), [s])
 }
 
@@ -1203,6 +1225,36 @@ export const PackageUserMetaFacetTypeInfo = {
   },
 }
 
+export function usePackageSystemMetaFacetExtents(
+  field: keyof PackagesSearchFilter,
+): Extents | undefined {
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+  return GQL.fold(model.baseSearchQuery, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return undefined
+        case 'InvalidInput':
+          return undefined
+        case 'PackagesSearchResultSet':
+          if (
+            field === 'workflow' ||
+            field === 'modified' ||
+            field === 'size' ||
+            field === 'entries'
+          ) {
+            return r.stats[field]
+          }
+          return undefined
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => undefined,
+    error: () => undefined,
+  })
+}
+
 export function usePackageUserMetaFacetExtents(path: string): {
   fetching: boolean
   extents: Extents | undefined
@@ -1315,11 +1367,19 @@ function useSearchUIModel() {
               ...s,
               resultType,
               filter: ObjectsSearchFilterIO.initialState,
+              view: View.List,
             }
           default:
             return assertNever(resultType)
         }
       })
+    },
+    [updateUrlState],
+  )
+
+  const setView = React.useCallback(
+    (view: View) => {
+      updateUrlState((s) => ({ ...s, view }))
     },
     [updateUrlState],
   )
@@ -1458,11 +1518,12 @@ function useSearchUIModel() {
   }, [updateUrlState])
 
   const reset = React.useCallback(() => {
-    updateUrlState(({ resultType, order }) => {
+    updateUrlState(({ resultType, order, view }) => {
       const base = {
         searchString: null,
         buckets: [],
         order,
+        view,
       }
       switch (resultType) {
         case ResultType.QuiltPackage:
@@ -1495,6 +1556,7 @@ function useSearchUIModel() {
         setOrder,
         setResultType,
         setBuckets,
+        setView,
 
         activateObjectsFilter,
         deactivateObjectsFilter,

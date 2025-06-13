@@ -1,8 +1,8 @@
 import cx from 'classnames'
 import invariant from 'invariant'
 import * as React from 'react'
-import { useDebouncedCallback } from 'use-debounce'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
@@ -16,14 +16,37 @@ import * as Format from 'utils/format'
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
 import BucketSelector from './Buckets'
-import * as Hit from './Hit'
+import FilterWidget from './FilterWidget'
 import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
+import ListView, { ListViewProps } from './Views/List'
+import TableView, { TableViewProps } from './Views/Table'
+import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
+import { OBJECT_FILTER_LABELS, PACKAGE_FILTER_LABELS } from './i18n'
+import {
+  SearchHitPackageWithMatches,
+  fakeMatchingEntries,
+  fakeMatchingLocations,
+} from './fakeMatchingEntries'
 
 function useMobileView() {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
+}
+
+function addFakeEntries(
+  hits: readonly SearchUIModel.SearchHit[],
+): readonly (SearchUIModel.SearchHit | SearchHitPackageWithMatches)[] {
+  return hits.map((h) =>
+    h.__typename === 'SearchHitPackage'
+      ? {
+          ...h,
+          matchingEntries: fakeMatchingEntries,
+          matchLocations: fakeMatchingLocations(),
+        }
+      : h,
+  )
 }
 
 export type ComponentProps = React.PropsWithChildren<{ className?: string }>
@@ -146,235 +169,6 @@ function MoreButton({ reverse, ...props }: MoreButtonProps) {
   )
 }
 
-// const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
-
-interface FilterWidgetProps<
-  P extends SearchUIModel.KnownPredicate = SearchUIModel.KnownPredicate,
-> {
-  state: SearchUIModel.PredicateState<P>
-  extents?: SearchUIModel.ExtentsForPredicate<P>
-  onChange: (state: SearchUIModel.PredicateState<P>) => void
-}
-
-function NumberFilterWidget({
-  state,
-  extents,
-  onChange,
-}: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
-  const handleChange = React.useCallback(
-    (value: { min: number | null; max: number | null }) => {
-      onChange({ ...state, gte: value.min, lte: value.max })
-    },
-    [onChange, state],
-  )
-
-  // XXX: revisit this logic
-  const extentsComputed = React.useMemo(
-    () => ({
-      min: extents?.min ?? state.gte ?? 0,
-      max: extents?.max ?? state.lte ?? 0,
-    }),
-    [extents?.min, extents?.max, state.gte, state.lte],
-  )
-
-  return (
-    <FiltersUI.NumbersRange
-      extents={extentsComputed}
-      onChange={handleChange}
-      // XXX: add units for known filters
-      // unit={unit}
-      value={{ min: state.gte, max: state.lte }}
-    />
-  )
-}
-
-function DatetimeFilterWidget({
-  state,
-  extents,
-  onChange,
-}: FilterWidgetProps<SearchUIModel.Predicates['Datetime']>) {
-  const fixedExtents = React.useMemo(
-    () => ({
-      min: extents?.min ?? new Date(),
-      max: extents?.max ?? new Date(),
-    }),
-    [extents?.min, extents?.max],
-  )
-
-  const fixedValue = React.useMemo(
-    () => ({ min: state.gte, max: state.lte }),
-    [state.gte, state.lte],
-  )
-
-  const handleChange = React.useCallback(
-    (v: { min: Date | null; max: Date | null }) => {
-      onChange({ ...state, gte: v.min, lte: v.max })
-    },
-    [onChange, state],
-  )
-
-  return (
-    <FiltersUI.DatesRange
-      extents={fixedExtents}
-      onChange={handleChange}
-      value={fixedValue}
-    />
-  )
-}
-
-const EMPTY_TERMS: string[] = []
-
-function KeywordEnumFilterWidget({
-  state,
-  extents,
-  onChange,
-}: FilterWidgetProps<SearchUIModel.Predicates['KeywordEnum']>) {
-  const handleChange = React.useCallback(
-    (value: string[]) => {
-      onChange({ ...state, terms: value })
-    },
-    [onChange, state],
-  )
-  const availableValues = extents?.values ?? EMPTY_TERMS
-
-  return (
-    <FiltersUI.List
-      extents={availableValues}
-      onChange={handleChange}
-      value={state.terms}
-      placeholder="Find"
-    />
-  )
-}
-
-interface DebouncedState<T> {
-  value: T
-  set: (value: T) => void
-}
-
-function useDebouncedState<T>(
-  initialValue: T,
-  onChange: (value: T) => void,
-  delay: number,
-): DebouncedState<T> {
-  const [value, setValue] = React.useState<T>(initialValue)
-  const debouncedCallback = useDebouncedCallback(onChange, delay)
-
-  React.useEffect(() => {
-    if (!debouncedCallback.isPending()) setValue(initialValue)
-  }, [debouncedCallback, initialValue])
-
-  React.useEffect(() => () => debouncedCallback.flush(), [debouncedCallback])
-
-  const set = React.useCallback(
-    (newValue: T) => {
-      setValue(newValue)
-      debouncedCallback(newValue)
-    },
-    [debouncedCallback],
-  )
-
-  return { value, set }
-}
-
-function KeywordWildcardFilterWidget({
-  state,
-  onChange,
-}: FilterWidgetProps<SearchUIModel.Predicates['KeywordWildcard']>) {
-  const handleWildcardChange = React.useCallback(
-    (wildcard: string) => {
-      onChange({ ...state, wildcard })
-    },
-    [onChange, state],
-  )
-
-  const handleStrictChange = React.useCallback(
-    (strict: boolean) => {
-      onChange({ ...state, strict })
-    },
-    [onChange, state],
-  )
-
-  const debounced = useDebouncedState(state.wildcard, handleWildcardChange, 500)
-
-  // TODO: link to docs:
-  // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-wildcard-query.html
-  return (
-    <FiltersUI.KeywordWildcard
-      onChange={debounced.set}
-      placeholder="Match against (wildcards supported)"
-      value={debounced.value}
-      strict={state.strict}
-      onStrictChange={handleStrictChange}
-    />
-  )
-}
-
-function TextFilterWidget({
-  state,
-  onChange,
-}: FilterWidgetProps<SearchUIModel.Predicates['Text']>) {
-  const handleChange = React.useCallback(
-    (queryString: string) => {
-      onChange({ ...state, queryString })
-    },
-    [onChange, state],
-  )
-
-  const debounced = useDebouncedState(state.queryString, handleChange, 500)
-
-  // TODO: link to docs:
-  // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-simple-query-string-query.html
-  return (
-    <FiltersUI.TextField
-      onChange={debounced.set}
-      placeholder="Search for"
-      value={debounced.value}
-    />
-  )
-}
-
-type BooleanFilterValue = SearchUIModel.Untag<
-  SearchUIModel.PredicateState<SearchUIModel.Predicates['Boolean']>
->
-
-function BooleanFilterWidget({
-  state,
-  onChange,
-}: FilterWidgetProps<SearchUIModel.Predicates['Boolean']>) {
-  const handleChange = React.useCallback(
-    (value: BooleanFilterValue) => {
-      onChange({ ...state, ...value })
-    },
-    [onChange, state],
-  )
-  return <FiltersUI.BooleanFilter onChange={handleChange} value={state} />
-}
-
-const WIDGETS = {
-  Datetime: DatetimeFilterWidget,
-  Number: NumberFilterWidget,
-  Text: TextFilterWidget,
-  KeywordEnum: KeywordEnumFilterWidget,
-  KeywordWildcard: KeywordWildcardFilterWidget,
-  Boolean: BooleanFilterWidget,
-}
-
-function FilterWidget(props: FilterWidgetProps) {
-  const Widget = WIDGETS[props.state._tag]
-  return <Widget {...(props as $TSFixMe)} />
-}
-
-const packageFilterLabels = {
-  modified: 'Last modified',
-  size: 'Cumulative package size',
-  name: 'Package name',
-  hash: 'Package hash',
-  entries: 'Total number of files in the package',
-  comment: 'Package revision comment',
-  workflow: 'Workflow',
-}
-
 interface PackagesFilterActivatorProps {
   field: keyof SearchUIModel.PackagesSearchFilter
 }
@@ -385,7 +179,7 @@ function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
   const activate = React.useCallback(() => {
     activatePackagesFilter(field)
   }, [activatePackagesFilter, field])
-  return <FiltersUI.Activator title={packageFilterLabels[field]} onClick={activate} />
+  return <FiltersUI.Activator title={PACKAGE_FILTER_LABELS[field]} onClick={activate} />
 }
 
 interface PackagesFilterProps {
@@ -398,30 +192,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
   const predicateState = model.state.filter.predicates[field]
   invariant(predicateState, 'Filter not active')
 
-  const extents = GQL.fold(model.baseSearchQuery, {
-    data: ({ searchPackages: r }) => {
-      switch (r.__typename) {
-        case 'EmptySearchResultSet':
-          return undefined
-        case 'InvalidInput':
-          return undefined
-        case 'PackagesSearchResultSet':
-          if (
-            field === 'workflow' ||
-            field === 'modified' ||
-            field === 'size' ||
-            field === 'entries'
-          ) {
-            return r.stats[field]
-          }
-          return undefined
-        default:
-          assertNever(r)
-      }
-    },
-    fetching: () => undefined,
-    error: () => undefined,
-  })
+  const extents = SearchUIModel.usePackageSystemMetaFacetExtents(field)
 
   const { deactivatePackagesFilter, setPackagesFilter } = model.actions
 
@@ -441,7 +212,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
       className={className}
       defaultExpanded
       onDeactivate={deactivate}
-      title={packageFilterLabels[field]}
+      title={PACKAGE_FILTER_LABELS[field]}
     >
       <FilterWidget state={predicateState} extents={extents} onChange={change} />
     </FiltersUI.Container>
@@ -785,16 +556,6 @@ function PackagesRevisionFilter() {
   )
 }
 
-const PACKAGES_FILTERS_PRIMARY = ['workflow', 'name'] as const
-
-const PACKAGES_FILTERS_SECONDARY = [
-  'comment',
-  'modified',
-  'size',
-  'entries',
-  'hash',
-] as const
-
 const usePackageFiltersStyles = M.makeStyles((t) => ({
   root: {
     // make room for overflowing controls (e.g. a switch)
@@ -871,15 +632,6 @@ function PackageFilters({ className }: PackageFiltersProps) {
       <PackagesMetaFilters className={classes.metadata} />
     </div>
   )
-}
-
-const OBJECT_FILTER_LABELS = {
-  modified: 'Last modified',
-  size: 'Object size',
-  ext: 'Extension',
-  key: 'Object key',
-  content: 'Contents',
-  deleted: 'Delete marker',
 }
 
 interface ObjectsFilterActivatorProps {
@@ -1060,45 +812,6 @@ function Filters({ className }: FiltersProps) {
   )
 }
 
-interface SearchHitProps {
-  hit: SearchUIModel.SearchHit
-  showBucket: boolean
-  showRevision: boolean
-}
-
-function SearchHit({ hit, showBucket, showRevision }: SearchHitProps) {
-  switch (hit.__typename) {
-    case 'SearchHitObject':
-      return (
-        <Hit.Object
-          showBucket={showBucket}
-          hit={hit}
-          data-testid="search-hit"
-          data-search-hit-type="file"
-          data-search-hit-bucket={hit.bucket}
-          data-search-hit-path={hit.key}
-        />
-      )
-
-    case 'SearchHitPackage':
-      return (
-        <Hit.Package
-          showBucket={showBucket}
-          showRevision={showRevision}
-          hit={hit}
-          data-testid="search-hit"
-          data-search-hit-type="package"
-          data-search-hit-bucket={hit.bucket}
-          data-search-hit-package-name={hit.name}
-          data-search-hit-package-hash={hit.hash}
-        />
-      )
-
-    default:
-      assertNever(hit)
-  }
-}
-
 const useLoadNextPageStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(1, 0),
@@ -1135,6 +848,20 @@ function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps
   )
 }
 
+function View(props: ListViewProps | TableViewProps) {
+  const {
+    state: { view },
+  } = SearchUIModel.use()
+  switch (view) {
+    case SearchUIModel.View.List:
+      return <ListView {...(props as ListViewProps)} />
+    case SearchUIModel.View.Table:
+      return <TableView {...(props as TableViewProps)} />
+    default:
+      assertNever(view)
+  }
+}
+
 const useResultsPageStyles = M.makeStyles((t) => ({
   next: {
     marginTop: t.spacing(1),
@@ -1166,14 +893,7 @@ function ResultsPage({
 
   return (
     <div className={className}>
-      {hits.map((hit) => (
-        <SearchHit
-          key={hit.id}
-          hit={hit}
-          showBucket={!singleBucket}
-          showRevision={!latestOnly}
-        />
-      ))}
+      <View hits={hits} showBucket={!singleBucket} showRevision={!latestOnly} />
       {!!cursor &&
         (more ? (
           <NextPage
@@ -1235,7 +955,9 @@ function NextPage({
                 return (
                   <ResultsPage
                     className={className}
-                    hits={r.data.hits}
+                    hits={
+                      addFakeEntries(r.data.hits) as readonly SearchUIModel.SearchHit[]
+                    }
                     cursor={r.data.cursor}
                     resultType={resultType}
                     singleBucket={singleBucket}
@@ -1295,7 +1017,11 @@ function ResultsInner({ className }: ResultsInnerProps) {
               className={className}
               key={`${model.state.resultType}:${r.data.firstPage.cursor}`}
               resultType={model.state.resultType}
-              hits={r.data.firstPage.hits}
+              hits={
+                addFakeEntries(
+                  r.data.firstPage.hits,
+                ) as readonly SearchUIModel.SearchHit[]
+              }
               cursor={r.data.firstPage.cursor}
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}
@@ -1359,6 +1085,9 @@ const useResultsStyles = M.makeStyles((t) => ({
   results: {
     marginTop: t.spacing(2),
   },
+  toggleButton: {
+    padding: '5px',
+  },
   toolbar: {
     alignItems: 'flex-end',
     display: 'flex',
@@ -1371,13 +1100,37 @@ interface ResultsProps {
 }
 
 function Results({ onFilters }: ResultsProps) {
+  const model = SearchUIModel.use()
   const classes = useResultsStyles()
   const isMobile = useMobileView()
+  const { setView } = model.actions
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
         <ResultsCount />
         <div className={classes.controls}>
+          {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
+            <Lab.ToggleButtonGroup
+              value={model.state.view}
+              className={classes.button}
+              exclusive
+              onChange={(_e, value) => setView(value)}
+              size="small"
+            >
+              <Lab.ToggleButton
+                value={SearchUIModel.View.Table}
+                className={classes.toggleButton}
+              >
+                <M.Icon>grid_on</M.Icon>
+              </Lab.ToggleButton>
+              <Lab.ToggleButton
+                value={SearchUIModel.View.List}
+                className={classes.toggleButton}
+              >
+                <M.Icon>list</M.Icon>
+              </Lab.ToggleButton>
+            </Lab.ToggleButtonGroup>
+          )}
           {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
           <SortSelector className={classes.button} />
         </div>
@@ -1406,6 +1159,28 @@ const useStyles = M.makeStyles((t) => ({
     right: '2px',
     top: '10px',
   },
+  [SearchUIModel.View.Table]: {
+    animation: t.transitions.create('$expand'),
+  },
+  [SearchUIModel.View.List]: {
+    animation: t.transitions.create('$collapse'),
+  },
+  '@keyframes expand': {
+    '0%': {
+      transform: 'scaleX(0.94)',
+    },
+    '100%': {
+      transform: 'scaleX(1)',
+    },
+  },
+  '@keyframes collapse': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: 1,
+    },
+  },
 }))
 
 function SearchLayout() {
@@ -1413,8 +1188,12 @@ function SearchLayout() {
   const classes = useStyles()
   const isMobile = useMobileView()
   const [showFilters, setShowFilters] = React.useState(false)
+  const { view } = model.state
   return (
-    <M.Container maxWidth="lg" className={classes.root}>
+    <M.Container
+      className={cx(classes.root, classes[view])}
+      maxWidth={view === SearchUIModel.View.Table ? false : 'lg'}
+    >
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
       {isMobile ? (
         <M.Drawer anchor="left" open={showFilters} onClose={() => setShowFilters(false)}>
