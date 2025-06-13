@@ -20,8 +20,7 @@ import FilterWidget from './FilterWidget'
 import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
-import ListView, { ListViewProps } from './Views/List'
-import TableView, { TableViewProps } from './Views/Table'
+import * as Views from './Views'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { OBJECT_FILTER_LABELS, PACKAGE_FILTER_LABELS } from './i18n'
 import {
@@ -848,15 +847,15 @@ function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps
   )
 }
 
-function View(props: ListViewProps | TableViewProps) {
+function View(props: Views.ListViewProps | Views.TableViewProps) {
   const {
     state: { view },
   } = SearchUIModel.use()
   switch (view) {
     case SearchUIModel.View.List:
-      return <ListView {...(props as ListViewProps)} />
+      return <Views.ListView {...(props as Views.ListViewProps)} />
     case SearchUIModel.View.Table:
-      return <TableView {...(props as TableViewProps)} />
+      return <Views.TableView {...(props as Views.TableViewProps)} />
     default:
       assertNever(view)
   }
@@ -985,7 +984,14 @@ function ResultsInner({ className }: ResultsInnerProps) {
 
   switch (r._tag) {
     case 'fetching':
-      return <ResultsSkeleton className={className} type={model.state.resultType} />
+      switch (model.state.view) {
+        case SearchUIModel.View.List:
+          return <ResultsSkeleton className={className} type={model.state.resultType} />
+        case SearchUIModel.View.Table:
+          return <Views.TableSkeleton />
+        default:
+          assertNever(model.state.view)
+      }
     case 'error':
       return <SearchError className={className} details={r.error.message} />
     case 'data':
@@ -1188,11 +1194,10 @@ function SearchLayout() {
   const classes = useStyles()
   const isMobile = useMobileView()
   const [showFilters, setShowFilters] = React.useState(false)
-  const { view } = model.state
   return (
     <M.Container
-      className={cx(classes.root, classes[view])}
-      maxWidth={view === SearchUIModel.View.Table ? false : 'lg'}
+      className={cx(classes.root, classes[model.state.view])}
+      maxWidth={model.state.view === SearchUIModel.View.Table ? false : 'lg'}
     >
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
       {isMobile ? (

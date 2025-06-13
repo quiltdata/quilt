@@ -5,6 +5,7 @@ import invariant from 'invariant'
 import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as Preview from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
@@ -524,9 +525,12 @@ const ColumnAction = React.forwardRef<HTMLButtonElement, ColumnActionProps>(
         className={cx(classes.root, className)}
         ref={ref}
         size="small"
+        color={props.color || 'inherit'}
         {...props}
       >
-        <M.Icon className={classes.icon}>{icon}</M.Icon>
+        <M.Icon color="inherit" className={classes.icon}>
+          {icon}
+        </M.Icon>
       </M.IconButton>
     )
   },
@@ -534,21 +538,52 @@ const ColumnAction = React.forwardRef<HTMLButtonElement, ColumnActionProps>(
 
 interface FilterProps {
   filter: keyof SearchUIModel.PackagesSearchFilter
+  onClose: () => void
 }
 
-function Filter({ filter }: FilterProps) {
+function Filter({ filter, onClose }: FilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const predicateState = model.state.filter.predicates[filter]
   invariant(predicateState, 'Filter not active')
   const extents = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
 
+  // const [value, setValue] = React.useState<$TSFixMe>(null)
   const change = React.useCallback(
     (state: $TSFixMe) => {
       model.actions.setPackagesFilter(filter, state)
+      onClose()
     },
-    [model.actions, filter],
+    [model.actions, filter, onClose],
   )
   return <FilterWidget state={predicateState} extents={extents} onChange={change} />
+}
+
+interface MetaFilterProps {
+  path: string
+  onClose: () => void
+}
+
+function MetaFilter({ path, onClose }: MetaFilterProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const predicateState = model.state.userMetaFilters.filters.get(path)
+  invariant(predicateState, 'Filter not active')
+
+  const { fetching, extents } = SearchUIModel.usePackageUserMetaFacetExtents(path)
+  const change = React.useCallback(
+    (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => {
+      model.actions.setPackagesMetaFilter(path, state)
+      onClose()
+    },
+    [model.actions, path, onClose],
+  )
+  return fetching ? (
+    <M.Box display="grid" gridAutoFlow="row" gridRowGap={1}>
+      <Lab.Skeleton height={32} />
+      <Lab.Skeleton height={32} />
+    </M.Box>
+  ) : (
+    <FilterWidget state={predicateState} extents={extents} onChange={change} />
+  )
 }
 
 const useColumnActionsStyles = M.makeStyles((t) => ({
@@ -566,13 +601,24 @@ interface ColumnActionsProps {
 
 function ColumnActions({ className, column }: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   const [menuOpened, setMenuOpened] = React.useState(false)
   const showMenu = React.useCallback(() => setMenuOpened(true), [])
   const hideMenu = React.useCallback(() => setMenuOpened(false), [])
 
   const [filterOpened, setFilterOpened] = React.useState(false)
-  // const showFilter = React.useCallback(() => setFilterOpened(true), [])
+  const showFilter = React.useCallback(() => {
+    switch (column.tag) {
+      case 'meta':
+        model.actions.activatePackagesMetaFilter(column.filter, column.predicateType)
+        break
+      case 'filter':
+        model.actions.activatePackagesFilter(column.filter)
+        break
+    }
+    setFilterOpened(true)
+  }, [column, model.actions])
   const hideFilter = React.useCallback(() => setFilterOpened(false), [])
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
@@ -609,16 +655,18 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
       ref={(el) => setAnchorEl(el?.parentElement || el)}
     >
       {
-        // FIXME: enable search and sort
-        // <ColumnAction onMouseEnter={showFilter} onClick={showFilter} icon="search" />
+        // FIXME:
         // <ColumnAction onClick={onSort} icon="sort" />
       }
 
+      <ColumnAction
+        color={column.filtered ? 'primary' : 'inherit'}
+        icon="filter_list"
+        onClick={showFilter}
+      />
+
       {column.filtered ? (
-        <>
-          <ColumnAction icon="filter_list" onClick={showMenu} onMouseEnter={showMenu} />
-          <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
-        </>
+        <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
       ) : (
         <StyledTooltip
           title={column.onClose ? 'Deactivate filter and hide column' : 'Hide column'}
@@ -647,8 +695,16 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
       </M.Popover>
 
       <M.Popover open={filterOpened} {...popoverProps}>
-        {column.tag === 'filter' && <Filter filter={column.filter} />}
-        {column.tag === 'meta' && <h1>Meta filter</h1>}
+        {column.tag === 'filter' && column.filter !== 'name' && (
+          <M.Box display="flex" flexDirection="column" padding={2} width={320}>
+            <Filter filter={column.filter} onClose={hideFilter} />
+          </M.Box>
+        )}
+        {column.tag === 'meta' && (
+          <M.Box display="flex" flexDirection="column" padding={2} width={320}>
+            <MetaFilter path={column.filter} onClose={hideFilter} />
+          </M.Box>
+        )}
       </M.Popover>
     </div>
   )
@@ -918,6 +974,54 @@ function AddColumn({ columns }: AddColumnProps) {
   )
 }
 
+export function TableSkeleton() {
+  const COLUMNS_LEN = 5
+  const ROWS_LEN = 30
+  const [head, ...body] = React.useMemo(
+    () =>
+      Array.from({ length: ROWS_LEN }).map((_r, row) => ({
+        key: row,
+        columns: Array.from({ length: COLUMNS_LEN }).map((_c, key) => ({
+          key,
+          width: Math.max(80, Math.ceil(Math.random() * 200)),
+        })),
+      })),
+    [],
+  )
+  return (
+    <M.Table size="small">
+      <M.TableHead>
+        <M.TableRow>
+          <M.TableCell />
+          {head.columns.map(({ key, width }) => (
+            <M.TableCell key={key}>
+              <M.Typography variant="subtitle2">
+                <Lab.Skeleton width={width} />
+              </M.Typography>
+            </M.TableCell>
+          ))}
+        </M.TableRow>
+      </M.TableHead>
+      <M.TableBody>
+        {body.map((r) => (
+          <M.TableRow key={r.key}>
+            <M.TableCell padding="checkbox">
+              <Lab.Skeleton />
+            </M.TableCell>
+            {r.columns.map(({ key, width }) => (
+              <M.TableCell key={key}>
+                <M.Typography variant="subtitle2">
+                  <Lab.Skeleton width={width} />
+                </M.Typography>
+              </M.TableCell>
+            ))}
+          </M.TableRow>
+        ))}
+      </M.TableBody>
+    </M.Table>
+  )
+}
+
 const noopFixme = () => {}
 
 const isSingleKeyword = (
@@ -955,12 +1059,12 @@ const useTableViewStyles = M.makeStyles((t) => ({
       width: '1px',
     },
     '&:hover $headActions': {
-      opacity: 1,
+      color: t.palette.text.secondary,
     },
   },
   headActions: {
-    opacity: 0.3,
-    transition: t.transitions.create('opacity'),
+    color: t.palette.text.hint,
+    transition: t.transitions.create('color'),
     marginLeft: t.spacing(2),
   },
   headIcon: {
@@ -979,15 +1083,18 @@ interface ColumnHeadBase {
 }
 
 interface ColumnHeadFilter extends ColumnHeadBase {
-  tag: 'filter'
+  // keyof PackagesSearchFilter?
   filter: SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
-  title: string
   fullTitle: string
+  predicateType: SearchUIModel.KnownPredicate['_tag']
+  tag: 'filter'
+  title: string
 }
 
 interface ColumnHeadMeta extends ColumnHeadBase {
-  tag: 'meta'
   filter: string
+  predicateType: SearchUIModel.KnownPredicate['_tag']
+  tag: 'meta'
   title: string
 }
 
@@ -1004,7 +1111,7 @@ export interface TableViewProps {
   showBucket: boolean
 }
 
-export default function TableView({ hits, showBucket }: TableViewProps) {
+export function TableView({ hits, showBucket }: TableViewProps) {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const classes = useTableViewStyles()
 
@@ -1043,6 +1150,7 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
   const nameColumn = React.useMemo(
     () => ({
       collapsed: !!collapsed.name,
+      predicateType: 'Text' as const,
       filter: 'name' as const,
       fullTitle: PACKAGE_FILTER_LABELS.name,
       onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
@@ -1065,12 +1173,15 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
     const modifiedFilters = SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter)
 
     state.filter.order.forEach((filter) => {
+      const predicate = state.filter.predicates[filter]
+      invariant(!!predicate, 'Predicate should exist')
       // 'name' is added constantly
       // 'entries' doesn't have values
-      const singleKeyword = isSingleKeyword(state.filter.predicates[filter])
+      const singleKeyword = isSingleKeyword(predicate)
       if (filter !== 'name' && filter !== 'entries' && !singleKeyword) {
         output.push({
           collapsed: !!collapsed[filter],
+          predicateType: predicate._tag,
           filter,
           fullTitle: PACKAGE_FILTER_LABELS[filter],
           onClose: () => actions.deactivatePackagesFilter(filter),
@@ -1094,6 +1205,7 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
       if (!singleKeyword) {
         output.push({
           collapsed: !!collapsed[filter],
+          predicateType: predicate._tag,
           filter,
           onClose: () => actions.deactivatePackagesMetaFilter(filter),
           onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
@@ -1130,9 +1242,10 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
               },
               {} as Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>,
             )
-            Object.keys(map).forEach((filter) => {
+            Object.entries(map).forEach(([filter, typename]) => {
               if (!state.userMetaFilters.filters.has(filter)) {
                 output.push({
+                  predicateType: SearchUIModel.PackageUserMetaFacetMap[typename],
                   collapsed: !!collapsed[filter],
                   filter,
                   onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),

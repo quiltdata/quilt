@@ -50,7 +50,7 @@ export interface ListViewProps {
   showRevision: boolean
 }
 
-export default function ListView({ hits, showBucket, showRevision }: ListViewProps) {
+export function ListView({ hits, showBucket, showRevision }: ListViewProps) {
   return (
     <>
       {hits.map((hit) => (

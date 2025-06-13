@@ -1120,7 +1120,7 @@ type PackageUserMetaFacetFull = Extract<
 
 export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
 
-const PackageUserMetaFacetTypeDisplay = {
+export const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,
   DatetimePackageUserMetaFacet: 'Date' as const,
   KeywordPackageUserMetaFacet: 'Keyword' as const,
