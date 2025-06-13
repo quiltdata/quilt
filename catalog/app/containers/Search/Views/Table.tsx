@@ -501,39 +501,6 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
   )
 }
 
-interface TableViewObjectProps {
-  hit: SearchUIModel.SearchHitObject
-}
-
-function TableViewObject({ hit }: TableViewObjectProps) {
-  return (
-    <>
-      <M.TableRow hover>
-        <M.TableCell padding="checkbox" />
-        <M.TableCell>{hit.key}</M.TableCell>
-      </M.TableRow>
-    </>
-  )
-}
-
-interface TableViewHitProps {
-  hit: SearchUIModel.SearchHit
-  columns: ColumnHead[]
-}
-
-function TableViewHit({ columns, hit }: TableViewHitProps) {
-  switch (hit.__typename) {
-    case 'SearchHitObject':
-      return <TableViewObject hit={hit} />
-    case 'SearchHitPackage':
-      return (
-        <TableViewPackage columns={columns} hit={hit as SearchHitPackageWithMatches} />
-      )
-    default:
-      assertNever(hit)
-  }
-}
-
 const useColumnActionStyles = M.makeStyles((t) => ({
   root: {
     width: t.spacing(3),
@@ -1227,7 +1194,7 @@ export default function TableView({ hits, showBucket }: TableViewProps) {
             </M.TableHead>
             <M.TableBody>
               {hits.map((hit) => (
-                <TableViewHit key={hit.id} hit={hit} columns={shownColumns} />
+                <TableViewPackage key={hit.id} columns={columns} hit={hit} />
               ))}
             </M.TableBody>
           </M.Table>
