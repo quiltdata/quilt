@@ -32,6 +32,9 @@ import * as SearchUIModel from '../model'
 
 import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
+import useMetadataRootKeys, { Loading } from './workflow'
+import type { RequestResult } from './workflow'
+
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
     display: 'inline-block',
@@ -1131,23 +1134,15 @@ interface AllColumns {
   hidden: Column[]
 }
 
-function useTableColumns(singleBucket: boolean): AllColumns {
+function useTableColumns(
+  singleBucket: boolean,
+  metaKeys: RequestResult<
+    Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>
+  >,
+): AllColumns {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   const [collapsed, setCollapsed] = React.useState<Record<Column['filter'], boolean>>({})
-
-  const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
-
-  const query = GQL.useQuery(
-    META_FACETS_QUERY,
-    {
-      searchString,
-      buckets: state.buckets,
-      filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
-      latestOnly: state.latestOnly,
-    },
-    { pause: state.filter.predicates.workflow?.terms.length !== 1 },
-  )
 
   const fixed = React.useMemo(() => {
     const name: Column = {
@@ -1226,50 +1221,21 @@ function useTableColumns(singleBucket: boolean): AllColumns {
 
   const workflow = React.useMemo(() => {
     const output: Column[] = []
-    if (state.filter.predicates.workflow?.terms.length !== 1) return output
-    return GQL.fold(query, {
-      data: ({ searchPackages: r }) => {
-        switch (r.__typename) {
-          case 'EmptySearchResultSet':
-          case 'InvalidInput':
-            return []
-          case 'PackagesSearchResultSet':
-            const map = r.stats.userMeta.reduce(
-              (memo, { __typename, path }) => {
-                if (memo[path] === 'KeywordPackageUserMetaFacet') {
-                  return memo
-                }
-                return {
-                  ...memo,
-                  [path]: __typename,
-                }
-              },
-              {} as Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>,
-            )
-            Object.entries(map).forEach(([filter, typename]) => {
-              if (!state.userMetaFilters.filters.has(filter)) {
-                output.push({
-                  predicateType: SearchUIModel.PackageUserMetaFacetMap[typename],
-                  filter,
-                  onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-                  onSearch: noopFixme,
-                  onSort: noopFixme,
-                  tag: 'meta' as const,
-                  title: filter.replace(/^\//, ''),
-                  filtered: false,
-                })
-              }
-            })
-
-            return output
-          default:
-            assertNever(r)
-        }
-      },
-      fetching: () => [],
-      error: () => [],
-    })
-  }, [state.filter, state.userMetaFilters, query])
+    if (metaKeys instanceof Error || metaKeys === Loading) return output
+    for (const filter in metaKeys) {
+      output.push({
+        predicateType: SearchUIModel.PackageUserMetaFacetMap[metaKeys[filter]],
+        filter,
+        onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+        onSearch: noopFixme,
+        onSort: noopFixme,
+        tag: 'meta' as const,
+        title: filter.replace(/^\//, ''),
+        filtered: false,
+      })
+    }
+    return output
+  }, [metaKeys])
 
   return React.useMemo(() => {
     const output: AllColumns = { columns: [], hidden: [] }
@@ -1284,7 +1250,76 @@ function useTableColumns(singleBucket: boolean): AllColumns {
   }, [collapsed, fixed, filters, userMeta, workflow])
 }
 
-const useTableViewStyles = M.makeStyles((t) => ({
+function useDefaultWorkflowKeys() {
+  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const selectedSingleBucket = React.useMemo(() => {
+    if (state.buckets.length !== 1) return
+    return state.buckets[0]
+  }, [state.buckets])
+
+  const selectedSingleWorkflow = React.useMemo(() => {
+    const workflows = state.filter.predicates.workflow
+    if (!workflows || workflows.terms.length !== 1) return
+    return workflows.terms[0]
+  }, [state.filter.predicates.workflow])
+
+  const workflowRootKeys = useMetadataRootKeys(
+    selectedSingleBucket,
+    selectedSingleWorkflow,
+  )
+
+  const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
+  const query = GQL.useQuery(
+    META_FACETS_QUERY,
+    {
+      searchString,
+      buckets: state.buckets,
+      filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
+      latestOnly: state.latestOnly,
+    },
+    { pause: workflowRootKeys === Loading || workflowRootKeys instanceof Error },
+  )
+
+  return React.useMemo(
+    () =>
+      GQL.fold(query, {
+        data: ({ searchPackages: r }) => {
+          if (workflowRootKeys === Loading || workflowRootKeys instanceof Error) return {}
+          switch (r.__typename) {
+            case 'EmptySearchResultSet':
+            case 'InvalidInput':
+              return {}
+            case 'PackagesSearchResultSet':
+              return r.stats.userMeta.reduce(
+                (memo, { __typename, path }) => {
+                  // Already selected
+                  if (state.userMetaFilters.filters.has(path)) return memo
+
+                  // Not found in the latest workflow schema
+                  if (!workflowRootKeys.find((key) => path.replace(/^\//, '') === key)) {
+                    return memo
+                  }
+
+                  return {
+                    ...memo,
+                    [path]: __typename,
+                  }
+                },
+                {} as Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>,
+              )
+
+            default:
+              assertNever(r)
+          }
+        },
+        fetching: () => ({}),
+        error: () => ({}),
+      }),
+    [state.userMetaFilters.filters, query, workflowRootKeys],
+  )
+}
+
+const useLayoutStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     '& th:last-child $head::after': {
@@ -1303,16 +1338,14 @@ const useTableViewStyles = M.makeStyles((t) => ({
   },
 }))
 
-export interface TableViewProps {
+interface LayoutProps {
   hits: readonly SearchHitPackageWithMatches[]
-  singleBucket: boolean
-  // latestOnly: boolean
+  columns: Column[]
+  hidden: Column[]
 }
 
-export function TableView({ hits, singleBucket }: TableViewProps) {
-  const classes = useTableViewStyles()
-
-  const { columns, hidden } = useTableColumns(singleBucket)
+function Layout({ hits, columns, hidden }: LayoutProps) {
+  const classes = useLayoutStyles()
 
   return (
     <M.Paper className={classes.root}>
@@ -1340,4 +1373,17 @@ export function TableView({ hits, singleBucket }: TableViewProps) {
       <AddColumn hidden={hidden} />
     </M.Paper>
   )
+}
+
+export interface TableViewProps {
+  hits: readonly SearchHitPackageWithMatches[]
+  singleBucket: boolean
+  // latestOnly: boolean
+}
+
+export function TableView({ hits, singleBucket }: TableViewProps) {
+  const metaKeys = useDefaultWorkflowKeys()
+  const { columns, hidden } = useTableColumns(singleBucket, metaKeys)
+
+  return <Layout columns={columns} hidden={hidden} hits={hits} />
 }
