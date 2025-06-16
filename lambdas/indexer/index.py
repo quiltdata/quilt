@@ -71,6 +71,7 @@ from document_queue import (
     DocumentQueue,
     get_content_index_bytes,
     get_content_index_extensions,
+    get_object_id,
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
 from pdfminer.high_level import extract_text as extract_pdf_text
@@ -210,6 +211,11 @@ def make_elastic():
     )
 
 
+@functools.cache
+def get_es_aliases() -> frozenset[str]:
+    return frozenset(a for k, v in make_elastic().indices.get_alias().items() for a in v["aliases"])
+
+
 def now_like_boto3():
     """ensure timezone UTC for consistency with boto3:
     Example of what boto3 returns on head_object:
@@ -307,7 +313,8 @@ def do_index(
     logger_ = get_quilt_logger()
     # index as object (always)
     logger_.debug("%s to indexing queue (%s)", key, event_type)
-    doc_queue.append(
+    index_object(
+        doc_queue=doc_queue,
         event_type=event_type,
         bucket=bucket,
         ext=ext,
@@ -320,7 +327,7 @@ def do_index(
         s3_tags=s3_tags,
     )
     # maybe index as package
-    if index_if_package(
+    if index_if_pointer(
         s3_client,
         doc_queue,
         bucket=bucket,
@@ -330,6 +337,16 @@ def do_index(
         version_id=version_id,
     ):
         logger_.debug("%s indexed as package (%s)", key, event_type)
+
+    index_manifest(
+        s3_client,
+        doc_queue,
+        bucket=bucket,
+        etag=etag,
+        key=key,
+        last_modified=last_modified,
+        version_id=version_id,
+    )
 
 
 def _try_parse_date(s: str) -> Optional[datetime.datetime]:
@@ -454,7 +471,7 @@ def parse_s3_physical_key(pk: str):
     }
 
 
-def index_if_package(
+def index_if_pointer(
         s3_client,
         doc_queue: DocumentQueue,
         *,
@@ -469,7 +486,6 @@ def index_if_package(
             - True if pointer to manifest (and passes to doc_queue for indexing)
             - False if not a manifest (no attempt at indexing)
     """
-    logger_ = get_quilt_logger()
     pointer_prefix, pointer_file = split(key)
     handle = pointer_prefix[len(POINTER_PREFIX_V1):]
     if (
@@ -478,31 +494,81 @@ def index_if_package(
             or len(handle) < 3
             or '/' not in handle
     ):
-        logger_.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
+        logger.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
         return False
     try:
         manifest_timestamp = int(pointer_file)
         if not 1451631600 <= manifest_timestamp <= 1767250800:
-            logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
+            logger.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
     except ValueError as err:
-        logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
+        logger.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
-    pkg_doc_id = hash_string(key)
+    try:
+        manifest_hash = s3_client.get_object(
+            Bucket=bucket,
+            Key=key,
+        )["Body"].read().decode()
+    except s3_client.exceptions.NoSuchKey:
+        manifest_hash = None
+
+    index = bucket + PACKAGE_INDEX_SUFFIX
+    pointer_doc_id = f"{manifest_hash}:ptr:{hash_string(handle + '/' + pointer_file)}"  # XXX: is this ok?
+    if manifest_hash is None:
+        logger.debug("No package hash found for s3://%s/%s", bucket, key)
+        doc_queue.append_document(
+            {
+                "_index": index,
+                "_op_type": "delete",
+                "_id": pointer_doc_id,
+            }
+        )
+        return False  # XXX: ???
+    else:
+        logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
+        doc_queue.append_document(
+            {
+                "_index": index,
+                "_op_type": "index",
+                "_id": pointer_doc_id,
+                "join_field": {"name": "pkg_ptr", "parent": manifest_hash},
+                "routing": manifest_hash,
+                "ptr_handle": handle,
+                "ptr_name": pointer_file,
+                # XXX: do we need these?
+                # "ptr_version_id": version_id,
+                # "ptr_etag": etag,
+                "ptr_last_modified": last_modified,  # XXX: is this ok?
+            }
+        )
+        return True
+
+
+def index_manifest(
+    s3_client,
+    doc_queue: DocumentQueue,
+    *,
+    bucket: str,
+    etag: str,
+    key: str,
+    last_modified: str,
+    version_id: Optional[str],
+):
+    if not key.startswith(MANIFEST_PREFIX_V1):
+        logger.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
+        return
+
+    manifest_hash = key[len(MANIFEST_PREFIX_V1):]
+    # TODO: check properly
+    assert manifest_hash.islower()
+    assert len(bytes.fromhex(manifest_hash)) == 32
+
+    index = bucket + PACKAGE_INDEX_SUFFIX
 
     def get_pkg_data():
         try:
-            package_hash = s3_client.get_object(
-                Bucket=bucket,
-                Key=key,
-            )['Body'].read().decode()
-        except botocore.exceptions.ClientError:
-            return
-
-        manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
-        try:
-            manifest_body = s3_client.get_object(Bucket=bucket, Key=manifest_key)["Body"]
-        except botocore.exceptions.ClientError:
+            manifest_body = s3_client.get_object(Bucket=bucket, Key=key)["Body"]
+        except s3_client.exceptions.NoSuchKey:
             return
         manifest_entries = map(json.loads, manifest_body.iter_lines())
         first = next(manifest_entries, None)
@@ -510,82 +576,171 @@ def index_if_package(
             return
         user_meta = first.get("user_meta")
 
-        total_bytes = 0
-        total_files = 0
-        for total_files, entry in enumerate(manifest_entries, start=1):
-            logger_.debug("Processing manifest entry %s", entry)
-            lk = entry["logical_key"]
-            if lk.endswith("/"):  # XXX: do we need this?
-                # skip directories
-                logger_.debug("Skipping directory entry %s", lk)
-                continue
-            total_bytes += entry["size"]
-            meta = entry.get("meta")  # XXX: both system and user metadata, do we need only user?
-            pk = entry["physical_keys"][0]
-
-            yield {
-                "join_field": {"name": "pkg_entry", "parent": pkg_doc_id},
-                "routing": pkg_doc_id,
-                "_id": f"{pkg_doc_id}:{hash_string(entry['logical_key'])}",
-                "pkg_entry_lk": entry["logical_key"],
-                "pkg_entry_pk": pk,
-                "pkg_entry_pk_parsed": parse_s3_physical_key(pk),
-                "pkg_entry_size": entry["size"],
-                "pkg_entry_hash": entry["hash"],
-                "pkg_entry_metadata": json.dumps(meta) if meta else None,
-            }
-
         yield {
+            "_index": index,
+            "_id": manifest_hash,
+            "_op_type": "index",
             "join_field": {"name": "pkg"},
-            "_id": pkg_doc_id,
             "pkg_key": key,
             "pkg_etag": etag,
             "pkg_version_id": version_id,
             "pkg_last_modified": last_modified,
             "pkg_delete_marker": False,  # TODO: remove
-            "pkg_handle": handle,
-            "pkg_pointer_file": pointer_file,
-            "pkg_hash": package_hash,
-            "pkg_package_stats": {
-                "total_bytes": total_bytes,
-                "total_files": total_files,
-            },
+            "pkg_hash": manifest_hash,
             "pkg_metadata": json.dumps(user_meta) if user_meta else None,
             "pkg_metadata_fields": get_metadata_fields(user_meta),
             "pkg_comment": str(first.get("message", "")),
             "pkg_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
-    index = bucket + PACKAGE_INDEX_SUFFIX
+        total_bytes = 0
+        total_files = 0
+        for total_files, entry in enumerate(manifest_entries, start=1):
+            logger.debug("Processing manifest entry %s", entry)
+            lk = entry["logical_key"]
+            if lk.endswith("/"):  # XXX: do we need this?
+                # skip directories
+                logger.debug("Skipping directory entry %s", lk)
+                continue
+            total_bytes += entry["size"]
+            meta = entry.get("meta")  # XXX: both system and user metadata, do we need only user?
+            pk = entry["physical_keys"][0]
+            pk_parsed = parse_s3_physical_key(pk)
+
+            yield {
+                "_index": index,
+                "_op_type": "index",
+                "_id": f"{manifest_hash}:entry:{hash_string(entry['logical_key'])}",
+                "join_field": {"name": "pkg_entry", "parent": manifest_hash},
+                "routing": manifest_hash,
+                "pkg_entry_lk": entry["logical_key"],
+                "pkg_entry_pk": pk,
+                "pkg_entry_pk_parsed": pk_parsed,
+                "pkg_entry_size": entry["size"],
+                "pkg_entry_hash": entry["hash"],
+                "pkg_entry_metadata": json.dumps(meta) if meta else None,
+            }
+            if pk_parsed is not None:
+                if pk_parsed["bucket"] in get_es_aliases():
+                    yield {
+                        "_index": pk_parsed["bucket"],
+                        "_op_type": "update",
+                        # TODO: check version_id for non-versioned buckets
+                        "_id": get_object_id(pk_parsed["key"], pk_parsed["version_id"]),
+                        "doc": {"is_packaged": True},
+                        "doc_as_upsert": True,
+                    }
+                else:
+                    logger.warning(
+                        "Bucket %s is not an alias, skipping entry %s",
+                        pk_parsed["bucket"],
+                        entry,
+                    )
+
+        yield {
+            "_index": index,
+            "_op_type": "update",
+            "_id": manifest_hash,
+            "doc": {
+                "pkg_package_stats": {
+                    "total_bytes": total_bytes,
+                    "total_files": total_files,
+                },
+            },
+        }
+
     make_elastic().delete_by_query(
         index=index,
         body={
             "query": {
                 "parent_id": {
                     "type": "pkg_entry",
-                    "id": pkg_doc_id,
+                    "id": manifest_hash,
                 }
             }
         },
     )
     doc_data = None
     for doc_data in get_pkg_data():
-        doc_queue.append_document({
-            "_index": index,
-            "_op_type": "index",
-            **doc_data,
-        })
+        doc_queue.append_document(doc_data)
     # XXX: remove it with delete_by_query from above?
     if doc_data is None:
         doc_queue.append_document(
             {
                 "_index": index,
                 "_op_type": "delete",
-                "_id": pkg_doc_id,
+                "_id": manifest_hash,
             }
         )
 
-    return doc_data is not None
+    # return doc_data is not None
+
+
+def index_object(
+    *,
+    doc_queue: DocumentQueue,
+    bucket: str,
+    key: str,
+    etag: str,
+    last_modified: str,
+    size: int,
+    text: str,
+    event_type: str,
+    ext: str,
+    version_id,
+    s3_tags,
+):
+    """format event as a document and then queue the document"""
+    if not bucket or not key:
+        raise ValueError(f"bucket={bucket} or key={key} required but missing")
+    is_delete_marker = False
+    if event_type.startswith(EVENT_PREFIX["Created"]):
+        _op_type = "update"
+    elif event_type.startswith(EVENT_PREFIX["Removed"]):
+        _op_type = "delete"
+        if event_type.endswith("DeleteMarkerCreated"):
+            is_delete_marker = True
+            # we index (not delete) delete markers to sync state with S3
+            _op_type = "index"
+    else:
+        logger.error("Skipping unrecognized event type %s", event_type)
+        return
+    # On types and fields, see
+    # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
+    # Set common properties on the document
+    # BE CAREFUL changing these values, as type changes or missing fields
+    # can cause exceptions from ES
+    # ensure the same versionId and primary keys (_id) as given by
+    #  list-object-versions in the enterprise bulk_scanner
+    version_id = version_id or "null"
+    # core properties for all document types;
+    # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
+    data = {
+        "etag": etag,
+        "key": key,
+        "last_modified": last_modified,
+        "size": size,
+        "delete_marker": is_delete_marker,
+        "version_id": version_id,
+        "content": text,  # field for full-text search
+        "event": event_type,
+        "ext": ext,
+        "updated": datetime.datetime.utcnow().isoformat(),
+        "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
+    }
+    body = {
+        "_index": bucket,
+        "_op_type": _op_type,  # determines if action is upsert (index) or delete
+        "_id": get_object_id(key, version_id),
+    }
+    if _op_type == "update":
+        body.update(
+            doc=data,
+            doc_as_upsert=True,
+        )
+    else:
+        body.update(data)
+    doc_queue.append_document(body)
 
 
 @functools.lru_cache(maxsize=None)

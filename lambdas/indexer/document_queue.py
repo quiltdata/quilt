@@ -3,7 +3,6 @@ sending to elastic search in memory-limited batches"""
 import functools
 import json
 import os
-from datetime import datetime
 from math import floor
 
 from elasticsearch.helpers import bulk
@@ -53,7 +52,7 @@ def get_content_index_bytes(*, bucket_name: str):
     return ELASTIC_LIMIT_BYTES if content_index_bytes is None else content_index_bytes
 
 
-def get_id(key, version_id):
+def get_object_id(key, version_id):
     """
     Generate unique value for every object in the bucket to be used as
     document `_id`. This value must not exceed 512 bytes in size:
@@ -81,64 +80,6 @@ class DocumentQueue:
         self.context = context
         self.es = es
 
-    def append(
-        self,
-        *,
-        bucket: str,
-        key: str,
-        etag: str,
-        last_modified: str,
-        size: int,
-        text: str,
-        event_type: str,
-        ext: str,
-        version_id,
-        s3_tags,
-    ):
-        """format event as a document and then queue the document"""
-        logger_ = get_quilt_logger()
-        if not bucket or not key:
-            raise ValueError(f"bucket={bucket} or key={key} required but missing")
-        is_delete_marker = False
-        if event_type.startswith(EVENT_PREFIX["Created"]):
-            _op_type = "index"
-        elif event_type.startswith(EVENT_PREFIX["Removed"]):
-            _op_type = "delete"
-            if event_type.endswith("DeleteMarkerCreated"):
-                is_delete_marker = True
-                # we index (not delete) delete markers to sync state with S3
-                _op_type = "index"
-        else:
-            logger_.error("Skipping unrecognized event type %s", event_type)
-            return
-        # On types and fields, see
-        # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
-        # Set common properties on the document
-        # BE CAREFUL changing these values, as type changes or missing fields
-        # can cause exceptions from ES
-        # ensure the same versionId and primary keys (_id) as given by
-        #  list-object-versions in the enterprise bulk_scanner
-        version_id = version_id or "null"
-        # core properties for all document types;
-        # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
-        body = {
-            "_index": bucket,
-            "_op_type": _op_type,  # determines if action is upsert (index) or delete
-            "_id": get_id(key, version_id),
-            "etag": etag,
-            "key": key,
-            "last_modified": last_modified,
-            "size": size,
-            "delete_marker": is_delete_marker,
-            "version_id": version_id,
-            "content": text,  # field for full-text search
-            "event": event_type,
-            "ext": ext,
-            "updated": datetime.utcnow().isoformat(),
-            "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
-        }
-
-        self.append_document(body)
 
     def append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
