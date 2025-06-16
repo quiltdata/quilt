@@ -474,13 +474,14 @@ union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
 
 type SearchHitObject {
   id: ID!
-  bucket: String!
   score: Float!
-  size: Float!
-  modified: Datetime!
 
+  bucket: String!
   key: String!
   version: String!
+
+  size: Float!
+  modified: Datetime!
 
   deleted: Boolean!
   # meta: JsonRecord! # String?
@@ -491,16 +492,15 @@ type SearchHitObject {
 # TODO: reuse package types?
 type SearchHitPackage {
   id: ID!
+  score: Float!
 
   bucket: String!
   name: String!
   pointer: String!
   hash: String!
 
-  score: Float!
   size: Float!
   modified: Datetime!
-
   totalEntriesCount: Int!
 
   # specific props
