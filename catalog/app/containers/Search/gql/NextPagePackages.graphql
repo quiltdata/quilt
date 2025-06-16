@@ -7,14 +7,22 @@ query ($after: String!) {
         __typename
         id
         bucket
+        name
+        pointer
+        hash
         score
         size
         modified
-        name
-        hash
+        totalEntriesCount
         comment
         meta
         workflow
+        matchingEntries {
+          logicalKey
+          physicalKey
+          size
+          meta
+        }
       }
     }
     ... on InvalidInput {
