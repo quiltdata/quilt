@@ -1094,12 +1094,12 @@ export interface RoleUpdateSuccess {
 export interface SearchHitObject {
   readonly __typename: 'SearchHitObject'
   readonly id: Scalars['ID']
-  readonly bucket: Scalars['String']
   readonly score: Scalars['Float']
-  readonly size: Scalars['Float']
-  readonly modified: Scalars['Datetime']
+  readonly bucket: Scalars['String']
   readonly key: Scalars['String']
   readonly version: Scalars['String']
+  readonly size: Scalars['Float']
+  readonly modified: Scalars['Datetime']
   readonly deleted: Scalars['Boolean']
   readonly indexedContent: Maybe<Scalars['String']>
 }
@@ -1107,11 +1107,11 @@ export interface SearchHitObject {
 export interface SearchHitPackage {
   readonly __typename: 'SearchHitPackage'
   readonly id: Scalars['ID']
+  readonly score: Scalars['Float']
   readonly bucket: Scalars['String']
   readonly name: Scalars['String']
   readonly pointer: Scalars['String']
   readonly hash: Scalars['String']
-  readonly score: Scalars['Float']
   readonly size: Scalars['Float']
   readonly modified: Scalars['Datetime']
   readonly totalEntriesCount: Scalars['Int']

@@ -5077,18 +5077,6 @@ export default {
             args: [],
           },
           {
-            name: 'bucket',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'score',
             type: {
               kind: 'NON_NULL',
@@ -5101,24 +5089,12 @@ export default {
             args: [],
           },
           {
-            name: 'size',
+            name: 'bucket',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Float',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'modified',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -5143,6 +5119,30 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
                 ofType: null,
               },
             },
@@ -5183,6 +5183,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'score',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
                 ofType: null,
               },
             },
@@ -5231,18 +5243,6 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'score',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Float',
                 ofType: null,
               },
             },
