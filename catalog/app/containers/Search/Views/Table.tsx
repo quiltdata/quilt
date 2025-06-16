@@ -1119,8 +1119,6 @@ export function TableView({ hits, showBucket }: TableViewProps) {
     {},
   )
 
-  const singleBucket = hits.every(({ bucket }) => bucket === hits[0].bucket)
-
   const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
 
   const query = GQL.useQuery(
@@ -1163,10 +1161,9 @@ export function TableView({ hits, showBucket }: TableViewProps) {
     [collapsed],
   )
   const fixedColumns = React.useMemo(() => {
-    // FIXME: I think, I need to remove `singleBucket` condition
-    if (!showBucket || singleBucket) return [nameColumn]
+    if (!showBucket) return [nameColumn]
     return [bucketColumn, nameColumn]
-  }, [showBucket, singleBucket, nameColumn, bucketColumn])
+  }, [showBucket, nameColumn, bucketColumn])
 
   const filterColumns = React.useMemo(() => {
     const output: ColumnHead[] = []
