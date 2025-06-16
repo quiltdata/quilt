@@ -54,24 +54,6 @@ const getSchemaItem = ({
 
 const noKeys: string[] = []
 
-function getSchemaItemKeys(schemaItem: JsonSchema): string[] {
-  if (!schemaItem || !schemaItem.properties) return noKeys
-  const keys = Object.keys(schemaItem.properties)
-
-  if (!schemaItem.required) return keys
-
-  const sortOrder = schemaItem.required.reduce(
-    (memo: { [x: string]: number }, key: string, index: number) => ({
-      [key]: index,
-      ...memo,
-    }),
-    {} as { [x: string]: number },
-  )
-  const getSortIndex = (key: string) =>
-    R.ifElse(R.has(key), R.prop(key), R.always(Infinity))(sortOrder)
-  return R.sortBy(getSortIndex, keys)
-}
-
 type SortOrder = React.MutableRefObject<{
   counter: number
   dict: Record<JSONPointer.Pointer, number>
@@ -104,7 +86,7 @@ export function iterateSchema(
   if (!schema.properties) return memo
 
   const requiredKeys = schema.required
-  getSchemaItemKeys(schema).forEach((key) => {
+  JSONSchema.getSchemaItemKeysOr(schema, noKeys).forEach((key) => {
     // eslint-disable-next-line no-param-reassign
     sortOrder.current.counter += 1
 
@@ -291,7 +273,9 @@ function getSchemaItemKeysByPath(
   objPath: JSONPointer.Path,
 ): ObjectKey[] {
   const item = getJsonDictItemRecursively(jsonDict, objPath)
-  return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
+  return item && item.valueSchema
+    ? JSONSchema.getSchemaItemKeysOr(item.valueSchema, noKeys)
+    : noKeys
 }
 
 function getSchemaAndObjKeys(
@@ -310,7 +294,7 @@ export function mergeSchemaAndObjRootKeys(
   schema: JsonSchema,
   obj: JsonRecord,
 ): ObjectKey[] {
-  const schemaKeys = getSchemaItemKeys(schema)
+  const schemaKeys = JSONSchema.getSchemaItemKeysOr(schema, noKeys)
   const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
 }

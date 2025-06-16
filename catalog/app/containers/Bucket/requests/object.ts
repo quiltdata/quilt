@@ -165,6 +165,7 @@ export async function fetchFile({ s3, handle }: FetchFile) {
 
 interface MetadataSchemaArgs {
   s3: S3
+  // TODO: S3ObjectLocation
   schemaUrl?: string
 }
 
