@@ -892,7 +892,7 @@ function ResultsPage({
 
   return (
     <div className={className}>
-      <View hits={hits} showBucket={!singleBucket} showRevision={!latestOnly} />
+      <View hits={hits} singleBucket={singleBucket} latestOnly={latestOnly} />
       {!!cursor &&
         (more ? (
           <NextPage

@@ -46,19 +46,19 @@ function SearchHit({ hit, showBucket, showRevision }: SearchHitProps) {
 
 export interface ListViewProps {
   hits: readonly SearchUIModel.SearchHit[]
-  showBucket: boolean
-  showRevision: boolean
+  singleBucket: boolean
+  latestOnly: boolean
 }
 
-export function ListView({ hits, showBucket, showRevision }: ListViewProps) {
+export function ListView({ hits, singleBucket, latestOnly }: ListViewProps) {
   return (
     <>
       {hits.map((hit) => (
         <SearchHit
           key={hit.id}
           hit={hit}
-          showBucket={showBucket}
-          showRevision={showRevision}
+          showBucket={!singleBucket}
+          showRevision={!latestOnly}
         />
       ))}
     </>

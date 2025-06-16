@@ -1106,14 +1106,8 @@ interface ColumnHeadVisual extends ColumnHeadBase {
 
 type ColumnHead = ColumnHeadFilter | ColumnHeadMeta | ColumnHeadVisual
 
-export interface TableViewProps {
-  hits: readonly SearchHitPackageWithMatches[]
-  showBucket: boolean
-}
-
-export function TableView({ hits, showBucket }: TableViewProps) {
+function useTableColumns(singleBucket: boolean): ColumnHead[] {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const classes = useTableViewStyles()
 
   const [collapsed, setCollapsed] = React.useState<Record<ColumnHead['filter'], boolean>>(
     {},
@@ -1160,10 +1154,10 @@ export function TableView({ hits, showBucket }: TableViewProps) {
     }),
     [collapsed],
   )
-  const fixedColumns = React.useMemo(() => {
-    if (!showBucket) return [nameColumn]
-    return [bucketColumn, nameColumn]
-  }, [showBucket, nameColumn, bucketColumn])
+  const fixedColumns = React.useMemo(
+    () => (singleBucket ? [nameColumn] : [bucketColumn, nameColumn]),
+    [singleBucket, nameColumn, bucketColumn],
+  )
 
   const filterColumns = React.useMemo(() => {
     const output: ColumnHead[] = []
@@ -1265,10 +1259,22 @@ export function TableView({ hits, showBucket }: TableViewProps) {
     })
   }, [collapsed, state.filter, state.userMetaFilters, query])
 
-  const columns: ColumnHead[] = React.useMemo(
+  return React.useMemo(
     () => [...fixedColumns, ...filterColumns, ...userMetaColumns, ...workflowColumns],
     [fixedColumns, filterColumns, userMetaColumns, workflowColumns],
   )
+}
+
+export interface TableViewProps {
+  hits: readonly SearchHitPackageWithMatches[]
+  singleBucket: boolean
+  // latestOnly: boolean
+}
+
+export function TableView({ hits, singleBucket }: TableViewProps) {
+  const classes = useTableViewStyles()
+
+  const columns = useTableColumns(singleBucket)
   const shownColumns = React.useMemo(() => columns.filter((c) => !c.collapsed), [columns])
 
   return (
