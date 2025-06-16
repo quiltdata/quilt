@@ -653,13 +653,11 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
         // FIXME:
         // <ColumnAction onClick={onSort} icon="sort" />
       }
-
       <ColumnAction
         color={column.filtered ? 'primary' : 'inherit'}
         icon="filter_list"
         onClick={showFilter}
       />
-
       {column.filtered ? (
         <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
       ) : (
@@ -669,7 +667,6 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
           <ColumnAction icon="close" onClick={handleHide} />
         </StyledTooltip>
       )}
-
       <M.Popover open={menuOpened} {...popoverProps}>
         <M.List dense>
           <M.ListItem button onClick={handleHide}>
@@ -688,7 +685,6 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
           )}
         </M.List>
       </M.Popover>
-
       <M.Popover open={filterOpened} {...popoverProps}>
         {column.tag === 'filter' && column.filter !== 'name' && (
           <M.Box display="flex" flexDirection="column" padding={2} width={320}>
@@ -1035,8 +1031,6 @@ export function TableSkeleton() {
 }
 
 const useColumnHeadStyles = M.makeStyles((t) => ({
-  title: {},
-
   root: {
     display: 'flex',
     alignItems: 'center',
@@ -1077,6 +1071,7 @@ function ColumnHead({ column }: ColumnHeadProps) {
         <M.Tooltip title={column.fullTitle}>
           <span>{column.title}</span>
         </M.Tooltip>
+        <ColumnActions className={classes.actions} column={column} />
       </div>
     )
   }
