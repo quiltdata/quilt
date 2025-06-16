@@ -51,7 +51,7 @@ function NoValue() {
 const isJsonRecord = (obj: Json): obj is JsonRecord =>
   obj != null && typeof obj === 'object' && !Array.isArray(obj)
 
-const useTableViewSystemMetaStyles = M.makeStyles((t) => ({
+const useSystemMetaStyles = M.makeStyles((t) => ({
   match: {
     background: t.palette.warning.light,
     padding: t.spacing(0.25, 0.5),
@@ -67,8 +67,8 @@ interface TableViewSystemMetaProps {
   filter: FilterType
 }
 
-function TableViewSystemMeta({ hit, filter }: TableViewSystemMetaProps) {
-  const classes = useTableViewSystemMetaStyles()
+function SystemMetaValue({ hit, filter }: TableViewSystemMetaProps) {
+  const classes = useSystemMetaStyles()
   const { urls } = NamedRoutes.use()
   switch (filter) {
     case 'workflow':
@@ -118,7 +118,7 @@ interface TableViewUserMetaProps {
   pointer: JSONPointer.Pointer
 }
 
-function TableViewUserMeta({ meta, pointer }: TableViewUserMetaProps) {
+function UserMetaValue({ meta, pointer }: TableViewUserMetaProps) {
   if (!isJsonRecord(meta))
     return (
       <M.Tooltip title={`${meta}`}>
@@ -401,7 +401,7 @@ function Entries({ entries, onClose }: EntriesProps) {
   )
 }
 
-const useTableViewPackageStyles = M.makeStyles((t) => ({
+const usePackageRowStyles = M.makeStyles((t) => ({
   root: {
     '&:hover $fold': {
       opacity: 1,
@@ -432,14 +432,14 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TableViewPackageProps {
+interface PackageRowProps {
   hit: SearchHitPackageWithMatches
   columns: Column[]
 }
 
-function TableViewPackage({ columns, hit }: TableViewPackageProps) {
+function PackageRow({ columns, hit }: PackageRowProps) {
   const meta = hit.meta ? JSON.parse(hit.meta) : {}
-  const classes = useTableViewPackageStyles()
+  const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
 
@@ -465,7 +465,7 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
                   data-search-hit-filter={column.filter}
                   key={column.filter}
                 >
-                  <TableViewSystemMeta hit={hit} filter={column.filter} />
+                  <SystemMetaValue hit={hit} filter={column.filter} />
                 </M.TableCell>
               )
             case 'meta':
@@ -475,7 +475,7 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
                   data-search-hit-meta={column.filter}
                   key={column.filter}
                 >
-                  <TableViewUserMeta meta={meta} pointer={column.filter} />
+                  <UserMetaValue meta={meta} pointer={column.filter} />
                 </M.TableCell>
               )
             case 'visual':
@@ -543,7 +543,6 @@ function Filter({ filter, onClose }: FilterProps) {
   invariant(predicateState, 'Filter not active')
   const extents = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
 
-  // const [value, setValue] = React.useState<$TSFixMe>(null)
   const change = React.useCallback(
     (state: $TSFixMe) => {
       model.actions.setPackagesFilter(filter, state)
@@ -796,6 +795,94 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
   )
 }
 
+const useAvailableFacetsStyles = M.makeStyles((t) => ({
+  root: {
+    animation: t.transitions.create('$fade'),
+    background: t.palette.background.paper,
+    overflowY: 'auto',
+    flexGrow: 1,
+  },
+  list: {
+    background: 'inherit',
+  },
+  '@keyframes fade': {
+    '0%': {
+      opacity: 0.7,
+    },
+    '100%': {
+      opacity: 1,
+    },
+  },
+}))
+
+interface AvailableFacetsProps {
+  hidden: Column[]
+  onClose: () => void
+}
+
+function AvailableFacets({ hidden, onClose }: AvailableFacetsProps) {
+  const classes = useAvailableFacetsStyles()
+
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const { predicates } = model.state.filter
+  const availableFilters = [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY]
+    .filter((f) => !predicates[f])
+    .filter((f) => f !== 'name')
+
+  const { activatePackagesFilter } = model.actions
+  const handleFilter = React.useCallback(
+    (filter: (typeof availableFilters)[number]) => {
+      activatePackagesFilter(filter)
+      onClose()
+    },
+    [activatePackagesFilter, onClose],
+  )
+
+  return (
+    <div className={classes.root}>
+      <M.List className={classes.list} dense>
+        {!!hidden.length && (
+          <>
+            <M.ListSubheader>Hidden columns</M.ListSubheader>
+            {hidden.map((column) => (
+              <M.MenuItem key={column.filter} onClick={column.onCollapse}>
+                <M.ListItemIcon>
+                  <M.Icon color="disabled">visibility_off</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText primary={column.title} />
+              </M.MenuItem>
+            ))}
+          </>
+        )}
+        {!!availableFilters.length && (
+          <>
+            <M.ListSubheader>System metadata</M.ListSubheader>
+            {availableFilters.map((filter) => (
+              <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
+                <M.ListItemText primary={PACKAGE_FILTER_LABELS[filter]} />
+              </M.MenuItem>
+            ))}
+          </>
+        )}
+
+        <M.ListSubheader>User metadata</M.ListSubheader>
+        <SearchUIModel.AvailablePackagesMetaFilters>
+          {SearchUIModel.AvailableFiltersState.match({
+            Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
+            Empty: () => null,
+            Ready: ({ facets }) => (
+              <>
+                <FilterGroup items={facets.visible.children} />
+                <FilterGroup items={facets.hidden.children} />
+              </>
+            ),
+          })}
+        </SearchUIModel.AvailablePackagesMetaFilters>
+      </M.List>
+    </div>
+  )
+}
+
 const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.default,
@@ -835,23 +922,6 @@ const useAddColumnStyles = M.makeStyles((t) => ({
       justifyContent: 'flex-start',
     },
   },
-  list: {
-    animation: t.transitions.create('$fade'),
-    background: t.palette.background.paper,
-    overflowY: 'auto',
-    flexGrow: 1,
-  },
-  listInner: {
-    background: 'inherit',
-  },
-  '@keyframes fade': {
-    '0%': {
-      opacity: 0.7,
-    },
-    '100%': {
-      opacity: 1,
-    },
-  },
   '@keyframes slide': {
     '0%': {
       transform: `translateX(${t.spacing(2)}px)`,
@@ -867,50 +937,30 @@ interface AddColumnProps {
 }
 
 function AddColumn({ hidden }: AddColumnProps) {
-  const [open, setOpen] = React.useState(false)
   const classes = useAddColumnStyles()
-  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { predicates } = model.state.filter
-  const { activatePackagesFilter } = model.actions
 
-  const availableFilters = [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY]
-    .filter((f) => !predicates[f])
-    .filter((f) => f !== 'name')
-
-  const handleFilter = React.useCallback(
-    (filter: (typeof availableFilters)[number]) => {
-      setOpen(false)
-      activatePackagesFilter(filter)
-    },
-    [activatePackagesFilter],
-  )
+  const [open, setOpen] = React.useState(false)
+  const show = React.useCallback(() => setOpen(true), [])
+  const hide = React.useCallback(() => setOpen(false), [])
 
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleMouseEnter = React.useCallback(() => {
-    timeoutRef.current = setTimeout(() => setOpen(true), 100)
-  }, [])
+    timeoutRef.current = setTimeout(show, 100)
+  }, [show])
 
   const handleMouseLeave = React.useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
-    setOpen(false)
-  }, [])
+    hide()
+  }, [hide])
 
-  return (
-    <div
-      className={cx(classes.root, { [classes.opened]: open })}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <div className={classes.head}>
-        {open ? (
-          <M.Typography variant="subtitle2" className={classes.add}>
-            Add column:
-          </M.Typography>
-        ) : (
+  if (!open) {
+    return (
+      <div className={classes.root} onMouseEnter={handleMouseEnter}>
+        <div className={classes.head}>
           <M.Badge
             variant="dot"
             color="secondary"
@@ -919,51 +969,19 @@ function AddColumn({ hidden }: AddColumnProps) {
           >
             <ColumnAction className={classes.button} icon="add" />
           </M.Badge>
-        )}
-      </div>
-      {open && (
-        <div className={classes.list}>
-          <M.List className={classes.listInner} dense>
-            {!!hidden.length && (
-              <>
-                <M.ListSubheader>Hidden columns</M.ListSubheader>
-                {hidden.map((column) => (
-                  <M.MenuItem key={column.filter} onClick={column.onCollapse}>
-                    <M.ListItemIcon>
-                      <M.Icon color="disabled">visibility_off</M.Icon>
-                    </M.ListItemIcon>
-                    <M.ListItemText primary={column.title} />
-                  </M.MenuItem>
-                ))}
-              </>
-            )}
-            {!!availableFilters.length && (
-              <>
-                <M.ListSubheader>System metadata</M.ListSubheader>
-                {availableFilters.map((filter) => (
-                  <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
-                    <M.ListItemText primary={PACKAGE_FILTER_LABELS[filter]} />
-                  </M.MenuItem>
-                ))}
-              </>
-            )}
-
-            <M.ListSubheader>User metadata</M.ListSubheader>
-            <SearchUIModel.AvailablePackagesMetaFilters>
-              {SearchUIModel.AvailableFiltersState.match({
-                Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
-                Empty: () => null,
-                Ready: ({ facets }) => (
-                  <>
-                    <FilterGroup items={facets.visible.children} />
-                    <FilterGroup items={facets.hidden.children} />
-                  </>
-                ),
-              })}
-            </SearchUIModel.AvailablePackagesMetaFilters>
-          </M.List>
         </div>
-      )}
+      </div>
+    )
+  }
+
+  return (
+    <div className={cx(classes.root, classes.opened)} onMouseLeave={handleMouseLeave}>
+      <div className={classes.head}>
+        <M.Typography variant="subtitle2" className={classes.add}>
+          Add column:
+        </M.Typography>
+      </div>
+      <AvailableFacets onClose={hide} hidden={hidden} />
     </div>
   )
 }
@@ -1318,7 +1336,7 @@ export function TableView({ hits, singleBucket }: TableViewProps) {
             </M.TableHead>
             <M.TableBody>
               {hits.map((hit) => (
-                <TableViewPackage key={hit.id} columns={columns} hit={hit} />
+                <PackageRow key={hit.id} columns={columns} hit={hit} />
               ))}
             </M.TableBody>
           </M.Table>
