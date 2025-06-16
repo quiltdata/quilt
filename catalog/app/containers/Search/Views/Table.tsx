@@ -434,7 +434,7 @@ const useTableViewPackageStyles = M.makeStyles((t) => ({
 
 interface TableViewPackageProps {
   hit: SearchHitPackageWithMatches
-  columns: ColumnHead[]
+  columns: Column[]
 }
 
 function TableViewPackage({ columns, hit }: TableViewPackageProps) {
@@ -465,9 +465,7 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
                   data-search-hit-filter={column.filter}
                   key={column.filter}
                 >
-                  {!column.collapsed && (
-                    <TableViewSystemMeta hit={hit} filter={column.filter} />
-                  )}
+                  <TableViewSystemMeta hit={hit} filter={column.filter} />
                 </M.TableCell>
               )
             case 'meta':
@@ -477,15 +475,13 @@ function TableViewPackage({ columns, hit }: TableViewPackageProps) {
                   data-search-hit-meta={column.filter}
                   key={column.filter}
                 >
-                  {!column.collapsed && (
-                    <TableViewUserMeta meta={meta} pointer={column.filter} />
-                  )}
+                  <TableViewUserMeta meta={meta} pointer={column.filter} />
                 </M.TableCell>
               )
             case 'visual':
               return (
                 <M.TableCell className={classes.cell} key={column.filter}>
-                  {!column.collapsed && hit.bucket}
+                  {hit.bucket}
                 </M.TableCell>
               )
           }
@@ -596,7 +592,7 @@ const useColumnActionsStyles = M.makeStyles((t) => ({
 
 interface ColumnActionsProps {
   className: string
-  column: ColumnHead
+  column: Column
 }
 
 function ColumnActions({ className, column }: ColumnActionsProps) {
@@ -867,10 +863,10 @@ const useAddColumnStyles = M.makeStyles((t) => ({
 }))
 
 interface AddColumnProps {
-  columns: ColumnHead[]
+  hidden: Column[]
 }
 
-function AddColumn({ columns }: AddColumnProps) {
+function AddColumn({ hidden }: AddColumnProps) {
   const [open, setOpen] = React.useState(false)
   const classes = useAddColumnStyles()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -903,8 +899,6 @@ function AddColumn({ columns }: AddColumnProps) {
     setOpen(false)
   }, [])
 
-  const hiddenColumns = columns.filter((column) => column.collapsed)
-
   return (
     <div
       className={cx(classes.root, { [classes.opened]: open })}
@@ -921,7 +915,7 @@ function AddColumn({ columns }: AddColumnProps) {
             variant="dot"
             color="secondary"
             overlap="circle"
-            invisible={!hiddenColumns.length}
+            invisible={!hidden.length}
           >
             <ColumnAction className={classes.button} icon="add" />
           </M.Badge>
@@ -930,10 +924,10 @@ function AddColumn({ columns }: AddColumnProps) {
       {open && (
         <div className={classes.list}>
           <M.List className={classes.listInner} dense>
-            {!!hiddenColumns.length && (
+            {!!hidden.length && (
               <>
                 <M.ListSubheader>Hidden columns</M.ListSubheader>
-                {hiddenColumns.map((column) => (
+                {hidden.map((column) => (
                   <M.MenuItem key={column.filter} onClick={column.onCollapse}>
                     <M.ListItemIcon>
                       <M.Icon color="disabled">visibility_off</M.Icon>
@@ -1022,30 +1016,10 @@ export function TableSkeleton() {
   )
 }
 
-const noopFixme = () => {}
+const useColumnHeadStyles = M.makeStyles((t) => ({
+  title: {},
 
-const isSingleKeyword = (
-  predicate: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate> | null,
-) => predicate && predicate._tag === 'KeywordEnum' && predicate.terms.length === 1
-
-const useTableViewStyles = M.makeStyles((t) => ({
   root: {
-    position: 'relative',
-    '& th:last-child $head::after': {
-      display: 'none',
-    },
-  },
-  scrollWrapper: {
-    overflow: 'hidden',
-  },
-  scrollArea: {
-    paddingRight: t.spacing(4),
-    overflowX: 'auto',
-  },
-  cell: {
-    whiteSpace: 'nowrap',
-  },
-  head: {
     display: 'flex',
     alignItems: 'center',
     position: 'relative',
@@ -1058,23 +1032,56 @@ const useTableViewStyles = M.makeStyles((t) => ({
       background: t.palette.divider,
       width: '1px',
     },
-    '&:hover $headActions': {
+    '&:hover $actions': {
       color: t.palette.text.secondary,
     },
   },
-  headActions: {
+  actions: {
     color: t.palette.text.hint,
     transition: t.transitions.create('color'),
     marginLeft: t.spacing(2),
   },
-  headIcon: {
+  icon: {
     color: t.palette.text.secondary,
     marginRight: t.spacing(1),
   },
 }))
 
-interface ColumnHeadBase {
-  collapsed: boolean
+interface ColumnHeadProps {
+  column: Column
+}
+
+function ColumnHead({ column }: ColumnHeadProps) {
+  const classes = useColumnHeadStyles()
+  if (column.tag === 'filter') {
+    return (
+      <div className={classes.root}>
+        <M.Tooltip title={column.fullTitle}>
+          <span>{column.title}</span>
+        </M.Tooltip>
+      </div>
+    )
+  }
+  return (
+    <div className={classes.root}>
+      {column.tag === 'meta' && (
+        <M.Icon className={classes.icon} fontSize="small">
+          list
+        </M.Icon>
+      )}
+      {column.title}
+      <ColumnActions className={classes.actions} column={column} />
+    </div>
+  )
+}
+
+const noopFixme = () => {}
+
+const isSingleKeyword = (
+  predicate: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate> | null,
+) => predicate && predicate._tag === 'KeywordEnum' && predicate.terms.length === 1
+
+interface ColumnBase {
   filtered: boolean
   onClose?: () => void
   onCollapse: () => void
@@ -1082,7 +1089,7 @@ interface ColumnHeadBase {
   onSort: () => void
 }
 
-interface ColumnHeadFilter extends ColumnHeadBase {
+interface ColumnFilter extends ColumnBase {
   // keyof PackagesSearchFilter?
   filter: SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
   fullTitle: string
@@ -1091,27 +1098,30 @@ interface ColumnHeadFilter extends ColumnHeadBase {
   title: string
 }
 
-interface ColumnHeadMeta extends ColumnHeadBase {
+interface ColumnMeta extends ColumnBase {
   filter: string
   predicateType: SearchUIModel.KnownPredicate['_tag']
   tag: 'meta'
   title: string
 }
 
-interface ColumnHeadVisual extends ColumnHeadBase {
+interface ColumnVisual extends ColumnBase {
   tag: 'visual'
   filter: string
   title: string
 }
 
-type ColumnHead = ColumnHeadFilter | ColumnHeadMeta | ColumnHeadVisual
+type Column = ColumnFilter | ColumnMeta | ColumnVisual
 
-function useTableColumns(singleBucket: boolean): ColumnHead[] {
+interface AllColumns {
+  columns: Column[]
+  hidden: Column[]
+}
+
+function useTableColumns(singleBucket: boolean): AllColumns {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
-  const [collapsed, setCollapsed] = React.useState<Record<ColumnHead['filter'], boolean>>(
-    {},
-  )
+  const [collapsed, setCollapsed] = React.useState<Record<Column['filter'], boolean>>({})
 
   const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
 
@@ -1126,22 +1136,8 @@ function useTableColumns(singleBucket: boolean): ColumnHead[] {
     { pause: state.filter.predicates.workflow?.terms.length !== 1 },
   )
 
-  const bucketColumn = React.useMemo(
-    () => ({
-      collapsed: !!collapsed.bucket,
-      filter: 'bucket' as const,
-      onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
-      onSearch: noopFixme,
-      onSort: noopFixme,
-      tag: 'visual' as const,
-      title: COLUMN_LABELS.bucket,
-      filtered: false,
-    }),
-    [collapsed],
-  )
-  const nameColumn = React.useMemo(
-    () => ({
-      collapsed: !!collapsed.name,
+  const fixed = React.useMemo(() => {
+    const name: Column = {
       predicateType: 'Text' as const,
       filter: 'name' as const,
       fullTitle: PACKAGE_FILTER_LABELS.name,
@@ -1151,27 +1147,32 @@ function useTableColumns(singleBucket: boolean): ColumnHead[] {
       tag: 'filter' as const,
       title: COLUMN_LABELS.name,
       filtered: false,
-    }),
-    [collapsed],
-  )
-  const fixedColumns = React.useMemo(
-    () => (singleBucket ? [nameColumn] : [bucketColumn, nameColumn]),
-    [singleBucket, nameColumn, bucketColumn],
-  )
+    }
+    if (singleBucket) return [name]
+    const bucket: Column = {
+      filter: 'bucket' as const,
+      onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
+      onSearch: noopFixme,
+      onSort: noopFixme,
+      tag: 'visual' as const,
+      title: COLUMN_LABELS.bucket,
+      filtered: false,
+    }
+    return [bucket, name]
+  }, [singleBucket])
 
-  const filterColumns = React.useMemo(() => {
-    const output: ColumnHead[] = []
+  const filters = React.useMemo(() => {
+    const output: Column[] = []
     const modifiedFilters = SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter)
 
     state.filter.order.forEach((filter) => {
       const predicate = state.filter.predicates[filter]
       invariant(!!predicate, 'Predicate should exist')
-      // 'name' is added constantly
+      // 'name' is added in `fixed` columns
       // 'entries' doesn't have values
       const singleKeyword = isSingleKeyword(predicate)
       if (filter !== 'name' && filter !== 'entries' && !singleKeyword) {
         output.push({
-          collapsed: !!collapsed[filter],
           predicateType: predicate._tag,
           filter,
           fullTitle: PACKAGE_FILTER_LABELS[filter],
@@ -1186,16 +1187,15 @@ function useTableColumns(singleBucket: boolean): ColumnHead[] {
       }
     })
     return output
-  }, [actions, collapsed, state.filter])
+  }, [actions, state.filter])
 
-  const userMetaColumns = React.useMemo(() => {
+  const userMeta = React.useMemo(() => {
     const modifiedFilters = state.userMetaFilters.toGQL()
-    const output: ColumnHead[] = []
+    const output: Column[] = []
     state.userMetaFilters.filters.forEach((predicate, filter) => {
       const singleKeyword = isSingleKeyword(predicate)
       if (!singleKeyword) {
         output.push({
-          collapsed: !!collapsed[filter],
           predicateType: predicate._tag,
           filter,
           onClose: () => actions.deactivatePackagesMetaFilter(filter),
@@ -1209,10 +1209,10 @@ function useTableColumns(singleBucket: boolean): ColumnHead[] {
       }
     })
     return output
-  }, [actions, collapsed, state.userMetaFilters])
+  }, [actions, state.userMetaFilters])
 
-  const workflowColumns = React.useMemo(() => {
-    const output: ColumnHead[] = []
+  const workflow = React.useMemo(() => {
+    const output: Column[] = []
     if (state.filter.predicates.workflow?.terms.length !== 1) return output
     return GQL.fold(query, {
       data: ({ searchPackages: r }) => {
@@ -1237,7 +1237,6 @@ function useTableColumns(singleBucket: boolean): ColumnHead[] {
               if (!state.userMetaFilters.filters.has(filter)) {
                 output.push({
                   predicateType: SearchUIModel.PackageUserMetaFacetMap[typename],
-                  collapsed: !!collapsed[filter],
                   filter,
                   onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
                   onSearch: noopFixme,
@@ -1257,13 +1256,39 @@ function useTableColumns(singleBucket: boolean): ColumnHead[] {
       fetching: () => [],
       error: () => [],
     })
-  }, [collapsed, state.filter, state.userMetaFilters, query])
+  }, [state.filter, state.userMetaFilters, query])
 
-  return React.useMemo(
-    () => [...fixedColumns, ...filterColumns, ...userMetaColumns, ...workflowColumns],
-    [fixedColumns, filterColumns, userMetaColumns, workflowColumns],
-  )
+  return React.useMemo(() => {
+    const output: AllColumns = { columns: [], hidden: [] }
+    for (const column of [...fixed, ...filters, ...userMeta, ...workflow]) {
+      if (collapsed[column.filter]) {
+        output.hidden.push(column)
+      } else {
+        output.columns.push(column)
+      }
+    }
+    return output
+  }, [collapsed, fixed, filters, userMeta, workflow])
 }
+
+const useTableViewStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+    '& th:last-child $head::after': {
+      display: 'none',
+    },
+  },
+  scrollWrapper: {
+    overflow: 'hidden',
+  },
+  scrollArea: {
+    paddingRight: t.spacing(4),
+    overflowX: 'auto',
+  },
+  cell: {
+    whiteSpace: 'nowrap',
+  },
+}))
 
 export interface TableViewProps {
   hits: readonly SearchHitPackageWithMatches[]
@@ -1274,8 +1299,7 @@ export interface TableViewProps {
 export function TableView({ hits, singleBucket }: TableViewProps) {
   const classes = useTableViewStyles()
 
-  const columns = useTableColumns(singleBucket)
-  const shownColumns = React.useMemo(() => columns.filter((c) => !c.collapsed), [columns])
+  const { columns, hidden } = useTableColumns(singleBucket)
 
   return (
     <M.Paper className={classes.root}>
@@ -1285,25 +1309,9 @@ export function TableView({ hits, singleBucket }: TableViewProps) {
             <M.TableHead>
               <M.TableRow>
                 <M.TableCell padding="checkbox" />
-                {shownColumns.map((column) => (
+                {columns.map((column) => (
                   <M.TableCell className={classes.cell} key={column.filter}>
-                    <div className={classes.head}>
-                      {column.tag === 'filter' ? (
-                        <M.Tooltip title={column.fullTitle}>
-                          <span>{column.title}</span>
-                        </M.Tooltip>
-                      ) : (
-                        <>
-                          {column.tag === 'meta' && (
-                            <M.Icon className={classes.headIcon} fontSize="small">
-                              list
-                            </M.Icon>
-                          )}
-                          {column.title}
-                        </>
-                      )}
-                      <ColumnActions className={classes.headActions} column={column} />
-                    </div>
+                    <ColumnHead column={column} />
                   </M.TableCell>
                 ))}
               </M.TableRow>
@@ -1316,7 +1324,7 @@ export function TableView({ hits, singleBucket }: TableViewProps) {
           </M.Table>
         </div>
       </div>
-      <AddColumn columns={columns} />
+      <AddColumn hidden={hidden} />
     </M.Paper>
   )
 }
