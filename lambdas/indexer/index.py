@@ -642,7 +642,7 @@ def index_manifest(
             "_op_type": "update",
             "_id": manifest_hash,
             "doc": {
-                "pkg_package_stats": {
+                "pkg_stats": {
                     "total_bytes": total_bytes,
                     "total_files": total_files,
                 },
