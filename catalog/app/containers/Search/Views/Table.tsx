@@ -1223,15 +1223,10 @@ function useTableColumns(
     return output
   }, [actions, state.userMetaFilters])
 
-  const somethingSelected = React.useMemo(
-    () => !!filters.length || !!selectedUserMeta.length,
-    [filters, selectedUserMeta],
-  )
-
   const inferedUserMeta = React.useMemo(() => {
     const output: Column[] = []
     if (infered instanceof Error || infered === Workflow.Loading) return output
-    const list = somethingSelected ? infered.workflow : infered.all
+    const list = Object.keys(infered.workflow).length ? infered.workflow : infered.all
     for (const filter in list) {
       output.push({
         predicateType: SearchUIModel.PackageUserMetaFacetMap[infered.workflow[filter]],
@@ -1245,7 +1240,7 @@ function useTableColumns(
       })
     }
     return output
-  }, [infered, somethingSelected])
+  }, [infered])
 
   return React.useMemo(() => {
     const output: AllColumns = { columns: [], hidden: [] }
@@ -1308,10 +1303,11 @@ function useGuessUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets>
                   return
                 }
 
+                // FIXME: keep sort order from workflow
                 // Not found in the latest workflow schema
                 if (
                   workflowRootKeys !== Workflow.Loading &&
-                  workflowRootKeys.find((key) => path.replace(/^\//, '') === key)
+                  workflowRootKeys.indexOf(path.replace(/^\//, '')) > -1
                 ) {
                   output.workflow[path] = __typename
                 }
