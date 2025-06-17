@@ -32,8 +32,7 @@ import * as SearchUIModel from '../model'
 
 import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
-import useMetadataRootKeys, { Loading } from './workflow'
-import type { RequestResult } from './workflow'
+import * as Workflow from './workflow'
 
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
@@ -1134,11 +1133,14 @@ interface AllColumns {
   hidden: Column[]
 }
 
+type InferedUserMetaFacets = Record<
+  string,
+  SearchUIModel.PackageUserMetaFacet['__typename']
+>
+
 function useTableColumns(
   singleBucket: boolean,
-  metaKeys: RequestResult<
-    Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>
-  >,
+  metaKeys: Workflow.RequestResult<InferedUserMetaFacets>,
 ): AllColumns {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
@@ -1221,7 +1223,7 @@ function useTableColumns(
 
   const workflow = React.useMemo(() => {
     const output: Column[] = []
-    if (metaKeys instanceof Error || metaKeys === Loading) return output
+    if (metaKeys instanceof Error || metaKeys === Workflow.Loading) return output
     for (const filter in metaKeys) {
       output.push({
         predicateType: SearchUIModel.PackageUserMetaFacetMap[metaKeys[filter]],
@@ -1263,7 +1265,7 @@ function useDefaultWorkflowKeys() {
     return workflows.terms[0]
   }, [state.filter.predicates.workflow])
 
-  const workflowRootKeys = useMetadataRootKeys(
+  const workflowRootKeys = Workflow.useMetadataRootKeys(
     selectedSingleBucket,
     selectedSingleWorkflow,
   )
@@ -1277,36 +1279,34 @@ function useDefaultWorkflowKeys() {
       filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
       latestOnly: state.latestOnly,
     },
-    { pause: workflowRootKeys === Loading || workflowRootKeys instanceof Error },
+    { pause: workflowRootKeys === Workflow.Loading || workflowRootKeys instanceof Error },
   )
 
   return React.useMemo(
     () =>
       GQL.fold(query, {
         data: ({ searchPackages: r }) => {
-          if (workflowRootKeys === Loading || workflowRootKeys instanceof Error) return {}
+          if (workflowRootKeys === Workflow.Loading || workflowRootKeys instanceof Error)
+            return {}
           switch (r.__typename) {
             case 'EmptySearchResultSet':
             case 'InvalidInput':
               return {}
             case 'PackagesSearchResultSet':
-              return r.stats.userMeta.reduce(
-                (memo, { __typename, path }) => {
-                  // Already selected
-                  if (state.userMetaFilters.filters.has(path)) return memo
+              return r.stats.userMeta.reduce((memo, { __typename, path }) => {
+                // Already selected
+                if (state.userMetaFilters.filters.has(path)) return memo
 
-                  // Not found in the latest workflow schema
-                  if (!workflowRootKeys.find((key) => path.replace(/^\//, '') === key)) {
-                    return memo
-                  }
+                // Not found in the latest workflow schema
+                if (!workflowRootKeys.find((key) => path.replace(/^\//, '') === key)) {
+                  return memo
+                }
 
-                  return {
-                    ...memo,
-                    [path]: __typename,
-                  }
-                },
-                {} as Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>,
-              )
+                return {
+                  ...memo,
+                  [path]: __typename,
+                }
+              }, {} as InferedUserMetaFacets)
 
             default:
               assertNever(r)

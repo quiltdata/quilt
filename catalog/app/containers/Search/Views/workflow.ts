@@ -109,7 +109,7 @@ function getSelectedWorkflow(config: WorkflowsConfig, selectedWorkflow?: string)
   )
 }
 
-export default function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) {
+export function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) {
   const config = useWorkflowConfig(bucket)
   const schema = useMetadataSchema(config, selectedWorkflow)
 
