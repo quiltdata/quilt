@@ -25,7 +25,8 @@ function normalizeJsonPathSegment(fragment: Path[number]) {
   // but the notation `$..123` for jsonpath is ok
   if (typeof fragment !== 'string') return fragment
 
-  const valid = fragment.indexOf(' ') < 0 && fragment.indexOf('-') < 0
+  const valid =
+    fragment.indexOf(' ') < 0 && fragment.indexOf('-') < 0 && fragment.indexOf('$') < 0
   if (valid) return fragment
 
   return `['${fragment}']`

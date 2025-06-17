@@ -1133,14 +1133,16 @@ interface AllColumns {
   hidden: Column[]
 }
 
-type InferedUserMetaFacets = Record<
-  string,
-  SearchUIModel.PackageUserMetaFacet['__typename']
->
+type UserMetaFacets = Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>
+
+interface InferedUserMetaFacets {
+  workflow: UserMetaFacets
+  all: UserMetaFacets
+}
 
 function useTableColumns(
   singleBucket: boolean,
-  metaKeys: Workflow.RequestResult<InferedUserMetaFacets>,
+  infered: Workflow.RequestResult<InferedUserMetaFacets>,
 ): AllColumns {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
@@ -1199,7 +1201,7 @@ function useTableColumns(
     return output
   }, [actions, state.filter])
 
-  const userMeta = React.useMemo(() => {
+  const selectedUserMeta = React.useMemo(() => {
     const modifiedFilters = state.userMetaFilters.toGQL()
     const output: Column[] = []
     state.userMetaFilters.filters.forEach((predicate, filter) => {
@@ -1221,12 +1223,18 @@ function useTableColumns(
     return output
   }, [actions, state.userMetaFilters])
 
-  const workflow = React.useMemo(() => {
+  const somethingSelected = React.useMemo(
+    () => !!filters.length || !!selectedUserMeta.length,
+    [filters, selectedUserMeta],
+  )
+
+  const inferedUserMeta = React.useMemo(() => {
     const output: Column[] = []
-    if (metaKeys instanceof Error || metaKeys === Workflow.Loading) return output
-    for (const filter in metaKeys) {
+    if (infered instanceof Error || infered === Workflow.Loading) return output
+    const list = somethingSelected ? infered.workflow : infered.all
+    for (const filter in list) {
       output.push({
-        predicateType: SearchUIModel.PackageUserMetaFacetMap[metaKeys[filter]],
+        predicateType: SearchUIModel.PackageUserMetaFacetMap[infered.workflow[filter]],
         filter,
         onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
         onSearch: noopFixme,
@@ -1237,11 +1245,16 @@ function useTableColumns(
       })
     }
     return output
-  }, [metaKeys])
+  }, [infered, somethingSelected])
 
   return React.useMemo(() => {
     const output: AllColumns = { columns: [], hidden: [] }
-    for (const column of [...fixed, ...filters, ...userMeta, ...workflow]) {
+    for (const column of [
+      ...fixed,
+      ...filters,
+      ...selectedUserMeta,
+      ...inferedUserMeta,
+    ]) {
       if (collapsed[column.filter]) {
         output.hidden.push(column)
       } else {
@@ -1249,10 +1262,10 @@ function useTableColumns(
       }
     }
     return output
-  }, [collapsed, fixed, filters, userMeta, workflow])
+  }, [collapsed, fixed, filters, selectedUserMeta, inferedUserMeta])
 }
 
-function useDefaultWorkflowKeys() {
+function useGuessUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets> {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const selectedSingleBucket = React.useMemo(() => {
     if (state.buckets.length !== 1) return
@@ -1271,49 +1284,48 @@ function useDefaultWorkflowKeys() {
   )
 
   const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
-  const query = GQL.useQuery(
-    META_FACETS_QUERY,
-    {
-      searchString,
-      buckets: state.buckets,
-      filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
-      latestOnly: state.latestOnly,
-    },
-    { pause: workflowRootKeys === Workflow.Loading || workflowRootKeys instanceof Error },
-  )
+  const query = GQL.useQuery(META_FACETS_QUERY, {
+    searchString,
+    buckets: state.buckets,
+    filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
+    latestOnly: state.latestOnly,
+  })
 
   return React.useMemo(
     () =>
       GQL.fold(query, {
         data: ({ searchPackages: r }) => {
-          if (workflowRootKeys === Workflow.Loading || workflowRootKeys instanceof Error)
-            return {}
+          if (workflowRootKeys instanceof Error) return workflowRootKeys
           switch (r.__typename) {
             case 'EmptySearchResultSet':
             case 'InvalidInput':
-              return {}
+              return new Error('Failed to load user meta')
             case 'PackagesSearchResultSet':
-              return r.stats.userMeta.reduce((memo, { __typename, path }) => {
+              const output: InferedUserMetaFacets = { all: {}, workflow: {} }
+              r.stats.userMeta.forEach(({ __typename, path }) => {
                 // Already selected
-                if (state.userMetaFilters.filters.has(path)) return memo
+                if (state.userMetaFilters.filters.has(path)) {
+                  return
+                }
 
                 // Not found in the latest workflow schema
-                if (!workflowRootKeys.find((key) => path.replace(/^\//, '') === key)) {
-                  return memo
+                if (
+                  workflowRootKeys !== Workflow.Loading &&
+                  workflowRootKeys.find((key) => path.replace(/^\//, '') === key)
+                ) {
+                  output.workflow[path] = __typename
                 }
 
-                return {
-                  ...memo,
-                  [path]: __typename,
-                }
-              }, {} as InferedUserMetaFacets)
+                output.all[path] = __typename
+              })
+              return output
 
             default:
               assertNever(r)
           }
         },
-        fetching: () => ({}),
-        error: () => ({}),
+        fetching: () => Workflow.Loading,
+        error: (e) => e,
       }),
     [state.userMetaFilters.filters, query, workflowRootKeys],
   )
@@ -1382,8 +1394,8 @@ export interface TableViewProps {
 }
 
 export function TableView({ hits, singleBucket }: TableViewProps) {
-  const metaKeys = useDefaultWorkflowKeys()
-  const { columns, hidden } = useTableColumns(singleBucket, metaKeys)
+  const infered: Workflow.RequestResult<InferedUserMetaFacets> = useGuessUserMetaFacets()
+  const { columns, hidden } = useTableColumns(singleBucket, infered)
 
   return <Layout columns={columns} hidden={hidden} hits={hits} />
 }
