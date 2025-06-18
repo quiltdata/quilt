@@ -23,29 +23,10 @@ import SortSelector from './Sort'
 import * as Views from './Views'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { OBJECT_FILTER_LABELS, PACKAGE_FILTER_LABELS } from './i18n'
-import {
-  SearchHitPackageWithMatches,
-  fakeMatchingEntries,
-  fakeMatchingLocations,
-} from './fakeMatchingEntries'
 
 function useMobileView() {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
-}
-
-function addFakeEntries(
-  hits: readonly SearchUIModel.SearchHit[],
-): readonly (SearchUIModel.SearchHit | SearchHitPackageWithMatches)[] {
-  return hits.map((h) =>
-    h.__typename === 'SearchHitPackage'
-      ? {
-          ...h,
-          matchingEntries: fakeMatchingEntries,
-          matchLocations: fakeMatchingLocations(),
-        }
-      : h,
-  )
 }
 
 export type ComponentProps = React.PropsWithChildren<{ className?: string }>
@@ -954,9 +935,7 @@ function NextPage({
                 return (
                   <ResultsPage
                     className={className}
-                    hits={
-                      addFakeEntries(r.data.hits) as readonly SearchUIModel.SearchHit[]
-                    }
+                    hits={r.data.hits}
                     cursor={r.data.cursor}
                     resultType={resultType}
                     singleBucket={singleBucket}
@@ -1023,11 +1002,7 @@ function ResultsInner({ className }: ResultsInnerProps) {
               className={className}
               key={`${model.state.resultType}:${r.data.firstPage.cursor}`}
               resultType={model.state.resultType}
-              hits={
-                addFakeEntries(
-                  r.data.firstPage.hits,
-                ) as readonly SearchUIModel.SearchHit[]
-              }
+              hits={r.data.firstPage.hits}
               cursor={r.data.firstPage.cursor}
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}

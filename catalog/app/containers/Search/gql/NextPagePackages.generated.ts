@@ -27,7 +27,14 @@ export type containers_Search_gql_NextPagePackagesQuery = {
               | 'comment'
               | 'meta'
               | 'workflow'
-            >
+            > & {
+                readonly matchingEntries: ReadonlyArray<
+                  { readonly __typename: 'SearchHitPackageMatchingEntry' } & Pick<
+                    Types.SearchHitPackageMatchingEntry,
+                    'logicalKey' | 'physicalKey' | 'size' | 'meta'
+                  >
+                >
+              }
           >
         })
     | ({ readonly __typename: 'InvalidInput' } & {
@@ -104,6 +111,31 @@ export const containers_Search_gql_NextPagePackagesDocument = {
                             { kind: 'Field', name: { kind: 'Name', value: 'comment' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'meta' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'workflow' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'matchingEntries' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'logicalKey' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'physicalKey' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'size' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'meta' },
+                                  },
+                                ],
+                              },
+                            },
                           ],
                         },
                       },

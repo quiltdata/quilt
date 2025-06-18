@@ -474,13 +474,14 @@ union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
 
 type SearchHitObject {
   id: ID!
-  bucket: String!
   score: Float!
-  size: Float!
-  modified: Datetime!
 
+  bucket: String!
   key: String!
   version: String!
+
+  size: Float!
+  modified: Datetime!
 
   deleted: Boolean!
   # meta: JsonRecord! # String?
@@ -491,19 +492,32 @@ type SearchHitObject {
 # TODO: reuse package types?
 type SearchHitPackage {
   id: ID!
-  bucket: String!
   score: Float!
+
+  bucket: String!
+  name: String!
+  pointer: String!
+  hash: String!
+
   size: Float!
   modified: Datetime!
-
-  name: String!
-  hash: String!
+  totalEntriesCount: Int!
 
   # specific props
   comment: String
-  meta: String # user_meta
+  meta: JsonRecord # user_meta
   workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
+
+  matchingEntries: [SearchHitPackageMatchingEntry!]!
+}
+
+type SearchHitPackageMatchingEntry {
+  logicalKey: String!
+  physicalKey: String!
+  # 32-bit Int is too small to represent file size which quite often exceeds several GB
+  size: Float!
+  meta: JsonRecord
 }
 
 type SubscriptionState {

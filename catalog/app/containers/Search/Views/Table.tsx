@@ -9,6 +9,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as Preview from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
+import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
@@ -22,10 +23,6 @@ import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
 import FilterWidget from '../FilterWidget'
-import type {
-  SearchHitPackageMatchingEntry,
-  SearchHitPackageWithMatches,
-} from '../fakeMatchingEntries'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
 import * as SearchUIModel from '../model'
@@ -53,34 +50,19 @@ function NoValue() {
 const isJsonRecord = (obj: Json): obj is JsonRecord =>
   obj != null && typeof obj === 'object' && !Array.isArray(obj)
 
-const useSystemMetaStyles = M.makeStyles((t) => ({
-  match: {
-    background: t.palette.warning.light,
-    padding: t.spacing(0.25, 0.5),
-    margin: t.spacing(0, -0.5),
-  },
-}))
-
 type FilterType =
   SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
 
 interface TableViewSystemMetaProps {
-  hit: SearchHitPackageWithMatches
+  hit: SearchUIModel.SearchHitPackage
   filter: FilterType
 }
 
 function SystemMetaValue({ hit, filter }: TableViewSystemMetaProps) {
-  const classes = useSystemMetaStyles()
   const { urls } = NamedRoutes.use()
   switch (filter) {
     case 'workflow':
-      return hit.workflow ? (
-        <span className={cx(hit.matchLocations.workflow && classes.match)}>
-          {hit.workflow.id}
-        </span>
-      ) : (
-        <NoValue />
-      )
+      return hit.workflow ? hit.workflow.id : <NoValue />
     case 'hash':
       return (
         <StyledLink to={urls.bucketFile(hit.bucket, join('.quilt/packages', hit.hash))}>
@@ -91,19 +73,14 @@ function SystemMetaValue({ hit, filter }: TableViewSystemMetaProps) {
       return readableBytes(hit.size)
     case 'name':
       return (
-        <StyledLink
-          to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
-          className={cx(hit.matchLocations.name && classes.match)}
-        >
+        <StyledLink to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
           {hit.name}
         </StyledLink>
       )
     case 'comment':
       return hit.comment ? (
         <StyledTooltip title={hit.comment} placement="bottom-start">
-          <span className={cx(hit.matchLocations.comment && classes.match)}>
-            {hit.comment}
-          </span>
+          <span>{hit.comment}</span>
         </StyledTooltip>
       ) : (
         <NoValue />
@@ -266,11 +243,11 @@ const useEntriesStyles = M.makeStyles((t) => ({
 
 interface PreviewEntry {
   type: 'meta' | 'content'
-  entry: SearchHitPackageMatchingEntry
+  entry: Model.GQLTypes.SearchHitPackageMatchingEntry
 }
 
 interface EntriesProps {
-  entries: readonly SearchHitPackageMatchingEntry[]
+  entries: readonly Model.GQLTypes.SearchHitPackageMatchingEntry[]
   onClose: () => void
 }
 
@@ -313,20 +290,12 @@ function Entries({ entries, onClose }: EntriesProps) {
               <M.TableRow hover key={entry.physicalKey} className={classes.row}>
                 <M.TableCell className={classes.cell} component="th" scope="row">
                   <M.Tooltip title={entry.logicalKey}>
-                    <span
-                      className={cx(entry.matchLocations.logicalKey && classes.match)}
-                    >
-                      {entry.logicalKey}
-                    </span>
+                    <span>{entry.logicalKey}</span>
                   </M.Tooltip>
                 </M.TableCell>
                 <M.TableCell className={classes.cell}>
                   <M.Tooltip title={entry.physicalKey}>
-                    <span
-                      className={cx(entry.matchLocations.physicalKey && classes.match)}
-                    >
-                      {entry.physicalKey}
-                    </span>
+                    <span>{entry.physicalKey}</span>
                   </M.Tooltip>
                 </M.TableCell>
                 <M.TableCell className={classes.cell} align="right">
@@ -336,7 +305,6 @@ function Entries({ entries, onClose }: EntriesProps) {
                   {entry.meta ? (
                     <M.IconButton
                       size="small"
-                      className={cx(entry.matchLocations.meta && classes.matchButton)}
                       onClick={() => setPreview({ type: 'meta', entry })}
                     >
                       <M.Icon fontSize="inherit">list</M.Icon>
@@ -349,10 +317,7 @@ function Entries({ entries, onClose }: EntriesProps) {
                 </M.TableCell>
                 <M.TableCell className={classes.cell} align="center">
                   <span
-                    className={cx(
-                      classes.content,
-                      entry.matchLocations.contents && classes.match,
-                    )}
+                    className={classes.content}
                     onClick={() => setPreview({ type: 'content', entry })}
                   >
                     {extname(entry.logicalKey).substring(1)}
@@ -435,12 +400,12 @@ const usePackageRowStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageRowProps {
-  hit: SearchHitPackageWithMatches
+  hit: SearchUIModel.SearchHitPackage
   columns: Column[]
 }
 
 function PackageRow({ columns, hit }: PackageRowProps) {
-  const meta = hit.meta ? JSON.parse(hit.meta) : {}
+  const meta = hit.meta && typeof hit.meta === 'string' ? JSON.parse(hit.meta) : {}
   const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
@@ -1347,7 +1312,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
 }))
 
 interface LayoutProps {
-  hits: readonly SearchHitPackageWithMatches[]
+  hits: readonly SearchUIModel.SearchHitPackage[]
   columns: Column[]
   hidden: Column[]
 }
@@ -1384,7 +1349,7 @@ function Layout({ hits, columns, hidden }: LayoutProps) {
 }
 
 export interface TableViewProps {
-  hits: readonly SearchHitPackageWithMatches[]
+  hits: readonly SearchUIModel.SearchHitPackage[]
   singleBucket: boolean
   // latestOnly: boolean
 }

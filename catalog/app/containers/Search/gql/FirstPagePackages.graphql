@@ -23,15 +23,25 @@ query (
         hits {
           __typename
           id
-          bucket
           score
-          size
-          modified
+
+          bucket
           name
           hash
+
+          size
+          modified
+
           comment
           meta
           workflow
+
+          matchingEntries {
+            logicalKey
+            physicalKey
+            size
+            meta
+          }
         }
       }
     }
