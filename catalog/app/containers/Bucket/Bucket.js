@@ -35,24 +35,14 @@ function useSearchUIModel() {
   return React.useContext(SearchUIModel.Context)
 }
 
-const useStyles = M.makeStyles((t) => ({
-  appBar: {
-    backgroundColor: t.palette.common.white,
-    color: t.palette.getContrastText(t.palette.common.white),
-  },
-}))
-
 function BucketLayout({ bucket, section = false, render }) {
-  const classes = useStyles()
   const bucketExistenceData = useBucketExistence(bucket)
   const searchUIModel = useSearchUIModel()
   return (
     <Layout
       pre={
         <>
-          <M.AppBar position="static" className={classes.appBar}>
-            <BucketNav bucket={bucket} section={section} />
-          </M.AppBar>
+          <BucketNav bucket={bucket} section={section} />
           <M.Container
             maxWidth={
               searchUIModel && searchUIModel.state.view === SearchUIModel.View.Table

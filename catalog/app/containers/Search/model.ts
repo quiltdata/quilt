@@ -36,7 +36,7 @@ export enum View {
 
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
-export const DEFAULT_VIEW = View.List
+export const DEFAULT_VIEW = View.Table
 
 export const ResultOrder = Model.GQLTypes.SearchResultOrder
 // eslint-disable-next-line @typescript-eslint/no-redeclare

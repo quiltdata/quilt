@@ -10,6 +10,8 @@ import Collaborators from './Collaborators'
 import Search from './Search'
 import { useNavBar } from './Provider'
 
+export { default as BucketSelect } from './BucketSelect'
+
 const useBucketDisplayStyles = M.makeStyles((t) => ({
   root: {
     textTransform: 'none !important',
@@ -32,7 +34,7 @@ const useBucketDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketDisplay({ bucket, select, locked = false, ...props }) {
+export function BucketDisplay({ bucket, select, locked = false, ...props }) {
   const classes = useBucketDisplayStyles()
   return (
     <M.Box position="relative" {...props}>
@@ -40,6 +42,7 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
         color="inherit"
         className={cx(classes.root, { [classes.locked]: locked })}
         onClick={select}
+        size="large"
       >
         <span className={classes.s3}>s3://</span>
         <span className={classes.bucket}>{bucket}</span>
