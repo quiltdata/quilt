@@ -87,8 +87,10 @@ function SystemMetaValue({ hit, filter }: TableViewSystemMetaProps) {
       )
     case 'modified':
       return <Format.Relative value={hit.modified} />
+    case 'entries':
+      return hit.totalEntriesCount
     default:
-      return null
+      assertNever(filter)
   }
 }
 
@@ -1148,7 +1150,7 @@ function useTableColumns(
       // 'name' is added in `fixed` columns
       // 'entries' doesn't have values
       const singleKeyword = isSingleKeyword(predicate)
-      if (filter !== 'name' && filter !== 'entries' && !singleKeyword) {
+      if (filter !== 'name' && !singleKeyword) {
         output.push({
           predicateType: predicate._tag,
           filter,
