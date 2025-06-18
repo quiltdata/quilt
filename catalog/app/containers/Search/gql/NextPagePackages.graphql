@@ -7,11 +7,13 @@ query ($after: String!) {
         __typename
         id
         bucket
+        name
+        pointer
+        hash
         score
         size
         modified
-        name
-        hash
+        totalEntriesCount
         comment
         meta
         workflow

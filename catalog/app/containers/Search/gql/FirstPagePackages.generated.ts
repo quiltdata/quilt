@@ -28,12 +28,14 @@ export type containers_Search_gql_FirstPagePackagesQuery = {
               { readonly __typename: 'SearchHitPackage' } & Pick<
                 Types.SearchHitPackage,
                 | 'id'
-                | 'score'
                 | 'bucket'
                 | 'name'
+                | 'pointer'
                 | 'hash'
+                | 'score'
                 | 'size'
                 | 'modified'
+                | 'totalEntriesCount'
                 | 'comment'
                 | 'meta'
                 | 'workflow'
@@ -214,10 +216,6 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                   { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'score' },
-                                  },
-                                  {
-                                    kind: 'Field',
                                     name: { kind: 'Name', value: 'bucket' },
                                   },
                                   {
@@ -226,7 +224,15 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                   },
                                   {
                                     kind: 'Field',
+                                    name: { kind: 'Name', value: 'pointer' },
+                                  },
+                                  {
+                                    kind: 'Field',
                                     name: { kind: 'Name', value: 'hash' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'score' },
                                   },
                                   {
                                     kind: 'Field',
@@ -235,6 +241,10 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'modified' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'totalEntriesCount' },
                                   },
                                   {
                                     kind: 'Field',

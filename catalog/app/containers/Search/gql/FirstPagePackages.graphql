@@ -23,14 +23,16 @@ query (
         hits {
           __typename
           id
-          score
 
           bucket
           name
+          pointer
           hash
+          score
 
           size
           modified
+          totalEntriesCount
 
           comment
           meta

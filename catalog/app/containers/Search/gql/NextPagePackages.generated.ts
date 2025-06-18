@@ -19,11 +19,13 @@ export type containers_Search_gql_NextPagePackagesQuery = {
               Types.SearchHitPackage,
               | 'id'
               | 'bucket'
+              | 'name'
+              | 'pointer'
+              | 'hash'
               | 'score'
               | 'size'
               | 'modified'
-              | 'name'
-              | 'hash'
+              | 'totalEntriesCount'
               | 'comment'
               | 'meta'
               | 'workflow'
@@ -103,11 +105,16 @@ export const containers_Search_gql_NextPagePackagesDocument = {
                             },
                             { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'bucket' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'pointer' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'score' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'size' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'totalEntriesCount' },
+                            },
                             { kind: 'Field', name: { kind: 'Name', value: 'comment' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'meta' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'workflow' } },
