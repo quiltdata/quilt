@@ -1,11 +1,11 @@
-import * as R from 'ramda'
 import * as React from 'react'
-import { Route, Switch, matchPath, useLocation, useParams } from 'react-router-dom'
+import { Route, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
+import * as SearchUIModel from 'containers/Search/model'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -22,7 +22,7 @@ const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
 const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
 const Overview = RT.mkLazy(() => import('./Overview'), SuspensePlaceholder)
-const PackageList = RT.mkLazy(() => import('./PackageList'), SuspensePlaceholder)
+const PackageList = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 const PackageRevisions = RT.mkLazy(
   () => import('./PackageRevisions'),
   SuspensePlaceholder,
@@ -31,36 +31,9 @@ const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder
 const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
-const match = (cases) => (pathname) => {
-  // eslint-disable-next-line no-restricted-syntax
-  for (const [section, variants] of Object.entries(cases)) {
-    // eslint-disable-next-line no-restricted-syntax
-    for (const opts of variants) {
-      if (matchPath(pathname, opts)) return section
-    }
-  }
-  return false
+function useSearchUIModel() {
+  return React.useContext(SearchUIModel.Context)
 }
-
-const sections = {
-  es: { path: 'bucketESQueries', exact: true },
-  overview: { path: 'bucketOverview', exact: true },
-  packages: { path: 'bucketPackageList' },
-  tree: [
-    { path: 'bucketFile', exact: true, strict: true },
-    { path: 'bucketDir', exact: true },
-  ],
-  queries: { path: 'bucketQueries' },
-  workflows: { path: 'bucketWorkflowList' },
-}
-
-const getBucketSection = (paths) =>
-  match(
-    R.map(
-      (variants) => [].concat(variants).map(R.evolve({ path: (p) => paths[p] })),
-      sections,
-    ),
-  )
 
 const useStyles = M.makeStyles((t) => ({
   appBar: {
@@ -69,9 +42,10 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketLayout({ bucket, section = false, children }) {
+function BucketLayout({ bucket, section = false, render }) {
   const classes = useStyles()
   const bucketExistenceData = useBucketExistence(bucket)
+  const searchUIModel = useSearchUIModel()
   return (
     <Layout
       pre={
@@ -79,9 +53,15 @@ function BucketLayout({ bucket, section = false, children }) {
           <M.AppBar position="static" className={classes.appBar}>
             <BucketNav bucket={bucket} section={section} />
           </M.AppBar>
-          <M.Container maxWidth="lg">
+          <M.Container
+            maxWidth={
+              searchUIModel && searchUIModel.state.view === SearchUIModel.View.Table
+                ? false
+                : 'lg'
+            }
+          >
             {bucketExistenceData.case({
-              Ok: () => children,
+              Ok: render,
               Err: displayError(),
               _: () => <Placeholder color="text.secondary" />,
             })}
@@ -96,50 +76,75 @@ export default function Bucket() {
   const location = useLocation()
   const { bucket } = useParams()
   const { paths } = NamedRoutes.use()
+
+  const { urls } = NamedRoutes.use()
+
+  const urlState = React.useMemo(
+    () => ({
+      resultType: SearchUIModel.ResultType.QuiltPackage,
+      filter: SearchUIModel.PackagesSearchFilterIO.fromURLSearchParams(
+        new URLSearchParams(),
+      ),
+      userMetaFilters: SearchUIModel.UserMetaFilters.fromURLSearchParams(
+        new URLSearchParams(),
+        SearchUIModel.META_PREFIX,
+      ),
+      searchString: '',
+      buckets: [bucket],
+      order: SearchUIModel.ResultOrder.NEWEST,
+      view: SearchUIModel.View.Table,
+      latestOnly: true,
+    }),
+    [bucket],
+  )
+
   return (
     <BucketPreferences.Provider bucket={bucket}>
       <MetaTitle>{bucket}</MetaTitle>
-      <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
-        <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
-          <Switch>
-            <Route path={paths.bucketFile} exact strict>
-              <File />
-            </Route>
-            <Route path={paths.bucketDir} exact>
-              <Selection.Provider>
-                <Dir />
-              </Selection.Provider>
-            </Route>
-            <Route path={paths.bucketOverview} exact>
-              <Overview />
-            </Route>
-            <Route path={paths.bucketPackageList} exact>
-              <PackageList />
-            </Route>
-            <Route path={paths.bucketPackageDetail} exact>
-              <PackageTree />
-            </Route>
-            <Route path={paths.bucketPackageTree} exact>
-              <PackageTree />
-            </Route>
-            <Route path={paths.bucketPackageRevisions} exact>
-              <PackageRevisions />
-            </Route>
-            <Route path={paths.bucketWorkflowList} exact>
-              <Workflows />
-            </Route>
-            <Route path={paths.bucketWorkflowDetail} exact>
-              <Workflows />
-            </Route>
-            <Route path={paths.bucketQueries}>
-              <Queries />
-            </Route>
-            <Route>
-              <ThrowNotFound />
-            </Route>
-          </Switch>
-        </CatchNotFound>
-      </BucketLayout>
+      <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
+        <Switch>
+          <Route path={paths.bucketFile} exact strict>
+            <BucketLayout render={File} bucket={bucket} section="tree" />
+          </Route>
+          <Route path={paths.bucketDir} exact>
+            <Selection.Provider>
+              <BucketLayout render={Dir} bucket={bucket} section="tree" />
+            </Selection.Provider>
+          </Route>
+          <Route path={paths.bucketOverview} exact>
+            <BucketLayout render={Overview} bucket={bucket} section="overview" />
+          </Route>
+          <Route path={paths.bucketPackageList} exact>
+            <SearchUIModel.Provider
+              urlState={urlState}
+              base={urls.bucketPackageList(bucket)}
+            >
+              <BucketLayout render={PackageList} bucket={bucket} section="packages" />
+            </SearchUIModel.Provider>
+          </Route>
+          <Route path={paths.bucketPackageDetail} exact>
+            <BucketLayout render={PackageTree} bucket={bucket} section="packages" />
+          </Route>
+          <Route path={paths.bucketPackageTree} exact>
+            <BucketLayout render={PackageTree} bucket={bucket} section="packages" />
+          </Route>
+          <Route path={paths.bucketPackageRevisions} exact>
+            <BucketLayout render={PackageRevisions} bucket={bucket} section="packages" />
+          </Route>
+          <Route path={paths.bucketWorkflowList} exact>
+            <BucketLayout render={Workflows} bucket={bucket} section="workflows" />
+          </Route>
+          <Route path={paths.bucketWorkflowDetail} exact>
+            <BucketLayout render={Workflows} bucket={bucket} section="workflows" />
+          </Route>
+          <Route path={paths.bucketQueries}>
+            <BucketLayout render={Queries} bucket={bucket} section="queries" />
+          </Route>
+          <Route>
+            <ThrowNotFound />
+          </Route>
+        </Switch>
+      </CatchNotFound>
     </BucketPreferences.Provider>
   )
 }

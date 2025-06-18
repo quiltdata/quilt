@@ -562,8 +562,12 @@ function parseView(view: string | null): View {
 export const META_PREFIX = 'meta.'
 
 // XXX: use @effect/schema for morphisms between url (querystring) and search state
-export function parseSearchParams(qs: string): SearchUrlState {
-  const params = new URLSearchParams(qs)
+export function parseSearchParams(
+  qs: string,
+  optUrlState?: SearchUrlState,
+): SearchUrlState {
+  const params =
+    qs || !optUrlState ? new URLSearchParams(qs) : serializeSearchUrlState(optUrlState)
   const searchString = params.get('q')
 
   const resultType = parseResultType(params.get('t'), params.get('mode'))
@@ -631,14 +635,17 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
   return params
 }
 
-function useUrlState(): SearchUrlState {
+function useUrlState(optUrlState?: SearchUrlState): SearchUrlState {
   const l = RR.useLocation()
-  return React.useMemo(() => parseSearchParams(l.search), [l.search])
+  return React.useMemo(
+    () => parseSearchParams(l.search, optUrlState),
+    [l.search, optUrlState],
+  )
 }
 
-export function useMakeUrl() {
+export function useMakeUrl(optBase?: string) {
   const { urls } = NamedRoutes.use()
-  const base = urls.search({})
+  const base = optBase || urls.search({})
   return React.useCallback(
     (state: SearchUrlState) => {
       const parts = [base]
@@ -1315,13 +1322,14 @@ export function usePackageUserMetaFacetExtents(path: string): {
   })
 }
 
-function useSearchUIModel() {
-  const urlState = useUrlState()
+function useSearchUIModel(optUrlState?: SearchUrlState, optBase?: string) {
+  const urlStateFromLocation = useUrlState(optUrlState)
+  const urlState = urlStateFromLocation
 
   const baseSearchQuery = useBaseSearchQuery(urlState)
   const firstPageQuery = useFirstPageQuery(urlState)
 
-  const makeUrl = useMakeUrl()
+  const makeUrl = useMakeUrl(optBase)
 
   const history = RR.useHistory()
 
@@ -1588,8 +1596,12 @@ export type SearchUIModel = ReturnType<typeof useSearchUIModel>
 
 export const Context = React.createContext<SearchUIModel | null>(null)
 
-export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>) {
-  const state = useSearchUIModel()
+export function SearchUIModelProvider({
+  base,
+  children,
+  urlState,
+}: React.PropsWithChildren<{ urlState?: SearchUrlState; base?: string }>) {
+  const state = useSearchUIModel(urlState, base)
   return React.createElement(Context.Provider, { value: state }, children)
 }
 

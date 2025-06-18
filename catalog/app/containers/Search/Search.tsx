@@ -24,7 +24,7 @@ import * as Views from './Views'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { OBJECT_FILTER_LABELS, PACKAGE_FILTER_LABELS } from './i18n'
 
-function useMobileView() {
+export function useMobileView() {
   const t = M.useTheme()
   return M.useMediaQuery(t.breakpoints.down('sm'))
 }
@@ -83,7 +83,7 @@ const useScrollToTopStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ScrollToTop() {
+export function ScrollToTop() {
   const trigger = M.useScrollTrigger({ disableHysteresis: true })
   const classes = useScrollToTopStyles()
   const onClick = React.useCallback(
@@ -559,7 +559,7 @@ interface PackageFiltersProps {
   className: string
 }
 
-function PackageFilters({ className }: PackageFiltersProps) {
+export function PackageFilters({ className }: PackageFiltersProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const classes = usePackageFiltersStyles()
 
@@ -701,7 +701,7 @@ interface ObjectFiltersProps {
   className: string
 }
 
-function ObjectFilters({ className }: ObjectFiltersProps) {
+export function ObjectFilters({ className }: ObjectFiltersProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.S3Object)
   const classes = useObjectFiltersStyles()
 
@@ -1080,7 +1080,7 @@ interface ResultsProps {
   onFilters: () => void
 }
 
-function Results({ onFilters }: ResultsProps) {
+export function Results({ onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
   const classes = useResultsStyles()
   const isMobile = useMobileView()
