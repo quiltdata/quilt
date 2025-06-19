@@ -339,10 +339,7 @@ def do_index(
         s3_client,
         doc_queue,
         bucket=bucket,
-        etag=etag,
         key=key,
-        last_modified=last_modified,
-        version_id=version_id,
     )
 
 
