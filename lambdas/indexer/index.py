@@ -485,7 +485,7 @@ def index_if_pointer(
             or len(handle) < 3
             or '/' not in handle
     ):
-        logger.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
+        logger.debug("Not indexing as pointer s3://%s/%s", bucket, key)
         return False
     try:
         manifest_timestamp = int(pointer_file)
@@ -554,6 +554,7 @@ def index_manifest(
         try:
             resp = s3_client.get_object(Bucket=bucket, Key=key)
         except s3_client.exceptions.NoSuchKey:
+            logger.debug("No manifest found: s3://%s/%s.", bucket, key)
             return
         manifest_entries = map(json.loads, resp["Body"].iter_lines())
         first = next(manifest_entries, None)
@@ -634,12 +635,13 @@ def index_manifest(
     for doc_data in get_pkg_data():
         doc_queue.append_document(doc_data)
     if doc_data is None:
+        logger.debug("No manifest entries found for s3://%s/%s. Removing.", bucket, key)
         make_elastic().delete_by_query(
             index=index,
             body={
                 "query": {
                     "parent_id": {
-                        "type": "pkg_entry",
+                        "type": "entry",
                         "id": manifest_hash,
                     }
                 }
