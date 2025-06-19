@@ -7,15 +7,15 @@ import { useNavBar } from 'containers/NavBar'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
-import * as Hit from './Hit'
-import * as SearchUIModel from './model'
+import * as Hit from '../Hit'
+import * as SearchUIModel from '../model'
 
-interface ResultsSkeletonProps {
+interface SkeletonProps {
   className?: string
   type: SearchUIModel.ResultType
 }
 
-export function ResultsSkeleton({ className, type }: ResultsSkeletonProps) {
+export function Skeleton({ className, type }: SkeletonProps) {
   const Component =
     type === SearchUIModel.ResultType.QuiltPackage
       ? Hit.PackageSkeleton
@@ -36,7 +36,7 @@ const LABELS = {
   [SearchUIModel.ResultType.S3Object]: 'objects',
 }
 
-const useEmptyResultsStyles = M.makeStyles((t) => ({
+const useEmptyStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
@@ -51,12 +51,12 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface EmptyResultsProps {
+interface EmptyProps {
   className?: string
 }
 
-export function EmptyResults({ className }: EmptyResultsProps) {
-  const classes = useEmptyResultsStyles()
+export function Empty({ className }: EmptyProps) {
+  const classes = useEmptyStyles()
   const {
     actions: { clearFilters, reset, setBuckets, setResultType },
     baseSearchQuery,
@@ -144,18 +144,14 @@ export function EmptyResults({ className }: EmptyResultsProps) {
   )
 }
 
-interface SearchErrorProps {
+interface ErrorProps {
   className?: string
   kind?: 'unexpected' | 'syntax'
   details: React.ReactNode
 }
 
-export function SearchError({
-  className,
-  kind = 'unexpected',
-  details,
-}: SearchErrorProps) {
-  const classes = useEmptyResultsStyles()
+export function Error({ className, kind = 'unexpected', details }: ErrorProps) {
+  const classes = useEmptyStyles()
   const {
     actions: { reset },
   } = SearchUIModel.use()

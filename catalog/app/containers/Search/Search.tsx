@@ -18,11 +18,11 @@ import AssistantContext from './AssistantContext'
 import BucketSelector from './Buckets'
 import FilterWidget from './FilterWidget'
 import ResultTypeSelector from './ResultType'
-import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
 import * as Views from './Views'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { OBJECT_FILTER_LABELS, PACKAGE_FILTER_LABELS } from './i18n'
+import TablePage from './TablePage'
 
 export function useMobileView() {
   const t = M.useTheme()
@@ -84,6 +84,7 @@ const useScrollToTopStyles = M.makeStyles((t) => ({
 }))
 
 export function ScrollToTop() {
+  const model = SearchUIModel.use()
   const trigger = M.useScrollTrigger({ disableHysteresis: true })
   const classes = useScrollToTopStyles()
   const onClick = React.useCallback(
@@ -92,7 +93,10 @@ export function ScrollToTop() {
   )
   return (
     <M.Fade in={!!trigger}>
-      <M.Container className={classes.root} maxWidth="lg">
+      <M.Container
+        className={classes.root}
+        maxWidth={model.state.view === SearchUIModel.View.Table ? false : 'lg'}
+      >
         <M.Fab className={classes.button} onClick={onClick} variant="extended">
           <M.Icon className={classes.icon}>expand_less</M.Icon>
           Scroll to the top
@@ -792,42 +796,6 @@ function Filters({ className }: FiltersProps) {
   )
 }
 
-const useLoadNextPageStyles = M.makeStyles((t) => ({
-  root: {
-    padding: t.spacing(1, 0),
-    display: 'flex',
-    justifyContent: 'flex-end',
-  },
-  button: {
-    background: t.palette.background.paper,
-  },
-}))
-
-interface LoadNextPageProps {
-  className: string
-  loading?: boolean
-  onClick?: () => void
-}
-
-function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps) {
-  const classes = useLoadNextPageStyles()
-  return (
-    <div className={cx(classes.root, className)}>
-      <M.Button
-        endIcon={
-          loading ? <M.CircularProgress size={16} /> : <M.Icon>expand_more</M.Icon>
-        }
-        onClick={onClick}
-        variant="outlined"
-        disabled={loading}
-        className={classes.button}
-      >
-        Load more
-      </M.Button>
-    </div>
-  )
-}
-
 function View(props: Views.ListViewProps | Views.TableViewProps) {
   const {
     state: { view },
@@ -884,7 +852,7 @@ function ResultsPage({
             latestOnly={latestOnly}
           />
         ) : (
-          <LoadNextPage className={classes.next} onClick={loadMore} />
+          <Views.Next className={classes.next} onClick={loadMore} />
         ))}
     </div>
   )
@@ -914,9 +882,11 @@ function NextPage({
       {(r) => {
         switch (r._tag) {
           case 'fetching':
-            return <LoadNextPage className={className} loading />
+            return <Views.Next className={className} loading />
           case 'error':
-            return <SearchError className={className} details={r.error.message} />
+            return (
+              <Views.NoResults.Error className={className} details={r.error.message} />
+            )
           case 'data':
             switch (r.data.__typename) {
               case 'InvalidInput':
@@ -929,7 +899,7 @@ function NextPage({
                     {err.message}
                   </>
                 )
-                return <SearchError className={className} details={details} />
+                return <Views.NoResults.Error className={className} details={details} />
               case 'PackagesSearchResultSetPage':
               case 'ObjectsSearchResultSetPage':
                 return (
@@ -963,20 +933,15 @@ function ResultsInner({ className }: ResultsInnerProps) {
 
   switch (r._tag) {
     case 'fetching':
-      switch (model.state.view) {
-        case SearchUIModel.View.List:
-          return <ResultsSkeleton className={className} type={model.state.resultType} />
-        case SearchUIModel.View.Table:
-          return <Views.TableSkeleton />
-        default:
-          assertNever(model.state.view)
-      }
+      return (
+        <Views.NoResults.Skeleton className={className} type={model.state.resultType} />
+      )
     case 'error':
-      return <SearchError className={className} details={r.error.message} />
+      return <Views.NoResults.Error className={className} details={r.error.message} />
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <EmptyResults className={className} />
+          return <Views.NoResults.Empty className={className} />
         case 'InvalidInput':
           const [err] = r.data.errors
           const kind = err.name === 'QuerySyntaxError' ? 'syntax' : 'unexpected'
@@ -990,13 +955,16 @@ function ResultsInner({ className }: ResultsInnerProps) {
                 {err.message}
               </>
             )
-          return <SearchError className={className} kind={kind} details={details} />
+          return (
+            <Views.NoResults.Error className={className} kind={kind} details={details} />
+          )
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           const latestOnly =
             model.state.resultType === SearchUIModel.ResultType.QuiltPackage
               ? model.state.latestOnly
               : true
+
           return (
             <ResultsPage
               className={className}
@@ -1116,7 +1084,12 @@ export function Results({ onFilters }: ResultsProps) {
           <SortSelector className={classes.button} />
         </div>
       </div>
-      <ResultsInner className={classes.results} />
+      {model.state.view === SearchUIModel.View.Table &&
+      model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
+        <TablePage className={classes.results} />
+      ) : (
+        <ResultsInner className={classes.results} />
+      )}
     </div>
   )
 }

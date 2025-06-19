@@ -951,7 +951,11 @@ function AddColumn({ hidden }: AddColumnProps) {
   )
 }
 
-export function TableSkeleton() {
+interface TableSkeletonProps {
+  className?: string
+}
+
+export function TableSkeleton({ className }: TableSkeletonProps) {
   const COLUMNS_LEN = 5
   const ROWS_LEN = 30
   const [head, ...body] = React.useMemo(
@@ -966,7 +970,7 @@ export function TableSkeleton() {
     [],
   )
   return (
-    <M.Table size="small">
+    <M.Table className={className} size="small">
       <M.TableHead>
         <M.TableRow>
           <M.TableCell />
