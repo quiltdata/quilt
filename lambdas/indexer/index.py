@@ -582,13 +582,14 @@ def index_manifest(
 
         total_bytes = 0
         total_files = 0
-        for total_files, entry in enumerate(manifest_entries, start=1):
+        for entry in manifest_entries:
             logger.debug("Processing manifest entry %s", entry)
             lk = entry["logical_key"]
             if lk.endswith("/"):  # XXX: do we need this?
                 # skip directories
                 logger.debug("Skipping directory entry %s", lk)
                 continue
+            total_files += 1
             total_bytes += entry["size"]
             meta = entry.get("meta")  # XXX: both system and user metadata, do we need only user?
             pk = entry["physical_keys"][0]
