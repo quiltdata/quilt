@@ -331,10 +331,7 @@ def do_index(
         s3_client,
         doc_queue,
         bucket=bucket,
-        etag=etag,
         key=key,
-        last_modified=last_modified,
-        version_id=version_id,
     ):
         logger_.debug("%s indexed as package (%s)", key, event_type)
 
@@ -472,14 +469,11 @@ def parse_s3_physical_key(pk: str):
 
 
 def index_if_pointer(
-        s3_client,
-        doc_queue: DocumentQueue,
-        *,
-        bucket: str,
-        etag: str,
-        key: str,
-        last_modified: str,
-        version_id: Optional[str],
+    s3_client,
+    doc_queue: DocumentQueue,
+    *,
+    bucket: str,
+    key: str,
 ) -> bool:
     """index manifest pointer files as package documents in ES
         Returns:
@@ -504,18 +498,16 @@ def index_if_pointer(
     except ValueError as err:
         logger.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
+    index = bucket + PACKAGE_INDEX_SUFFIX
+    pointer_doc_id = f"ptr:{hash_string(handle + '/' + pointer_file)}"  # XXX: is this ok?
+
     try:
-        manifest_hash = s3_client.get_object(
+        resp = s3_client.get_object(
             Bucket=bucket,
             Key=key,
-        )["Body"].read().decode()
+        )
     except s3_client.exceptions.NoSuchKey:
-        manifest_hash = None
-
-    index = bucket + PACKAGE_INDEX_SUFFIX
-    pointer_doc_id = f"{manifest_hash}:ptr:{hash_string(handle + '/' + pointer_file)}"  # XXX: is this ok?
-    if manifest_hash is None:
-        logger.debug("No package hash found for s3://%s/%s", bucket, key)
+        logger.debug("No pointer found: s3://%s/%s. Removing.", bucket, key)
         doc_queue.append_document(
             {
                 "_index": index,
@@ -524,24 +516,22 @@ def index_if_pointer(
             }
         )
         return False  # XXX: ???
-    else:
-        logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
-        doc_queue.append_document(
-            {
-                "_index": index,
-                "_op_type": "index",
-                "_id": pointer_doc_id,
-                "join_field": {"name": "pkg_ptr", "parent": manifest_hash},
-                "routing": manifest_hash,
-                "ptr_handle": handle,
-                "ptr_name": pointer_file,
-                # XXX: do we need these?
-                # "ptr_version_id": version_id,
-                # "ptr_etag": etag,
-                "ptr_last_modified": last_modified,  # XXX: is this ok?
-            }
-        )
-        return True
+
+    manifest_hash = resp["Body"].read().decode()
+    logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
+    doc_queue.append_document(
+        {
+            "_index": index,
+            "_op_type": "index",
+            "_id": pointer_doc_id,
+            "join_field": {"name": "ptr", "parent": manifest_hash},
+            "routing": manifest_hash,
+            "ptr_name": handle,
+            "ptr_tag": pointer_file,
+            "ptr_last_modified": resp["LastModified"],
+        }
+    )
+    return True
 
 
 def index_manifest(
@@ -549,10 +539,7 @@ def index_manifest(
     doc_queue: DocumentQueue,
     *,
     bucket: str,
-    etag: str,
     key: str,
-    last_modified: str,
-    version_id: Optional[str],
 ):
     if not key.startswith(MANIFEST_PREFIX_V1):
         logger.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
@@ -564,13 +551,14 @@ def index_manifest(
     assert len(bytes.fromhex(manifest_hash)) == 32
 
     index = bucket + PACKAGE_INDEX_SUFFIX
+    doc_id = f"mnfst:{manifest_hash}"
 
     def get_pkg_data():
         try:
-            manifest_body = s3_client.get_object(Bucket=bucket, Key=key)["Body"]
+            resp = s3_client.get_object(Bucket=bucket, Key=key)
         except s3_client.exceptions.NoSuchKey:
             return
-        manifest_entries = map(json.loads, manifest_body.iter_lines())
+        manifest_entries = map(json.loads, resp["Body"].iter_lines())
         first = next(manifest_entries, None)
         if not first:
             return
@@ -578,19 +566,15 @@ def index_manifest(
 
         yield {
             "_index": index,
-            "_id": manifest_hash,
+            "_id": doc_id,
             "_op_type": "index",
-            "join_field": {"name": "pkg"},
-            "pkg_key": key,
-            "pkg_etag": etag,
-            "pkg_version_id": version_id,
-            "pkg_last_modified": last_modified,
-            "pkg_delete_marker": False,  # TODO: remove
-            "pkg_hash": manifest_hash,
-            "pkg_metadata": json.dumps(user_meta) if user_meta else None,
-            "pkg_metadata_fields": get_metadata_fields(user_meta),
-            "pkg_comment": str(first.get("message", "")),
-            "pkg_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
+            "join_field": {"name": "mnfst"},
+            "mnfst_hash": manifest_hash,
+            "mnfst_last_modified": resp["LastModified"],
+            "mnfst_metadata": json.dumps(user_meta) if user_meta else None,
+            "mnfst_metadata_fields": get_metadata_fields(user_meta),
+            "mnfst_message": str(first.get("message", "")),
+            "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
         total_bytes = 0
@@ -610,15 +594,15 @@ def index_manifest(
             yield {
                 "_index": index,
                 "_op_type": "index",
-                "_id": f"{manifest_hash}:entry:{hash_string(entry['logical_key'])}",
-                "join_field": {"name": "pkg_entry", "parent": manifest_hash},
+                "_id": f"entry:{manifest_hash}:{hash_string(entry['logical_key'])}",
+                "join_field": {"name": "entry", "parent": manifest_hash},
                 "routing": manifest_hash,
-                "pkg_entry_lk": entry["logical_key"],
-                "pkg_entry_pk": pk,
-                "pkg_entry_pk_parsed": pk_parsed,
-                "pkg_entry_size": entry["size"],
-                "pkg_entry_hash": entry["hash"],
-                "pkg_entry_metadata": json.dumps(meta) if meta else None,
+                "entry_lk": entry["logical_key"],
+                "entry_pk": pk,
+                "entry_pk_parsed.s3": pk_parsed,
+                "entry_size": entry["size"],
+                "entry_hash": entry["hash"],
+                "entry_metadata": json.dumps(meta) if meta else None,
             }
             if pk_parsed is not None:
                 if pk_parsed["bucket"] in get_es_aliases():
@@ -627,7 +611,7 @@ def index_manifest(
                         "_op_type": "update",
                         # TODO: check version_id for non-versioned buckets
                         "_id": get_object_id(pk_parsed["key"], pk_parsed["version_id"]),
-                        "doc": {"is_packaged": True},
+                        "doc": {"was_packaged": True},
                         "doc_as_upsert": True,
                     }
                 else:
@@ -640,31 +624,31 @@ def index_manifest(
         yield {
             "_index": index,
             "_op_type": "update",
-            "_id": manifest_hash,
+            "_id": doc_id,
             "doc": {
-                "pkg_stats": {
+                "mnfst_stats": {
                     "total_bytes": total_bytes,
                     "total_files": total_files,
                 },
             },
         }
 
-    make_elastic().delete_by_query(
-        index=index,
-        body={
-            "query": {
-                "parent_id": {
-                    "type": "pkg_entry",
-                    "id": manifest_hash,
-                }
-            }
-        },
-    )
     doc_data = None
     for doc_data in get_pkg_data():
         doc_queue.append_document(doc_data)
-    # XXX: remove it with delete_by_query from above?
     if doc_data is None:
+        make_elastic().delete_by_query(
+            index=index,
+            body={
+                "query": {
+                    "parent_id": {
+                        "type": "pkg_entry",
+                        "id": manifest_hash,
+                    }
+                }
+            },
+        )
+        # XXX: remove it with delete_by_query from above?
         doc_queue.append_document(
             {
                 "_index": index,
