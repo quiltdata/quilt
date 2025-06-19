@@ -543,9 +543,14 @@ def index_manifest(
         return
 
     manifest_hash = key[len(MANIFEST_PREFIX_V1):]
-    # TODO: check properly
-    assert manifest_hash.islower()
-    assert len(bytes.fromhex(manifest_hash)) == 32
+    to_index = False
+    try:
+        to_index = manifest_hash.islower() and bytes.fromhex(manifest_hash) == 32
+    except ValueError:
+        pass
+    if not to_index:
+        logger.warning("Not indexing as manifest file s3://%s/%s because of hash %s", bucket, key, manifest_hash)
+        return
 
     index = bucket + PACKAGE_INDEX_SUFFIX
     doc_id = f"mnfst:{manifest_hash}"
