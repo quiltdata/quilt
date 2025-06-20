@@ -6,9 +6,9 @@ import assertNever from 'utils/assertNever'
 import LoadNextPage from '../LoadNextPage'
 import * as NoResults from '../NoResults'
 import * as SearchUIModel from '../model'
-import { useResults, ResultsOk } from '../useResults'
 
 import * as Views from './Table'
+import { useResults, Results } from './useResults'
 
 const useStyles = M.makeStyles((t) => ({
   next: {
@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface ResultsInnerProps {
   className?: string
-  results: ResultsOk
+  results: Extract<Results, { _tag: 'ok' }>
   singleBucket: boolean
   loadMore?: () => void
 }

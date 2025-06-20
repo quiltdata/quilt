@@ -2,11 +2,7 @@ import * as React from 'react'
 
 import assertNever from 'utils/assertNever'
 
-import * as SearchUIModel from './model'
-
-export const Loading = Symbol('Loading')
-
-export const Ok = Symbol('Ok')
+import * as SearchUIModel from '../model'
 
 interface ResultsIdle {
   _tag: 'idle'
@@ -31,13 +27,9 @@ interface ResultsFail {
   error: Error
 }
 
-export type ResultsNotFullilled =
-  | ResultsInProgress
-  | ResultsFail
-  | ResultsEmpty
-  | ResultsIdle
+type ResultsNotFullilled = ResultsInProgress | ResultsFail | ResultsEmpty | ResultsIdle
 
-export interface ResultsOk {
+interface ResultsOk {
   _tag: 'ok'
   cursor: string | null
   hits: readonly SearchUIModel.SearchHitPackage[]
