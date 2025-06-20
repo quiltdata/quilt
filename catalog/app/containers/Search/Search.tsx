@@ -17,6 +17,7 @@ import * as Format from 'utils/format'
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
 import BucketSelector from './Buckets'
+import * as Hit from './Hit'
 import FilterWidget from './FilterWidget'
 import ResultTypeSelector from './ResultType'
 import SortSelector from './Sort'
@@ -796,6 +797,45 @@ function Filters({ className }: FiltersProps) {
   )
 }
 
+interface SearchHitProps {
+  hit: SearchUIModel.SearchHit
+  showBucket: boolean
+  showRevision: boolean
+}
+
+function SearchHit({ hit, showBucket, showRevision }: SearchHitProps) {
+  switch (hit.__typename) {
+    case 'SearchHitObject':
+      return (
+        <Hit.Object
+          showBucket={showBucket}
+          hit={hit}
+          data-testid="search-hit"
+          data-search-hit-type="file"
+          data-search-hit-bucket={hit.bucket}
+          data-search-hit-path={hit.key}
+        />
+      )
+
+    case 'SearchHitPackage':
+      return (
+        <Hit.Package
+          showBucket={showBucket}
+          showRevision={showRevision}
+          hit={hit}
+          data-testid="search-hit"
+          data-search-hit-type="package"
+          data-search-hit-bucket={hit.bucket}
+          data-search-hit-package-name={hit.name}
+          data-search-hit-package-hash={hit.hash}
+        />
+      )
+
+    default:
+      assertNever(hit)
+  }
+}
+
 const useResultsPageStyles = M.makeStyles((t) => ({
   next: {
     marginTop: t.spacing(1),
@@ -827,7 +867,14 @@ function ResultsPage({
 
   return (
     <div className={className}>
-      <Views.ListView hits={hits} singleBucket={singleBucket} latestOnly={latestOnly} />
+      {hits.map((hit) => (
+        <SearchHit
+          key={hit.id}
+          hit={hit}
+          showBucket={!singleBucket}
+          showRevision={!latestOnly}
+        />
+      ))}
       {!!cursor &&
         (more ? (
           <NextPage
