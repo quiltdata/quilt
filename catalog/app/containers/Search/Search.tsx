@@ -20,9 +20,9 @@ import BucketSelector from './Buckets'
 import * as Hit from './Hit'
 import FilterWidget from './FilterWidget'
 import LoadNextPage from './LoadNextPage'
+import * as NoResults from './NoResults'
 import ResultTypeSelector from './ResultType'
 import SortSelector from './Sort'
-import * as Views from './Views'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { OBJECT_FILTER_LABELS, PACKAGE_FILTER_LABELS } from './i18n'
 import TablePage from './TablePage'
@@ -916,11 +916,9 @@ function NextPage({
       {(r) => {
         switch (r._tag) {
           case 'fetching':
-            return <Views.Next className={className} loading />
+            return <LoadNextPage className={className} loading />
           case 'error':
-            return (
-              <Views.NoResults.Error className={className} details={r.error.message} />
-            )
+            return <NoResults.Error className={className} details={r.error.message} />
           case 'data':
             switch (r.data.__typename) {
               case 'InvalidInput':
@@ -933,7 +931,7 @@ function NextPage({
                     {err.message}
                   </>
                 )
-                return <Views.NoResults.Error className={className} details={details} />
+                return <NoResults.Error className={className} details={details} />
               case 'PackagesSearchResultSetPage':
               case 'ObjectsSearchResultSetPage':
                 return (
@@ -967,15 +965,13 @@ function ResultsInner({ className }: ResultsInnerProps) {
 
   switch (r._tag) {
     case 'fetching':
-      return (
-        <Views.NoResults.Skeleton className={className} type={model.state.resultType} />
-      )
+      return <NoResults.Skeleton className={className} type={model.state.resultType} />
     case 'error':
-      return <Views.NoResults.Error className={className} details={r.error.message} />
+      return <NoResults.Error className={className} details={r.error.message} />
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <Views.NoResults.Empty className={className} />
+          return <NoResults.Empty className={className} />
         case 'InvalidInput':
           const [err] = r.data.errors
           const kind = err.name === 'QuerySyntaxError' ? 'syntax' : 'unexpected'
@@ -989,9 +985,7 @@ function ResultsInner({ className }: ResultsInnerProps) {
                 {err.message}
               </>
             )
-          return (
-            <Views.NoResults.Error className={className} kind={kind} details={details} />
-          )
+          return <NoResults.Error className={className} kind={kind} details={details} />
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           const latestOnly =

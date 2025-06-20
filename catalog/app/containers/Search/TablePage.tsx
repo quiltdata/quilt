@@ -3,8 +3,9 @@ import * as M from '@material-ui/core'
 
 import assertNever from 'utils/assertNever'
 
-import * as Views from './Views'
 import LoadNextPage from './LoadNextPage'
+import * as NoResults from './NoResults'
+import * as Views from './Views'
 import * as SearchUIModel from './model'
 import { useResults, ResultsOk } from './useResults'
 
@@ -50,11 +51,9 @@ export default function TablePage({ className }: TablePageProps) {
     case 'in-progress':
       return <Views.TableSkeleton className={className} />
     case 'fail':
-      return (
-        <Views.NoResults.Error className={className} details={results.error.message} />
-      )
+      return <NoResults.Error className={className} details={results.error.message} />
     case 'empty':
-      return <Views.NoResults.Empty className={className} />
+      return <NoResults.Empty className={className} />
     case 'ok':
       return (
         <ResultsInner
