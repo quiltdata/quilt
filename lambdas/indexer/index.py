@@ -546,7 +546,7 @@ def index_manifest(
     manifest_hash = key[len(MANIFEST_PREFIX_V1):]
     to_index = False
     try:
-        to_index = manifest_hash.islower() and bytes.fromhex(manifest_hash) == 32
+        to_index = manifest_hash.islower() and len(bytes.fromhex(manifest_hash)) == 32
     except ValueError:
         pass
     if not to_index:
