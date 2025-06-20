@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import invariant from 'invariant'
 import * as React from 'react'
+import { useDebouncedCallback } from 'use-debounce'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -783,7 +784,6 @@ function Filters({ className }: FiltersProps) {
   const model = SearchUIModel.use()
   return (
     <div className={cx(classes.root, className)}>
-      <ColumnTitle>Search for</ColumnTitle>
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -1086,6 +1086,7 @@ const useStyles = M.makeStyles((t) => ({
       alignItems: 'start',
       display: 'grid',
       gridColumnGap: t.spacing(2),
+      gridRowGap: t.spacing(2),
       gridTemplateColumns: `${t.spacing(40)}px auto`,
     },
     padding: t.spacing(3),
@@ -1098,6 +1099,10 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: '2px',
     top: '10px',
+  },
+  search: {
+    gridColumnEnd: '3',
+    gridColumnStart: '1',
   },
   [SearchUIModel.View.Table]: {
     animation: t.transitions.create('$expand'),
@@ -1128,12 +1133,40 @@ function SearchLayout() {
   const classes = useStyles()
   const isMobile = useMobileView()
   const [showFilters, setShowFilters] = React.useState(false)
+
+  const [query, setQuery] = React.useState(model.state.searchString || '')
+  const onChange = useDebouncedCallback(model.actions.setSearchString, 500)
+  const handleChange = React.useCallback(
+    (event) => {
+      setQuery(event.target.value)
+      onChange(event.target.value)
+    },
+    [onChange],
+  )
+
   return (
     <M.Container
       className={cx(classes.root, classes[model.state.view])}
       maxWidth={model.state.view === SearchUIModel.View.Table ? false : 'lg'}
     >
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
+      <M.TextField
+        autoFocus
+        className={classes.search}
+        fullWidth
+        onChange={handleChange}
+        placeholder="Search"
+        size="small"
+        value={query}
+        variant="outlined"
+        InputProps={{
+          startAdornment: (
+            <M.InputAdornment position="start">
+              <M.Icon>search</M.Icon>
+            </M.InputAdornment>
+          ),
+        }}
+      />
       {isMobile ? (
         <M.Drawer anchor="left" open={showFilters} onClose={() => setShowFilters(false)}>
           <Filters className={classes.filtersMobile} />
