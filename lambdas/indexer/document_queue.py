@@ -24,6 +24,7 @@ EVENT_PREFIX = {
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
+CHUNK_LIMIT_DOCS = 100
 MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
@@ -80,7 +81,6 @@ class DocumentQueue:
         self.context = context
         self.es = es
 
-
     def append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
         logger_ = get_quilt_logger()
@@ -93,7 +93,7 @@ class DocumentQueue:
         logger_.debug("Appending document %s", doc)
         self.queue.append(doc)
 
-        if self.size >= QUEUE_LIMIT_BYTES:
+        if len(self.queue) >= CHUNK_LIMIT_DOCS or self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
     def send_all(self):
@@ -172,7 +172,7 @@ def bulk_send(elastic, list_, *, max_backoff):
         list_,
         # Some magic numbers to reduce memory pressure
         # e.g. see https://github.com/wagtail/wagtail/issues/4554
-        chunk_size=100,  # max number of documents sent in one chunk
+        chunk_size=CHUNK_LIMIT_DOCS,  # max number of documents sent in one chunk
         # The stated default is max_chunk_bytes=10485760, but with default
         # ES will still return an exception stating that the very
         # same request size limit has been exceeded
