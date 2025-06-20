@@ -3,11 +3,12 @@ import * as M from '@material-ui/core'
 
 import assertNever from 'utils/assertNever'
 
-import LoadNextPage from './LoadNextPage'
-import * as NoResults from './NoResults'
-import * as Views from './Views'
-import * as SearchUIModel from './model'
-import { useResults, ResultsOk } from './useResults'
+import LoadNextPage from '../LoadNextPage'
+import * as NoResults from '../NoResults'
+import * as SearchUIModel from '../model'
+import { useResults, ResultsOk } from '../useResults'
+
+import * as Views from './Table'
 
 const useStyles = M.makeStyles((t) => ({
   next: {

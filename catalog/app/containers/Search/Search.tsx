@@ -25,7 +25,7 @@ import ResultTypeSelector from './ResultType'
 import SortSelector from './Sort'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from './constants'
 import { OBJECT_FILTER_LABELS, PACKAGE_FILTER_LABELS } from './i18n'
-import TablePage from './TablePage'
+import TableResults from './Table'
 
 export function useMobileView() {
   const t = M.useTheme()
@@ -1114,7 +1114,7 @@ export function Results({ onFilters }: ResultsProps) {
       </div>
       {model.state.view === SearchUIModel.View.Table &&
       model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
-        <TablePage className={classes.results} />
+        <TableResults className={classes.results} />
       ) : (
         <ResultsInner className={classes.results} />
       )}
