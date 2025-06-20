@@ -515,14 +515,15 @@ def index_if_pointer(
         return False  # XXX: ???
 
     manifest_hash = resp["Body"].read().decode()
+    manifest_doc_id = f"mnfst:{manifest_hash}"
     logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
     doc_queue.append_document(
         {
             "_index": index,
             "_op_type": "index",
             "_id": pointer_doc_id,
-            "join_field": {"name": "ptr", "parent": manifest_hash},
-            "routing": manifest_hash,
+            "join_field": {"name": "ptr", "parent": manifest_doc_id},
+            "routing": manifest_doc_id,
             "ptr_name": handle,
             "ptr_tag": pointer_file,
             "ptr_last_modified": resp["LastModified"],
@@ -599,8 +600,8 @@ def index_manifest(
                 "_index": index,
                 "_op_type": "index",
                 "_id": f"entry:{manifest_hash}:{hash_string(entry['logical_key'])}",
-                "join_field": {"name": "entry", "parent": manifest_hash},
-                "routing": manifest_hash,
+                "join_field": {"name": "entry", "parent": doc_id},
+                "routing": doc_id,
                 "entry_lk": entry["logical_key"],
                 "entry_pk": pk,
                 "entry_pk_parsed.s3": pk_parsed,
@@ -648,7 +649,7 @@ def index_manifest(
                 "query": {
                     "parent_id": {
                         "type": "entry",
-                        "id": manifest_hash,
+                        "id": doc_id,
                     }
                 }
             },
@@ -658,7 +659,7 @@ def index_manifest(
             {
                 "_index": index,
                 "_op_type": "delete",
-                "_id": manifest_hash,
+                "_id": doc_id,
             }
         )
 
