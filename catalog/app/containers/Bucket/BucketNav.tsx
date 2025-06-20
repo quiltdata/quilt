@@ -5,10 +5,13 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import * as AuthSelectors from 'containers/Auth/selectors'
+import * as SearchUIModel from 'containers/Search/model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-const useStyles = M.makeStyles((t) => ({
+import Stats from './Stats'
+
+const useNavTabStyles = M.makeStyles((t) => ({
   root: {
     minHeight: t.spacing(8),
     minWidth: 120,
@@ -18,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
 type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
 
 function NavTab(props: NavTabProps) {
-  const classes = useStyles()
+  const classes = useNavTabStyles()
 
   return <M.Tab className={classes.root} component={Link} {...props} />
 }
@@ -51,6 +54,18 @@ function BucketNavSkeleton() {
   )
 }
 
+function useSearchUIModel() {
+  return React.useContext(SearchUIModel.Context)
+}
+
+const useTabsStyles = M.makeStyles({
+  root: {
+    display: 'flex ',
+    justifyContent: 'space-between',
+  },
+  stats: {},
+})
+
 interface TabsProps {
   bucket: string
   preferences: BucketPreferences.NavPreferences
@@ -62,43 +77,64 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const classes = useTabsStyles()
   return (
-    <M.Tabs
-      value={section}
-      centered={!sm}
-      variant={sm ? 'scrollable' : 'standard'}
-      scrollButtons="auto"
-    >
-      <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
-      {preferences.files && (
-        <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
-      )}
-      {preferences.workflows && (
-        <NavTab
-          label="Workflows"
-          value="workflows"
-          to={urls.bucketWorkflowList(bucket)}
-        />
-      )}
-      {preferences.packages && (
-        <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
-      )}
-      {preferences.queries && authenticated && (
-        <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
-      )}
-      {preferences.queries && (section === 'queries' || section === 'es') && (
-        <NavTab label="ElasticSearch" value="es" to={urls.bucketESQueries(bucket)} />
-      )}
-    </M.Tabs>
+    <div className={classes.root}>
+      <Stats bucket={bucket} className={classes.stats} />
+      <M.Tabs
+        value={section}
+        // centered={!sm}
+        variant={sm ? 'scrollable' : 'standard'}
+        scrollButtons="auto"
+      >
+        <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
+        {preferences.files && (
+          <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
+        )}
+        {preferences.workflows && (
+          <NavTab
+            label="Workflows"
+            value="workflows"
+            to={urls.bucketWorkflowList(bucket)}
+          />
+        )}
+        {preferences.packages && (
+          <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
+        )}
+        {preferences.queries && authenticated && (
+          <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
+        )}
+        {preferences.queries && (section === 'queries' || section === 'es') && (
+          <NavTab label="ElasticSearch" value="es" to={urls.bucketESQueries(bucket)} />
+        )}
+      </M.Tabs>
+    </div>
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  appBar: {
+    backgroundColor: t.palette.common.white,
+    color: t.palette.getContrastText(t.palette.common.white),
+  },
+}))
+
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
+  const classes = useStyles()
+  const searchUIModel = useSearchUIModel()
   const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { nav } }) => (
-        <Tabs bucket={bucket} preferences={nav} section={section} />
+        <M.AppBar position="static" className={classes.appBar}>
+          <M.Container
+            maxWidth={
+              searchUIModel?.state.view === SearchUIModel.View.Table ? false : 'lg'
+            }
+          >
+            <Tabs bucket={bucket} preferences={nav} section={section} />
+          </M.Container>
+        </M.AppBar>
       ),
       Pending: () => <BucketNavSkeleton />,
       Init: () => null,

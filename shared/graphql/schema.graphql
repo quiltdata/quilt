@@ -311,6 +311,8 @@ enum SearchResultOrder {
   BEST_MATCH
   NEWEST
   OLDEST
+  LEX_ASC
+  LEX_DESC
 }
 
 type DatetimeExtents {
@@ -492,11 +494,15 @@ type SearchHitObject {
 type SearchHitPackage {
   id: ID!
   bucket: String!
-  score: Float!
+  score: Float! # aggregated score, including entries?
   size: Float!
   modified: Datetime!
 
+  totalEntriesCount: Int!
+  matchingEntriesCount: Int!
+
   name: String!
+  pointer: String!
   hash: String!
 
   # specific props
@@ -504,6 +510,33 @@ type SearchHitPackage {
   meta: JsonRecord # user_meta
   workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
+
+  matchLocations: SearchHitPackageMatchLocations!
+  matchingEntries: [SearchHitPackageMatchingEntry!]!
+}
+
+type SearchHitPackageMatchLocations {
+  name: Boolean!
+  comment: Boolean!
+  meta: Boolean!
+  workflow: Boolean!
+}
+
+type SearchHitPackageMatchingEntry {
+  logicalKey: String!
+  meta: JsonRecord
+  # 32-bit Int is too small to represent file size which quite often exceeds several GB
+  size: Float!
+  physicalKey: String!
+  # XXX: last modified?
+  matchLocations: SearchHitPackageEntryMatchLocations!
+}
+
+type SearchHitPackageEntryMatchLocations {
+  logicalKey: Boolean!
+  meta: Boolean!
+  physicalKey: Boolean!
+  contents: Boolean!
 }
 
 type SubscriptionState {
