@@ -48,6 +48,7 @@ See docs/EventBridge.md for more
 
 import datetime
 import functools
+import hashlib
 import json
 import os
 import pathlib
@@ -59,8 +60,10 @@ from urllib.parse import unquote_plus
 
 import boto3
 import botocore
+import elasticsearch
 import jsonpointer
 import nbformat
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 from dateutil.tz import tzutc
 from document_queue import (
     EVENT_PREFIX,
@@ -68,6 +71,7 @@ from document_queue import (
     DocumentQueue,
     get_content_index_bytes,
     get_content_index_extensions,
+    get_object_id,
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
 from pdfminer.high_level import extract_text as extract_pdf_text
@@ -174,10 +178,42 @@ TEST_EVENT = "s3:TestEvent"
 #  lambda in order to display accurate analytics in the Quilt catalog
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
+ELASTIC_TIMEOUT = 30
 
 
 logger = get_quilt_logger()
 s3_client = boto3.client("s3", config=botocore.config.Config(user_agent_extra=USER_AGENT_EXTRA))
+
+
+@functools.cache
+def make_elastic():
+    elastic_host = os.environ["ES_HOST"]
+    session = boto3.session.Session()
+    credentials = session.get_credentials().get_frozen_credentials()
+    awsauth = AWSRequestsAuth(
+        # These environment variables are automatically set by Lambda
+        aws_access_key=credentials.access_key,
+        aws_secret_access_key=credentials.secret_key,
+        aws_token=credentials.token,
+        aws_host=elastic_host,
+        aws_region=session.region_name,
+        aws_service="es"
+    )
+
+    return elasticsearch.Elasticsearch(
+        hosts=[{"host": elastic_host, "port": 443}],
+        http_auth=awsauth,
+        # Give ES time to respond when under load
+        timeout=ELASTIC_TIMEOUT,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=elasticsearch.RequestsHttpConnection
+    )
+
+
+@functools.cache
+def get_es_aliases() -> frozenset[str]:
+    return frozenset(a for k, v in make_elastic().indices.get_alias().items() for a in v["aliases"])
 
 
 def now_like_boto3():
@@ -186,6 +222,10 @@ def now_like_boto3():
         'LastModified': datetime.datetime(2019, 11, 6, 3, 1, 16, tzinfo=tzutc()),
     """
     return datetime.datetime.now(tz=tzutc())
+
+
+def hash_string(s: str) -> str:
+    return hashlib.sha256(s.encode()).hexdigest()
 
 
 def get_compression(ext: str):
@@ -233,6 +273,7 @@ def should_retry_exception(exception):
     return False
 
 
+# TODO: remove
 @retry(
     stop=stop_after_attempt(MAX_RETRY),
     wait=wait_exponential(multiplier=2, min=4, max=10),
@@ -272,7 +313,8 @@ def do_index(
     logger_ = get_quilt_logger()
     # index as object (always)
     logger_.debug("%s to indexing queue (%s)", key, event_type)
-    doc_queue.append(
+    index_object(
+        doc_queue=doc_queue,
         event_type=event_type,
         bucket=bucket,
         ext=ext,
@@ -285,16 +327,20 @@ def do_index(
         s3_tags=s3_tags,
     )
     # maybe index as package
-    if index_if_package(
+    if index_if_pointer(
         s3_client,
         doc_queue,
         bucket=bucket,
-        etag=etag,
         key=key,
-        last_modified=last_modified,
-        version_id=version_id,
     ):
         logger_.debug("%s indexed as package (%s)", key, event_type)
+
+    index_manifest(
+        s3_client,
+        doc_queue,
+        bucket=bucket,
+        key=key,
+    )
 
 
 def _try_parse_date(s: str) -> Optional[datetime.datetime]:
@@ -385,22 +431,52 @@ def _prepare_workflow_for_es(workflow, bucket):
         return None
 
 
-def index_if_package(
-        s3_client,
-        doc_queue: DocumentQueue,
-        *,
-        bucket: str,
-        etag: str,
-        key: str,
-        last_modified: str,
-        version_id: Optional[str],
+def read_manifest_entries(s3_client, bucket: str, key: str):
+    try:
+        body = s3_client.get_object(Bucket=bucket, Key=key)["Body"]
+        return map(json.loads, body.iter_lines())
+    except (botocore.exceptions.ClientError, json.JSONDecodeError) as cle:
+        print(f"Unable to S3 select manifest: {cle}")
+
+    return None
+
+
+def parse_s3_physical_key(pk: str):
+    parsed = urllib.parse.urlparse(pk)
+    if parsed.scheme != "s3":
+        logger.warning("Expected S3 URL, got %s", pk)
+        return
+    if not (bucket := parsed.netloc):
+        logger.warning("Expected S3 bucket, got %s", pk)
+        return
+    assert not parsed.path or parsed.path.startswith("/")
+    path = urllib.parse.unquote(parsed.path)[1:]
+    # Parse the version ID the way the Java SDK does:
+    # https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3URI.java#L192
+    query = urllib.parse.parse_qs(parsed.query)
+    version_id = query.pop("versionId", [None])[0]
+    if query:
+        logger.warning("Unexpected S3 query string: %s in %s", parsed.query, pk)
+        return
+    return {
+        "bucket": bucket,
+        "key": path,
+        "version_id": version_id,
+    }
+
+
+def index_if_pointer(
+    s3_client,
+    doc_queue: DocumentQueue,
+    *,
+    bucket: str,
+    key: str,
 ) -> bool:
     """index manifest pointer files as package documents in ES
         Returns:
             - True if pointer to manifest (and passes to doc_queue for indexing)
             - False if not a manifest (no attempt at indexing)
     """
-    logger_ = get_quilt_logger()
     pointer_prefix, pointer_file = split(key)
     handle = pointer_prefix[len(POINTER_PREFIX_V1):]
     if (
@@ -409,60 +485,252 @@ def index_if_package(
             or len(handle) < 3
             or '/' not in handle
     ):
-        logger_.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
+        logger.debug("Not indexing as pointer s3://%s/%s", bucket, key)
         return False
     try:
         manifest_timestamp = int(pointer_file)
         if not 1451631600 <= manifest_timestamp <= 1767250800:
-            logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
+            logger.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
     except ValueError as err:
-        logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
+        logger.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
+
+    index = bucket + PACKAGE_INDEX_SUFFIX
+    pointer_doc_id = f"ptr:{hash_string(handle + '/' + pointer_file)}"  # XXX: is this ok?
+
+    try:
+        resp = s3_client.get_object(
+            Bucket=bucket,
+            Key=key,
+        )
+    except s3_client.exceptions.NoSuchKey:
+        logger.debug("No pointer found: s3://%s/%s. Removing.", bucket, key)
+        doc_queue.append_document(
+            {
+                "_index": index,
+                "_op_type": "delete",
+                "_id": pointer_doc_id,
+            }
+        )
+        return False  # XXX: ???
+
+    manifest_hash = resp["Body"].read().decode()
+    manifest_doc_id = f"mnfst:{manifest_hash}"
+    logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
+    doc_queue.append_document(
+        {
+            "_index": index,
+            "_op_type": "index",
+            "_id": pointer_doc_id,
+            "join_field": {"name": "ptr", "parent": manifest_doc_id},
+            "routing": manifest_doc_id,
+            "ptr_name": handle,
+            "ptr_tag": pointer_file,
+            "ptr_last_modified": resp["LastModified"],
+        }
+    )
+    return True
+
+
+def index_manifest(
+    s3_client,
+    doc_queue: DocumentQueue,
+    *,
+    bucket: str,
+    key: str,
+):
+    if not key.startswith(MANIFEST_PREFIX_V1):
+        logger.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
+        return
+
+    manifest_hash = key[len(MANIFEST_PREFIX_V1):]
+    to_index = False
+    try:
+        to_index = manifest_hash.islower() and len(bytes.fromhex(manifest_hash)) == 32
+    except ValueError:
+        pass
+    if not to_index:
+        logger.warning("Not indexing as manifest file s3://%s/%s because of hash %s", bucket, key, manifest_hash)
+        return
+
+    index = bucket + PACKAGE_INDEX_SUFFIX
+    doc_id = f"mnfst:{manifest_hash}"
 
     def get_pkg_data():
         try:
-            package_hash = s3_client.get_object(
-                Bucket=bucket,
-                Key=key,
-            )['Body'].read().decode()
-        except botocore.exceptions.ClientError:
+            resp = s3_client.get_object(Bucket=bucket, Key=key)
+        except s3_client.exceptions.NoSuchKey:
+            logger.debug("No manifest found: s3://%s/%s.", bucket, key)
             return
-
-        manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
-        first = select_manifest_meta(s3_client, bucket, manifest_key)
+        manifest_entries = map(json.loads, resp["Body"].iter_lines())
+        first = next(manifest_entries, None)
         if not first:
             return
-        stats = select_package_stats(bucket, manifest_key)
-        if not stats:
-            return
-
         user_meta = first.get("user_meta")
 
-        return {
-            "key": key,
-            "etag": etag,
-            "version_id": version_id,
-            "last_modified": last_modified,
-            "delete_marker": False,  # TODO: remove
-            "handle": handle,
-            "pointer_file": pointer_file,
-            "hash": package_hash,
-            "package_stats": stats,
-            "metadata": json.dumps(user_meta) if user_meta else None,
-            "metadata_fields": get_metadata_fields(user_meta),
-            "comment": str(first.get("message", "")),
-            "workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
+        yield {
+            "_index": index,
+            "_id": doc_id,
+            "_op_type": "index",
+            "join_field": {"name": "mnfst"},
+            "mnfst_hash": manifest_hash,
+            "mnfst_last_modified": resp["LastModified"],
+            "mnfst_metadata": json.dumps(user_meta) if user_meta else None,
+            "mnfst_metadata_fields": get_metadata_fields(user_meta),
+            "mnfst_message": str(first.get("message", "")),
+            "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
-    data = get_pkg_data() or {}
-    doc_queue.append_document({
-        "_index": bucket + PACKAGE_INDEX_SUFFIX,
-        "_id": key,
-        "_op_type": "index" if data else "delete",
-        **data,
-    })
+        total_bytes = 0
+        total_files = 0
+        for entry in manifest_entries:
+            logger.debug("Processing manifest entry %s", entry)
+            lk = entry["logical_key"]
+            if lk.endswith("/"):  # XXX: do we need this?
+                # skip directories
+                logger.debug("Skipping directory entry %s", lk)
+                continue
+            total_files += 1
+            total_bytes += entry["size"]
+            meta = entry.get("meta")  # XXX: both system and user metadata, do we need only user?
+            pk = entry["physical_keys"][0]
+            pk_parsed = parse_s3_physical_key(pk)
 
-    return True
+            yield {
+                "_index": index,
+                "_op_type": "index",
+                "_id": f"entry:{manifest_hash}:{hash_string(entry['logical_key'])}",
+                "join_field": {"name": "entry", "parent": doc_id},
+                "routing": doc_id,
+                "entry_lk": entry["logical_key"],
+                "entry_pk": pk,
+                "entry_pk_parsed.s3": pk_parsed,
+                "entry_size": entry["size"],
+                "entry_hash": entry["hash"],
+                "entry_metadata": json.dumps(meta) if meta else None,
+            }
+            if pk_parsed is not None:
+                if pk_parsed["bucket"] in get_es_aliases():
+                    yield {
+                        "_index": pk_parsed["bucket"],
+                        "_op_type": "update",
+                        # TODO: check version_id for non-versioned buckets
+                        "_id": get_object_id(pk_parsed["key"], pk_parsed["version_id"]),
+                        "doc": {"was_packaged": True},
+                        "doc_as_upsert": True,
+                    }
+                else:
+                    logger.warning(
+                        "Bucket %s is not an alias, skipping entry %s",
+                        pk_parsed["bucket"],
+                        entry,
+                    )
+
+        yield {
+            "_index": index,
+            "_op_type": "update",
+            "_id": doc_id,
+            "doc": {
+                "mnfst_stats": {
+                    "total_bytes": total_bytes,
+                    "total_files": total_files,
+                },
+            },
+        }
+
+    doc_data = None
+    for doc_data in get_pkg_data():
+        doc_queue.append_document(doc_data)
+    if doc_data is None:
+        logger.debug("No manifest entries found for s3://%s/%s. Removing.", bucket, key)
+        make_elastic().delete_by_query(
+            index=index,
+            body={
+                "query": {
+                    "parent_id": {
+                        "type": "entry",
+                        "id": doc_id,
+                    }
+                }
+            },
+        )
+        # XXX: remove it with delete_by_query from above?
+        doc_queue.append_document(
+            {
+                "_index": index,
+                "_op_type": "delete",
+                "_id": doc_id,
+            }
+        )
+
+    # return doc_data is not None
+
+
+def index_object(
+    *,
+    doc_queue: DocumentQueue,
+    bucket: str,
+    key: str,
+    etag: str,
+    last_modified: str,
+    size: int,
+    text: str,
+    event_type: str,
+    ext: str,
+    version_id,
+    s3_tags,
+):
+    """format event as a document and then queue the document"""
+    if not bucket or not key:
+        raise ValueError(f"bucket={bucket} or key={key} required but missing")
+    is_delete_marker = False
+    if event_type.startswith(EVENT_PREFIX["Created"]):
+        _op_type = "update"
+    elif event_type.startswith(EVENT_PREFIX["Removed"]):
+        _op_type = "delete"
+        if event_type.endswith("DeleteMarkerCreated"):
+            is_delete_marker = True
+            # we index (not delete) delete markers to sync state with S3
+            _op_type = "index"
+    else:
+        logger.error("Skipping unrecognized event type %s", event_type)
+        return
+    # On types and fields, see
+    # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
+    # Set common properties on the document
+    # BE CAREFUL changing these values, as type changes or missing fields
+    # can cause exceptions from ES
+    # ensure the same versionId and primary keys (_id) as given by
+    #  list-object-versions in the enterprise bulk_scanner
+    version_id = version_id or "null"
+    # core properties for all document types;
+    # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
+    data = {
+        "etag": etag,
+        "key": key,
+        "last_modified": last_modified,
+        "size": size,
+        "delete_marker": is_delete_marker,
+        "version_id": version_id,
+        "content": text,  # field for full-text search
+        "event": event_type,
+        "ext": ext,
+        "updated": datetime.datetime.utcnow().isoformat(),
+        "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
+    }
+    body = {
+        "_index": bucket,
+        "_op_type": _op_type,  # determines if action is upsert (index) or delete
+        "_id": get_object_id(key, version_id),
+    }
+    if _op_type == "update":
+        body.update(
+            doc=data,
+            doc_as_upsert=True,
+        )
+    else:
+        body.update(data)
+    doc_queue.append_document(body)
 
 
 @functools.lru_cache(maxsize=None)
@@ -480,6 +748,7 @@ def get_presigner_client(bucket: str):
     )
 
 
+# TODO: remove
 def select_package_stats(bucket, manifest_key) -> Optional[dict]:
     """use s3 select to generate file stats for package"""
     logger_ = get_quilt_logger()
@@ -798,7 +1067,7 @@ def handler(event, context):
     # An exception that we'll want to re-raise after the batch sends
     # TODO: handle s3:ObjectTagging:* events to keep s3_tags updated
     content_exception = None
-    batch_processor = DocumentQueue(context)
+    batch_processor = DocumentQueue(context, make_elastic())
     s3_client = make_s3_client()
     for message in event["Records"]:
         body = json.loads(message["body"])

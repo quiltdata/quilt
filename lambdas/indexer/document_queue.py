@@ -3,12 +3,8 @@ sending to elastic search in memory-limited batches"""
 import functools
 import json
 import os
-from datetime import datetime
 from math import floor
 
-import boto3
-from aws_requests_auth.aws_auth import AWSRequestsAuth
-from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
 from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
@@ -28,7 +24,6 @@ EVENT_PREFIX = {
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
-ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
@@ -57,7 +52,7 @@ def get_content_index_bytes(*, bucket_name: str):
     return ELASTIC_LIMIT_BYTES if content_index_bytes is None else content_index_bytes
 
 
-def get_id(key, version_id):
+def get_object_id(key, version_id):
     """
     Generate unique value for every object in the bucket to be used as
     document `_id`. This value must not exceed 512 bytes in size:
@@ -78,70 +73,13 @@ class RetryError(Exception):
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
-    def __init__(self, context):
+    def __init__(self, context, es):
         """constructor"""
         self.queue = []
         self.size = 0
         self.context = context
+        self.es = es
 
-    def append(
-        self,
-        *,
-        bucket: str,
-        key: str,
-        etag: str,
-        last_modified: str,
-        size: int,
-        text: str,
-        event_type: str,
-        ext: str,
-        version_id,
-        s3_tags,
-    ):
-        """format event as a document and then queue the document"""
-        logger_ = get_quilt_logger()
-        if not bucket or not key:
-            raise ValueError(f"bucket={bucket} or key={key} required but missing")
-        is_delete_marker = False
-        if event_type.startswith(EVENT_PREFIX["Created"]):
-            _op_type = "index"
-        elif event_type.startswith(EVENT_PREFIX["Removed"]):
-            _op_type = "delete"
-            if event_type.endswith("DeleteMarkerCreated"):
-                is_delete_marker = True
-                # we index (not delete) delete markers to sync state with S3
-                _op_type = "index"
-        else:
-            logger_.error("Skipping unrecognized event type %s", event_type)
-            return
-        # On types and fields, see
-        # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
-        # Set common properties on the document
-        # BE CAREFUL changing these values, as type changes or missing fields
-        # can cause exceptions from ES
-        # ensure the same versionId and primary keys (_id) as given by
-        #  list-object-versions in the enterprise bulk_scanner
-        version_id = version_id or "null"
-        # core properties for all document types;
-        # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
-        body = {
-            "_index": bucket,
-            "_op_type": _op_type,  # determines if action is upsert (index) or delete
-            "_id": get_id(key, version_id),
-            "etag": etag,
-            "key": key,
-            "last_modified": last_modified,
-            "size": size,
-            "delete_marker": is_delete_marker,
-            "version_id": version_id,
-            "content": text,  # field for full-text search
-            "event": event_type,
-            "ext": ext,
-            "updated": datetime.utcnow().isoformat(),
-            "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
-        }
-
-        self.append_document(body)
 
     def append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
@@ -158,42 +96,19 @@ class DocumentQueue:
         if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
-    def _make_elastic(self):
-        """create elasticsearch client"""
-        elastic_host = os.environ["ES_HOST"]
-        session = boto3.session.Session()
-        credentials = session.get_credentials().get_frozen_credentials()
-        awsauth = AWSRequestsAuth(
-            # These environment variables are automatically set by Lambda
-            aws_access_key=credentials.access_key,
-            aws_secret_access_key=credentials.secret_key,
-            aws_token=credentials.token,
-            aws_host=elastic_host,
-            aws_region=session.region_name,
-            aws_service="es"
-        )
-
-        return Elasticsearch(
-            hosts=[{"host": elastic_host, "port": 443}],
-            http_auth=awsauth,
-            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
-            # Give ES time to respond when under load
-            timeout=ELASTIC_TIMEOUT,
-            use_ssl=True,
-            verify_certs=True,
-            connection_class=RequestsHttpConnection
-        )
-
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
         if not self.queue:
             return
-        elastic = self._make_elastic()
         # For response format see
         # https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
         # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
         # note that `elasticsearch` post-processes this response
-        _, errors = bulk_send(elastic, self.queue)
+        _, errors = bulk_send(
+            self.es,
+            self.queue,
+            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+        )
         if errors:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
@@ -221,7 +136,11 @@ class DocumentQueue:
                     send_again = self.queue
             # Last retry (though elasticsearch might retry 429s tho)
             if send_again:
-                _, errors = bulk_send(elastic, send_again)
+                _, errors = bulk_send(
+                    self.es,
+                    send_again,
+                    max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+                )
                 if errors:
                     raise RetryError(
                         "Failed to load messages into Elastic on second retry.\n"
@@ -244,7 +163,7 @@ def get_time_remaining(context):
     return time_remaining
 
 
-def bulk_send(elastic, list_):
+def bulk_send(elastic, list_, *, max_backoff):
     """make a bulk() call to elastic"""
     logger_ = get_quilt_logger()
     logger_.debug("bulk_send(): %s", list_)
@@ -263,5 +182,6 @@ def bulk_send(elastic, list_):
         max_retries=RETRY_429,
         # we'll process errors on our own
         raise_on_error=False,
-        raise_on_exception=False
+        raise_on_exception=False,
+        max_backoff=max_backoff,
     )

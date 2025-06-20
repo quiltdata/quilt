@@ -892,7 +892,7 @@ class TestIndex(TestCase):
             },
         )
 
-        index.index_if_package(
+        index.index_if_pointer(
             self.s3_client,
             index.DocumentQueue(None),
             bucket=bucket,
@@ -927,7 +927,7 @@ class TestIndex(TestCase):
             },
         )
 
-        index.index_if_package(
+        index.index_if_pointer(
             self.s3_client,
             index.DocumentQueue(None),
             bucket=bucket,
@@ -967,7 +967,7 @@ class TestIndex(TestCase):
             },
         )
 
-        index.index_if_package(
+        index.index_if_pointer(
             self.s3_client,
             index.DocumentQueue(None),
             bucket=bucket,
@@ -1011,7 +1011,7 @@ class TestIndex(TestCase):
             },
         )
 
-        index.index_if_package(
+        index.index_if_pointer(
             self.s3_client,
             index.DocumentQueue(None),
             bucket=bucket,
@@ -1054,7 +1054,7 @@ class TestIndex(TestCase):
         # none of these should index due to out-of-range timestamp or non-integer name
         for file_name in [1451631500, 1767250801]:
             key = f".quilt/named_packages/foo/bar/{file_name}"
-            assert not index.index_if_package(
+            assert not index.index_if_pointer(
                 self.s3_client,
                 index.DocumentQueue(None),
                 bucket="quilt-example",
@@ -1074,7 +1074,7 @@ class TestIndex(TestCase):
                 ".quilt/named_packages/",
                 f"somewhere/else/foo/bar/{floor(time())}",
         ]:
-            assert not index.index_if_package(
+            assert not index.index_if_pointer(
                 self.s3_client,
                 index.DocumentQueue(None),
                 bucket="quilt-example",
