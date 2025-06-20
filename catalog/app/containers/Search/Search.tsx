@@ -796,20 +796,6 @@ function Filters({ className }: FiltersProps) {
   )
 }
 
-function View(props: Views.ListViewProps | Views.TableViewProps) {
-  const {
-    state: { view },
-  } = SearchUIModel.use()
-  switch (view) {
-    case SearchUIModel.View.List:
-      return <Views.ListView {...(props as Views.ListViewProps)} />
-    case SearchUIModel.View.Table:
-      return <Views.TableView {...(props as Views.TableViewProps)} />
-    default:
-      assertNever(view)
-  }
-}
-
 const useResultsPageStyles = M.makeStyles((t) => ({
   next: {
     marginTop: t.spacing(1),
@@ -841,7 +827,7 @@ function ResultsPage({
 
   return (
     <div className={className}>
-      <View hits={hits} singleBucket={singleBucket} latestOnly={latestOnly} />
+      <Views.ListView hits={hits} singleBucket={singleBucket} latestOnly={latestOnly} />
       {!!cursor &&
         (more ? (
           <NextPage

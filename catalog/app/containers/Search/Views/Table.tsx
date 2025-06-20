@@ -100,7 +100,16 @@ interface TableViewUserMetaProps {
 }
 
 function UserMetaValue({ meta, pointer }: TableViewUserMetaProps) {
-  if (!isJsonRecord(meta))
+  const value = React.useMemo(() => {
+    try {
+      if (!isJsonRecord(meta)) return new Error('Meta must be object')
+      return jsonpath.value(meta, JSONPointer.toJsonPath(pointer))
+    } catch (err) {
+      return err instanceof Error ? err : new Error(`${err}`)
+    }
+  }, [meta, pointer])
+
+  if (value instanceof Error) {
     return (
       <M.Tooltip title={`${meta}`}>
         <M.Icon color="disabled" fontSize="small" style={{ verticalAlign: 'middle' }}>
@@ -108,7 +117,8 @@ function UserMetaValue({ meta, pointer }: TableViewUserMetaProps) {
         </M.Icon>
       </M.Tooltip>
     )
-  const value = jsonpath.value(meta, JSONPointer.toJsonPath(pointer))
+  }
+
   switch (typeof value) {
     case 'number':
     case 'string':
