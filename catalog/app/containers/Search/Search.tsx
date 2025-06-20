@@ -19,6 +19,7 @@ import AssistantContext from './AssistantContext'
 import BucketSelector from './Buckets'
 import * as Hit from './Hit'
 import FilterWidget from './FilterWidget'
+import LoadNextPage from './LoadNextPage'
 import ResultTypeSelector from './ResultType'
 import SortSelector from './Sort'
 import * as Views from './Views'
@@ -885,7 +886,7 @@ function ResultsPage({
             latestOnly={latestOnly}
           />
         ) : (
-          <Views.Next className={classes.next} onClick={loadMore} />
+          <LoadNextPage className={classes.next} onClick={loadMore} />
         ))}
     </div>
   )

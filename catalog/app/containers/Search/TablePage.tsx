@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import assertNever from 'utils/assertNever'
 
 import * as Views from './Views'
+import LoadNextPage from './LoadNextPage'
 import * as SearchUIModel from './model'
 import { useResults, ResultsOk } from './useResults'
 
@@ -26,7 +27,7 @@ function ResultsInner({ className, results, loadMore, singleBucket }: ResultsInn
     <div className={className}>
       <Views.TableView hits={results.hits} singleBucket={singleBucket} />
       {loadMore && (
-        <Views.Next
+        <LoadNextPage
           className={classes.next}
           loading={results._tag === 'ok' && results.next?._tag === 'in-progress'}
           onClick={loadMore}
