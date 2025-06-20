@@ -38,11 +38,24 @@ query (
           meta
           workflow
 
+          # matchLocations {
+          #   comment
+          #   meta
+          #   name
+          #   workflow
+          # }
+
           matchingEntries {
             logicalKey
             physicalKey
             size
             meta
+            # matchLocations {
+            #   contents
+            #   logicalKey
+            #   meta
+            #   physicalKey
+            # }
           }
         }
       }

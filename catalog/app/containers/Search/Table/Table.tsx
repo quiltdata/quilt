@@ -255,11 +255,11 @@ const useEntriesStyles = M.makeStyles((t) => ({
 
 interface PreviewEntry {
   type: 'meta' | 'content'
-  entry: Model.GQLTypes.SearchHitPackageMatchingEntry
+  entry: Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>
 }
 
 interface EntriesProps {
-  entries: readonly Model.GQLTypes.SearchHitPackageMatchingEntry[]
+  entries: readonly Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>[]
   onClose: () => void
 }
 

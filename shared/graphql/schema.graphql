@@ -311,6 +311,8 @@ enum SearchResultOrder {
   BEST_MATCH
   NEWEST
   OLDEST
+  LEX_ASC
+  LEX_DESC
 }
 
 type DatetimeExtents {
@@ -474,14 +476,13 @@ union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
 
 type SearchHitObject {
   id: ID!
-  score: Float!
-
   bucket: String!
-  key: String!
-  version: String!
-
+  score: Float!
   size: Float!
   modified: Datetime!
+
+  key: String!
+  version: String!
 
   deleted: Boolean!
   # meta: JsonRecord! # String?
@@ -492,16 +493,17 @@ type SearchHitObject {
 # TODO: reuse package types?
 type SearchHitPackage {
   id: ID!
-  score: Float!
-
   bucket: String!
+  score: Float! # aggregated score, including entries?
+  size: Float!
+  modified: Datetime!
+
+  totalEntriesCount: Int!
+  matchingEntriesCount: Int!
+
   name: String!
   pointer: String!
   hash: String!
-
-  size: Float!
-  modified: Datetime!
-  totalEntriesCount: Int!
 
   # specific props
   comment: String
@@ -509,15 +511,32 @@ type SearchHitPackage {
   workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
 
+  matchLocations: SearchHitPackageMatchLocations!
   matchingEntries: [SearchHitPackageMatchingEntry!]!
+}
+
+type SearchHitPackageMatchLocations {
+  name: Boolean!
+  comment: Boolean!
+  meta: Boolean!
+  workflow: Boolean!
 }
 
 type SearchHitPackageMatchingEntry {
   logicalKey: String!
-  physicalKey: String!
+  meta: JsonRecord
   # 32-bit Int is too small to represent file size which quite often exceeds several GB
   size: Float!
-  meta: JsonRecord
+  physicalKey: String!
+  # XXX: last modified?
+  matchLocations: SearchHitPackageEntryMatchLocations!
+}
+
+type SearchHitPackageEntryMatchLocations {
+  logicalKey: Boolean!
+  meta: Boolean!
+  physicalKey: Boolean!
+  contents: Boolean!
 }
 
 type SubscriptionState {
