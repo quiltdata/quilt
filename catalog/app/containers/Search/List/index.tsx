@@ -176,7 +176,7 @@ export default function ListResults({ className }: ListResultsProps) {
 
   switch (r._tag) {
     case 'fetching':
-      return <NoResults.Skeleton className={className} type={model.state.resultType} />
+      return <NoResults.Skeleton className={className} state={model.state} />
     case 'error':
       return <NoResults.Error className={className} details={r.error.message} />
     case 'data':

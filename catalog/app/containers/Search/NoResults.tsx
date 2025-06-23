@@ -8,16 +8,19 @@ import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
 import * as Hit from './List/Hit'
+import TableSkeleton from './Table/Skeleton'
 import * as SearchUIModel from './model'
 
 interface SkeletonProps {
   className?: string
-  type: SearchUIModel.ResultType
+  state: SearchUIModel.SearchUrlState
 }
 
-export function Skeleton({ className, type }: SkeletonProps) {
+export function Skeleton({ className, state }: SkeletonProps) {
+  if (state.view === SearchUIModel.View.Table) return <TableSkeleton />
+
   const Component =
-    type === SearchUIModel.ResultType.QuiltPackage
+    state.resultType === SearchUIModel.ResultType.QuiltPackage
       ? Hit.PackageSkeleton
       : Hit.ObjectSkeleton
   return (

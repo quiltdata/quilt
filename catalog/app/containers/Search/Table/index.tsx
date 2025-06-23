@@ -7,7 +7,6 @@ import LoadNextPage from '../Layout/LoadNextPage'
 import * as NoResults from '../NoResults'
 import * as SearchUIModel from '../model'
 
-import Skeleton from './Skeleton'
 import Table from './Table'
 import { useResults, Results } from './useResults'
 
@@ -51,7 +50,7 @@ export default function TablePage({ className }: TablePageProps) {
     case 'idle':
       return null
     case 'in-progress':
-      return <Skeleton className={className} />
+      return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
       return <NoResults.Error className={className} details={results.error.message} />
     case 'empty':
