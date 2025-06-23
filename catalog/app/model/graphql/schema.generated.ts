@@ -5077,18 +5077,6 @@ export default {
             args: [],
           },
           {
-            name: 'bucket',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'score',
             type: {
               kind: 'NON_NULL',
@@ -5101,24 +5089,12 @@ export default {
             args: [],
           },
           {
-            name: 'size',
+            name: 'bucket',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Float',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'modified',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -5143,6 +5119,30 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
                 ofType: null,
               },
             },
@@ -5189,18 +5189,6 @@ export default {
             args: [],
           },
           {
-            name: 'bucket',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'score',
             type: {
               kind: 'NON_NULL',
@@ -5213,48 +5201,12 @@ export default {
             args: [],
           },
           {
-            name: 'size',
+            name: 'bucket',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Float',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'modified',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Datetime',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'totalEntriesCount',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'matchingEntriesCount',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -5297,6 +5249,42 @@ export default {
             args: [],
           },
           {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'totalEntriesCount',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'comment',
             type: {
               kind: 'SCALAR',
@@ -5324,18 +5312,6 @@ export default {
             args: [],
           },
           {
-            name: 'matchLocations',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'SearchHitPackageMatchLocations',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'matchingEntries',
             type: {
               kind: 'NON_NULL',
@@ -5349,116 +5325,6 @@ export default {
                     ofType: null,
                   },
                 },
-              },
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
-        name: 'SearchHitPackageEntryMatchLocations',
-        fields: [
-          {
-            name: 'logicalKey',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'meta',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'physicalKey',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'contents',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
-        name: 'SearchHitPackageMatchLocations',
-        fields: [
-          {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'comment',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'meta',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'workflow',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
               },
             },
             args: [],
@@ -5483,11 +5349,14 @@ export default {
             args: [],
           },
           {
-            name: 'meta',
+            name: 'physicalKey',
             type: {
-              kind: 'SCALAR',
-              name: 'JsonRecord',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -5504,26 +5373,11 @@ export default {
             args: [],
           },
           {
-            name: 'physicalKey',
+            name: 'meta',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'matchLocations',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'SearchHitPackageEntryMatchLocations',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
             },
             args: [],
           },

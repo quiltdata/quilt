@@ -1094,12 +1094,12 @@ export interface RoleUpdateSuccess {
 export interface SearchHitObject {
   readonly __typename: 'SearchHitObject'
   readonly id: Scalars['ID']
-  readonly bucket: Scalars['String']
   readonly score: Scalars['Float']
-  readonly size: Scalars['Float']
-  readonly modified: Scalars['Datetime']
+  readonly bucket: Scalars['String']
   readonly key: Scalars['String']
   readonly version: Scalars['String']
+  readonly size: Scalars['Float']
+  readonly modified: Scalars['Datetime']
   readonly deleted: Scalars['Boolean']
   readonly indexedContent: Maybe<Scalars['String']>
 }
@@ -1107,53 +1107,32 @@ export interface SearchHitObject {
 export interface SearchHitPackage {
   readonly __typename: 'SearchHitPackage'
   readonly id: Scalars['ID']
-  readonly bucket: Scalars['String']
   readonly score: Scalars['Float']
-  readonly size: Scalars['Float']
-  readonly modified: Scalars['Datetime']
-  readonly totalEntriesCount: Scalars['Int']
-  readonly matchingEntriesCount: Scalars['Int']
+  readonly bucket: Scalars['String']
   readonly name: Scalars['String']
   readonly pointer: Scalars['String']
   readonly hash: Scalars['String']
+  readonly size: Scalars['Float']
+  readonly modified: Scalars['Datetime']
+  readonly totalEntriesCount: Scalars['Int']
   readonly comment: Maybe<Scalars['String']>
   readonly meta: Maybe<Scalars['JsonRecord']>
   readonly workflow: Maybe<Scalars['JsonRecord']>
-  readonly matchLocations: SearchHitPackageMatchLocations
   readonly matchingEntries: ReadonlyArray<SearchHitPackageMatchingEntry>
-}
-
-export interface SearchHitPackageEntryMatchLocations {
-  readonly __typename: 'SearchHitPackageEntryMatchLocations'
-  readonly logicalKey: Scalars['Boolean']
-  readonly meta: Scalars['Boolean']
-  readonly physicalKey: Scalars['Boolean']
-  readonly contents: Scalars['Boolean']
-}
-
-export interface SearchHitPackageMatchLocations {
-  readonly __typename: 'SearchHitPackageMatchLocations'
-  readonly name: Scalars['Boolean']
-  readonly comment: Scalars['Boolean']
-  readonly meta: Scalars['Boolean']
-  readonly workflow: Scalars['Boolean']
 }
 
 export interface SearchHitPackageMatchingEntry {
   readonly __typename: 'SearchHitPackageMatchingEntry'
   readonly logicalKey: Scalars['String']
-  readonly meta: Maybe<Scalars['JsonRecord']>
-  readonly size: Scalars['Float']
   readonly physicalKey: Scalars['String']
-  readonly matchLocations: SearchHitPackageEntryMatchLocations
+  readonly size: Scalars['Float']
+  readonly meta: Maybe<Scalars['JsonRecord']>
 }
 
 export enum SearchResultOrder {
   BEST_MATCH = 'BEST_MATCH',
   NEWEST = 'NEWEST',
   OLDEST = 'OLDEST',
-  LEX_ASC = 'LEX_ASC',
-  LEX_DESC = 'LEX_DESC',
 }
 
 export type SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
