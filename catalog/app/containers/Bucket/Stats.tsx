@@ -173,9 +173,9 @@ interface ChipLinkProps {
   title: string
 }
 
-function ChipLink({ className, icon, label, to }: ChipLinkProps) {
+function ChipLink({ className, icon, label, title, to }: ChipLinkProps) {
   return (
-    <StyledTooltip title="Total size">
+    <StyledTooltip title={title}>
       <M.Button
         className={className}
         color="inherit"

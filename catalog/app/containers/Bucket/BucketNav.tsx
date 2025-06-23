@@ -4,6 +4,7 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
+import type * as Routes from 'constants/routes'
 import * as AuthSelectors from 'containers/Auth/selectors'
 import * as SearchUIModel from 'containers/Search/model'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -17,6 +18,20 @@ const useNavTabStyles = M.makeStyles((t) => ({
     minWidth: 120,
   },
 }))
+
+export interface RouteMap {
+  bucketDir: Routes.BucketDirArgs
+  bucketESQueries: Routes.BucketESQueriesArgs
+  bucketFile: Routes.BucketFileArgs
+  bucketOverview: Routes.BucketOverviewArgs
+  bucketPackageDetail: Routes.BucketPackageDetailArgs
+  bucketPackageList: Routes.BucketPackageListArgs
+  bucketPackageRevisions: Routes.BucketPackageRevisionsArgs
+  bucketPackageTree: Routes.BucketPackageTreeArgs
+  bucketQueries: Routes.BucketQueriesArgs
+  bucketWorkflowDetail: Routes.BucketWorkflowDetailArgs
+  bucketWorkflowList: Routes.BucketWorkflowListArgs
+}
 
 export type Section = 'es' | 'overview' | 'packages' | 'queries' | 'tree' | 'workflows'
 
@@ -56,13 +71,21 @@ function useSearchUIModel() {
   return React.useContext(SearchUIModel.Context)
 }
 
-const useTabsStyles = M.makeStyles({
+const useTabsStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex ',
     justifyContent: 'space-between',
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
   },
-  stats: {},
-})
+  stats: {
+    [t.breakpoints.down('sm')]: {
+      borderBottom: `1px solid ${t.palette.divider}`,
+      padding: t.spacing(0.5, 0),
+    },
+  },
+}))
 
 interface TabsProps {
   bucket: string
@@ -72,19 +95,17 @@ interface TabsProps {
 
 function Tabs({ bucket, preferences, section = false }: TabsProps) {
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
-  const { urls } = NamedRoutes.use()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useTabsStyles()
+  const ref = React.useRef<M.TabsActions | null>(null)
+  React.useEffect(() => {
+    const timer = setTimeout(() => ref.current?.updateIndicator(), 300)
+    return () => clearInterval(timer)
+  }, [])
   return (
     <div className={classes.root}>
       <Stats bucket={bucket} className={classes.stats} />
-      <M.Tabs
-        value={section}
-        // centered={!sm}
-        variant={sm ? 'scrollable' : 'standard'}
-        scrollButtons="auto"
-      >
+      <M.Tabs value={section} variant="scrollable" scrollButtons="auto" action={ref}>
         <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
         {preferences.files && (
           <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />

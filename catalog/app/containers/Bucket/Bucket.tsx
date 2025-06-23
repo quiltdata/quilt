@@ -14,7 +14,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
-import type { Section } from './BucketNav'
+import type { RouteMap, Section } from './BucketNav'
 import CatchNotFound from './CatchNotFound'
 import * as Selection from './Selection'
 import { displayError } from './errors'
@@ -61,7 +61,7 @@ function BucketLayout({ bucket, section = false, render }: BucketLayoutProps) {
             {bucketExistenceData.case({
               Ok: render,
               Err: displayError(),
-              _: () => <Placeholder color="text.secondary" />,
+              _: SuspensePlaceholder,
             })}
           </M.Container>
         </>
@@ -75,7 +75,7 @@ export default function Bucket() {
   const { bucket } = useParams<{ bucket: string }>()
   invariant(!!bucket, '`bucket` must be defined')
 
-  const { paths, urls } = NamedRoutes.use()
+  const { paths, urls } = NamedRoutes.use<RouteMap>()
 
   const urlState: SearchUIModel.SearchUrlState = React.useMemo(
     () => ({
@@ -114,8 +114,8 @@ export default function Bucket() {
           </Route>
           <Route path={paths.bucketPackageList} exact>
             <SearchUIModel.Provider
-              urlState={urlState}
               base={urls.bucketPackageList(bucket)}
+              urlState={urlState}
             >
               <BucketLayout render={PackageList} bucket={bucket} section="packages" />
             </SearchUIModel.Provider>
