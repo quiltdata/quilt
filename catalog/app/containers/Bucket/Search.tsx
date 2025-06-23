@@ -45,7 +45,6 @@ function Filters({ className }: FiltersProps) {
   const model = SearchUIModel.use()
   return (
     <div className={cx(classes.root, className)}>
-      {/* <ColumnTitle>Search for</ColumnTitle> */}
       <ResultTypeSelector />
       <BucketSelector disabled />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (

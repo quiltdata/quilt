@@ -18,17 +18,15 @@ const useNavTabStyles = M.makeStyles((t) => ({
   },
 }))
 
-type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
+export type Section = 'es' | 'overview' | 'packages' | 'queries' | 'tree' | 'workflows'
+
+type NavTabProps = Omit<React.ComponentProps<typeof M.Tab>, 'value'> &
+  React.ComponentProps<typeof Link> & { value: Section }
 
 function NavTab(props: NavTabProps) {
   const classes = useNavTabStyles()
 
   return <M.Tab className={classes.root} component={Link} {...props} />
-}
-
-interface BucketNavProps {
-  bucket: string
-  section: 'es' | 'overview' | 'packages' | 'queries' | 'tree' | 'workflows' | false // `keyof` sections object
 }
 
 const useBucketNavSkeletonStyles = M.makeStyles((t) => ({
@@ -69,7 +67,7 @@ const useTabsStyles = M.makeStyles({
 interface TabsProps {
   bucket: string
   preferences: BucketPreferences.NavPreferences
-  section: string | boolean
+  section: Section | boolean
 }
 
 function Tabs({ bucket, preferences, section = false }: TabsProps) {
@@ -118,6 +116,11 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.getContrastText(t.palette.common.white),
   },
 }))
+
+interface BucketNavProps {
+  bucket: string
+  section: Section | false
+}
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
   const classes = useStyles()

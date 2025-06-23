@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as React from 'react'
 import { Route, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -13,6 +14,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
+import type { Section } from './BucketNav'
 import CatchNotFound from './CatchNotFound'
 import * as Selection from './Selection'
 import { displayError } from './errors'
@@ -35,7 +37,13 @@ function useSearchUIModel() {
   return React.useContext(SearchUIModel.Context)
 }
 
-function BucketLayout({ bucket, section = false, render }) {
+interface BucketLayoutProps {
+  bucket: string
+  section: Section | false
+  render: React.FC
+}
+
+function BucketLayout({ bucket, section = false, render }: BucketLayoutProps) {
   const bucketExistenceData = useBucketExistence(bucket)
   const searchUIModel = useSearchUIModel()
   return (
@@ -64,12 +72,12 @@ function BucketLayout({ bucket, section = false, render }) {
 
 export default function Bucket() {
   const location = useLocation()
-  const { bucket } = useParams()
-  const { paths } = NamedRoutes.use()
+  const { bucket } = useParams<{ bucket: string }>()
+  invariant(!!bucket, '`bucket` must be defined')
 
-  const { urls } = NamedRoutes.use()
+  const { paths, urls } = NamedRoutes.use()
 
-  const urlState = React.useMemo(
+  const urlState: SearchUIModel.SearchUrlState = React.useMemo(
     () => ({
       resultType: SearchUIModel.ResultType.QuiltPackage,
       filter: SearchUIModel.PackagesSearchFilterIO.fromURLSearchParams(
