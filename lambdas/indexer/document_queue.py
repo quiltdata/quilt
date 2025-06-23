@@ -35,6 +35,9 @@ PER_BUCKET_CONFIGS = os.getenv('PER_BUCKET_CONFIGS')
 PER_BUCKET_CONFIGS = json.loads(PER_BUCKET_CONFIGS) if PER_BUCKET_CONFIGS else {}
 
 
+logger = get_quilt_logger()
+
+
 @functools.lru_cache(maxsize=None)
 def get_content_index_extensions(*, bucket_name: str):
     try:
@@ -110,6 +113,10 @@ class DocumentQueue:
             max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
         )
         if errors:
+            logger.debug(
+                "Failed to load messages into Elastic.\nErrors: %s",
+                errors,
+            )
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
             for error in errors:
