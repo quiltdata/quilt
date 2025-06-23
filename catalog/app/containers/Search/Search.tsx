@@ -1081,6 +1081,7 @@ export function Results({ onFilters }: ResultsProps) {
   const classes = useResultsStyles()
   const isMobile = useMobileView()
   const { setView } = model.actions
+  const sidebarHidden = isMobile || model.state.view === SearchUIModel.View.Table
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
@@ -1108,7 +1109,9 @@ export function Results({ onFilters }: ResultsProps) {
               </Lab.ToggleButton>
             </Lab.ToggleButtonGroup>
           )}
-          {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
+          {sidebarHidden && (
+            <FiltersButton className={classes.button} onClick={onFilters} />
+          )}
           <SortSelector className={classes.button} />
         </div>
       </div>
@@ -1124,14 +1127,14 @@ export function Results({ onFilters }: ResultsProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    [t.breakpoints.up('md')]: {
-      alignItems: 'start',
-      display: 'grid',
-      gridColumnGap: t.spacing(2),
-      gridRowGap: t.spacing(2),
-      gridTemplateColumns: `${t.spacing(40)}px auto`,
-    },
     padding: t.spacing(3),
+  },
+  withSidebar: {
+    alignItems: 'start',
+    display: 'grid',
+    gridColumnGap: t.spacing(2),
+    gridRowGap: t.spacing(2),
+    gridTemplateColumns: `${t.spacing(40)}px auto`,
   },
   filtersMobile: {
     padding: t.spacing(2),
@@ -1145,6 +1148,7 @@ const useStyles = M.makeStyles((t) => ({
   search: {
     gridColumnEnd: '3',
     gridColumnStart: '1',
+    marginBottom: t.spacing(2),
   },
   [SearchUIModel.View.Table]: {
     animation: t.transitions.create('$expand'),
@@ -1186,9 +1190,15 @@ function SearchLayout() {
     [onChange],
   )
 
+  const sidebarHidden = isMobile || model.state.view === SearchUIModel.View.Table
+
   return (
     <M.Container
-      className={cx(classes.root, classes[model.state.view])}
+      className={cx(
+        classes.root,
+        classes[model.state.view],
+        !sidebarHidden && classes.withSidebar,
+      )}
       maxWidth={model.state.view === SearchUIModel.View.Table ? false : 'lg'}
     >
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
@@ -1209,7 +1219,7 @@ function SearchLayout() {
           ),
         }}
       />
-      {isMobile ? (
+      {sidebarHidden ? (
         <M.Drawer anchor="left" open={showFilters} onClose={() => setShowFilters(false)}>
           <Filters className={classes.filtersMobile} />
           <M.IconButton

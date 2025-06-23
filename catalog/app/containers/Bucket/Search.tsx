@@ -61,13 +61,13 @@ function Filters({ className }: FiltersProps) {
 const useStyles = M.makeStyles((t) => ({
   root: {
     margin: t.spacing(2, 0),
-    [t.breakpoints.up('md')]: {
-      alignItems: 'start',
-      display: 'grid',
-      gridColumnGap: t.spacing(2),
-      gridTemplateColumns: `${t.spacing(40)}px auto`,
-      margin: t.spacing(3, 0),
-    },
+  },
+  withSidebar: {
+    alignItems: 'start',
+    display: 'grid',
+    gridColumnGap: t.spacing(2),
+    gridTemplateColumns: `${t.spacing(40)}px auto`,
+    margin: t.spacing(3, 0),
   },
   filtersMobile: {
     padding: t.spacing(2),
@@ -103,6 +103,8 @@ export function SearchLayout() {
     [onChange],
   )
 
+  const sidebarHidden = isMobile || model.state.view === SearchUIModel.View.Table
+
   return (
     <>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
@@ -122,8 +124,8 @@ export function SearchLayout() {
           ),
         }}
       />
-      <div className={classes.root}>
-        {isMobile ? (
+      <div className={cx(classes.root, !sidebarHidden && classes.withSidebar)}>
+        {sidebarHidden ? (
           <M.Drawer
             anchor="left"
             open={showFilters}
