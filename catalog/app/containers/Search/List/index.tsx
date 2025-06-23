@@ -3,11 +3,11 @@ import * as M from '@material-ui/core'
 
 import assertNever from 'utils/assertNever'
 
-import * as Hit from '../Hit'
-
-import LoadNextPage from '../LoadNextPage'
+import LoadNextPage from '../Layout/LoadNextPage'
 import * as NoResults from '../NoResults'
 import * as SearchUIModel from '../model'
+
+import * as Hit from './Hit'
 
 interface SearchHitProps {
   hit: SearchUIModel.SearchHit

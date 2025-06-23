@@ -12,7 +12,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 
-import * as SearchUIModel from './model'
+import * as SearchUIModel from '../model'
 
 const useCardStyles = M.makeStyles((t) => ({
   card: {

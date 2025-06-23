@@ -7,7 +7,7 @@ import { useNavBar } from 'containers/NavBar'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
-import * as Hit from './Hit'
+import * as Hit from './List/Hit'
 import * as SearchUIModel from './model'
 
 interface SkeletonProps {

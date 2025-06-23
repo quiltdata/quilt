@@ -3,11 +3,12 @@ import * as M from '@material-ui/core'
 
 import assertNever from 'utils/assertNever'
 
-import LoadNextPage from '../LoadNextPage'
+import LoadNextPage from '../Layout/LoadNextPage'
 import * as NoResults from '../NoResults'
 import * as SearchUIModel from '../model'
 
-import * as Views from './Table'
+import Skeleton from './Skeleton'
+import Table from './Table'
 import { useResults, Results } from './useResults'
 
 const useStyles = M.makeStyles((t) => ({
@@ -27,7 +28,7 @@ function ResultsInner({ className, results, loadMore, singleBucket }: ResultsInn
   const classes = useStyles()
   return (
     <div className={className}>
-      <Views.TableView hits={results.hits} singleBucket={singleBucket} />
+      <Table hits={results.hits} singleBucket={singleBucket} />
       {loadMore && (
         <LoadNextPage
           className={classes.next}
@@ -50,7 +51,7 @@ export default function TablePage({ className }: TablePageProps) {
     case 'idle':
       return null
     case 'in-progress':
-      return <Views.TableSkeleton className={className} />
+      return <Skeleton className={className} />
     case 'fail':
       return <NoResults.Error className={className} details={results.error.message} />
     case 'empty':
