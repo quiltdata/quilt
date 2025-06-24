@@ -28,7 +28,7 @@ function useSearchUIModel() {
 }
 
 interface InputState extends M.InputBaseProps {
-  expanded: boolean
+  // expanded: boolean
   focusTrigger: number
   helpOpen: boolean
 }
@@ -150,7 +150,7 @@ function useSearchState(bucket?: string): SearchState {
   return {
     fullWidth: searchUIModel?.state.view === SearchUIModel.View.Table,
     input: {
-      expanded: isExpanded,
+      // expanded: isExpanded,
       focusTrigger: focusTriggeredCount,
       helpOpen,
       onChange,

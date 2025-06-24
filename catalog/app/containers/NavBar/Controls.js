@@ -1,16 +1,15 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
-import Search from './Search'
 import { useNavBar } from './Provider'
-
-export { default as BucketSelect } from './BucketSelect'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
   root: {
@@ -34,7 +33,7 @@ const useBucketDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function BucketDisplay({ bucket, select, locked = false, ...props }) {
+function BucketDisplay({ bucket, select, locked = false, ...props }) {
   const classes = useBucketDisplayStyles()
   return (
     <M.Box position="relative" {...props}>
@@ -42,7 +41,6 @@ export function BucketDisplay({ bucket, select, locked = false, ...props }) {
         color="inherit"
         className={cx(classes.root, { [classes.locked]: locked })}
         onClick={select}
-        size="large"
       >
         <span className={classes.s3}>s3://</span>
         <span className={classes.bucket}>{bucket}</span>
@@ -55,16 +53,20 @@ export function BucketDisplay({ bucket, select, locked = false, ...props }) {
 
 const Container = (props) => (
   <M.Box
-    height="36px"
-    display="flex"
     alignItems="center"
-    position="relative"
+    display="flex"
     flexGrow={1}
+    height="36px"
+    justifyContent="space-between"
+    position="relative"
     {...props}
   />
 )
 
-function GlobalControls({ iconized }) {
+function GlobalControls() {
+  const { urls } = NamedRoutes.use()
+  const classes = useBucketControlsStyles()
+
   const [state, setState] = React.useState(null)
   const search = React.useCallback(() => {
     setState('search')
@@ -84,15 +86,35 @@ function GlobalControls({ iconized }) {
 
   return (
     <Container pr={{ xs: 6, sm: 0 }}>
-      <M.Fade in={state !== 'search'}>
-        <BucketSelect />
-      </M.Fade>
-      <Search iconized={iconized} />
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <M.Fade in={state !== 'search'}>
+          <BucketSelect />
+        </M.Fade>
+      </div>
+      <div>
+        <M.Button
+          className={classes.search}
+          startIcon={<M.Icon>search</M.Icon>}
+          component={RRDom.Link}
+          to={urls.search({})}
+        >
+          Search
+        </M.Button>
+      </div>
     </Container>
   )
 }
 
-function BucketControls({ bucket, iconized }) {
+const useBucketControlsStyles = M.makeStyles({
+  search: {
+    marginLeft: 'auto',
+  },
+})
+
+function BucketControls({ bucket }) {
+  const { urls } = NamedRoutes.use()
+  const classes = useBucketControlsStyles()
+
   const [state, setState] = React.useState(null)
   const select = React.useCallback(() => {
     setState('select')
@@ -120,14 +142,25 @@ function BucketControls({ bucket, iconized }) {
 
   return (
     <Container>
-      <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
-      {cfg.mode === 'PRODUCT' && (
-        <Collaborators bucket={bucket} hidden={state === 'search'} />
-      )}
-      <Search hidden={state === 'select'} iconized={iconized} />
-      <M.Fade in={state === 'select'} onEnter={focusSelect}>
-        <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
-      </M.Fade>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
+        <M.Fade in={state === 'select'} onEnter={focusSelect}>
+          <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
+        </M.Fade>
+        {cfg.mode === 'PRODUCT' && (
+          <Collaborators bucket={bucket} hidden={state === 'search'} />
+        )}
+      </div>
+      <div>
+        <M.Button
+          className={classes.search}
+          startIcon={<M.Icon>search</M.Icon>}
+          component={RRDom.Link}
+          to={urls.search({})}
+        >
+          Search
+        </M.Button>
+      </div>
     </Container>
   )
 }
@@ -137,7 +170,7 @@ export default function Controls() {
   const t = M.useTheme()
   const iconized = M.useMediaQuery(t.breakpoints.down('xs'))
   return bucket ? (
-    <BucketControls {...{ bucket, iconized }} />
+    <BucketControls {...{ bucket }} />
   ) : (
     <GlobalControls {...{ iconized }} />
   )

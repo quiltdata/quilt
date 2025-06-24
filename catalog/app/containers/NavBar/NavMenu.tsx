@@ -16,6 +16,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
 
 import useRoleSwitcher from './RoleSwitcher'
@@ -157,6 +158,35 @@ function DropdownMenu({ trigger, items, onClose, ...rest }: DropdownMenuProps) {
       </M.MuiThemeProvider>
     </>
   )
+}
+
+const mkNavItem = (
+  kind: 'to' | 'href',
+  target: string,
+  label: string,
+  icon: string = 'open_in_new',
+) => ({ kind, target, label, icon })
+
+type NavItem = ReturnType<typeof mkNavItem>
+
+function useNavItems(): NavItem[] {
+  const { urls } = NamedRoutes.use()
+  const settings = CatalogSettings.use()
+
+  const customNavLink: NavItem | false = React.useMemo(() => {
+    if (!settings?.customNavLink) return false
+    const href = sanitizeUrl(settings.customNavLink.url)
+    if (href === 'about:blank') return false
+    return mkNavItem('href', href, settings.customNavLink.label)
+  }, [settings?.customNavLink])
+
+  return [
+    customNavLink,
+    mkNavItem('to', urls.uriResolver(), 'URI', 'public'),
+    mkNavItem('href', URLS.docs, 'Docs', 'menu_book'),
+    cfg.mode === 'OPEN' && mkNavItem('href', URLS.jobs, 'Jobs', 'work'),
+    cfg.mode === 'OPEN' && mkNavItem('href', URLS.blog, 'Blog', 'chat'),
+  ].filter(Boolean) as NavItem[]
 }
 
 const useItemStyles = M.makeStyles((t) => ({
@@ -303,8 +333,6 @@ function DesktopUserDropdown({ user }: DesktopUserDropdownProps) {
         </M.Button>
       )}
       items={getAuthItems(user)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
     />
   )
 }
@@ -336,127 +364,22 @@ function DesktopSignIn({ error }: DesktopSignInProps) {
   )
 }
 
-const useLinksStyles = M.makeStyles((t) => ({
-  icon: {
-    justifyContent: 'center',
-  },
-  item: {
-    minWidth: t.spacing(30),
-    paddingRight: t.spacing(1),
+const useDesktopProgressStyles = M.makeStyles((t) => ({
+  progress: {
+    marginLeft: t.spacing(1),
   },
 }))
 
-export function Links() {
-  const classes = useLinksStyles()
-  const intercom = Intercom.use()
-  const { urls } = NamedRoutes.use()
-
-  const settings = CatalogSettings.use()
-
-  const customHref: { href: string; label: string } | null = React.useMemo(() => {
-    if (!settings?.customNavLink) return null
-    const href = sanitizeUrl(settings.customNavLink.url)
-    if (href === 'about:blank') return null
-    return { href, label: settings.customNavLink.label }
-  }, [settings?.customNavLink])
-
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
-
-  return (
-    <>
-      <M.IconButton
-        onClick={(event) => setAnchorEl(event.currentTarget)}
-        edge="start"
-        color="inherit"
-      >
-        <M.Icon fontSize="inherit">menu</M.Icon>
-      </M.IconButton>
-      <M.MuiThemeProvider theme={style.appTheme}>
-        <M.Menu
-          className={classes.item}
-          anchorEl={anchorEl}
-          open={!!anchorEl}
-          onClose={() => setAnchorEl(null)}
-          keepMounted
-        >
-          {customHref}
-
-          <M.MenuItem
-            className={classes.item}
-            component={RR.NavLink}
-            disableGutters
-            to={urls.uriResolver()}
-          >
-            <M.ListItemIcon className={classes.icon}>
-              <M.Icon>public</M.Icon>
-            </M.ListItemIcon>
-            <M.ListItemText primary="Uri" />
-          </M.MenuItem>
-
-          <M.MenuItem
-            className={classes.item}
-            component="a"
-            disableGutters
-            href={URLS.docs}
-            target="_blank"
-          >
-            <M.ListItemIcon className={classes.icon}>
-              <M.Icon>menu_book</M.Icon>
-            </M.ListItemIcon>
-            <M.ListItemText primary="Docs" />
-          </M.MenuItem>
-
-          {cfg.mode === 'OPEN' && (
-            <M.MenuItem
-              className={classes.item}
-              component="a"
-              disableGutters
-              href={URLS.jobs}
-              target="_blank"
-            >
-              <M.ListItemIcon className={classes.icon}>
-                <M.Icon>work</M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Jobs" />
-            </M.MenuItem>
-          )}
-
-          {cfg.mode === 'OPEN' && (
-            <M.MenuItem
-              className={classes.item}
-              component="a"
-              disableGutters
-              href={URLS.blog}
-              target="_blank"
-            >
-              <M.ListItemIcon className={classes.icon}>
-                <M.Icon>chat</M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Blog" />
-            </M.MenuItem>
-          )}
-
-          {!intercom.dummy && intercom.isCustom && (
-            <M.MenuItem
-              className={classes.item}
-              disableGutters
-              id={Intercom.DOM_ID}
-              onClick={() => setAnchorEl(null)}
-            >
-              <M.ListItemIcon className={classes.icon}>
-                <M.Icon>chat_bubble_outline</M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Support" />
-            </M.MenuItem>
-          )}
-        </M.Menu>
-      </M.MuiThemeProvider>
-    </>
-  )
+function DesktopProgress() {
+  const classes = useDesktopProgressStyles()
+  return <M.CircularProgress color="inherit" size={20} className={classes.progress} />
 }
 
-export function Menu() {
-  const auth = useAuthState()
+interface DesktopMenuProps {
+  auth: AuthState
+}
+
+function DesktopMenu({ auth }: DesktopMenuProps) {
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
   if (isSignIn || cfg.mode === 'LOCAL') return null
@@ -465,8 +388,168 @@ export function Menu() {
       Ready: ({ user }) =>
         user ? <DesktopUserDropdown user={user} /> : <DesktopSignIn />,
       Error: ({ error }) => <DesktopSignIn error={error} />,
-      Loading: () => <M.CircularProgress color="inherit" size={20} />,
+      Loading: () => <DesktopProgress />,
     },
     auth,
   )
+}
+
+interface MobileMenuProps {
+  auth: AuthState
+}
+
+function MobileMenu({ auth }: MobileMenuProps) {
+  const { urls } = NamedRoutes.use()
+  const navItems = useNavItems()
+  const getAuthItems = useGetAuthItems()
+  const bookmarks = Bookmarks.use()
+
+  const authItems = React.useMemo(() => {
+    if (cfg.mode === 'LOCAL') return []
+    return AuthState.match<(ItemDescriptor | false)[]>(
+      {
+        Loading: () => [
+          ItemDescriptor.Text(
+            <ItemContents icon={<M.CircularProgress size={20} />} primary="Loading..." />,
+          ),
+        ],
+        Error: () => [
+          ItemDescriptor.To(
+            urls.signIn(),
+            <ItemContents icon="error_outline" primary="Sign In" />,
+          ),
+        ],
+        Ready: ({ user }) =>
+          user
+            ? getAuthItems(user)
+            : [
+                ItemDescriptor.To(
+                  urls.signIn(),
+                  <ItemContents icon="exit_to_app" primary="Sign In" />,
+                ),
+              ],
+      },
+      auth,
+    ).concat(ItemDescriptor.Divider())
+  }, [auth, getAuthItems, urls])
+
+  const links = React.useMemo(
+    () =>
+      navItems.map((n) => {
+        const children = <ItemContents icon={n.icon} primary={n.label} />
+        switch (n.kind) {
+          case 'to':
+            return ItemDescriptor.To(n.target, children)
+          case 'href':
+            return ItemDescriptor.Href(n.target, children)
+          default:
+            assertNever(n.kind)
+        }
+      }),
+    [navItems],
+  )
+
+  return (
+    <DropdownMenu
+      trigger={(open) => (
+        <M.IconButton onClick={open} aria-label="Menu" edge="end">
+          <M.Badge
+            invisible={!bookmarks?.hasUpdates}
+            color="primary"
+            variant="dot"
+            overlap="circle"
+          >
+            <M.Icon>menu</M.Icon>
+          </M.Badge>
+        </M.IconButton>
+      )}
+      items={[...authItems, ...links]}
+    />
+  )
+}
+
+const useNavStyles = M.makeStyles((t) => ({
+  nav: {
+    alignItems: 'center',
+    display: 'flex',
+    marginLeft: t.spacing(3),
+    marginRight: t.spacing(2),
+  },
+  active: {},
+  link: {
+    color: t.palette.text.secondary,
+    fontSize: t.typography.body2.fontSize,
+    maxWidth: '64px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
+
+    '&$active': {
+      color: t.palette.text.disabled,
+    },
+  },
+  intercom: {
+    marginLeft: t.spacing(2),
+  },
+}))
+
+export function Links() {
+  const classes = useNavStyles()
+  const intercom = Intercom.use()
+  const navItems = useNavItems()
+
+  const mkTitle = (label: string) => (label.length > 10 ? label : undefined)
+
+  const links = navItems.map((n, i) => {
+    switch (n.kind) {
+      case 'to':
+        return (
+          <RR.NavLink
+            key={i}
+            className={classes.link}
+            activeClassName={classes.active}
+            title={mkTitle(n.label)}
+            to={n.target}
+          >
+            {n.label}
+          </RR.NavLink>
+        )
+      case 'href':
+        return (
+          <a
+            key={i}
+            className={classes.link}
+            target="_blank"
+            title={mkTitle(n.label)}
+            href={n.target}
+          >
+            {n.label}
+          </a>
+        )
+      default:
+        assertNever(n.kind)
+    }
+  })
+
+  return (
+    <nav className={classes.nav}>
+      {links}
+      {!intercom.dummy && intercom.isCustom && (
+        <Intercom.Launcher className={classes.intercom} />
+      )}
+    </nav>
+  )
+}
+
+interface MenuProps {
+  collapse: boolean
+}
+
+export function Menu({ collapse }: MenuProps) {
+  const auth = useAuthState()
+  return collapse ? <MobileMenu auth={auth} /> : <DesktopMenu auth={auth} />
 }

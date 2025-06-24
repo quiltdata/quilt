@@ -131,90 +131,90 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
   }))
 
   return (
-    <M.MuiThemeProvider theme={style.appTheme}>
-      <Autocomplete
-        PopperComponent={CustomPopper}
-        freeSolo
-        disableClearable
-        openOnFocus
-        options={bucketConfigs}
-        value=""
-        inputValue={inputValue}
-        onInputChange={(_event, newValue) => setInputValue(newValue)}
-        onChange={(_event, newValue, reason) => {
-          if (reason === 'select-option' || reason === 'create-option') {
-            const to =
-              typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
-            if (to && currentBucket !== to) {
-              history.push(urls.bucketPackageList(to))
+    <M.Box {...props}>
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <Autocomplete
+          PopperComponent={CustomPopper}
+          freeSolo
+          disableClearable
+          openOnFocus
+          options={bucketConfigs}
+          value=""
+          inputValue={inputValue}
+          onInputChange={(event, newValue) => setInputValue(newValue)}
+          onChange={(event, newValue, reason) => {
+            if (reason === 'select-option' || reason === 'create-option') {
+              const to =
+                typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
+              if (to && currentBucket !== to) {
+                history.push(urls.bucketRoot(to))
+              }
             }
-          }
-        }}
-        onClose={() => {
-          if (inputRef.current) inputRef.current.blur()
-        }}
-        filterOptions={(options, params) => {
-          const filtered = params.inputValue
-            ? matchSorter(options, params.inputValue, {
-                keys: [
-                  'name',
-                  'title',
-                  {
-                    key: 'tags',
-                    threshold: matchSorter.rankings.WORD_STARTS_WITH,
-                  },
-                  {
-                    key: 'description',
-                    maxRanking: matchSorter.rankings.STARTS_WITH,
-                    threshold: matchSorter.rankings.ACRONYM,
-                  },
-                ],
-              })
-            : options
+          }}
+          onClose={() => {
+            if (inputRef.current) inputRef.current.blur()
+          }}
+          filterOptions={(options, params) => {
+            const filtered = params.inputValue
+              ? matchSorter(options, params.inputValue, {
+                  keys: [
+                    'name',
+                    'title',
+                    {
+                      key: 'tags',
+                      threshold: matchSorter.rankings.WORD_STARTS_WITH,
+                    },
+                    {
+                      key: 'description',
+                      maxRanking: matchSorter.rankings.STARTS_WITH,
+                      threshold: matchSorter.rankings.ACRONYM,
+                    },
+                  ],
+                })
+              : options
 
-          if (
-            normalizeBucket(params.inputValue) !== '' &&
-            !filtered.find((b) => b.name === params.inputValue)
-          ) {
-            filtered.unshift(params.inputValue)
-          }
+            if (
+              normalizeBucket(params.inputValue) !== '' &&
+              !filtered.find((b) => b.name === params.inputValue)
+            ) {
+              filtered.unshift(params.inputValue)
+            }
 
-          return filtered
-        }}
-        getOptionLabel={(option) => (typeof option === 'string' ? option : option.name)}
-        renderOption={(option) =>
-          typeof option === 'string' ? (
-            <>
-              <M.Box display="flex" pr={1} fontSize={40}>
-                <M.Icon fontSize="inherit">arrow_forward</M.Icon>
-              </M.Box>
-              <span>
-                Go to <b>s3://{normalizeBucket(option)}</b>
-              </span>
-            </>
-          ) : (
-            <Bucket {...option} />
-          )
-        }
-        renderInput={(inputProps) => (
-          <M.MuiThemeProvider theme={style.navTheme}>
-            <NavInput
-              {...inputProps}
-              onBlur={() => {
-                if (cancel) cancel()
-                setTimeout(() => {
-                  setInputValue('')
-                }, 100)
-              }}
-              placeholder="Go to bucket"
-              inputRef={inputRef}
-              size="large"
-            />
-          </M.MuiThemeProvider>
-        )}
-        {...props}
-      />
-    </M.MuiThemeProvider>
+            return filtered
+          }}
+          getOptionLabel={(option) => (typeof option === 'string' ? option : option.name)}
+          renderOption={(option) =>
+            typeof option === 'string' ? (
+              <>
+                <M.Box display="flex" pr={1} fontSize={40}>
+                  <M.Icon fontSize="inherit">arrow_forward</M.Icon>
+                </M.Box>
+                <span>
+                  Go to <b>s3://{normalizeBucket(option)}</b>
+                </span>
+              </>
+            ) : (
+              <Bucket {...option} />
+            )
+          }
+          renderInput={(inputProps) => (
+            <M.MuiThemeProvider theme={style.navTheme}>
+              <NavInput
+                {...inputProps}
+                onBlur={() => {
+                  if (cancel) cancel()
+                  setTimeout(() => {
+                    setInputValue('')
+                  }, 100)
+                }}
+                placeholder="Go to bucket"
+                inputRef={inputRef}
+              />
+            </M.MuiThemeProvider>
+          )}
+        />
+      </M.MuiThemeProvider>
+    </M.Box>
   )
 }
 

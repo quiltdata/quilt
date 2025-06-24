@@ -2,13 +2,17 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-export const DOM_ID = 'intercom-mount-point'
+const DOM_ID = 'intercom-mount-point'
 
 export const SELECTOR = `#${DOM_ID}`
 
 const useStyles = M.makeStyles((t) => ({
   root: {
     fontWeight: t.typography.fontWeightRegular,
+    minWidth: t.spacing(4),
+  },
+  img: {
+    marginRight: t.spacing(-1),
   },
 }))
 
@@ -19,14 +23,19 @@ interface LauncherProps {
 export function Launcher({ className }: LauncherProps) {
   const classes = useStyles()
   return (
-    <M.Button
-      className={cx(classes.root, className)}
-      color="inherit"
-      id={DOM_ID}
-      size="small"
-      startIcon={<M.Icon fontSize="small">chat_bubble_outline</M.Icon>}
-    >
-      Support
-    </M.Button>
+    <M.Tooltip title="Chat with Quilt support">
+      <M.Button
+        className={cx(classes.root, className)}
+        color="primary"
+        id={DOM_ID}
+        startIcon={
+          <M.Icon fontSize="small" className={classes.img}>
+            chat_bubble_outline
+          </M.Icon>
+        }
+        variant="contained"
+        size="small"
+      />
+    </M.Tooltip>
   )
 }

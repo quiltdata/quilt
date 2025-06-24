@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { Avatars, Popup } from 'components/Collaborators'
+import * as style from 'constants/style'
 import type * as Model from 'model'
 import { useQueryS } from 'utils/GraphQL'
 import usePotentialCollaborators from 'utils/usePotentialCollaborators'
@@ -53,7 +54,7 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   if (!allCollaborators?.length) return null
 
   return (
-    <>
+    <M.MuiThemeProvider theme={style.appTheme}>
       <Popup
         bucket={bucket}
         collaborators={allCollaborators}
@@ -66,6 +67,6 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
         iconized={sm}
         onClick={handleOpen}
       />
-    </>
+    </M.MuiThemeProvider>
   )
 }
