@@ -213,7 +213,7 @@ def make_elastic():
 
 @functools.cache
 def get_es_aliases() -> frozenset[str]:
-    return frozenset(a for k, v in make_elastic().indices.get_alias().items() for a in v["aliases"])
+    return frozenset(a for v in make_elastic().indices.get_alias().values() for a in v["aliases"])
 
 
 def now_like_boto3():
@@ -620,11 +620,7 @@ def index_manifest(
                         "doc_as_upsert": True,
                     }
                 else:
-                    logger.warning(
-                        "Bucket %s is not an alias, skipping entry %s",
-                        pk_parsed["bucket"],
-                        entry,
-                    )
+                    logger.warning("Index %r doesn't exist, skipping entry %s", pk_parsed["bucket"], lk)
 
         yield {
             "_index": index,
