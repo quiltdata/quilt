@@ -24,7 +24,7 @@ EVENT_PREFIX = {
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
-CHUNK_LIMIT_DOCS = 100
+CHUNK_LIMIT_DOCS = 500
 MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB

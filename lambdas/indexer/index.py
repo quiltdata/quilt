@@ -207,7 +207,6 @@ def make_elastic():
         timeout=ELASTIC_TIMEOUT,
         use_ssl=True,
         verify_certs=True,
-        http_compress=True,  # XXX: is this helpful?
         connection_class=elasticsearch.RequestsHttpConnection,
     )
 
