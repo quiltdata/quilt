@@ -155,7 +155,8 @@ const useEntriesStyles = M.makeStyles((t) => ({
     position: 'absolute',
     top: '100%',
     left: t.spacing(-0.5),
-    right: t.spacing(-0.5),
+    // TODO: what is this number, should be equal to some `sticky` padding
+    right: t.spacing(-2.5),
     zIndex: 10,
     animation: t.transitions.create(['$growX']),
     '&::before': {
@@ -198,11 +199,11 @@ const useEntriesStyles = M.makeStyles((t) => ({
     position: 'absolute',
     padding: t.spacing(2, 2, 2, 7),
     // fullWidth
+    //  // FIXME: update description
     //  - page container paddings
-    //  - sidebar width
     //  - sidebar margin (grid gap)
     //  - "Add column" widget width
-    width: `calc(100vw - ${t.spacing(3 * 2)}px - ${t.spacing(40)}px - ${t.spacing(2)}px - ${t.spacing(4)}px)`,
+    width: `calc(100vw - ${t.spacing(3 * 2)}px - ${t.spacing(4)}px - ${t.spacing(4)}px)`,
   },
   '@keyframes growDown': {
     '0%': {
