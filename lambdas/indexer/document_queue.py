@@ -24,7 +24,7 @@ EVENT_PREFIX = {
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
-CHUNK_LIMIT_DOCS = 500
+CHUNK_LIMIT_DOCS = 1000
 MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
@@ -164,7 +164,7 @@ def get_time_remaining(context):
     time_remaining = floor(context.get_remaining_time_in_millis()/1000)
     if time_remaining < 30:
         logger_.warning(
-            "Lambda function has {time_remaining} sec remaining. Reduce batch size?"
+            f"Lambda function has {time_remaining} sec remaining. Reduce batch size?"
         )
 
     return time_remaining
