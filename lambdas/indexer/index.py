@@ -620,7 +620,7 @@ def index_manifest(
                         "doc_as_upsert": True,
                     }
                 else:
-                    logger.warning("Index %r doesn't exist, skipping entry %s", pk_parsed["bucket"], lk)
+                    logger.info("Index %r doesn't exist, skipping entry %s", pk_parsed["bucket"], lk)
 
         yield {
             "_index": index,
