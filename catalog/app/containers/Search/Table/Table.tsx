@@ -666,7 +666,7 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
         </M.List>
       </M.Popover>
       <M.Popover open={filterOpened} {...popoverProps}>
-        {column.tag === 'filter' && column.filter !== 'name' && (
+        {column.tag === 'filter' && (
           <M.Box display="flex" flexDirection="column" padding={2} width={320}>
             <Filter filter={column.filter} onClose={hideFilter} />
           </M.Box>
@@ -1159,7 +1159,7 @@ function useTableColumns(
     const list = Object.keys(infered.workflow).length ? infered.workflow : infered.all
     for (const filter in list) {
       output.push({
-        predicateType: SearchUIModel.PackageUserMetaFacetMap[infered.workflow[filter]],
+        predicateType: SearchUIModel.PackageUserMetaFacetMap[list[filter]],
         filter,
         onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
         onSearch: noopFixme,
