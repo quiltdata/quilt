@@ -385,15 +385,6 @@ def do_index(
         version_id=version_id,
         s3_tags=s3_tags,
     )
-    # maybe index as package
-
-
-    index_manifest(
-        s3_client,
-        doc_queue,
-        bucket=bucket,
-        key=key,
-    )
 
 
 def _try_parse_date(s: str) -> Optional[datetime.datetime]:
