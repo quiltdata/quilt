@@ -403,12 +403,30 @@ const usePackageRowStyles = M.makeStyles((t) => ({
   },
   fold: {
     opacity: 0.3,
-    transition: t.transitions.create(['opacity', 'transform', 'margin']),
+    transition: t.transitions.create('opacity'),
   },
-  rotate: {
-    margin: t.spacing(2, 0),
+  expanded: {
     opacity: 1,
-    transform: 'rotate(180deg)',
+    animation: t.transitions.create('$expanded'),
+  },
+  collapsed: {
+    animation: t.transitions.create('$collapsed'),
+  },
+  '@keyframes expanded': {
+    '0%': {
+      transform: 'rotate(-42deg)',
+    },
+    '100%': {
+      transform: 'rotate(0deg)',
+    },
+  },
+  '@keyframes collapsed': {
+    '0%': {
+      transform: 'rotate(42deg)',
+    },
+    '100%': {
+      transform: 'rotate(0deg)',
+    },
   },
 }))
 
@@ -429,10 +447,9 @@ function PackageRow({ columns, hit }: PackageRowProps) {
         <M.TableCell padding="checkbox">
           {!!hit.matchingEntries?.length && (
             <M.IconButton
-              size="small"
-              className={cx(classes.fold, open && classes.rotate)}
+              className={cx(classes.fold, open ? classes.expanded : classes.collapsed)}
             >
-              <M.Icon>{open ? 'unfold_less' : 'unfold_more'}</M.Icon>
+              <M.Icon>{open ? 'expand_more' : 'chevron_right'}</M.Icon>
             </M.IconButton>
           )}
         </M.TableCell>
