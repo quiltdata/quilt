@@ -199,7 +199,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
     // It is positioned where it would be without `absolute`,
     // but it continues to stay there when table is scrolled.
     position: 'absolute',
-    padding: t.spacing(2, 2, 2, 8),
+    padding: t.spacing(2, 2, 2, 6.5),
     // fullWidth
     //  // FIXME: update description
     //  - page container paddings
@@ -407,30 +407,7 @@ function Entries({ entries, packageHandle }: EntriesProps) {
   )
 }
 
-const usePackageRowStyles = M.makeStyles((t) => ({
-  root: {
-    '&:hover $fold': {
-      opacity: 1,
-    },
-  },
-  cell: {
-    maxWidth: '500px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  entries: {
-    borderBottom: 0,
-    padding: 0,
-    verticalAlign: 'top',
-    '&:last-child': {
-      padding: 0,
-    },
-  },
-  fold: {
-    opacity: 0.3,
-    transition: t.transitions.create('opacity'),
-  },
+const useUnfoldPackageEntriesStyles = M.makeStyles((t) => ({
   expanded: {
     opacity: 1,
     animation: t.transitions.create('$expanded'),
@@ -452,6 +429,62 @@ const usePackageRowStyles = M.makeStyles((t) => ({
     },
     '100%': {
       transform: 'rotate(0deg)',
+    },
+  },
+}))
+
+interface UnfoldPackageEntriesProps {
+  className: string
+  open: boolean
+  size: number
+}
+
+function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesProps) {
+  const classes = useUnfoldPackageEntriesStyles()
+  const title = open
+    ? 'Hide entries'
+    : `Show ${size} matching ${size === 1 ? 'entry' : 'entries'}`
+  return (
+    <M.Tooltip title={title}>
+      <M.IconButton className={className}>
+        <M.Badge badgeContent={size} color="default">
+          <M.Icon className={open ? classes.expanded : classes.collapsed}>
+            {open ? 'expand_more' : 'chevron_right'}
+          </M.Icon>
+        </M.Badge>
+      </M.IconButton>
+    </M.Tooltip>
+  )
+}
+
+const usePackageRowStyles = M.makeStyles((t) => ({
+  root: {
+    '&:hover $fold': {
+      color: t.palette.text.primary,
+    },
+  },
+  cell: {
+    maxWidth: '500px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  entries: {
+    borderBottom: 0,
+    padding: 0,
+    verticalAlign: 'top',
+    '&:last-child': {
+      padding: 0,
+    },
+  },
+  fold: {
+    color: t.palette.text.secondary,
+    transition: t.transitions.create('color'),
+  },
+  unfolded: {
+    background: t.palette.action.selected,
+    '& $fold': {
+      color: t.palette.text.primary,
     },
   },
 }))
@@ -478,14 +511,18 @@ function PackageRow({ columns, hit }: PackageRowProps) {
 
   return (
     <>
-      <M.TableRow hover className={classes.root} onClick={toggle}>
+      <M.TableRow
+        hover
+        className={cx(classes.root, open && classes.unfolded)}
+        onClick={toggle}
+      >
         <M.TableCell padding="checkbox">
           {!!hit.matchingEntries?.length && (
-            <M.IconButton
-              className={cx(classes.fold, open ? classes.expanded : classes.collapsed)}
-            >
-              <M.Icon>{open ? 'expand_more' : 'chevron_right'}</M.Icon>
-            </M.IconButton>
+            <UnfoldPackageEntries
+              className={classes.fold}
+              open={open}
+              size={hit.matchingEntries.length}
+            />
           )}
         </M.TableCell>
         {columns.map((column) => {
