@@ -1116,9 +1116,26 @@ export interface SearchHitPackage {
   readonly modified: Scalars['Datetime']
   readonly totalEntriesCount: Scalars['Int']
   readonly comment: Maybe<Scalars['String']>
-  readonly meta: Maybe<Scalars['JsonRecord']>
+  readonly meta: Maybe<Scalars['String']>
   readonly workflow: Maybe<Scalars['JsonRecord']>
+  readonly matchLocations: SearchHitPackageMatchLocations
   readonly matchingEntries: ReadonlyArray<SearchHitPackageMatchingEntry>
+}
+
+export interface SearchHitPackageEntryMatchLocations {
+  readonly __typename: 'SearchHitPackageEntryMatchLocations'
+  readonly logicalKey: Scalars['Boolean']
+  readonly physicalKey: Scalars['Boolean']
+  readonly meta: Scalars['Boolean']
+  readonly contents: Scalars['Boolean']
+}
+
+export interface SearchHitPackageMatchLocations {
+  readonly __typename: 'SearchHitPackageMatchLocations'
+  readonly name: Scalars['Boolean']
+  readonly comment: Scalars['Boolean']
+  readonly meta: Scalars['Boolean']
+  readonly workflow: Scalars['Boolean']
 }
 
 export interface SearchHitPackageMatchingEntry {
@@ -1126,13 +1143,16 @@ export interface SearchHitPackageMatchingEntry {
   readonly logicalKey: Scalars['String']
   readonly physicalKey: Scalars['String']
   readonly size: Scalars['Float']
-  readonly meta: Maybe<Scalars['JsonRecord']>
+  readonly meta: Maybe<Scalars['String']>
+  readonly matchLocations: SearchHitPackageEntryMatchLocations
 }
 
 export enum SearchResultOrder {
   BEST_MATCH = 'BEST_MATCH',
   NEWEST = 'NEWEST',
   OLDEST = 'OLDEST',
+  LEX_ASC = 'LEX_ASC',
+  LEX_DESC = 'LEX_DESC',
 }
 
 export type SetSsoConfigResult = SsoConfig | InvalidInput | OperationError

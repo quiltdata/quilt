@@ -178,7 +178,7 @@ export function Package({
   const metaJson = React.useMemo(() => {
     if (!hit.meta) return null
     try {
-      return JSON.parse(hit.meta as any)
+      return JSON.parse(hit.meta)
     } catch {
       return null
     }

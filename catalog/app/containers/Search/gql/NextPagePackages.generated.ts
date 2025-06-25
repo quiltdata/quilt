@@ -30,11 +30,24 @@ export type containers_Search_gql_NextPagePackagesQuery = {
               | 'meta'
               | 'workflow'
             > & {
+                readonly matchLocations: {
+                  readonly __typename: 'SearchHitPackageMatchLocations'
+                } & Pick<
+                  Types.SearchHitPackageMatchLocations,
+                  'comment' | 'meta' | 'name' | 'workflow'
+                >
                 readonly matchingEntries: ReadonlyArray<
                   { readonly __typename: 'SearchHitPackageMatchingEntry' } & Pick<
                     Types.SearchHitPackageMatchingEntry,
                     'logicalKey' | 'physicalKey' | 'size' | 'meta'
-                  >
+                  > & {
+                      readonly matchLocations: {
+                        readonly __typename: 'SearchHitPackageEntryMatchLocations'
+                      } & Pick<
+                        Types.SearchHitPackageEntryMatchLocations,
+                        'contents' | 'logicalKey' | 'meta' | 'physicalKey'
+                      >
+                    }
                 >
               }
           >
@@ -120,6 +133,31 @@ export const containers_Search_gql_NextPagePackagesDocument = {
                             { kind: 'Field', name: { kind: 'Name', value: 'workflow' } },
                             {
                               kind: 'Field',
+                              name: { kind: 'Name', value: 'matchLocations' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'comment' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'meta' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'name' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'workflow' },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'Field',
                               name: { kind: 'Name', value: 'matchingEntries' },
                               selectionSet: {
                                 kind: 'SelectionSet',
@@ -139,6 +177,31 @@ export const containers_Search_gql_NextPagePackagesDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'meta' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'matchLocations' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'contents' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'logicalKey' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'meta' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'physicalKey' },
+                                        },
+                                      ],
+                                    },
                                   },
                                 ],
                               },
