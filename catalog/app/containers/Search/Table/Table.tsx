@@ -234,16 +234,6 @@ const useEntriesStyles = M.makeStyles((t) => ({
   scrolling: {
     opacity: 0.3,
   },
-  hide: {
-    left: t.spacing(2),
-    opacity: 0.3,
-    position: 'absolute',
-    top: t.spacing(3),
-    transition: t.transitions.create('opacity'),
-    '&:hover': {
-      opacity: 1,
-    },
-  },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -261,10 +251,9 @@ interface PreviewEntry {
 
 interface EntriesProps {
   entries: readonly Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>[]
-  onClose: () => void
 }
 
-function Entries({ entries, onClose }: EntriesProps) {
+function Entries({ entries }: EntriesProps) {
   const classes = useEntriesStyles()
   const ref = React.useRef<HTMLDivElement>(null)
   const [height, setHeight] = React.useState('auto')
@@ -279,15 +268,12 @@ function Entries({ entries, onClose }: EntriesProps) {
   return (
     <div className={cx(classes.root)} style={{ height }}>
       <div className={classes.sticky} ref={ref}>
-        <M.IconButton className={classes.hide} size="small" onClick={onClose}>
-          <M.Icon fontSize="inherit">expand_less</M.Icon>
-        </M.IconButton>
         <M.Table size="small" className={classes.table}>
           <M.TableHead>
             <M.TableRow>
               <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
               <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
-              <M.TableCell className={classes.cell} align="right" width="80px">
+              <M.TableCell className={classes.cell} align="right" width="100px">
                 Size
               </M.TableCell>
               <M.TableCell className={classes.cell} align="center" width="120px">
@@ -487,7 +473,7 @@ function PackageRow({ columns, hit }: PackageRowProps) {
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
           <M.TableCell className={classes.entries} colSpan={columns.length + 1}>
-            {open && <Entries entries={hit.matchingEntries} onClose={toggle} />}
+            {open && <Entries entries={hit.matchingEntries} />}
           </M.TableCell>
         </M.TableRow>
       )}
