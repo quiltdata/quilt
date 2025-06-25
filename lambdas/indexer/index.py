@@ -63,6 +63,7 @@ from urllib.parse import unquote_plus
 import boto3
 import botocore
 import elasticsearch
+import elasticsearch.helpers
 import jsonpointer
 import nbformat
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -221,7 +222,7 @@ class Batcher:
         logger.debug("Batch sent to s3://%s/%s", self.BATCH_INDEXER_BUCKET, key)
 
     def append(self, doc: dict):
-        data = self.json_encode(doc).encode()
+        data = "\n".join(map(self.json_encode, elasticsearch.helpers.expand_action(doc))).encode()
         assert (
             len(data) < self.BATCH_MAX_BYTES
         ), f"Document size {len(data)} exceeds max batch size {self.BATCH_MAX_BYTES}"
