@@ -49,9 +49,11 @@ See docs/EventBridge.md for more
 import datetime
 import functools
 import hashlib
+import io
 import json
 import os
 import pathlib
+import random
 import re
 import urllib.parse
 from os.path import split
@@ -183,6 +185,62 @@ ELASTIC_TIMEOUT = 30
 
 logger = get_quilt_logger()
 s3_client = boto3.client("s3", config=botocore.config.Config(user_agent_extra=USER_AGENT_EXTRA))
+
+
+class Batcher:
+    json_encode = json.JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
+    BATCH_INDEXER_BUCKET = os.getenv("BATCH_INDEXER_BUCKET")
+    BATCH_MAX_BYTES = int(os.getenv("BATCH_MAX_BYTES", 8_000_000))
+    BATCH_MAX_DOCS = int(os.getenv("BATCH_MAX_DOCS", 10_000))
+
+    @staticmethod
+    def _make_key():
+        return f"{random.randbytes(4).hex()}/object"
+
+    def _reset(self):
+        """reset the current batch"""
+        self.current_batch: list[bytes] = []
+        self.current_batch_size = 0
+
+    def __init__(self) -> None:
+        self._reset()
+
+    def _send_batch(self):
+        """send the current batch to S3"""
+        if not self.current_batch:
+            return
+        batch = self.current_batch
+        self._reset()
+        key = self._make_key()
+        s3_client.put_object(
+            Bucket=self.BATCH_INDEXER_BUCKET,
+            Key=key,
+            Body=b"\n".join(batch),
+            ContentType="application/json",
+        )
+        logger.debug("Batch sent to s3://%s/%s", self.BATCH_INDEXER_BUCKET, key)
+
+    def append(self, doc: dict):
+        data = self.json_encode(doc).encode()
+        assert (
+            len(data) < self.BATCH_MAX_BYTES
+        ), f"Document size {len(data)} exceeds max batch size {self.BATCH_MAX_BYTES}"
+
+        if (
+            len(self.current_batch) >= self.BATCH_MAX_DOCS
+            or self.current_batch_size + len(data) > self.BATCH_MAX_BYTES
+        ):
+            self._send_batch()
+
+        self.current_batch.append(data)
+        self.current_batch_size += len(data)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Send the remaining batch on exit"""
+        self._send_batch()
 
 
 @functools.cache
@@ -327,13 +385,7 @@ def do_index(
         s3_tags=s3_tags,
     )
     # maybe index as package
-    if index_if_pointer(
-        s3_client,
-        doc_queue,
-        bucket=bucket,
-        key=key,
-    ):
-        logger_.debug("%s indexed as package (%s)", key, event_type)
+
 
     index_manifest(
         s3_client,
@@ -466,8 +518,7 @@ def parse_s3_physical_key(pk: str):
 
 
 def index_if_pointer(
-    s3_client,
-    doc_queue: DocumentQueue,
+    doc_queue: Batcher,
     *,
     bucket: str,
     key: str,
@@ -505,7 +556,7 @@ def index_if_pointer(
         )
     except s3_client.exceptions.NoSuchKey:
         logger.debug("No pointer found: s3://%s/%s. Removing.", bucket, key)
-        doc_queue.append_document(
+        doc_queue.append(
             {
                 "_index": index,
                 "_op_type": "delete",
@@ -517,7 +568,7 @@ def index_if_pointer(
     manifest_hash = resp["Body"].read().decode()
     manifest_doc_id = f"mnfst:{manifest_hash}"
     logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
-    doc_queue.append_document(
+    doc_queue.append(
         {
             "_index": index,
             "_op_type": "index",
@@ -533,8 +584,7 @@ def index_if_pointer(
 
 
 def index_manifest(
-    s3_client,
-    doc_queue: DocumentQueue,
+    doc_queue: Batcher,
     *,
     bucket: str,
     key: str,
@@ -568,18 +618,18 @@ def index_manifest(
             return
         user_meta = first.get("user_meta")
 
-        yield {
-            "_index": index,
-            "_id": doc_id,
-            "_op_type": "index",
-            "join_field": {"name": "mnfst"},
-            "mnfst_hash": manifest_hash,
-            "mnfst_last_modified": resp["LastModified"],
-            "mnfst_metadata": json.dumps(user_meta) if user_meta else None,
-            "mnfst_metadata_fields": get_metadata_fields(user_meta),
-            "mnfst_message": str(first.get("message", "")),
-            "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
-        }
+        # yield {
+        #     "_index": index,
+        #     "_id": doc_id,
+        #     "_op_type": "index",
+        #     "join_field": {"name": "mnfst"},
+        #     "mnfst_hash": manifest_hash,
+        #     "mnfst_last_modified": resp["LastModified"],
+        #     "mnfst_metadata": json.dumps(user_meta) if user_meta else None,
+        #     "mnfst_metadata_fields": get_metadata_fields(user_meta),
+        #     "mnfst_message": str(first.get("message", "")),
+        #     "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
+        # }
 
         total_bytes = 0
         total_files = 0
@@ -624,19 +674,20 @@ def index_manifest(
 
         yield {
             "_index": index,
-            "_op_type": "update",
             "_id": doc_id,
-            "doc": {
-                "mnfst_stats": {
-                    "total_bytes": total_bytes,
-                    "total_files": total_files,
-                },
-            },
+            "_op_type": "index",
+            "join_field": {"name": "mnfst"},
+            "mnfst_hash": manifest_hash,
+            "mnfst_last_modified": resp["LastModified"],
+            "mnfst_metadata": json.dumps(user_meta) if user_meta else None,
+            "mnfst_metadata_fields": get_metadata_fields(user_meta),
+            "mnfst_message": str(first.get("message", "")),
+            "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
     doc_data = None
     for doc_data in get_pkg_data():
-        doc_queue.append_document(doc_data)
+        doc_queue.append(doc_data)
     if doc_data is None:
         logger.debug("No manifest entries found for s3://%s/%s. Removing.", bucket, key)
         make_elastic().delete_by_query(
@@ -651,7 +702,7 @@ def index_manifest(
             },
         )
         # XXX: remove it with delete_by_query from above?
-        doc_queue.append_document(
+        doc_queue.append(
             {
                 "_index": index,
                 "_op_type": "delete",
@@ -1280,3 +1331,43 @@ def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: Optional
             bucket, key, version_id
         )
         return None
+
+
+def batch_indexer_handler(event, context):
+    logger.debug("Batch indexer handler called with event: %s", event)
+    assert len(event["Records"]) == 1, "Batch indexer handler expects exactly one record"
+    event, = event["Records"]
+    event = json.loads(event["body"])
+    assert len(event["Records"]) == 1, "Batch indexer handler expects exactly one S3 event record"
+    event, = event["Records"]
+
+    bucket = event["Detail"]["s3"]["bucket"]["name"]
+    key = event["Detail"]["s3"]["object"]["key"]
+    # XXX: use version?
+
+    make_elastic().bulk(s3_client.get_object(Bucket=bucket, Key=key)["Body"].read())
+
+
+def pkg_indexer_handler(event, context):
+    """Handler for package indexer events"""
+    logger.debug("Package indexer handler called with event: %s", event)
+
+    assert len(event["Records"]) == 1, "Package indexer handler expects exactly one record"
+
+    with Batcher() as batcher:
+        for record in event["Records"]:
+            bucket = record["Detail"]["s3"]["bucket"]["name"]
+            key = record["Detail"]["s3"]["object"]["key"]
+
+            if index_if_pointer(
+                batcher,
+                bucket=bucket,
+                key=key,
+            ):
+                logger.debug("Indexed pointer for package %s/%s", bucket, key)
+
+            index_manifest(
+                batcher,
+                bucket=bucket,
+                key=key,
+            )
