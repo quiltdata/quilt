@@ -9,6 +9,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as Preview from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
+import type { RouteMap } from 'containers/Bucket/BucketNav'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
@@ -18,6 +19,7 @@ import StyledLink from 'utils/StyledLink'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
+import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
@@ -197,7 +199,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
     // It is positioned where it would be without `absolute`,
     // but it continues to stay there when table is scrolled.
     position: 'absolute',
-    padding: t.spacing(2, 2, 2, 7),
+    padding: t.spacing(2, 2, 2, 8),
     // fullWidth
     //  // FIXME: update description
     //  - page container paddings
@@ -249,11 +251,79 @@ interface PreviewEntry {
   entry: Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>
 }
 
-interface EntriesProps {
-  entries: readonly Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>[]
+interface EntryProps {
+  entry: Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>
+  onMeta: (x: PreviewEntry) => void
+  onPreview: (x: PreviewEntry) => void
+  packageHandle: PackageHandle
 }
 
-function Entries({ entries }: EntriesProps) {
+function Entry({ entry, onPreview, onMeta, packageHandle }: EntryProps) {
+  const classes = useEntriesStyles()
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const handlePreview = React.useCallback(
+    () => onPreview({ type: 'content', entry }),
+    [entry, onPreview],
+  )
+  const handleMeta = React.useCallback(
+    () => onMeta({ type: 'meta', entry }),
+    [entry, onMeta],
+  )
+  const inBucket = React.useMemo(() => {
+    const { bucket, key, version } = s3paths.parseS3Url(entry.physicalKey)
+    return {
+      title: decodeURI(entry.physicalKey),
+      to: urls.bucketFile(bucket, key, { version }),
+    }
+  }, [entry.physicalKey, urls])
+  const inPackage = React.useMemo(() => {
+    const { bucket, name, hash } = packageHandle
+    return {
+      title: decodeURIComponent(entry.logicalKey),
+      to: urls.bucketPackageTree(bucket, name, hash, entry.logicalKey),
+    }
+  }, [entry.logicalKey, packageHandle, urls])
+  return (
+    <M.TableRow hover key={entry.physicalKey} className={classes.row}>
+      <M.TableCell className={classes.cell} component="th" scope="row">
+        <M.Tooltip title={entry.logicalKey}>
+          <StyledLink to={inPackage.to}>{inPackage.title}</StyledLink>
+        </M.Tooltip>
+      </M.TableCell>
+      <M.TableCell className={classes.cell}>
+        <M.Tooltip title={entry.physicalKey}>
+          <StyledLink to={inBucket.to}>{inBucket.title}</StyledLink>
+        </M.Tooltip>
+      </M.TableCell>
+      <M.TableCell className={classes.cell} align="right">
+        {readableBytes(entry.size)}
+      </M.TableCell>
+      <M.TableCell className={classes.cell} align="center">
+        {entry.meta ? (
+          <M.IconButton size="small" onClick={handlePreview}>
+            <M.Icon fontSize="inherit">list</M.Icon>
+          </M.IconButton>
+        ) : (
+          <M.IconButton size="small" disabled>
+            <M.Divider className={classes.noMeta} />
+          </M.IconButton>
+        )}
+      </M.TableCell>
+      <M.TableCell className={classes.cell} align="center">
+        <span className={classes.content} onClick={handleMeta}>
+          {extname(entry.logicalKey).substring(1)}
+        </span>
+      </M.TableCell>
+    </M.TableRow>
+  )
+}
+
+interface EntriesProps {
+  entries: readonly Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>[]
+  packageHandle: PackageHandle
+}
+
+function Entries({ entries, packageHandle }: EntriesProps) {
   const classes = useEntriesStyles()
   const ref = React.useRef<HTMLDivElement>(null)
   const [height, setHeight] = React.useState('auto')
@@ -286,43 +356,13 @@ function Entries({ entries }: EntriesProps) {
           </M.TableHead>
           <M.TableBody>
             {entries.map((entry) => (
-              <M.TableRow hover key={entry.physicalKey} className={classes.row}>
-                <M.TableCell className={classes.cell} component="th" scope="row">
-                  <M.Tooltip title={entry.logicalKey}>
-                    <span>{entry.logicalKey}</span>
-                  </M.Tooltip>
-                </M.TableCell>
-                <M.TableCell className={classes.cell}>
-                  <M.Tooltip title={entry.physicalKey}>
-                    <span>{entry.physicalKey}</span>
-                  </M.Tooltip>
-                </M.TableCell>
-                <M.TableCell className={classes.cell} align="right">
-                  {readableBytes(entry.size)}
-                </M.TableCell>
-                <M.TableCell className={classes.cell} align="center">
-                  {entry.meta ? (
-                    <M.IconButton
-                      size="small"
-                      onClick={() => setPreview({ type: 'meta', entry })}
-                    >
-                      <M.Icon fontSize="inherit">list</M.Icon>
-                    </M.IconButton>
-                  ) : (
-                    <M.IconButton size="small" disabled>
-                      <M.Divider className={classes.noMeta} />
-                    </M.IconButton>
-                  )}
-                </M.TableCell>
-                <M.TableCell className={classes.cell} align="center">
-                  <span
-                    className={classes.content}
-                    onClick={() => setPreview({ type: 'content', entry })}
-                  >
-                    {extname(entry.logicalKey).substring(1)}
-                  </span>
-                </M.TableCell>
-              </M.TableRow>
+              <Entry
+                key={entry.logicalKey + entry.physicalKey}
+                entry={entry}
+                onMeta={setPreview}
+                onPreview={setPreview}
+                packageHandle={packageHandle}
+              />
             ))}
           </M.TableBody>
         </M.Table>
@@ -427,6 +467,15 @@ function PackageRow({ columns, hit }: PackageRowProps) {
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
 
+  const packageHandle: PackageHandle = React.useMemo(
+    () => ({
+      bucket: hit.bucket,
+      name: hit.name,
+      hash: hit.hash,
+    }),
+    [hit],
+  )
+
   return (
     <>
       <M.TableRow hover className={classes.root} onClick={toggle}>
@@ -473,7 +522,9 @@ function PackageRow({ columns, hit }: PackageRowProps) {
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
           <M.TableCell className={classes.entries} colSpan={columns.length + 1}>
-            {open && <Entries entries={hit.matchingEntries} />}
+            {open && (
+              <Entries entries={hit.matchingEntries} packageHandle={packageHandle} />
+            )}
           </M.TableCell>
         </M.TableRow>
       )}
