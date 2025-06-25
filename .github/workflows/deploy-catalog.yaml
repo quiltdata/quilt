@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - search-results-table
+      - search-sync-gql
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
