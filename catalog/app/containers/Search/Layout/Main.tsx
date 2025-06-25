@@ -53,7 +53,7 @@ function SearchField({ className }: SearchFieldProps) {
 
 const useMobileFiltersStyles = M.makeStyles((t) => ({
   filters: {
-    padding: t.spacing(2),
+    padding: t.spacing(8, 2, 2),
     minWidth: `min(${t.spacing(40)}px, 100vw)`,
   },
   close: {
