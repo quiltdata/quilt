@@ -5297,7 +5297,7 @@ export default {
             name: 'meta',
             type: {
               kind: 'SCALAR',
-              name: 'JsonRecord',
+              name: 'String',
               ofType: null,
             },
             args: [],
@@ -5308,6 +5308,18 @@ export default {
               kind: 'SCALAR',
               name: 'JsonRecord',
               ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'matchLocations',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'SearchHitPackageMatchLocations',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -5325,6 +5337,116 @@ export default {
                     ofType: null,
                   },
                 },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SearchHitPackageEntryMatchLocations',
+        fields: [
+          {
+            name: 'logicalKey',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'physicalKey',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'meta',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'contents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SearchHitPackageMatchLocations',
+        fields: [
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'comment',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'meta',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
               },
             },
             args: [],
@@ -5376,8 +5498,20 @@ export default {
             name: 'meta',
             type: {
               kind: 'SCALAR',
-              name: 'JsonRecord',
+              name: 'String',
               ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'matchLocations',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'SearchHitPackageEntryMatchLocations',
+                ofType: null,
+              },
             },
             args: [],
           },
