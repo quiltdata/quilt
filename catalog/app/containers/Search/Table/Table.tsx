@@ -61,7 +61,7 @@ interface TableViewSystemMetaProps {
 }
 
 function SystemMetaValue({ hit, filter }: TableViewSystemMetaProps) {
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<RouteMap>()
   switch (filter) {
     case 'workflow':
       return hit.workflow ? hit.workflow.id : <NoValue />
@@ -244,6 +244,10 @@ const useEntriesStyles = M.makeStyles((t) => ({
   close: {
     margin: t.spacing(-1, -2),
   },
+  totalCount: {
+    paddingTop: t.spacing(2),
+    paddingLeft: 0,
+  },
 }))
 
 interface PreviewEntry {
@@ -252,13 +256,14 @@ interface PreviewEntry {
 }
 
 interface EntryProps {
+  className: string
   entry: Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>
   onMeta: (x: PreviewEntry) => void
   onPreview: (x: PreviewEntry) => void
   packageHandle: PackageHandle
 }
 
-function Entry({ entry, onPreview, onMeta, packageHandle }: EntryProps) {
+function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProps) {
   const classes = useEntriesStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   const handlePreview = React.useCallback(
@@ -284,7 +289,7 @@ function Entry({ entry, onPreview, onMeta, packageHandle }: EntryProps) {
     }
   }, [entry.logicalKey, packageHandle, urls])
   return (
-    <M.TableRow hover key={entry.physicalKey} className={classes.row}>
+    <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
         <M.Tooltip title={entry.logicalKey}>
           <StyledLink to={inPackage.to}>{inPackage.title}</StyledLink>
@@ -321,9 +326,12 @@ function Entry({ entry, onPreview, onMeta, packageHandle }: EntryProps) {
 interface EntriesProps {
   entries: readonly Omit<Model.GQLTypes.SearchHitPackageMatchingEntry, 'matchLocations'>[]
   packageHandle: PackageHandle
+  totalCount: number
 }
 
-function Entries({ entries, packageHandle }: EntriesProps) {
+function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
+  const { urls } = NamedRoutes.use<RouteMap>()
+
   const classes = useEntriesStyles()
   const ref = React.useRef<HTMLDivElement>(null)
   const [height, setHeight] = React.useState('auto')
@@ -357,6 +365,7 @@ function Entries({ entries, packageHandle }: EntriesProps) {
           <M.TableBody>
             {entries.map((entry) => (
               <Entry
+                className={classes.row}
                 key={entry.logicalKey + entry.physicalKey}
                 entry={entry}
                 onMeta={setPreview}
@@ -364,8 +373,26 @@ function Entries({ entries, packageHandle }: EntriesProps) {
                 packageHandle={packageHandle}
               />
             ))}
+            {entries.length < totalCount && (
+              <M.TableRow className={classes.row}>
+                <M.TableCell colSpan={5} className={cx(classes.cell, classes.totalCount)}>
+                  <M.Typography variant="caption" component="p">
+                    <StyledLink
+                      to={urls.bucketPackageDetail(
+                        packageHandle.bucket,
+                        packageHandle.name,
+                      )}
+                    >
+                      Package has {totalCount - entries.length} more entries not satisfied
+                      to the search
+                    </StyledLink>
+                  </M.Typography>
+                </M.TableCell>
+              </M.TableRow>
+            )}
           </M.TableBody>
         </M.Table>
+
         {preview && (
           <div className={classes.popover}>
             <M.ClickAwayListener onClickAway={() => setPreview(null)}>
@@ -560,7 +587,11 @@ function PackageRow({ columns, hit }: PackageRowProps) {
         <M.TableRow>
           <M.TableCell className={classes.entries} colSpan={columns.length + 1}>
             {open && (
-              <Entries entries={hit.matchingEntries} packageHandle={packageHandle} />
+              <Entries
+                entries={hit.matchingEntries}
+                packageHandle={packageHandle}
+                totalCount={hit.totalEntriesCount}
+              />
             )}
           </M.TableCell>
         </M.TableRow>
