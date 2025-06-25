@@ -1375,10 +1375,14 @@ function useGuessUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets>
                   workflowRootKeys !== Workflow.Loading &&
                   workflowRootKeys.indexOf(path.replace(/^\//, '')) > -1
                 ) {
-                  output.workflow[path] = __typename
+                  if (output.workflow[path] !== 'KeywordPackageUserMetaFacet') {
+                    output.workflow[path] = __typename
+                  }
                 }
 
-                output.all[path] = __typename
+                if (output.all[path] !== 'KeywordPackageUserMetaFacet') {
+                  output.all[path] = __typename
+                }
               })
               return output
 
