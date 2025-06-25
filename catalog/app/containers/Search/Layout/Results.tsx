@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
+import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 
@@ -11,14 +12,60 @@ import SortSelector from '../Sort'
 import * as SearchUIModel from '../model'
 
 import ColumnTitle from './ColumnTitle'
+import { useMobileView } from './Container'
 
-export function useMobileView() {
-  const t = M.useTheme()
-  return M.useMediaQuery(t.breakpoints.down('sm'))
+interface CreatePackageProps {
+  className: string
+  bucket: string
 }
 
+function CreatePackage({ bucket, className }: CreatePackageProps) {
+  const createDialog = usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+  const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
+  return (
+    <>
+      <M.Button
+        className={className}
+        color="primary"
+        onClick={handleClick}
+        size="small"
+        startIcon={<M.Icon>add</M.Icon>}
+        variant="contained"
+      >
+        Create new package
+      </M.Button>
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+    </>
+  )
+}
+
+const useResultsCountStyles = M.makeStyles((t) => ({
+  create: {
+    marginLeft: t.spacing(2),
+    [t.breakpoints.down('sm')]: {
+      marginLeft: 'auto',
+    },
+  },
+}))
+
 function ResultsCount() {
-  const r = SearchUIModel.use().firstPageQuery
+  const classes = useResultsCountStyles()
+  const model = SearchUIModel.use()
+  const r = model.firstPageQuery
+  const bucket = React.useMemo(
+    () => (model.state.buckets.length === 1 ? model.state.buckets[0] : null),
+    [model.state.buckets],
+  )
   switch (r._tag) {
     case 'fetching':
       return <Skeleton width={140} height={24} />
@@ -38,6 +85,7 @@ function ResultsCount() {
                 one="1 result"
                 other={(n) => (n > 0 ? `${n} results` : 'Results')}
               />
+              {bucket && <CreatePackage className={classes.create} bucket={bucket} />}
             </ColumnTitle>
           )
         default:

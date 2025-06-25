@@ -7,6 +7,7 @@ import BucketSelector from 'containers/Search/Buckets'
 import ResultTypeSelector from 'containers/Search/ResultType'
 import * as SearchUIModel from 'containers/Search/model'
 
+import { useMobileView } from './Container'
 import ObjectFilters from './ObjectFilters'
 import PackageFilters from './PackageFilters'
 import Results from './Results'
@@ -122,11 +123,6 @@ function Filters({ className }: FiltersProps) {
       <ScrollToTop />
     </div>
   )
-}
-
-function useMobileView() {
-  const t = M.useTheme()
-  return M.useMediaQuery(t.breakpoints.down('sm'))
 }
 
 const useStyles = M.makeStyles((t) => ({

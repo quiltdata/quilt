@@ -4,6 +4,11 @@ import * as M from '@material-ui/core'
 
 import * as SearchUIModel from 'containers/Search/model'
 
+export function useMobileView() {
+  const t = M.useTheme()
+  return M.useMediaQuery(t.breakpoints.down('sm'))
+}
+
 const useExpandingContainerStyles = M.makeStyles((t) => ({
   [SearchUIModel.View.Table]: {
     animation: t.transitions.create('$expand'),
