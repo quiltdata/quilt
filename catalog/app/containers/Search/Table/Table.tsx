@@ -435,6 +435,10 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
 }
 
 const useUnfoldPackageEntriesStyles = M.makeStyles((t) => ({
+  badge: {
+    background: t.palette.text.hint,
+    color: t.palette.getContrastText(t.palette.text.hint),
+  },
   expanded: {
     opacity: 1,
     animation: t.transitions.create('$expanded'),
@@ -474,7 +478,7 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
   return (
     <M.Tooltip title={title}>
       <M.IconButton className={className}>
-        <M.Badge badgeContent={size} color="default">
+        <M.Badge badgeContent={size} color="default" classes={{ badge: classes.badge }}>
           <M.Icon className={open ? classes.expanded : classes.collapsed}>
             {open ? 'expand_more' : 'chevron_right'}
           </M.Icon>
