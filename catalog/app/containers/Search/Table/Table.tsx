@@ -1156,10 +1156,6 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
 
 const noopFixme = () => {}
 
-const isSingleKeyword = (
-  predicate: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate> | null,
-) => predicate && predicate._tag === 'KeywordEnum' && predicate.terms.length === 1
-
 interface ColumnBase {
   filtered: boolean
   onClose?: () => void
@@ -1248,8 +1244,7 @@ function useTableColumns(
       invariant(!!predicate, 'Predicate should exist')
       // 'name' is added in `fixed` columns
       // 'entries' doesn't have values
-      const singleKeyword = isSingleKeyword(predicate)
-      if (filter !== 'name' && !singleKeyword) {
+      if (filter !== 'name') {
         output.push({
           predicateType: predicate._tag,
           filter,
@@ -1271,20 +1266,17 @@ function useTableColumns(
     const modifiedFilters = state.userMetaFilters.toGQL()
     const output: Column[] = []
     state.userMetaFilters.filters.forEach((predicate, filter) => {
-      const singleKeyword = isSingleKeyword(predicate)
-      if (!singleKeyword) {
-        output.push({
-          predicateType: predicate._tag,
-          filter,
-          onClose: () => actions.deactivatePackagesMetaFilter(filter),
-          onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-          onSearch: noopFixme,
-          onSort: noopFixme,
-          tag: 'meta' as const,
-          title: filter.replace(/^\//, ''),
-          filtered: !!modifiedFilters?.find(({ path }) => path === filter),
-        })
-      }
+      output.push({
+        predicateType: predicate._tag,
+        filter,
+        onClose: () => actions.deactivatePackagesMetaFilter(filter),
+        onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
+        onSearch: noopFixme,
+        onSort: noopFixme,
+        tag: 'meta' as const,
+        title: filter.replace(/^\//, ''),
+        filtered: !!modifiedFilters?.find(({ path }) => path === filter),
+      })
     })
     return output
   }, [actions, state.userMetaFilters])
