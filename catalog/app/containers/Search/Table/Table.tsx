@@ -24,6 +24,7 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
+import BucketSelector from '../Buckets'
 import FilterWidget from '../FilterWidget'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
@@ -698,9 +699,10 @@ const useColumnActionsStyles = M.makeStyles((t) => ({
 interface ColumnActionsProps {
   className: string
   column: Column
+  single: boolean
 }
 
-function ColumnActions({ className, column }: ColumnActionsProps) {
+function ColumnActions({ className, column, single }: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
@@ -755,10 +757,6 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
       className={cx(classes.root, className)}
       ref={(el) => setAnchorEl(el?.parentElement || el)}
     >
-      {
-        // FIXME:
-        // <ColumnAction onClick={onSort} icon="sort" />
-      }
       <ColumnAction
         color={column.filtered ? 'primary' : 'inherit'}
         icon="filter_list"
@@ -767,20 +765,24 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
       {column.filtered ? (
         <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
       ) : (
-        <StyledTooltip
-          title={column.onClose ? 'Deactivate filter and hide column' : 'Hide column'}
-        >
-          <ColumnAction icon="close" onClick={handleHide} />
-        </StyledTooltip>
+        !single && (
+          <StyledTooltip
+            title={column.onClose ? 'Deactivate filter and hide column' : 'Hide column'}
+          >
+            <ColumnAction icon="close" onClick={handleHide} />
+          </StyledTooltip>
+        )
       )}
       <M.Popover open={menuOpened} {...popoverProps}>
         <M.List dense>
-          <M.ListItem button onClick={handleHide}>
-            <M.ListItemIcon>
-              <M.Icon>visibility</M.Icon>
-            </M.ListItemIcon>
-            <M.ListItemText primary="Hide column" />
-          </M.ListItem>
+          {!single && (
+            <M.ListItem button onClick={handleHide}>
+              <M.ListItemIcon>
+                <M.Icon>visibility</M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText primary="Hide column" />
+            </M.ListItem>
+          )}
           {column.filtered && (
             <M.ListItem button onClick={column.onClose}>
               <M.ListItemIcon>
@@ -792,6 +794,11 @@ function ColumnActions({ className, column }: ColumnActionsProps) {
         </M.List>
       </M.Popover>
       <M.Popover open={filterOpened} {...popoverProps}>
+        {column.filter === 'bucket' && (
+          <M.Box display="flex" flexDirection="column" padding={2} width={320}>
+            <BucketSelector />
+          </M.Box>
+        )}
         {column.tag === 'filter' && (
           <M.Box display="flex" flexDirection="column" padding={2} width={320}>
             <Filter filter={column.filter} onClose={hideFilter} />
@@ -1119,9 +1126,10 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
 
 interface ColumnHeadProps {
   column: Column
+  single: boolean
 }
 
-function ColumnHead({ column }: ColumnHeadProps) {
+function ColumnHead({ column, single }: ColumnHeadProps) {
   const classes = useColumnHeadStyles()
   if (column.tag === 'filter') {
     return (
@@ -1129,7 +1137,7 @@ function ColumnHead({ column }: ColumnHeadProps) {
         <M.Tooltip title={column.fullTitle}>
           <span>{column.title}</span>
         </M.Tooltip>
-        <ColumnActions className={classes.actions} column={column} />
+        <ColumnActions className={classes.actions} column={column} single={single} />
       </div>
     )
   }
@@ -1141,7 +1149,7 @@ function ColumnHead({ column }: ColumnHeadProps) {
         </M.Icon>
       )}
       {column.title}
-      <ColumnActions className={classes.actions} column={column} />
+      <ColumnActions className={classes.actions} column={column} single={single} />
     </div>
   )
 }
@@ -1209,25 +1217,27 @@ function useTableColumns(
       predicateType: 'Text' as const,
       filter: 'name' as const,
       fullTitle: PACKAGE_FILTER_LABELS.name,
+      onClose: () => actions.deactivatePackagesFilter('name'),
       onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
       onSearch: noopFixme,
       onSort: noopFixme,
       tag: 'filter' as const,
       title: COLUMN_LABELS.name,
-      filtered: false,
+      filtered: !!state.filter.predicates.name,
     }
     if (singleBucket) return [name]
     const bucket: Column = {
       filter: 'bucket' as const,
+      onClose: () => actions.setBuckets([]),
       onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
       onSearch: noopFixme,
       onSort: noopFixme,
       tag: 'visual' as const,
       title: COLUMN_LABELS.bucket,
-      filtered: false,
+      filtered: !!state.buckets.length,
     }
     return [bucket, name]
-  }, [singleBucket])
+  }, [actions, state.buckets.length, state.filter.predicates.name, singleBucket])
 
   const filters = React.useMemo(() => {
     const output: Column[] = []
@@ -1422,7 +1432,7 @@ function Layout({ hits, columns, hidden }: LayoutProps) {
                 <M.TableCell padding="checkbox" />
                 {columns.map((column) => (
                   <M.TableCell className={classes.cell} key={column.filter}>
-                    <ColumnHead column={column} />
+                    <ColumnHead column={column} single={columns.length === 1} />
                   </M.TableCell>
                 ))}
               </M.TableRow>
