@@ -1394,8 +1394,9 @@ const useLayoutStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
   },
   scrollArea: {
-    paddingRight: t.spacing(4),
+    minHeight: t.spacing(80),
     overflowX: 'auto',
+    paddingRight: t.spacing(4),
   },
   cell: {
     whiteSpace: 'nowrap',
