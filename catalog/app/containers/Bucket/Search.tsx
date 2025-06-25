@@ -13,7 +13,7 @@ import TableResults from 'containers/Search/Table'
 
 const useStyles = M.makeStyles((t) => ({
   main: {
-    padding: t.spacing(3),
+    padding: t.spacing(3, 0),
   },
   results: {
     marginTop: t.spacing(2),
