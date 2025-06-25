@@ -1351,8 +1351,8 @@ def pkg_indexer_handler(event, context):
 
     with Batcher() as batcher:
         for record in event["Records"]:
-            bucket = record["Detail"]["s3"]["bucket"]["name"]
-            key = record["Detail"]["s3"]["object"]["key"]
+            bucket = record["detail"]["s3"]["bucket"]["name"]
+            key = record["detail"]["s3"]["object"]["key"]
 
             if index_if_pointer(
                 batcher,
