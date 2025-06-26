@@ -1490,7 +1490,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
   },
   scrollArea: {
-    minHeight: t.spacing(80),
+    minHeight: t.spacing(60),
     overflowX: 'auto',
     paddingRight: t.spacing(5),
   },
