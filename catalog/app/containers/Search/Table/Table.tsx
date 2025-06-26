@@ -1218,10 +1218,6 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
     transition: t.transitions.create('color'),
     marginLeft: t.spacing(2),
   },
-  icon: {
-    color: t.palette.text.secondary,
-    marginRight: t.spacing(1),
-  },
   title: {
     ...t.typography.subtitle1,
     fontWeight: 500,
@@ -1235,24 +1231,17 @@ interface ColumnHeadProps {
 
 function ColumnHead({ column, single }: ColumnHeadProps) {
   const classes = useColumnHeadStyles()
-  if (column.tag === 'filter') {
-    return (
-      <div className={classes.root}>
-        <M.Tooltip title={column.fullTitle}>
-          <span className={classes.title}>{column.title}</span>
-        </M.Tooltip>
-        <ColumnActions className={classes.actions} column={column} single={single} />
-      </div>
-    )
-  }
   return (
     <div className={classes.root}>
-      {column.tag === 'meta' && (
-        <M.Icon className={classes.icon} fontSize="small">
-          list
-        </M.Icon>
-      )}
-      <span className={classes.title}>{column.title}</span>
+      <p className={classes.title}>
+        {column.tag === 'filter' ? (
+          <M.Tooltip title={column.fullTitle}>
+            <span>{column.title}</span>
+          </M.Tooltip>
+        ) : (
+          column.title
+        )}
+      </p>
       <ColumnActions className={classes.actions} column={column} single={single} />
     </div>
   )
