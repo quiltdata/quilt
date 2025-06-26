@@ -15,9 +15,6 @@ const useStyles = M.makeStyles((t) => ({
   main: {
     padding: t.spacing(3, 0),
   },
-  results: {
-    marginTop: t.spacing(2),
-  },
 }))
 
 export function SearchLayout() {
@@ -25,16 +22,14 @@ export function SearchLayout() {
   invariant(!!bucket, '`bucket` must be defined')
   const model = SearchUIModel.use()
   const classes = useStyles()
+  const tableView =
+    model.state.view === SearchUIModel.View.Table &&
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage
   return (
     <>
       <MetaTitle>{['Packages', bucket, model.state.searchString || '']}</MetaTitle>
       <Main className={classes.main}>
-        {model.state.view === SearchUIModel.View.Table &&
-        model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
-          <TableResults className={classes.results} bucket={bucket} />
-        ) : (
-          <ListResults className={classes.results} />
-        )}
+        {tableView ? <TableResults bucket={bucket} /> : <ListResults />}
       </Main>
     </>
   )

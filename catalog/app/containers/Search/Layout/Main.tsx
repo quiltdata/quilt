@@ -13,7 +13,7 @@ import ColumnTitle from './ColumnTitle'
 import { useMobileView } from './Container'
 import ObjectFilters from './ObjectFilters'
 import PackageFilters from './PackageFilters'
-import Results from './Results'
+import ResultsToolbar from './Results'
 import ScrollToTop from './ScrollToTop'
 
 interface SearchFieldProps {
@@ -96,8 +96,11 @@ const useFiltersStyles = M.makeStyles((t) => ({
     // padding: t.spacing(0.5, 0, 0),
     // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
   },
+  bucket: {
+    marginBottom: t.spacing(1),
+  },
   variable: {
-    marginTop: t.spacing(1),
+    marginTop: t.spacing(0.5),
     overflow: 'hidden auto',
   },
 }))
@@ -116,7 +119,7 @@ function Filters({ className }: FiltersProps) {
         <RRDom.Route path={paths.search} exact>
           <ColumnTitle>Search for</ColumnTitle>
           <ResultTypeSelector />
-          <BucketSelector disabled />
+          <BucketSelector disabled className={classes.bucket} />
         </RRDom.Route>
       </RRDom.Switch>
       {
@@ -143,6 +146,17 @@ const useStyles = M.makeStyles((t) => ({
   },
   search: {
     marginBottom: t.spacing(2),
+  },
+  results: {
+    display: 'grid',
+    gridAutoFlow: 'row',
+    gridRowGap: t.spacing(2),
+    gridTemplateColumns: '100%',
+    overflow: 'hidden',
+
+    // make space for box shadows
+    padding: t.spacing(0.5),
+    margin: t.spacing(-0.5),
   },
 }))
 
@@ -171,7 +185,10 @@ export default function Main({ className, children }: MainProps) {
         ) : (
           <Filters />
         )}
-        <Results onFilters={toggleFilters}>{children}</Results>
+        <div className={classes.results}>
+          <ResultsToolbar onFilters={toggleFilters} />
+          {children}
+        </div>
       </div>
     </div>
   )

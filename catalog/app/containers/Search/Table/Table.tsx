@@ -1109,6 +1109,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     width: t.spacing(5),
     background: t.palette.primary.main,
     color: t.palette.getContrastText(t.palette.primary.main),
+    borderTopRightRadius: t.shape.borderRadius,
   },
   opened: {
     width: 'auto',

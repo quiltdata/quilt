@@ -15,24 +15,19 @@ const useStyles = M.makeStyles((t) => ({
   main: {
     padding: t.spacing(3, 0),
   },
-  results: {
-    marginTop: t.spacing(2),
-  },
 }))
 
 function SearchLayout() {
   const model = SearchUIModel.use()
   const classes = useStyles()
+  const tableView =
+    model.state.view === SearchUIModel.View.Table &&
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage
   return (
     <Container state={model.state}>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
       <Main className={classes.main}>
-        {model.state.view === SearchUIModel.View.Table &&
-        model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
-          <TableResults className={classes.results} />
-        ) : (
-          <ListResults className={classes.results} />
-        )}
+        {tableView ? <TableResults /> : <ListResults />}
       </Main>
     </Container>
   )

@@ -163,12 +163,6 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
 }
 
 const useResultsStyles = M.makeStyles((t) => ({
-  root: {
-    // make space for box shadows
-    margin: '-4px',
-    overflow: 'hidden',
-    padding: '4px',
-  },
   button: {
     '& + &': {
       marginLeft: t.spacing(1),
@@ -177,9 +171,6 @@ const useResultsStyles = M.makeStyles((t) => ({
   controls: {
     display: 'flex',
     marginLeft: 'auto',
-  },
-  results: {
-    marginTop: t.spacing(2),
   },
   toolbar: {
     alignItems: 'flex-end',
@@ -190,30 +181,25 @@ const useResultsStyles = M.makeStyles((t) => ({
 
 interface ResultsProps {
   onFilters: () => void
-  children: React.ReactNode
 }
 
-export default function Results({ children, onFilters }: ResultsProps) {
+export default function Results({ onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
   const classes = useResultsStyles()
   const isMobile = useMobileView()
   const sidebarHidden = isMobile || model.state.view === SearchUIModel.View.Table
   return (
-    <div className={classes.root}>
-      <div className={classes.toolbar}>
-        <ResultsCount />
-        <div className={classes.controls}>
-          {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
-            <ToggleResultsView className={classes.button} />
-          )}
-          {sidebarHidden && (
-            <FiltersButton className={classes.button} onClick={onFilters} />
-          )}
-          <SortSelector className={classes.button} />
-        </div>
+    <div className={classes.toolbar}>
+      <ResultsCount />
+      <div className={classes.controls}>
+        {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
+          <ToggleResultsView className={classes.button} />
+        )}
+        {sidebarHidden && (
+          <FiltersButton className={classes.button} onClick={onFilters} />
+        )}
+        <SortSelector className={classes.button} />
       </div>
-
-      {children}
     </div>
   )
 }
