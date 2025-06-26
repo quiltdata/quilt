@@ -123,10 +123,11 @@ const useEmptyStyles = M.makeStyles((t) => ({
 }))
 
 interface EmptyProps {
+  bucket?: string
   className?: string
 }
 
-export function Empty({ className }: EmptyProps) {
+export function Empty({ bucket, className }: EmptyProps) {
   const classes = useEmptyStyles()
   const {
     actions: { clearFilters, reset, setBuckets, setResultType },
@@ -185,10 +186,9 @@ export function Empty({ className }: EmptyProps) {
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
 
-      {state.resultType === SearchUIModel.ResultType.QuiltPackage &&
-        state.buckets.length === 1 && (
-          <CreatePackage bucket={state.buckets[0]} className={classes.create} />
-        )}
+      {state.resultType === SearchUIModel.ResultType.QuiltPackage && !!bucket && (
+        <CreatePackage bucket={bucket} className={classes.create} />
+      )}
 
       <M.Typography variant="body1" align="center" className={classes.body}>
         Search for{' '}

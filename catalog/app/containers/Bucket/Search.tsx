@@ -31,7 +31,7 @@ export function SearchLayout() {
       <Main className={classes.main}>
         {model.state.view === SearchUIModel.View.Table &&
         model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
-          <TableResults className={classes.results} />
+          <TableResults className={classes.results} bucket={bucket} />
         ) : (
           <ListResults className={classes.results} />
         )}

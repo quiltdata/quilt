@@ -1294,15 +1294,15 @@ interface InferedUserMetaFacets {
 }
 
 function useTableColumns(
-  singleBucket: boolean,
   infered: Workflow.RequestResult<InferedUserMetaFacets>,
+  bucket?: string,
 ): AllColumns {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   const [collapsed, setCollapsed] = React.useState<Record<Column['filter'], boolean>>({})
 
   const fixed = React.useMemo(() => {
-    const name: Column = {
+    const nameCol: Column = {
       predicateType: 'Text' as const,
       filter: 'name' as const,
       fullTitle: PACKAGE_FILTER_LABELS.name,
@@ -1314,8 +1314,8 @@ function useTableColumns(
       title: COLUMN_LABELS.name,
       filtered: !!state.filter.predicates.name,
     }
-    if (singleBucket) return [name]
-    const bucket: Column = {
+    if (!bucket) return [nameCol]
+    const bucketCol: Column = {
       filter: 'bucket' as const,
       onClose: () => actions.setBuckets([]),
       onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
@@ -1325,8 +1325,8 @@ function useTableColumns(
       title: COLUMN_LABELS.bucket,
       filtered: !!state.buckets.length,
     }
-    return [bucket, name]
-  }, [actions, state.buckets.length, state.filter.predicates.name, singleBucket])
+    return [bucketCol, nameCol]
+  }, [actions, state.buckets.length, state.filter.predicates.name, bucket])
 
   const filters = React.useMemo(() => {
     const output: Column[] = []
@@ -1547,11 +1547,11 @@ function Layout({ hits, columns, hidden }: LayoutProps) {
 
 interface TableViewProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
-  singleBucket: boolean
+  bucket?: string
 }
 
-export default function TableView({ hits, singleBucket }: TableViewProps) {
+export default function TableView({ hits, bucket }: TableViewProps) {
   const infered: Workflow.RequestResult<InferedUserMetaFacets> = useGuessUserMetaFacets()
-  const { columns, hidden } = useTableColumns(singleBucket, infered)
+  const { columns, hidden } = useTableColumns(infered, bucket)
   return <Layout columns={columns} hidden={hidden} hits={hits} />
 }

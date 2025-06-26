@@ -20,15 +20,15 @@ const useStyles = M.makeStyles((t) => ({
 interface ResultsInnerProps {
   className?: string
   results: Extract<Results, { _tag: 'ok' }>
-  singleBucket: boolean
+  bucket?: string
   loadMore?: () => void
 }
 
-function ResultsInner({ className, results, loadMore, singleBucket }: ResultsInnerProps) {
+function ResultsInner({ className, results, loadMore, bucket }: ResultsInnerProps) {
   const classes = useStyles()
   return (
     <div className={className}>
-      <Table hits={results.hits} singleBucket={singleBucket} />
+      <Table hits={results.hits} bucket={bucket} />
       {loadMore && (
         <LoadNextPage
           className={classes.next}
@@ -42,9 +42,10 @@ function ResultsInner({ className, results, loadMore, singleBucket }: ResultsInn
 
 interface TablePageProps {
   className?: string
+  bucket?: string
 }
 
-export default function TablePage({ className }: TablePageProps) {
+export default function TablePage({ className, bucket }: TablePageProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const [results, loadMore] = useResults()
   switch (results._tag) {
@@ -59,10 +60,10 @@ export default function TablePage({ className }: TablePageProps) {
     case 'ok':
       return (
         <ResultsInner
+          bucket={bucket}
           className={className}
-          results={results}
           loadMore={loadMore}
-          singleBucket={model.state.buckets.length === 1}
+          results={results}
         />
       )
     default:

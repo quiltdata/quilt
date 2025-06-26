@@ -1,10 +1,13 @@
 import cx from 'classnames'
+import invariant from 'invariant'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 
@@ -16,10 +19,11 @@ import { useMobileView } from './Container'
 
 interface CreatePackageProps {
   className: string
-  bucket: string
 }
 
-function CreatePackage({ bucket, className }: CreatePackageProps) {
+function CreatePackage({ className }: CreatePackageProps) {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  invariant(!!bucket, '`bucket` must be defined')
   const createDialog = usePackageCreationDialog({
     bucket,
     delayHashing: true,
@@ -62,10 +66,7 @@ function ResultsCount() {
   const classes = useResultsCountStyles()
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
-  const bucket = React.useMemo(
-    () => (model.state.buckets.length === 1 ? model.state.buckets[0] : null),
-    [model.state.buckets],
-  )
+  const { paths } = NamedRoutes.use()
   switch (r._tag) {
     case 'fetching':
       return <Skeleton width={140} height={24} />
@@ -85,7 +86,11 @@ function ResultsCount() {
                 one="1 result"
                 other={(n) => (n > 0 ? `${n} results` : 'Results')}
               />
-              {bucket && <CreatePackage className={classes.create} bucket={bucket} />}
+              <RRDom.Switch>
+                <RRDom.Route path={paths.bucketRoot}>
+                  <CreatePackage className={classes.create} />
+                </RRDom.Route>
+              </RRDom.Switch>
             </ColumnTitle>
           )
         default:
