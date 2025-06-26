@@ -188,8 +188,18 @@ logger = get_quilt_logger()
 s3_client = boto3.client("s3", config=botocore.config.Config(user_agent_extra=USER_AGENT_EXTRA))
 
 
+class JSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle datetime and bytes"""
+
+    def default(self, obj):
+        if isinstance(obj, (datetime.date, datetime.datetime)):
+            return obj.isoformat()
+
+        return super().default(obj)
+
+
 class Batcher:
-    json_encode = json.JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
+    json_encode = JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
     BATCH_INDEXER_BUCKET = os.getenv("BATCH_INDEXER_BUCKET")
     BATCH_MAX_BYTES = int(os.getenv("BATCH_MAX_BYTES", 8_000_000))
     BATCH_MAX_DOCS = int(os.getenv("BATCH_MAX_DOCS", 10_000))
