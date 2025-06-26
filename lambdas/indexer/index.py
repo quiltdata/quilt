@@ -232,7 +232,9 @@ class Batcher:
         logger.debug("Batch sent to s3://%s/%s", self.BATCH_INDEXER_BUCKET, key)
 
     def append(self, doc: dict):
-        data = "\n".join(map(json.dumps, filter(None.__ne__, elasticsearch.helpers.expand_action(doc)))).encode()
+        data = "\n".join(
+            map(self.json_encode, filter(None.__ne__, elasticsearch.helpers.expand_action(doc)))
+        ).encode()
         assert (
             len(data) < self.BATCH_MAX_BYTES
         ), f"Document size {len(data)} exceeds max batch size {self.BATCH_MAX_BYTES}"
