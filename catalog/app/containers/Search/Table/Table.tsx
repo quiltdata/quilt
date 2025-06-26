@@ -56,16 +56,31 @@ const isJsonRecord = (obj: Json): obj is JsonRecord =>
 type FilterType =
   SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
 
-interface TableViewSystemMetaProps {
+const useSystemMetaValueStyles = M.makeStyles((t) => ({
+  match: {
+    background: t.palette.warning.light,
+    padding: t.spacing(0.25, 0.5),
+    margin: t.spacing(0, -0.5),
+  },
+}))
+
+interface SystemMetaValueProps {
   hit: SearchUIModel.SearchHitPackage
   filter: FilterType
 }
 
-function SystemMetaValue({ hit, filter }: TableViewSystemMetaProps) {
+function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
+  const classes = useSystemMetaValueStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   switch (filter) {
     case 'workflow':
-      return hit.workflow ? hit.workflow.id : <NoValue />
+      return hit.workflow ? (
+        <span className={cx(hit.matchLocations.workflow && classes.match)}>
+          hit.workflow.id
+        </span>
+      ) : (
+        <NoValue />
+      )
     case 'hash':
       return (
         <StyledLink to={urls.bucketFile(hit.bucket, join('.quilt/packages', hit.hash))}>
@@ -76,14 +91,19 @@ function SystemMetaValue({ hit, filter }: TableViewSystemMetaProps) {
       return readableBytes(hit.size)
     case 'name':
       return (
-        <StyledLink to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
+        <StyledLink
+          to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
+          className={cx(hit.matchLocations.name && classes.match)}
+        >
           {hit.name}
         </StyledLink>
       )
     case 'comment':
       return hit.comment ? (
         <StyledTooltip title={hit.comment} placement="bottom-start">
-          <span>{hit.comment}</span>
+          <span className={cx(hit.matchLocations.comment && classes.match)}>
+            {hit.comment}
+          </span>
         </StyledTooltip>
       ) : (
         <NoValue />
@@ -293,12 +313,22 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
         <M.Tooltip title={entry.logicalKey}>
-          <StyledLink to={inPackage.to}>{inPackage.title}</StyledLink>
+          <StyledLink
+            to={inPackage.to}
+            className={cx(entry.matchLocations.logicalKey && classes.match)}
+          >
+            {inPackage.title}
+          </StyledLink>
         </M.Tooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell}>
         <M.Tooltip title={entry.physicalKey}>
-          <StyledLink to={inBucket.to}>{inBucket.title}</StyledLink>
+          <StyledLink
+            to={inBucket.to}
+            className={cx(entry.matchLocations.physicalKey && classes.match)}
+          >
+            {inBucket.title}
+          </StyledLink>
         </M.Tooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell} align="right">
@@ -306,7 +336,11 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
       </M.TableCell>
       <M.TableCell className={classes.cell} align="center">
         {entry.meta ? (
-          <M.IconButton size="small" onClick={handlePreview}>
+          <M.IconButton
+            size="small"
+            onClick={handlePreview}
+            className={cx(entry.matchLocations.meta && classes.matchButton)}
+          >
             <M.Icon fontSize="inherit">list</M.Icon>
           </M.IconButton>
         ) : (
@@ -316,7 +350,13 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
         )}
       </M.TableCell>
       <M.TableCell className={classes.cell} align="center">
-        <span className={classes.content} onClick={handleMeta}>
+        <span
+          className={cx(
+            classes.content,
+            entry.matchLocations.meta && classes.matchButton,
+          )}
+          onClick={handleMeta}
+        >
           {extname(entry.logicalKey).substring(1)}
         </span>
       </M.TableCell>
