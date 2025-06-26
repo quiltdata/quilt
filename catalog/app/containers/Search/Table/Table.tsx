@@ -1144,20 +1144,29 @@ function AddColumn({ hidden }: AddColumnProps) {
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleMouseEnter = React.useCallback(() => {
-    timeoutRef.current = setTimeout(show, 100)
+    timeoutRef.current = setTimeout(show, 300)
   }, [show])
 
   const handleMouseLeave = React.useCallback(() => {
+    handleTimeout()
+    hide()
+  }, [handleTimeout, hide])
+
+  const handleTimeout = React.useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
-    hide()
-  }, [hide])
+  }, [])
 
   if (!open) {
     return (
-      <div className={classes.root} onMouseEnter={handleMouseEnter}>
+      <div
+        className={classes.root}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleTimeout}
+        onClick={show}
+      >
         <div className={classes.head}>
           <M.Badge
             color="secondary"
