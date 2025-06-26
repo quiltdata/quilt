@@ -1364,11 +1364,8 @@ def pkg_indexer_handler(event, context):
     with Batcher() as batcher:
         for record in event["Records"]:
             body = json.loads(record["body"])
-
-            assert len(event["Records"]) == 1, "Package indexer handler expects exactly one S3 event record"
-            event, = body["Records"]
-            bucket = event["s3"]["bucket"]["name"]
-            key = event["s3"]["object"]["key"]
+            bucket = body["detail"]["s3"]["bucket"]["name"]
+            key = body["detail"]["s3"]["object"]["key"]
 
             if index_if_pointer(
                 batcher,
