@@ -1042,9 +1042,10 @@ const useScrollButtonStyles = M.makeStyles((t) => ({
 interface ScrollButtonProps {
   scrollAreaEl: HTMLDivElement | null
   tableEl: HTMLTableElement | null
+  columns: Column[]
 }
 
-function ScrollButton({ scrollAreaEl, tableEl }: ScrollButtonProps) {
+function ScrollButton({ columns, scrollAreaEl, tableEl }: ScrollButtonProps) {
   const classes = useScrollButtonStyles()
 
   const [show, setShow] = React.useState(false)
@@ -1067,7 +1068,7 @@ function ScrollButton({ scrollAreaEl, tableEl }: ScrollButtonProps) {
     setTimeout(handleScroll, 300)
     scrollAreaEl?.addEventListener('scroll', handleScroll)
     return () => scrollAreaEl?.removeEventListener('scroll', handleScroll)
-  }, [handleScroll, scrollAreaEl, tableEl])
+  }, [columns, handleScroll, scrollAreaEl, tableEl])
 
   if (!show) return null
 
@@ -1539,7 +1540,7 @@ function Layout({ hits, columns, hidden }: LayoutProps) {
         </div>
       </div>
 
-      <ScrollButton scrollAreaEl={scrollAreaEl} tableEl={tableEl} />
+      <ScrollButton scrollAreaEl={scrollAreaEl} tableEl={tableEl} columns={columns} />
 
       <AddColumn hidden={hidden} />
     </M.Paper>
@@ -1549,12 +1550,10 @@ function Layout({ hits, columns, hidden }: LayoutProps) {
 interface TableViewProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
   singleBucket: boolean
-  // latestOnly: boolean
 }
 
 export default function TableView({ hits, singleBucket }: TableViewProps) {
   const infered: Workflow.RequestResult<InferedUserMetaFacets> = useGuessUserMetaFacets()
   const { columns, hidden } = useTableColumns(singleBucket, infered)
-
   return <Layout columns={columns} hidden={hidden} hits={hits} />
 }
