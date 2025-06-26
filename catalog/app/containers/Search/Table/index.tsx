@@ -12,6 +12,7 @@ import { useResults, Results } from './useResults'
 
 const useStyles = M.makeStyles((t) => ({
   next: {
+    justifyContent: 'center',
     marginTop: t.spacing(1),
   },
 }))
