@@ -1,21 +1,12 @@
 // Descriptive filter labels
 export const PACKAGE_FILTER_LABELS = {
-  modified: 'Last modified',
-  size: 'Cumulative package size',
-  name: 'Package name',
-  hash: 'Package hash',
-  entries: 'Total number of files in the package',
   comment: 'Package revision comment',
-  workflow: 'Workflow',
-}
-
-export const OBJECT_FILTER_LABELS = {
+  entries: 'Total number of files in the package',
+  hash: 'Package hash',
   modified: 'Last modified',
-  size: 'Object size',
-  ext: 'Extension',
-  key: 'Object key',
-  content: 'Contents',
-  deleted: 'Delete marker',
+  name: 'Package name',
+  size: 'Cumulative package size',
+  workflow: 'Workflow',
 }
 
 // Shortened filter labels
@@ -25,7 +16,16 @@ export const COLUMN_LABELS = {
   entries: 'Entries number',
   hash: 'Hash',
   modified: 'Modified',
-  name: 'Name',
+  name: 'Package',
   size: 'Size',
   workflow: 'Workflow',
+}
+
+export const OBJECT_FILTER_LABELS = {
+  content: 'Contents',
+  deleted: 'Delete marker',
+  ext: 'Extension',
+  key: 'Object key',
+  modified: 'Last modified',
+  size: 'Object size',
 }
