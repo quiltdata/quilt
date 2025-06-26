@@ -132,7 +132,6 @@ function Filters({ className }: FiltersProps) {
           ),
         }[model.state.resultType]
       }
-      <ScrollToTop />
     </div>
   )
 }
@@ -190,6 +189,7 @@ export default function Main({ className, children }: MainProps) {
           {children}
         </div>
       </div>
+      <ScrollToTop />
     </div>
   )
 }
