@@ -1147,17 +1147,17 @@ function AddColumn({ hidden }: AddColumnProps) {
     timeoutRef.current = setTimeout(show, 300)
   }, [show])
 
-  const handleMouseLeave = React.useCallback(() => {
-    handleTimeout()
-    hide()
-  }, [handleTimeout, hide])
-
   const handleTimeout = React.useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
   }, [])
+
+  const handleMouseLeave = React.useCallback(() => {
+    handleTimeout()
+    hide()
+  }, [handleTimeout, hide])
 
   if (!open) {
     return (
