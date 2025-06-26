@@ -1351,7 +1351,9 @@ def batch_indexer_handler(event, context):
     key = event["s3"]["object"]["key"]
     # XXX: use version?
 
+    # XXX: does this raises exceptions?
     make_elastic().bulk(s3_client.get_object(Bucket=bucket, Key=key)["Body"].read())
+    s3_client.delete_object(Bucket=bucket, Key=key)
 
 
 def pkg_indexer_handler(event, context):
