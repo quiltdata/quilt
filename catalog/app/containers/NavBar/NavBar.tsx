@@ -15,6 +15,7 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 import * as NavMenu from './NavMenu'
+import { useNavBar } from './Provider'
 import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
@@ -141,13 +142,17 @@ export function Header({ children }: HeaderProps) {
   const classes = useHeaderStyles({
     customBg: !!settings?.theme?.palette?.primary?.main,
   })
+  const { fullWidth } = useNavBar() || {}
   return (
     <M.Box>
       <M.Toolbar />
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
           <M.Toolbar disableGutters>
-            <M.Container className={classes.container} maxWidth="lg">
+            <M.Container
+              className={classes.container}
+              maxWidth={fullWidth ? false : 'lg'}
+            >
               <LogoLink />
               <div className={classes.main}>{children}</div>
             </M.Container>

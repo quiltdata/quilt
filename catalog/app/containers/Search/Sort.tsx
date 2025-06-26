@@ -27,6 +27,18 @@ const sortOptions = [
       return Model.GQLTypes.SearchResultOrder.OLDEST
     },
   },
+  {
+    toString: () => 'Name (A → Z)',
+    valueOf() {
+      return Model.GQLTypes.SearchResultOrder.LEX_ASC
+    },
+  },
+  {
+    toString: () => 'Name (Z → A)',
+    valueOf() {
+      return Model.GQLTypes.SearchResultOrder.LEX_DESC
+    },
+  },
 ]
 
 const useButtonStyles = M.makeStyles((t) => ({

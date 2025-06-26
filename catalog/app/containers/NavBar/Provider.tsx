@@ -28,7 +28,7 @@ function useSearchUIModel() {
 }
 
 interface InputState extends M.InputBaseProps {
-  expanded: boolean
+  // expanded: boolean
   focusTrigger: number
   helpOpen: boolean
 }
@@ -39,6 +39,7 @@ interface SearchState {
   focus: () => void
   reset: () => void
   suggestions: ReturnType<typeof Suggestions.use>
+  fullWidth: boolean
 }
 
 function useSearchState(bucket?: string): SearchState {
@@ -147,8 +148,9 @@ function useSearchState(bucket?: string): SearchState {
   const isExpanded = expanded || !!searchUIModel
   const focusTriggeredCount = isExpanded ? focusTrigger : 0
   return {
+    fullWidth: searchUIModel?.state.view === SearchUIModel.View.Table,
     input: {
-      expanded: isExpanded,
+      // expanded: isExpanded,
       focusTrigger: focusTriggeredCount,
       helpOpen,
       onChange,

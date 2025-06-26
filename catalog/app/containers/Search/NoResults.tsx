@@ -3,21 +3,85 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { ES_REF_SYNTAX } from 'components/SearchResults'
+import { docs } from 'constants/urls'
+import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
 import { useNavBar } from 'containers/NavBar'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
-import * as Hit from './Hit'
+import * as Hit from './List/Hit'
+import TableSkeleton from './Table/Skeleton'
 import * as SearchUIModel from './model'
 
-interface ResultsSkeletonProps {
-  className?: string
-  type: SearchUIModel.ResultType
+const EXAMPLE_PACKAGE_URL = `${docs}/walkthrough/editing-a-package`
+
+const useCreatePackageStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  button: {
+    marginRight: t.spacing(2),
+    flexShrink: 0,
+  },
+  docs: {
+    flexBasis: '40%',
+  },
+}))
+
+interface CreatePackageProps {
+  bucket: string
+  className: string
 }
 
-export function ResultsSkeleton({ className, type }: ResultsSkeletonProps) {
+function CreatePackage({ bucket, className }: CreatePackageProps) {
+  const classes = useCreatePackageStyles()
+  const createDialog = usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+  const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
+  return (
+    <div className={cx(className, classes.root)}>
+      <M.Button
+        className={classes.button}
+        color="primary"
+        onClick={handleClick}
+        variant="contained"
+      >
+        Create package
+      </M.Button>
+      <M.Typography className={classes.docs}>
+        or{' '}
+        <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
+          push a package
+        </StyledLink>{' '}
+        with the Quilt Python API.
+      </M.Typography>
+
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+    </div>
+  )
+}
+
+interface SkeletonProps {
+  className?: string
+  state: SearchUIModel.SearchUrlState
+}
+
+export function Skeleton({ className, state }: SkeletonProps) {
+  if (state.view === SearchUIModel.View.Table) return <TableSkeleton />
+
   const Component =
-    type === SearchUIModel.ResultType.QuiltPackage
+    state.resultType === SearchUIModel.ResultType.QuiltPackage
       ? Hit.PackageSkeleton
       : Hit.ObjectSkeleton
   return (
@@ -36,7 +100,7 @@ const LABELS = {
   [SearchUIModel.ResultType.S3Object]: 'objects',
 }
 
-const useEmptyResultsStyles = M.makeStyles((t) => ({
+const useEmptyStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
@@ -44,19 +108,27 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
   },
   body: {
     maxWidth: '30rem',
+    marginTop: t.spacing(3),
   },
   list: {
     ...t.typography.body1,
     paddingLeft: 0,
   },
+  create: {
+    maxWidth: '30rem',
+    borderBottom: `1px solid ${t.palette.divider}`,
+    marginTop: t.spacing(2),
+    paddingBottom: t.spacing(2),
+  },
 }))
 
-interface EmptyResultsProps {
+interface EmptyProps {
+  bucket?: string
   className?: string
 }
 
-export function EmptyResults({ className }: EmptyResultsProps) {
-  const classes = useEmptyResultsStyles()
+export function Empty({ bucket, className }: EmptyProps) {
+  const classes = useEmptyStyles()
   const {
     actions: { clearFilters, reset, setBuckets, setResultType },
     baseSearchQuery,
@@ -114,7 +186,10 @@ export function EmptyResults({ className }: EmptyResultsProps) {
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
 
-      <M.Box mt={3} />
+      {state.resultType === SearchUIModel.ResultType.QuiltPackage && !!bucket && (
+        <CreatePackage bucket={bucket} className={classes.create} />
+      )}
+
       <M.Typography variant="body1" align="center" className={classes.body}>
         Search for{' '}
         <StyledLink onClick={switchResultType}>{LABELS[otherResultType]}</StyledLink>{' '}
@@ -144,18 +219,14 @@ export function EmptyResults({ className }: EmptyResultsProps) {
   )
 }
 
-interface SearchErrorProps {
+interface ErrorProps {
   className?: string
   kind?: 'unexpected' | 'syntax'
   details: React.ReactNode
 }
 
-export function SearchError({
-  className,
-  kind = 'unexpected',
-  details,
-}: SearchErrorProps) {
-  const classes = useEmptyResultsStyles()
+export function Error({ className, kind = 'unexpected', details }: ErrorProps) {
+  const classes = useEmptyStyles()
   const {
     actions: { reset },
   } = SearchUIModel.use()
