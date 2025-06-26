@@ -1351,7 +1351,6 @@ def batch_indexer_handler(event, context):
 
     make_elastic().bulk(
         s3_client.get_object(Bucket=bucket, Key=key)["Body"].read(),
-        doc_type="_doc",  # should be removed in ES 7+?
     )
 
 
