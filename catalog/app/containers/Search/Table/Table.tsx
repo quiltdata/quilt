@@ -424,8 +424,8 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
                         packageHandle.name,
                       )}
                     >
-                      Package has {totalCount - entries.length} more entries not satisfied
-                      to the search
+                      Package contains {totalCount - entries.length} additional entries
+                      {entries.length >= 10 && <span>, some may match the search</span>}
                     </StyledLink>
                   </M.Typography>
                 </M.TableCell>
