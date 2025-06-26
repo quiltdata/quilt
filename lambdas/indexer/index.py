@@ -232,6 +232,8 @@ class Batcher:
         logger.debug("Batch sent to s3://%s/%s", self.BATCH_INDEXER_BUCKET, key)
 
     def append(self, doc: dict):
+        # get doc ownership
+        doc["_type"] = "_doc"  # ES 6.x compatibility
         data = "\n".join(
             map(self.json_encode, filter(None.__ne__, elasticsearch.helpers.expand_action(doc)))
         ).encode()
@@ -1349,9 +1351,7 @@ def batch_indexer_handler(event, context):
     key = event["s3"]["object"]["key"]
     # XXX: use version?
 
-    make_elastic().bulk(
-        s3_client.get_object(Bucket=bucket, Key=key)["Body"].read(),
-    )
+    make_elastic().bulk(s3_client.get_object(Bucket=bucket, Key=key)["Body"].read())
 
 
 def pkg_indexer_handler(event, context):
