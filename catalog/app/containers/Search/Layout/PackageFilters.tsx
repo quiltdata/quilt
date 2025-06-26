@@ -354,9 +354,6 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
 }
 
 const usePackagesRevisionFilterStyles = M.makeStyles((t) => ({
-  root: {
-    marginBottom: t.spacing(2),
-  },
   hintIcon: {
     color: t.palette.divider,
     marginLeft: '4px',
@@ -383,7 +380,6 @@ function PackagesRevisionFilter() {
 
   return (
     <M.FormControlLabel
-      className={classes.root}
       control={<M.Switch checked={!model.state.latestOnly} onChange={handleChange} />}
       label={
         <>
@@ -414,7 +410,12 @@ const usePackageFiltersStyles = M.makeStyles((t) => ({
   title: {
     ...t.typography.h6,
     fontWeight: 400,
-    marginBottom: t.spacing(1),
+    marginBottom: t.spacing(2),
+  },
+  subTitle: {
+    ...t.typography.body2,
+    fontWeight: 500,
+    marginBottom: t.spacing(0.5),
   },
   more: {
     marginTop: t.spacing(0.5),
@@ -439,10 +440,13 @@ export default function PackageFilters({ className }: PackageFiltersProps) {
 
   return (
     <div className={cx(classes.root, className)}>
-      <div className={classes.title}>Revisions</div>
-      <PackagesRevisionFilter />
-
       <div className={classes.title}>Filter by</div>
+
+      <FilterSection>
+        <FiltersUI.Container defaultExpanded title="Revisions: all / latest only">
+          <PackagesRevisionFilter />
+        </FiltersUI.Container>
+      </FilterSection>
 
       {activeFilters.map((f) => (
         <FilterSection key={f}>

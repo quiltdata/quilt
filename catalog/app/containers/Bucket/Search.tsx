@@ -20,10 +20,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// FIXME:
-//  * 'create a package'
-//  * Empty results?
-
 export function SearchLayout() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
   invariant(!!bucket, '`bucket` must be defined')

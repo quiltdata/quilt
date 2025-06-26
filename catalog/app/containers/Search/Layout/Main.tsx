@@ -1,12 +1,15 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { useDebouncedCallback } from 'use-debounce'
 
 import BucketSelector from 'containers/Search/Buckets'
 import ResultTypeSelector from 'containers/Search/ResultType'
 import * as SearchUIModel from 'containers/Search/model'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
+import ColumnTitle from './ColumnTitle'
 import { useMobileView } from './Container'
 import ObjectFilters from './ObjectFilters'
 import PackageFilters from './PackageFilters'
@@ -106,10 +109,16 @@ interface FiltersProps {
 function Filters({ className }: FiltersProps) {
   const classes = useFiltersStyles()
   const model = SearchUIModel.use()
+  const { paths } = NamedRoutes.use()
   return (
     <div className={cx(classes.root, className)}>
-      <ResultTypeSelector />
-      <BucketSelector disabled />
+      <RRDom.Switch>
+        <RRDom.Route path={paths.search} exact>
+          <ColumnTitle>Search for</ColumnTitle>
+          <ResultTypeSelector />
+          <BucketSelector disabled />
+        </RRDom.Route>
+      </RRDom.Switch>
       {
         {
           [SearchUIModel.ResultType.QuiltPackage]: (
