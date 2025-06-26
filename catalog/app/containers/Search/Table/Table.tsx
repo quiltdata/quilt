@@ -1254,7 +1254,6 @@ interface ColumnBase {
   onClose?: () => void
   onCollapse: () => void
   onSearch: () => void
-  onSort: () => void
 }
 
 interface ColumnFilter extends ColumnBase {
@@ -1309,7 +1308,6 @@ function useTableColumns(
       onClose: () => actions.deactivatePackagesFilter('name'),
       onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
       onSearch: noopFixme,
-      onSort: noopFixme,
       tag: 'filter' as const,
       title: COLUMN_LABELS.name,
       filtered: !!state.filter.predicates.name,
@@ -1320,7 +1318,6 @@ function useTableColumns(
       onClose: () => actions.setBuckets([]),
       onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
       onSearch: noopFixme,
-      onSort: noopFixme,
       tag: 'visual' as const,
       title: COLUMN_LABELS.bucket,
       filtered: !!state.buckets.length,
@@ -1345,7 +1342,6 @@ function useTableColumns(
           onClose: () => actions.deactivatePackagesFilter(filter),
           onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
           onSearch: noopFixme,
-          onSort: noopFixme,
           tag: 'filter' as const,
           title: COLUMN_LABELS[filter],
           filtered: !!modifiedFilters && !!modifiedFilters[filter],
@@ -1365,7 +1361,6 @@ function useTableColumns(
         onClose: () => actions.deactivatePackagesMetaFilter(filter),
         onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
         onSearch: noopFixme,
-        onSort: noopFixme,
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
         filtered: !!modifiedFilters?.find(({ path }) => path === filter),
@@ -1384,7 +1379,6 @@ function useTableColumns(
         filter,
         onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
         onSearch: noopFixme,
-        onSort: noopFixme,
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
         filtered: false,

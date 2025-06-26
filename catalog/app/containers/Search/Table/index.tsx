@@ -56,7 +56,7 @@ export default function TablePage({ className, bucket }: TablePageProps) {
     case 'fail':
       return <NoResults.Error className={className} details={results.error.message} />
     case 'empty':
-      return <NoResults.Empty className={className} />
+      return <NoResults.Empty className={className} bucket={bucket} />
     case 'ok':
       return (
         <ResultsInner
