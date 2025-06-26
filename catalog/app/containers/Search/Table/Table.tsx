@@ -605,16 +605,6 @@ function PackageRow({ columns, hit }: PackageRowProps) {
   )
 }
 
-const useColumnActionStyles = M.makeStyles((t) => ({
-  root: {
-    width: t.spacing(3),
-    height: t.spacing(3),
-  },
-  icon: {
-    fontSize: '20px',
-  },
-}))
-
 interface ColumnActionProps extends M.IconButtonProps {
   className?: string
   icon: string
@@ -622,16 +612,15 @@ interface ColumnActionProps extends M.IconButtonProps {
 
 const ColumnAction = React.forwardRef<HTMLButtonElement, ColumnActionProps>(
   function ColumnAction({ className, icon, ...props }, ref) {
-    const classes = useColumnActionStyles()
     return (
       <M.IconButton
-        className={cx(classes.root, className)}
+        className={className}
         ref={ref}
         size="small"
         color={props.color || 'inherit'}
         {...props}
       >
-        <M.Icon color="inherit" className={classes.icon}>
+        <M.Icon color="inherit" fontSize="inherit">
           {icon}
         </M.Icon>
       </M.IconButton>
@@ -992,42 +981,101 @@ function AvailableFacets({ hidden, onClose }: AvailableFacetsProps) {
   )
 }
 
+const useScrollButtonStyles = M.makeStyles((t) => ({
+  root: {
+    height: t.spacing(5),
+    width: t.spacing(7),
+    position: 'absolute',
+    right: t.spacing(5),
+    top: 0,
+    paddingLeft: t.spacing(2),
+    overflow: 'hidden',
+  },
+  button: {
+    width: t.spacing(5),
+    height: t.spacing(5),
+    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
+    background: t.palette.background.paper,
+  },
+}))
+
+interface ScrollButtonProps {
+  scrollAreaEl: HTMLDivElement | null
+  tableEl: HTMLTableElement | null
+}
+
+function ScrollButton({ scrollAreaEl, tableEl }: ScrollButtonProps) {
+  const classes = useScrollButtonStyles()
+
+  const [show, setShow] = React.useState(false)
+
+  const handleSlide = React.useCallback(() => {
+    if (!scrollAreaEl) return
+    scrollAreaEl.scroll({
+      behavior: 'smooth',
+      left: scrollAreaEl.scrollLeft + 200,
+    })
+  }, [scrollAreaEl])
+
+  const handleScroll = React.useCallback(() => {
+    if (!scrollAreaEl || !tableEl) return
+    const scrollLeftMax = tableEl.clientWidth - scrollAreaEl.clientWidth
+    setShow(scrollAreaEl.scrollLeft < scrollLeftMax)
+  }, [scrollAreaEl, tableEl])
+
+  React.useEffect(() => {
+    setTimeout(handleScroll, 300)
+    scrollAreaEl?.addEventListener('scroll', handleScroll)
+    return () => scrollAreaEl?.removeEventListener('scroll', handleScroll)
+  }, [handleScroll, scrollAreaEl, tableEl])
+
+  if (!show) return null
+
+  return (
+    <div className={classes.root} style={{}}>
+      <M.ButtonBase className={classes.button} onClick={handleSlide}>
+        <M.Icon>chevron_right</M.Icon>
+      </M.ButtonBase>
+    </div>
+  )
+}
+
 const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.default,
-    bottom: 0,
-    boxShadow: t.shadows[2],
     display: 'flex',
     flexDirection: 'column',
     position: 'absolute',
     right: 0,
     top: 0,
     transition: t.transitions.create('width'),
-    width: t.spacing(4),
+    width: t.spacing(5),
   },
   add: {
     lineHeight: `${t.spacing(3)}px`,
-    padding: t.spacing(0.75, 2),
+    padding: t.spacing(1, 2),
   },
   head: {
     display: 'flex',
     justifyContent: 'center',
-    borderBottom: `1px solid ${t.palette.divider}`,
     '& .MuiBadge-badge': {
       top: '6%',
       right: '6%',
     },
   },
   button: {
-    transition: t.transitions.create('opacity'),
-    opacity: 0.3,
-    height: t.spacing(4.5),
-    width: t.spacing(4.5),
+    height: t.spacing(5),
+    width: t.spacing(5),
+    background: t.palette.primary.main,
+    color: t.palette.getContrastText(t.palette.primary.main),
   },
   opened: {
     width: 'auto',
+    bottom: 0,
+    boxShadow: t.shadows[2],
     animation: t.transitions.create('$slide'),
     '& $head': {
+      borderBottom: `1px solid ${t.palette.divider}`,
       justifyContent: 'flex-start',
     },
   },
@@ -1071,12 +1119,14 @@ function AddColumn({ hidden }: AddColumnProps) {
       <div className={classes.root} onMouseEnter={handleMouseEnter}>
         <div className={classes.head}>
           <M.Badge
-            variant="dot"
             color="secondary"
-            overlap="circle"
             invisible={!hidden.length}
+            overlap="circle"
+            variant="dot"
           >
-            <ColumnAction className={classes.button} icon="add" />
+            <M.ButtonBase className={classes.button}>
+              <M.Icon>add</M.Icon>
+            </M.ButtonBase>
           </M.Badge>
         </div>
       </div>
@@ -1135,7 +1185,7 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
     return (
       <div className={classes.root}>
         <M.Tooltip title={column.fullTitle}>
-          <span>{column.title}</span>
+          <M.Typography variant="subtitle1">{column.title}</M.Typography>
         </M.Tooltip>
         <ColumnActions className={classes.actions} column={column} single={single} />
       </div>
@@ -1402,7 +1452,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
   scrollArea: {
     minHeight: t.spacing(80),
     overflowX: 'auto',
-    paddingRight: t.spacing(4),
+    paddingRight: t.spacing(5),
   },
   cell: {
     whiteSpace: 'nowrap',
@@ -1418,11 +1468,14 @@ interface LayoutProps {
 function Layout({ hits, columns, hidden }: LayoutProps) {
   const classes = useLayoutStyles()
 
+  const [scrollAreaEl, setScrollAreaEl] = React.useState<HTMLDivElement | null>(null)
+  const [tableEl, setTableEl] = React.useState<HTMLTableElement | null>(null)
+
   return (
     <M.Paper className={classes.root}>
       <div className={classes.scrollWrapper}>
-        <div className={classes.scrollArea}>
-          <M.Table size="small">
+        <div className={classes.scrollArea} ref={setScrollAreaEl}>
+          <M.Table size="small" ref={setTableEl}>
             <M.TableHead>
               <M.TableRow>
                 <M.TableCell padding="checkbox" />
@@ -1441,6 +1494,9 @@ function Layout({ hits, columns, hidden }: LayoutProps) {
           </M.Table>
         </div>
       </div>
+
+      <ScrollButton scrollAreaEl={scrollAreaEl} tableEl={tableEl} />
+
       <AddColumn hidden={hidden} />
     </M.Paper>
   )
