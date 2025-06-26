@@ -121,6 +121,42 @@ function FiltersButton({ className, onClick }: FiltersButtonProps) {
   )
 }
 
+const useToggleButtonStyles = M.makeStyles({
+  root: {
+    // So, it occupies the same height as other buttons in that toolbar
+    padding: '5px',
+  },
+})
+
+interface ToggleResultsViewProps {
+  className: string
+}
+
+function ToggleResultsView({ className }: ToggleResultsViewProps) {
+  const classes = useToggleButtonStyles()
+  const model = SearchUIModel.use()
+  const handleChange = React.useCallback(
+    (_e, value: SearchUIModel.View) => model.actions.setView(value),
+    [model.actions],
+  )
+  return (
+    <Lab.ToggleButtonGroup
+      value={model.state.view}
+      className={className}
+      exclusive
+      onChange={handleChange}
+      size="small"
+    >
+      <Lab.ToggleButton value={SearchUIModel.View.Table} classes={classes}>
+        <M.Icon>grid_on</M.Icon>
+      </Lab.ToggleButton>
+      <Lab.ToggleButton value={SearchUIModel.View.List} classes={classes}>
+        <M.Icon>list</M.Icon>
+      </Lab.ToggleButton>
+    </Lab.ToggleButtonGroup>
+  )
+}
+
 const useResultsStyles = M.makeStyles((t) => ({
   root: {
     // make space for box shadows
@@ -140,9 +176,6 @@ const useResultsStyles = M.makeStyles((t) => ({
   results: {
     marginTop: t.spacing(2),
   },
-  toggleButton: {
-    padding: '5px',
-  },
   toolbar: {
     alignItems: 'flex-end',
     display: 'flex',
@@ -159,7 +192,6 @@ export default function Results({ children, onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
   const classes = useResultsStyles()
   const isMobile = useMobileView()
-  const { setView } = model.actions
   const sidebarHidden = isMobile || model.state.view === SearchUIModel.View.Table
   return (
     <div className={classes.root}>
@@ -167,26 +199,7 @@ export default function Results({ children, onFilters }: ResultsProps) {
         <ResultsCount />
         <div className={classes.controls}>
           {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
-            <Lab.ToggleButtonGroup
-              value={model.state.view}
-              className={classes.button}
-              exclusive
-              onChange={(_e, value) => setView(value)}
-              size="small"
-            >
-              <Lab.ToggleButton
-                value={SearchUIModel.View.Table}
-                className={classes.toggleButton}
-              >
-                <M.Icon>grid_on</M.Icon>
-              </Lab.ToggleButton>
-              <Lab.ToggleButton
-                value={SearchUIModel.View.List}
-                className={classes.toggleButton}
-              >
-                <M.Icon>list</M.Icon>
-              </Lab.ToggleButton>
-            </Lab.ToggleButtonGroup>
+            <ToggleResultsView className={classes.button} />
           )}
           {sidebarHidden && (
             <FiltersButton className={classes.button} onClick={onFilters} />
@@ -194,6 +207,7 @@ export default function Results({ children, onFilters }: ResultsProps) {
           <SortSelector className={classes.button} />
         </div>
       </div>
+
       {children}
     </div>
   )
