@@ -1345,8 +1345,8 @@ def batch_indexer_handler(event, context):
     assert len(event["Records"]) == 1, "Batch indexer handler expects exactly one S3 event record"
     event, = event["Records"]
 
-    bucket = event["Detail"]["s3"]["bucket"]["name"]
-    key = event["Detail"]["s3"]["object"]["key"]
+    bucket = event["s3"]["bucket"]["name"]
+    key = event["s3"]["object"]["key"]
     # XXX: use version?
 
     make_elastic().bulk(
