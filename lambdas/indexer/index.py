@@ -49,7 +49,6 @@ See docs/EventBridge.md for more
 import datetime
 import functools
 import hashlib
-import io
 import json
 import os
 import pathlib
@@ -400,6 +399,13 @@ def do_index(
         s3_tags=s3_tags,
     )
 
+    if index_if_pointer(
+        doc_queue=doc_queue,
+        bucket=bucket,
+        key=key,
+    ):
+        logger.debug("Indexed pointer for package %s/%s", bucket, key)
+
 
 def _try_parse_date(s: str) -> Optional[datetime.datetime]:
     # XXX: do we need to support more formats?
@@ -524,7 +530,7 @@ def parse_s3_physical_key(pk: str):
 
 
 def index_if_pointer(
-    doc_queue: Batcher,
+    doc_queue: DocumentQueue,
     *,
     bucket: str,
     key: str,
@@ -562,7 +568,7 @@ def index_if_pointer(
         )
     except s3_client.exceptions.NoSuchKey:
         logger.debug("No pointer found: s3://%s/%s. Removing.", bucket, key)
-        doc_queue.append(
+        doc_queue.append_document(
             {
                 "_index": index,
                 "_op_type": "delete",
@@ -574,7 +580,7 @@ def index_if_pointer(
     manifest_hash = resp["Body"].read().decode()
     manifest_doc_id = f"mnfst:{manifest_hash}"
     logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
-    doc_queue.append(
+    doc_queue.append_document(
         {
             "_index": index,
             "_op_type": "index",
@@ -1352,7 +1358,12 @@ def batch_indexer_handler(event, context):
     # XXX: use version?
 
     # XXX: does this raises exceptions?
-    make_elastic().bulk(s3_client.get_object(Bucket=bucket, Key=key)["Body"].read())
+    # XXX: remove print()?
+    print(make_elastic().bulk(
+        s3_client.get_object(Bucket=bucket, Key=key)["Body"].read(),
+        filter_path="took,errors,items.*.status,items.*.error",
+        timeout="20s",  # XXX: remove?
+    ))
     s3_client.delete_object(Bucket=bucket, Key=key)
 
 
@@ -1367,13 +1378,6 @@ def pkg_indexer_handler(event, context):
             body = json.loads(record["body"])
             bucket = body["detail"]["s3"]["bucket"]["name"]
             key = body["detail"]["s3"]["object"]["key"]
-
-            if index_if_pointer(
-                batcher,
-                bucket=bucket,
-                key=key,
-            ):
-                logger.debug("Indexed pointer for package %s/%s", bucket, key)
 
             index_manifest(
                 batcher,
