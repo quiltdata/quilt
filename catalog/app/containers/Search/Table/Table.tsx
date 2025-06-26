@@ -1212,6 +1212,10 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     marginRight: t.spacing(1),
   },
+  title: {
+    ...t.typography.subtitle1,
+    fontWeight: 500,
+  },
 }))
 
 interface ColumnHeadProps {
@@ -1225,7 +1229,7 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
     return (
       <div className={classes.root}>
         <M.Tooltip title={column.fullTitle}>
-          <M.Typography variant="subtitle1">{column.title}</M.Typography>
+          <span className={classes.title}>{column.title}</span>
         </M.Tooltip>
         <ColumnActions className={classes.actions} column={column} single={single} />
       </div>
@@ -1238,7 +1242,7 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
           list
         </M.Icon>
       )}
-      {column.title}
+      <span className={classes.title}>{column.title}</span>
       <ColumnActions className={classes.actions} column={column} single={single} />
     </div>
   )
