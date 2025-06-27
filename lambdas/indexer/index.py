@@ -55,6 +55,7 @@ import os
 import pathlib
 import random
 import re
+import time
 import urllib.parse
 from os.path import split
 from typing import Optional, Tuple
@@ -1368,24 +1369,27 @@ def batch_indexer_handler(event, context):
     class LambdaTimeoutError(Exception):
         pass
 
+    # it looks like ES internal bulk API has a 60s timeout by default
+    # so we should wait hoping ES will be able to process the request
+    read_timeout = 61
+
     @tenacity.retry(
         reraise=True,
-        # XXX: adjust numbers?
-        wait=tenacity.wait_exponential(multiplier=2, min=4, max=10),
+        wait=tenacity.wait_exponential(multiplier=4),
         retry=tenacity.retry_if_exception_type(TooManyRequestsError),
-        before_sleep=tenacity.before_log(logger, logging.DEBUG),
+        before_sleep=tenacity.before_log(logger, logging.WARNING),
     )
     def bulk(context, es, data: bytes):
-        if context.get_remaining_time_in_millis() < 5000:
-            logger.warning("Not enough time left to process bulk request, exiting")
+        if context.get_remaining_time_in_millis() < read_timeout * 1000:
+            logger.warning("Not enough time left to process bulk request, sleeping till lambda timeout")
+            # good night, sweet prince
+            time.sleep(context.get_remaining_time_in_millis() / 1000 - 1)
             raise LambdaTimeoutError
         try:
             resp = es.bulk(
                 data,
                 filter_path="errors",
-                # wait as long as we can hoping that the request will succeed
-                # leave 1 second so we get explicit timeout error if it happens
-                request_timeout=context.get_remaining_time_in_millis() / 1000 - 1,
+                request_timeout=read_timeout,
             )
         except elasticsearch.exceptions.TransportError as e:
             if e.status_code == 429:
