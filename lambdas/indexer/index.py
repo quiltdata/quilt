@@ -1369,21 +1369,27 @@ def batch_indexer_handler(event, context):
     class LambdaTimeoutError(Exception):
         pass
 
+    def sleep_until_timeout():
+        """Sleep until the lambda timeout"""
+        remaining = context.get_remaining_time_in_millis() / 1000 - 1
+        logger.warning("Sleeping for %s seconds just before lambda timeout", remaining)
+        # good night, sweet prince
+        time.sleep(remaining)
+
     # it looks like ES internal bulk API has a 60s timeout by default
     # so we should wait hoping ES will be able to process the request
     read_timeout = 61
 
     @tenacity.retry(
         reraise=True,
-        wait=tenacity.wait_exponential(multiplier=4),
+        wait=tenacity.wait_random_exponential(min=8, multiplier=8),
         retry=tenacity.retry_if_exception_type(TooManyRequestsError),
         before_sleep=tenacity.before_log(logger, logging.WARNING),
     )
     def bulk(context, es, data: bytes):
         if context.get_remaining_time_in_millis() < read_timeout * 1000:
             logger.warning("Not enough time left to process bulk request, sleeping till lambda timeout")
-            # good night, sweet prince
-            time.sleep(context.get_remaining_time_in_millis() / 1000 - 1)
+            sleep_until_timeout()
             raise LambdaTimeoutError
         try:
             resp = es.bulk(
@@ -1391,6 +1397,11 @@ def batch_indexer_handler(event, context):
                 filter_path="errors",
                 request_timeout=read_timeout,
             )
+        except elasticsearch.exceptions.ConnectionTimeout as e:
+            # At this point ES seems to start returning 5xx errors
+            logger.warning("We got a connection timeout, sleeping until lambda timeout")
+            sleep_until_timeout()
+            raise
         except elasticsearch.exceptions.TransportError as e:
             if e.status_code == 429:
                 raise TooManyRequestsError
