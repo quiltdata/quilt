@@ -77,6 +77,7 @@ from document_queue import (
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
 from pdfminer.high_level import extract_text as extract_pdf_text
+import tenacity
 from tenacity import (
     retry,
     retry_if_exception,
@@ -1357,13 +1358,39 @@ def batch_indexer_handler(event, context):
     key = event["s3"]["object"]["key"]
     # XXX: use version?
 
-    # XXX: does this raises exceptions?
-    # XXX: remove print()?
-    print(make_elastic().bulk(
-        s3_client.get_object(Bucket=bucket, Key=key)["Body"].read(),
-        filter_path="took,errors,items.*.status,items.*.error",
-        timeout="20s",  # XXX: remove?
-    ))
+
+    class BulkDocumentError(Exception):
+        pass
+
+
+    class TooManyRequestsError(Exception):
+        pass
+
+
+    @tenacity.retry(
+        reraise=True,
+        # XXX: adjust numbers?
+        wait=tenacity.wait_exponential(multiplier=2, min=4, max=10),
+        retry=tenacity.retry_if_exception_type(TooManyRequestsError),
+    )
+    def bulk(es, data: bytes):
+        try:
+            resp = es.bulk(
+                data,
+                filter_path="errors",
+            )
+        except elasticsearch.exceptions.TransportError as e:
+            if e.status_code == 429:
+                raise TooManyRequestsError
+            raise
+
+        if resp["errors"]:
+            # TODO: log errors from items.*.error?
+            # TODO: ignore index_not_found_exception for delete operations?
+            raise BulkDocumentError
+
+    data = s3_client.get_object(Bucket=bucket, Key=key)["Body"].read()
+    bulk(make_elastic(), data)
     s3_client.delete_object(Bucket=bucket, Key=key)
 
 
