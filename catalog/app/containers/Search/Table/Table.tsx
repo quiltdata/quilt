@@ -822,23 +822,32 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
           )}
         </M.List>
       </M.Popover>
-      <M.Popover open={filterOpened} {...popoverProps}>
-        {column.filter === 'bucket' && (
-          <M.Box display="flex" flexDirection="column" padding={2} width={320}>
-            <BucketSelector />
-          </M.Box>
-        )}
-        {column.tag === 'filter' && (
-          <M.Box display="flex" flexDirection="column" padding={2} width={320}>
-            <Filter filter={column.filter} onClose={hideFilter} />
-          </M.Box>
-        )}
-        {column.tag === 'meta' && (
-          <M.Box display="flex" flexDirection="column" padding={2} width={320}>
-            <MetaFilter path={column.filter} onClose={hideFilter} />
-          </M.Box>
-        )}
-      </M.Popover>
+      <M.Dialog open={filterOpened} onClose={hideFilter}>
+        <M.DialogTitle>
+          {column.tag === 'filter' ? column.fullTitle : column.title}
+        </M.DialogTitle>
+        <M.DialogContent>
+          {column.filter === 'bucket' && (
+            <M.Box display="flex" flexDirection="column" padding={2} width={320}>
+              <BucketSelector />
+            </M.Box>
+          )}
+          {column.tag === 'filter' && (
+            <M.Box display="flex" flexDirection="column" padding={2} width={320}>
+              <Filter filter={column.filter} onClose={hideFilter} />
+            </M.Box>
+          )}
+          {column.tag === 'meta' && (
+            <M.Box display="flex" flexDirection="column" padding={2} width={320}>
+              <MetaFilter path={column.filter} onClose={hideFilter} />
+            </M.Box>
+          )}
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button>Ok</M.Button>
+          <M.Button>Cancel</M.Button>
+        </M.DialogActions>
+      </M.Dialog>
     </div>
   )
 }
