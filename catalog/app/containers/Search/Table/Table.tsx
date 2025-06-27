@@ -1293,7 +1293,7 @@ interface InferedUserMetaFacets {
   all: UserMetaFacets
 }
 
-function useTableColumns(
+function useColumns(
   infered: Workflow.RequestResult<InferedUserMetaFacets>,
   bucket?: string,
 ): AllColumns {
@@ -1334,7 +1334,6 @@ function useTableColumns(
       const predicate = state.filter.predicates[filter]
       invariant(!!predicate, 'Predicate should exist')
       // 'name' is added in `fixed` columns
-      // 'entries' doesn't have values
       if (filter !== 'name') {
         output.push({
           predicateType: predicate._tag,
@@ -1547,6 +1546,6 @@ interface TableViewProps {
 
 export default function TableView({ hits, bucket }: TableViewProps) {
   const infered: Workflow.RequestResult<InferedUserMetaFacets> = useGuessUserMetaFacets()
-  const { columns, hidden } = useTableColumns(infered, bucket)
+  const { columns, hidden } = useColumns(infered, bucket)
   return <Layout columns={columns} hidden={hidden} hits={hits} />
 }
