@@ -50,6 +50,7 @@ import datetime
 import functools
 import hashlib
 import json
+import logging
 import os
 import pathlib
 import random
@@ -1372,6 +1373,7 @@ def batch_indexer_handler(event, context):
         # XXX: adjust numbers?
         wait=tenacity.wait_exponential(multiplier=2, min=4, max=10),
         retry=tenacity.retry_if_exception_type(TooManyRequestsError),
+        before_sleep=tenacity.before_log(logger, logging.DEBUG),
     )
     def bulk(es, data: bytes):
         try:
