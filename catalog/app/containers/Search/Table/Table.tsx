@@ -949,6 +949,9 @@ const useAvailableFacetsStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     flexGrow: 1,
   },
+  divider: {
+    marginTop: t.spacing(1),
+  },
   list: {
     background: 'inherit',
   },
@@ -1001,8 +1004,10 @@ function AvailableFacets({ hidden, onClose }: AvailableFacetsProps) {
             ))}
           </>
         )}
+
         {!!availableFilters.length && (
           <>
+            {!!hidden.length && <M.Divider className={classes.divider} />}
             <M.ListSubheader>System metadata</M.ListSubheader>
             {availableFilters.map((filter) => (
               <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
@@ -1012,6 +1017,9 @@ function AvailableFacets({ hidden, onClose }: AvailableFacetsProps) {
           </>
         )}
 
+        {(!!hidden.length || !!availableFilters.length) && (
+          <M.Divider className={classes.divider} />
+        )}
         <M.ListSubheader>User metadata</M.ListSubheader>
         <SearchUIModel.AvailablePackagesMetaFilters>
           {SearchUIModel.AvailableFiltersState.match({
