@@ -1359,14 +1359,14 @@ def batch_indexer_handler(event, context):
     key = event["s3"]["object"]["key"]
     # XXX: use version?
 
-
     class BulkDocumentError(Exception):
         pass
-
 
     class TooManyRequestsError(Exception):
         pass
 
+    class LambdaTimeoutError(Exception):
+        pass
 
     @tenacity.retry(
         reraise=True,
@@ -1375,11 +1375,17 @@ def batch_indexer_handler(event, context):
         retry=tenacity.retry_if_exception_type(TooManyRequestsError),
         before_sleep=tenacity.before_log(logger, logging.DEBUG),
     )
-    def bulk(es, data: bytes):
+    def bulk(context, es, data: bytes):
+        if context.get_remaining_time_in_millis() < 5000:
+            logger.warning("Not enough time left to process bulk request, exiting")
+            raise LambdaTimeoutError
         try:
             resp = es.bulk(
                 data,
                 filter_path="errors",
+                # wait as long as we can hoping that the request will succeed
+                # leave 1 second so we get explicit timeout error if it happens
+                request_timeout=context.get_remaining_time_in_millis() / 1000 - 1,
             )
         except elasticsearch.exceptions.TransportError as e:
             if e.status_code == 429:
@@ -1392,7 +1398,7 @@ def batch_indexer_handler(event, context):
             raise BulkDocumentError
 
     data = s3_client.get_object(Bucket=bucket, Key=key)["Body"].read()
-    bulk(make_elastic(), data)
+    bulk(context, make_elastic(), data)
     s3_client.delete_object(Bucket=bucket, Key=key)
 
 
