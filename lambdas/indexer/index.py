@@ -1413,7 +1413,10 @@ def batch_indexer_handler(event, context):
         t1 = time.time()
         delta = t1 - t0
         logger.info("Bulk request took %s seconds", delta)
-        time_to_sleep = max(min(random.uniform(0, delta - 30), context.get_remaining_time_in_millis() / 1000 - 1), 0)
+        overtime = delta - 25
+        time_to_sleep = max(
+            min(random.uniform(overtime / 2, overtime), context.get_remaining_time_in_millis() / 1000 - 1), 0
+        )
         if time_to_sleep:
             logger.warning("Sleeping for %s seconds to avoid ES overload", time_to_sleep)
             time.sleep(time_to_sleep)
