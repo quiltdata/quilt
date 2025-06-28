@@ -1391,6 +1391,7 @@ def batch_indexer_handler(event, context):
         #     logger.warning("Not enough time left to process bulk request, sleeping till lambda timeout")
         #     sleep_until_timeout()
         #     raise LambdaTimeoutError
+        t0 = time.time()
         try:
             resp = es.bulk(
                 data,
@@ -1409,6 +1410,13 @@ def batch_indexer_handler(event, context):
                 raise TooManyRequestsError
             raise
 
+        t1 = time.time()
+        delta = t1 - t0
+        logger.info("Bulk request took %s seconds", delta)
+        time_to_sleep = max(min(random.uniform(0, delta - 30), context.get_remaining_time_in_millis() / 1000 - 1), 0)
+        if time_to_sleep:
+            logger.warning("Sleeping for %s seconds to avoid ES overload", time_to_sleep)
+            time.sleep(time_to_sleep)
         if resp["errors"]:
             # TODO: log errors from items.*.error?
             # TODO: ignore index_not_found_exception for delete operations?
