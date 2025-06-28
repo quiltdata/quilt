@@ -1376,26 +1376,26 @@ def batch_indexer_handler(event, context):
         # good night, sweet prince
         time.sleep(remaining)
 
-    # it looks like ES internal bulk API has a 60s timeout by default
-    # so we should wait hoping ES will be able to process the request
-    read_timeout = 61
+    # # it looks like ES internal bulk API has a 60s timeout by default
+    # # so we should wait hoping ES will be able to process the request
+    # read_timeout = 61
 
-    @tenacity.retry(
-        reraise=True,
-        wait=tenacity.wait_random_exponential(min=8, multiplier=8),
-        retry=tenacity.retry_if_exception_type(TooManyRequestsError),
-        before_sleep=tenacity.before_log(logger, logging.WARNING),
-    )
+    # @tenacity.retry(
+    #     reraise=True,
+    #     wait=tenacity.wait_random_exponential(min=8, multiplier=8),
+    #     retry=tenacity.retry_if_exception_type(TooManyRequestsError),
+    #     before_sleep=tenacity.before_log(logger, logging.WARNING),
+    # )
     def bulk(context, es, data: bytes):
-        if context.get_remaining_time_in_millis() < read_timeout * 1000:
-            logger.warning("Not enough time left to process bulk request, sleeping till lambda timeout")
-            sleep_until_timeout()
-            raise LambdaTimeoutError
+        # if context.get_remaining_time_in_millis() < read_timeout * 1000:
+        #     logger.warning("Not enough time left to process bulk request, sleeping till lambda timeout")
+        #     sleep_until_timeout()
+        #     raise LambdaTimeoutError
         try:
             resp = es.bulk(
                 data,
                 filter_path="errors",
-                request_timeout=read_timeout,
+                request_timeout=context.get_remaining_time_in_millis() / 1000 - 1,
             )
         except elasticsearch.exceptions.ConnectionTimeout as e:
             # At this point ES seems to start returning 5xx errors
@@ -1404,6 +1404,8 @@ def batch_indexer_handler(event, context):
             raise
         except elasticsearch.exceptions.TransportError as e:
             if e.status_code == 429:
+                logger.warning("Got a 429 Too Many Requests error, sleeping until lambda timeout")
+                sleep_until_timeout()
                 raise TooManyRequestsError
             raise
 
