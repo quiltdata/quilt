@@ -1413,7 +1413,7 @@ def batch_indexer_handler(event, context):
         t1 = time.time()
         delta = t1 - t0
         logger.info("Bulk request took %s seconds", delta)
-        overtime = delta - 15
+        overtime = delta - 10
         time_to_sleep = max(
             min(random.uniform(overtime / 2, overtime), context.get_remaining_time_in_millis() / 1000 - 1), 0
         )
