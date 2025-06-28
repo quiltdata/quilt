@@ -1397,11 +1397,11 @@ def batch_indexer_handler(event, context):
                 filter_path="errors",
                 request_timeout=context.get_remaining_time_in_millis() / 1000 - 1,
             )
-        except elasticsearch.exceptions.ConnectionTimeout as e:
-            # At this point ES seems to start returning 5xx errors
-            logger.warning("We got a connection timeout, sleeping until lambda timeout")
-            sleep_until_timeout()
-            raise
+        # except elasticsearch.exceptions.ConnectionTimeout as e:
+        #     # At this point ES seems to start returning 5xx errors
+        #     logger.warning("We got a connection timeout, sleeping until lambda timeout")
+        #     sleep_until_timeout()
+        #     raise
         except elasticsearch.exceptions.TransportError as e:
             if e.status_code == 429:
                 logger.warning("Got a 429 Too Many Requests error, sleeping until lambda timeout")
