@@ -1416,7 +1416,7 @@ def batch_indexer_handler(event, context):
         overtime = delta - 10
         if overtime > 0:
             time_to_sleep = min(
-                random.uniform(overtime / 2, overtime) + 5,
+                random.uniform(overtime / 2, overtime) + 10,
                 context.get_remaining_time_in_millis() / 1000 - 1,
             )
             logger.warning("Sleeping for %s seconds to avoid ES overload", time_to_sleep)
