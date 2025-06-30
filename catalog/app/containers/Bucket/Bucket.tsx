@@ -100,7 +100,7 @@ export default function Bucket() {
       searchString: '',
       buckets: [bucket],
       order: SearchUIModel.ResultOrder.NEWEST,
-      view: SearchUIModel.View.List,
+      view: SearchUIModel.View.Table,
       latestOnly: true,
     }),
     [bucket],
