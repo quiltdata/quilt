@@ -7,6 +7,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import { TinyTextField } from 'components/Filters'
 import * as Preview from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
 import type { RouteMap } from 'containers/Bucket/BucketNav'
@@ -38,6 +39,32 @@ const AVAILABLE_PACKAGES_FILTERS = [
   ...PACKAGES_FILTERS_PRIMARY,
   ...PACKAGES_FILTERS_SECONDARY,
 ]
+
+interface FilterContext {
+  // TODO: move collapsing columns here
+  focused: Column | null
+  openFilter: (c: Column) => void
+  closeFilter: () => void
+}
+
+const FilterCtx = React.createContext<FilterContext>({
+  focused: null,
+  openFilter: () => {},
+  closeFilter: () => {},
+})
+
+function FilterProvider({ children }: { children: React.ReactNode }) {
+  const [focused, setFocused] = React.useState<Column | null>(null)
+  const openFilter = React.useCallback((c: Column) => setFocused(c), [])
+  const closeFilter = React.useCallback(() => setFocused(null), [])
+  return (
+    <FilterCtx.Provider value={{ focused, openFilter, closeFilter }}>
+      {children}
+    </FilterCtx.Provider>
+  )
+}
+
+const useFilterContext = () => React.useContext(FilterCtx)
 
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
@@ -85,7 +112,7 @@ function Match({ className, children, ...rest }: MatchProps) {
 
 interface SystemMetaValueProps {
   hit: SearchUIModel.SearchHitPackage
-  filter: FilterType
+  filter: FilterType | 'bucket'
 }
 
 function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
@@ -123,6 +150,8 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       return <Format.Relative value={hit.modified} />
     case 'entries':
       return hit.totalEntriesCount
+    case 'bucket':
+      return hit.bucket
     default:
       assertNever(filter)
   }
@@ -285,12 +314,11 @@ interface PreviewEntry {
 interface EntryProps {
   className: string
   entry: Model.GQLTypes.SearchHitPackageMatchingEntry
-  onMeta: (x: PreviewEntry) => void
   onPreview: (x: PreviewEntry) => void
   packageHandle: PackageHandle
 }
 
-function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProps) {
+function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
   const classes = useEntriesStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   const handlePreview = React.useCallback(
@@ -298,8 +326,8 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
     [entry, onPreview],
   )
   const handleMeta = React.useCallback(
-    () => onMeta({ type: 'meta', entry }),
-    [entry, onMeta],
+    () => onPreview({ type: 'meta', entry }),
+    [entry, onPreview],
   )
   const inBucket = React.useMemo(() => {
     const { bucket, key, version } = s3paths.parseS3Url(entry.physicalKey)
@@ -381,6 +409,11 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
     setHeight(`${ref.current.clientHeight}px`)
   }, [entries])
 
+  // TODO:
+  // const entriesColumns = [{ title: 'Logical Key', key: logicalKey }, ...]
+  // colSpan = entriesColumns.length
+  // and pass it to <Entry />
+
   return (
     <div className={cx(classes.root)} style={{ height }}>
       <div className={classes.sticky} ref={ref}>
@@ -406,7 +439,6 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
                 className={classes.row}
                 key={entry.logicalKey + entry.physicalKey}
                 entry={entry}
-                onMeta={setPreview}
                 onPreview={setPreview}
                 packageHandle={packageHandle}
               />
@@ -563,7 +595,7 @@ const usePackageRowStyles = M.makeStyles((t) => ({
 
 interface PackageRowProps {
   hit: SearchUIModel.SearchHitPackage
-  columns: Column[]
+  columns: ColumnsMap
 }
 
 function PackageRow({ columns, hit }: PackageRowProps) {
@@ -581,6 +613,10 @@ function PackageRow({ columns, hit }: PackageRowProps) {
     [hit],
   )
 
+  const visibleColumns = Array.from(columns.values()).filter((c) => c.state.visible)
+  // 2 additional columns for <UnfoldPackageEntries/> and as a placeholder for <ColumnAdd />
+  // const colSpan = visibleColumns.length + 2
+
   return (
     <>
       <M.TableRow
@@ -597,8 +633,9 @@ function PackageRow({ columns, hit }: PackageRowProps) {
             />
           )}
         </M.TableCell>
-        {columns.map((column) => {
+        {visibleColumns.map((column) => {
           switch (column.tag) {
+            case 'bucket':
             case 'filter':
               return (
                 <M.TableCell
@@ -619,18 +656,15 @@ function PackageRow({ columns, hit }: PackageRowProps) {
                   <UserMetaValue meta={meta} pointer={column.filter} />
                 </M.TableCell>
               )
-            case 'visual':
-              return (
-                <M.TableCell className={classes.cell} key={column.filter}>
-                  {hit.bucket}
-                </M.TableCell>
-              )
+            default:
+              assertNever(column)
           }
         })}
+        <M.TableCell className={classes.placeholder} />
       </M.TableRow>
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
-          <M.TableCell className={classes.entries} colSpan={columns.length + 1}>
+          <M.TableCell className={classes.entries} colSpan={visibleColumns.length + 2}>
             {open && (
               <Entries
                 entries={hit.matchingEntries}
@@ -734,12 +768,12 @@ interface ColumnActionsProps {
 function ColumnActions({ className, column, single }: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const { openFilter } = useFilterContext()
 
   const [menuOpened, setMenuOpened] = React.useState(false)
   const showMenu = React.useCallback(() => setMenuOpened(true), [])
   const hideMenu = React.useCallback(() => setMenuOpened(false), [])
 
-  const [filterOpened, setFilterOpened] = React.useState(false)
   const showFilter = React.useCallback(() => {
     switch (column.tag) {
       case 'meta':
@@ -749,9 +783,8 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
         model.actions.activatePackagesFilter(column.filter)
         break
     }
-    setFilterOpened(true)
-  }, [column, model.actions])
-  const hideFilter = React.useCallback(() => setFilterOpened(false), [])
+    openFilter(column)
+  }, [column, model.actions, openFilter])
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
 
@@ -815,32 +848,6 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
           )}
         </M.List>
       </M.Popover>
-      <M.Dialog open={filterOpened} onClose={hideFilter}>
-        <M.DialogTitle>
-          {column.tag === 'filter' ? column.fullTitle : column.title}
-        </M.DialogTitle>
-        <M.DialogContent>
-          {column.filter === 'bucket' && (
-            <M.Box display="flex" flexDirection="column" padding={2} width={320}>
-              <BucketSelector />
-            </M.Box>
-          )}
-          {column.tag === 'filter' && (
-            <M.Box display="flex" flexDirection="column" padding={2} width={320}>
-              <Filter filter={column.filter} onClose={hideFilter} />
-            </M.Box>
-          )}
-          {column.tag === 'meta' && (
-            <M.Box display="flex" flexDirection="column" padding={2} width={320}>
-              <MetaFilter path={column.filter} onClose={hideFilter} />
-            </M.Box>
-          )}
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.Button>Ok</M.Button>
-          <M.Button>Cancel</M.Button>
-        </M.DialogActions>
-      </M.Dialog>
     </div>
   )
 }
@@ -857,22 +864,18 @@ const useFilterGroupStyles = M.makeStyles((t) => ({
   nested: {
     paddingLeft: t.spacing(3),
   },
-  iconWrapper: {
-    minWidth: t.spacing(4),
-  },
-  icon: {
-    transition: 'ease .15s transform',
-  },
 }))
 
 interface FilterGroupProps {
   disabled?: boolean
   path?: string
   items: SearchUIModel.FacetTree['children']
+  columns: ColumnsMap
 }
 
-function FilterGroup({ disabled, path, items }: FilterGroupProps) {
+function FilterGroup({ columns, disabled, path, items }: FilterGroupProps) {
   const classes = useFilterGroupStyles()
+  const { openFilter } = useFilterContext()
 
   function getLabel(key: string) {
     const [type, rest] = key.split(':')
@@ -890,13 +893,17 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { activatePackagesMetaFilter } = model.actions
+  const { activatePackagesMetaFilter, deactivatePackagesMetaFilter } = model.actions
   const activate = React.useCallback(
     (node: Leaf<SearchUIModel.PackageUserMetaFacet>) => {
       const type = SearchUIModel.PackageUserMetaFacetMap[node.value.__typename]
       activatePackagesMetaFilter(node.value.path, type)
+      const column = columns.get(node.value.path)
+      if (column) {
+        openFilter(column)
+      }
     },
-    [activatePackagesMetaFilter],
+    [activatePackagesMetaFilter, columns, openFilter],
   )
 
   return (
@@ -917,10 +924,23 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
                   items={node.children}
                   key={path + p}
                   path={p}
+                  columns={columns}
                 />
               ) : (
                 <M.MenuItem key={path + p} onClick={() => activate(node)}>
                   <M.ListItemText {...getLabel(p)} />
+                  <M.ListItemSecondaryAction>
+                    <M.Checkbox
+                      edge="end"
+                      onChange={() =>
+                        !!columns.get(node.value.path)?.state.visible ||
+                        columns.get(node.value.path)?.state.inferred
+                          ? activate(node)
+                          : () => deactivatePackagesMetaFilter(node.value.path)
+                      }
+                      checked={columns.get(node.value.path)?.state.visible}
+                    />
+                  </M.ListItemSecondaryAction>
                 </M.MenuItem>
               ),
             )}
@@ -929,6 +949,15 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
       </ul>
     </li>
   )
+}
+
+const ReversPackageUserMetaTypename = {
+  Number: 'NumberPackageUserMetaFacet' as const,
+  Datetime: 'DatetimePackageUserMetaFacet' as const,
+  KeywordEnum: 'KeywordPackageUserMetaFacet' as const,
+  Text: 'TextPackageUserMetaFacet' as const,
+  KeywordWildcard: 'KeywordPackageUserMetaFacet' as const,
+  Boolean: 'BooleanPackageUserMetaFacet' as const,
 }
 
 const useAvailableFacetsStyles = M.makeStyles((t) => ({
@@ -955,148 +984,135 @@ const useAvailableFacetsStyles = M.makeStyles((t) => ({
 }))
 
 interface AvailableFacetsProps {
-  hidden: Column[]
+  columns: ColumnsMap
   onClose: () => void
+  state: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function AvailableFacets({ hidden, onClose }: AvailableFacetsProps) {
+function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
   const classes = useAvailableFacetsStyles()
+  const { openFilter } = useFilterContext()
+
+  const filterValue = SearchUIModel.AvailableFiltersState.match(
+    {
+      Ready: (ready) =>
+        SearchUIModel.FacetsFilteringState.match({
+          Enabled: ({ value }) => value,
+          Disabled: () => '',
+        })(ready.filtering),
+      Loading: () => '',
+      Empty: () => '',
+    },
+    state,
+  )
 
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { predicates } = model.state.filter
-  const availableFilters = [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY]
-    .filter((f) => !predicates[f])
-    .filter((f) => f !== 'name')
+  const availableFilters = React.useMemo(
+    () =>
+      [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].filter(
+        // TODO: Filter fullTitle as well
+        (f) => f.indexOf(filterValue) > -1,
+      ),
+    [filterValue],
+  )
 
-  const { activatePackagesFilter } = model.actions
+  const enabledMetaFiltersItems = React.useMemo(
+    () =>
+      SearchUIModel.groupFacets(
+        Array.from(model.state.userMetaFilters.filters)
+          .map(([path, f]) => ({
+            __typename: ReversPackageUserMetaTypename[f._tag],
+            path,
+          }))
+          .filter(({ path }) => path.indexOf(filterValue) > -1),
+      )[0].children,
+    [model.state.userMetaFilters.filters, filterValue],
+  )
+
+  const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
   const handleFilter = React.useCallback(
     (filter: (typeof availableFilters)[number]) => {
-      activatePackagesFilter(filter)
+      if (!model.state.filter.predicates[filter]) {
+        activatePackagesFilter(filter)
+      }
+      const column = columns.get(filter)
+      if (column) {
+        openFilter(column)
+      }
       onClose()
     },
-    [activatePackagesFilter, onClose],
+    [activatePackagesFilter, columns, model.state.filter.predicates, onClose, openFilter],
   )
 
   return (
     <div className={classes.root}>
       <M.List className={classes.list} dense>
-        {!!hidden.length && (
-          <>
-            <M.ListSubheader>Hidden columns</M.ListSubheader>
-            {hidden.map((column) => (
-              <M.MenuItem key={column.filter} onClick={column.onCollapse}>
-                <M.ListItemIcon>
-                  <M.Icon color="disabled">visibility_off</M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText primary={column.title} />
-              </M.MenuItem>
-            ))}
-          </>
-        )}
-
         {!!availableFilters.length && (
           <>
-            {!!hidden.length && <M.Divider className={classes.divider} />}
             <M.ListSubheader>System metadata</M.ListSubheader>
+
             {availableFilters.map((filter) => (
               <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
                 <M.ListItemText primary={PACKAGE_FILTER_LABELS[filter]} />
+                <M.ListItemSecondaryAction>
+                  <M.Checkbox
+                    edge="end"
+                    onChange={(_e, checked) => {
+                      if (checked) {
+                        handleFilter(filter)
+                      } else {
+                        const column = columns.get(filter)
+                        if (!column) return
+                        if (column.filtered) {
+                          column.onCollapse()
+                        } else {
+                          deactivatePackagesFilter(filter)
+                        }
+                      }
+                    }}
+                    checked={columns.get(filter)?.state.visible}
+                  />
+                </M.ListItemSecondaryAction>
               </M.MenuItem>
             ))}
           </>
         )}
 
-        {(!!hidden.length || !!availableFilters.length) && (
-          <M.Divider className={classes.divider} />
-        )}
+        {!!availableFilters.length && <M.Divider className={classes.divider} />}
         <M.ListSubheader>User metadata</M.ListSubheader>
-        <SearchUIModel.AvailablePackagesMetaFilters>
-          {SearchUIModel.AvailableFiltersState.match({
+
+        <FilterGroup items={enabledMetaFiltersItems} columns={columns} />
+
+        {SearchUIModel.AvailableFiltersState.match(
+          {
             Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
             Empty: () => null,
-            Ready: ({ facets }) => (
-              <>
-                <FilterGroup items={facets.visible.children} />
-                <FilterGroup items={facets.hidden.children} />
-              </>
+            Ready: ({ facets: { available } }) => (
+              <FilterGroup
+                items={SearchUIModel.groupFacets(available)[0].children}
+                columns={columns}
+              />
             ),
-          })}
-        </SearchUIModel.AvailablePackagesMetaFilters>
+          },
+          state,
+        )}
       </M.List>
-    </div>
-  )
-}
-
-const useScrollButtonStyles = M.makeStyles((t) => ({
-  root: {
-    height: t.spacing(5),
-    width: t.spacing(7),
-    position: 'absolute',
-    right: t.spacing(5),
-    top: 0,
-    paddingLeft: t.spacing(2),
-    overflow: 'hidden',
-  },
-  button: {
-    width: t.spacing(5),
-    height: t.spacing(5),
-    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
-    background: t.palette.background.paper,
-  },
-}))
-
-interface ScrollButtonProps {
-  scrollAreaEl: HTMLDivElement | null
-  tableEl: HTMLTableElement | null
-  columns: Column[]
-}
-
-function ScrollButton({ columns, scrollAreaEl, tableEl }: ScrollButtonProps) {
-  const classes = useScrollButtonStyles()
-
-  const [show, setShow] = React.useState(false)
-
-  const handleSlide = React.useCallback(() => {
-    if (!scrollAreaEl) return
-    scrollAreaEl.scroll({
-      behavior: 'smooth',
-      left: scrollAreaEl.scrollLeft + 200,
-    })
-  }, [scrollAreaEl])
-
-  const handleScroll = React.useCallback(() => {
-    if (!scrollAreaEl || !tableEl) return
-    const scrollLeftMax = tableEl.clientWidth - scrollAreaEl.clientWidth
-    setShow(scrollAreaEl.scrollLeft < scrollLeftMax)
-  }, [scrollAreaEl, tableEl])
-
-  React.useEffect(() => {
-    setTimeout(handleScroll, 300)
-    scrollAreaEl?.addEventListener('scroll', handleScroll)
-    return () => scrollAreaEl?.removeEventListener('scroll', handleScroll)
-  }, [columns, handleScroll, scrollAreaEl, tableEl])
-
-  if (!show) return null
-
-  return (
-    <div className={classes.root} style={{}}>
-      <M.ButtonBase className={classes.button} onClick={handleSlide}>
-        <M.Icon>chevron_right</M.Icon>
-      </M.ButtonBase>
     </div>
   )
 }
 
 const useAddColumnStyles = M.makeStyles((t) => ({
   root: {
-    background: t.palette.background.default,
     display: 'flex',
     flexDirection: 'column',
     position: 'absolute',
     right: 0,
     top: 0,
     transition: t.transitions.create('width'),
-    width: t.spacing(5),
+    width: t.spacing(7),
+    alignItems: 'flex-end',
+    overflow: 'hidden',
+    zIndex: 1,
   },
   add: {
     lineHeight: `${t.spacing(3)}px`,
@@ -1117,6 +1133,9 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     color: t.palette.primary.main,
     background: t.palette.background.paper,
     borderTopRightRadius: t.shape.borderRadius,
+    '&:focus': {
+      border: `2px solid ${t.palette.primary.main}`,
+    },
   },
   opened: {
     background: t.palette.background.paper,
@@ -1148,10 +1167,11 @@ const useAddColumnStyles = M.makeStyles((t) => ({
 }))
 
 interface AddColumnProps {
-  hidden: Column[]
+  columns: ColumnsMap
+  state: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function AddColumn({ hidden }: AddColumnProps) {
+function AddColumn({ columns, state }: AddColumnProps) {
   const classes = useAddColumnStyles()
 
   const [open, setOpen] = React.useState(false)
@@ -1175,6 +1195,8 @@ function AddColumn({ hidden }: AddColumnProps) {
     handleTimeout()
     hide()
   }, [handleTimeout, hide])
+
+  const [filterValue, setFilterValue] = React.useState('')
 
   if (!open) {
     return (
@@ -1204,10 +1226,40 @@ function AddColumn({ hidden }: AddColumnProps) {
     <div className={cx(classes.root, classes.opened)} onMouseLeave={handleMouseLeave}>
       <div className={classes.head}>
         <M.Typography variant="subtitle2" className={classes.add}>
-          Add column:
+          Configure columns:
         </M.Typography>
       </div>
-      <AvailableFacets onClose={hide} hidden={hidden} />
+
+      {SearchUIModel.AvailableFiltersState.match(
+        {
+          Ready: (ready) =>
+            SearchUIModel.FacetsFilteringState.match({
+              Enabled: ({ value, set }) => (
+                <TinyTextField
+                  autoFocus
+                  className={classes.input}
+                  onChange={set}
+                  placeholder="Find metadata"
+                  value={value}
+                />
+              ),
+              Disabled: () => (
+                <TinyTextField
+                  autoFocus
+                  className={classes.input}
+                  onChange={setFilterValue}
+                  placeholder="Find metadata"
+                  value={filterValue}
+                />
+              ),
+            })(ready.filtering),
+          Loading: () => <h1>Loading</h1>,
+          Empty: () => <h1>Empty</h1>,
+        },
+        state,
+      )}
+
+      <AvailableFacets columns={columns} onClose={hide} state={state} />
     </div>
   )
 }
@@ -1255,18 +1307,27 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   )
 }
 
-const noopFixme = () => {}
+interface ColumnState {
+  filtered: boolean
+  visible: boolean
+  inferred: boolean
+}
 
 interface ColumnBase {
   filtered: boolean
   onClose?: () => void
   onCollapse: () => void
-  onSearch: () => void
+  state: ColumnState
+}
+
+interface ColumnBucket extends ColumnBase {
+  filter: 'bucket'
+  tag: 'bucket'
+  title: string
 }
 
 interface ColumnFilter extends ColumnBase {
-  // keyof PackagesSearchFilter?
-  filter: SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
+  filter: FilterType
   fullTitle: string
   predicateType: SearchUIModel.KnownPredicate['_tag']
   tag: 'filter'
@@ -1280,24 +1341,19 @@ interface ColumnMeta extends ColumnBase {
   title: string
 }
 
-interface ColumnVisual extends ColumnBase {
-  tag: 'visual'
-  filter: string
-  title: string
-}
-
-type Column = ColumnFilter | ColumnMeta | ColumnVisual
-
-interface AllColumns {
-  columns: Column[]
-  hidden: Column[]
-}
+type Column = ColumnBucket | ColumnFilter | ColumnMeta
 
 type UserMetaFacets = Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>
 
 interface InferedUserMetaFacets {
   workflow: UserMetaFacets
   all: UserMetaFacets
+}
+
+type ColumnsMap = Map<Column['filter'], Column>
+
+interface AllColumns {
+  columns: ColumnsMap
 }
 
 function useColumns(
@@ -1315,48 +1371,66 @@ function useColumns(
       fullTitle: PACKAGE_FILTER_LABELS.name,
       onClose: () => actions.deactivatePackagesFilter('name'),
       onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
-      onSearch: noopFixme,
       tag: 'filter' as const,
       title: COLUMN_LABELS.name,
       filtered: !!state.filter.predicates.name,
+      state: {
+        filtered: !!state.filter.predicates.name,
+        visible: !collapsed.name,
+        inferred: false,
+      },
     }
     if (bucket) return [nameCol]
     const bucketCol: Column = {
       filter: 'bucket' as const,
       onClose: () => actions.setBuckets([]),
       onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
-      onSearch: noopFixme,
-      tag: 'visual' as const,
+      tag: 'bucket' as const,
       title: COLUMN_LABELS.bucket,
       filtered: !!state.buckets.length,
+      state: {
+        filtered: !!state.buckets.length,
+        visible: !collapsed.bucket,
+        inferred: false,
+      },
     }
     return [bucketCol, nameCol]
-  }, [actions, state.buckets.length, state.filter.predicates.name, bucket])
+  }, [
+    actions,
+    state.buckets.length,
+    state.filter.predicates.name,
+    collapsed.bucket,
+    collapsed.name,
+    bucket,
+  ])
 
   const filters = React.useMemo(() => {
     const output: Column[] = []
     const modifiedFilters = SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter)
 
-    state.filter.order.forEach((filter) => {
+    AVAILABLE_PACKAGES_FILTERS.forEach((filter) => {
       const predicate = state.filter.predicates[filter]
-      invariant(!!predicate, 'Predicate should exist')
       // 'name' is added in `fixed` columns
       if (filter !== 'name') {
         output.push({
-          predicateType: predicate._tag,
+          predicateType: predicate?._tag || 'Text',
           filter,
           fullTitle: PACKAGE_FILTER_LABELS[filter],
           onClose: () => actions.deactivatePackagesFilter(filter),
           onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-          onSearch: noopFixme,
           tag: 'filter' as const,
           title: COLUMN_LABELS[filter],
           filtered: !!modifiedFilters && !!modifiedFilters[filter],
+          state: {
+            filtered: !!modifiedFilters && !!modifiedFilters[filter],
+            visible: !!predicate && !collapsed[filter],
+            inferred: false,
+          },
         })
       }
     })
     return output
-  }, [actions, state.filter])
+  }, [actions, collapsed, state.filter])
 
   const selectedUserMeta = React.useMemo(() => {
     const modifiedFilters = state.userMetaFilters.toGQL()
@@ -1367,14 +1441,18 @@ function useColumns(
         filter,
         onClose: () => actions.deactivatePackagesMetaFilter(filter),
         onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-        onSearch: noopFixme,
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
         filtered: !!modifiedFilters?.find(({ path }) => path === filter),
+        state: {
+          filtered: !!modifiedFilters?.find(({ path }) => path === filter),
+          visible: !collapsed[filter],
+          inferred: false,
+        },
       })
     })
     return output
-  }, [actions, state.userMetaFilters])
+  }, [actions, collapsed, state.userMetaFilters])
 
   const inferedUserMeta = React.useMemo(() => {
     const output: Column[] = []
@@ -1385,34 +1463,31 @@ function useColumns(
         predicateType: SearchUIModel.PackageUserMetaFacetMap[list[filter]],
         filter,
         onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
-        onSearch: noopFixme,
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
         filtered: false,
+        state: {
+          filtered: false,
+          visible: !collapsed[filter],
+          inferred: true,
+        },
       })
     }
     return output
-  }, [infered])
+  }, [collapsed, infered])
 
   return React.useMemo(() => {
-    const output: AllColumns = { columns: [], hidden: [] }
-    for (const column of [
-      ...fixed,
-      ...filters,
-      ...selectedUserMeta,
-      ...inferedUserMeta,
-    ]) {
-      if (collapsed[column.filter]) {
-        output.hidden.push(column)
-      } else {
-        output.columns.push(column)
-      }
-    }
-    return output
-  }, [collapsed, fixed, filters, selectedUserMeta, inferedUserMeta])
+    const columns = new Map(
+      [...fixed, ...filters, ...selectedUserMeta, ...inferedUserMeta].map((c) => [
+        c.filter,
+        c,
+      ]),
+    )
+    return { columns }
+  }, [fixed, filters, selectedUserMeta, inferedUserMeta])
 }
 
-function useGuessUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets> {
+function useInferredUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets> {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const selectedSingleBucket = React.useMemo(() => {
     if (state.buckets.length !== 1) return
@@ -1486,48 +1561,54 @@ function useGuessUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets>
 const useLayoutStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
-    '& th:last-child $head::after': {
-      display: 'none',
-    },
   },
   scrollWrapper: {
     overflow: 'hidden',
   },
   scrollArea: {
-    minHeight: t.spacing(60),
+    minHeight: t.spacing(70),
     overflowX: 'auto',
-    paddingRight: t.spacing(5),
   },
   cell: {
     whiteSpace: 'nowrap',
+  },
+  placeholder: {
+    width: t.spacing(5),
   },
 }))
 
 interface LayoutProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
-  columns: Column[]
-  hidden: Column[]
+  columns: ColumnsMap
 }
 
-function Layout({ hits, columns, hidden }: LayoutProps) {
+function Layout({ hits, columns }: LayoutProps) {
   const classes = useLayoutStyles()
-
-  const [scrollAreaEl, setScrollAreaEl] = React.useState<HTMLDivElement | null>(null)
-  const [tableEl, setTableEl] = React.useState<HTMLTableElement | null>(null)
+  const { focused, closeFilter } = useFilterContext()
 
   return (
     <M.Paper className={classes.root}>
+      <SearchUIModel.AvailablePackagesMetaFilters>
+        {(state: SearchUIModel.AvailableFiltersStateInstance) => (
+          <AddColumn columns={columns} state={state} />
+        )}
+      </SearchUIModel.AvailablePackagesMetaFilters>
+
       <div className={classes.scrollWrapper}>
-        <div className={classes.scrollArea} ref={setScrollAreaEl}>
-          <M.Table size="small" ref={setTableEl}>
+        <div className={classes.scrollArea}>
+          <M.Table size="small">
             <M.TableHead>
               <M.TableRow>
                 <M.TableCell padding="checkbox" />
-                {columns.map((column) => (
-                  <M.TableCell className={classes.cell} key={column.filter}>
-                    <ColumnHead column={column} single={columns.length === 1} />
-                  </M.TableCell>
-                ))}
+                {Array.from(columns).map(
+                  ([key, column]) =>
+                    column.state.visible && (
+                      <M.TableCell className={classes.cell} key={key}>
+                        <ColumnHead column={column} single={columns.size === 1} />
+                      </M.TableCell>
+                    ),
+                )}
+                <M.TableCell className={classes.placeholder} />
               </M.TableRow>
             </M.TableHead>
             <M.TableBody>
@@ -1539,9 +1620,29 @@ function Layout({ hits, columns, hidden }: LayoutProps) {
         </div>
       </div>
 
-      <ScrollButton scrollAreaEl={scrollAreaEl} tableEl={tableEl} columns={columns} />
-
-      <AddColumn hidden={hidden} />
+      <M.Dialog open={!!focused} onClose={closeFilter} maxWidth="sm" fullWidth>
+        {focused && (
+          <>
+            <M.DialogTitle>
+              {focused.tag === 'filter' ? focused.fullTitle : focused.title}
+            </M.DialogTitle>
+            <M.DialogContent>
+              {focused.filter === 'bucket' && <BucketSelector />}
+              {focused.tag === 'filter' && (
+                <Filter filter={focused.filter} onClose={closeFilter} />
+              )}
+              {focused.tag === 'meta' && (
+                <MetaFilter path={focused.filter} onClose={closeFilter} />
+              )}
+            </M.DialogContent>
+            <M.DialogActions>
+              <M.Button color="primary" onClick={closeFilter}>
+                Ok
+              </M.Button>
+            </M.DialogActions>
+          </>
+        )}
+      </M.Dialog>
     </M.Paper>
   )
 }
@@ -1552,7 +1653,12 @@ interface TableViewProps {
 }
 
 export default function TableView({ hits, bucket }: TableViewProps) {
-  const infered: Workflow.RequestResult<InferedUserMetaFacets> = useGuessUserMetaFacets()
-  const { columns, hidden } = useColumns(infered, bucket)
-  return <Layout columns={columns} hidden={hidden} hits={hits} />
+  const infered: Workflow.RequestResult<InferedUserMetaFacets> =
+    useInferredUserMetaFacets()
+  const { columns } = useColumns(infered, bucket)
+  return (
+    <FilterProvider>
+      <Layout columns={columns} hits={hits} />
+    </FilterProvider>
+  )
 }
