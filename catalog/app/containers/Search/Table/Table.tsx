@@ -62,13 +62,26 @@ const isJsonRecord = (obj: Json): obj is JsonRecord =>
 type FilterType =
   SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
 
-const useSystemMetaValueStyles = M.makeStyles((t) => ({
-  match: {
-    background: t.palette.warning.light,
-    padding: t.spacing(0.25, 0.5),
+const useMatchStyles = M.makeStyles((t) => ({
+  root: {
+    // background: M.fade(t.palette.warning.light, 0.7),
+    padding: t.spacing(0, 0.5),
     margin: t.spacing(0, -0.5),
   },
 }))
+
+interface MatchProps extends React.HTMLProps<HTMLSpanElement> {
+  in: boolean
+}
+
+function Match({ className, children, ...rest }: MatchProps) {
+  const classes = useMatchStyles()
+  return (
+    <span className={cx(rest.in && classes.root, className)} {...rest}>
+      {children}
+    </span>
+  )
+}
 
 interface SystemMetaValueProps {
   hit: SearchUIModel.SearchHitPackage
@@ -76,14 +89,11 @@ interface SystemMetaValueProps {
 }
 
 function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
-  const classes = useSystemMetaValueStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   switch (filter) {
     case 'workflow':
       return hit.workflow ? (
-        <span className={cx(hit.matchLocations.workflow && classes.match)}>
-          {hit.workflow.id}
-        </span>
+        <Match in={hit.matchLocations.workflow}>{hit.workflow.id}</Match>
       ) : (
         <NoValue />
       )
@@ -97,19 +107,14 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       return readableBytes(hit.size)
     case 'name':
       return (
-        <StyledLink
-          to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}
-          className={cx(hit.matchLocations.name && classes.match)}
-        >
-          {hit.name}
+        <StyledLink to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
+          <Match in={hit.matchLocations.name}>{hit.name}</Match>
         </StyledLink>
       )
     case 'comment':
       return hit.comment ? (
         <StyledTooltip title={hit.comment} placement="bottom-start">
-          <span className={cx(hit.matchLocations.comment && classes.match)}>
-            {hit.comment}
-          </span>
+          <Match in={hit.matchLocations.comment}>{hit.comment}</Match>
         </StyledTooltip>
       ) : (
         <NoValue />
@@ -214,12 +219,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, -0.5),
   },
   match: {
-    background: t.palette.warning.light,
-    padding: t.spacing(0.25, 0.5),
-    margin: t.spacing(0, -0.5),
-  },
-  matchButton: {
-    background: t.palette.warning.light,
+    // background: t.palette.warning.light,
   },
   sticky: {
     animation: t.transitions.create(['$fade', '$growDown']),
@@ -319,21 +319,15 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
         <StyledTooltip title={entry.logicalKey}>
-          <StyledLink
-            to={inPackage.to}
-            className={cx(entry.matchLocations.logicalKey && classes.match)}
-          >
-            {inPackage.title}
+          <StyledLink to={inPackage.to}>
+            <Match in={entry.matchLocations.logicalKey}>{inPackage.title}</Match>
           </StyledLink>
         </StyledTooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell}>
         <StyledTooltip title={entry.physicalKey}>
-          <StyledLink
-            to={inBucket.to}
-            className={cx(entry.matchLocations.physicalKey && classes.match)}
-          >
-            {inBucket.title}
+          <StyledLink to={inBucket.to}>
+            <Match in={entry.matchLocations.physicalKey}>{inBucket.title}</Match>
           </StyledLink>
         </StyledTooltip>
       </M.TableCell>
@@ -345,7 +339,7 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
           <M.IconButton
             size="small"
             onClick={handlePreview}
-            className={cx(entry.matchLocations.meta && classes.matchButton)}
+            className={cx(entry.matchLocations.meta && classes.match)}
           >
             <M.Icon fontSize="inherit">list</M.Icon>
           </M.IconButton>
@@ -357,10 +351,7 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
       </M.TableCell>
       <M.TableCell className={classes.cell} align="center">
         <span
-          className={cx(
-            classes.content,
-            entry.matchLocations.meta && classes.matchButton,
-          )}
+          className={cx(classes.content, entry.matchLocations.meta && classes.match)}
           onClick={handleMeta}
         >
           {extname(entry.logicalKey).substring(1)}
@@ -772,24 +763,6 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
     }
   }, [column])
 
-  const popoverProps: Partial<M.PopoverProps> = React.useMemo(() => {
-    const onClose = () => {
-      hideFilter()
-      hideMenu()
-    }
-    return {
-      anchorEl,
-      onClose,
-      anchorOrigin: {
-        vertical: 'bottom',
-        horizontal: 'left',
-      },
-      PaperProps: {
-        onMouseLeave: onClose,
-      },
-    }
-  }, [anchorEl, hideFilter, hideMenu])
-
   return (
     <div
       className={cx(classes.root, className)}
@@ -811,7 +784,18 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
           </StyledTooltip>
         )
       )}
-      <M.Popover open={menuOpened} {...popoverProps}>
+      <M.Popover
+        open={menuOpened}
+        anchorEl={anchorEl}
+        onClose={hideMenu}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        PaperProps={{
+          onMouseLeave: hideMenu,
+        }}
+      >
         <M.List dense>
           {!single && (
             <M.ListItem button onClick={handleHide}>
