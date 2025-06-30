@@ -40,28 +40,55 @@ const AVAILABLE_PACKAGES_FILTERS = [
   ...PACKAGES_FILTERS_SECONDARY,
 ]
 
+type CollapsedFilters = Map<Column['filter'], boolean>
+
 interface FilterContext {
-  // TODO: move collapsing columns here
   focused: Column | null
   openFilter: (c: Column) => void
   closeFilter: () => void
+
+  collapsed: CollapsedFilters
+  toggleCollapsed: (f: Column['filter']) => void
 }
 
-const FilterCtx = React.createContext<FilterContext>({
+const noop = () => {}
+
+const initialFilterContext: FilterContext = {
   focused: null,
-  openFilter: () => {},
-  closeFilter: () => {},
-})
+  collapsed: new Map(),
+
+  openFilter: noop,
+  closeFilter: noop,
+  toggleCollapsed: noop,
+}
+
+const FilterCtx = React.createContext<FilterContext>(initialFilterContext)
 
 function FilterProvider({ children }: { children: React.ReactNode }) {
-  const [focused, setFocused] = React.useState<Column | null>(null)
+  const [focused, setFocused] = React.useState<Column | null>(
+    initialFilterContext.focused,
+  )
   const openFilter = React.useCallback((c: Column) => setFocused(c), [])
   const closeFilter = React.useCallback(() => setFocused(null), [])
-  return (
-    <FilterCtx.Provider value={{ focused, openFilter, closeFilter }}>
-      {children}
-    </FilterCtx.Provider>
+
+  const [collapsed, setCollapsed] = React.useState<CollapsedFilters>(
+    initialFilterContext.collapsed,
   )
+  const toggleCollapsed = React.useCallback((filter: Column['filter']) => {
+    setCollapsed((x) => {
+      if (x.has(filter)) {
+        const m = new Map(x)
+        return m.delete(filter) ? m : x
+      } else {
+        return new Map(x).set(filter, true)
+      }
+    })
+  }, [])
+  const value = React.useMemo(
+    () => ({ focused, openFilter, closeFilter, collapsed, toggleCollapsed }),
+    [focused, openFilter, closeFilter, collapsed, toggleCollapsed],
+  )
+  return <FilterCtx.Provider value={value}>{children}</FilterCtx.Provider>
 }
 
 const useFilterContext = () => React.useContext(FilterCtx)
@@ -774,6 +801,8 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
   const showMenu = React.useCallback(() => setMenuOpened(true), [])
   const hideMenu = React.useCallback(() => setMenuOpened(false), [])
 
+  const { toggleCollapsed } = useFilterContext()
+
   const showFilter = React.useCallback(() => {
     switch (column.tag) {
       case 'meta':
@@ -792,9 +821,9 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
     if (!column.filtered && column.onClose) {
       column.onClose()
     } else {
-      column.onCollapse()
+      toggleCollapsed(column.filter)
     }
-  }, [column])
+  }, [column, toggleCollapsed])
 
   return (
     <div
@@ -991,7 +1020,7 @@ interface AvailableFacetsProps {
 
 function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
   const classes = useAvailableFacetsStyles()
-  const { openFilter } = useFilterContext()
+  const { openFilter, toggleCollapsed } = useFilterContext()
 
   const filterValue = SearchUIModel.AvailableFiltersState.match(
     {
@@ -1064,7 +1093,7 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
                         const column = columns.get(filter)
                         if (!column) return
                         if (column.filtered) {
-                          column.onCollapse()
+                          toggleCollapsed(column.filter)
                         } else {
                           deactivatePackagesFilter(filter)
                         }
@@ -1316,7 +1345,6 @@ interface ColumnState {
 interface ColumnBase {
   filtered: boolean
   onClose?: () => void
-  onCollapse: () => void
   state: ColumnState
 }
 
@@ -1361,8 +1389,7 @@ function useColumns(
   bucket?: string,
 ): AllColumns {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-
-  const [collapsed, setCollapsed] = React.useState<Record<Column['filter'], boolean>>({})
+  const { collapsed } = useFilterContext()
 
   const fixed = React.useMemo(() => {
     const nameCol: Column = {
@@ -1370,13 +1397,12 @@ function useColumns(
       filter: 'name' as const,
       fullTitle: PACKAGE_FILTER_LABELS.name,
       onClose: () => actions.deactivatePackagesFilter('name'),
-      onCollapse: () => setCollapsed((x) => ({ ...x, name: !x.name })),
       tag: 'filter' as const,
       title: COLUMN_LABELS.name,
       filtered: !!state.filter.predicates.name,
       state: {
         filtered: !!state.filter.predicates.name,
-        visible: !collapsed.name,
+        visible: !collapsed.has('name'),
         inferred: false,
       },
     }
@@ -1384,25 +1410,17 @@ function useColumns(
     const bucketCol: Column = {
       filter: 'bucket' as const,
       onClose: () => actions.setBuckets([]),
-      onCollapse: () => setCollapsed((x) => ({ ...x, bucket: !x.bucket })),
       tag: 'bucket' as const,
       title: COLUMN_LABELS.bucket,
       filtered: !!state.buckets.length,
       state: {
         filtered: !!state.buckets.length,
-        visible: !collapsed.bucket,
+        visible: !collapsed.has('bucket'),
         inferred: false,
       },
     }
     return [bucketCol, nameCol]
-  }, [
-    actions,
-    state.buckets.length,
-    state.filter.predicates.name,
-    collapsed.bucket,
-    collapsed.name,
-    bucket,
-  ])
+  }, [actions, state.buckets.length, state.filter.predicates.name, collapsed, bucket])
 
   const filters = React.useMemo(() => {
     const output: Column[] = []
@@ -1417,13 +1435,12 @@ function useColumns(
           filter,
           fullTitle: PACKAGE_FILTER_LABELS[filter],
           onClose: () => actions.deactivatePackagesFilter(filter),
-          onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
           tag: 'filter' as const,
           title: COLUMN_LABELS[filter],
           filtered: !!modifiedFilters && !!modifiedFilters[filter],
           state: {
             filtered: !!modifiedFilters && !!modifiedFilters[filter],
-            visible: !!predicate && !collapsed[filter],
+            visible: !!predicate && !collapsed.has(filter),
             inferred: false,
           },
         })
@@ -1440,13 +1457,12 @@ function useColumns(
         predicateType: predicate._tag,
         filter,
         onClose: () => actions.deactivatePackagesMetaFilter(filter),
-        onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
         filtered: !!modifiedFilters?.find(({ path }) => path === filter),
         state: {
           filtered: !!modifiedFilters?.find(({ path }) => path === filter),
-          visible: !collapsed[filter],
+          visible: !collapsed.has(filter),
           inferred: false,
         },
       })
@@ -1462,13 +1478,12 @@ function useColumns(
       output.push({
         predicateType: SearchUIModel.PackageUserMetaFacetMap[list[filter]],
         filter,
-        onCollapse: () => setCollapsed((x) => ({ ...x, [filter]: !x[filter] })),
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
         filtered: false,
         state: {
           filtered: false,
-          visible: !collapsed[filter],
+          visible: !collapsed.has(filter),
           inferred: true,
         },
       })
