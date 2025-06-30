@@ -9,8 +9,12 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "jsonpointer~=2.4",
+    "quilt-shared[boto,es]",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv.sources]
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/6a01419410ede8a8284730d0bd8b606162f596fa.zip", subdirectory = "py-shared" }

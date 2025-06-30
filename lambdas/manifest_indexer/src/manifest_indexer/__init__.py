@@ -2,8 +2,15 @@ import datetime
 import json
 import urllib.parse
 
+import jsonpointer
+from quilt_shared.const import MANIFEST_PREFIX
+from quilt_shared.log import get_quilt_logger
+
 
 MAX_KEYWORD_LEN = 256
+
+
+logger = get_quilt_logger()
 
 
 def _try_parse_date(s: str) -> datetime.datetime | None:
@@ -97,11 +104,11 @@ def index_manifest(
     bucket: str,
     key: str,
 ):
-    if not key.startswith(MANIFEST_PREFIX_V1):
+    if not key.startswith(MANIFEST_PREFIX):
         logger.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
         return
 
-    manifest_hash = key[len(MANIFEST_PREFIX_V1) :]
+    manifest_hash = key[len(MANIFEST_PREFIX) :]
     to_index = False
     try:
         to_index = manifest_hash.islower() and len(bytes.fromhex(manifest_hash)) == 32
