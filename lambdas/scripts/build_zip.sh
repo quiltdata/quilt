@@ -34,7 +34,6 @@ if [ -f /lambda/function/quilt_binaries.json ]; then
 fi
 
 find . \( -name 'test_*' -o -name '*.py' -o -name '*.h' -o -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.exe' \) -type f -delete
-find . -path '*/fcsparser/tests' -type d -exec rm -r {} \+  # 20 MB of tests
 
 # pyarrow is "special":
 # if there's a "libfoo.so" and a "libfoo.so.1.2.3", then only the latter is actually used, so delete the former.
