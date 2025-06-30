@@ -1227,6 +1227,8 @@ function AddColumn({ columns, state }: AddColumnProps) {
 
   const [filterValue, setFilterValue] = React.useState('')
 
+  const { collapsed } = useFilterContext()
+
   if (!open) {
     return (
       <div
@@ -1238,7 +1240,7 @@ function AddColumn({ columns, state }: AddColumnProps) {
         <div className={classes.head}>
           <M.Badge
             color="secondary"
-            invisible={/* FIXME */ true}
+            invisible={!collapsed.size}
             overlap="circle"
             variant="dot"
           >
