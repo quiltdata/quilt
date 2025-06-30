@@ -1,5 +1,6 @@
 import datetime
 import functools
+import hashlib
 import json
 import os
 import random
@@ -92,7 +93,6 @@ def make_s3_client():
     return boto3.client("s3", config=configuration)
 
 
-@functools.cache
 def make_elastic():
     elastic_host = os.environ["ES_HOST"]
     session = boto3.session.Session()
@@ -116,3 +116,40 @@ def make_elastic():
         verify_certs=True,
         connection_class=elasticsearch.RequestsHttpConnection,
     )
+
+
+def get_es_aliases(es) -> frozenset[str]:
+    return frozenset(a for v in es.indices.get_alias().values() for a in v["aliases"])
+
+
+def get_object_doc_id(key: str, version_id: str) -> str:
+    """
+    Generate unique value for every object in the bucket to be used as
+    document `_id`. This value must not exceed 512 bytes in size:
+    https://www.elastic.co/guide/en/elasticsearch/reference/7.10/mapping-id-field.html.
+    # TODO: both object key and version ID are up to 1024 bytes long, so
+    # we need to use something like `_hash(key) + _hash(version_id)` to
+    # overcome the mentioned size restriction.
+    """
+    return f"{key}:{version_id}"
+
+
+def get_manifest_doc_id(manifest_hash: str) -> str:
+    assert len(manifest_hash) <= 512, "Manifest hash must not exceed 512 characters"
+    return f"mnfst:{manifest_hash}"
+
+
+def get_manifest_entry_doc_id(manifest_hash: str, logical_key: str) -> str:
+    _id = f"entry:{manifest_hash}:{_hash_string(logical_key)}"
+    assert len(_id) <= 512, "Manifest entry document ID must not exceed 512 characters"
+    return _id
+
+
+def get_ptr_doc_id(pkg_name: str, tag: str) -> str:
+    _id = f"ptr:{_hash_string(pkg_name + '/' + tag)}"
+    assert len(_id) <= 512, "Pointer document ID must not exceed 512 characters"
+    return _id
+
+
+def _hash_string(s: str) -> str:
+    return hashlib.sha256(s.encode()).hexdigest()

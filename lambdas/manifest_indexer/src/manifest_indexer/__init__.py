@@ -4,6 +4,16 @@ import urllib.parse
 
 import jsonpointer
 from quilt_shared.const import MANIFESTS_PREFIX
+from quilt_shared.es import (
+    make_elastic,
+    make_s3_client,
+    PACKAGE_INDEX_SUFFIX,
+    Batcher,
+    get_es_aliases,
+    get_object_doc_id,
+    get_manifest_doc_id,
+    get_manifest_entry_doc_id,
+)
 from quilt_shared.log import get_quilt_logger
 
 
@@ -11,6 +21,32 @@ MAX_KEYWORD_LEN = 256
 
 
 logger = get_quilt_logger()
+s3_client = make_s3_client()
+es = make_elastic()
+
+
+def parse_s3_physical_key(pk: str):
+    parsed = urllib.parse.urlparse(pk)
+    if parsed.scheme != "s3":
+        logger.warning("Expected S3 URL, got %s", pk)
+        return
+    if not (bucket := parsed.netloc):
+        logger.warning("Expected S3 bucket, got %s", pk)
+        return
+    assert not parsed.path or parsed.path.startswith("/")
+    path = urllib.parse.unquote(parsed.path)[1:]
+    # Parse the version ID the way the Java SDK does:
+    # https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3URI.java#L192
+    query = urllib.parse.parse_qs(parsed.query)
+    version_id = query.pop("versionId", [None])[0]
+    if query:
+        logger.warning("Unexpected S3 query string: %s in %s", parsed.query, pk)
+        return
+    return {
+        "bucket": bucket,
+        "key": path,
+        "version_id": version_id,
+    }
 
 
 def _try_parse_date(s: str) -> datetime.datetime | None:
@@ -119,7 +155,7 @@ def index_manifest(
         return
 
     index = bucket + PACKAGE_INDEX_SUFFIX
-    doc_id = f"mnfst:{manifest_hash}"
+    doc_id = get_manifest_doc_id(manifest_hash)
 
     def get_pkg_data():
         try:
@@ -164,7 +200,7 @@ def index_manifest(
             yield {
                 "_index": index,
                 "_op_type": "index",
-                "_id": f"entry:{manifest_hash}:{hash_string(entry['logical_key'])}",
+                "_id": get_manifest_entry_doc_id(manifest_hash, entry["logical_key"]),
                 "join_field": {"name": "entry", "parent": doc_id},
                 "routing": doc_id,
                 "entry_lk": entry["logical_key"],
@@ -180,7 +216,7 @@ def index_manifest(
                         "_index": pk_parsed["bucket"],
                         "_op_type": "update",
                         # TODO: check version_id for non-versioned buckets
-                        "_id": get_object_id(pk_parsed["key"], pk_parsed["version_id"]),
+                        "_id": get_object_doc_id(pk_parsed["key"], pk_parsed["version_id"]),
                         "doc": {"was_packaged": True},
                         "doc_as_upsert": True,
                     }
@@ -234,7 +270,7 @@ def handler(event, context):
 
     assert len(event["Records"]) == 1, "Package indexer handler expects exactly one record"
 
-    with Batcher() as batcher:
+    with Batcher(s3_client, logger) as batcher:
         for record in event["Records"]:
             body = json.loads(record["body"])
             bucket = body["detail"]["s3"]["bucket"]["name"]
