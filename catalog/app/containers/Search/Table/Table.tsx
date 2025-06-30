@@ -42,7 +42,7 @@ const AVAILABLE_PACKAGES_FILTERS = [
 
 type CollapsedFilters = Map<Column['filter'], boolean>
 
-interface FilterContext {
+interface Context {
   focused: Column | null
   openFilter: (c: Column) => void
   closeFilter: () => void
@@ -53,7 +53,7 @@ interface FilterContext {
 
 const noop = () => {}
 
-const initialFilterContext: FilterContext = {
+const initialContext: Context = {
   focused: null,
   collapsed: new Map(),
 
@@ -62,17 +62,15 @@ const initialFilterContext: FilterContext = {
   toggleCollapsed: noop,
 }
 
-const FilterCtx = React.createContext<FilterContext>(initialFilterContext)
+const Ctx = React.createContext<Context>(initialContext)
 
-function FilterProvider({ children }: { children: React.ReactNode }) {
-  const [focused, setFocused] = React.useState<Column | null>(
-    initialFilterContext.focused,
-  )
+function Provider({ children }: { children: React.ReactNode }) {
+  const [focused, setFocused] = React.useState<Column | null>(initialContext.focused)
   const openFilter = React.useCallback((c: Column) => setFocused(c), [])
   const closeFilter = React.useCallback(() => setFocused(null), [])
 
   const [collapsed, setCollapsed] = React.useState<CollapsedFilters>(
-    initialFilterContext.collapsed,
+    initialContext.collapsed,
   )
   const toggleCollapsed = React.useCallback((filter: Column['filter']) => {
     setCollapsed((x) => {
@@ -88,10 +86,10 @@ function FilterProvider({ children }: { children: React.ReactNode }) {
     () => ({ focused, openFilter, closeFilter, collapsed, toggleCollapsed }),
     [focused, openFilter, closeFilter, collapsed, toggleCollapsed],
   )
-  return <FilterCtx.Provider value={value}>{children}</FilterCtx.Provider>
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-const useFilterContext = () => React.useContext(FilterCtx)
+const useContext = () => React.useContext(Ctx)
 
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
@@ -795,13 +793,13 @@ interface ColumnActionsProps {
 function ColumnActions({ className, column, single }: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { openFilter } = useFilterContext()
+  const { openFilter } = useContext()
 
   const [menuOpened, setMenuOpened] = React.useState(false)
   const showMenu = React.useCallback(() => setMenuOpened(true), [])
   const hideMenu = React.useCallback(() => setMenuOpened(false), [])
 
-  const { toggleCollapsed } = useFilterContext()
+  const { toggleCollapsed } = useContext()
 
   const showFilter = React.useCallback(() => {
     switch (column.tag) {
@@ -904,7 +902,7 @@ interface FilterGroupProps {
 
 function FilterGroup({ columns, disabled, path, items }: FilterGroupProps) {
   const classes = useFilterGroupStyles()
-  const { openFilter } = useFilterContext()
+  const { openFilter } = useContext()
 
   function getLabel(key: string) {
     const [type, rest] = key.split(':')
@@ -1020,7 +1018,7 @@ interface AvailableFacetsProps {
 
 function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
   const classes = useAvailableFacetsStyles()
-  const { openFilter, toggleCollapsed } = useFilterContext()
+  const { openFilter, toggleCollapsed } = useContext()
 
   const filterValue = SearchUIModel.AvailableFiltersState.match(
     {
@@ -1227,7 +1225,7 @@ function AddColumn({ columns, state }: AddColumnProps) {
 
   const [filterValue, setFilterValue] = React.useState('')
 
-  const { collapsed } = useFilterContext()
+  const { collapsed } = useContext()
 
   if (!open) {
     return (
@@ -1391,7 +1389,7 @@ function useColumns(
   bucket?: string,
 ): AllColumns {
   const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { collapsed } = useFilterContext()
+  const { collapsed } = useContext()
 
   const fixed = React.useMemo(() => {
     const nameCol: Column = {
@@ -1601,7 +1599,7 @@ interface LayoutProps {
 
 function Layout({ hits, columns }: LayoutProps) {
   const classes = useLayoutStyles()
-  const { focused, closeFilter } = useFilterContext()
+  const { focused, closeFilter } = useContext()
 
   return (
     <M.Paper className={classes.root}>
@@ -1678,8 +1676,8 @@ function TableView({ hits, bucket }: TableViewProps) {
 
 export default function TableViewInit({ hits, bucket }: TableViewProps) {
   return (
-    <FilterProvider>
+    <Provider>
       <TableView hits={hits} bucket={bucket} />
-    </FilterProvider>
+    </Provider>
   )
 }
