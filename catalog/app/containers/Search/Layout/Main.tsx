@@ -32,6 +32,10 @@ function SearchField({ className }: SearchFieldProps) {
     },
     [onChange],
   )
+  const clear = React.useCallback(() => {
+    setQuery('')
+    onChange('')
+  }, [onChange])
 
   return (
     <M.TextField
@@ -47,6 +51,13 @@ function SearchField({ className }: SearchFieldProps) {
         startAdornment: (
           <M.InputAdornment position="start">
             <M.Icon>search</M.Icon>
+          </M.InputAdornment>
+        ),
+        endAdornment: query && (
+          <M.InputAdornment position="end">
+            <M.IconButton onClick={clear} edge="end">
+              <M.Icon>close</M.Icon>
+            </M.IconButton>
           </M.InputAdornment>
         ),
       }}

@@ -91,7 +91,7 @@ type FilterType =
 
 const useMatchStyles = M.makeStyles((t) => ({
   root: {
-    // background: M.fade(t.palette.warning.light, 0.7),
+    background: M.fade(t.palette.warning.light, 0.7),
     padding: t.spacing(0, 0.5),
     margin: t.spacing(0, -0.5),
   },
@@ -248,7 +248,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, -0.5),
   },
   match: {
-    // background: t.palette.warning.light,
+    background: t.palette.warning.light,
   },
   sticky: {
     animation: t.transitions.create(['$fade', '$growDown']),
@@ -379,7 +379,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       </M.TableCell>
       <M.TableCell className={classes.cell} align="center">
         <span
-          className={cx(classes.content, entry.matchLocations.meta && classes.match)}
+          className={cx(classes.content, entry.matchLocations.contents && classes.match)}
           onClick={handleMeta}
         >
           {extname(entry.logicalKey).substring(1)}
@@ -1536,7 +1536,7 @@ function useInferredUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFace
                   workflowRootKeys.indexOf(path.replace(/^\//, '')) > -1
                 ) {
                   if (output.workflow[path] !== 'KeywordPackageUserMetaFacet') {
-                    // FIXME: keep sort order from workflow
+                    // TODO: keep sort order from workflow
                     output.workflow[path] = __typename
                   }
                 }
