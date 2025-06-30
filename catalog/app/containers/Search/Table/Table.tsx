@@ -123,17 +123,20 @@ const useMatchStyles = M.makeStyles((t) => ({
 }))
 
 interface MatchProps extends React.HTMLProps<HTMLSpanElement> {
-  in: boolean
+  on: boolean
 }
 
-function Match({ className, children, ...rest }: MatchProps) {
+const Match = React.forwardRef<HTMLSpanElement, MatchProps>(function Match(
+  { className, children, on, ...rest },
+  ref,
+) {
   const classes = useMatchStyles()
   return (
-    <span className={cx(rest.in && classes.root, className)} {...rest}>
+    <span className={cx(on && classes.root, className)} {...rest} ref={ref}>
       {children}
     </span>
   )
-}
+})
 
 interface SystemMetaValueProps {
   hit: SearchUIModel.SearchHitPackage
@@ -145,7 +148,7 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
   switch (filter) {
     case 'workflow':
       return hit.workflow ? (
-        <Match in={hit.matchLocations.workflow}>{hit.workflow.id}</Match>
+        <Match on={hit.matchLocations.workflow}>{hit.workflow.id}</Match>
       ) : (
         <NoValue />
       )
@@ -160,13 +163,13 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
     case 'name':
       return (
         <StyledLink to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
-          <Match in={hit.matchLocations.name}>{hit.name}</Match>
+          <Match on={hit.matchLocations.name}>{hit.name}</Match>
         </StyledLink>
       )
     case 'comment':
       return hit.comment ? (
         <StyledTooltip title={hit.comment} placement="bottom-start">
-          <Match in={hit.matchLocations.comment}>{hit.comment}</Match>
+          <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
         </StyledTooltip>
       ) : (
         <NoValue />
@@ -373,14 +376,14 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       <M.TableCell className={classes.cell} component="th" scope="row">
         <StyledTooltip title={entry.logicalKey}>
           <StyledLink to={inPackage.to}>
-            <Match in={entry.matchLocations.logicalKey}>{inPackage.title}</Match>
+            <Match on={entry.matchLocations.logicalKey}>{inPackage.title}</Match>
           </StyledLink>
         </StyledTooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell}>
         <StyledTooltip title={entry.physicalKey}>
           <StyledLink to={inBucket.to}>
-            <Match in={entry.matchLocations.physicalKey}>{inBucket.title}</Match>
+            <Match on={entry.matchLocations.physicalKey}>{inBucket.title}</Match>
           </StyledLink>
         </StyledTooltip>
       </M.TableCell>
@@ -1150,8 +1153,9 @@ const useAddColumnStyles = M.makeStyles((t) => ({
     justifyContent: 'center',
     boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
     '& .MuiBadge-badge': {
-      top: '6%',
-      right: '6%',
+      top: '4px',
+      left: '-9px',
+      right: 'auto',
     },
   },
   button: {
