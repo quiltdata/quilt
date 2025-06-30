@@ -5,9 +5,7 @@ setup(
     version='0.0.1',
     py_modules=['index', 'document_queue'],
     install_requires=[
-        # "aws-requests-auth ~= 0.4.2",
         "boto3 ~= 1.34",
-        # "elasticsearch ~= 6.3",
         "jsonschema ~= 3.2",
         "nbformat ~= 5.1.3",
         "pdfminer.six == 20240706",
@@ -19,5 +17,9 @@ setup(
             "d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip"
             "#subdirectory=lambdas/shared"
         ),
+        (
+            "quilt-shared[boto,es] @ https://github.com/quiltdata/quilt/archive/"
+            "bc9c170fc936f3110c8ba9249984efb2b8893f2e.zip"
+            "#subdirectory=py-shared")
     ],
 )

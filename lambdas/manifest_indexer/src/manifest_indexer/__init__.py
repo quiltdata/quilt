@@ -156,6 +156,7 @@ def index_manifest(
 
     index = bucket + PACKAGE_INDEX_SUFFIX
     doc_id = get_manifest_doc_id(manifest_hash)
+    es_aliases = get_es_aliases(es)
 
     def get_pkg_data():
         try:
@@ -211,7 +212,7 @@ def index_manifest(
                 "entry_metadata": json.dumps(meta) if meta else None,
             }
             if pk_parsed is not None:
-                if pk_parsed["bucket"] in get_es_aliases():
+                if pk_parsed["bucket"] in es_aliases:
                     yield {
                         "_index": pk_parsed["bucket"],
                         "_op_type": "update",
@@ -241,7 +242,7 @@ def index_manifest(
         doc_queue.append(doc_data)
     if doc_data is None:
         logger.debug("No manifest entries found for s3://%s/%s. Removing.", bucket, key)
-        make_elastic().delete_by_query(
+        es.delete_by_query(
             index=index,
             body={
                 "query": {

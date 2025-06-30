@@ -1,5 +1,5 @@
 [project]
-name = "manifest-indexer"
+name = "es-ingest"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,7 +8,6 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "jsonpointer~=2.4",
     "quilt-shared[boto,es]",
 ]
 

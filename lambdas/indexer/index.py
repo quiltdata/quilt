@@ -47,21 +47,15 @@ See docs/EventBridge.md for more
 
 
 import datetime
-import functools
-import hashlib
 import json
 import os
 import pathlib
-import random
 import re
-import time
 from os.path import split
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
-import boto3
 import botocore
-import elasticsearch
 import nbformat
 from dateutil.tz import tzutc
 from document_queue import (
@@ -70,7 +64,6 @@ from document_queue import (
     DocumentQueue,
     get_content_index_bytes,
     get_content_index_extensions,
-    get_object_id,
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
 from pdfminer.high_level import extract_text as extract_pdf_text
@@ -91,12 +84,13 @@ from t4_lambda_shared.preview import (
     trim_to_bytes,
 )
 from t4_lambda_shared.utils import (
-    PACKAGE_INDEX_SUFFIX,
-    POINTER_PREFIX_V1,
     get_available_memory,
-    get_quilt_logger,
     separated_env_to_iter,
 )
+from quilt_shared.const import NAMED_PACKAGES_PREFIX
+from quilt_shared.es import PACKAGE_INDEX_SUFFIX, make_elastic, make_s3_client, get_ptr_doc_id, get_manifest_doc_id, get_object_doc_id
+from quilt_shared.log import get_quilt_logger
+
 
 # translate events to S3 native names
 EVENTBRIDGE_TO_S3 = {
@@ -180,12 +174,8 @@ TEST_EVENT = "s3:TestEvent"
 
 
 logger = get_quilt_logger()
-s3_client = boto3.client("s3", config=botocore.config.Config(user_agent_extra=USER_AGENT_EXTRA))
-
-
-@functools.cache
-def get_es_aliases() -> frozenset[str]:
-    return frozenset(a for v in make_elastic().indices.get_alias().values() for a in v["aliases"])
+s3_client = make_s3_client()
+es = make_elastic()
 
 
 def now_like_boto3():
@@ -194,10 +184,6 @@ def now_like_boto3():
         'LastModified': datetime.datetime(2019, 11, 6, 3, 1, 16, tzinfo=tzutc()),
     """
     return datetime.datetime.now(tz=tzutc())
-
-
-def hash_string(s: str) -> str:
-    return hashlib.sha256(s.encode()).hexdigest()
 
 
 def get_compression(ext: str):
@@ -318,10 +304,10 @@ def index_if_pointer(
             - False if not a manifest (no attempt at indexing)
     """
     pointer_prefix, pointer_file = split(key)
-    handle = pointer_prefix[len(POINTER_PREFIX_V1):]
+    handle = pointer_prefix[len(NAMED_PACKAGES_PREFIX):]
     if (
             not pointer_file
-            or not pointer_prefix.startswith(POINTER_PREFIX_V1)
+            or not pointer_prefix.startswith(NAMED_PACKAGES_PREFIX)
             or len(handle) < 3
             or '/' not in handle
     ):
@@ -336,7 +322,7 @@ def index_if_pointer(
         logger.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
     index = bucket + PACKAGE_INDEX_SUFFIX
-    pointer_doc_id = f"ptr:{hash_string(handle + '/' + pointer_file)}"  # XXX: is this ok?
+    pointer_doc_id = get_ptr_doc_id(handle, pointer_file)
 
     try:
         resp = s3_client.get_object(
@@ -355,7 +341,7 @@ def index_if_pointer(
         return False  # XXX: ???
 
     manifest_hash = resp["Body"].read().decode()
-    manifest_doc_id = f"mnfst:{manifest_hash}"
+    manifest_doc_id = get_manifest_doc_id(manifest_hash)
     logger.debug("Package hash %s found for s3://%s/%s", manifest_hash, bucket, key)
     doc_queue.append_document(
         {
@@ -427,7 +413,7 @@ def index_object(
     body = {
         "_index": bucket,
         "_op_type": _op_type,  # determines if action is upsert (index) or delete
-        "_id": get_object_id(key, version_id),
+        "_id": get_object_doc_id(key, version_id),
     }
     if _op_type == "update":
         body.update(
@@ -437,57 +423,6 @@ def index_object(
     else:
         body.update(data)
     doc_queue.append_document(body)
-
-
-@functools.lru_cache(maxsize=None)
-def get_bucket_region(bucket: str) -> str:
-    resp = s3_client.head_bucket(Bucket=bucket)
-    return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
-
-
-@functools.lru_cache(maxsize=None)
-def get_presigner_client(bucket: str):
-    return boto3.client(
-        "s3",
-        region_name=get_bucket_region(bucket),
-        config=botocore.config.Config(signature_version="s3v4"),
-    )
-
-
-# TODO: remove
-def select_package_stats(bucket, manifest_key) -> Optional[dict]:
-    """use s3 select to generate file stats for package"""
-    logger_ = get_quilt_logger()
-    presigner_client = get_presigner_client(bucket)
-    url = presigner_client.generate_presigned_url(
-        ClientMethod="get_object",
-        Params={
-            "Bucket": bucket,
-            "Key": manifest_key,
-        },
-    )
-    lambda_ = make_lambda_client()
-    q = f"""
-    SELECT
-        COALESCE(SUM(size), 0) AS total_bytes,
-        COUNT(size) AS total_files FROM read_ndjson('{url}', columns={{size: 'UBIGINT'}}) obj
-    """
-    resp = lambda_.invoke(
-        FunctionName=DUCKDB_SELECT_LAMBDA_ARN,
-        Payload=json.dumps({"query": q, "user_agent": f"DuckDB Select {USER_AGENT_EXTRA}"}),
-    )
-
-    payload = resp["Payload"].read()
-    if "FunctionError" in resp:
-        logger_.error("DuckDB select unhandled error: %s", payload)
-        return None
-    parsed = json.loads(payload)
-    if "error" in parsed:
-        logger_.error("DuckDB select error: %s", parsed["error"])
-        return None
-
-    rows = parsed["rows"]
-    return rows[0] if rows else None
 
 
 def extract_pptx(fileobj, max_size: int) -> str:
@@ -714,12 +649,6 @@ def get_plain_text(
     return text
 
 
-
-@functools.lru_cache(maxsize=None)
-def make_lambda_client():
-    return boto3.client("lambda")
-
-
 def map_event_name(event: dict):
     """transform eventbridge names into S3-like ones"""
     input_ = event["eventName"]
@@ -767,7 +696,7 @@ def handler(event, context):
     # An exception that we'll want to re-raise after the batch sends
     # TODO: handle s3:ObjectTagging:* events to keep s3_tags updated
     content_exception = None
-    batch_processor = DocumentQueue(context, make_elastic())
+    batch_processor = DocumentQueue(context, es)
     s3_client = make_s3_client()
     for message in event["Records"]:
         body = json.loads(message["body"])
@@ -810,7 +739,6 @@ def handler(event, context):
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
                     do_index(
-                        s3_client,
                         batch_processor,
                         event_name,
                         bucket=bucket,
@@ -883,7 +811,6 @@ def handler(event, context):
                 #      for objects without tags.
 
                 do_index(
-                    s3_client,
                     batch_processor,
                     event_name,
                     bucket=bucket,
@@ -984,86 +911,3 @@ def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: Optional
             bucket, key, version_id
         )
         return None
-
-
-def batch_indexer_handler(event, context):
-    logger.debug("Batch indexer handler called with event: %s", event)
-    assert len(event["Records"]) == 1, "Batch indexer handler expects exactly one record"
-    event, = event["Records"]
-    event = json.loads(event["body"])
-    assert len(event["Records"]) == 1, "Batch indexer handler expects exactly one S3 event record"
-    event, = event["Records"]
-
-    bucket = event["s3"]["bucket"]["name"]
-    key = event["s3"]["object"]["key"]
-    # XXX: use version?
-
-    class BulkDocumentError(Exception):
-        pass
-
-    class TooManyRequestsError(Exception):
-        pass
-
-    class LambdaTimeoutError(Exception):
-        pass
-
-    def sleep_until_timeout():
-        """Sleep until the lambda timeout"""
-        remaining = context.get_remaining_time_in_millis() / 1000 - 1
-        logger.warning("Sleeping for %s seconds just before lambda timeout", remaining)
-        # good night, sweet prince
-        time.sleep(remaining)
-
-    # # it looks like ES internal bulk API has a 60s timeout by default
-    # # so we should wait hoping ES will be able to process the request
-    # read_timeout = 61
-
-    # @tenacity.retry(
-    #     reraise=True,
-    #     wait=tenacity.wait_random_exponential(min=8, multiplier=8),
-    #     retry=tenacity.retry_if_exception_type(TooManyRequestsError),
-    #     before_sleep=tenacity.before_log(logger, logging.WARNING),
-    # )
-    def bulk(context, es, data: bytes):
-        # if context.get_remaining_time_in_millis() < read_timeout * 1000:
-        #     logger.warning("Not enough time left to process bulk request, sleeping till lambda timeout")
-        #     sleep_until_timeout()
-        #     raise LambdaTimeoutError
-        t0 = time.time()
-        try:
-            resp = es.bulk(
-                data,
-                filter_path="errors",
-                request_timeout=context.get_remaining_time_in_millis() / 1000 - 1,
-            )
-        # except elasticsearch.exceptions.ConnectionTimeout as e:
-        #     # At this point ES seems to start returning 5xx errors
-        #     logger.warning("We got a connection timeout, sleeping until lambda timeout")
-        #     sleep_until_timeout()
-        #     raise
-        except elasticsearch.exceptions.TransportError as e:
-            if e.status_code == 429:
-                logger.warning("Got a 429 Too Many Requests error, sleeping until lambda timeout")
-                sleep_until_timeout()
-                raise TooManyRequestsError
-            raise
-
-        t1 = time.time()
-        delta = t1 - t0
-        logger.info("Bulk request took %s seconds", delta)
-        overtime = delta - 10
-        if overtime > 0:
-            time_to_sleep = min(
-                random.uniform(overtime / 2, overtime) + 15,
-                context.get_remaining_time_in_millis() / 1000 - 1,
-            )
-            logger.warning("Sleeping for %s seconds to avoid ES overload", time_to_sleep)
-            time.sleep(time_to_sleep)
-        if resp["errors"]:
-            # TODO: log errors from items.*.error?
-            # TODO: ignore index_not_found_exception for delete operations?
-            raise BulkDocumentError
-
-    data = s3_client.get_object(Bucket=bucket, Key=key)["Body"].read()
-    bulk(context, make_elastic(), data)
-    s3_client.delete_object(Bucket=bucket, Key=key)

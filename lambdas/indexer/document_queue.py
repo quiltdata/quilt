@@ -56,18 +56,6 @@ def get_content_index_bytes(*, bucket_name: str):
     return ELASTIC_LIMIT_BYTES if content_index_bytes is None else content_index_bytes
 
 
-def get_object_id(key, version_id):
-    """
-    Generate unique value for every object in the bucket to be used as
-    document `_id`. This value must not exceed 512 bytes in size:
-    https://www.elastic.co/guide/en/elasticsearch/reference/7.10/mapping-id-field.html.
-    # TODO: both object key and version ID are up to 1024 bytes long, so
-    # we need to use something like `_hash(key) + _hash(version_id)` to
-    # overcome the mentioned size restriction.
-    """
-    return f"{key}:{version_id}"
-
-
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
     """Fatal and final error if docs fail after multiple retries"""
