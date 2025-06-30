@@ -1669,13 +1669,17 @@ interface TableViewProps {
   bucket?: string
 }
 
-export default function TableView({ hits, bucket }: TableViewProps) {
+function TableView({ hits, bucket }: TableViewProps) {
   const infered: Workflow.RequestResult<InferedUserMetaFacets> =
     useInferredUserMetaFacets()
   const { columns } = useColumns(infered, bucket)
+  return <Layout columns={columns} hits={hits} />
+}
+
+export default function TableViewInit({ hits, bucket }: TableViewProps) {
   return (
     <FilterProvider>
-      <Layout columns={columns} hits={hits} />
+      <TableView hits={hits} bucket={bucket} />
     </FilterProvider>
   )
 }
