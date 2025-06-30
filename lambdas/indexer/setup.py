@@ -5,10 +5,9 @@ setup(
     version='0.0.1',
     py_modules=['index', 'document_queue'],
     install_requires=[
-        "aws-requests-auth ~= 0.4.2",
+        # "aws-requests-auth ~= 0.4.2",
         "boto3 ~= 1.34",
-        "elasticsearch ~= 6.3",
-        "jsonpointer ~= 2.4",
+        # "elasticsearch ~= 6.3",
         "jsonschema ~= 3.2",
         "nbformat ~= 5.1.3",
         "pdfminer.six == 20240706",

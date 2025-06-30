@@ -26,6 +26,10 @@ quilt = [
 dev = [
   "black ~= 24.1",
 ]
+es = [
+  "aws-requests-auth ~= 0.4.2",
+  "elasticsearch ~= 6.8",
+]
 
 [tool.black]
 line-length = 119

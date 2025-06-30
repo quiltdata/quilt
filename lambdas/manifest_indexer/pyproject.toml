@@ -7,7 +7,9 @@ authors = [
     { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
 ]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "jsonpointer~=2.4",
+]
 
 [build-system]
 requires = ["hatchling"]
