@@ -34,10 +34,16 @@ import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
 import * as Workflow from './workflow'
 
+const AVAILABLE_PACKAGES_FILTERS = [
+  ...PACKAGES_FILTERS_PRIMARY,
+  ...PACKAGES_FILTERS_SECONDARY,
+]
+
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
     display: 'inline-block',
     width: t.spacing(2),
+    verticalAlign: 'middle',
   },
 }))
 
@@ -76,7 +82,7 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
     case 'workflow':
       return hit.workflow ? (
         <span className={cx(hit.matchLocations.workflow && classes.match)}>
-          hit.workflow.id
+          {hit.workflow.id}
         </span>
       ) : (
         <NoValue />
@@ -134,11 +140,11 @@ function UserMetaValue({ meta, pointer }: TableViewUserMetaProps) {
 
   if (value instanceof Error) {
     return (
-      <M.Tooltip title={`${meta}`}>
+      <StyledTooltip title={`${meta}`}>
         <M.Icon color="disabled" fontSize="small" style={{ verticalAlign: 'middle' }}>
           error_outline
         </M.Icon>
-      </M.Tooltip>
+      </StyledTooltip>
     )
   }
 
@@ -312,24 +318,24 @@ function Entry({ className, entry, onPreview, onMeta, packageHandle }: EntryProp
   return (
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
-        <M.Tooltip title={entry.logicalKey}>
+        <StyledTooltip title={entry.logicalKey}>
           <StyledLink
             to={inPackage.to}
             className={cx(entry.matchLocations.logicalKey && classes.match)}
           >
             {inPackage.title}
           </StyledLink>
-        </M.Tooltip>
+        </StyledTooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell}>
-        <M.Tooltip title={entry.physicalKey}>
+        <StyledTooltip title={entry.physicalKey}>
           <StyledLink
             to={inBucket.to}
             className={cx(entry.matchLocations.physicalKey && classes.match)}
           >
             {inBucket.title}
           </StyledLink>
-        </M.Tooltip>
+        </StyledTooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell} align="right">
         {readableBytes(entry.size)}
@@ -517,7 +523,7 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
     ? 'Hide entries'
     : `Show ${size} matching ${size === 1 ? 'entry' : 'entries'}`
   return (
-    <M.Tooltip title={title}>
+    <StyledTooltip title={title}>
       <M.IconButton className={className}>
         <M.Badge badgeContent={size} color="default" classes={{ badge: classes.badge }}>
           <M.Icon className={open ? classes.expanded : classes.collapsed}>
@@ -525,7 +531,7 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
           </M.Icon>
         </M.Badge>
       </M.IconButton>
-    </M.Tooltip>
+    </StyledTooltip>
   )
 }
 
@@ -558,6 +564,9 @@ const usePackageRowStyles = M.makeStyles((t) => ({
     '& $fold': {
       color: t.palette.text.primary,
     },
+  },
+  placeholder: {
+    width: t.spacing(5),
   },
 }))
 
@@ -912,11 +921,7 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
         {!!path && (
           <M.ListItem disabled={disabled} button onClick={toggleExpanded}>
             <M.ListItemText primary={getLabel(path).primary} />
-            <M.ListItemIcon className={classes.iconWrapper}>
-              <M.Icon className={cx(classes.icon)}>
-                {expanded ? 'expand_less' : 'expand_more'}
-              </M.Icon>
-            </M.ListItemIcon>
+            <M.Icon>{expanded ? 'expand_less' : 'expand_more'}</M.Icon>
           </M.ListItem>
         )}
         <div className={cx({ [classes.nested]: !!path })}>
@@ -1116,6 +1121,7 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   head: {
     display: 'flex',
     justifyContent: 'center',
+    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
     '& .MuiBadge-badge': {
       top: '6%',
       right: '6%',
@@ -1124,19 +1130,28 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   button: {
     height: t.spacing(5),
     width: t.spacing(5),
-    background: t.palette.primary.main,
-    color: t.palette.getContrastText(t.palette.primary.main),
+    color: t.palette.primary.main,
+    background: t.palette.background.paper,
     borderTopRightRadius: t.shape.borderRadius,
   },
   opened: {
+    background: t.palette.background.paper,
     width: 'auto',
+    minWidth: t.spacing(40),
     bottom: 0,
     boxShadow: t.shadows[2],
     animation: t.transitions.create('$slide'),
+    alignItems: 'stretch',
+    overflow: 'visible',
     '& $head': {
+      background: t.palette.background.default,
       borderBottom: `1px solid ${t.palette.divider}`,
       justifyContent: 'flex-start',
+      boxShadow: 'none',
     },
+  },
+  input: {
+    margin: t.spacing(2, 1, 0),
   },
   '@keyframes slide': {
     '0%': {
@@ -1188,12 +1203,12 @@ function AddColumn({ hidden }: AddColumnProps) {
         <div className={classes.head}>
           <M.Badge
             color="secondary"
-            invisible={!hidden.length}
+            invisible={/* FIXME */ true}
             overlap="circle"
             variant="dot"
           >
             <M.ButtonBase className={classes.button}>
-              <M.Icon>add</M.Icon>
+              <M.Icon>keyboard_arrow_down</M.Icon>
             </M.ButtonBase>
           </M.Badge>
         </div>
@@ -1218,15 +1233,6 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
     display: 'flex',
     alignItems: 'center',
     position: 'relative',
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      right: t.spacing(-3),
-      top: t.spacing(1),
-      bottom: t.spacing(1),
-      background: t.palette.divider,
-      width: '1px',
-    },
     '&:hover $actions': {
       color: t.palette.text.secondary,
     },
@@ -1253,9 +1259,9 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
     <div className={classes.root}>
       <p className={classes.title}>
         {column.tag === 'filter' ? (
-          <M.Tooltip title={column.fullTitle}>
+          <StyledTooltip title={column.fullTitle}>
             <span>{column.title}</span>
-          </M.Tooltip>
+          </StyledTooltip>
         ) : (
           column.title
         )}
@@ -1320,7 +1326,7 @@ function useColumns(
 
   const fixed = React.useMemo(() => {
     const nameCol: Column = {
-      predicateType: 'Text' as const,
+      predicateType: 'KeywordWildcard' as const,
       filter: 'name' as const,
       fullTitle: PACKAGE_FILTER_LABELS.name,
       onClose: () => actions.deactivatePackagesFilter('name'),
@@ -1330,7 +1336,7 @@ function useColumns(
       title: COLUMN_LABELS.name,
       filtered: !!state.filter.predicates.name,
     }
-    if (!bucket) return [nameCol]
+    if (bucket) return [nameCol]
     const bucketCol: Column = {
       filter: 'bucket' as const,
       onClose: () => actions.setBuckets([]),
@@ -1465,13 +1471,13 @@ function useGuessUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets>
                   return
                 }
 
-                // FIXME: keep sort order from workflow
                 // Not found in the latest workflow schema
                 if (
                   workflowRootKeys !== Workflow.Loading &&
                   workflowRootKeys.indexOf(path.replace(/^\//, '')) > -1
                 ) {
                   if (output.workflow[path] !== 'KeywordPackageUserMetaFacet') {
+                    // FIXME: keep sort order from workflow
                     output.workflow[path] = __typename
                   }
                 }
