@@ -1,4 +1,4 @@
-import { extname, join } from 'path'
+import { join } from 'path'
 
 import cx from 'classnames'
 import invariant from 'invariant'
@@ -6,6 +6,7 @@ import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+import { DescriptionOutlined as IconDescriptionOutlined } from '@material-ui/icons'
 
 import { TinyTextField } from 'components/Filters'
 import * as Preview from 'components/Preview'
@@ -298,6 +299,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
   content: {
     background: t.palette.background.paper,
     borderRadius: t.shape.borderRadius,
+    color: t.palette.text.primary,
     cursor: 'pointer',
     display: 'inline-block',
     fontVariant: 'small-caps',
@@ -400,7 +402,6 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       to: urls.bucketPackageTree(bucket, name, hash, entry.logicalKey),
     }
   }, [entry.logicalKey, packageHandle, urls])
-  const ext = extname(entry.logicalKey).substring(1) || null
   return (
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
@@ -423,11 +424,13 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       <M.TableCell className={classes.cell} align="center">
         {entry.meta ? (
           <M.IconButton
-            size="small"
-            onClick={handleMeta}
             className={cx(entry.matchLocations.meta && classes.match)}
+            onClick={handleMeta}
+            size="small"
           >
-            <M.Icon fontSize="inherit">list</M.Icon>
+            <M.Icon fontSize="inherit" color="inherit">
+              list
+            </M.Icon>
           </M.IconButton>
         ) : (
           <M.IconButton size="small" disabled>
@@ -436,12 +439,13 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
         )}
       </M.TableCell>
       <M.TableCell className={classes.cell} align="center">
-        <span
-          className={cx(classes.content, entry.matchLocations.contents && classes.match)}
+        <M.IconButton
+          className={cx(entry.matchLocations.contents && classes.match)}
           onClick={handlePreview}
+          size="small"
         >
-          {ext ?? <M.Icon fontSize="small">description_outlined</M.Icon>}
-        </span>
+          <IconDescriptionOutlined fontSize="inherit" color="inherit" />
+        </M.IconButton>
       </M.TableCell>
     </M.TableRow>
   )
