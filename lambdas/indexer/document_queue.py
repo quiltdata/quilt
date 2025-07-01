@@ -151,9 +151,7 @@ def get_time_remaining(context):
     logger_ = get_quilt_logger()
     time_remaining = floor(context.get_remaining_time_in_millis()/1000)
     if time_remaining < 30:
-        logger_.warning(
-            f"Lambda function has {time_remaining} sec remaining. Reduce batch size?"
-        )
+        logger_.warning("Lambda function has %s sec remaining. Reduce batch size?", time_remaining)
 
     return time_remaining
 
