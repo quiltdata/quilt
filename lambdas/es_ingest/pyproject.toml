@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "pytest-cov~=6.2",
     "quilt-shared[boto,es]",
 ]
 
