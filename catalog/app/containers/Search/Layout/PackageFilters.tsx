@@ -126,7 +126,7 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
 
 const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   list: {
-    background: t.palette.background.default,
+    background: t.palette.background.paper,
   },
   help: {
     ...t.typography.caption,
