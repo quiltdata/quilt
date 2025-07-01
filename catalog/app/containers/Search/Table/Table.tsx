@@ -91,6 +91,26 @@ function Provider({ children }: { children: React.ReactNode }) {
 
 const useContext = () => React.useContext(Ctx)
 
+interface EntryMetaDisplayProps {
+  meta: string | null
+}
+
+function EntryMetaDisplay({ meta }: EntryMetaDisplayProps) {
+  const obj: JsonRecord | Error = React.useMemo(() => {
+    if (!meta) return new Error('Metadata is empty')
+    try {
+      return JSON.parse(meta)
+    } catch (e) {
+      return e instanceof Error ? e : new Error(`${e}`)
+    }
+  }, [meta])
+  return obj instanceof Error ? (
+    <Lab.Alert severity="error">{obj.message}</Lab.Alert>
+  ) : (
+    <JsonDisplay value={obj} defaultExpanded />
+  )
+}
+
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
     display: 'inline-block',
@@ -371,6 +391,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       to: urls.bucketPackageTree(bucket, name, hash, entry.logicalKey),
     }
   }, [entry.logicalKey, packageHandle, urls])
+  const ext = extname(entry.logicalKey).substring(1) || null
   return (
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
@@ -410,7 +431,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
           className={cx(classes.content, entry.matchLocations.contents && classes.match)}
           onClick={handlePreview}
         >
-          {extname(entry.logicalKey).substring(1)}
+          {ext ?? <M.Icon fontSize="small">description_outlined</M.Icon>}
         </span>
       </M.TableCell>
     </M.TableRow>
@@ -506,7 +527,7 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
                 </div>
 
                 {preview.type === 'meta' && (
-                  <JsonDisplay value={preview.entry.meta} defaultExpanded />
+                  <EntryMetaDisplay meta={preview.entry.meta} />
                 )}
                 {preview.type === 'content' && (
                   <Preview.Load
