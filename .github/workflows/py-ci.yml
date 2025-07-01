@@ -184,7 +184,7 @@ jobs:
         with:
           python-version-file: lambdas/${{ matrix.path }}/.python-version
       - uses: astral-sh/setup-uv@v6
-      - name: Export requirements.txt
+      - name: Export requirements.txt from uv.lock
         if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
         run: |
           uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
