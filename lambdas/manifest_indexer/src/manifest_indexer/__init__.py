@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import urllib.parse
 
 import jsonpointer
@@ -22,7 +23,7 @@ MAX_KEYWORD_LEN = 256
 
 logger = get_quilt_logger()
 s3_client = make_s3_client()
-es = make_elastic()
+es = make_elastic(os.environ["ES_ENDPOINT"], timeout=30)
 
 
 def parse_s3_physical_key(pk: str):

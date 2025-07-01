@@ -175,7 +175,7 @@ TEST_EVENT = "s3:TestEvent"
 
 logger = get_quilt_logger()
 s3_client = make_s3_client()
-es = make_elastic()
+es = make_elastic(os.environ["ES_ENDPOINT"], timeout=30)
 
 
 def now_like_boto3():

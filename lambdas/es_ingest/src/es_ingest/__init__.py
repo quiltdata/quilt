@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import time
 
@@ -9,7 +10,7 @@ from quilt_shared.es import make_elastic
 from quilt_shared.log import get_quilt_logger
 
 s3_client = boto3.client("s3")
-es = make_elastic()
+es = make_elastic(os.environ["ES_ENDPOINT"])
 logger = get_quilt_logger()
 
 
