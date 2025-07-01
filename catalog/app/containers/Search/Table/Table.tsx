@@ -296,13 +296,15 @@ const useEntriesStyles = M.makeStyles((t) => ({
     zIndex: 30,
   },
   content: {
-    display: 'inline-block',
     background: t.palette.background.paper,
     borderRadius: t.shape.borderRadius,
+    cursor: 'pointer',
+    display: 'inline-block',
     fontVariant: 'small-caps',
-    padding: t.spacing(0.25, 0.5),
     fontWeight: t.typography.fontWeightMedium,
     margin: t.spacing(0, -0.5),
+    padding: t.spacing(0.25, 0.5),
+    textTransform: 'lowercase',
   },
   match: {
     background: t.palette.warning.light,
