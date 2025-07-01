@@ -1,5 +1,5 @@
 [project]
-name = "es-ingest"
+name = "t4_lambda_es_ingest"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
