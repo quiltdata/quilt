@@ -817,13 +817,13 @@ function MetaFilter({ path, onClose }: MetaFilterProps) {
   )
 }
 
-const useColumnActionsStyles = M.makeStyles((t) => ({
+const useColumnActionsStyles = M.makeStyles({
   root: {
     display: 'grid',
     gridAutoFlow: 'column',
-    gridColumnGap: t.spacing(1),
+    gridColumnGap: '2px',
   },
-}))
+})
 
 interface ColumnActionsProps {
   className: string
@@ -1355,7 +1355,7 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
   actions: {
     color: t.palette.text.hint,
     transition: t.transitions.create('color'),
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   title: {
     ...t.typography.subtitle1,
