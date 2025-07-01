@@ -53,18 +53,31 @@ function CreatePackage({ className }: CreatePackageProps) {
   )
 }
 
-function resultsCountI18n(results: number) {
-  return Format.pluralify(results, {
-    one: '1 result',
-    other: (n) => (n > 0 ? `${n} results` : 'Results'),
-  })
+const I18_COUNT_RESULTS = {
+  one: '1 result',
+  other: (n: number) => (n > 0 ? `${n} results` : 'Results'),
 }
 
-function packagesCountI18n(results: number) {
-  return Format.pluralify(results, {
-    one: '1 package',
-    other: (n) => (n > 0 ? `${n} packages` : 'Packages'),
-  })
+const I18_COUNT_PACKAGES = {
+  one: '1 package',
+  other: (n: number) => (n > 0 ? `${n} packages` : 'Packages'),
+}
+
+const I18_COUNT_PACKAGED_RESULTS = {
+  one: '1 packaged result',
+  other: (n: number) => (n > 0 ? `${n} packaged results` : 'Packaged results'),
+}
+
+function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
+  if (
+    state.resultType === SearchUIModel.ResultType.QuiltPackage &&
+    state.view === SearchUIModel.View.Table
+  ) {
+    return state.latestOnly
+      ? Format.pluralify(n, I18_COUNT_PACKAGED_RESULTS)
+      : Format.pluralify(n, I18_COUNT_RESULTS)
+  }
+  return Format.pluralify(n, I18_COUNT_PACKAGES)
 }
 
 const useResultsCountStyles = M.makeStyles((t) => ({
@@ -95,10 +108,7 @@ function ResultsCount() {
         case 'PackagesSearchResultSet':
           return (
             <ColumnTitle>
-              {model.state.resultType === SearchUIModel.ResultType.QuiltPackage &&
-              model.state.view === SearchUIModel.View.Table
-                ? packagesCountI18n(r.data.stats.total)
-                : resultsCountI18n(r.data.stats.total)}
+              {resultsCountI18n(r.data.stats.total, model.state)}
               <RRDom.Switch>
                 <RRDom.Route path={paths.bucketRoot}>
                   <CreatePackage className={classes.create} />
