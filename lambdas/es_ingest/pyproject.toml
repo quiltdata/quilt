@@ -17,3 +17,8 @@ build-backend = "hatchling.build"
 
 [tool.uv.sources]
 quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/bc9c170fc936f3110c8ba9249984efb2b8893f2e.zip", subdirectory = "py-shared" }
+
+[dependency-groups]
+test = [
+    "pytest~=8.4",
+]
