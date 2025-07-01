@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Increase font size in tooltips and and make them uniform ([#4425](https://github.com/quiltdata/quilt/pull/4425))
 - [Added] Detect directories and redirect to trailing-slash URLs (e.g., `catalog-host/dir` → `catalog-host/dir/`). ([#4398](https://github.com/quiltdata/quilt/pull/4398))
 - [Fixed] Respect `packageRoot` config property when creating text files using Catalog UI ([#4397](https://github.com/quiltdata/quilt/pull/4397))
 - [Changed] Qurator: Switch to Claude 3.7 Sonnet ([#4343](https://github.com/quiltdata/quilt/pull/4343))
