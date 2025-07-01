@@ -34,7 +34,7 @@ jobs:
       - name: Export requirements.txt
         if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
         run: |
-          uv export --locked --no-emit-project -d lambdas/${{ matrix.path }} -o requirements.txt
+          uv export --locked --no-emit-project --directory lambdas/${{ matrix.path }} -o requirements.txt
       - name: Build zip
         run: |
           BUILDER_IMAGE=quiltdata/lambda:build-$(cat lambdas/${{ matrix.path }}/.python-version)
