@@ -95,7 +95,7 @@ pytz==2024.2
     # via pandas
 quilt-shared[boto,es] @ https://github.com/quiltdata/quilt/archive/bc9c170fc936f3110c8ba9249984efb2b8893f2e.zip#subdirectory=py-shared
     # via es_indexer (setup.py)
-requests==2.32.3
+requests==2.32.4
     # via aws-requests-auth
 s3transfer==0.10.4
     # via boto3
