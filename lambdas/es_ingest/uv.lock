@@ -405,23 +405,23 @@ name = "t4-lambda-es-ingest"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "pytest-cov" },
     { name = "quilt-shared", extra = ["boto", "es"] },
 ]
 
 [package.dev-dependencies]
 test = [
     { name = "pytest" },
+    { name = "pytest-cov" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "pytest-cov", specifier = "~=6.2" },
-    { name = "quilt-shared", extras = ["boto", "es"], url = "https://github.com/quiltdata/quilt/archive/11a0442ca07660b6c9a344e65c12e0526bf2f7f5.zip", subdirectory = "py-shared" },
-]
+requires-dist = [{ name = "quilt-shared", extras = ["boto", "es"], url = "https://github.com/quiltdata/quilt/archive/11a0442ca07660b6c9a344e65c12e0526bf2f7f5.zip", subdirectory = "py-shared" }]
 
 [package.metadata.requires-dev]
-test = [{ name = "pytest", specifier = "~=8.4" }]
+test = [
+    { name = "pytest", specifier = "~=8.4" },
+    { name = "pytest-cov", specifier = "~=6.2" },
+]
 
 [[package]]
 name = "tomli"

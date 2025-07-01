@@ -8,7 +8,6 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "pytest-cov~=6.2",
     "quilt-shared[boto,es]",
 ]
 
@@ -22,4 +21,5 @@ quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/11a0442ca0766
 [dependency-groups]
 test = [
     "pytest~=8.4",
+    "pytest-cov~=6.2",
 ]
