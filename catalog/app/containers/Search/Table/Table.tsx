@@ -394,7 +394,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
         {entry.meta ? (
           <M.IconButton
             size="small"
-            onClick={handlePreview}
+            onClick={handleMeta}
             className={cx(entry.matchLocations.meta && classes.match)}
           >
             <M.Icon fontSize="inherit">list</M.Icon>
@@ -408,7 +408,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       <M.TableCell className={classes.cell} align="center">
         <span
           className={cx(classes.content, entry.matchLocations.contents && classes.match)}
-          onClick={handleMeta}
+          onClick={handlePreview}
         >
           {extname(entry.logicalKey).substring(1)}
         </span>
