@@ -74,6 +74,16 @@ from tenacity import (
     wait_exponential,
 )
 
+from quilt_shared.const import NAMED_PACKAGES_PREFIX
+from quilt_shared.es import (
+    PACKAGE_INDEX_SUFFIX,
+    get_manifest_doc_id,
+    get_object_doc_id,
+    get_ptr_doc_id,
+    make_elastic,
+    make_s3_client,
+)
+from quilt_shared.log import get_quilt_logger
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_LINES,
     extract_excel,
@@ -83,14 +93,7 @@ from t4_lambda_shared.preview import (
     get_preview_lines,
     trim_to_bytes,
 )
-from t4_lambda_shared.utils import (
-    get_available_memory,
-    separated_env_to_iter,
-)
-from quilt_shared.const import NAMED_PACKAGES_PREFIX
-from quilt_shared.es import PACKAGE_INDEX_SUFFIX, make_elastic, make_s3_client, get_ptr_doc_id, get_manifest_doc_id, get_object_doc_id
-from quilt_shared.log import get_quilt_logger
-
+from t4_lambda_shared.utils import get_available_memory, separated_env_to_iter
 
 # translate events to S3 native names
 EVENTBRIDGE_TO_S3 = {

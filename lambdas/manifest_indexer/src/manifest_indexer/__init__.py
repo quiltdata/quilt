@@ -3,19 +3,19 @@ import json
 import urllib.parse
 
 import jsonpointer
+
 from quilt_shared.const import MANIFESTS_PREFIX
 from quilt_shared.es import (
-    make_elastic,
-    make_s3_client,
     PACKAGE_INDEX_SUFFIX,
     Batcher,
     get_es_aliases,
-    get_object_doc_id,
     get_manifest_doc_id,
     get_manifest_entry_doc_id,
+    get_object_doc_id,
+    make_elastic,
+    make_s3_client,
 )
 from quilt_shared.log import get_quilt_logger
-
 
 MAX_KEYWORD_LEN = 256
 
