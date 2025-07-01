@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - name: Export requirements.txt
-        if: ${{ hashFiles(format('Hello lambdas/{0}/requirements.txt', matrix.path)) != '' }}
+        if: ${{ hashFiles(format('lambdas/{0}/requirements.txt', matrix.path)) != '' }}
         run: |
           uv export --locked --output -d lambdas/${{ matrix.path }} -o requirements.txt
       - name: Build zip
