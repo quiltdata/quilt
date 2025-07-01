@@ -1,7 +1,6 @@
 import logging
 import os
 
-
 LOGGER_NAME = "quilt-lambda"  # XXX
 
 

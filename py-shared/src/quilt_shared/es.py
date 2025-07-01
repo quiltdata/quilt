@@ -3,12 +3,13 @@ import hashlib
 import json
 import os
 import random
+import urllib.parse
 
-from aws_requests_auth.aws_auth import AWSRequestsAuth
 import boto3
 import botocore
 import elasticsearch.helpers
-
+from aws_requests_auth.aws_auth import AWSRequestsAuth
+from elasticsearch import Elasticsearch
 
 PACKAGE_INDEX_SUFFIX = "_packages"
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
@@ -92,8 +93,7 @@ def make_s3_client():
     return boto3.client("s3", config=configuration)
 
 
-def make_elastic():
-    elastic_host = os.environ["ES_HOST"]
+def make_elastic(es_endpoint: str, **kwargs) -> Elasticsearch:
     session = boto3.session.Session()
     credentials = session.get_credentials().get_frozen_credentials()
     awsauth = AWSRequestsAuth(
@@ -101,19 +101,17 @@ def make_elastic():
         aws_access_key=credentials.access_key,
         aws_secret_access_key=credentials.secret_key,
         aws_token=credentials.token,
-        aws_host=elastic_host,
+        aws_host=urllib.parse.urlparse(es_endpoint).hostname,
         aws_region=session.region_name,
         aws_service="es",
     )
 
     return elasticsearch.Elasticsearch(
-        hosts=[{"host": elastic_host, "port": 443}],
+        hosts=es_endpoint,
         http_auth=awsauth,
-        # Give ES time to respond when under load
-        timeout=ELASTIC_TIMEOUT,
-        use_ssl=True,
         verify_certs=True,
         connection_class=elasticsearch.RequestsHttpConnection,
+        **kwargs,
     )
 
 
