@@ -28,7 +28,7 @@ class JSONEncoder(json.JSONEncoder):
 
 class Batcher:
     json_encode = JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
-    BATCH_INDEXER_BUCKET = os.getenv("BATCH_INDEXER_BUCKET")
+    BATCH_INDEXER_BUCKET = os.getenv("ES_INGEST_BUCKET")
     BATCH_MAX_BYTES = int(os.getenv("BATCH_MAX_BYTES", 8_000_000))
     BATCH_MAX_DOCS = int(os.getenv("BATCH_MAX_DOCS", 10_000))
 
