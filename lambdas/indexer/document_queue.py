@@ -86,6 +86,9 @@ class DocumentQueue:
         if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
+    def get_max_backoff(self):
+        return get_time_remaining(self.context) if self.context else MAX_BACKOFF
+
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
         if not self.queue:
@@ -97,13 +100,9 @@ class DocumentQueue:
         _, errors = bulk_send(
             self.es,
             self.queue,
-            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+            max_backoff=self.get_max_backoff(),
         )
         if errors:
-            logger.debug(
-                "Failed to load messages into Elastic.\nErrors: %s",
-                errors,
-            )
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
             for error in errors:
@@ -133,7 +132,7 @@ class DocumentQueue:
                 _, errors = bulk_send(
                     self.es,
                     send_again,
-                    max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+                    max_backoff=self.get_max_backoff(),
                 )
                 if errors:
                     raise RetryError(
