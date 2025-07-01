@@ -53,6 +53,20 @@ function CreatePackage({ className }: CreatePackageProps) {
   )
 }
 
+function resultsCountI18n(results: number) {
+  return Format.pluralify(results, {
+    one: '1 result',
+    other: (n) => (n > 0 ? `${n} results` : 'Results'),
+  })
+}
+
+function packagesCountI18n(results: number) {
+  return Format.pluralify(results, {
+    one: '1 package',
+    other: (n) => (n > 0 ? `${n} packages` : 'Packages'),
+  })
+}
+
 const useResultsCountStyles = M.makeStyles((t) => ({
   create: {
     marginLeft: t.spacing(2),
@@ -81,11 +95,10 @@ function ResultsCount() {
         case 'PackagesSearchResultSet':
           return (
             <ColumnTitle>
-              <Format.Plural
-                value={r.data.stats.total}
-                one="1 result"
-                other={(n) => (n > 0 ? `${n} results` : 'Results')}
-              />
+              {model.state.resultType === SearchUIModel.ResultType.QuiltPackage &&
+              model.state.view === SearchUIModel.View.Table
+                ? packagesCountI18n(r.data.stats.total)
+                : resultsCountI18n(r.data.stats.total)}
               <RRDom.Switch>
                 <RRDom.Route path={paths.bucketRoot}>
                   <CreatePackage className={classes.create} />
