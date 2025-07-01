@@ -1,5 +1,4 @@
 import datetime
-import functools
 import hashlib
 import json
 import os
@@ -19,11 +18,11 @@ ELASTIC_TIMEOUT = 30
 class JSONEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle datetime and bytes"""
 
-    def default(self, obj):
-        if isinstance(obj, (datetime.date, datetime.datetime)):
-            return obj.isoformat()
+    def default(self, o):
+        if isinstance(o, (datetime.date, datetime.datetime)):
+            return o.isoformat()
 
-        return super().default(obj)
+        return super().default(o)
 
 
 class Batcher:
