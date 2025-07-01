@@ -16,11 +16,19 @@ import PackageFilters from './PackageFilters'
 import ResultsToolbar from './Results'
 import ScrollToTop from './ScrollToTop'
 
+const useSearchFieldStyles = M.makeStyles((t) => ({
+  root: {
+    background: t.palette.background.paper,
+  },
+}))
+
 interface SearchFieldProps {
   className?: string
 }
 
 function SearchField({ className }: SearchFieldProps) {
+  const classes = useSearchFieldStyles()
+
   const model = SearchUIModel.use()
 
   const [query, setQuery] = React.useState(model.state.searchString || '')
@@ -40,7 +48,7 @@ function SearchField({ className }: SearchFieldProps) {
   return (
     <M.TextField
       autoFocus
-      className={className}
+      className={cx(classes.root, className)}
       fullWidth
       onChange={handleChange}
       placeholder="Search"
