@@ -17,7 +17,6 @@ import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 import type { PackageHandle } from 'utils/packageHandle'
@@ -34,6 +33,16 @@ import * as SearchUIModel from '../model'
 import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
 import * as Workflow from './workflow'
+
+function EnlargedTooltip({ title, ...props }: M.TooltipProps) {
+  return (
+    <M.Tooltip
+      arrow
+      title={<M.Typography variant="body2">{title}</M.Typography>}
+      {...props}
+    />
+  )
+}
 
 const AVAILABLE_PACKAGES_FILTERS = [
   ...PACKAGES_FILTERS_PRIMARY,
@@ -188,9 +197,9 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       )
     case 'comment':
       return hit.comment ? (
-        <StyledTooltip title={hit.comment} placement="bottom-start">
+        <EnlargedTooltip title={hit.comment} placement="bottom-start">
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
-        </StyledTooltip>
+        </EnlargedTooltip>
       ) : (
         <NoValue />
       )
@@ -222,11 +231,11 @@ function UserMetaValue({ meta, pointer }: TableViewUserMetaProps) {
 
   if (value instanceof Error) {
     return (
-      <StyledTooltip title={`${meta}`}>
+      <EnlargedTooltip title={`${meta}`}>
         <M.Icon color="disabled" fontSize="small" style={{ verticalAlign: 'middle' }}>
           error_outline
         </M.Icon>
-      </StyledTooltip>
+      </EnlargedTooltip>
     )
   }
 
@@ -395,18 +404,18 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
   return (
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
-        <StyledTooltip title={entry.logicalKey}>
+        <EnlargedTooltip title={entry.logicalKey}>
           <StyledLink to={inPackage.to}>
             <Match on={entry.matchLocations.logicalKey}>{inPackage.title}</Match>
           </StyledLink>
-        </StyledTooltip>
+        </EnlargedTooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell}>
-        <StyledTooltip title={entry.physicalKey}>
+        <EnlargedTooltip title={entry.physicalKey}>
           <StyledLink to={inBucket.to}>
             <Match on={entry.matchLocations.physicalKey}>{inBucket.title}</Match>
           </StyledLink>
-        </StyledTooltip>
+        </EnlargedTooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell} align="right">
         {readableBytes(entry.size)}
@@ -462,6 +471,7 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
   // const entriesColumns = [{ title: 'Logical Key', key: logicalKey }, ...]
   // colSpan = entriesColumns.length
   // and pass it to <Entry />
+  const hiddenEntriesCount = totalCount - entries.length
 
   return (
     <div className={cx(classes.root)} style={{ height }}>
@@ -492,7 +502,7 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
                 packageHandle={packageHandle}
               />
             ))}
-            {entries.length < totalCount && (
+            {!!hiddenEntriesCount && (
               <M.TableRow className={classes.row}>
                 <M.TableCell colSpan={5} className={cx(classes.cell, classes.totalCount)}>
                   <M.Typography variant="caption" component="p">
@@ -502,7 +512,10 @@ function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
                         packageHandle.name,
                       )}
                     >
-                      Package contains {totalCount - entries.length} additional entries
+                      Package contains{' '}
+                      {hiddenEntriesCount === 1
+                        ? 'one more entry'
+                        : `${hiddenEntriesCount} more entries`}
                       {entries.length >= 10 && <span>, some may match the search</span>}
                     </StyledLink>
                   </M.Typography>
@@ -595,7 +608,7 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
     ? 'Hide entries'
     : `Show ${size} matching ${size === 1 ? 'entry' : 'entries'}`
   return (
-    <StyledTooltip title={title}>
+    <EnlargedTooltip title={title}>
       <M.IconButton className={className}>
         <M.Badge badgeContent={size} color="default" classes={{ badge: classes.badge }}>
           <M.Icon className={open ? classes.expanded : classes.collapsed}>
@@ -603,7 +616,7 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
           </M.Icon>
         </M.Badge>
       </M.IconButton>
-    </StyledTooltip>
+    </EnlargedTooltip>
   )
 }
 
@@ -861,11 +874,11 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
         <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
       ) : (
         !single && (
-          <StyledTooltip
+          <EnlargedTooltip
             title={column.onClose ? 'Deactivate filter and hide column' : 'Hide column'}
           >
             <ColumnAction icon="close" onClick={handleHide} />
-          </StyledTooltip>
+          </EnlargedTooltip>
         )
       )}
       <M.Popover
@@ -1308,7 +1321,15 @@ function AddColumn({ columns, state }: AddColumnProps) {
               ),
             })(ready.filtering),
           Loading: () => <h1>Loading</h1>,
-          Empty: () => <h1>Empty</h1>,
+          Empty: () => (
+            <TinyTextField
+              autoFocus
+              className={classes.input}
+              onChange={setFilterValue}
+              placeholder="Find metadata"
+              value={filterValue}
+            />
+          ),
         },
         state,
       )}
@@ -1349,9 +1370,9 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
     <div className={classes.root}>
       <p className={classes.title}>
         {column.tag === 'filter' ? (
-          <StyledTooltip title={column.fullTitle}>
+          <EnlargedTooltip title={column.fullTitle}>
             <span>{column.title}</span>
-          </StyledTooltip>
+          </EnlargedTooltip>
         ) : (
           column.title
         )}
