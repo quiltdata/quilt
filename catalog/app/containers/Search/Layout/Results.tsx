@@ -74,10 +74,10 @@ function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
     state.view === SearchUIModel.View.Table
   ) {
     return state.latestOnly
-      ? Format.pluralify(n, I18_COUNT_PACKAGED_RESULTS)
-      : Format.pluralify(n, I18_COUNT_RESULTS)
+      ? Format.pluralify(n, I18_COUNT_PACKAGES)
+      : Format.pluralify(n, I18_COUNT_PACKAGED_RESULTS)
   }
-  return Format.pluralify(n, I18_COUNT_PACKAGES)
+  return Format.pluralify(n, I18_COUNT_RESULTS)
 }
 
 const useResultsCountStyles = M.makeStyles((t) => ({
