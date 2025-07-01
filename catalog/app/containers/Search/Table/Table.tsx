@@ -318,9 +318,7 @@ const useEntriesStyles = M.makeStyles((t) => ({
     // fullWidth
     //  // FIXME: update description
     //  - page container paddings
-    //  - sidebar margin (grid gap)
-    //  - "Add column" widget width
-    width: `calc(100vw - ${t.spacing(3 * 2)}px - ${t.spacing(4)}px - ${t.spacing(4)}px)`,
+    width: `calc(100vw - ${t.spacing(3 * 2)}px)`,
   },
   '@keyframes growDown': {
     '0%': {
