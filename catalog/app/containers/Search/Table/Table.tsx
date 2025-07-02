@@ -1,586 +1,38 @@
-import { join } from 'path'
-
 import cx from 'classnames'
 import invariant from 'invariant'
-import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-import {
-  DescriptionOutlined as IconDescriptionOutlined,
-  VisibilityOffOutlined as IconVisibilityOffOutlined,
-} from '@material-ui/icons'
+import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui/icons'
 
 import { TinyTextField, List } from 'components/Filters'
-import * as Preview from 'components/Preview'
-import JsonDisplay from 'components/JsonDisplay'
-import type { RouteMap } from 'containers/Bucket/BucketNav'
-import * as Model from 'model'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as GQL from 'utils/GraphQL'
-import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
-import * as Format from 'utils/format'
 import type { PackageHandle } from 'utils/packageHandle'
-import * as s3paths from 'utils/s3paths'
-import { readableBytes } from 'utils/string'
-import type { Json, JsonRecord } from 'utils/types'
 
 import FilterWidget from '../FilterWidget'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
-import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
+import { PACKAGE_FILTER_LABELS } from '../i18n'
 import * as SearchUIModel from '../model'
 
 import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
+import Entries from './Entries'
+import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
 import * as Workflow from './workflow'
-
-const AVAILABLE_PACKAGES_FILTERS = [
-  ...PACKAGES_FILTERS_PRIMARY,
-  ...PACKAGES_FILTERS_SECONDARY,
-]
-
-type CollapsedFilters = Map<Column['filter'], boolean>
-
-interface Context {
-  focused: Column | null
-  openFilter: (c: Column) => void
-  closeFilter: () => void
-
-  collapsed: CollapsedFilters
-  toggleCollapsed: (f: Column['filter'], force?: boolean) => void
-  // TODO: showColumn
-  // TODO: hideColumn
-}
-
-const noop = () => {}
-
-const initialContext: Context = {
-  focused: null,
-  collapsed: new Map(),
-
-  openFilter: noop,
-  closeFilter: noop,
-  toggleCollapsed: noop,
-}
-
-const Ctx = React.createContext<Context>(initialContext)
-
-function Provider({ children }: { children: React.ReactNode }) {
-  const [focused, setFocused] = React.useState<Column | null>(initialContext.focused)
-  const openFilter = React.useCallback((c: Column) => setFocused(c), [])
-  const closeFilter = React.useCallback(() => setFocused(null), [])
-
-  const [collapsed, setCollapsed] = React.useState<CollapsedFilters>(
-    initialContext.collapsed,
-  )
-  const toggleCollapsed = React.useCallback(
-    (filter: Column['filter'], force?: boolean) => {
-      setCollapsed((x) => {
-        if (force === true) {
-          return x.has(filter) ? x : new Map(x).set(filter, true)
-        }
-
-        if (force === false) {
-          if (x.has(filter)) {
-            const m = new Map(x)
-            return m.delete(filter) ? m : x
-          } else {
-            return x
-          }
-        }
-
-        if (x.has(filter)) {
-          const m = new Map(x)
-          return m.delete(filter) ? m : x
-        } else {
-          return new Map(x).set(filter, true)
-        }
-      })
-    },
-    [],
-  )
-  const value = React.useMemo(
-    () => ({ focused, openFilter, closeFilter, collapsed, toggleCollapsed }),
-    [focused, openFilter, closeFilter, collapsed, toggleCollapsed],
-  )
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
-}
-
-const useContext = () => React.useContext(Ctx)
-
-interface EntryMetaDisplayProps {
-  meta: string | null
-}
-
-function EntryMetaDisplay({ meta }: EntryMetaDisplayProps) {
-  const obj: JsonRecord | Error = React.useMemo(() => {
-    if (!meta) return new Error('Metadata is empty')
-    try {
-      return JSON.parse(meta)
-    } catch (e) {
-      return e instanceof Error ? e : new Error(`${e}`)
-    }
-  }, [meta])
-  return obj instanceof Error ? (
-    <Lab.Alert severity="error">{obj.message}</Lab.Alert>
-  ) : (
-    <JsonDisplay value={obj} defaultExpanded />
-  )
-}
-
-const useNoValueStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'inline-block',
-    width: t.spacing(2),
-    verticalAlign: 'middle',
-  },
-}))
-
-function NoValue() {
-  const classes = useNoValueStyles()
-  return (
-    <div className={classes.root}>
-      <M.Divider />
-    </div>
-  )
-}
-
-const isJsonRecord = (obj: Json): obj is JsonRecord =>
-  obj != null && typeof obj === 'object' && !Array.isArray(obj)
-
-type FilterType =
-  SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
-
-const useMatchStyles = M.makeStyles((t) => ({
-  root: {
-    background: M.fade(t.palette.warning.light, 0.7),
-    padding: t.spacing(0, 0.5),
-    margin: t.spacing(0, -0.5),
-  },
-}))
-
-interface MatchProps extends React.HTMLProps<HTMLSpanElement> {
-  on: boolean
-}
-
-const Match = React.forwardRef<HTMLSpanElement, MatchProps>(function Match(
-  { className, children, on, ...rest },
-  ref,
-) {
-  const classes = useMatchStyles()
-  return (
-    <span className={cx(on && classes.root, className)} {...rest} ref={ref}>
-      {children}
-    </span>
-  )
-})
-
-interface SystemMetaValueProps {
-  hit: SearchUIModel.SearchHitPackage
-  filter: FilterType | 'bucket'
-}
-
-function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
-  const { urls } = NamedRoutes.use<RouteMap>()
-  switch (filter) {
-    case 'workflow':
-      return hit.workflow ? (
-        <Match on={hit.matchLocations.workflow}>{hit.workflow.id}</Match>
-      ) : (
-        <NoValue />
-      )
-    case 'hash':
-      return (
-        <StyledLink to={urls.bucketFile(hit.bucket, join('.quilt/packages', hit.hash))}>
-          {hit.hash}
-        </StyledLink>
-      )
-    case 'size':
-      return readableBytes(hit.size)
-    case 'name':
-      return (
-        <StyledLink to={urls.bucketPackageTree(hit.bucket, hit.name, hit.hash)}>
-          <Match on={hit.matchLocations.name}>{hit.name}</Match>
-        </StyledLink>
-      )
-    case 'comment':
-      return hit.comment ? (
-        <M.Tooltip arrow title={hit.comment} placement="bottom-start">
-          <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
-        </M.Tooltip>
-      ) : (
-        <NoValue />
-      )
-    case 'modified':
-      return <Format.Relative value={hit.modified} />
-    case 'entries':
-      return hit.totalEntriesCount
-    case 'bucket':
-      return hit.bucket
-    default:
-      assertNever(filter)
-  }
-}
-
-interface TableViewUserMetaProps {
-  meta: JsonRecord
-  pointer: JSONPointer.Pointer
-}
-
-function UserMetaValue({ meta, pointer }: TableViewUserMetaProps) {
-  const value = React.useMemo(() => {
-    try {
-      if (!isJsonRecord(meta)) return new Error('Meta must be object')
-      return jsonpath.value(meta, JSONPointer.toJsonPath(pointer))
-    } catch (err) {
-      return err instanceof Error ? err : new Error(`${err}`)
-    }
-  }, [meta, pointer])
-
-  if (value instanceof Error) {
-    return (
-      <M.Tooltip arrow title={`${meta}`}>
-        <M.Icon color="disabled" fontSize="small" style={{ verticalAlign: 'middle' }}>
-          error_outline
-        </M.Icon>
-      </M.Tooltip>
-    )
-  }
-
-  switch (typeof value) {
-    case 'number':
-    case 'string':
-      return <>{value}</>
-    case 'object':
-      return <>{JSON.stringify(value)}</>
-    default:
-      return <NoValue />
-  }
-}
-
-const useEntriesStyles = M.makeStyles((t) => ({
-  root: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-    background: t.palette.background.default,
-  },
-  cell: {
-    whiteSpace: 'nowrap',
-    textOverflow: 'ellipsis',
-    overflow: 'hidden',
-  },
-  noMeta: {
-    width: t.spacing(1.5),
-  },
-  row: {
-    '&:last-child $cell': {
-      borderBottom: 0,
-    },
-  },
-  table: {
-    tableLayout: 'fixed',
-  },
-  popover: {
-    position: 'absolute',
-    top: '100%',
-    left: t.spacing(-0.5),
-    // TODO: what is this number, should be equal to some `sticky` padding
-    right: t.spacing(-2.5),
-    zIndex: 10,
-    animation: t.transitions.create(['$growX']),
-    '&::before': {
-      background: M.fade(t.palette.common.black, 0.15),
-      bottom: 0,
-      content: '""',
-      left: 0,
-      position: 'fixed',
-      right: 0,
-      top: 0,
-      zIndex: 20,
-    },
-  },
-  preview: {
-    padding: t.spacing(1.5, 3, 3),
-    position: 'relative',
-    zIndex: 30,
-  },
-  content: {
-    background: t.palette.background.paper,
-    borderRadius: t.shape.borderRadius,
-    color: t.palette.text.primary,
-    cursor: 'pointer',
-    display: 'inline-block',
-    fontVariant: 'small-caps',
-    fontWeight: t.typography.fontWeightMedium,
-    margin: t.spacing(0, -0.5),
-    padding: t.spacing(0.25, 0.5),
-    textTransform: 'lowercase',
-  },
-  match: {
-    background: t.palette.warning.light,
-  },
-  sticky: {
-    animation: t.transitions.create(['$fade', '$growDown']),
-    // It is positioned where it would be without `absolute`,
-    // but it continues to stay there when table is scrolled.
-    position: 'absolute',
-    padding: t.spacing(2, 2, 2, 6.5),
-    // fullWidth
-    //  // FIXME: update description
-    //  - page container paddings
-    width: `calc(100vw - ${t.spacing(3 * 2)}px)`,
-  },
-  '@keyframes growDown': {
-    '0%': {
-      transform: 'translateY(-4px)',
-    },
-    '100%': {
-      transform: 'translateY(0)',
-    },
-  },
-  '@keyframes growX': {
-    '0%': {
-      left: 0,
-      right: 0,
-    },
-    '100%': {
-      left: t.spacing(-0.5),
-      right: t.spacing(-0.5),
-    },
-  },
-  '@keyframes fade': {
-    '0%': {
-      opacity: 0.3,
-    },
-    '100%': {
-      opacity: 1,
-    },
-  },
-  scrolling: {
-    opacity: 0.3,
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: t.spacing(2),
-  },
-  close: {
-    margin: t.spacing(-1, -2),
-  },
-  totalCount: {
-    paddingTop: t.spacing(2),
-    paddingLeft: 0,
-  },
-}))
-
-interface PreviewEntry {
-  type: 'meta' | 'content'
-  entry: Model.GQLTypes.SearchHitPackageMatchingEntry
-}
-
-interface EntryProps {
-  className: string
-  entry: Model.GQLTypes.SearchHitPackageMatchingEntry
-  onPreview: (x: PreviewEntry) => void
-  packageHandle: PackageHandle
-}
-
-function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
-  const classes = useEntriesStyles()
-  const { urls } = NamedRoutes.use<RouteMap>()
-  const handlePreview = React.useCallback(
-    () => onPreview({ type: 'content', entry }),
-    [entry, onPreview],
-  )
-  const handleMeta = React.useCallback(
-    () => onPreview({ type: 'meta', entry }),
-    [entry, onPreview],
-  )
-  const inBucket = React.useMemo(() => {
-    const { bucket, key, version } = s3paths.parseS3Url(entry.physicalKey)
-    return {
-      title: decodeURI(entry.physicalKey),
-      to: urls.bucketFile(bucket, key, { version }),
-    }
-  }, [entry.physicalKey, urls])
-  const inPackage = React.useMemo(() => {
-    const { bucket, name, hash } = packageHandle
-    return {
-      title: decodeURIComponent(entry.logicalKey),
-      to: urls.bucketPackageTree(bucket, name, hash, entry.logicalKey),
-    }
-  }, [entry.logicalKey, packageHandle, urls])
-  return (
-    <M.TableRow hover key={entry.physicalKey} className={className}>
-      <M.TableCell className={classes.cell} component="th" scope="row">
-        <M.Tooltip arrow title={entry.logicalKey}>
-          <StyledLink to={inPackage.to}>
-            <Match on={entry.matchLocations.logicalKey}>{inPackage.title}</Match>
-          </StyledLink>
-        </M.Tooltip>
-      </M.TableCell>
-      <M.TableCell className={classes.cell}>
-        <M.Tooltip arrow title={entry.physicalKey}>
-          <StyledLink to={inBucket.to}>
-            <Match on={entry.matchLocations.physicalKey}>{inBucket.title}</Match>
-          </StyledLink>
-        </M.Tooltip>
-      </M.TableCell>
-      <M.TableCell className={classes.cell} align="right">
-        {readableBytes(entry.size)}
-      </M.TableCell>
-      <M.TableCell className={classes.cell} align="center">
-        {entry.meta ? (
-          <M.IconButton
-            className={cx(entry.matchLocations.meta && classes.match)}
-            onClick={handleMeta}
-            size="small"
-          >
-            <M.Icon fontSize="inherit" color="inherit">
-              list
-            </M.Icon>
-          </M.IconButton>
-        ) : (
-          <M.IconButton size="small" disabled>
-            <M.Divider className={classes.noMeta} />
-          </M.IconButton>
-        )}
-      </M.TableCell>
-      <M.TableCell className={classes.cell} align="center">
-        <M.IconButton
-          className={cx(entry.matchLocations.contents && classes.match)}
-          onClick={handlePreview}
-          size="small"
-        >
-          <IconDescriptionOutlined fontSize="inherit" color="inherit" />
-        </M.IconButton>
-      </M.TableCell>
-    </M.TableRow>
-  )
-}
-
-interface EntriesProps {
-  entries: readonly Model.GQLTypes.SearchHitPackageMatchingEntry[]
-  packageHandle: PackageHandle
-  totalCount: number
-}
-
-function Entries({ entries, packageHandle, totalCount }: EntriesProps) {
-  const { urls } = NamedRoutes.use<RouteMap>()
-
-  const classes = useEntriesStyles()
-  const ref = React.useRef<HTMLDivElement>(null)
-  const [height, setHeight] = React.useState('auto')
-
-  const [preview, setPreview] = React.useState<PreviewEntry | null>(null)
-
-  React.useEffect(() => {
-    if (!ref.current) return
-    setHeight(`${ref.current.clientHeight}px`)
-  }, [entries])
-
-  // TODO:
-  // const entriesColumns = [{ title: 'Logical Key', key: logicalKey }, ...]
-  // colSpan = entriesColumns.length
-  // and pass it to <Entry />
-  const hiddenEntriesCount = totalCount - entries.length
-
-  return (
-    <div className={cx(classes.root)} style={{ height }}>
-      <div className={classes.sticky} ref={ref}>
-        <M.Table size="small" className={classes.table}>
-          <M.TableHead>
-            <M.TableRow>
-              <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
-              <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
-              <M.TableCell className={classes.cell} align="right" width="100px">
-                Size
-              </M.TableCell>
-              <M.TableCell className={classes.cell} align="center" width="120px">
-                Meta
-              </M.TableCell>
-              <M.TableCell className={classes.cell} align="center" width="90px">
-                Contents
-              </M.TableCell>
-            </M.TableRow>
-          </M.TableHead>
-          <M.TableBody>
-            {entries.map((entry) => (
-              <Entry
-                className={classes.row}
-                key={entry.logicalKey + entry.physicalKey}
-                entry={entry}
-                onPreview={setPreview}
-                packageHandle={packageHandle}
-              />
-            ))}
-            {!!hiddenEntriesCount && (
-              <M.TableRow className={classes.row}>
-                <M.TableCell colSpan={5} className={cx(classes.cell, classes.totalCount)}>
-                  <M.Typography variant="caption" component="p">
-                    <StyledLink
-                      to={urls.bucketPackageDetail(
-                        packageHandle.bucket,
-                        packageHandle.name,
-                      )}
-                    >
-                      Package contains{' '}
-                      {hiddenEntriesCount === 1
-                        ? 'one more entry'
-                        : `${hiddenEntriesCount} more entries`}
-                      {entries.length >= 10 && <span>, some may match the search</span>}
-                    </StyledLink>
-                  </M.Typography>
-                </M.TableCell>
-              </M.TableRow>
-            )}
-          </M.TableBody>
-        </M.Table>
-
-        {preview && (
-          <div className={classes.popover}>
-            <M.ClickAwayListener onClickAway={() => setPreview(null)}>
-              <M.Paper square elevation={2} className={classes.preview}>
-                <div className={classes.header}>
-                  <M.Typography variant="h6">{preview.entry.logicalKey}</M.Typography>
-                  <M.IconButton
-                    className={classes.close}
-                    onClick={() => setPreview(null)}
-                  >
-                    <M.Icon>close</M.Icon>
-                  </M.IconButton>
-                </div>
-
-                {preview.type === 'meta' && (
-                  <EntryMetaDisplay meta={preview.entry.meta} />
-                )}
-                {preview.type === 'content' && (
-                  <Preview.Load
-                    handle={s3paths.parseS3Url(preview.entry.physicalKey)}
-                    options={{ context: Preview.CONTEXT.LISTING }}
-                  >
-                    {(data: $TSFixMe) => (
-                      <Preview.Display
-                        data={data}
-                        noDownload={undefined}
-                        onData={undefined}
-                        props={undefined} // these props go to the render functions
-                      />
-                    )}
-                  </Preview.Load>
-                )}
-              </M.Paper>
-            </M.ClickAwayListener>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+import { useColumns } from './useColumns'
+import type {
+  Column,
+  ColumnBucket,
+  ColumnFilter,
+  ColumnMeta,
+  ColumnsMap,
+  InferedUserMetaFacets,
+} from './useColumns'
+import { Provider, useContext } from './Provider'
 
 const useUnfoldPackageEntriesStyles = M.makeStyles((t) => ({
   badge: {
@@ -678,7 +130,6 @@ interface PackageRowProps {
 }
 
 function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
-  const meta = hit.meta && typeof hit.meta === 'string' ? JSON.parse(hit.meta) : {}
   const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
@@ -693,8 +144,6 @@ function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
   )
 
   const visibleColumns = Array.from(columns.values()).filter((c) => c.state.visible)
-  // 2 additional columns for <UnfoldPackageEntries/> and as a placeholder for <ColumnAdd />
-  // const colSpan = visibleColumns.length + 2
 
   return (
     <>
@@ -712,33 +161,18 @@ function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
             />
           )}
         </M.TableCell>
-        {visibleColumns.map((column) => {
-          switch (column.tag) {
-            case 'bucket':
-            case 'filter':
-              return (
-                <M.TableCell
-                  className={classes.cell}
-                  data-search-hit-filter={column.filter}
-                  key={column.filter}
-                >
-                  <SystemMetaValue hit={hit} filter={column.filter} />
-                </M.TableCell>
-              )
-            case 'meta':
-              return (
-                <M.TableCell
-                  className={classes.cell}
-                  data-search-hit-meta={column.filter}
-                  key={column.filter}
-                >
-                  <UserMetaValue meta={meta} pointer={column.filter} />
-                </M.TableCell>
-              )
-            default:
-              assertNever(column)
-          }
-        })}
+        {visibleColumns.map((column) => (
+          <M.TableCell
+            key={column.filter}
+            className={classes.cell}
+            {...(column.tag === 'meta' && { ['data-search-hit-meta']: column.filter })}
+            {...(column.tag === 'filter' && {
+              ['data-search-hit-filter']: column.filter,
+            })}
+          >
+            <CellValue hit={hit} column={column} />
+          </M.TableCell>
+        ))}
         {skeletons?.map(({ key, width }) => <Skeleton.Cell key={key} width={width} />)}
         <M.TableCell className={classes.placeholder} />
       </M.TableRow>
@@ -1580,166 +1014,6 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   )
 }
 
-interface ColumnState {
-  filtered: boolean
-  visible: boolean
-  inferred: boolean
-}
-
-interface ColumnBase {
-  state: ColumnState
-}
-
-interface ColumnBucket extends ColumnBase {
-  filter: 'bucket'
-  tag: 'bucket'
-  title: string
-}
-
-interface ColumnFilter extends ColumnBase {
-  filter: FilterType
-  fullTitle: string
-  predicateType: SearchUIModel.KnownPredicate['_tag']
-  tag: 'filter'
-  title: string
-}
-
-interface ColumnMeta extends ColumnBase {
-  filter: string
-  predicateType: SearchUIModel.KnownPredicate['_tag']
-  tag: 'meta'
-  title: string
-}
-
-type Column = ColumnBucket | ColumnFilter | ColumnMeta
-
-type UserMetaFacets = Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>
-
-interface InferedUserMetaFacets {
-  workflow: UserMetaFacets
-  all: UserMetaFacets
-}
-
-type ColumnsMap = Map<Column['filter'], Column>
-
-const columnsToMap = (columns: Column[]) => new Map(columns.map((c) => [c.filter, c]))
-
-type InferedColumnsNotReady = Exclude<
-  Workflow.RequestResult<InferedUserMetaFacets>,
-  InferedUserMetaFacets
->
-
-function useColumns(
-  infered: Workflow.RequestResult<InferedUserMetaFacets>,
-  bucket?: string,
-): [ColumnsMap, InferedColumnsNotReady | null] {
-  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { collapsed } = useContext()
-
-  const modifiedFilters = React.useMemo(
-    () => SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
-    [state.filter],
-  )
-
-  const fixed = React.useMemo(() => {
-    const nameCol: Column = {
-      predicateType: 'KeywordWildcard' as const,
-      filter: 'name' as const,
-      fullTitle: PACKAGE_FILTER_LABELS.name,
-      tag: 'filter' as const,
-      title: COLUMN_LABELS.name,
-      state: {
-        filtered: !!modifiedFilters && !!modifiedFilters.name,
-        visible: !collapsed.has('name'),
-        inferred: false,
-      },
-    }
-    if (bucket) return [nameCol]
-    const bucketCol: Column = {
-      filter: 'bucket' as const,
-      tag: 'bucket' as const,
-      title: COLUMN_LABELS.bucket,
-      state: {
-        filtered: !!state.buckets.length,
-        visible: !collapsed.has('bucket'),
-        inferred: false,
-      },
-    }
-    return [bucketCol, nameCol]
-  }, [state.buckets.length, modifiedFilters, collapsed, bucket])
-
-  const filters = React.useMemo(() => {
-    const output: Column[] = []
-
-    AVAILABLE_PACKAGES_FILTERS.forEach((filter) => {
-      const predicate = state.filter.predicates[filter]
-      // 'name' is added in `fixed` columns
-      if (filter !== 'name') {
-        output.push({
-          predicateType: predicate?._tag || 'Text',
-          filter,
-          fullTitle: PACKAGE_FILTER_LABELS[filter],
-          tag: 'filter' as const,
-          title: COLUMN_LABELS[filter],
-          state: {
-            filtered: !!modifiedFilters && !!modifiedFilters[filter],
-            visible: !!predicate && !collapsed.has(filter),
-            inferred: false,
-          },
-        })
-      }
-    })
-    return output
-  }, [collapsed, state.filter, modifiedFilters])
-
-  const selectedUserMeta = React.useMemo(() => {
-    const modifiedUserMetaFilters = state.userMetaFilters.toGQL()
-    const output: Column[] = []
-    state.userMetaFilters.filters.forEach((predicate, filter) => {
-      output.push({
-        predicateType: predicate._tag,
-        filter,
-        tag: 'meta' as const,
-        title: filter.replace(/^\//, ''),
-        state: {
-          filtered: !!modifiedUserMetaFilters?.find(({ path }) => path === filter),
-          visible: !collapsed.has(filter),
-          inferred: false,
-        },
-      })
-    })
-    return output
-  }, [collapsed, state.userMetaFilters])
-
-  const inferedUserMeta = React.useMemo(() => {
-    const output: Column[] = []
-    if (infered instanceof Error || infered === Workflow.Loading) return infered
-    const list = Object.keys(infered.workflow).length ? infered.workflow : infered.all
-    for (const filter in list) {
-      output.push({
-        predicateType: SearchUIModel.PackageUserMetaFacetMap[list[filter]],
-        filter,
-        tag: 'meta' as const,
-        title: filter.replace(/^\//, ''),
-        state: {
-          filtered: false,
-          visible: !collapsed.has(filter),
-          inferred: true,
-        },
-      })
-    }
-    return output
-  }, [collapsed, infered])
-
-  return React.useMemo(() => {
-    const list = [...fixed, ...filters, ...selectedUserMeta]
-    if (inferedUserMeta instanceof Error || inferedUserMeta === Workflow.Loading) {
-      return [columnsToMap(list), inferedUserMeta]
-    }
-    return [columnsToMap(list.concat(inferedUserMeta)), null]
-  }, [fixed, filters, selectedUserMeta, inferedUserMeta])
-}
-
 function useInferredUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets> {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const selectedSingleBucket = React.useMemo(() => {
@@ -1903,7 +1177,8 @@ interface TableViewProps {
 function TableView({ hits, bucket }: TableViewProps) {
   const infered: Workflow.RequestResult<InferedUserMetaFacets> =
     useInferredUserMetaFacets()
-  const [columns, notReady] = useColumns(infered, bucket)
+  const { collapsed } = useContext()
+  const [columns, notReady] = useColumns(infered, collapsed, bucket)
   const skeletons = Skeleton.useColumns(
     notReady === Workflow.Loading ? hits.length + 1 : 0,
     3,
