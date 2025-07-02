@@ -6,7 +6,10 @@ import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-import { DescriptionOutlined as IconDescriptionOutlined } from '@material-ui/icons'
+import {
+  DescriptionOutlined as IconDescriptionOutlined,
+  VisibilityOffOutlined as IconVisibilityOffOutlined,
+} from '@material-ui/icons'
 
 import { TinyTextField, List } from 'components/Filters'
 import * as Preview from 'components/Preview'
@@ -34,16 +37,6 @@ import * as SearchUIModel from '../model'
 import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
 import * as Workflow from './workflow'
-
-function EnlargedTooltip({ title, ...props }: M.TooltipProps) {
-  return (
-    <M.Tooltip
-      arrow
-      title={<M.Typography variant="body2">{title}</M.Typography>}
-      {...props}
-    />
-  )
-}
 
 const AVAILABLE_PACKAGES_FILTERS = [
   ...PACKAGES_FILTERS_PRIMARY,
@@ -198,9 +191,9 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       )
     case 'comment':
       return hit.comment ? (
-        <EnlargedTooltip title={hit.comment} placement="bottom-start">
+        <M.Tooltip arrow title={hit.comment} placement="bottom-start">
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
-        </EnlargedTooltip>
+        </M.Tooltip>
       ) : (
         <NoValue />
       )
@@ -232,11 +225,11 @@ function UserMetaValue({ meta, pointer }: TableViewUserMetaProps) {
 
   if (value instanceof Error) {
     return (
-      <EnlargedTooltip title={`${meta}`}>
+      <M.Tooltip arrow title={`${meta}`}>
         <M.Icon color="disabled" fontSize="small" style={{ verticalAlign: 'middle' }}>
           error_outline
         </M.Icon>
-      </EnlargedTooltip>
+      </M.Tooltip>
     )
   }
 
@@ -405,18 +398,18 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
   return (
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
-        <EnlargedTooltip title={entry.logicalKey}>
+        <M.Tooltip arrow title={entry.logicalKey}>
           <StyledLink to={inPackage.to}>
             <Match on={entry.matchLocations.logicalKey}>{inPackage.title}</Match>
           </StyledLink>
-        </EnlargedTooltip>
+        </M.Tooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell}>
-        <EnlargedTooltip title={entry.physicalKey}>
+        <M.Tooltip arrow title={entry.physicalKey}>
           <StyledLink to={inBucket.to}>
             <Match on={entry.matchLocations.physicalKey}>{inBucket.title}</Match>
           </StyledLink>
-        </EnlargedTooltip>
+        </M.Tooltip>
       </M.TableCell>
       <M.TableCell className={classes.cell} align="right">
         {readableBytes(entry.size)}
@@ -612,7 +605,7 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
     ? 'Hide entries'
     : `Show ${size} matching ${size === 1 ? 'entry' : 'entries'}`
   return (
-    <EnlargedTooltip title={title}>
+    <M.Tooltip arrow title={title}>
       <M.IconButton className={className}>
         <M.Badge badgeContent={size} color="default" classes={{ badge: classes.badge }}>
           <M.Icon className={open ? classes.expanded : classes.collapsed}>
@@ -620,7 +613,7 @@ function UnfoldPackageEntries({ className, open, size }: UnfoldPackageEntriesPro
           </M.Icon>
         </M.Badge>
       </M.IconButton>
-    </EnlargedTooltip>
+    </M.Tooltip>
   )
 }
 
@@ -744,29 +737,6 @@ function PackageRow({ columns, hit }: PackageRowProps) {
     </>
   )
 }
-
-interface ColumnActionProps extends M.IconButtonProps {
-  className?: string
-  icon: string
-}
-
-const ColumnAction = React.forwardRef<HTMLButtonElement, ColumnActionProps>(
-  function ColumnAction({ className, icon, ...props }, ref) {
-    return (
-      <M.IconButton
-        className={className}
-        ref={ref}
-        size="small"
-        color={props.color || 'inherit'}
-        {...props}
-      >
-        <M.Icon color="inherit" fontSize="inherit">
-          {icon}
-        </M.Icon>
-      </M.IconButton>
-    )
-  },
-)
 
 interface FilterDialogProps {
   column: Column
@@ -1024,10 +994,6 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const { openFilter } = useContext()
 
-  const [menuOpened, setMenuOpened] = React.useState(false)
-  const showMenu = React.useCallback(() => setMenuOpened(true), [])
-  const hideMenu = React.useCallback(() => setMenuOpened(false), [])
-
   const { toggleCollapsed } = useContext()
 
   const showFilter = React.useCallback(() => {
@@ -1042,68 +1008,45 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
     openFilter(column)
   }, [column, model.actions, openFilter])
 
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
-
   const handleHide = React.useCallback(() => {
-    if (!column.filtered && column.onClose) {
-      column.onClose()
-    } else {
+    if (column.filtered) {
       toggleCollapsed(column.filter)
+      return
     }
-  }, [column, toggleCollapsed])
+    switch (column.tag) {
+      case 'filter':
+        model.actions.deactivatePackagesFilter(column.filter)
+        break
+      case 'meta':
+        if (column.state.inferred) {
+          toggleCollapsed(column.filter)
+        }
+        model.actions.deactivatePackagesMetaFilter(column.filter)
+      case 'bucket':
+        model.actions.setBuckets([])
+        break
+      default:
+        assertNever(column)
+    }
+  }, [column, toggleCollapsed, model.actions])
 
   return (
-    <div
-      className={cx(classes.root, className)}
-      ref={(el) => setAnchorEl(el?.parentElement || el)}
-    >
-      <ColumnAction
+    <div className={cx(classes.root, className)}>
+      <M.IconButton
+        size="small"
         color={column.filtered ? 'primary' : 'inherit'}
-        icon="filter_list"
         onClick={showFilter}
-      />
-      {column.filtered ? (
-        <ColumnAction icon="close" onClick={showMenu} onMouseEnter={showMenu} />
-      ) : (
-        !single && (
-          <EnlargedTooltip
-            title={column.onClose ? 'Deactivate filter and hide column' : 'Hide column'}
-          >
-            <ColumnAction icon="close" onClick={handleHide} />
-          </EnlargedTooltip>
-        )
-      )}
-      <M.Popover
-        open={menuOpened}
-        anchorEl={anchorEl}
-        onClose={hideMenu}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        PaperProps={{
-          onMouseLeave: hideMenu,
-        }}
       >
-        <M.List dense>
-          {!single && (
-            <M.ListItem button onClick={handleHide}>
-              <M.ListItemIcon>
-                <M.Icon>visibility</M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Hide column" />
-            </M.ListItem>
-          )}
-          {column.filtered && (
-            <M.ListItem button onClick={column.onClose}>
-              <M.ListItemIcon>
-                <M.Icon>undo</M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText primary="Reset filter" />
-            </M.ListItem>
-          )}
-        </M.List>
-      </M.Popover>
+        <M.Icon color="inherit" fontSize="inherit">
+          filter_list
+        </M.Icon>
+      </M.IconButton>
+
+      {!single && (
+        <M.IconButton size="small" color="inherit" onClick={handleHide}>
+          <IconVisibilityOffOutlined color="inherit" fontSize="inherit" />
+        </M.IconButton>
+      )}
     </div>
   )
 }
@@ -1131,7 +1074,7 @@ interface FilterGroupProps {
 
 function FilterGroup({ columns, disabled, path, items }: FilterGroupProps) {
   const classes = useFilterGroupStyles()
-  const { openFilter } = useContext()
+  const { openFilter, toggleCollapsed } = useContext()
 
   function getLabel(key: string) {
     const [type, rest] = key.split(':')
@@ -1155,11 +1098,15 @@ function FilterGroup({ columns, disabled, path, items }: FilterGroupProps) {
       const type = SearchUIModel.PackageUserMetaFacetMap[node.value.__typename]
       activatePackagesMetaFilter(node.value.path, type)
       const column = columns.get(node.value.path)
-      if (column) {
+      if (!column) return
+      if (!column.state.visible) {
+        toggleCollapsed(column.filter)
+      }
+      if (!column.state.filtered) {
         openFilter(column)
       }
     },
-    [activatePackagesMetaFilter, columns, openFilter],
+    [activatePackagesMetaFilter, columns, openFilter, toggleCollapsed],
   )
 
   return (
@@ -1188,12 +1135,19 @@ function FilterGroup({ columns, disabled, path, items }: FilterGroupProps) {
                   <M.ListItemSecondaryAction>
                     <M.Checkbox
                       edge="end"
-                      onChange={() =>
-                        !!columns.get(node.value.path)?.state.visible ||
-                        columns.get(node.value.path)?.state.inferred
-                          ? activate(node)
-                          : () => deactivatePackagesMetaFilter(node.value.path)
-                      }
+                      onChange={(_e, checked) => {
+                        if (checked) {
+                          activate(node)
+                        } else {
+                          const column = columns.get(node.value.path)
+                          if (!column) return
+                          if (column.state.filtered || column.state.inferred) {
+                            toggleCollapsed(column.filter)
+                          } else {
+                            deactivatePackagesMetaFilter(node.value.path)
+                          }
+                        }
+                      }}
                       checked={columns.get(node.value.path)?.state.visible}
                     />
                   </M.ListItemSecondaryAction>
@@ -1292,12 +1246,23 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
         activatePackagesFilter(filter)
       }
       const column = columns.get(filter)
-      if (column) {
+      if (!column) return
+      if (!column.state.visible) {
+        toggleCollapsed(column.filter)
+      }
+      if (!column.state.filtered) {
         openFilter(column)
       }
       onClose()
     },
-    [activatePackagesFilter, columns, model.state.filter.predicates, onClose, openFilter],
+    [
+      activatePackagesFilter,
+      columns,
+      model.state.filter.predicates,
+      onClose,
+      openFilter,
+      toggleCollapsed,
+    ],
   )
 
   return (
@@ -1308,8 +1273,15 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
             <M.ListSubheader>System metadata</M.ListSubheader>
 
             {availableFilters.map((filter) => (
-              <M.MenuItem key={filter} onClick={() => handleFilter(filter)}>
-                <M.ListItemText primary={PACKAGE_FILTER_LABELS[filter]} />
+              <M.MenuItem
+                key={filter}
+                onClick={() => handleFilter(filter)}
+                selected={columns.get(filter)?.state.filtered}
+              >
+                <M.ListItemText
+                  primary={PACKAGE_FILTER_LABELS[filter]}
+                  secondary={columns.get(filter)?.filtered && 'Filter applied'}
+                />
                 <M.ListItemSecondaryAction>
                   <M.Checkbox
                     edge="end"
@@ -1319,7 +1291,7 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
                       } else {
                         const column = columns.get(filter)
                         if (!column) return
-                        if (column.filtered) {
+                        if (column.state.filtered) {
                           toggleCollapsed(column.filter)
                         } else {
                           deactivatePackagesFilter(filter)
@@ -1561,13 +1533,9 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   return (
     <div className={classes.root}>
       <p className={classes.title}>
-        {column.tag === 'filter' ? (
-          <EnlargedTooltip title={column.fullTitle}>
-            <span>{column.title}</span>
-          </EnlargedTooltip>
-        ) : (
-          column.title
-        )}
+        <M.Tooltip arrow title={column.tag === 'filter' ? column.fullTitle : ''}>
+          <span>{column.title}</span>
+        </M.Tooltip>
       </p>
       <ColumnActions className={classes.actions} column={column} single={single} />
     </div>
@@ -1582,7 +1550,6 @@ interface ColumnState {
 
 interface ColumnBase {
   filtered: boolean
-  onClose?: () => void
   state: ColumnState
 }
 
@@ -1626,7 +1593,7 @@ function useColumns(
   infered: Workflow.RequestResult<InferedUserMetaFacets>,
   bucket?: string,
 ): AllColumns {
-  const { actions, state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const { collapsed } = useContext()
 
   const fixed = React.useMemo(() => {
@@ -1634,7 +1601,6 @@ function useColumns(
       predicateType: 'KeywordWildcard' as const,
       filter: 'name' as const,
       fullTitle: PACKAGE_FILTER_LABELS.name,
-      onClose: () => actions.deactivatePackagesFilter('name'),
       tag: 'filter' as const,
       title: COLUMN_LABELS.name,
       filtered: !!state.filter.predicates.name,
@@ -1647,7 +1613,6 @@ function useColumns(
     if (bucket) return [nameCol]
     const bucketCol: Column = {
       filter: 'bucket' as const,
-      onClose: () => actions.setBuckets([]),
       tag: 'bucket' as const,
       title: COLUMN_LABELS.bucket,
       filtered: !!state.buckets.length,
@@ -1658,7 +1623,7 @@ function useColumns(
       },
     }
     return [bucketCol, nameCol]
-  }, [actions, state.buckets.length, state.filter.predicates.name, collapsed, bucket])
+  }, [state.buckets.length, state.filter.predicates.name, collapsed, bucket])
 
   const filters = React.useMemo(() => {
     const output: Column[] = []
@@ -1672,7 +1637,6 @@ function useColumns(
           predicateType: predicate?._tag || 'Text',
           filter,
           fullTitle: PACKAGE_FILTER_LABELS[filter],
-          onClose: () => actions.deactivatePackagesFilter(filter),
           tag: 'filter' as const,
           title: COLUMN_LABELS[filter],
           filtered: !!modifiedFilters && !!modifiedFilters[filter],
@@ -1685,7 +1649,7 @@ function useColumns(
       }
     })
     return output
-  }, [actions, collapsed, state.filter])
+  }, [collapsed, state.filter])
 
   const selectedUserMeta = React.useMemo(() => {
     const modifiedFilters = state.userMetaFilters.toGQL()
@@ -1694,7 +1658,6 @@ function useColumns(
       output.push({
         predicateType: predicate._tag,
         filter,
-        onClose: () => actions.deactivatePackagesMetaFilter(filter),
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
         filtered: !!modifiedFilters?.find(({ path }) => path === filter),
@@ -1706,7 +1669,7 @@ function useColumns(
       })
     })
     return output
-  }, [actions, collapsed, state.userMetaFilters])
+  }, [collapsed, state.userMetaFilters])
 
   const inferedUserMeta = React.useMemo(() => {
     const output: Column[] = []
@@ -1839,6 +1802,8 @@ function Layout({ hits, columns }: LayoutProps) {
   const classes = useLayoutStyles()
   const { focused, closeFilter } = useContext()
 
+  const visibleColumns = Array.from(columns.values()).filter((c) => c.state.visible)
+
   return (
     <M.Paper className={classes.root}>
       <SearchUIModel.AvailablePackagesMetaFilters>
@@ -1853,14 +1818,11 @@ function Layout({ hits, columns }: LayoutProps) {
             <M.TableHead>
               <M.TableRow>
                 <M.TableCell padding="checkbox" />
-                {Array.from(columns).map(
-                  ([key, column]) =>
-                    column.state.visible && (
-                      <M.TableCell className={classes.cell} key={key}>
-                        <ColumnHead column={column} single={columns.size === 1} />
-                      </M.TableCell>
-                    ),
-                )}
+                {visibleColumns.map((column) => (
+                  <M.TableCell className={classes.cell} key={column.filter}>
+                    <ColumnHead column={column} single={visibleColumns.length === 1} />
+                  </M.TableCell>
+                ))}
                 <M.TableCell className={classes.placeholder} />
               </M.TableRow>
             </M.TableHead>
