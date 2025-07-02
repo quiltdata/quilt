@@ -10,7 +10,7 @@ import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
 import * as Hit from './List/Hit'
-import TableSkeleton from './Table/Skeleton'
+import { Table as TableSkeleton } from './Table/Skeleton'
 import * as SearchUIModel from './model'
 
 const EXAMPLE_PACKAGE_URL = `${docs}/walkthrough/editing-a-package`

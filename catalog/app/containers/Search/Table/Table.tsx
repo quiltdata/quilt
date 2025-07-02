@@ -36,6 +36,7 @@ import * as SearchUIModel from '../model'
 
 import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
+import * as Skeleton from './Skeleton'
 import * as Workflow from './workflow'
 
 const AVAILABLE_PACKAGES_FILTERS = [
@@ -673,9 +674,10 @@ const usePackageRowStyles = M.makeStyles((t) => ({
 interface PackageRowProps {
   hit: SearchUIModel.SearchHitPackage
   columns: ColumnsMap
+  skeletons?: { key: number; width: number }[]
 }
 
-function PackageRow({ columns, hit }: PackageRowProps) {
+function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
   const meta = hit.meta && typeof hit.meta === 'string' ? JSON.parse(hit.meta) : {}
   const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
@@ -737,11 +739,15 @@ function PackageRow({ columns, hit }: PackageRowProps) {
               assertNever(column)
           }
         })}
+        {skeletons?.map(({ key, width }) => <Skeleton.Cell key={key} width={width} />)}
         <M.TableCell className={classes.placeholder} />
       </M.TableRow>
       {!!hit.matchingEntries?.length && (
         <M.TableRow>
-          <M.TableCell className={classes.entries} colSpan={visibleColumns.length + 2}>
+          <M.TableCell
+            className={classes.entries}
+            colSpan={visibleColumns.length + 2 + (skeletons?.length || 0)}
+          >
             {open && (
               <Entries
                 entries={hit.matchingEntries}
@@ -1616,14 +1622,17 @@ interface InferedUserMetaFacets {
 
 type ColumnsMap = Map<Column['filter'], Column>
 
-interface AllColumns {
-  columns: ColumnsMap
-}
+const columnsToMap = (columns: Column[]) => new Map(columns.map((c) => [c.filter, c]))
+
+type InferedColumnsNotReady = Exclude<
+  Workflow.RequestResult<InferedUserMetaFacets>,
+  InferedUserMetaFacets
+>
 
 function useColumns(
   infered: Workflow.RequestResult<InferedUserMetaFacets>,
   bucket?: string,
-): AllColumns {
+): [ColumnsMap, InferedColumnsNotReady | null] {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const { collapsed } = useContext()
 
@@ -1704,7 +1713,7 @@ function useColumns(
 
   const inferedUserMeta = React.useMemo(() => {
     const output: Column[] = []
-    if (infered instanceof Error || infered === Workflow.Loading) return output
+    if (infered instanceof Error || infered === Workflow.Loading) return infered
     const list = Object.keys(infered.workflow).length ? infered.workflow : infered.all
     for (const filter in list) {
       output.push({
@@ -1723,13 +1732,11 @@ function useColumns(
   }, [collapsed, infered])
 
   return React.useMemo(() => {
-    const columns = new Map(
-      [...fixed, ...filters, ...selectedUserMeta, ...inferedUserMeta].map((c) => [
-        c.filter,
-        c,
-      ]),
-    )
-    return { columns }
+    const list = [...fixed, ...filters, ...selectedUserMeta]
+    if (inferedUserMeta instanceof Error || inferedUserMeta === Workflow.Loading) {
+      return [columnsToMap(list), inferedUserMeta]
+    }
+    return [columnsToMap(list.concat(inferedUserMeta)), null]
   }, [fixed, filters, selectedUserMeta, inferedUserMeta])
 }
 
@@ -1826,13 +1833,15 @@ const useLayoutStyles = M.makeStyles((t) => ({
 interface LayoutProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
   columns: ColumnsMap
+  skeletons: ReturnType<typeof Skeleton.useColumns>
 }
 
-function Layout({ hits, columns }: LayoutProps) {
+function Layout({ hits, columns, skeletons }: LayoutProps) {
   const classes = useLayoutStyles()
   const { focused, closeFilter } = useContext()
 
   const visibleColumns = Array.from(columns.values()).filter((c) => c.state.visible)
+  const [skeletonHead, ...skeletonColumns] = skeletons
 
   return (
     <M.Paper className={classes.root}>
@@ -1853,12 +1862,20 @@ function Layout({ hits, columns }: LayoutProps) {
                     <ColumnHead column={column} single={visibleColumns.length === 1} />
                   </M.TableCell>
                 ))}
+                {skeletonHead?.columns.map(({ key, width }) => (
+                  <Skeleton.Head key={key} width={width} />
+                ))}
                 <M.TableCell className={classes.placeholder} />
               </M.TableRow>
             </M.TableHead>
             <M.TableBody>
-              {hits.map((hit) => (
-                <PackageRow key={hit.id} columns={columns} hit={hit} />
+              {hits.map((hit, index) => (
+                <PackageRow
+                  key={hit.id}
+                  columns={columns}
+                  hit={hit}
+                  skeletons={skeletonColumns[index + 1]?.columns}
+                />
               ))}
             </M.TableBody>
           </M.Table>
@@ -1872,6 +1889,12 @@ function Layout({ hits, columns }: LayoutProps) {
   )
 }
 
+const useTableViewStyles = M.makeStyles((t) => ({
+  error: {
+    marginBottom: t.spacing(2),
+  },
+}))
+
 interface TableViewProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
   bucket?: string
@@ -1880,8 +1903,22 @@ interface TableViewProps {
 function TableView({ hits, bucket }: TableViewProps) {
   const infered: Workflow.RequestResult<InferedUserMetaFacets> =
     useInferredUserMetaFacets()
-  const { columns } = useColumns(infered, bucket)
-  return <Layout columns={columns} hits={hits} />
+  const [columns, notReady] = useColumns(infered, bucket)
+  const skeletons = Skeleton.useColumns(
+    notReady === Workflow.Loading ? hits.length + 1 : 0,
+    3,
+  )
+  const classes = useTableViewStyles()
+  return (
+    <>
+      {notReady instanceof Error && (
+        <Lab.Alert className={classes.error} severity="error">
+          {notReady.message}
+        </Lab.Alert>
+      )}
+      <Layout columns={columns} hits={hits} skeletons={skeletons} />
+    </>
+  )
 }
 
 export default function TableViewInit({ hits, bucket }: TableViewProps) {
