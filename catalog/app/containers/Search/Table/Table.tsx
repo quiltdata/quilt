@@ -1009,7 +1009,7 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
   }, [column, model.actions, openFilter])
 
   const handleHide = React.useCallback(() => {
-    if (column.filtered) {
+    if (column.state.filtered) {
       toggleCollapsed(column.filter)
       return
     }
@@ -1034,7 +1034,7 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
     <div className={cx(classes.root, className)}>
       <M.IconButton
         size="small"
-        color={column.filtered ? 'primary' : 'inherit'}
+        color={column.state.filtered ? 'primary' : 'inherit'}
         onClick={showFilter}
       >
         <M.Icon color="inherit" fontSize="inherit">
@@ -1280,7 +1280,7 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
               >
                 <M.ListItemText
                   primary={PACKAGE_FILTER_LABELS[filter]}
-                  secondary={columns.get(filter)?.filtered && 'Filter applied'}
+                  secondary={columns.get(filter)?.state.filtered && 'Filters applied'}
                 />
                 <M.ListItemSecondaryAction>
                   <M.Checkbox
@@ -1549,7 +1549,6 @@ interface ColumnState {
 }
 
 interface ColumnBase {
-  filtered: boolean
   state: ColumnState
 }
 
@@ -1603,7 +1602,6 @@ function useColumns(
       fullTitle: PACKAGE_FILTER_LABELS.name,
       tag: 'filter' as const,
       title: COLUMN_LABELS.name,
-      filtered: !!state.filter.predicates.name,
       state: {
         filtered: !!state.filter.predicates.name,
         visible: !collapsed.has('name'),
@@ -1615,7 +1613,6 @@ function useColumns(
       filter: 'bucket' as const,
       tag: 'bucket' as const,
       title: COLUMN_LABELS.bucket,
-      filtered: !!state.buckets.length,
       state: {
         filtered: !!state.buckets.length,
         visible: !collapsed.has('bucket'),
@@ -1639,7 +1636,6 @@ function useColumns(
           fullTitle: PACKAGE_FILTER_LABELS[filter],
           tag: 'filter' as const,
           title: COLUMN_LABELS[filter],
-          filtered: !!modifiedFilters && !!modifiedFilters[filter],
           state: {
             filtered: !!modifiedFilters && !!modifiedFilters[filter],
             visible: !!predicate && !collapsed.has(filter),
@@ -1660,7 +1656,6 @@ function useColumns(
         filter,
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
-        filtered: !!modifiedFilters?.find(({ path }) => path === filter),
         state: {
           filtered: !!modifiedFilters?.find(({ path }) => path === filter),
           visible: !collapsed.has(filter),
@@ -1681,7 +1676,6 @@ function useColumns(
         filter,
         tag: 'meta' as const,
         title: filter.replace(/^\//, ''),
-        filtered: false,
         state: {
           filtered: false,
           visible: !collapsed.has(filter),
