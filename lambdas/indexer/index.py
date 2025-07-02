@@ -81,7 +81,6 @@ from quilt_shared.es import (
     get_ptr_doc_id,
     make_s3_client,
 )
-from quilt_shared.log import get_quilt_logger
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_LINES,
     extract_excel,
@@ -91,7 +90,11 @@ from t4_lambda_shared.preview import (
     get_preview_lines,
     trim_to_bytes,
 )
-from t4_lambda_shared.utils import get_available_memory, separated_env_to_iter
+from t4_lambda_shared.utils import (
+    get_available_memory,
+    get_quilt_logger,
+    separated_env_to_iter,
+)
 
 # translate events to S3 native names
 EVENTBRIDGE_TO_S3 = {

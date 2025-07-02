@@ -7,7 +7,7 @@ import boto3
 import elasticsearch
 
 from quilt_shared.es import make_elastic
-from quilt_shared.log import get_quilt_logger
+from t4_lambda_shared.utils import get_quilt_logger
 
 s3_client = boto3.client("s3")
 es = make_elastic(os.environ["ES_ENDPOINT"])

@@ -16,7 +16,7 @@ from quilt_shared.es import (
     make_elastic,
     make_s3_client,
 )
-from quilt_shared.log import get_quilt_logger
+from t4_lambda_shared.utils import get_quilt_logger
 
 MAX_KEYWORD_LEN = 256
 

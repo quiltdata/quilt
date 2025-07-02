@@ -11,6 +11,7 @@ dependencies = [
     "jsonpointer~=2.4",
     "orjson~=3.10",
     "quilt-shared[boto,es]",
+    "t4-lambda-shared",
 ]
 
 [build-system]
@@ -19,6 +20,7 @@ build-backend = "hatchling.build"
 
 [tool.uv.sources]
 quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/25812f2bf0b53ce3835af62672c3f51717742068.zip", subdirectory = "py-shared" }
+t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
 
 [dependency-groups]
 test = [

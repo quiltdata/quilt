@@ -5,7 +5,6 @@ import pytest
 
 import t4_lambda_manifest_indexer
 
-
 TEXT_VALUE = (t4_lambda_manifest_indexer.MAX_KEYWORD_LEN + 1) * "a"
 KEYWORD_VALUE = "a"
 
