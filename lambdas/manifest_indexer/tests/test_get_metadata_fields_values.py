@@ -3,9 +3,9 @@ import json
 
 import pytest
 
-import t4_lambda_manifest_indexer
+from t4_lambda_manifest_indexer import MAX_KEYWORD_LEN, get_metadata_fields
 
-TEXT_VALUE = (t4_lambda_manifest_indexer.MAX_KEYWORD_LEN + 1) * "a"
+TEXT_VALUE = (MAX_KEYWORD_LEN + 1) * "a"
 KEYWORD_VALUE = "a"
 
 
@@ -31,7 +31,7 @@ KEYWORD_VALUE = "a"
             {
                 "type": "keyword",
                 "keyword": [KEYWORD_VALUE, KEYWORD_VALUE],
-                "text": json.dumps([KEYWORD_VALUE, KEYWORD_VALUE]),
+                "text": json.dumps([KEYWORD_VALUE, KEYWORD_VALUE], separators=(",", ":")),
             },
         ),
         (
@@ -86,7 +86,7 @@ KEYWORD_VALUE = "a"
 def test_get_metadata_fields_values(src_value, expected_field):
     field_name = "a"
 
-    assert index.get_metadata_fields(
+    assert get_metadata_fields(
         {
             field_name: src_value,
         }
@@ -109,7 +109,7 @@ def test_get_metadata_fields_values_ignored(src_value):
     field_name = "a"
 
     assert (
-        index.get_metadata_fields(
+        get_metadata_fields(
             {
                 field_name: src_value,
             }
@@ -150,5 +150,5 @@ def test_get_metadata_fields_values_ignored(src_value):
     ],
 )
 def test_get_metadata_fields_json_pointer(metadata, expected_json_pointer):
-    (field,) = index.get_metadata_fields(metadata)
+    (field,) = get_metadata_fields(metadata)
     assert field["json_pointer"] == expected_json_pointer
