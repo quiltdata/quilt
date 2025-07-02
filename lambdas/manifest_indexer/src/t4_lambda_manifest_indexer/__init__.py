@@ -1,9 +1,9 @@
 import datetime
-import json
 import os
 import urllib.parse
 
 import jsonpointer
+import orjson
 
 from quilt_shared.const import MANIFESTS_PREFIX
 from quilt_shared.es import (
@@ -97,7 +97,7 @@ def get_metadata_fields(meta):
         {
             "json_pointer": jsonpointer.JsonPointer.from_parts(path).path,
             "type": type_,
-            "text": json.dumps(raw_value, ensure_ascii=False),
+            "text": orjson.dumps(raw_value).decode(),
             type_: value,
         }
         for path, type_, raw_value, value in _get_metadata_fields((), meta)
@@ -131,7 +131,7 @@ def _prepare_workflow_for_es(workflow, bucket):
             ],
         }
     except Exception:
-        logger.exception("Bad workflow object: %s", json.dumps(workflow, indent=2))
+        logger.exception("Bad workflow object: %s", orjson.dumps(workflow, option=orjson.OPT_INDENT_2).decode())
         return None
 
 
@@ -165,7 +165,7 @@ def index_manifest(
         except s3_client.exceptions.NoSuchKey:
             logger.debug("No manifest found: s3://%s/%s.", bucket, key)
             return
-        manifest_entries = map(json.loads, resp["Body"].iter_lines())
+        manifest_entries = map(orjson.loads, resp["Body"].iter_lines())
         first = next(manifest_entries, None)
         if not first:
             return
@@ -210,7 +210,7 @@ def index_manifest(
                 "entry_pk_parsed.s3": pk_parsed,
                 "entry_size": entry["size"],
                 "entry_hash": entry["hash"],
-                "entry_metadata": json.dumps(meta) if meta else None,
+                "entry_metadata": orjson.dumps(meta).decode() if meta else None,
             }
             if pk_parsed is not None:
                 if pk_parsed["bucket"] in es_aliases:
@@ -232,7 +232,7 @@ def index_manifest(
             "join_field": {"name": "mnfst"},
             "mnfst_hash": manifest_hash,
             "mnfst_last_modified": resp["LastModified"],
-            "mnfst_metadata": json.dumps(user_meta) if user_meta else None,
+            "mnfst_metadata": orjson.dumps(user_meta).decode() if user_meta else None,
             "mnfst_metadata_fields": get_metadata_fields(user_meta),
             "mnfst_message": str(first.get("message", "")),
             "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
@@ -274,7 +274,7 @@ def handler(event, context):
 
     with Batcher(s3_client, logger) as batcher:
         for record in event["Records"]:
-            body = json.loads(record["body"])
+            body = orjson.loads(record["body"])
             bucket = body["detail"]["s3"]["bucket"]["name"]
             key = body["detail"]["s3"]["object"]["key"]
 

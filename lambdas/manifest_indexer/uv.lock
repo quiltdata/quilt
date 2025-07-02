@@ -474,6 +474,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "jsonpointer" },
+    { name = "orjson" },
     { name = "quilt-shared", extra = ["boto", "es"] },
 ]
 
@@ -486,6 +487,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "jsonpointer", specifier = "~=2.4" },
+    { name = "orjson", specifier = "~=3.10" },
     { name = "quilt-shared", extras = ["boto", "es"], url = "https://github.com/quiltdata/quilt/archive/25812f2bf0b53ce3835af62672c3f51717742068.zip", subdirectory = "py-shared" },
 ]
 
