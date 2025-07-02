@@ -1,6 +1,5 @@
-import datetime
+import functools
 import hashlib
-import json
 import os
 import random
 import urllib.parse
@@ -8,6 +7,7 @@ import urllib.parse
 import boto3
 import botocore
 import elasticsearch.helpers
+import orjson
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from elasticsearch import Elasticsearch
 
@@ -16,18 +16,18 @@ USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 ELASTIC_TIMEOUT = 30
 
 
-class JSONEncoder(json.JSONEncoder):
-    """Custom JSON encoder to handle datetime and bytes"""
+# class JSONEncoder(json.JSONEncoder):
+#     """Custom JSON encoder to handle datetime and bytes"""
 
-    def default(self, o):
-        if isinstance(o, (datetime.date, datetime.datetime)):
-            return o.isoformat()
+#     def default(self, o):
+#         if isinstance(o, (datetime.date, datetime.datetime)):
+#             return o.isoformat()
 
-        return super().default(o)
+#         return super().default(o)
 
 
 class Batcher:
-    json_encode = JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
+    # json_encode = JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
     BATCH_INDEXER_BUCKET = os.getenv("ES_INGEST_BUCKET")
     BATCH_MAX_BYTES = int(os.getenv("BATCH_MAX_BYTES", 8_000_000))
     BATCH_MAX_DOCS = int(os.getenv("BATCH_MAX_DOCS", 10_000))
@@ -56,7 +56,7 @@ class Batcher:
         self.s3_client.put_object(
             Bucket=self.BATCH_INDEXER_BUCKET,
             Key=key,
-            Body=b"\n".join(batch),
+            Body=b"".join(batch),
             ContentType="application/json",
         )
         self.logger.debug("Batch sent to s3://%s/%s", self.BATCH_INDEXER_BUCKET, key)
@@ -64,7 +64,12 @@ class Batcher:
     def append(self, doc: dict):
         # get doc ownership
         doc["_type"] = "_doc"  # ES 6.x compatibility
-        data = "\n".join(map(self.json_encode, filter(None.__ne__, elasticsearch.helpers.expand_action(doc)))).encode()
+        data = b"".join(
+            map(
+                functools.partial(orjson.dumps, option=orjson.OPT_APPEND_NEWLINE),
+                filter(None.__ne__, elasticsearch.helpers.expand_action(doc)),
+            )
+        )
         assert (
             len(data) < self.BATCH_MAX_BYTES
         ), f"Document size {len(data)} exceeds max batch size {self.BATCH_MAX_BYTES}"
