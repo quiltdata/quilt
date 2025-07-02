@@ -17,7 +17,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.sources]
-quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/11a0442ca07660b6c9a344e65c12e0526bf2f7f5.zip", subdirectory = "py-shared" }
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/25812f2bf0b53ce3835af62672c3f51717742068.zip", subdirectory = "py-shared" }
 
 [dependency-groups]
 test = [
