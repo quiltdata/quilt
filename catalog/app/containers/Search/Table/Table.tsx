@@ -8,11 +8,12 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { DescriptionOutlined as IconDescriptionOutlined } from '@material-ui/icons'
 
-import { TinyTextField } from 'components/Filters'
+import { TinyTextField, List } from 'components/Filters'
 import * as Preview from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
 import type { RouteMap } from 'containers/Bucket/BucketNav'
 import * as Model from 'model'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import { Leaf } from 'utils/KeyedTree'
@@ -25,7 +26,6 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
-import BucketSelector from '../Buckets'
 import FilterWidget from '../FilterWidget'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
@@ -768,53 +768,241 @@ const ColumnAction = React.forwardRef<HTMLButtonElement, ColumnActionProps>(
   },
 )
 
-interface FilterProps {
-  filter: keyof SearchUIModel.PackagesSearchFilter
+interface FilterDialogProps {
+  column: Column
   onClose: () => void
 }
 
-function Filter({ filter, onClose }: FilterProps) {
+function FilterDialog({ column, onClose }: FilterDialogProps) {
+  switch (column.tag) {
+    case 'filter':
+      return <FilterDialogSystemMeta column={column} onClose={onClose} />
+    case 'meta':
+      return <FilterDialogUserMeta column={column} onClose={onClose} />
+    case 'bucket':
+      return <FilterDialogBuckets column={column} onClose={onClose} />
+  }
+}
+
+const useFilterDialogLayoutStyles = M.makeStyles((t) => ({
+  reset: {
+    marginRight: 'auto',
+    color: t.palette.error.dark,
+  },
+}))
+
+interface FilterDialogLayoutProps {
+  onClose: () => void
+  title: string
+  children: React.ReactNode
+  onReset: () => void
+  modified: boolean
+  onSubmit: () => void
+  resetTitle?: string
+}
+
+function FilterDialogLayout({
+  children,
+  onClose,
+  title,
+  onReset,
+  onSubmit,
+  modified,
+  resetTitle,
+}: FilterDialogLayoutProps) {
+  const classes = useFilterDialogLayoutStyles()
+  const handleReset = React.useCallback(() => {
+    onReset()
+    onClose()
+  }, [onClose, onReset])
+  const handleSubmit = React.useCallback(() => {
+    onSubmit()
+    onClose()
+  }, [onClose, onSubmit])
+  return (
+    <>
+      <M.DialogTitle>{title}</M.DialogTitle>
+      <M.DialogContent>{children}</M.DialogContent>
+      <M.DialogActions>
+        <M.Tooltip title={resetTitle || ''}>
+          <M.Button
+            className={classes.reset}
+            onClick={handleReset}
+            color="inherit"
+            disabled={modified}
+          >
+            Reset
+          </M.Button>
+        </M.Tooltip>
+
+        <M.Button color="primary" onClick={onClose}>
+          {modified ? 'Cancel' : 'Close'}
+        </M.Button>
+        <M.Button
+          color="primary"
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={!modified}
+        >
+          Apply
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
+}
+
+interface FilterDialogSystemMetaProps extends FilterDialogProps {
+  column: ColumnFilter
+}
+
+function FilterDialogSystemMeta({ column, onClose }: FilterDialogSystemMetaProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const predicateState = model.state.filter.predicates[filter]
-  invariant(predicateState, 'Filter not active')
+
+  const [innerState, setInnerState] = React.useState<$TSFixMe>(null)
+
+  const onSubmit = React.useCallback(
+    () => innerState && model.actions.setPackagesFilter(column.filter, innerState),
+    [column, innerState, model.actions],
+  )
+
+  const onReset = React.useCallback(
+    () => model.actions.deactivatePackagesFilter(column.filter),
+    [column, model.actions],
+  )
+
+  return (
+    <FilterDialogLayout
+      onClose={onClose}
+      title={column.fullTitle}
+      onReset={onReset}
+      onSubmit={onSubmit}
+      modified={!!innerState}
+      resetTitle="Clear filter values and remove column"
+    >
+      <Filter filter={column.filter} value={innerState} onChange={setInnerState} />
+    </FilterDialogLayout>
+  )
+}
+
+interface FilterDialogUserMetaProps extends FilterDialogProps {
+  column: ColumnMeta
+}
+
+function FilterDialogUserMeta({ column, onClose }: FilterDialogUserMetaProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const [innerState, setInnerState] =
+    React.useState<SearchUIModel.PredicateState<SearchUIModel.KnownPredicate> | null>(
+      null,
+    )
+
+  const onSubmit = React.useCallback(
+    () => innerState && model.actions.setPackagesMetaFilter(column.filter, innerState),
+    [column, innerState, model.actions],
+  )
+
+  const onReset = React.useCallback(
+    () => model.actions.deactivatePackagesMetaFilter(column.filter),
+    [column, model.actions],
+  )
+
+  return (
+    <FilterDialogLayout
+      onClose={onClose}
+      title={column.title}
+      onReset={onReset}
+      onSubmit={onSubmit}
+      modified={!!innerState}
+    >
+      <MetaFilter path={column.filter} value={innerState} onChange={setInnerState} />
+    </FilterDialogLayout>
+  )
+}
+
+interface FilterDialogBucketsProps extends FilterDialogProps {
+  column: ColumnBucket
+}
+
+function FilterDialogBuckets({ column, onClose }: FilterDialogBucketsProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const [innerState, setInnerState] = React.useState<readonly string[] | null>(null)
+
+  const onSubmit = React.useCallback(
+    () => innerState && model.actions.setBuckets(innerState),
+    [innerState, model.actions],
+  )
+
+  // `bucket` column exists on the `/search` page only
+  // it is hidden on the `/b/bucket/packages` page
+  const onReset = React.useCallback(() => model.actions.setBuckets([]), [model.actions])
+
+  return (
+    <FilterDialogLayout
+      onClose={onClose}
+      title={column.title}
+      onReset={onReset}
+      onSubmit={onSubmit}
+      modified={!!innerState}
+      resetTitle="Show results for all buckets"
+    >
+      <BucketsFilter value={innerState} onChange={setInnerState} />
+    </FilterDialogLayout>
+  )
+}
+
+interface FilterProps {
+  filter: keyof SearchUIModel.PackagesSearchFilter
+  onChange: (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => void
+  value: null | SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
+}
+
+function Filter({ filter, onChange, value }: FilterProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const initialValue = model.state.filter.predicates[filter]
+  invariant(initialValue, 'Filter not active')
   const extents = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
 
-  const change = React.useCallback(
-    (state: $TSFixMe) => {
-      model.actions.setPackagesFilter(filter, state)
-      onClose()
-    },
-    [model.actions, filter, onClose],
+  return (
+    <FilterWidget state={value || initialValue} extents={extents} onChange={onChange} />
   )
-  return <FilterWidget state={predicateState} extents={extents} onChange={change} />
 }
 
 interface MetaFilterProps {
   path: string
-  onClose: () => void
+  onChange: (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => void
+  value: null | SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
 }
 
-function MetaFilter({ path, onClose }: MetaFilterProps) {
+function MetaFilter({ path, onChange, value }: MetaFilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const predicateState = model.state.userMetaFilters.filters.get(path)
-  invariant(predicateState, 'Filter not active')
+  const initialValue = model.state.userMetaFilters.filters.get(path)
+  invariant(initialValue, 'Filter not active')
 
   const { fetching, extents } = SearchUIModel.usePackageUserMetaFacetExtents(path)
-  const change = React.useCallback(
-    (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => {
-      model.actions.setPackagesMetaFilter(path, state)
-      onClose()
-    },
-    [model.actions, path, onClose],
-  )
   return fetching ? (
     <M.Box display="grid" gridAutoFlow="row" gridRowGap={1}>
       <Lab.Skeleton height={32} />
       <Lab.Skeleton height={32} />
     </M.Box>
   ) : (
-    <FilterWidget state={predicateState} extents={extents} onChange={change} />
+    <FilterWidget state={value || initialValue} extents={extents} onChange={onChange} />
   )
+}
+
+interface BucketsFilterProps {
+  onChange: (state: readonly string[]) => void
+  value: null | readonly string[]
+}
+
+function BucketsFilter({ onChange, value }: BucketsFilterProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const initialValue = model.state.buckets
+  invariant(initialValue, 'Filter not active')
+
+  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
+  return <List extents={extents} value={value || initialValue} onChange={onChange} />
 }
 
 const useColumnActionsStyles = M.makeStyles({
@@ -1686,27 +1874,7 @@ function Layout({ hits, columns }: LayoutProps) {
       </div>
 
       <M.Dialog open={!!focused} onClose={closeFilter} maxWidth="sm" fullWidth>
-        {focused && (
-          <>
-            <M.DialogTitle>
-              {focused.tag === 'filter' ? focused.fullTitle : focused.title}
-            </M.DialogTitle>
-            <M.DialogContent>
-              {focused.filter === 'bucket' && <BucketSelector />}
-              {focused.tag === 'filter' && (
-                <Filter filter={focused.filter} onClose={closeFilter} />
-              )}
-              {focused.tag === 'meta' && (
-                <MetaFilter path={focused.filter} onClose={closeFilter} />
-              )}
-            </M.DialogContent>
-            <M.DialogActions>
-              <M.Button color="primary" onClick={closeFilter}>
-                Ok
-              </M.Button>
-            </M.DialogActions>
-          </>
-        )}
+        {focused && <FilterDialog column={focused} onClose={closeFilter} />}
       </M.Dialog>
     </M.Paper>
   )
