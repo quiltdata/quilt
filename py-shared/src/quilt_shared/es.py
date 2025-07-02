@@ -19,16 +19,6 @@ USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 ELASTIC_TIMEOUT = 30
 
 
-# class JSONEncoder(json.JSONEncoder):
-#     """Custom JSON encoder to handle datetime and bytes"""
-
-#     def default(self, o):
-#         if isinstance(o, (datetime.date, datetime.datetime)):
-#             return o.isoformat()
-
-#         return super().default(o)
-
-
 class Batcher:
     # json_encode = JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
     BATCH_INDEXER_BUCKET = os.getenv("ES_INGEST_BUCKET")
