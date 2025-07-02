@@ -27,13 +27,13 @@ from botocore.stub import Stubber
 from dateutil.tz import tzutc
 from document_queue import EVENT_PREFIX, RetryError
 
-from quilt_shared.es import get_manifest_doc_id, get_ptr_doc_id
-from t4_lambda_shared.utils import (
-    MANIFEST_PREFIX_V1,
+from quilt_shared.const import NAMED_PACKAGES_PREFIX
+from quilt_shared.es import (
     PACKAGE_INDEX_SUFFIX,
-    POINTER_PREFIX_V1,
-    separated_env_to_iter,
+    get_manifest_doc_id,
+    get_ptr_doc_id,
 )
+from t4_lambda_shared.utils import separated_env_to_iter
 
 from .. import document_queue, index
 
@@ -883,7 +883,7 @@ class TestIndex(TestCase):
     @patch.object(index.DocumentQueue, 'append_document')
     def test_index_if_pointer_not_exists(self, append_mock):
         bucket = "quilt-example"
-        key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
+        key = f"{NAMED_PACKAGES_PREFIX}author/semantic/1610412903"
 
         self.s3_stubber.add_client_error(
             method="get_object",
@@ -913,7 +913,7 @@ class TestIndex(TestCase):
     # @patch.object(index.DocumentQueue, 'append_document')
     # def test_index_if_package_select_meta_fail(self, append_mock, select_meta_mock):
     #     bucket = "quilt-example"
-    #     key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
+    #     key = f"{NAMED_PACKAGES_PREFIX}author/semantic/1610412903"
     #     pkg_hash = "a" * 64
     #     manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
 
@@ -950,7 +950,7 @@ class TestIndex(TestCase):
     # @patch.object(index.DocumentQueue, 'append_document')
     # def test_index_if_package_select_stats_fail(self, append_mock, select_meta_mock, select_stats_mock):
     #     bucket = "quilt-example"
-    #     key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
+    #     key = f"{NAMED_PACKAGES_PREFIX}author/semantic/1610412903"
     #     pkg_hash = "a" * 64
     #     manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
     #     message = "test"
@@ -991,11 +991,11 @@ class TestIndex(TestCase):
         bucket = "quilt-example"
         handle = "author/semantic"
         pointer_file = "1610412903"
-        key = f"{POINTER_PREFIX_V1}{handle}/{pointer_file}"
+        key = f"{NAMED_PACKAGES_PREFIX}{handle}/{pointer_file}"
         pkg_hash = "a" * 64
-        manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
-        message = "test"
-        meta = {"foo": "bar"}
+        # manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
+        # message = "test"
+        # meta = {"foo": "bar"}
         # select_meta_mock.return_value = {"message": message, "user_meta": meta}
         # select_stats_mock.return_value = {"total_bytes": 42, "total_files": 42}
         last_modified = datetime.datetime(2021, 1, 1, 0, 0, tzinfo=tzutc())
