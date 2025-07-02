@@ -34,6 +34,158 @@ import type {
 } from './useColumns'
 import { Provider, useContext } from './Provider'
 
+interface AvailableSystemMetaFillterProps {
+  filter: keyof SearchUIModel.PackagesFilterState['predicates']
+  columns: ColumnsMap
+  onClose: () => void
+}
+
+function AvailableSystemMetaFillter({
+  columns,
+  filter,
+  onClose,
+}: AvailableSystemMetaFillterProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const { openFilter, toggleCollapsed } = useContext()
+  const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
+
+  // FIXME: column must exist, doesn't it
+  // const column = columns.get(filter)
+
+  const showColumn = React.useCallback(() => {
+    if (model.state.filter.predicates[filter]) {
+      const column = columns.get(filter)
+      if (column && !column.state.visible) {
+        toggleCollapsed(column.filter, false)
+      }
+    } else {
+      activatePackagesFilter(filter)
+
+      const column = columns.get(filter)
+      if (column && !column.state.visible) {
+        toggleCollapsed(column.filter, false)
+      }
+    }
+
+    const column = columns.get(filter)
+    if (column && !column.state.filtered) {
+      openFilter(column)
+      onClose()
+    }
+  }, [
+    activatePackagesFilter,
+    filter,
+    columns,
+    model.state.filter.predicates,
+    onClose,
+    openFilter,
+    toggleCollapsed,
+  ])
+
+  const hideColumn = React.useCallback(() => {
+    const column = columns.get(filter)
+    if (!column) return
+    if (column.state.filtered) {
+      toggleCollapsed(column.filter)
+    } else {
+      if (column.filter === 'name') {
+        toggleCollapsed(column.filter)
+      }
+      deactivatePackagesFilter(filter)
+    }
+  }, [filter, deactivatePackagesFilter, toggleCollapsed, columns])
+
+  const handleChange = React.useCallback(
+    (_e, checked) => (checked ? showColumn() : hideColumn()),
+    [showColumn, hideColumn],
+  )
+
+  return (
+    <M.MenuItem onClick={showColumn} selected={columns.get(filter)?.state.filtered}>
+      <M.ListItemText
+        primary={PACKAGE_FILTER_LABELS[filter]}
+        secondary={columns.get(filter)?.state.filtered && 'Filters applied'}
+      />
+      <M.ListItemSecondaryAction>
+        <M.Checkbox
+          edge="end"
+          onChange={handleChange}
+          checked={columns.get(filter)?.state.visible}
+        />
+      </M.ListItemSecondaryAction>
+    </M.MenuItem>
+  )
+}
+
+function getLabel(key: string) {
+  const [type, rest] = key.split(':')
+  switch (type) {
+    case 'path':
+      return { primary: rest }
+    case 'type':
+      return { primary: rest, secondary: 'Type' }
+    default:
+      return { primary: key }
+  }
+}
+
+interface AvailableUserMetaFilterProps extends M.ListItemTextProps {
+  node: Leaf<SearchUIModel.PackageUserMetaFacet>
+  columns: ColumnsMap
+  onClose: () => void
+}
+
+function AvailableUserMetaFilter({
+  columns,
+  node,
+  onClose,
+  ...props
+}: AvailableUserMetaFilterProps) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const { openFilter, toggleCollapsed } = useContext()
+  const { activatePackagesMetaFilter, deactivatePackagesMetaFilter } = model.actions
+  const showColumn = React.useCallback(() => {
+    const type = SearchUIModel.PackageUserMetaFacetMap[node.value.__typename]
+    activatePackagesMetaFilter(node.value.path, type)
+    const column = columns.get(node.value.path)
+    if (!column) return
+    if (!column.state.visible) {
+      toggleCollapsed(column.filter)
+    }
+    if (!column.state.filtered) {
+      openFilter(column)
+      onClose()
+    }
+  }, [node, activatePackagesMetaFilter, columns, openFilter, toggleCollapsed, onClose])
+
+  const hideColumn = React.useCallback(() => {
+    const column = columns.get(node.value.path)
+    if (!column) return
+    if (column.state.filtered || column.state.inferred) {
+      toggleCollapsed(column.filter)
+    } else {
+      deactivatePackagesMetaFilter(node.value.path)
+    }
+  }, [columns, node, toggleCollapsed, deactivatePackagesMetaFilter])
+
+  const handleChange = React.useCallback(
+    (_e, checked) => (checked ? showColumn() : hideColumn()),
+    [showColumn, hideColumn],
+  )
+  return (
+    <M.MenuItem onClick={showColumn}>
+      <M.ListItemText {...props} />
+      <M.ListItemSecondaryAction>
+        <M.Checkbox
+          edge="end"
+          onChange={handleChange}
+          checked={columns.get(node.value.path)?.state.visible}
+        />
+      </M.ListItemSecondaryAction>
+    </M.MenuItem>
+  )
+}
+
 const useUnfoldPackageEntriesStyles = M.makeStyles((t) => ({
   badge: {
     background: t.palette.text.hint,
@@ -527,48 +679,18 @@ const useFilterGroupStyles = M.makeStyles((t) => ({
 }))
 
 interface FilterGroupProps {
-  disabled?: boolean
-  path?: string
-  items: SearchUIModel.FacetTree['children']
   columns: ColumnsMap
+  disabled?: boolean
+  items: SearchUIModel.FacetTree['children']
+  onClose: () => void
+  path?: string
 }
 
-function FilterGroup({ columns, disabled, path, items }: FilterGroupProps) {
+function FilterGroup({ columns, disabled, items, onClose, path }: FilterGroupProps) {
   const classes = useFilterGroupStyles()
-  const { openFilter, toggleCollapsed } = useContext()
-
-  function getLabel(key: string) {
-    const [type, rest] = key.split(':')
-    switch (type) {
-      case 'path':
-        return { primary: rest }
-      case 'type':
-        return { primary: rest, secondary: 'Type' }
-      default:
-        return { primary: key }
-    }
-  }
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
-
-  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { activatePackagesMetaFilter, deactivatePackagesMetaFilter } = model.actions
-  const activate = React.useCallback(
-    (node: Leaf<SearchUIModel.PackageUserMetaFacet>) => {
-      const type = SearchUIModel.PackageUserMetaFacetMap[node.value.__typename]
-      activatePackagesMetaFilter(node.value.path, type)
-      const column = columns.get(node.value.path)
-      if (!column) return
-      if (!column.state.visible) {
-        toggleCollapsed(column.filter)
-      }
-      if (!column.state.filtered) {
-        openFilter(column)
-      }
-    },
-    [activatePackagesMetaFilter, columns, openFilter, toggleCollapsed],
-  )
 
   return (
     <li className={cx(classes.root)}>
@@ -589,30 +711,16 @@ function FilterGroup({ columns, disabled, path, items }: FilterGroupProps) {
                   key={path + p}
                   path={p}
                   columns={columns}
+                  onClose={onClose}
                 />
               ) : (
-                <M.MenuItem key={path + p} onClick={() => activate(node)}>
-                  <M.ListItemText {...getLabel(p)} />
-                  <M.ListItemSecondaryAction>
-                    <M.Checkbox
-                      edge="end"
-                      onChange={(_e, checked) => {
-                        if (checked) {
-                          activate(node)
-                        } else {
-                          const column = columns.get(node.value.path)
-                          if (!column) return
-                          if (column.state.filtered || column.state.inferred) {
-                            toggleCollapsed(column.filter)
-                          } else {
-                            deactivatePackagesMetaFilter(node.value.path)
-                          }
-                        }
-                      }}
-                      checked={columns.get(node.value.path)?.state.visible}
-                    />
-                  </M.ListItemSecondaryAction>
-                </M.MenuItem>
+                <AvailableUserMetaFilter
+                  key={path + p}
+                  columns={columns}
+                  node={node}
+                  onClose={onClose}
+                  {...getLabel(p)}
+                />
               ),
             )}
           </M.Collapse>
@@ -662,7 +770,6 @@ interface AvailableFacetsProps {
 
 function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
   const classes = useAvailableFacetsStyles()
-  const { openFilter, toggleCollapsed } = useContext()
 
   const filterValue = SearchUIModel.AvailableFiltersState.match(
     {
@@ -700,40 +807,6 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
     [model.state.userMetaFilters.filters, filterValue],
   )
 
-  const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
-  const handleFilter = React.useCallback(
-    (filter: (typeof availableFilters)[number]) => {
-      if (model.state.filter.predicates[filter]) {
-        const column = columns.get(filter)
-        if (column && !column.state.visible) {
-          toggleCollapsed(column.filter, false)
-        }
-      } else {
-        activatePackagesFilter(filter)
-
-        const column = columns.get(filter)
-        if (column && !column.state.visible) {
-          toggleCollapsed(column.filter, false)
-        }
-      }
-
-      const column = columns.get(filter)
-      if (column && !column.state.filtered) {
-        openFilter(column)
-      }
-
-      onClose()
-    },
-    [
-      activatePackagesFilter,
-      columns,
-      model.state.filter.predicates,
-      onClose,
-      openFilter,
-      toggleCollapsed,
-    ],
-  )
-
   return (
     <div className={classes.root}>
       <M.List className={classes.list} dense>
@@ -742,38 +815,12 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
             <M.ListSubheader>System metadata</M.ListSubheader>
 
             {availableFilters.map((filter) => (
-              <M.MenuItem
+              <AvailableSystemMetaFillter
                 key={filter}
-                onClick={() => handleFilter(filter)}
-                selected={columns.get(filter)?.state.filtered}
-              >
-                <M.ListItemText
-                  primary={PACKAGE_FILTER_LABELS[filter]}
-                  secondary={columns.get(filter)?.state.filtered && 'Filters applied'}
-                />
-                <M.ListItemSecondaryAction>
-                  <M.Checkbox
-                    edge="end"
-                    onChange={(_e, checked) => {
-                      if (checked) {
-                        handleFilter(filter)
-                      } else {
-                        const column = columns.get(filter)
-                        if (!column) return
-                        if (column.state.filtered) {
-                          toggleCollapsed(column.filter)
-                        } else {
-                          if (column.filter === 'name') {
-                            toggleCollapsed(column.filter)
-                          }
-                          deactivatePackagesFilter(filter)
-                        }
-                      }
-                    }}
-                    checked={columns.get(filter)?.state.visible}
-                  />
-                </M.ListItemSecondaryAction>
-              </M.MenuItem>
+                filter={filter}
+                columns={columns}
+                onClose={onClose}
+              />
             ))}
           </>
         )}
@@ -781,7 +828,11 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
         {!!availableFilters.length && <M.Divider className={classes.divider} />}
         <M.ListSubheader>User metadata</M.ListSubheader>
 
-        <FilterGroup items={enabledMetaFiltersItems} columns={columns} />
+        <FilterGroup
+          items={enabledMetaFiltersItems}
+          columns={columns}
+          onClose={onClose}
+        />
 
         {SearchUIModel.AvailableFiltersState.match(
           {
@@ -791,6 +842,7 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
               <FilterGroup
                 items={SearchUIModel.groupFacets(available)[0].children}
                 columns={columns}
+                onClose={onClose}
               />
             ),
           },
