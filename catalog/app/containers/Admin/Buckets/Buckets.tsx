@@ -23,7 +23,6 @@ import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
@@ -531,11 +530,11 @@ function Hint({ children }: HintProps) {
   const classes = useHintStyles()
   const tooltipClasses = React.useMemo(() => ({ tooltip: classes.tooltip }), [classes])
   return (
-    <StyledTooltip arrow maxWidth="md" title={children} classes={tooltipClasses}>
+    <M.Tooltip arrow title={children} classes={tooltipClasses}>
       <M.Icon fontSize="small" className={classes.icon}>
         help
       </M.Icon>
-    </StyledTooltip>
+    </M.Tooltip>
   )
 }
 

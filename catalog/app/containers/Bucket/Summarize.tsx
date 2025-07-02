@@ -24,7 +24,6 @@ import Data, { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
-import StyledTooltip from 'utils/StyledTooltip'
 import { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
@@ -696,10 +695,7 @@ export function ConfigureAppearance({
   return (
     <div className={classes.root}>
       {!hasSummarizeJson && (
-        <StyledTooltip
-          maxWidth="md"
-          title="Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package."
-        >
+        <M.Tooltip title="Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.">
           <RRDom.Link
             to={toFile(join(path || '', 'quilt_summarize.json'))}
             className={classes.button}
@@ -708,13 +704,10 @@ export function ConfigureAppearance({
               Configure Summary
             </M.Button>
           </RRDom.Link>
-        </StyledTooltip>
+        </M.Tooltip>
       )}
       {!hasReadme && (
-        <StyledTooltip
-          maxWidth="md"
-          title="Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package."
-        >
+        <M.Tooltip title="Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.">
           <RRDom.Link
             to={toFile(join(path || '', 'README.md'))}
             className={classes.button}
@@ -723,7 +716,7 @@ export function ConfigureAppearance({
               Add README
             </M.Button>
           </RRDom.Link>
-        </StyledTooltip>
+        </M.Tooltip>
       )}
     </div>
   )
