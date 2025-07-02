@@ -142,7 +142,7 @@ def index_manifest(
     key: str,
 ):
     if not key.startswith(MANIFESTS_PREFIX):
-        logger.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
+        logger.warning("Not indexing as manifest file s3://%s/%s", bucket, key)
         return
 
     manifest_hash = key[len(MANIFESTS_PREFIX) :]
@@ -170,19 +170,6 @@ def index_manifest(
         if not first:
             return
         user_meta = first.get("user_meta")
-
-        # yield {
-        #     "_index": index,
-        #     "_id": doc_id,
-        #     "_op_type": "index",
-        #     "join_field": {"name": "mnfst"},
-        #     "mnfst_hash": manifest_hash,
-        #     "mnfst_last_modified": resp["LastModified"],
-        #     "mnfst_metadata": json.dumps(user_meta) if user_meta else None,
-        #     "mnfst_metadata_fields": get_metadata_fields(user_meta),
-        #     "mnfst_message": str(first.get("message", "")),
-        #     "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
-        # }
 
         total_bytes = 0
         total_files = 0
@@ -262,8 +249,6 @@ def index_manifest(
                 "_id": doc_id,
             }
         )
-
-    # return doc_data is not None
 
 
 def handler(event, context):
