@@ -23,3 +23,6 @@ test = [
     "pytest~=8.4",
     "pytest-cov~=6.2",
 ]
+
+[tool.uv]
+default-groups = ["test"]

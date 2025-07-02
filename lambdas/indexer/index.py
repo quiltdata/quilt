@@ -47,6 +47,7 @@ See docs/EventBridge.md for more
 
 
 import datetime
+import functools
 import json
 import os
 import pathlib
@@ -78,9 +79,7 @@ from quilt_shared.const import NAMED_PACKAGES_PREFIX
 from quilt_shared.es import (
     PACKAGE_INDEX_SUFFIX,
     get_manifest_doc_id,
-    get_object_doc_id,
     get_ptr_doc_id,
-    make_elastic,
     make_s3_client,
 )
 from quilt_shared.log import get_quilt_logger
@@ -175,7 +174,6 @@ TEST_EVENT = "s3:TestEvent"
 
 logger = get_quilt_logger()
 s3_client = make_s3_client()
-es = make_elastic(os.environ["ES_ENDPOINT"], timeout=30)
 
 
 def now_like_boto3():
@@ -232,6 +230,7 @@ def should_retry_exception(exception):
 
 
 def do_index(
+        s3_client,
         doc_queue: DocumentQueue,
         event_type: str,
         *,
@@ -249,8 +248,7 @@ def do_index(
     logger_ = get_quilt_logger()
     # index as object (always)
     logger_.debug("%s to indexing queue (%s)", key, event_type)
-    index_object(
-        doc_queue=doc_queue,
+    doc_queue.append(
         event_type=event_type,
         bucket=bucket,
         ext=ext,
@@ -264,6 +262,7 @@ def do_index(
     )
 
     if index_if_pointer(
+        s3_client,
         doc_queue=doc_queue,
         bucket=bucket,
         key=key,
@@ -272,6 +271,7 @@ def do_index(
 
 
 def index_if_pointer(
+    s3_client,
     doc_queue: DocumentQueue,
     *,
     bucket: str,
@@ -335,73 +335,6 @@ def index_if_pointer(
         }
     )
     return True
-
-
-def index_object(
-    *,
-    doc_queue: DocumentQueue,
-    bucket: str,
-    key: str,
-    etag: str,
-    last_modified: str,
-    size: int,
-    text: str,
-    event_type: str,
-    ext: str,
-    version_id,
-    s3_tags,
-):
-    """format event as a document and then queue the document"""
-    if not bucket or not key:
-        raise ValueError(f"bucket={bucket} or key={key} required but missing")
-    is_delete_marker = False
-    if event_type.startswith(EVENT_PREFIX["Created"]):
-        _op_type = "update"
-    elif event_type.startswith(EVENT_PREFIX["Removed"]):
-        _op_type = "delete"
-        if event_type.endswith("DeleteMarkerCreated"):
-            is_delete_marker = True
-            # we index (not delete) delete markers to sync state with S3
-            _op_type = "index"
-    else:
-        logger.error("Skipping unrecognized event type %s", event_type)
-        return
-    # On types and fields, see
-    # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
-    # Set common properties on the document
-    # BE CAREFUL changing these values, as type changes or missing fields
-    # can cause exceptions from ES
-    # ensure the same versionId and primary keys (_id) as given by
-    #  list-object-versions in the enterprise bulk_scanner
-    version_id = version_id or "null"
-    # core properties for all document types;
-    # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
-    data = {
-        "etag": etag,
-        "key": key,
-        "last_modified": last_modified,
-        "size": size,
-        "delete_marker": is_delete_marker,
-        "version_id": version_id,
-        "content": text,  # field for full-text search
-        "event": event_type,
-        "ext": ext,
-        "updated": datetime.datetime.utcnow().isoformat(),
-        "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
-    }
-    body = {
-        "_index": bucket,
-        "_op_type": _op_type,  # determines if action is upsert (index) or delete
-        "_id": get_object_doc_id(key, version_id),
-    }
-    if _op_type == "update":
-        body.update(
-            doc=data,
-            doc_as_upsert=True,
-        )
-    else:
-        body.update(data)
-    doc_queue.append_document(body)
 
 
 def extract_pptx(fileobj, max_size: int) -> str:
@@ -675,7 +608,7 @@ def handler(event, context):
     # An exception that we'll want to re-raise after the batch sends
     # TODO: handle s3:ObjectTagging:* events to keep s3_tags updated
     content_exception = None
-    batch_processor = DocumentQueue(context, es)
+    batch_processor = DocumentQueue(context)
     s3_client = make_s3_client()
     for message in event["Records"]:
         body = json.loads(message["body"])
@@ -718,6 +651,7 @@ def handler(event, context):
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
                     do_index(
+                        s3_client,
                         batch_processor,
                         event_name,
                         bucket=bucket,
@@ -790,6 +724,7 @@ def handler(event, context):
                 #      for objects without tags.
 
                 do_index(
+                    s3_client,
                     batch_processor,
                     event_name,
                     bucket=bucket,

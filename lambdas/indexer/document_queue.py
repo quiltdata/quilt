@@ -3,10 +3,12 @@ sending to elastic search in memory-limited batches"""
 import functools
 import json
 import os
+from datetime import datetime
 from math import floor
 
 from elasticsearch.helpers import bulk
 
+from quilt_shared.es import get_object_doc_id, make_elastic
 from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
 
 # number of bytes we take from each document before sending to elastic-search
@@ -32,9 +34,6 @@ RETRY_429 = 3
 
 PER_BUCKET_CONFIGS = os.getenv('PER_BUCKET_CONFIGS')
 PER_BUCKET_CONFIGS = json.loads(PER_BUCKET_CONFIGS) if PER_BUCKET_CONFIGS else {}
-
-
-logger = get_quilt_logger()
 
 
 @functools.lru_cache(maxsize=None)
@@ -64,12 +63,79 @@ class RetryError(Exception):
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
-    def __init__(self, context, es):
+    def __init__(self, context):
         """constructor"""
         self.queue = []
         self.size = 0
         self.context = context
-        self.es = es
+
+    # TODO: move this to index.py to make this class dumber
+    def append(
+        self,
+        *,
+        bucket: str,
+        key: str,
+        etag: str,
+        last_modified: str,
+        size: int,
+        text: str,
+        event_type: str,
+        ext: str,
+        version_id,
+        s3_tags,
+    ):
+        """format event as a document and then queue the document"""
+        logger_ = get_quilt_logger()
+        if not bucket or not key:
+            raise ValueError(f"bucket={bucket} or key={key} required but missing")
+        is_delete_marker = False
+        if event_type.startswith(EVENT_PREFIX["Created"]):
+            _op_type = "update"
+        elif event_type.startswith(EVENT_PREFIX["Removed"]):
+            _op_type = "delete"
+            if event_type.endswith("DeleteMarkerCreated"):
+                is_delete_marker = True
+                # we index (not delete) delete markers to sync state with S3
+                _op_type = "index"
+        else:
+            logger_.error("Skipping unrecognized event type %s", event_type)
+            return
+        # On types and fields, see
+        # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
+        # Set common properties on the document
+        # BE CAREFUL changing these values, as type changes or missing fields
+        # can cause exceptions from ES
+        # ensure the same versionId and primary keys (_id) as given by
+        #  list-object-versions in the enterprise bulk_scanner
+        version_id = version_id or "null"
+        # core properties for all document types;
+        # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
+        data = {
+            "etag": etag,
+            "key": key,
+            "last_modified": last_modified,
+            "size": size,
+            "delete_marker": is_delete_marker,
+            "version_id": version_id,
+            "content": text,  # field for full-text search
+            "event": event_type,
+            "ext": ext,
+            "updated": datetime.utcnow().isoformat(),
+            "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
+        }
+        body = {
+            "_index": bucket,
+            "_op_type": _op_type,  # determines if action is upsert (index) or delete
+            "_id": get_object_doc_id(key, version_id),
+        }
+        if _op_type == "update":
+            body.update(
+                doc=data,
+                doc_as_upsert=True,
+            )
+        else:
+            body.update(data)
+        self.append_document(body)
 
     def append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
@@ -86,22 +152,25 @@ class DocumentQueue:
         if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
-    def get_max_backoff(self):
-        return get_time_remaining(self.context) if self.context else MAX_BACKOFF
+    def _make_elastic(self):
+        # TODO: cache globally
+        # TODO: use max_backoff on bulk() call
+        return make_elastic(
+            os.environ["ES_ENDPOINT"],
+            timeout=30,
+            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
+        )
 
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
         if not self.queue:
             return
+        elastic = self._make_elastic()
         # For response format see
         # https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
         # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
         # note that `elasticsearch` post-processes this response
-        _, errors = bulk_send(
-            self.es,
-            self.queue,
-            max_backoff=self.get_max_backoff(),
-        )
+        _, errors = bulk_send(elastic, self.queue)
         if errors:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
@@ -129,11 +198,7 @@ class DocumentQueue:
                     send_again = self.queue
             # Last retry (though elasticsearch might retry 429s tho)
             if send_again:
-                _, errors = bulk_send(
-                    self.es,
-                    send_again,
-                    max_backoff=self.get_max_backoff(),
-                )
+                _, errors = bulk_send(elastic, send_again)
                 if errors:
                     raise RetryError(
                         "Failed to load messages into Elastic on second retry.\n"
@@ -154,7 +219,7 @@ def get_time_remaining(context):
     return time_remaining
 
 
-def bulk_send(elastic, list_, *, max_backoff):
+def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
     logger_ = get_quilt_logger()
     logger_.debug("bulk_send(): %s", list_)
@@ -173,6 +238,5 @@ def bulk_send(elastic, list_, *, max_backoff):
         max_retries=RETRY_429,
         # we'll process errors on our own
         raise_on_error=False,
-        raise_on_exception=False,
-        max_backoff=max_backoff,
+        raise_on_exception=False
     )
