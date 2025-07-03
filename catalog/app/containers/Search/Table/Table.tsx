@@ -8,7 +8,6 @@ import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui
 import { TinyTextField, List } from 'components/Filters'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as GQL from 'utils/GraphQL'
-import { Leaf } from 'utils/KeyedTree'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 
@@ -35,14 +34,12 @@ import type {
 import { Provider, useContext } from './Provider'
 
 interface AvailableSystemMetaFillterProps {
-  filter: keyof SearchUIModel.PackagesFilterState['predicates']
-  columns: ColumnsMap
+  column: ColumnFilter
   onClose: () => void
 }
 
 function AvailableSystemMetaFillter({
-  columns,
-  filter,
+  column,
   onClose,
 }: AvailableSystemMetaFillterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -52,51 +49,31 @@ function AvailableSystemMetaFillter({
   } = useContext()
   const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
 
-  // FIXME: column must exist, doesn't it
-  // const column = columns.get(filter)
-
   const showColumn = React.useCallback(() => {
-    if (model.state.filter.predicates[filter]) {
-      const column = columns.get(filter)
-      if (column && !column.state.visible) {
-        show(column.filter)
-      }
-    } else {
-      activatePackagesFilter(filter)
-
-      const column = columns.get(filter)
-      if (column && !column.state.visible) {
-        show(column.filter)
-      }
+    if (!model.state.filter.predicates[column.filter]) {
+      activatePackagesFilter(column.filter)
     }
 
-    const column = columns.get(filter)
-    if (column && !column.state.filtered) {
+    if (!column.state.visible) {
+      show(column.filter)
+    }
+
+    if (!column.state.filtered) {
       open(column)
       onClose()
     }
-  }, [
-    activatePackagesFilter,
-    filter,
-    columns,
-    model.state.filter.predicates,
-    onClose,
-    open,
-    show,
-  ])
+  }, [activatePackagesFilter, column, model.state.filter.predicates, onClose, open, show])
 
   const hideColumn = React.useCallback(() => {
-    const column = columns.get(filter)
-    if (!column) return
     if (column.state.filtered) {
       hide(column.filter)
     } else {
       if (column.filter === 'name') {
         hide(column.filter)
       }
-      deactivatePackagesFilter(filter)
+      deactivatePackagesFilter(column.filter)
     }
-  }, [filter, deactivatePackagesFilter, hide, columns])
+  }, [column, deactivatePackagesFilter, hide])
 
   const handleChange = React.useCallback(
     (_e, checked) => (checked ? showColumn() : hideColumn()),
@@ -104,17 +81,13 @@ function AvailableSystemMetaFillter({
   )
 
   return (
-    <M.MenuItem onClick={showColumn} selected={columns.get(filter)?.state.filtered}>
+    <M.MenuItem onClick={showColumn} selected={column.state.filtered}>
       <M.ListItemText
-        primary={PACKAGE_FILTER_LABELS[filter]}
-        secondary={columns.get(filter)?.state.filtered && 'Filters applied'}
+        primary={PACKAGE_FILTER_LABELS[column.filter]}
+        secondary={column.state.filtered && 'Filters applied'}
       />
       <M.ListItemSecondaryAction>
-        <M.Checkbox
-          edge="end"
-          onChange={handleChange}
-          checked={columns.get(filter)?.state.visible}
-        />
+        <M.Checkbox edge="end" onChange={handleChange} checked={column.state.visible} />
       </M.ListItemSecondaryAction>
     </M.MenuItem>
   )
@@ -133,14 +106,12 @@ function getLabel(key: string) {
 }
 
 interface AvailableUserMetaFilterProps extends M.ListItemTextProps {
-  node: Leaf<SearchUIModel.PackageUserMetaFacet>
-  columns: ColumnsMap
+  column: ColumnMeta
   onClose: () => void
 }
 
 function AvailableUserMetaFilter({
-  columns,
-  node,
+  column,
   onClose,
   ...props
 }: AvailableUserMetaFilterProps) {
@@ -151,10 +122,7 @@ function AvailableUserMetaFilter({
   } = useContext()
   const { activatePackagesMetaFilter, deactivatePackagesMetaFilter } = model.actions
   const showColumn = React.useCallback(() => {
-    const type = SearchUIModel.PackageUserMetaFacetMap[node.value.__typename]
-    activatePackagesMetaFilter(node.value.path, type)
-    const column = columns.get(node.value.path)
-    if (!column) return
+    activatePackagesMetaFilter(column.filter, column.predicateType)
     if (!column.state.visible) {
       show(column.filter)
     }
@@ -162,17 +130,15 @@ function AvailableUserMetaFilter({
       open(column)
       onClose()
     }
-  }, [node, activatePackagesMetaFilter, columns, open, show, onClose])
+  }, [activatePackagesMetaFilter, column, open, show, onClose])
 
   const hideColumn = React.useCallback(() => {
-    const column = columns.get(node.value.path)
-    if (!column) return
     if (column.state.filtered || column.state.inferred) {
       hide(column.filter)
     } else {
-      deactivatePackagesMetaFilter(node.value.path)
+      deactivatePackagesMetaFilter(column.filter)
     }
-  }, [columns, node, hide, deactivatePackagesMetaFilter])
+  }, [column, hide, deactivatePackagesMetaFilter])
 
   const handleChange = React.useCallback(
     (_e, checked) => (checked ? showColumn() : hideColumn()),
@@ -182,11 +148,7 @@ function AvailableUserMetaFilter({
     <M.MenuItem onClick={showColumn}>
       <M.ListItemText {...props} />
       <M.ListItemSecondaryAction>
-        <M.Checkbox
-          edge="end"
-          onChange={handleChange}
-          checked={columns.get(node.value.path)?.state.visible}
-        />
+        <M.Checkbox edge="end" onChange={handleChange} checked={column.state.visible} />
       </M.ListItemSecondaryAction>
     </M.MenuItem>
   )
@@ -712,26 +674,36 @@ function FilterGroup({ columns, disabled, items, onClose, path }: FilterGroupPro
         )}
         <div className={cx({ [classes.nested]: !!path })}>
           <M.Collapse in={expanded || !path}>
-            {Array.from(items).map(([p, node]) =>
-              node._tag === 'Tree' ? (
-                <FilterGroup
-                  disabled={disabled}
-                  items={node.children}
-                  key={path + p}
-                  path={p}
-                  columns={columns}
-                  onClose={onClose}
-                />
-              ) : (
+            {Array.from(items).map(([p, node]) => {
+              if (node._tag === 'Tree') {
+                return (
+                  <FilterGroup
+                    key={path + p}
+                    disabled={disabled}
+                    items={node.children}
+                    path={p}
+                    columns={columns}
+                    onClose={onClose}
+                  />
+                )
+              }
+              const column = columns.get(node.value.path)
+              if (!column || column.tag !== 'meta') {
+                return (
+                  <Lab.Alert key={path + p} severity="error">
+                    Failed rendering {node.value.path}
+                  </Lab.Alert>
+                )
+              }
+              return (
                 <AvailableUserMetaFilter
                   key={path + p}
-                  columns={columns}
-                  node={node}
+                  column={column}
                   onClose={onClose}
                   {...getLabel(p)}
                 />
-              ),
-            )}
+              )
+            })}
           </M.Collapse>
         </div>
       </ul>
@@ -794,14 +766,22 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
   )
 
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const availableFilters = React.useMemo(
-    () =>
-      [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].filter(
-        // TODO: Filter fullTitle as well
-        (f) => f.indexOf(filterValue) > -1,
-      ),
-    [filterValue],
-  )
+  const systemMetaColumns = React.useMemo(() => {
+    const initial: ColumnFilter[] = []
+    return [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].reduce(
+      (memo, filter) => {
+        if (filter.toLowerCase().indexOf(filterValue.toLowerCase()) < 0) return memo
+        const column = columns.get(filter)
+        if (!column || column.tag !== 'filter') return memo
+        if (column.fullTitle.toLowerCase().indexOf(filterValue.toLowerCase()) < 0) {
+          return memo
+        }
+
+        return [...memo, column]
+      },
+      initial,
+    )
+  }, [columns, filterValue])
 
   const enabledMetaFiltersItems = React.useMemo(
     () =>
@@ -819,22 +799,21 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
   return (
     <div className={classes.root}>
       <M.List className={classes.list} dense>
-        {!!availableFilters.length && (
+        {!!systemMetaColumns.length && (
           <>
             <M.ListSubheader>System metadata</M.ListSubheader>
 
-            {availableFilters.map((filter) => (
+            {systemMetaColumns.map((column) => (
               <AvailableSystemMetaFillter
-                key={filter}
-                filter={filter}
-                columns={columns}
+                key={column.filter}
+                column={column}
                 onClose={onClose}
               />
             ))}
           </>
         )}
 
-        {!!availableFilters.length && <M.Divider className={classes.divider} />}
+        {!!systemMetaColumns.length && <M.Divider className={classes.divider} />}
         <M.ListSubheader>User metadata</M.ListSubheader>
 
         <FilterGroup
