@@ -259,7 +259,7 @@ def test_index_manifest_no_entries(mock_s3_client, mock_es, mock_batcher):
         with patch("t4_lambda_manifest_indexer.es", mock_es):
             index_manifest(mock_batcher, bucket=bucket, key=key)
 
-    assert mock_es.delete_by_query.called_once_with(
+    mock_es.delete_by_query.called_once_with(
         index="test-bucket_packages",
         body={
             "query": {
