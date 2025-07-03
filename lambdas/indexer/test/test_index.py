@@ -917,11 +917,6 @@ class TestIndex(TestCase):
         pointer_file = "1610412903"
         key = f"{NAMED_PACKAGES_PREFIX}{handle}/{pointer_file}"
         pkg_hash = "a" * 64
-        # manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
-        # message = "test"
-        # meta = {"foo": "bar"}
-        # select_meta_mock.return_value = {"message": message, "user_meta": meta}
-        # select_stats_mock.return_value = {"total_bytes": 42, "total_files": 42}
         last_modified = datetime.datetime(2021, 1, 1, 0, 0, tzinfo=tzutc())
 
         self.s3_stubber.add_response(
@@ -943,8 +938,6 @@ class TestIndex(TestCase):
             key=key,
         )
 
-        # select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
-        # select_stats_mock.assert_called_once_with(bucket, manifest_key)
         append_mock.assert_called_once_with({
             "_index": bucket + PACKAGE_INDEX_SUFFIX,
             "_op_type": "index",
