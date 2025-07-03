@@ -635,6 +635,7 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
           toggleCollapsed(column.filter)
         }
         model.actions.deactivatePackagesMetaFilter(column.filter)
+        break
       case 'bucket':
         model.actions.setBuckets([])
         break
