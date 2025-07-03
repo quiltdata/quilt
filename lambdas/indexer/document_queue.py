@@ -8,7 +8,11 @@ from math import floor
 
 from elasticsearch.helpers import bulk
 
-from quilt_shared.es import get_object_doc_id, make_elastic, normalize_object_version_id
+from quilt_shared.es import (
+    get_object_doc_id,
+    make_elastic,
+    normalize_object_version_id,
+)
 from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
 
 # number of bytes we take from each document before sending to elastic-search

@@ -909,7 +909,6 @@ class TestIndex(TestCase):
             }
         )
 
-
     @patch.object(index.DocumentQueue, 'append_document')
     def test_index_if_pointer(self, append_mock):
         bucket = "quilt-example"
