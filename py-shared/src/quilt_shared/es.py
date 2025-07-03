@@ -115,7 +115,13 @@ def get_es_aliases(es) -> frozenset[str]:
     return frozenset(a for v in es.indices.get_alias().values() for a in v["aliases"])
 
 
-def get_object_doc_id(key: str, version_id: str) -> str:
+def normalize_object_version_id(version_id: str | None) -> str:
+    # ensure the same versionId and primary keys (_id) as given by
+    # list-object-versions in the enterprise bulk_scanner
+    return "null" if version_id is None else version_id
+
+
+def get_object_doc_id(key: str, version_id: str | None) -> str:
     """
     Generate unique value for every object in the bucket to be used as
     document `_id`. This value must not exceed 512 bytes in size:
@@ -124,7 +130,7 @@ def get_object_doc_id(key: str, version_id: str) -> str:
     # we need to use something like `_hash(key) + _hash(version_id)` to
     # overcome the mentioned size restriction.
     """
-    return f"{key}:{version_id}"
+    return f"{key}:{normalize_object_version_id(version_id)}"
 
 
 def get_manifest_doc_id(manifest_hash: str) -> str:
