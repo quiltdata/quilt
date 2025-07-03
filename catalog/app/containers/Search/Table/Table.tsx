@@ -826,10 +826,11 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
           {
             Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
             Empty: () => null,
-            Ready: ({ facets: { available } }) => (
+            Ready: ({ facets: { available }, fetching }) => (
               <FilterGroup
                 items={SearchUIModel.groupFacets(available)[0].children}
                 columns={columns}
+                disabled={fetching}
                 onClose={onClose}
               />
             ),
