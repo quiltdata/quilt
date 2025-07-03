@@ -2,69 +2,89 @@ import * as React from 'react'
 
 import type { Column } from './useColumns'
 
-export type CollapsedFilters = Map<Column['filter'], boolean>
+export type HiddenColumns = Map<Column['filter'], boolean>
 
 interface Context {
   focused: Column | null
   openFilter: (c: Column) => void
   closeFilter: () => void
 
-  collapsed: CollapsedFilters
-  toggleCollapsed: (f: Column['filter'], force?: boolean) => void
-  // TODO: showColumn
-  // TODO: hideColumn
+  hiddenColumns: HiddenColumns
+  columnsActions: {
+    show: (fs: Column['filter'] | Column['filter'][]) => void
+    hide: (fs: Column['filter'] | Column['filter'][]) => void
+  }
 }
 
 const noop = () => {}
 
 const initialContext: Context = {
   focused: null,
-  collapsed: new Map(),
-
   openFilter: noop,
   closeFilter: noop,
-  toggleCollapsed: noop,
+
+  hiddenColumns: new Map(),
+  columnsActions: {
+    show: noop,
+    hide: noop,
+  },
 }
 
 const Ctx = React.createContext<Context>(initialContext)
+
+function removeBool(x: HiddenColumns, f: Column['filter']) {
+  const m = new Map(x)
+  return m.delete(f) ? m : x
+}
+
+function removeBoolsList(x: HiddenColumns, fs: Column['filter'][]) {
+  const m = new Map(x)
+  for (const f of fs) {
+    m.delete(f)
+  }
+  return m
+}
+
+function addBool(x: HiddenColumns, f: Column['filter']) {
+  return new Map(x).set(f, true)
+}
+
+function addBoolsList(x: HiddenColumns, fs: Column['filter'][]) {
+  return new Map(Array.from(x.entries()).concat(fs.map((f) => [f, true])))
+}
 
 export function Provider({ children }: { children: React.ReactNode }) {
   const [focused, setFocused] = React.useState<Column | null>(initialContext.focused)
   const openFilter = React.useCallback((c: Column) => setFocused(c), [])
   const closeFilter = React.useCallback(() => setFocused(null), [])
 
-  const [collapsed, setCollapsed] = React.useState<CollapsedFilters>(
-    initialContext.collapsed,
+  const [hiddenColumns, setHiddenColumns] = React.useState<HiddenColumns>(
+    initialContext.hiddenColumns,
   )
-  const toggleCollapsed = React.useCallback(
-    (filter: Column['filter'], force?: boolean) => {
-      setCollapsed((x) => {
-        if (force === true) {
-          return x.has(filter) ? x : new Map(x).set(filter, true)
-        }
-
-        if (force === false) {
-          if (x.has(filter)) {
-            const m = new Map(x)
-            return m.delete(filter) ? m : x
-          } else {
-            return x
-          }
-        }
-
-        if (x.has(filter)) {
-          const m = new Map(x)
-          return m.delete(filter) ? m : x
-        } else {
-          return new Map(x).set(filter, true)
-        }
-      })
-    },
+  const show = React.useCallback(
+    (filters: Column['filter'] | Column['filter'][]) =>
+      setHiddenColumns((x) =>
+        Array.isArray(filters) ? removeBoolsList(x, filters) : removeBool(x, filters),
+      ),
     [],
   )
+  const hide = React.useCallback(
+    (filters: Column['filter'] | Column['filter'][]) =>
+      setHiddenColumns((x) =>
+        Array.isArray(filters) ? addBoolsList(x, filters) : addBool(x, filters),
+      ),
+    [],
+  )
+  const columnsActions = React.useMemo(() => ({ show, hide }), [show, hide])
   const value = React.useMemo(
-    () => ({ focused, openFilter, closeFilter, collapsed, toggleCollapsed }),
-    [focused, openFilter, closeFilter, collapsed, toggleCollapsed],
+    () => ({
+      focused,
+      openFilter,
+      closeFilter,
+      hiddenColumns,
+      columnsActions,
+    }),
+    [focused, openFilter, closeFilter, hiddenColumns, columnsActions],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

@@ -46,7 +46,10 @@ function AvailableSystemMetaFillter({
   onClose,
 }: AvailableSystemMetaFillterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { openFilter, toggleCollapsed } = useContext()
+  const {
+    openFilter,
+    columnsActions: { show, hide },
+  } = useContext()
   const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
 
   // FIXME: column must exist, doesn't it
@@ -56,14 +59,14 @@ function AvailableSystemMetaFillter({
     if (model.state.filter.predicates[filter]) {
       const column = columns.get(filter)
       if (column && !column.state.visible) {
-        toggleCollapsed(column.filter, false)
+        show(column.filter)
       }
     } else {
       activatePackagesFilter(filter)
 
       const column = columns.get(filter)
       if (column && !column.state.visible) {
-        toggleCollapsed(column.filter, false)
+        show(column.filter)
       }
     }
 
@@ -79,21 +82,21 @@ function AvailableSystemMetaFillter({
     model.state.filter.predicates,
     onClose,
     openFilter,
-    toggleCollapsed,
+    show,
   ])
 
   const hideColumn = React.useCallback(() => {
     const column = columns.get(filter)
     if (!column) return
     if (column.state.filtered) {
-      toggleCollapsed(column.filter)
+      hide(column.filter)
     } else {
       if (column.filter === 'name') {
-        toggleCollapsed(column.filter)
+        hide(column.filter)
       }
       deactivatePackagesFilter(filter)
     }
-  }, [filter, deactivatePackagesFilter, toggleCollapsed, columns])
+  }, [filter, deactivatePackagesFilter, hide, columns])
 
   const handleChange = React.useCallback(
     (_e, checked) => (checked ? showColumn() : hideColumn()),
@@ -142,7 +145,10 @@ function AvailableUserMetaFilter({
   ...props
 }: AvailableUserMetaFilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { openFilter, toggleCollapsed } = useContext()
+  const {
+    openFilter,
+    columnsActions: { show, hide },
+  } = useContext()
   const { activatePackagesMetaFilter, deactivatePackagesMetaFilter } = model.actions
   const showColumn = React.useCallback(() => {
     const type = SearchUIModel.PackageUserMetaFacetMap[node.value.__typename]
@@ -150,23 +156,23 @@ function AvailableUserMetaFilter({
     const column = columns.get(node.value.path)
     if (!column) return
     if (!column.state.visible) {
-      toggleCollapsed(column.filter)
+      show(column.filter)
     }
     if (!column.state.filtered) {
       openFilter(column)
       onClose()
     }
-  }, [node, activatePackagesMetaFilter, columns, openFilter, toggleCollapsed, onClose])
+  }, [node, activatePackagesMetaFilter, columns, openFilter, show, onClose])
 
   const hideColumn = React.useCallback(() => {
     const column = columns.get(node.value.path)
     if (!column) return
     if (column.state.filtered || column.state.inferred) {
-      toggleCollapsed(column.filter)
+      hide(column.filter)
     } else {
       deactivatePackagesMetaFilter(node.value.path)
     }
-  }, [columns, node, toggleCollapsed, deactivatePackagesMetaFilter])
+  }, [columns, node, hide, deactivatePackagesMetaFilter])
 
   const handleChange = React.useCallback(
     (_e, checked) => (checked ? showColumn() : hideColumn()),
@@ -604,7 +610,9 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const { openFilter } = useContext()
 
-  const { toggleCollapsed } = useContext()
+  const {
+    columnsActions: { hide },
+  } = useContext()
 
   const showFilter = React.useCallback(() => {
     switch (column.tag) {
@@ -620,19 +628,19 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
 
   const handleHide = React.useCallback(() => {
     if (column.state.filtered) {
-      toggleCollapsed(column.filter)
+      hide(column.filter)
       return
     }
     switch (column.tag) {
       case 'filter':
         if (column.filter === 'name') {
-          toggleCollapsed(column.filter)
+          hide(column.filter)
         }
         model.actions.deactivatePackagesFilter(column.filter)
         break
       case 'meta':
         if (column.state.inferred) {
-          toggleCollapsed(column.filter)
+          hide(column.filter)
         }
         model.actions.deactivatePackagesMetaFilter(column.filter)
         break
@@ -642,7 +650,7 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
       default:
         assertNever(column)
     }
-  }, [column, toggleCollapsed, model.actions])
+  }, [column, hide, model.actions])
 
   return (
     <div className={cx(classes.root, className)}>
@@ -952,7 +960,7 @@ function AddColumn({ columns, state }: AddColumnProps) {
 
   const [filterValue, setFilterValue] = React.useState('')
 
-  const { collapsed } = useContext()
+  const { hiddenColumns } = useContext()
 
   if (!open) {
     return (
@@ -965,7 +973,7 @@ function AddColumn({ columns, state }: AddColumnProps) {
         <div className={classes.head}>
           <M.Badge
             color="secondary"
-            invisible={!collapsed.size}
+            invisible={!hiddenColumns.size}
             overlap="circle"
             variant="dot"
           >
@@ -1230,8 +1238,8 @@ interface TableViewProps {
 function TableView({ hits, bucket }: TableViewProps) {
   const infered: Workflow.RequestResult<InferedUserMetaFacets> =
     useInferredUserMetaFacets()
-  const { collapsed } = useContext()
-  const [columns, notReady] = useColumns(infered, collapsed, bucket)
+  const { hiddenColumns } = useContext()
+  const [columns, notReady] = useColumns(infered, hiddenColumns, bucket)
   const skeletons = Skeleton.useColumns(
     notReady === Workflow.Loading ? hits.length + 1 : 0,
     3,

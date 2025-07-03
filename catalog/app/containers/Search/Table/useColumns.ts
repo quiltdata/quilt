@@ -5,7 +5,7 @@ import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
 import * as SearchUIModel from '../model'
 
 import * as Workflow from './workflow'
-import type { CollapsedFilters } from './Provider'
+import type { HiddenColumns } from './Provider'
 
 const AVAILABLE_PACKAGES_FILTERS = [
   ...PACKAGES_FILTERS_PRIMARY,
@@ -66,7 +66,7 @@ type InferedColumnsNotReady = Exclude<
 
 export function useColumns(
   infered: Workflow.RequestResult<InferedUserMetaFacets>,
-  collapsed: CollapsedFilters,
+  hiddenColumns: HiddenColumns,
   bucket?: string,
 ): [ColumnsMap, InferedColumnsNotReady | null] {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -85,7 +85,7 @@ export function useColumns(
       title: COLUMN_LABELS.name,
       state: {
         filtered: !!modifiedFilters && !!modifiedFilters.name,
-        visible: !collapsed.has('name'),
+        visible: !hiddenColumns.has('name'),
         inferred: false,
       },
     }
@@ -96,12 +96,12 @@ export function useColumns(
       title: COLUMN_LABELS.bucket,
       state: {
         filtered: !!state.buckets.length,
-        visible: !collapsed.has('bucket'),
+        visible: !hiddenColumns.has('bucket'),
         inferred: false,
       },
     }
     return [bucketCol, nameCol]
-  }, [state.buckets.length, modifiedFilters, collapsed, bucket])
+  }, [state.buckets.length, modifiedFilters, hiddenColumns, bucket])
 
   const filters = React.useMemo(() => {
     const output: Column[] = []
@@ -118,14 +118,14 @@ export function useColumns(
           title: COLUMN_LABELS[filter],
           state: {
             filtered: !!modifiedFilters && !!modifiedFilters[filter],
-            visible: !!predicate && !collapsed.has(filter),
+            visible: !!predicate && !hiddenColumns.has(filter),
             inferred: false,
           },
         })
       }
     })
     return output
-  }, [collapsed, state.filter, modifiedFilters])
+  }, [hiddenColumns, state.filter, modifiedFilters])
 
   const selectedUserMeta = React.useMemo(() => {
     const modifiedUserMetaFilters = state.userMetaFilters.toGQL()
@@ -138,13 +138,13 @@ export function useColumns(
         title: filter.replace(/^\//, ''),
         state: {
           filtered: !!modifiedUserMetaFilters?.find(({ path }) => path === filter),
-          visible: !collapsed.has(filter),
+          visible: !hiddenColumns.has(filter),
           inferred: false,
         },
       })
     })
     return output
-  }, [collapsed, state.userMetaFilters])
+  }, [hiddenColumns, state.userMetaFilters])
 
   const inferedUserMeta = React.useMemo(() => {
     const output: Column[] = []
@@ -158,13 +158,13 @@ export function useColumns(
         title: filter.replace(/^\//, ''),
         state: {
           filtered: false,
-          visible: !collapsed.has(filter),
+          visible: !hiddenColumns.has(filter),
           inferred: true,
         },
       })
     }
     return output
-  }, [collapsed, infered])
+  }, [hiddenColumns, infered])
 
   return React.useMemo(() => {
     const list = [...fixed, ...filters, ...selectedUserMeta]
