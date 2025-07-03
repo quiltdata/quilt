@@ -450,8 +450,8 @@ wheels = [
 [[package]]
 name = "quilt-shared"
 version = "0.1.0"
-source = { url = "https://github.com/quiltdata/quilt/archive/25812f2bf0b53ce3835af62672c3f51717742068.zip", subdirectory = "py-shared" }
-sdist = { hash = "sha256:a2ffabdd9056a11dcc46eb1d772a2aa8a955f675c65fe0d74e24cdc738c0afc3" }
+source = { url = "https://github.com/quiltdata/quilt/archive/f86ccd0fe3c80c12848fbf045980193115e2c3c9.zip", subdirectory = "py-shared" }
+sdist = { hash = "sha256:54e19d9a2e548c483f65b9ff6756f1934d2c681643bdb47b923948b58a316d52" }
 
 [package.optional-dependencies]
 boto = [
@@ -653,7 +653,7 @@ test = [
 requires-dist = [
     { name = "jsonpointer", specifier = "~=2.4" },
     { name = "orjson", specifier = "~=3.10" },
-    { name = "quilt-shared", extras = ["boto", "es"], url = "https://github.com/quiltdata/quilt/archive/25812f2bf0b53ce3835af62672c3f51717742068.zip", subdirectory = "py-shared" },
+    { name = "quilt-shared", extras = ["boto", "es"], url = "https://github.com/quiltdata/quilt/archive/f86ccd0fe3c80c12848fbf045980193115e2c3c9.zip", subdirectory = "py-shared" },
     { name = "t4-lambda-shared", url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" },
 ]
 

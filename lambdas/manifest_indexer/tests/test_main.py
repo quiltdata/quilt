@@ -73,11 +73,18 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
                 "schemas": {
                     "schema-id": "schema-url",
                 },
-            }
+            },
         },
         {
             "logical_key": "test.txt",
-            "physical_keys": [f"s3://{mnfst_bucket}/test.txt"],
+            "physical_keys": [f"s3://{mnfst_bucket}/test.txt?versionId=some-version-id"],
+            "size": 100,
+            "hash": "testhash",
+            "meta": {"test": "metadata"},
+        },
+        {
+            "logical_key": "test2.txt",
+            "physical_keys": [f"s3://{mnfst_bucket}/test2.txt"],
             "size": 100,
             "hash": "testhash",
             "meta": {"test": "metadata"},
@@ -123,10 +130,38 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
                 "join_field": {"name": "entry", "parent": get_manifest_doc_id(mnfst_hash)},
                 "routing": get_manifest_doc_id(mnfst_hash),
                 "entry_lk": "test.txt",
-                "entry_pk": f"s3://{mnfst_bucket}/test.txt",
+                "entry_pk": f"s3://{mnfst_bucket}/test.txt?versionId=some-version-id",
                 "entry_pk_parsed.s3": {
                     "bucket": mnfst_bucket,
                     "key": "test.txt",
+                    "version_id": "some-version-id",
+                },
+                "entry_size": 100,
+                "entry_hash": "testhash",
+                "entry_metadata": json.dumps({"test": "metadata"}, separators=(",", ":")),
+            }
+        ),
+        call(
+            {
+                "_index": mnfst_bucket,
+                "_op_type": "update",
+                "_id": "test.txt:some-version-id",
+                "doc": {"was_packaged": True},
+                "doc_as_upsert": True,
+            }
+        ),
+        call(
+            {
+                "_index": pkg_index,
+                "_op_type": "index",
+                "_id": get_manifest_entry_doc_id(mnfst_hash, "test2.txt"),
+                "join_field": {"name": "entry", "parent": get_manifest_doc_id(mnfst_hash)},
+                "routing": get_manifest_doc_id(mnfst_hash),
+                "entry_lk": "test2.txt",
+                "entry_pk": f"s3://{mnfst_bucket}/test2.txt",
+                "entry_pk_parsed.s3": {
+                    "bucket": mnfst_bucket,
+                    "key": "test2.txt",
                     "version_id": None,
                 },
                 "entry_size": 100,
@@ -136,9 +171,9 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
         ),
         call(
             {
-                "_index": "test-bucket",
+                "_index": mnfst_bucket,
                 "_op_type": "update",
-                "_id": "test.txt:None",
+                "_id": "test2.txt:null",
                 "doc": {"was_packaged": True},
                 "doc_as_upsert": True,
             }

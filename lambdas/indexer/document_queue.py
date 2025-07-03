@@ -8,7 +8,7 @@ from math import floor
 
 from elasticsearch.helpers import bulk
 
-from quilt_shared.es import get_object_doc_id, make_elastic
+from quilt_shared.es import get_object_doc_id, make_elastic, normalize_object_version_id
 from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
 
 # number of bytes we take from each document before sending to elastic-search
@@ -105,9 +105,6 @@ class DocumentQueue:
         # Set common properties on the document
         # BE CAREFUL changing these values, as type changes or missing fields
         # can cause exceptions from ES
-        # ensure the same versionId and primary keys (_id) as given by
-        #  list-object-versions in the enterprise bulk_scanner
-        version_id = version_id or "null"
         # core properties for all document types;
         # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
         data = {
@@ -116,7 +113,7 @@ class DocumentQueue:
             "last_modified": last_modified,
             "size": size,
             "delete_marker": is_delete_marker,
-            "version_id": version_id,
+            "version_id": normalize_object_version_id(version_id),
             "content": text,  # field for full-text search
             "event": event_type,
             "ext": ext,

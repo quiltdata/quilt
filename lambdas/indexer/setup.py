@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='es_indexer',
-    version='0.0.1',
-    py_modules=['index', 'document_queue'],
+    name="es_indexer",
+    version="0.0.1",
+    py_modules=["index", "document_queue"],
     install_requires=[
         "boto3 ~= 1.34",
         "jsonschema ~= 3.2",
@@ -19,7 +19,8 @@ setup(
         ),
         (
             "quilt-shared[boto,es] @ https://github.com/quiltdata/quilt/archive/"
-            "11a0442ca07660b6c9a344e65c12e0526bf2f7f5.zip"
-            "#subdirectory=py-shared")
+            "f86ccd0fe3c80c12848fbf045980193115e2c3c9.zip"
+            "#subdirectory=py-shared"
+        ),
     ],
 )
