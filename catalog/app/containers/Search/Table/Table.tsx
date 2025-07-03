@@ -93,6 +93,37 @@ function AvailableSystemMetaFillter({
   )
 }
 
+function AvailableFacetsSkeleton() {
+  return (
+    <M.List>
+      <M.ListItem>
+        <M.ListItemText primary={<Lab.Skeleton />} />
+        <M.ListItemSecondaryAction>
+          <Lab.Skeleton>
+            <M.Icon />
+          </Lab.Skeleton>
+        </M.ListItemSecondaryAction>
+      </M.ListItem>
+      <M.ListItem>
+        <M.ListItemText primary={<Lab.Skeleton />} />
+        <M.ListItemSecondaryAction>
+          <Lab.Skeleton>
+            <M.Icon />
+          </Lab.Skeleton>
+        </M.ListItemSecondaryAction>
+      </M.ListItem>
+      <M.ListItem>
+        <M.ListItemText primary={<Lab.Skeleton />} />
+        <M.ListItemSecondaryAction>
+          <Lab.Skeleton>
+            <M.Icon />
+          </Lab.Skeleton>
+        </M.ListItemSecondaryAction>
+      </M.ListItem>
+    </M.List>
+  )
+}
+
 function getLabel(key: string) {
   const [type, rest] = key.split(':')
   switch (type) {
@@ -743,47 +774,35 @@ const useAvailableFacetsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface AvailableFacetsProps {
-  columns: ColumnsMap
-  onClose: () => void
-  state: SearchUIModel.AvailableFiltersStateInstance
-}
-
-function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
-  const classes = useAvailableFacetsStyles()
-
-  const filterValue = SearchUIModel.AvailableFiltersState.match(
-    {
-      Ready: (ready) =>
-        SearchUIModel.FacetsFilteringState.match({
-          Enabled: ({ value }) => value,
-          Disabled: () => '',
-        })(ready.filtering),
-      Loading: () => '',
-      Empty: () => '',
-    },
-    state,
-  )
-
-  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const systemMetaColumns = React.useMemo(() => {
+function useAvailableSystemMetaFacets(columns: ColumnsMap, filterValue: string) {
+  return React.useMemo(() => {
     const initial: ColumnFilter[] = []
     return [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].reduce(
       (memo, filter) => {
-        if (filter.toLowerCase().indexOf(filterValue.toLowerCase()) < 0) return memo
         const column = columns.get(filter)
         if (!column || column.tag !== 'filter') return memo
-        if (column.fullTitle.toLowerCase().indexOf(filterValue.toLowerCase()) < 0) {
-          return memo
-        }
+
+        const combinedFilterString = (column.title + column.fullTitle).toLowerCase()
+        if (!combinedFilterString.includes(filterValue)) return memo
 
         return [...memo, column]
       },
       initial,
     )
   }, [columns, filterValue])
+}
 
-  const enabledMetaFiltersItems = React.useMemo(
+interface AvailableUserMetaFacets {
+  available: SearchUIModel.FacetTree['children'] | null
+  fetching: boolean
+}
+
+function useAvailableUserMetaFacets(
+  state: SearchUIModel.AvailableFiltersStateInstance,
+  filterValue: string,
+) {
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const selected = React.useMemo(
     () =>
       SearchUIModel.groupFacets(
         Array.from(model.state.userMetaFilters.filters)
@@ -791,51 +810,83 @@ function AvailableFacets({ columns, onClose, state }: AvailableFacetsProps) {
             __typename: ReversPackageUserMetaTypename[f._tag],
             path,
           }))
-          .filter(({ path }) => path.indexOf(filterValue) > -1),
+          .filter(({ path }) => path.toLowerCase().includes(filterValue)),
       )[0].children,
     [model.state.userMetaFilters.filters, filterValue],
   )
+  const { available, fetching } = React.useMemo(
+    () =>
+      SearchUIModel.AvailableFiltersState.match(
+        {
+          Loading: (): AvailableUserMetaFacets => ({ available: null, fetching: true }),
+          Empty: (): AvailableUserMetaFacets => ({
+            available: new Map(),
+            fetching: false,
+          }),
+          Ready: (ready): AvailableUserMetaFacets => ({
+            available: SearchUIModel.groupFacets(ready.facets.available)[0].children,
+            fetching: ready.fetching,
+          }),
+        },
+        state,
+      ),
+    [state],
+  )
+
+  return { selected, available, fetching }
+}
+
+interface AvailableFacetsProps {
+  columns: ColumnsMap
+  onClose: () => void
+  filterValue: string
+  state: SearchUIModel.AvailableFiltersStateInstance
+}
+
+function AvailableFacets({ filterValue, columns, onClose, state }: AvailableFacetsProps) {
+  const classes = useAvailableFacetsStyles()
+
+  const systemMetaColumns = useAvailableSystemMetaFacets(columns, filterValue)
+
+  const { selected, available, fetching } = useAvailableUserMetaFacets(state, filterValue)
+
+  const hasSystemMeta = !!systemMetaColumns.length
+  const hasUserMeta = !!(selected.size || available?.size)
 
   return (
     <div className={classes.root}>
       <M.List className={classes.list} dense>
-        {!!systemMetaColumns.length && (
-          <>
-            <M.ListSubheader>System metadata</M.ListSubheader>
-
-            {systemMetaColumns.map((column) => (
-              <AvailableSystemMetaFillter
-                key={column.filter}
-                column={column}
-                onClose={onClose}
-              />
-            ))}
-          </>
+        {!hasSystemMeta && !hasUserMeta && (
+          <M.ListItem>
+            <M.ListItemText primary="Nothing found" />
+          </M.ListItem>
         )}
 
-        {!!systemMetaColumns.length && <M.Divider className={classes.divider} />}
-        <M.ListSubheader>User metadata</M.ListSubheader>
+        {!!hasSystemMeta && <M.ListSubheader>System metadata</M.ListSubheader>}
 
-        <FilterGroup
-          items={enabledMetaFiltersItems}
-          columns={columns}
-          onClose={onClose}
-        />
+        {systemMetaColumns.map((column) => (
+          <AvailableSystemMetaFillter
+            key={column.filter}
+            column={column}
+            onClose={onClose}
+          />
+        ))}
 
-        {SearchUIModel.AvailableFiltersState.match(
-          {
-            Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
-            Empty: () => null,
-            Ready: ({ facets: { available }, fetching }) => (
-              <FilterGroup
-                items={SearchUIModel.groupFacets(available)[0].children}
-                columns={columns}
-                disabled={fetching}
-                onClose={onClose}
-              />
-            ),
-          },
-          state,
+        {hasSystemMeta && hasUserMeta && <M.Divider className={classes.divider} />}
+
+        {hasUserMeta && <M.ListSubheader>User metadata</M.ListSubheader>}
+
+        <FilterGroup items={selected} columns={columns} onClose={onClose} />
+
+        {available ? (
+          <FilterGroup
+            items={available}
+            columns={columns}
+            disabled={fetching}
+            onClose={onClose}
+          />
+        ) : (
+          <AvailableFacetsSkeleton />
         )}
       </M.List>
     </div>
@@ -908,6 +959,30 @@ const useAddColumnStyles = M.makeStyles((t) => ({
   },
 }))
 
+function useTextFilter(state: SearchUIModel.AvailableFiltersStateInstance) {
+  const fallback = React.useState('')
+  const ready = React.useMemo(
+    () =>
+      SearchUIModel.AvailableFiltersState.match(
+        {
+          Ready: (r) => r,
+          Loading: () => null,
+          Empty: () => null,
+        },
+        state,
+      ),
+    [state],
+  )
+
+  return React.useMemo(() => {
+    if (!ready) return fallback
+    return SearchUIModel.FacetsFilteringState.match({
+      Enabled: ({ value, set }) => [value, set] as [string, (v: string) => void],
+      Disabled: () => fallback,
+    })(ready.filtering)
+  }, [fallback, ready])
+}
+
 interface AddColumnProps {
   columns: ColumnsMap
   state: SearchUIModel.AvailableFiltersStateInstance
@@ -938,7 +1013,7 @@ function AddColumn({ columns, state }: AddColumnProps) {
     hide()
   }, [handleTimeout, hide])
 
-  const [filterValue, setFilterValue] = React.useState('')
+  const [filterValue, setFilterValue] = useTextFilter(state)
 
   const { hiddenColumns } = useContext()
 
@@ -974,44 +1049,20 @@ function AddColumn({ columns, state }: AddColumnProps) {
         </M.Typography>
       </div>
 
-      {SearchUIModel.AvailableFiltersState.match(
-        {
-          Ready: (ready) =>
-            SearchUIModel.FacetsFilteringState.match({
-              Enabled: ({ value, set }) => (
-                <TinyTextField
-                  autoFocus
-                  className={classes.input}
-                  onChange={set}
-                  placeholder="Find metadata"
-                  value={value}
-                />
-              ),
-              Disabled: () => (
-                <TinyTextField
-                  autoFocus
-                  className={classes.input}
-                  onChange={setFilterValue}
-                  placeholder="Find metadata"
-                  value={filterValue}
-                />
-              ),
-            })(ready.filtering),
-          Loading: () => <h1>Loading</h1>,
-          Empty: () => (
-            <TinyTextField
-              autoFocus
-              className={classes.input}
-              onChange={setFilterValue}
-              placeholder="Find metadata"
-              value={filterValue}
-            />
-          ),
-        },
-        state,
-      )}
+      <TinyTextField
+        autoFocus
+        className={classes.input}
+        onChange={setFilterValue}
+        placeholder="Find metadata"
+        value={filterValue}
+      />
 
-      <AvailableFacets columns={columns} onClose={hide} state={state} />
+      <AvailableFacets
+        columns={columns}
+        filterValue={filterValue.toLowerCase()}
+        onClose={hide}
+        state={state}
+      />
     </div>
   )
 }
