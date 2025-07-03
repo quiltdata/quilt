@@ -23,6 +23,8 @@ t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbf
 test = [
     "pytest~=8.4",
     "pytest-cov~=6.2",
+    "pytest-env~=1.1",
+    "pytest-mock~=3.14",
 ]
 
 [tool.uv]
