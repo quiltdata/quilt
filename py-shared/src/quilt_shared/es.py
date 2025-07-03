@@ -16,11 +16,9 @@ PACKAGE_INDEX_SUFFIX = "_packages"
 #  lambda in order to display accurate analytics in the Quilt catalog
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
-ELASTIC_TIMEOUT = 30
 
 
 class Batcher:
-    # json_encode = JSONEncoder(ensure_ascii=False, separators=(",", ":")).encode
     BATCH_INDEXER_BUCKET = os.getenv("ES_INGEST_BUCKET")
     BATCH_MAX_BYTES = int(os.getenv("BATCH_MAX_BYTES", 8_000_000))
     BATCH_MAX_DOCS = int(os.getenv("BATCH_MAX_DOCS", 10_000))
