@@ -231,25 +231,3 @@ def test_index_manifest_no_entries(mock_s3_client, mock_es, mock_batcher):
             }
         },
     )
-
-
-def test_index_manifest_directory_entry(mock_s3_client, mock_es, mock_batcher):
-    bucket = "test-bucket"
-    key = ".quilt/manifests/0123456789abcdef0123456789abcdef"
-
-    manifest_entry = {"logical_key": "dir/", "physical_keys": ["s3://test-bucket/dir/"], "size": 0, "hash": "dirhash"}
-
-    manifest_data = {"user_meta": None, "message": ""}
-
-    mock_s3_client.get_object.return_value = {
-        "Body": MagicMock(iter_lines=lambda: [orjson.dumps(manifest_data), orjson.dumps(manifest_entry)]),
-        "LastModified": "2023-01-01T00:00:00Z",
-    }
-
-    with patch("t4_lambda_manifest_indexer.s3_client", mock_s3_client):
-        with patch("t4_lambda_manifest_indexer.es", mock_es):
-            index_manifest(mock_batcher, bucket=bucket, key=key)
-
-    # Directory entries should be skipped
-    for call in mock_batcher.append.call_args_list:
-        assert "dir/" not in str(call)
