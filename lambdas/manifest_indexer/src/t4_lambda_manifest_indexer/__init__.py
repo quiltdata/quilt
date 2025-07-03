@@ -104,7 +104,7 @@ def get_metadata_fields(meta):
     ]
 
 
-def _prepare_workflow_for_es(workflow, bucket):
+def prepare_workflow_for_es(workflow, bucket):
     if workflow is None:
         return None
 
@@ -141,16 +141,13 @@ def index_manifest(
     bucket: str,
     key: str,
 ):
-    if not key.startswith(MANIFESTS_PREFIX):
-        logger.warning("Not indexing as manifest file s3://%s/%s", bucket, key)
-        return
-
     manifest_hash = key[len(MANIFESTS_PREFIX) :]
     to_index = False
     try:
         to_index = manifest_hash.islower() and len(bytes.fromhex(manifest_hash)) == 32
     except ValueError:
         pass
+    # XXX: do we need to check this?
     if not to_index:
         logger.warning("Not indexing as manifest file s3://%s/%s because of hash %s", bucket, key, manifest_hash)
         return
@@ -222,7 +219,7 @@ def index_manifest(
             "mnfst_metadata": orjson.dumps(user_meta).decode() if user_meta else None,
             "mnfst_metadata_fields": get_metadata_fields(user_meta),
             "mnfst_message": str(first.get("message", "")),
-            "mnfst_workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
+            "mnfst_workflow": prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
     doc_data = None
@@ -262,6 +259,10 @@ def handler(event, context):
             body = orjson.loads(record["body"])
             bucket = body["detail"]["s3"]["bucket"]["name"]
             key = body["detail"]["s3"]["object"]["key"]
+
+            if not key.startswith(MANIFESTS_PREFIX):
+                logger.warning("Not indexing as manifest file s3://%s/%s", bucket, key)
+                continue
 
             index_manifest(
                 batcher,
