@@ -1,12 +1,15 @@
 import datetime
 import json
-
-import pytest
 from unittest.mock import MagicMock, call, patch
 
-from quilt_shared.es import get_manifest_doc_id, get_manifest_entry_doc_id
-from t4_lambda_manifest_indexer import prepare_workflow_for_es, index_manifest, get_metadata_fields
+import pytest
 
+from quilt_shared.es import get_manifest_doc_id, get_manifest_entry_doc_id
+from t4_lambda_manifest_indexer import (
+    get_metadata_fields,
+    index_manifest,
+    prepare_workflow_for_es,
+)
 
 WORKFLOW_BUCKET = "BUCKET"
 WORKFLOW_DATA = {
