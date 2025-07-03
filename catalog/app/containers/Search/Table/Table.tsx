@@ -47,7 +47,7 @@ function AvailableSystemMetaFillter({
 }: AvailableSystemMetaFillterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const {
-    openFilter,
+    filterActions: { open },
     columnsActions: { show, hide },
   } = useContext()
   const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
@@ -72,7 +72,7 @@ function AvailableSystemMetaFillter({
 
     const column = columns.get(filter)
     if (column && !column.state.filtered) {
-      openFilter(column)
+      open(column)
       onClose()
     }
   }, [
@@ -81,7 +81,7 @@ function AvailableSystemMetaFillter({
     columns,
     model.state.filter.predicates,
     onClose,
-    openFilter,
+    open,
     show,
   ])
 
@@ -146,7 +146,7 @@ function AvailableUserMetaFilter({
 }: AvailableUserMetaFilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const {
-    openFilter,
+    filterActions: { open },
     columnsActions: { show, hide },
   } = useContext()
   const { activatePackagesMetaFilter, deactivatePackagesMetaFilter } = model.actions
@@ -159,10 +159,10 @@ function AvailableUserMetaFilter({
       show(column.filter)
     }
     if (!column.state.filtered) {
-      openFilter(column)
+      open(column)
       onClose()
     }
-  }, [node, activatePackagesMetaFilter, columns, openFilter, show, onClose])
+  }, [node, activatePackagesMetaFilter, columns, open, show, onClose])
 
   const hideColumn = React.useCallback(() => {
     const column = columns.get(node.value.path)
@@ -608,9 +608,9 @@ interface ColumnActionsProps {
 function ColumnActions({ className, column, single }: ColumnActionsProps) {
   const classes = useColumnActionsStyles()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const { openFilter } = useContext()
 
   const {
+    filterActions: { open },
     columnsActions: { hide },
   } = useContext()
 
@@ -623,8 +623,8 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
         model.actions.activatePackagesFilter(column.filter)
         break
     }
-    openFilter(column)
-  }, [column, model.actions, openFilter])
+    open(column)
+  }, [column, model.actions, open])
 
   const handleHide = React.useCallback(() => {
     if (column.state.filtered) {
@@ -1173,7 +1173,10 @@ interface LayoutProps {
 
 function Layout({ hits, columns, skeletons }: LayoutProps) {
   const classes = useLayoutStyles()
-  const { focused, closeFilter } = useContext()
+  const {
+    filter,
+    filterActions: { close },
+  } = useContext()
 
   const visibleColumns = Array.from(columns.values()).filter((c) => c.state.visible)
   const [skeletonHead, ...skeletonColumns] = skeletons
@@ -1217,8 +1220,8 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
         </div>
       </div>
 
-      <M.Dialog open={!!focused} onClose={closeFilter} maxWidth="sm" fullWidth>
-        {focused && <FilterDialog column={focused} onClose={closeFilter} />}
+      <M.Dialog open={!!filter} onClose={close} maxWidth="sm" fullWidth>
+        {filter && <FilterDialog column={filter} onClose={close} />}
       </M.Dialog>
     </M.Paper>
   )

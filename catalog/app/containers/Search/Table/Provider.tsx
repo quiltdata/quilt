@@ -5,9 +5,11 @@ import type { Column } from './useColumns'
 export type HiddenColumns = Map<Column['filter'], boolean>
 
 interface Context {
-  focused: Column | null
-  openFilter: (c: Column) => void
-  closeFilter: () => void
+  filter: Column | null
+  filterActions: {
+    open: (c: Column) => void
+    close: () => void
+  }
 
   hiddenColumns: HiddenColumns
   columnsActions: {
@@ -19,9 +21,11 @@ interface Context {
 const noop = () => {}
 
 const initialContext: Context = {
-  focused: null,
-  openFilter: noop,
-  closeFilter: noop,
+  filter: null,
+  filterActions: {
+    open: noop,
+    close: noop,
+  },
 
   hiddenColumns: new Map(),
   columnsActions: {
@@ -54,13 +58,14 @@ function addBoolsList(x: HiddenColumns, fs: Column['filter'][]) {
 }
 
 export function Provider({ children }: { children: React.ReactNode }) {
-  const [focused, setFocused] = React.useState<Column | null>(initialContext.focused)
-  const openFilter = React.useCallback((c: Column) => setFocused(c), [])
-  const closeFilter = React.useCallback(() => setFocused(null), [])
+  const [filter, setFilter] = React.useState<Column | null>(initialContext.filter)
+  const open = React.useCallback((c: Column) => setFilter(c), [])
+  const close = React.useCallback(() => setFilter(null), [])
 
   const [hiddenColumns, setHiddenColumns] = React.useState<HiddenColumns>(
     initialContext.hiddenColumns,
   )
+  const filterActions = React.useMemo(() => ({ open, close }), [open, close])
   const show = React.useCallback(
     (filters: Column['filter'] | Column['filter'][]) =>
       setHiddenColumns((x) =>
@@ -78,13 +83,12 @@ export function Provider({ children }: { children: React.ReactNode }) {
   const columnsActions = React.useMemo(() => ({ show, hide }), [show, hide])
   const value = React.useMemo(
     () => ({
-      focused,
-      openFilter,
-      closeFilter,
+      filter,
+      filterActions,
       hiddenColumns,
       columnsActions,
     }),
-    [focused, openFilter, closeFilter, hiddenColumns, columnsActions],
+    [filter, filterActions, hiddenColumns, columnsActions],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
