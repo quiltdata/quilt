@@ -216,9 +216,13 @@ def index_manifest(
             "join_field": {"name": "mnfst"},
             "mnfst_hash": manifest_hash,
             "mnfst_last_modified": resp["LastModified"],
+            "mnfst_message": str(first.get("message", "")),
             "mnfst_metadata": orjson.dumps(user_meta).decode() if user_meta else None,
             "mnfst_metadata_fields": get_metadata_fields(user_meta),
-            "mnfst_message": str(first.get("message", "")),
+            "mnfst_stats": {
+                "total_bytes": total_bytes,
+                "total_files": total_files,
+            },
             "mnfst_workflow": prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 

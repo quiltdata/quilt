@@ -220,6 +220,10 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
                 "join_field": {"name": "mnfst"},
                 "mnfst_hash": mnfst_hash,
                 "mnfst_last_modified": last_modified,
+                "mnfst_stats": {
+                    "total_bytes": 400,
+                    "total_files": 4,
+                },
                 "mnfst_metadata": json.dumps({"description": "test manifest"}, separators=(",", ":")),
                 "mnfst_metadata_fields": get_metadata_fields(user_meta),
                 "mnfst_message": "test message",
