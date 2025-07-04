@@ -91,25 +91,21 @@ function useMetadataSchema(
   return useRequest<JsonSchema>(req, !(config === Loading || config instanceof Error))
 }
 
-function getBestWorkflow(config: WorkflowsConfig) {
-  if (!config.workflows.length) {
-    return null
-  }
-
-  if (config.workflows.length === 1) {
-    return config.workflows[0]
-  }
-
-  return config.workflows.find((w) => w.isDefault) || null
+function getBestWorkflow({ workflows }: WorkflowsConfig) {
+  return workflows.length === 1
+    ? workflows[0]
+    : workflows.find((w) => w.isDefault) || null
 }
 
-function getSelectedWorkflow(config: WorkflowsConfig, selectedWorkflow?: string) {
+function getSelectedWorkflow({ workflows }: WorkflowsConfig, selectedWorkflow?: string) {
   return (
-    config.workflows.find((w) => w.slug === selectedWorkflow) ||
+    workflows.find((w) => w.slug === selectedWorkflow) ||
     new Error('Selected workflow not found')
   )
 }
 
+// NOTE: it returns `Loading` when no `bucket`
+// TODO: add idle state to `RequestResult`
 export function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) {
   const config = useWorkflowConfig(bucket)
   const schema = useMetadataSchema(config, selectedWorkflow)
