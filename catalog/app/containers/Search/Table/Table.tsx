@@ -29,15 +29,12 @@ import type {
 } from './useColumns'
 import { Provider, useContext } from './Provider'
 
-interface AvailableSystemMetaFillterProps {
+interface AvailableSystemMetaColumnProps {
   column: ColumnSystemMeta
   onClose: () => void
 }
 
-function AvailableSystemMetaFillter({
-  column,
-  onClose,
-}: AvailableSystemMetaFillterProps) {
+function AvailableSystemMetaColumn({ column, onClose }: AvailableSystemMetaColumnProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const {
     filterActions: { open },
@@ -89,7 +86,7 @@ function AvailableSystemMetaFillter({
   )
 }
 
-function AvailableFacetsSkeleton() {
+function AvailableColumnsSkeleton() {
   return (
     <M.List>
       <M.ListItem>
@@ -132,16 +129,16 @@ function getLabel(key: string) {
   }
 }
 
-interface AvailableUserMetaFilterProps extends M.ListItemTextProps {
+interface AvailableUserMetaColumnProps extends M.ListItemTextProps {
   column: ColumnUserMeta
   onClose: () => void
 }
 
-function AvailableUserMetaFilter({
+function AvailableUserMetaColumn({
   column,
   onClose,
   ...props
-}: AvailableUserMetaFilterProps) {
+}: AvailableUserMetaColumnProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const {
     filterActions: { open },
@@ -582,88 +579,6 @@ function BucketsFilter({ onChange, value }: BucketsFilterProps) {
   return <List extents={extents} value={value || initialValue} onChange={onChange} />
 }
 
-const useColumnActionsStyles = M.makeStyles({
-  root: {
-    display: 'grid',
-    gridAutoFlow: 'column',
-    gridColumnGap: '2px',
-  },
-})
-
-interface ColumnActionsProps {
-  className: string
-  column: Column
-  single: boolean
-}
-
-function ColumnActions({ className, column, single }: ColumnActionsProps) {
-  const classes = useColumnActionsStyles()
-  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-
-  const {
-    filterActions: { open },
-    columnsActions: { hide },
-  } = useContext()
-
-  const showFilter = React.useCallback(() => {
-    switch (column.tag) {
-      case ColumnTag.UserMeta:
-        model.actions.activatePackagesMetaFilter(column.filter, column.predicateType)
-        break
-      case ColumnTag.SystemMeta:
-        model.actions.activatePackagesFilter(column.filter)
-        break
-    }
-    open(column)
-  }, [column, model.actions, open])
-
-  const handleHide = React.useCallback(() => {
-    if (column.state.filtered) {
-      hide(column.filter)
-      return
-    }
-    switch (column.tag) {
-      case ColumnTag.SystemMeta:
-        if (column.filter === 'name') {
-          hide(column.filter)
-        }
-        model.actions.deactivatePackagesFilter(column.filter)
-        break
-      case ColumnTag.UserMeta:
-        if (column.state.inferred) {
-          hide(column.filter)
-        }
-        model.actions.deactivatePackagesMetaFilter(column.filter)
-        break
-      case ColumnTag.Bucket:
-        model.actions.setBuckets([])
-        break
-      default:
-        assertNever(column)
-    }
-  }, [column, hide, model.actions])
-
-  return (
-    <div className={cx(classes.root, className)}>
-      <M.IconButton
-        size="small"
-        color={column.state.filtered ? 'primary' : 'inherit'}
-        onClick={showFilter}
-      >
-        <M.Icon color="inherit" fontSize="inherit">
-          filter_list
-        </M.Icon>
-      </M.IconButton>
-
-      {!single && (
-        <M.IconButton size="small" color="inherit" onClick={handleHide}>
-          <IconVisibilityOffOutlined color="inherit" fontSize="inherit" />
-        </M.IconButton>
-      )}
-    </div>
-  )
-}
-
 const useFilterGroupStyles = M.makeStyles((t) => ({
   root: {
     background: 'inherit',
@@ -678,7 +593,7 @@ const useFilterGroupStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface FilterGroupProps {
+interface AvailableUserMetaColumnsTreeProps {
   columns: ColumnsMap
   disabled?: boolean
   items: SearchUIModel.FacetTree['children']
@@ -686,7 +601,13 @@ interface FilterGroupProps {
   path?: string
 }
 
-function FilterGroup({ columns, disabled, items, onClose, path }: FilterGroupProps) {
+function AvailableUserMetaColumnsTree({
+  columns,
+  disabled,
+  items,
+  onClose,
+  path,
+}: AvailableUserMetaColumnsTreeProps) {
   const classes = useFilterGroupStyles()
 
   const [expanded, setExpanded] = React.useState(false)
@@ -706,7 +627,7 @@ function FilterGroup({ columns, disabled, items, onClose, path }: FilterGroupPro
             {Array.from(items).map(([p, node]) => {
               if (node._tag === 'Tree') {
                 return (
-                  <FilterGroup
+                  <AvailableUserMetaColumnsTree
                     key={path + p}
                     disabled={disabled}
                     items={node.children}
@@ -725,7 +646,7 @@ function FilterGroup({ columns, disabled, items, onClose, path }: FilterGroupPro
                 )
               }
               return (
-                <AvailableUserMetaFilter
+                <AvailableUserMetaColumn
                   key={path + p}
                   column={column}
                   onClose={onClose}
@@ -749,30 +670,7 @@ const ReversPackageUserMetaTypename = {
   Boolean: 'BooleanPackageUserMetaFacet' as const,
 }
 
-const useAvailableFacetsStyles = M.makeStyles((t) => ({
-  root: {
-    animation: t.transitions.create('$fade'),
-    background: t.palette.background.paper,
-    overflowY: 'auto',
-    flexGrow: 1,
-  },
-  divider: {
-    marginTop: t.spacing(1),
-  },
-  list: {
-    background: 'inherit',
-  },
-  '@keyframes fade': {
-    '0%': {
-      opacity: 0.7,
-    },
-    '100%': {
-      opacity: 1,
-    },
-  },
-}))
-
-function useAvailableSystemMetaFacets(columns: ColumnsMap, filterValue: string) {
+function useAvailableSystemMetaColumns(columns: ColumnsMap, filterValue: string) {
   return React.useMemo(() => {
     const initial: ColumnSystemMeta[] = []
     return [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].reduce(
@@ -834,17 +732,45 @@ function useAvailableUserMetaFacets(
   return { selected, available, fetching }
 }
 
-interface AvailableFacetsProps {
+const useAvailableColumnsStyles = M.makeStyles((t) => ({
+  root: {
+    animation: t.transitions.create('$fade'),
+    background: t.palette.background.paper,
+    overflowY: 'auto',
+    flexGrow: 1,
+  },
+  divider: {
+    marginTop: t.spacing(1),
+  },
+  list: {
+    background: 'inherit',
+  },
+  '@keyframes fade': {
+    '0%': {
+      opacity: 0.7,
+    },
+    '100%': {
+      opacity: 1,
+    },
+  },
+}))
+
+interface AvailableColumnsProps {
   columns: ColumnsMap
   onClose: () => void
   filterValue: string
   state: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function AvailableFacets({ filterValue, columns, onClose, state }: AvailableFacetsProps) {
-  const classes = useAvailableFacetsStyles()
+function AvailableColumns({
+  filterValue,
+  columns,
+  onClose,
+  state,
+}: AvailableColumnsProps) {
+  const classes = useAvailableColumnsStyles()
 
-  const systemMetaColumns = useAvailableSystemMetaFacets(columns, filterValue)
+  const systemMetaColumns = useAvailableSystemMetaColumns(columns, filterValue)
 
   const { selected, available, fetching } = useAvailableUserMetaFacets(state, filterValue)
 
@@ -863,7 +789,7 @@ function AvailableFacets({ filterValue, columns, onClose, state }: AvailableFace
         {!!hasSystemMeta && <M.ListSubheader>System metadata</M.ListSubheader>}
 
         {systemMetaColumns.map((column) => (
-          <AvailableSystemMetaFillter
+          <AvailableSystemMetaColumn
             key={column.filter}
             column={column}
             onClose={onClose}
@@ -874,24 +800,28 @@ function AvailableFacets({ filterValue, columns, onClose, state }: AvailableFace
 
         {hasUserMeta && <M.ListSubheader>User metadata</M.ListSubheader>}
 
-        <FilterGroup items={selected} columns={columns} onClose={onClose} />
+        <AvailableUserMetaColumnsTree
+          items={selected}
+          columns={columns}
+          onClose={onClose}
+        />
 
         {available ? (
-          <FilterGroup
+          <AvailableUserMetaColumnsTree
             items={available}
             columns={columns}
             disabled={fetching}
             onClose={onClose}
           />
         ) : (
-          <AvailableFacetsSkeleton />
+          <AvailableColumnsSkeleton />
         )}
       </M.List>
     </div>
   )
 }
 
-const useAddColumnStyles = M.makeStyles((t) => ({
+const useConfigureColumnsStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
@@ -981,13 +911,13 @@ function useTextFilter(state: SearchUIModel.AvailableFiltersStateInstance) {
   }, [fallback, ready])
 }
 
-interface AddColumnProps {
+interface ConfigureColumnsProps {
   columns: ColumnsMap
   state: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function AddColumn({ columns, state }: AddColumnProps) {
-  const classes = useAddColumnStyles()
+function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
+  const classes = useConfigureColumnsStyles()
 
   const [open, setOpen] = React.useState(false)
   const show = React.useCallback(() => setOpen(true), [])
@@ -1055,13 +985,91 @@ function AddColumn({ columns, state }: AddColumnProps) {
         value={filterValue}
       />
 
-      <AvailableFacets
+      <AvailableColumns
         columns={columns}
         filterValue={filterValue.toLowerCase()}
         onClose={hide}
         state={state}
       />
     </div>
+  )
+}
+
+interface ColumnHeadOpenProps {
+  column: Column
+}
+
+function ColumnHeadOpen({ column }: ColumnHeadOpenProps) {
+  const {
+    actions: { activatePackagesMetaFilter, activatePackagesFilter },
+  } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const {
+    filterActions: { open },
+  } = useContext()
+  const showFilter = React.useCallback(() => {
+    switch (column.tag) {
+      case ColumnTag.UserMeta:
+        activatePackagesMetaFilter(column.filter, column.predicateType)
+        break
+      case ColumnTag.SystemMeta:
+        activatePackagesFilter(column.filter)
+        break
+    }
+    open(column)
+  }, [column, activatePackagesMetaFilter, activatePackagesFilter, open])
+  return (
+    <M.IconButton
+      size="small"
+      color={column.state.filtered ? 'primary' : 'inherit'}
+      onClick={showFilter}
+    >
+      <M.Icon color="inherit" fontSize="inherit">
+        filter_list
+      </M.Icon>
+    </M.IconButton>
+  )
+}
+
+interface ColumnHeadHideProps {
+  column: Column
+}
+
+function ColumnHeadHide({ column }: ColumnHeadHideProps) {
+  const {
+    actions: { deactivatePackagesFilter, deactivatePackagesMetaFilter, setBuckets },
+  } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const {
+    columnsActions: { hide },
+  } = useContext()
+  const handleHide = React.useCallback(() => {
+    if (column.state.filtered) {
+      hide(column.filter)
+      return
+    }
+    switch (column.tag) {
+      case ColumnTag.SystemMeta:
+        if (column.filter === 'name') {
+          hide(column.filter)
+        }
+        deactivatePackagesFilter(column.filter)
+        break
+      case ColumnTag.UserMeta:
+        if (column.state.inferred) {
+          hide(column.filter)
+        }
+        deactivatePackagesMetaFilter(column.filter)
+        break
+      case ColumnTag.Bucket:
+        setBuckets([])
+        break
+      default:
+        assertNever(column)
+    }
+  }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter, setBuckets])
+  return (
+    <M.IconButton size="small" color="inherit" onClick={handleHide}>
+      <IconVisibilityOffOutlined color="inherit" fontSize="inherit" />
+    </M.IconButton>
   )
 }
 
@@ -1078,6 +1086,9 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
     color: t.palette.text.hint,
     transition: t.transitions.create('color'),
     marginLeft: t.spacing(1),
+    display: 'grid',
+    gridAutoFlow: 'column',
+    gridColumnGap: '2px',
   },
   title: {
     ...t.typography.subtitle1,
@@ -1102,7 +1113,10 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
           <span>{column.title}</span>
         </M.Tooltip>
       </p>
-      <ColumnActions className={classes.actions} column={column} single={single} />
+      <div className={classes.actions}>
+        <ColumnHeadOpen column={column} />
+        {!single && <ColumnHeadHide column={column} />}
+      </div>
     </div>
   )
 }
@@ -1146,7 +1160,7 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
     <M.Paper className={classes.root}>
       <SearchUIModel.AvailablePackagesMetaFilters>
         {(state: SearchUIModel.AvailableFiltersStateInstance) => (
-          <AddColumn columns={columns} state={state} />
+          <ConfigureColumns columns={columns} state={state} />
         )}
       </SearchUIModel.AvailablePackagesMetaFilters>
 
