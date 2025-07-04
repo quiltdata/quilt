@@ -25,17 +25,14 @@ function normalizeJsonPathSegment(fragment: Path[number]) {
   // but the notation `$..123` for jsonpath is ok
   if (typeof fragment !== 'string') return fragment
 
-  const valid =
-    fragment.indexOf(' ') < 0 && fragment.indexOf('-') < 0 && fragment.indexOf('$') < 0
-  if (valid) return fragment
-
-  return `['${fragment}']`
+  return fragment.includes(' ') || fragment.includes('-') || fragment.includes('$')
+    ? `['${fragment}']`
+    : fragment
 }
 
 export function toJsonPath(address: Path | Pointer): JsonPathExpression {
-  if (!Array.isArray(address)) {
-    return toJsonPath(address.split('/'))
-  }
+  if (!Array.isArray(address)) return toJsonPath(address.split('/'))
+
   return `$.${address.map(normalizeJsonPathSegment).join('.')}`.replace(
     /([^\.])\.\[/g,
     (_s, $1) => `${$1}[`,
