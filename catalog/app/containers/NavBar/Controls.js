@@ -167,11 +167,5 @@ function BucketControls({ bucket }) {
 
 export default function Controls() {
   const bucket = BucketConfig.useCurrentBucket()
-  const t = M.useTheme()
-  const iconized = M.useMediaQuery(t.breakpoints.down('xs'))
-  return bucket ? (
-    <BucketControls {...{ bucket }} />
-  ) : (
-    <GlobalControls {...{ iconized }} />
-  )
+  return bucket ? <BucketControls {...{ bucket }} /> : <GlobalControls />
 }

@@ -115,21 +115,7 @@ export function useResults(): [Results, () => void] | [Results] {
   const first = useFirstPage()
   const next = useNextPage(results, more)
 
-  React.useEffect(() => {
-    switch (first._tag) {
-      case 'idle':
-      case 'in-progress':
-      case 'fail':
-      case 'empty':
-        setResults(first)
-        break
-      case 'ok':
-        setResults(first)
-        break
-      default:
-        assertNever(first)
-    }
-  }, [first])
+  React.useEffect(() => setResults(first), [first])
 
   React.useEffect(() => {
     switch (next._tag) {

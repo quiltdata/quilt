@@ -28,7 +28,6 @@ function useSearchUIModel() {
 }
 
 interface InputState extends M.InputBaseProps {
-  // expanded: boolean
   focusTrigger: number
   helpOpen: boolean
 }
@@ -136,7 +135,7 @@ function useSearchState(bucket?: string): SearchState {
   const focus = React.useCallback(() => {
     // NOTE: wait for location change (making help closed),
     //       then focus
-    // FIXME: find out better solution
+    // TODO: find out better solution
     nextTick(() => setFocusTrigger((n) => n + 1))
   }, [setFocusTrigger])
 
@@ -150,7 +149,6 @@ function useSearchState(bucket?: string): SearchState {
   return {
     fullWidth: searchUIModel?.state.view === SearchUIModel.View.Table,
     input: {
-      // expanded: isExpanded,
       focusTrigger: focusTriggeredCount,
       helpOpen,
       onChange,
