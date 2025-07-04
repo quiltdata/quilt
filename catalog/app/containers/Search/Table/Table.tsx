@@ -7,7 +7,6 @@ import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui
 
 import { TinyTextField, List } from 'components/Filters'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 
@@ -15,8 +14,6 @@ import FilterWidget from '../FilterWidget'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { PACKAGE_FILTER_LABELS } from '../i18n'
 import * as SearchUIModel from '../model'
-
-import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 
 import Entries from './Entries'
 import CellValue from './CellValue'
@@ -29,7 +26,6 @@ import type {
   ColumnFilter,
   ColumnMeta,
   ColumnsMap,
-  InferedUserMetaFacets,
 } from './useColumns'
 import { Provider, useContext } from './Provider'
 
@@ -1106,77 +1102,6 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   )
 }
 
-function useInferredUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets> {
-  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const selectedSingleBucket = React.useMemo(() => {
-    if (state.buckets.length !== 1) return
-    return state.buckets[0]
-  }, [state.buckets])
-
-  const selectedSingleWorkflow = React.useMemo(() => {
-    const workflows = state.filter.predicates.workflow
-    if (!workflows || workflows.terms.length !== 1) return
-    return workflows.terms[0]
-  }, [state.filter.predicates.workflow])
-
-  const workflowRootKeys = Workflow.useMetadataRootKeys(
-    selectedSingleBucket,
-    selectedSingleWorkflow,
-  )
-
-  const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
-  const query = GQL.useQuery(META_FACETS_QUERY, {
-    searchString,
-    buckets: state.buckets,
-    filter: SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter),
-    latestOnly: state.latestOnly,
-  })
-
-  return React.useMemo(
-    () =>
-      GQL.fold(query, {
-        data: ({ searchPackages: r }) => {
-          if (workflowRootKeys instanceof Error) return workflowRootKeys
-          switch (r.__typename) {
-            case 'EmptySearchResultSet':
-            case 'InvalidInput':
-              return new Error('Failed to load user meta')
-            case 'PackagesSearchResultSet':
-              const output: InferedUserMetaFacets = { all: {}, workflow: {} }
-              r.stats.userMeta.forEach(({ __typename, path }) => {
-                // Already selected
-                if (state.userMetaFilters.filters.has(path)) {
-                  return
-                }
-
-                // Not found in the latest workflow schema
-                if (
-                  workflowRootKeys !== Workflow.Loading &&
-                  workflowRootKeys.indexOf(path.replace(/^\//, '')) > -1
-                ) {
-                  if (output.workflow[path] !== 'KeywordPackageUserMetaFacet') {
-                    // TODO: keep sort order from workflow
-                    output.workflow[path] = __typename
-                  }
-                }
-
-                if (output.all[path] !== 'KeywordPackageUserMetaFacet') {
-                  output.all[path] = __typename
-                }
-              })
-              return output
-
-            default:
-              assertNever(r)
-          }
-        },
-        fetching: () => Workflow.Loading,
-        error: (e) => e,
-      }),
-    [state.userMetaFilters.filters, query, workflowRootKeys],
-  )
-}
-
 const useLayoutStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
@@ -1270,10 +1195,8 @@ interface TableViewProps {
 }
 
 function TableView({ hits, bucket }: TableViewProps) {
-  const infered: Workflow.RequestResult<InferedUserMetaFacets> =
-    useInferredUserMetaFacets()
   const { hiddenColumns } = useContext()
-  const [columns, notReady] = useColumns(infered, hiddenColumns, bucket)
+  const [columns, notReady] = useColumns(hiddenColumns, bucket)
   const skeletons = Skeleton.useColumns(
     notReady === Workflow.Loading ? hits.length + 1 : 0,
     3,
