@@ -359,6 +359,11 @@ function FilterDialog({ column, onClose }: FilterDialogProps) {
 }
 
 const useFilterDialogLayoutStyles = M.makeStyles((t) => ({
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'visible',
+  },
   reset: {
     marginRight: 'auto',
     color: t.palette.error.dark,
@@ -396,7 +401,7 @@ function FilterDialogLayout({
   return (
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
-      <M.DialogContent>{children}</M.DialogContent>
+      <M.DialogContent className={classes.content}>{children}</M.DialogContent>
       <M.DialogActions>
         <M.Tooltip title={resetTitle || ''}>
           <M.Button
@@ -1195,7 +1200,7 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
         </div>
       </div>
 
-      <M.Dialog open={!!filter} onClose={close} maxWidth="sm" fullWidth>
+      <M.Dialog open={!!filter} onClose={close} maxWidth="sm" fullWidth scroll="body">
         {filter && <FilterDialog column={filter} onClose={close} />}
       </M.Dialog>
     </M.Paper>
