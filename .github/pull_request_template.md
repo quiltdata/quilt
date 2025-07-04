@@ -6,8 +6,8 @@
 <!-- Remove items that are irrelevant to this PR -->
 
 - [ ] Unit tests
-- [ ] Automated tests (e.g. Preflight)
-- [ ] Confirm that this change meets security best practices and does not violate the security model
+- [ ] Security: Confirm that this change meets security best practices and does not violate the security model
+- [ ] Open and Embed: Confirm that this change doesn't break Open variant and Embed widget
 - [ ] Documentation
     - [ ] run `optipng` on any new PNGs
     - [ ] [Python: Run `build.py`](../tree/master/gendocs/build.py) for new docstrings
