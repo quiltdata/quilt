@@ -91,7 +91,7 @@ python-pptx==0.6.23
     # via es-indexer (setup.py)
 pytz==2024.2
     # via pandas
-quilt-shared @ https://github.com/quiltdata/quilt/archive/f86ccd0fe3c80c12848fbf045980193115e2c3c9.zip#subdirectory=py-shared
+quilt-shared @ https://github.com/quiltdata/quilt/archive/7611ee2066238ad9355afccb35ab35b934d3d0d4.zip#subdirectory=py-shared
     # via es-indexer (setup.py)
 requests==2.32.4
     # via aws-requests-auth
