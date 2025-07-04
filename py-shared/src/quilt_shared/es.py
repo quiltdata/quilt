@@ -116,9 +116,10 @@ def get_es_aliases(es) -> frozenset[str]:
 
 
 def normalize_object_version_id(version_id: str | None) -> str:
-    # ensure the same versionId and primary keys (_id) as given by
-    # list-object-versions in the enterprise bulk_scanner
-    return "null" if version_id is None else version_id
+    # Ensure the same versionId list-object-versions in the enterprise bulk_scanner.
+    # We get version ID as empty string for unversioned objects when event comes
+    # from EventBridge CloudTrail hack, so it also should be normalized to "null".
+    return version_id or "null"
 
 
 def get_object_doc_id(key: str, version_id: str | None) -> str:
