@@ -13,7 +13,7 @@ export const PACKAGE_FILTER_LABELS = {
 export const COLUMN_LABELS = {
   bucket: 'Bucket',
   comment: 'Comment',
-  entries: 'Entries number',
+  entries: 'File count',
   hash: 'Hash',
   modified: 'Modified',
   name: 'Package',
