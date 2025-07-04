@@ -19,18 +19,18 @@ import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
 import * as Workflow from './workflow'
-import { useColumns } from './useColumns'
+import { ColumnTag, useColumns } from './useColumns'
 import type {
   Column,
   ColumnBucket,
-  ColumnFilter,
-  ColumnMeta,
+  ColumnSystemMeta,
+  ColumnUserMeta,
   ColumnsMap,
 } from './useColumns'
 import { Provider, useContext } from './Provider'
 
 interface AvailableSystemMetaFillterProps {
-  column: ColumnFilter
+  column: ColumnSystemMeta
   onClose: () => void
 }
 
@@ -133,7 +133,7 @@ function getLabel(key: string) {
 }
 
 interface AvailableUserMetaFilterProps extends M.ListItemTextProps {
-  column: ColumnMeta
+  column: ColumnUserMeta
   onClose: () => void
 }
 
@@ -312,8 +312,10 @@ function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
           <M.TableCell
             key={column.filter}
             className={classes.cell}
-            {...(column.tag === 'meta' && { ['data-search-hit-meta']: column.filter })}
-            {...(column.tag === 'filter' && {
+            {...(column.tag === ColumnTag.UserMeta && {
+              ['data-search-hit-meta']: column.filter,
+            })}
+            {...(column.tag === ColumnTag.SystemMeta && {
               ['data-search-hit-filter']: column.filter,
             })}
           >
@@ -350,11 +352,11 @@ interface FilterDialogProps {
 
 function FilterDialog({ column, onClose }: FilterDialogProps) {
   switch (column.tag) {
-    case 'filter':
+    case ColumnTag.SystemMeta:
       return <FilterDialogSystemMeta column={column} onClose={onClose} />
-    case 'meta':
+    case ColumnTag.UserMeta:
       return <FilterDialogUserMeta column={column} onClose={onClose} />
-    case 'bucket':
+    case ColumnTag.Bucket:
       return <FilterDialogBuckets column={column} onClose={onClose} />
   }
 }
@@ -427,7 +429,7 @@ function FilterDialogLayout({
 }
 
 interface FilterDialogSystemMetaProps extends FilterDialogProps {
-  column: ColumnFilter
+  column: ColumnSystemMeta
 }
 
 function FilterDialogSystemMeta({ column, onClose }: FilterDialogSystemMetaProps) {
@@ -460,7 +462,7 @@ function FilterDialogSystemMeta({ column, onClose }: FilterDialogSystemMetaProps
 }
 
 interface FilterDialogUserMetaProps extends FilterDialogProps {
-  column: ColumnMeta
+  column: ColumnUserMeta
 }
 
 function FilterDialogUserMeta({ column, onClose }: FilterDialogUserMetaProps) {
@@ -605,10 +607,10 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
 
   const showFilter = React.useCallback(() => {
     switch (column.tag) {
-      case 'meta':
+      case ColumnTag.UserMeta:
         model.actions.activatePackagesMetaFilter(column.filter, column.predicateType)
         break
-      case 'filter':
+      case ColumnTag.SystemMeta:
         model.actions.activatePackagesFilter(column.filter)
         break
     }
@@ -621,19 +623,19 @@ function ColumnActions({ className, column, single }: ColumnActionsProps) {
       return
     }
     switch (column.tag) {
-      case 'filter':
+      case ColumnTag.SystemMeta:
         if (column.filter === 'name') {
           hide(column.filter)
         }
         model.actions.deactivatePackagesFilter(column.filter)
         break
-      case 'meta':
+      case ColumnTag.UserMeta:
         if (column.state.inferred) {
           hide(column.filter)
         }
         model.actions.deactivatePackagesMetaFilter(column.filter)
         break
-      case 'bucket':
+      case ColumnTag.Bucket:
         model.actions.setBuckets([])
         break
       default:
@@ -715,7 +717,7 @@ function FilterGroup({ columns, disabled, items, onClose, path }: FilterGroupPro
                 )
               }
               const column = columns.get(node.value.path)
-              if (!column || column.tag !== 'meta') {
+              if (!column || column.tag !== ColumnTag.UserMeta) {
                 return (
                   <Lab.Alert key={path + p} severity="error">
                     Failed rendering {node.value.path}
@@ -772,11 +774,11 @@ const useAvailableFacetsStyles = M.makeStyles((t) => ({
 
 function useAvailableSystemMetaFacets(columns: ColumnsMap, filterValue: string) {
   return React.useMemo(() => {
-    const initial: ColumnFilter[] = []
+    const initial: ColumnSystemMeta[] = []
     return [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].reduce(
       (memo, filter) => {
         const column = columns.get(filter)
-        if (!column || column.tag !== 'filter') return memo
+        if (!column || column.tag !== ColumnTag.SystemMeta) return memo
 
         const combinedFilterString = (column.title + column.fullTitle).toLowerCase()
         if (!combinedFilterString.includes(filterValue)) return memo
@@ -1093,7 +1095,10 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   return (
     <div className={classes.root}>
       <p className={classes.title}>
-        <M.Tooltip arrow title={column.tag === 'filter' ? column.fullTitle : ''}>
+        <M.Tooltip
+          arrow
+          title={column.tag === ColumnTag.SystemMeta ? column.fullTitle : ''}
+        >
           <span>{column.title}</span>
         </M.Tooltip>
       </p>

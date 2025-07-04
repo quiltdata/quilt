@@ -15,6 +15,7 @@ import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
 import * as SearchUIModel from '../model'
+import { ColumnTag } from './useColumns'
 import type { Column, FilterType } from './useColumns'
 
 const useNoValueStyles = M.makeStyles((t) => ({
@@ -152,10 +153,10 @@ interface CellValueProps {
 
 export default function CellValue({ column, hit }: CellValueProps) {
   switch (column.tag) {
-    case 'bucket':
-    case 'filter':
+    case ColumnTag.Bucket:
+    case ColumnTag.SystemMeta:
       return <SystemMetaValue hit={hit} filter={column.filter} />
-    case 'meta':
+    case ColumnTag.UserMeta:
       return <UserMetaValue hit={hit} pointer={column.filter} />
     default:
       assertNever(column)

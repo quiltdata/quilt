@@ -12,13 +12,20 @@ import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
 import * as Workflow from './workflow'
 import type { HiddenColumns } from './Provider'
 
+// Skip 'name' because, it is visible by default
 const AVAILABLE_PACKAGES_FILTERS = [
   ...PACKAGES_FILTERS_PRIMARY,
   ...PACKAGES_FILTERS_SECONDARY,
-]
+].filter((f) => f !== 'name')
 
 export type FilterType =
   SearchUIModel.FilterStateForResultType<SearchUIModel.ResultType.QuiltPackage>['order'][number]
+
+export enum ColumnTag {
+  Bucket,
+  UserMeta,
+  SystemMeta,
+}
 
 interface ColumnState {
   filtered: boolean
@@ -26,32 +33,66 @@ interface ColumnState {
   inferred: boolean
 }
 
-interface ColumnBase {
+export interface ColumnBucket {
+  tag: ColumnTag.Bucket
+  filter: 'bucket'
+  title: string
   state: ColumnState
 }
 
-export interface ColumnBucket extends ColumnBase {
-  filter: 'bucket'
-  tag: 'bucket'
-  title: string
-}
+const ColumnBucketCreate = (state: ColumnState): ColumnBucket => ({
+  tag: ColumnTag.Bucket,
+  filter: 'bucket',
+  state,
+  title: COLUMN_LABELS.bucket,
+})
 
-export interface ColumnFilter extends ColumnBase {
+export interface ColumnSystemMeta {
+  tag: ColumnTag.SystemMeta
   filter: FilterType
   fullTitle: string
   predicateType: SearchUIModel.KnownPredicate['_tag']
-  tag: 'filter'
+  state: ColumnState
   title: string
 }
 
-export interface ColumnMeta extends ColumnBase {
+const ColumnSystemMetaCreate = (
+  state: ColumnState,
+  filter: FilterType,
+  predicateType?: SearchUIModel.KnownPredicate['_tag'],
+): ColumnSystemMeta => ({
+  tag: ColumnTag.SystemMeta,
+  filter,
+  fullTitle: PACKAGE_FILTER_LABELS[filter],
+  predicateType: predicateType || 'Text',
+  state,
+  title: COLUMN_LABELS[filter],
+})
+
+const ColumnNameCreate = (state: ColumnState): ColumnSystemMeta =>
+  ColumnSystemMetaCreate(state, 'name', 'KeywordWildcard')
+
+export interface ColumnUserMeta {
+  tag: ColumnTag.UserMeta
   filter: string
   predicateType: SearchUIModel.KnownPredicate['_tag']
-  tag: 'meta'
+  state: ColumnState
   title: string
 }
 
-export type Column = ColumnBucket | ColumnFilter | ColumnMeta
+const ColumnUserMetaCreate = (
+  state: ColumnState,
+  filter: string,
+  predicateType: SearchUIModel.KnownPredicate['_tag'],
+): ColumnUserMeta => ({
+  tag: ColumnTag.UserMeta,
+  filter,
+  predicateType,
+  state,
+  title: filter.replace(/^\//, ''),
+})
+
+export type Column = ColumnBucket | ColumnSystemMeta | ColumnUserMeta
 
 type UserMetaFacets = Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>
 
@@ -154,101 +195,90 @@ export function useColumns(
     [state.filter],
   )
 
-  const fixed = React.useMemo(() => {
-    const nameCol: Column = {
-      predicateType: 'KeywordWildcard' as const,
-      filter: 'name' as const,
-      fullTitle: PACKAGE_FILTER_LABELS.name,
-      tag: 'filter' as const,
-      title: COLUMN_LABELS.name,
-      state: {
+  const createNameColumn = React.useCallback(
+    (): ColumnSystemMeta =>
+      ColumnNameCreate({
         filtered: !!modifiedFilters && !!modifiedFilters.name,
         visible: !hiddenColumns.has('name'),
         inferred: false,
-      },
-    }
-    if (bucket) return [nameCol]
-    const bucketCol: Column = {
-      filter: 'bucket' as const,
-      tag: 'bucket' as const,
-      title: COLUMN_LABELS.bucket,
-      state: {
+      }),
+    [hiddenColumns, modifiedFilters],
+  )
+
+  const createBucketColumn = React.useCallback(
+    (): ColumnBucket =>
+      ColumnBucketCreate({
         filtered: !!state.buckets.length,
         visible: !hiddenColumns.has('bucket'),
         inferred: false,
-      },
-    }
-    return [bucketCol, nameCol]
-  }, [state.buckets.length, modifiedFilters, hiddenColumns, bucket])
+      }),
+    [hiddenColumns, state.buckets.length],
+  )
 
-  const filters = React.useMemo(() => {
-    const output: Column[] = []
-
-    AVAILABLE_PACKAGES_FILTERS.forEach((filter) => {
+  const createSystemMetaColumn = React.useCallback(
+    (filter: FilterType) => {
       const predicate = state.filter.predicates[filter]
-      // 'name' is added in `fixed` columns
-      if (filter !== 'name') {
-        output.push({
-          predicateType: predicate?._tag || 'Text',
-          filter,
-          fullTitle: PACKAGE_FILTER_LABELS[filter],
-          tag: 'filter' as const,
-          title: COLUMN_LABELS[filter],
-          state: {
-            filtered: !!modifiedFilters && !!modifiedFilters[filter],
-            visible: !!predicate && !hiddenColumns.has(filter),
-            inferred: false,
-          },
-        })
-      }
-    })
-    return output
-  }, [hiddenColumns, state.filter, modifiedFilters])
-
-  const selectedUserMeta = React.useMemo(() => {
-    const modifiedUserMetaFilters = state.userMetaFilters.toGQL()
-    const output: Column[] = []
-    state.userMetaFilters.filters.forEach((predicate, filter) => {
-      output.push({
-        predicateType: predicate._tag,
+      return ColumnSystemMetaCreate(
+        {
+          filtered: !!modifiedFilters && !!modifiedFilters[filter],
+          visible: !!predicate && !hiddenColumns.has(filter),
+          inferred: false,
+        },
         filter,
-        tag: 'meta' as const,
-        title: filter.replace(/^\//, ''),
-        state: {
+        predicate?._tag,
+      )
+    },
+    [hiddenColumns, modifiedFilters, state.filter.predicates],
+  )
+
+  const modifiedUserMetaFilters = state.userMetaFilters.toGQL()
+  const createUserMetaColumn = React.useCallback(
+    (
+      filter: string,
+      predicateType: SearchUIModel.KnownPredicate['_tag'],
+    ): ColumnUserMeta =>
+      ColumnUserMetaCreate(
+        {
           filtered: !!modifiedUserMetaFilters?.find(({ path }) => path === filter),
           visible: !hiddenColumns.has(filter),
           inferred: false,
         },
-      })
-    })
-    return output
-  }, [hiddenColumns, state.userMetaFilters])
-
-  const inferedUserMeta = React.useMemo(() => {
-    const output: Column[] = []
-    if (infered instanceof Error || infered === Workflow.Loading) return infered
-    const list = Object.keys(infered.workflow).length ? infered.workflow : infered.all
-    for (const filter in list) {
-      output.push({
-        predicateType: SearchUIModel.PackageUserMetaFacetMap[list[filter]],
         filter,
-        tag: 'meta' as const,
-        title: filter.replace(/^\//, ''),
-        state: {
-          filtered: false,
-          visible: !hiddenColumns.has(filter),
-          inferred: true,
-        },
-      })
-    }
-    return output
-  }, [hiddenColumns, infered])
+        predicateType,
+      ),
+    [hiddenColumns, modifiedUserMetaFilters],
+  )
 
   return React.useMemo(() => {
-    const list = [...fixed, ...filters, ...selectedUserMeta]
-    if (inferedUserMeta instanceof Error || inferedUserMeta === Workflow.Loading) {
-      return [columnsToMap(list), inferedUserMeta]
+    const fixed = bucket
+      ? [createNameColumn()]
+      : [createBucketColumn(), createNameColumn()]
+
+    const systemMeta = AVAILABLE_PACKAGES_FILTERS.map(createSystemMetaColumn)
+
+    const selectedUserMeta = Array.from(state.userMetaFilters.filters.entries()).map(
+      ([filter, predicate]) => createUserMetaColumn(filter, predicate._tag),
+    )
+
+    const list = [...fixed, ...systemMeta, ...selectedUserMeta]
+
+    if (infered instanceof Error || infered === Workflow.Loading) {
+      return [columnsToMap(list), infered]
     }
+
+    const inferedUserMeta = Object.entries(
+      Object.keys(infered.workflow).length ? infered.workflow : infered.all,
+    ).map(([filter, predicateType]) =>
+      createUserMetaColumn(filter, SearchUIModel.PackageUserMetaFacetMap[predicateType]),
+    )
     return [columnsToMap(list.concat(inferedUserMeta)), null]
-  }, [fixed, filters, selectedUserMeta, inferedUserMeta])
+  }, [
+    createBucketColumn,
+    createNameColumn,
+    bucket,
+    createSystemMetaColumn,
+    createUserMetaColumn,
+    state.userMetaFilters.filters,
+    infered,
+  ])
 }
