@@ -14,6 +14,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
+import { oneOf } from 'utils/validate'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
 import FIRST_PAGE_OBJECTS_QUERY from './gql/FirstPageObjects.generated'
@@ -1244,15 +1245,9 @@ export function usePackageSystemMetaFacetExtents(
         case 'InvalidInput':
           return undefined
         case 'PackagesSearchResultSet':
-          if (
-            field === 'workflow' ||
-            field === 'modified' ||
-            field === 'size' ||
-            field === 'entries'
-          ) {
-            return r.stats[field]
-          }
-          return undefined
+          return oneOf(['workflow', 'modified', 'size', 'entries'], field)
+            ? r.stats[field]
+            : undefined
         default:
           assertNever(r)
       }
