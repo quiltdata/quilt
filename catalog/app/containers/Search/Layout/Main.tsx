@@ -138,7 +138,7 @@ function Filters({ className }: FiltersProps) {
         <RRDom.Route path={paths.search} exact>
           <ColumnTitle>Search for</ColumnTitle>
           <ResultTypeSelector />
-          <BucketSelector disabled className={classes.bucket} />
+          <BucketSelector className={classes.bucket} />
         </RRDom.Route>
       </RRDom.Switch>
       {

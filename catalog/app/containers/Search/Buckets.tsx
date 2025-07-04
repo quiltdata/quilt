@@ -14,12 +14,7 @@ const useStyles = M.makeStyles({
   },
 })
 
-interface BucketsProps {
-  className?: string
-  disabled?: boolean
-}
-
-export default function Buckets({ className, disabled }: BucketsProps) {
+export default function Buckets({ className }: { className?: string }) {
   const classes = useStyles()
   const model = SearchUIModel.use()
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
@@ -27,7 +22,6 @@ export default function Buckets({ className, disabled }: BucketsProps) {
   return (
     <div className={cx(classes.root, className)}>
       <Filters.Enum
-        disabled={disabled}
         extents={extents}
         label="In buckets"
         onChange={model.actions.setBuckets}
