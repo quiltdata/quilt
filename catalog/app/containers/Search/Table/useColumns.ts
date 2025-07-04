@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
+import * as JSONPointer from 'utils/JSONPointer'
 
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
@@ -74,7 +75,7 @@ const ColumnNameCreate = (state: ColumnState): ColumnSystemMeta =>
 
 export interface ColumnUserMeta {
   tag: ColumnTag.UserMeta
-  filter: string
+  filter: JSONPointer.Pointer
   predicateType: SearchUIModel.KnownPredicate['_tag']
   state: ColumnState
   title: string

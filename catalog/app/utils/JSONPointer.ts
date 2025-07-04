@@ -20,21 +20,10 @@ export function parse(address: Pointer): Path {
   return address.slice(1).split('/').map(decodeFragment)
 }
 
-function normalizeJsonPathSegment(fragment: Path[number]) {
-  // Return number, convert to string later,
-  // but the notation `$..123` for jsonpath is ok
-  if (typeof fragment !== 'string') return fragment
-
-  return fragment.includes(' ') || fragment.includes('-') || fragment.includes('$')
-    ? `['${fragment}']`
-    : fragment
-}
-
 export function toJsonPath(address: Path | Pointer): JsonPathExpression {
-  if (!Array.isArray(address)) return toJsonPath(address.split('/'))
+  if (!Array.isArray(address)) return toJsonPath(parse(address))
 
-  return `$.${address.map(normalizeJsonPathSegment).join('.')}`.replace(
-    /([^\.])\.\[/g,
-    (_s, $1) => `${$1}[`,
-  )
+  // `/a/b/c` → `$..['a']['b']['c']`
+  // `/sp ace/da-sh/$$$` → `$..['sp ace']['da-sh']['$$$']`
+  return `$..${address.map((fragment) => `['${fragment}']`).join('')}`
 }
