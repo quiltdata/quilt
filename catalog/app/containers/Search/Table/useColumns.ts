@@ -95,14 +95,9 @@ const ColumnUserMetaCreate = (
 
 export type Column = ColumnBucket | ColumnSystemMeta | ColumnUserMeta
 
-type UserMetaFacets = Record<string, SearchUIModel.PackageUserMetaFacet['__typename']>
+type UserMetaFacets = Map<string, SearchUIModel.PackageUserMetaFacet['__typename']>
 
-interface InferedUserMetaFacets {
-  workflow: UserMetaFacets
-  all: UserMetaFacets
-}
-
-function useInferredUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFacets> {
+function useInferredUserMetaFacets(): Workflow.RequestResult<UserMetaFacets> {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const selectedSingleBucket = React.useMemo(() => {
     if (state.buckets.length !== 1) return
@@ -138,7 +133,8 @@ function useInferredUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFace
             case 'InvalidInput':
               return new Error('Failed to load user meta')
             case 'PackagesSearchResultSet':
-              const output: InferedUserMetaFacets = { all: {}, workflow: {} }
+              const allFacets: UserMetaFacets = new Map()
+              const workflowFacets: UserMetaFacets = new Map()
               r.stats.userMeta.forEach(({ __typename, path }) => {
                 // Already selected
                 if (state.userMetaFilters.filters.has(path)) {
@@ -148,19 +144,25 @@ function useInferredUserMetaFacets(): Workflow.RequestResult<InferedUserMetaFace
                 // Not found in the latest workflow schema
                 if (
                   workflowRootKeys !== Workflow.Loading &&
-                  workflowRootKeys.indexOf(path.replace(/^\//, '')) > -1
+                  workflowRootKeys.includes(path.replace(/^\//, ''), 0)
                 ) {
-                  if (output.workflow[path] !== 'KeywordPackageUserMetaFacet') {
+                  // Use keywords when possible
+                  if (workflowFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
                     // TODO: keep sort order from workflow
-                    output.workflow[path] = __typename
+                    workflowFacets.set(path, __typename)
                   }
                 }
 
-                if (output.all[path] !== 'KeywordPackageUserMetaFacet') {
-                  output.all[path] = __typename
+                // If workflow has facets, then we will use only them
+                // and we don't need to keep fillng `allFacets`
+                if (workflowFacets.size) return
+
+                // Use keywords when possible
+                if (allFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
+                  allFacets.set(path, __typename)
                 }
               })
-              return output
+              return workflowFacets.size ? workflowFacets : allFacets
 
             default:
               assertNever(r)
@@ -178,16 +180,15 @@ export type ColumnsMap = Map<Column['filter'], Column>
 const columnsToMap = (columns: Column[]) => new Map(columns.map((c) => [c.filter, c]))
 
 type InferedColumnsNotReady = Exclude<
-  Workflow.RequestResult<InferedUserMetaFacets>,
-  InferedUserMetaFacets
+  Workflow.RequestResult<UserMetaFacets>,
+  UserMetaFacets
 >
 
 export function useColumns(
   hiddenColumns: HiddenColumns,
   bucket?: string,
 ): [ColumnsMap, InferedColumnsNotReady | null] {
-  const infered: Workflow.RequestResult<InferedUserMetaFacets> =
-    useInferredUserMetaFacets()
+  const infered: Workflow.RequestResult<UserMetaFacets> = useInferredUserMetaFacets()
 
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
@@ -262,22 +263,21 @@ export function useColumns(
       ([filter, predicate]) => createUserMetaColumn(filter, predicate._tag, false),
     )
 
-    const list = [...fixed, ...systemMeta, ...selectedUserMeta]
+    const columns = [...fixed, ...systemMeta, ...selectedUserMeta]
 
     if (infered instanceof Error || infered === Workflow.Loading) {
-      return [columnsToMap(list), infered]
+      return [columnsToMap(columns), infered]
     }
 
-    const inferedUserMeta = Object.entries(
-      Object.keys(infered.workflow).length ? infered.workflow : infered.all,
-    ).map(([filter, predicateType]) =>
+    const inferedUserMeta = Array.from(infered).map(([filter, predicateType]) =>
       createUserMetaColumn(
         filter,
         SearchUIModel.PackageUserMetaFacetMap[predicateType],
         true,
       ),
     )
-    return [columnsToMap(list.concat(inferedUserMeta)), null]
+
+    return [columnsToMap(columns.concat(inferedUserMeta)), null]
   }, [
     createBucketColumn,
     createNameColumn,
