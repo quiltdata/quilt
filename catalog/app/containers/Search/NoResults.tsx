@@ -222,10 +222,10 @@ export function Empty({ bucket, className }: EmptyProps) {
 interface ErrorProps {
   className?: string
   kind?: 'unexpected' | 'syntax'
-  details: React.ReactNode
+  children: React.ReactNode
 }
 
-export function Error({ className, kind = 'unexpected', details }: ErrorProps) {
+export function Error({ className, kind = 'unexpected', children }: ErrorProps) {
   const classes = useEmptyStyles()
   const {
     actions: { reset },
@@ -275,7 +275,7 @@ export function Error({ className, kind = 'unexpected', details }: ErrorProps) {
       <M.Typography variant="h6">Error details</M.Typography>
       <M.Box mt={1} />
       <M.Typography variant="body2" className={classes.body}>
-        {details}
+        {children}
       </M.Typography>
     </div>
   )

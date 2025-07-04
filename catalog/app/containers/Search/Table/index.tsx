@@ -54,7 +54,9 @@ export default function TablePage({ className, bucket }: TablePageProps) {
     case 'in-progress':
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
-      return <NoResults.Error className={className} details={results.error.message} />
+      return (
+        <NoResults.Error className={className}>{results.error.message}</NoResults.Error>
+      )
     case 'empty':
       return <NoResults.Empty className={className} bucket={bucket} />
     case 'ok':

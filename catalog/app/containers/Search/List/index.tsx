@@ -74,20 +74,21 @@ function NextPage({
           case 'fetching':
             return <LoadNextPage className={className} loading />
           case 'error':
-            return <NoResults.Error className={className} details={r.error.message} />
+            return (
+              <NoResults.Error className={className}>{r.error.message}</NoResults.Error>
+            )
           case 'data':
             switch (r.data.__typename) {
               case 'InvalidInput':
                 // should not happen
                 const [err] = r.data.errors
-                const details = (
-                  <>
+                return (
+                  <NoResults.Error className={className}>
                     Invalid input at <code>{err.path}</code>: {err.name}
                     <br />
                     {err.message}
-                  </>
+                  </NoResults.Error>
                 )
-                return <NoResults.Error className={className} details={details} />
               case 'PackagesSearchResultSetPage':
               case 'ObjectsSearchResultSetPage':
                 return (
@@ -178,25 +179,27 @@ export default function ListResults({ className }: ListResultsProps) {
     case 'fetching':
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'error':
-      return <NoResults.Error className={className} details={r.error.message} />
+      return <NoResults.Error className={className}>{r.error.message}</NoResults.Error>
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
           return <NoResults.Empty className={className} />
         case 'InvalidInput':
           const [err] = r.data.errors
-          const kind = err.name === 'QuerySyntaxError' ? 'syntax' : 'unexpected'
-          const details =
-            err.name === 'QuerySyntaxError' ? (
-              err.message
-            ) : (
-              <>
-                Invalid input at <code>{err.path}</code>: {err.name}
-                <br />
+          if (err.name === 'QuerySyntaxError') {
+            return (
+              <NoResults.Error className={className} kind="syntax">
                 {err.message}
-              </>
+              </NoResults.Error>
             )
-          return <NoResults.Error className={className} kind={kind} details={details} />
+          }
+          return (
+            <NoResults.Error className={className}>
+              Invalid input at <code>{err.path}</code>: {err.name}
+              <br />
+              {err.message}
+            </NoResults.Error>
+          )
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           const latestOnly =
