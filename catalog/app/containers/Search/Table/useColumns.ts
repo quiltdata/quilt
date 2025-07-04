@@ -236,12 +236,13 @@ export function useColumns(
     (
       filter: string,
       predicateType: SearchUIModel.KnownPredicate['_tag'],
+      inferred: boolean,
     ): ColumnUserMeta =>
       ColumnUserMetaCreate(
         {
           filtered: !!modifiedUserMetaFilters?.find(({ path }) => path === filter),
           visible: !hiddenColumns.has(filter),
-          inferred: false,
+          inferred,
         },
         filter,
         predicateType,
@@ -257,7 +258,7 @@ export function useColumns(
     const systemMeta = AVAILABLE_PACKAGES_FILTERS.map(createSystemMetaColumn)
 
     const selectedUserMeta = Array.from(state.userMetaFilters.filters.entries()).map(
-      ([filter, predicate]) => createUserMetaColumn(filter, predicate._tag),
+      ([filter, predicate]) => createUserMetaColumn(filter, predicate._tag, false),
     )
 
     const list = [...fixed, ...systemMeta, ...selectedUserMeta]
@@ -269,7 +270,11 @@ export function useColumns(
     const inferedUserMeta = Object.entries(
       Object.keys(infered.workflow).length ? infered.workflow : infered.all,
     ).map(([filter, predicateType]) =>
-      createUserMetaColumn(filter, SearchUIModel.PackageUserMetaFacetMap[predicateType]),
+      createUserMetaColumn(
+        filter,
+        SearchUIModel.PackageUserMetaFacetMap[predicateType],
+        true,
+      ),
     )
     return [columnsToMap(list.concat(inferedUserMeta)), null]
   }, [
