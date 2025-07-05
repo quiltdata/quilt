@@ -11,6 +11,11 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "docker"
+    directory: "/lambdas/indexer"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "docker"
     directory: "/lambdas/thumbnail"
     schedule:
       interval: "daily"
