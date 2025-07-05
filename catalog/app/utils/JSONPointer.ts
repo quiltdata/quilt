@@ -2,7 +2,9 @@ export type Path = (number | string)[]
 
 export type Pointer = string
 
-function encodeFragment(fragment: number | string) {
+type JsonPathExpression = string
+
+function encodeFragment(fragment: Path[number]) {
   return fragment.toString().replaceAll('~', '~0').replaceAll('/', '~1')
 }
 
@@ -16,4 +18,12 @@ export function stringify(addressPath: Readonly<Path>): Pointer {
 
 export function parse(address: Pointer): Path {
   return address.slice(1).split('/').map(decodeFragment)
+}
+
+export function toJsonPath(address: Path | Pointer): JsonPathExpression {
+  if (!Array.isArray(address)) return toJsonPath(parse(address))
+
+  // `/a/b/c` → `$..['a']['b']['c']`
+  // `/sp ace/da-sh/$$$` → `$..['sp ace']['da-sh']['$$$']`
+  return `$..${address.map((fragment) => `['${fragment}']`).join('')}`
 }

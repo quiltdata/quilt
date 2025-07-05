@@ -14,6 +14,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
+import { oneOf } from 'utils/validate'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
 import FIRST_PAGE_OBJECTS_QUERY from './gql/FirstPageObjects.generated'
@@ -29,7 +30,14 @@ export enum ResultType {
   S3Object = 'o',
 }
 
+export enum View {
+  Table = 't',
+  List = 'l',
+}
+
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
+
+export const DEFAULT_VIEW = View.List
 
 export const ResultOrder = Model.GQLTypes.SearchResultOrder
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -66,6 +74,7 @@ interface SearchUrlStateBase {
   searchString: string | null
   buckets: readonly string[]
   order: ResultOrder
+  view: View
 }
 
 interface ObjectsSearchUrlState extends SearchUrlStateBase {
@@ -541,21 +550,37 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
   return DEFAULT_RESULT_TYPE
 }
 
+function parseView(view: string | null): View {
+  switch (view) {
+    case View.List:
+      return View.List
+    case View.Table:
+      return View.Table
+  }
+  return DEFAULT_VIEW
+}
+
 export const META_PREFIX = 'meta.'
 
 // XXX: use @effect/schema for morphisms between url (querystring) and search state
-export function parseSearchParams(qs: string): SearchUrlState {
-  const params = new URLSearchParams(qs)
+export function parseSearchParams(
+  qs: string,
+  optUrlState?: SearchUrlState,
+): SearchUrlState {
+  const params =
+    qs || !optUrlState ? new URLSearchParams(qs) : serializeSearchUrlState(optUrlState)
   const searchString = params.get('q')
 
   const resultType = parseResultType(params.get('t'), params.get('mode'))
+
+  const view = parseView(params.get('v'))
 
   const bucketsInput = params.get('buckets') || params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
 
   const order = parseOrder(params.get('o'))
 
-  const base = { searchString, buckets, order }
+  const base = { searchString, buckets, order, view }
   switch (resultType) {
     case ResultType.S3Object:
       return {
@@ -584,6 +609,8 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
 
   if (state.resultType !== DEFAULT_RESULT_TYPE) params.set('t', state.resultType)
 
+  if (state.view !== DEFAULT_VIEW) params.set('v', state.view)
+
   if (state.buckets.length) params.set('b', state.buckets.join(','))
 
   const order = serializeOrder(state.order)
@@ -609,14 +636,17 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
   return params
 }
 
-function useUrlState(): SearchUrlState {
+function useUrlState(optUrlState?: SearchUrlState): SearchUrlState {
   const l = RR.useLocation()
-  return React.useMemo(() => parseSearchParams(l.search), [l.search])
+  return React.useMemo(
+    () => parseSearchParams(l.search, optUrlState),
+    [l.search, optUrlState],
+  )
 }
 
-export function useMakeUrl() {
+export function useMakeUrl(optBase?: string) {
   const { urls } = NamedRoutes.use()
-  const base = urls.search({})
+  const base = optBase || urls.search({})
   return React.useCallback(
     (state: SearchUrlState) => {
       const parts = [base]
@@ -652,7 +682,7 @@ function addMagicWildcardsQS(s: string | null): string | null {
   return `${s}*`
 }
 
-function useMagicWildcardsQS(s: string | null) {
+export function useMagicWildcardsQS(s: string | null) {
   return React.useMemo(() => addMagicWildcardsQS(s), [s])
 }
 
@@ -729,8 +759,8 @@ function useFirstPageQuery(state: SearchUrlState) {
   }
 }
 
-function useNextPageObjectsQuery(after: string) {
-  const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after })
+export function useNextPageObjectsQuery(after: string, pause?: boolean) {
+  const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after }, { pause })
   const folded = GQL.fold(result, {
     data: ({ searchMoreObjects: data }) => addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
@@ -739,8 +769,8 @@ function useNextPageObjectsQuery(after: string) {
   return folded
 }
 
-function useNextPagePackagesQuery(after: string) {
-  const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after })
+export function useNextPagePackagesQuery(after: string, pause?: boolean) {
+  const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after }, { pause })
   const folded = GQL.fold(result, {
     data: ({ searchMorePackages: data }) => addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
@@ -1098,7 +1128,7 @@ type PackageUserMetaFacetFull = Extract<
 
 export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
 
-const PackageUserMetaFacetTypeDisplay = {
+export const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,
   DatetimePackageUserMetaFacet: 'Date' as const,
   KeywordPackageUserMetaFacet: 'Keyword' as const,
@@ -1203,6 +1233,30 @@ export const PackageUserMetaFacetTypeInfo = {
   },
 }
 
+export function usePackageSystemMetaFacetExtents(
+  field: keyof PackagesSearchFilter,
+): Extents | undefined {
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+  return GQL.fold(model.baseSearchQuery, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return undefined
+        case 'InvalidInput':
+          return undefined
+        case 'PackagesSearchResultSet':
+          return oneOf(['workflow', 'modified', 'size', 'entries'], field)
+            ? r.stats[field]
+            : undefined
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => undefined,
+    error: () => undefined,
+  })
+}
+
 export function usePackageUserMetaFacetExtents(path: string): {
   fetching: boolean
   extents: Extents | undefined
@@ -1263,13 +1317,14 @@ export function usePackageUserMetaFacetExtents(path: string): {
   })
 }
 
-function useSearchUIModel() {
-  const urlState = useUrlState()
+function useSearchUIModel(optUrlState?: SearchUrlState, optBase?: string) {
+  const urlStateFromLocation = useUrlState(optUrlState)
+  const urlState = urlStateFromLocation
 
   const baseSearchQuery = useBaseSearchQuery(urlState)
   const firstPageQuery = useFirstPageQuery(urlState)
 
-  const makeUrl = useMakeUrl()
+  const makeUrl = useMakeUrl(optBase)
 
   const history = RR.useHistory()
 
@@ -1315,11 +1370,19 @@ function useSearchUIModel() {
               ...s,
               resultType,
               filter: ObjectsSearchFilterIO.initialState,
+              view: View.List,
             }
           default:
             return assertNever(resultType)
         }
       })
+    },
+    [updateUrlState],
+  )
+
+  const setView = React.useCallback(
+    (view: View) => {
+      updateUrlState((s) => ({ ...s, view }))
     },
     [updateUrlState],
   )
@@ -1458,11 +1521,12 @@ function useSearchUIModel() {
   }, [updateUrlState])
 
   const reset = React.useCallback(() => {
-    updateUrlState(({ resultType, order }) => {
+    updateUrlState(({ resultType, order, view }) => {
       const base = {
         searchString: null,
         buckets: [],
         order,
+        view,
       }
       switch (resultType) {
         case ResultType.QuiltPackage:
@@ -1495,6 +1559,7 @@ function useSearchUIModel() {
         setOrder,
         setResultType,
         setBuckets,
+        setView,
 
         activateObjectsFilter,
         deactivateObjectsFilter,
@@ -1526,8 +1591,12 @@ export type SearchUIModel = ReturnType<typeof useSearchUIModel>
 
 export const Context = React.createContext<SearchUIModel | null>(null)
 
-export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>) {
-  const state = useSearchUIModel()
+export function SearchUIModelProvider({
+  base,
+  children,
+  urlState,
+}: React.PropsWithChildren<{ urlState?: SearchUrlState; base?: string }>) {
+  const state = useSearchUIModel(urlState, base)
   return React.createElement(Context.Provider, { value: state }, children)
 }
 

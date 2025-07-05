@@ -121,7 +121,10 @@ export default function Search() {
   const classes = useStyles()
   const helpClasses = useHelpStyles()
 
-  const { input, onClickAway } = useNavBar()
+  const {
+    input: { helpOpen, focusTrigger, ...input },
+    onClickAway,
+  } = useNavBar()
   const ref = React.useRef(null)
   const focus = React.useCallback(() => ref.current?.focus(), [])
 
@@ -145,7 +148,7 @@ export default function Search() {
                 placeholder="Search"
                 ref={ref}
               />
-              <Suggestions classes={helpClasses} open={input.helpOpen} />
+              <Suggestions classes={helpClasses} open={helpOpen} />
             </div>
           </M.ClickAwayListener>
         </div>

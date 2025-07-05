@@ -19,15 +19,37 @@ export type containers_Search_gql_NextPagePackagesQuery = {
               Types.SearchHitPackage,
               | 'id'
               | 'bucket'
+              | 'name'
+              | 'pointer'
+              | 'hash'
               | 'score'
               | 'size'
               | 'modified'
-              | 'name'
-              | 'hash'
+              | 'totalEntriesCount'
               | 'comment'
               | 'meta'
               | 'workflow'
-            >
+            > & {
+                readonly matchLocations: {
+                  readonly __typename: 'SearchHitPackageMatchLocations'
+                } & Pick<
+                  Types.SearchHitPackageMatchLocations,
+                  'comment' | 'meta' | 'name' | 'workflow'
+                >
+                readonly matchingEntries: ReadonlyArray<
+                  { readonly __typename: 'SearchHitPackageMatchingEntry' } & Pick<
+                    Types.SearchHitPackageMatchingEntry,
+                    'logicalKey' | 'physicalKey' | 'size' | 'meta'
+                  > & {
+                      readonly matchLocations: {
+                        readonly __typename: 'SearchHitPackageEntryMatchLocations'
+                      } & Pick<
+                        Types.SearchHitPackageEntryMatchLocations,
+                        'contents' | 'logicalKey' | 'meta' | 'physicalKey'
+                      >
+                    }
+                >
+              }
           >
         })
     | ({ readonly __typename: 'InvalidInput' } & {
@@ -96,14 +118,94 @@ export const containers_Search_gql_NextPagePackagesDocument = {
                             },
                             { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'bucket' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'pointer' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'score' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'size' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'totalEntriesCount' },
+                            },
                             { kind: 'Field', name: { kind: 'Name', value: 'comment' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'meta' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'workflow' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'matchLocations' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'comment' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'meta' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'name' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'workflow' },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'matchingEntries' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'logicalKey' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'physicalKey' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'size' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'meta' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'matchLocations' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'contents' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'logicalKey' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'meta' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'physicalKey' },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                ],
+                              },
+                            },
                           ],
                         },
                       },
