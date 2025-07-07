@@ -142,17 +142,14 @@ export function Header({ children }: HeaderProps) {
   const classes = useHeaderStyles({
     customBg: !!settings?.theme?.palette?.primary?.main,
   })
-  const { fullWidth } = useNavBar() || {}
+  const maxWidth = !useNavBar()?.fullWidth && 'lg'
   return (
     <M.Box>
       <M.Toolbar />
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
           <M.Toolbar disableGutters>
-            <M.Container
-              className={classes.container}
-              maxWidth={fullWidth ? false : 'lg'}
-            >
+            <M.Container className={classes.container} maxWidth={maxWidth}>
               <LogoLink />
               <div className={classes.main}>{children}</div>
             </M.Container>
