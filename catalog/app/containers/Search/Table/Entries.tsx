@@ -6,7 +6,7 @@ import { DescriptionOutlined as IconDescriptionOutlined } from '@material-ui/ico
 
 import { CONTEXT, Display, Load } from 'components/Preview'
 import JsonDisplay from 'components/JsonDisplay'
-import type { RouteMap } from 'containers/Bucket/BucketNav'
+import type { RouteMap } from 'containers/Bucket/Routes'
 import * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'

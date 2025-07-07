@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -7,6 +6,7 @@ import * as Lab from '@material-ui/lab'
 
 import Skeleton from 'components/Skeleton'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import { useBucketStrict } from 'containers/Bucket/Routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
@@ -22,8 +22,7 @@ interface CreatePackageProps {
 }
 
 function CreatePackage({ className }: CreatePackageProps) {
-  const { bucket } = RRDom.useParams<{ bucket: string }>()
-  invariant(!!bucket, '`bucket` must be defined')
+  const bucket = useBucketStrict()
   const createDialog = usePackageCreationDialog({
     bucket,
     delayHashing: true,

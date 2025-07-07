@@ -5,7 +5,7 @@ import jsonpath from 'jsonpath'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import type { RouteMap } from 'containers/Bucket/BucketNav'
+import type { RouteMap } from 'containers/Bucket/Routes'
 import * as Format from 'utils/format'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -15,6 +15,7 @@ import { readableBytes } from 'utils/string'
 import type { Json, JsonRecord } from 'utils/types'
 
 import * as SearchUIModel from '../model'
+
 import { ColumnTag } from './useColumns'
 import type { Column, FilterType } from './useColumns'
 

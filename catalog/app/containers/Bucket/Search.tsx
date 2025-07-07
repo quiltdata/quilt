@@ -1,5 +1,3 @@
-import invariant from 'invariant'
-import * as RRDom from 'react-router-dom'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -7,6 +5,7 @@ import * as SearchUIModel from 'containers/Search/model'
 import AssistantContext from 'containers/Search/AssistantContext'
 import MetaTitle from 'utils/MetaTitle'
 
+import { useBucketStrict } from 'containers/Bucket/Routes'
 import Main from 'containers/Search/Layout/Main'
 import ListResults from 'containers/Search/List'
 import TableResults from 'containers/Search/Table'
@@ -18,8 +17,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export function SearchLayout() {
-  const { bucket } = RRDom.useParams<{ bucket: string }>()
-  invariant(!!bucket, '`bucket` must be defined')
+  const bucket = useBucketStrict()
   const model = SearchUIModel.use()
   const classes = useStyles()
   const tableView =

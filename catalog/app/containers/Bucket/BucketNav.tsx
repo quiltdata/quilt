@@ -4,7 +4,6 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
-import type * as Routes from 'constants/routes'
 import * as AuthSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -15,20 +14,6 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: 120,
   },
 }))
-
-export interface RouteMap {
-  bucketDir: Routes.BucketDirArgs
-  bucketESQueries: Routes.BucketESQueriesArgs
-  bucketFile: Routes.BucketFileArgs
-  bucketOverview: Routes.BucketOverviewArgs
-  bucketPackageDetail: Routes.BucketPackageDetailArgs
-  bucketPackageList: Routes.BucketPackageListArgs
-  bucketPackageRevisions: Routes.BucketPackageRevisionsArgs
-  bucketPackageTree: Routes.BucketPackageTreeArgs
-  bucketQueries: Routes.BucketQueriesArgs
-  bucketWorkflowDetail: Routes.BucketWorkflowDetailArgs
-  bucketWorkflowList: Routes.BucketWorkflowListArgs
-}
 
 export type Section = 'es' | 'overview' | 'packages' | 'queries' | 'tree' | 'workflows'
 

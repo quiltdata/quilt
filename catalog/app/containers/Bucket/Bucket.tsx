@@ -1,10 +1,10 @@
-import invariant from 'invariant'
 import * as React from 'react'
-import { Route, Switch, useLocation, useParams } from 'react-router-dom'
+import { Route, Switch, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
+import { useBucketStrict } from 'containers/Bucket/Routes'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import * as SearchUIModel from 'containers/Search/model'
 import { useBucketExistence } from 'utils/BucketCache'
@@ -14,8 +14,9 @@ import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
-import type { RouteMap, Section } from './BucketNav'
+import type { Section } from './BucketNav'
 import CatchNotFound from './CatchNotFound'
+import type { RouteMap } from './Routes'
 import * as Selection from './Selection'
 import { displayError } from './errors'
 
@@ -82,8 +83,7 @@ function BucketLayout({ bucket, section = false, render }: BucketLayoutProps) {
 
 export default function Bucket() {
   const location = useLocation()
-  const { bucket } = useParams<{ bucket: string }>()
-  invariant(!!bucket, '`bucket` must be defined')
+  const bucket = useBucketStrict()
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
