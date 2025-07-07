@@ -49,6 +49,11 @@ function SearchField({ className }: SearchFieldProps) {
     onChange('')
   }, [onChange])
 
+  React.useEffect(
+    () => setQuery(model.state.searchString || ''),
+    [model.state.searchString],
+  )
+
   return (
     <M.TextField
       autoFocus
