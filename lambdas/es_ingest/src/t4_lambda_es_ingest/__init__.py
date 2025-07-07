@@ -68,11 +68,11 @@ def bulk(context, es, data: bytes):
 
 
 def handler(event, context):
-    logger.debug("Batch indexer handler called with event: %s", event)
-    assert len(event["Records"]) == 1, "Batch indexer handler expects exactly one record"
+    logger.debug("Invoked with event: %s", event)
+    assert len(event["Records"]) == 1, "Expected exactly on SQS message"
     (event,) = event["Records"]
     event = json.loads(event["body"])
-    assert len(event["Records"]) == 1, "Batch indexer handler expects exactly one S3 event record"
+    assert len(event["Records"]) == 1, "Expected exactly one S3 event record"
     (event,) = event["Records"]
 
     bucket = event["s3"]["bucket"]["name"]
