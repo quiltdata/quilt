@@ -19,7 +19,7 @@ function useUrlQuery() {
   return qs?.q ?? ''
 }
 
-function useSearchUIModel() {
+export function useSearchUIModel() {
   return React.useContext(SearchUIModel.Context)
 }
 
@@ -31,7 +31,6 @@ interface SearchState {
   input: InputState
   onClickAway: () => void
   suggestions: ReturnType<typeof Suggestions.use>
-  fullWidth: boolean
 }
 
 function useSearchState(bucket?: string): SearchState {
@@ -118,7 +117,6 @@ function useSearchState(bucket?: string): SearchState {
   }, [expanded, helpOpen, handleCollapse])
 
   return {
-    fullWidth: searchUIModel?.state.view === SearchUIModel.View.Table,
     input: {
       helpOpen,
       onChange,

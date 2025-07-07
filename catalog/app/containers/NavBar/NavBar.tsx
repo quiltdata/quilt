@@ -3,11 +3,13 @@ import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import LayoutContainer from 'components/Layout/Container'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
+import * as SearchUIModel from 'containers/Search/model'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -15,7 +17,7 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 import * as NavMenu from './NavMenu'
-import { useNavBar } from './Provider'
+import { useSearchUIModel } from './Provider'
 import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
@@ -142,17 +144,20 @@ export function Header({ children }: HeaderProps) {
   const classes = useHeaderStyles({
     customBg: !!settings?.theme?.palette?.primary?.main,
   })
-  const maxWidth = !useNavBar()?.fullWidth && 'lg'
+  const searchUIModel = useSearchUIModel()
   return (
     <M.Box>
       <M.Toolbar />
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
           <M.Toolbar disableGutters>
-            <M.Container className={classes.container} maxWidth={maxWidth}>
+            <LayoutContainer
+              className={classes.container}
+              fullWidth={searchUIModel?.state.view === SearchUIModel.View.Table}
+            >
               <LogoLink />
               <div className={classes.main}>{children}</div>
-            </M.Container>
+            </LayoutContainer>
           </M.Toolbar>
         </AppBar>
       </M.Slide>

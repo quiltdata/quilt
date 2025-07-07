@@ -2,12 +2,12 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
+import Container from 'components/Layout/Container'
 import MetaTitle from 'utils/MetaTitle'
 
 import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
 import Main from './Layout/Main'
-import Container from './Layout/Container'
 import ListResults from './List'
 import TableResults from './Table'
 
@@ -24,7 +24,7 @@ function SearchLayout() {
     model.state.view === SearchUIModel.View.Table &&
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage
   return (
-    <Container state={model.state}>
+    <Container fullWidth={tableView}>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
       <Main className={classes.main}>
         {tableView ? <TableResults /> : <ListResults />}

@@ -1,9 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as SearchUIModel from '../model'
+import Container from 'components/Layout/Container'
 
-import ExpandingContainer from './Container'
+import * as SearchUIModel from '../model'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -41,12 +41,15 @@ function Inner() {
     [],
   )
   return (
-    <ExpandingContainer className={classes.root} state={model.state}>
+    <Container
+      className={classes.root}
+      fullWidth={model.state.view === SearchUIModel.View.Table}
+    >
       <M.Fab className={classes.button} onClick={onClick} variant="extended">
         <M.Icon className={classes.icon}>expand_less</M.Icon>
         Scroll to the top
       </M.Fab>
-    </ExpandingContainer>
+    </Container>
   )
 }
 

@@ -15,7 +15,6 @@ import SortSelector from '../Sort'
 import * as SearchUIModel from '../model'
 
 import ColumnTitle from './ColumnTitle'
-import { useMobileView } from './Container'
 
 interface CreatePackageProps {
   className: string
@@ -202,14 +201,12 @@ const useResultsStyles = M.makeStyles((t) => ({
 }))
 
 interface ResultsProps {
-  onFilters: () => void
+  onFilters?: () => void
 }
 
 export default function Results({ onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
   const classes = useResultsStyles()
-  const isMobile = useMobileView()
-  const sidebarHidden = isMobile || model.state.view === SearchUIModel.View.Table
   return (
     <div className={classes.toolbar}>
       <ResultsCount />
@@ -217,9 +214,7 @@ export default function Results({ onFilters }: ResultsProps) {
         {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
           <ToggleResultsView className={classes.button} />
         )}
-        {sidebarHidden && (
-          <FiltersButton className={classes.button} onClick={onFilters} />
-        )}
+        {onFilters && <FiltersButton className={classes.button} onClick={onFilters} />}
         <SortSelector className={classes.button} />
       </div>
     </div>

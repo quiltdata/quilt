@@ -10,11 +10,15 @@ import * as SearchUIModel from 'containers/Search/model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import ColumnTitle from './ColumnTitle'
-import { useMobileView } from './Container'
 import ObjectFilters from './ObjectFilters'
 import PackageFilters from './PackageFilters'
 import ResultsToolbar from './Results'
 import ScrollToTop from './ScrollToTop'
+
+function useMobileView() {
+  const t = M.useTheme()
+  return M.useMediaQuery(t.breakpoints.down('sm'))
+}
 
 const useSearchFieldStyles = M.makeStyles((t) => ({
   root: {
@@ -190,15 +194,19 @@ export default function Main({ className, children }: MainProps) {
 
   const isMobile = useMobileView()
   const [showFilters, setShowFilters] = React.useState(false)
-  const toggleFilters = React.useCallback(() => setShowFilters((x) => !x), [])
-
-  const sidebarHidden = isMobile || model.state.view === SearchUIModel.View.Table
+  const toggleFilters = React.useMemo(
+    () =>
+      isMobile || model.state.view === SearchUIModel.View.Table
+        ? () => setShowFilters((x) => !x)
+        : undefined,
+    [isMobile, model.state.view],
+  )
 
   return (
     <div className={className}>
       <SearchField className={classes.search} />
-      <div className={cx(!sidebarHidden && classes.withSidebar)}>
-        {sidebarHidden ? (
+      <div className={cx(!toggleFilters && classes.withSidebar)}>
+        {toggleFilters ? (
           <MobileFilters open={showFilters} onClose={toggleFilters} />
         ) : (
           <Filters />
