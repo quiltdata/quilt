@@ -179,11 +179,6 @@ const useStyles = M.makeStyles((t) => ({
     gridAutoFlow: 'row',
     gridRowGap: t.spacing(2),
     gridTemplateColumns: '100%',
-    overflow: 'hidden',
-
-    // make space for box shadows
-    padding: t.spacing(0.5),
-    margin: t.spacing(-0.5),
   },
 }))
 

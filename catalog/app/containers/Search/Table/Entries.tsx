@@ -42,10 +42,13 @@ interface PreviewProps extends PreviewEntry {
   onClose: () => void
 }
 
-function Preview({ type, entry, onClose }: PreviewProps) {
+export const Preview = React.forwardRef<HTMLDivElement, PreviewProps>(function Preview(
+  { type, entry, onClose },
+  ref,
+) {
   const classes = usePreviewStyles()
   return (
-    <M.Paper square elevation={2} className={classes.preview}>
+    <M.Paper square elevation={2} className={classes.preview} ref={ref}>
       <div className={classes.header}>
         <M.Typography variant="h6">{entry.logicalKey}</M.Typography>
         <M.IconButton className={classes.close} onClick={onClose}>
@@ -71,7 +74,7 @@ function Preview({ type, entry, onClose }: PreviewProps) {
       )}
     </M.Paper>
   )
-}
+})
 
 interface EntryMetaDisplayProps {
   meta: string | null
@@ -209,9 +212,8 @@ const useStyles = M.makeStyles((t) => ({
   popover: {
     position: 'absolute',
     top: '100%',
-    // TODO: describe left/right numbers, should be equal to some `sticky` padding
     left: t.spacing(-0.5),
-    right: t.spacing(-2.5),
+    right: t.spacing(-0.5),
     zIndex: 10,
     animation: t.transitions.create(['$growX']),
     '&::before': {
