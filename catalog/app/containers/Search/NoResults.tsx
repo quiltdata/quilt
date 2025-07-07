@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 import { ES_REF_SYNTAX } from 'components/SearchResults'
 import { docs } from 'constants/urls'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
-import { useNavBar } from 'containers/NavBar'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
@@ -134,12 +133,11 @@ export function Empty({ bucket, className }: EmptyProps) {
     baseSearchQuery,
     state,
   } = SearchUIModel.use()
-  const focus = useNavBar()?.focus
 
   const startNewSearch = React.useCallback(() => {
+    // FIXME: clear search text box
     reset()
-    focus?.()
-  }, [focus, reset])
+  }, [reset])
 
   const resetBuckets = React.useCallback(() => {
     setBuckets([])
@@ -230,14 +228,13 @@ export function Error({ className, kind = 'unexpected', children }: ErrorProps) 
   const {
     actions: { reset },
   } = SearchUIModel.use()
-  const focus = useNavBar()?.focus
   const startNewSearch = React.useCallback(
     (event) => {
+      // FIXME: clear search field
       event.stopPropagation()
       reset()
-      focus?.()
     },
-    [reset, focus],
+    [reset],
   )
   const tryAgain = React.useCallback(() => {
     // FIXME: retry GQL request

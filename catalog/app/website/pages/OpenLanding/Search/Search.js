@@ -122,7 +122,7 @@ export default function Search() {
   const helpClasses = useHelpStyles()
 
   const {
-    input: { helpOpen, focusTrigger, ...input },
+    input: { helpOpen, ...input },
     onClickAway,
   } = useNavBar()
   const ref = React.useRef(null)
