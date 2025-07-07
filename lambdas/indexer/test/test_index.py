@@ -880,8 +880,9 @@ class TestIndex(TestCase):
             }
         )
 
-    @patch.object(index.DocumentQueue, 'append_document')
-    def test_index_if_pointer_not_exists(self, append_mock):
+    @patch.object(index, "es")
+    @patch.object(index.DocumentQueue, "append_document")
+    def test_index_if_pointer_not_exists(self, append_mock, es_mock):
         bucket = "quilt-example"
         key = f"{NAMED_PACKAGES_PREFIX}author/semantic/1610412903"
 
@@ -901,16 +902,21 @@ class TestIndex(TestCase):
             key=key,
         )
 
-        append_mock.assert_called_once_with(
-            {
-                "_index": bucket + PACKAGE_INDEX_SUFFIX,
-                "_id": get_ptr_doc_id("author/semantic", "1610412903"),
-                "_op_type": "delete",
-            }
+        es_mock.delete_by_query.assert_called_once_with(
+            index=bucket + PACKAGE_INDEX_SUFFIX,
+            body={
+                "query": {
+                    "term": {
+                        "_id": get_ptr_doc_id("author/semantic", "1610412903"),
+                    }
+                }
+            },
         )
+        append_mock.assert_not_called()
 
+    @patch.object(index, "es")
     @patch.object(index.DocumentQueue, 'append_document')
-    def test_index_if_pointer(self, append_mock):
+    def test_index_if_pointer(self, append_mock, es_mock):
         bucket = "quilt-example"
         handle = "author/semantic"
         pointer_file = "1610412903"
@@ -937,6 +943,16 @@ class TestIndex(TestCase):
             key=key,
         )
 
+        es_mock.delete_by_query.assert_called_once_with(
+            index=bucket + PACKAGE_INDEX_SUFFIX,
+            body={
+                "query": {
+                    "term": {
+                        "_id": get_ptr_doc_id(handle, pointer_file),
+                    }
+                }
+            },
+        )
         append_mock.assert_called_once_with({
             "_index": bucket + PACKAGE_INDEX_SUFFIX,
             "_op_type": "index",

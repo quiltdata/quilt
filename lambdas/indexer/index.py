@@ -79,6 +79,7 @@ from quilt_shared.es import (
     PACKAGE_INDEX_SUFFIX,
     get_manifest_doc_id,
     get_ptr_doc_id,
+    make_elastic,
     make_s3_client,
 )
 from t4_lambda_shared.preview import (
@@ -173,6 +174,7 @@ TEST_EVENT = "s3:TestEvent"
 
 logger = get_quilt_logger()
 s3_client = make_s3_client()
+es = make_elastic(os.environ["ES_ENDPOINT"])
 
 
 def now_like_boto3():
@@ -320,13 +322,28 @@ def index_if_pointer(
             "ptr_tag": pointer_file,
             "ptr_last_modified": resp["LastModified"],
         }
-    data = data or {}
-    doc_queue.append_document({
-        "_index": bucket + PACKAGE_INDEX_SUFFIX,
-        "_id": get_ptr_doc_id(handle, pointer_file),
-        "_op_type": "index" if data else "delete",
-        **data,
-    })
+    index = bucket + PACKAGE_INDEX_SUFFIX
+    _id = get_ptr_doc_id(handle, pointer_file)
+    # ES index can have multiple docs with the same _id when you specify routing,
+    # so we can't rely that new doc will replace the old one.
+    # We have to use delete_by_query to remove the old doc for all the shards.
+    es.delete_by_query(
+        index=index,
+        body={
+            "query": {
+                "term": {
+                    "_id": _id,
+                }
+            },
+        },
+    )
+    if data is not None:
+        doc_queue.append_document({
+            "_index": bucket + PACKAGE_INDEX_SUFFIX,
+            "_id": get_ptr_doc_id(handle, pointer_file),
+            "_op_type": "index" if data else "delete",
+            **data,
+        })
 
     return True
 
