@@ -326,7 +326,7 @@ def index_if_pointer(
     _id = get_ptr_doc_id(handle, pointer_file)
     # ES index can have multiple docs with the same _id when you specify routing,
     # so we can't rely that new doc will replace the old one.
-    # We have to use delete_by_query to remove the old doc for all the shards.
+    # We have to use delete_by_query to remove the old doc from all the shards.
     es.delete_by_query(
         index=index,
         body={
