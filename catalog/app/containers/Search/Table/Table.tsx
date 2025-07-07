@@ -1108,6 +1108,7 @@ interface ColumnHeadProps {
 
 function ColumnHead({ column, single }: ColumnHeadProps) {
   const classes = useColumnHeadStyles()
+  // FIXME: let hiding bucket column
   return (
     <div className={classes.root}>
       <p className={classes.title}>
@@ -1120,7 +1121,7 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
       </p>
       <div className={classes.actions}>
         <ColumnHeadOpen column={column} />
-        {!single && <ColumnHeadHide column={column} />}
+        {!single && column.tag !== ColumnTag.Bucket && <ColumnHeadHide column={column} />}
       </div>
     </div>
   )
