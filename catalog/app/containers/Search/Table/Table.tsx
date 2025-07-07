@@ -1149,9 +1149,10 @@ interface LayoutProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
   columns: ColumnsMap
   skeletons: ReturnType<typeof Skeleton.useColumns>
+  metaFiltersState: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function Layout({ hits, columns, skeletons }: LayoutProps) {
+function Layout({ hits, columns, skeletons, metaFiltersState }: LayoutProps) {
   const classes = useLayoutStyles()
   const {
     filter,
@@ -1163,11 +1164,7 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
 
   return (
     <M.Paper className={classes.root}>
-      <SearchUIModel.AvailablePackagesMetaFilters>
-        {(state: SearchUIModel.AvailableFiltersStateInstance) => (
-          <ConfigureColumns columns={columns} state={state} />
-        )}
-      </SearchUIModel.AvailablePackagesMetaFilters>
+      <ConfigureColumns columns={columns} state={metaFiltersState} />
 
       <div className={classes.scrollWrapper}>
         <div className={classes.scrollArea}>
@@ -1216,11 +1213,12 @@ const useTableViewStyles = M.makeStyles((t) => ({
 interface TableViewProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
   bucket?: string
+  metaFiltersState: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function TableView({ hits, bucket }: TableViewProps) {
+function TableView({ hits, bucket, metaFiltersState }: TableViewProps) {
   const { hiddenColumns } = useContext()
-  const [columns, notReady] = useColumns(hiddenColumns, bucket)
+  const [columns, notReady] = useColumns(hiddenColumns, metaFiltersState, bucket)
   const skeletons = Skeleton.useColumns(
     notReady === Workflow.Loading ? hits.length + 1 : 0,
     3,
@@ -1233,15 +1231,29 @@ function TableView({ hits, bucket }: TableViewProps) {
           {notReady.message}
         </Lab.Alert>
       )}
-      <Layout columns={columns} hits={hits} skeletons={skeletons} />
+      <Layout
+        columns={columns}
+        hits={hits}
+        skeletons={skeletons}
+        metaFiltersState={metaFiltersState}
+      />
     </>
   )
 }
 
-export default function TableViewInit({ hits, bucket }: TableViewProps) {
+interface TableViewInitProps {
+  hits: readonly SearchUIModel.SearchHitPackage[]
+  bucket?: string
+}
+
+export default function TableViewInit({ hits, bucket }: TableViewInitProps) {
   return (
     <Provider>
-      <TableView hits={hits} bucket={bucket} />
+      <SearchUIModel.AvailablePackagesMetaFilters>
+        {(metaFiltersState) => (
+          <TableView hits={hits} bucket={bucket} metaFiltersState={metaFiltersState} />
+        )}
+      </SearchUIModel.AvailablePackagesMetaFilters>
     </Provider>
   )
 }

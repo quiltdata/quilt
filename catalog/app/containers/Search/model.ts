@@ -840,6 +840,7 @@ interface RenderProps<T> {
   children: RenderFn<T>
 }
 
+// TODO: make it similar to `model.state.firstPageQuery`
 export function AvailablePackagesMetaFilters({
   children,
 }: RenderProps<AvailableFiltersStateInstance>) {
