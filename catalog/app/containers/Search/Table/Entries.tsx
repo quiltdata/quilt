@@ -26,7 +26,7 @@ const usePreviewStyles = M.makeStyles((t) => ({
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    marginBottom: t.spacing(2),
+    // marginBottom: t.spacing(2),
   },
   close: {
     margin: t.spacing(-1, -2),
@@ -36,45 +36,52 @@ const usePreviewStyles = M.makeStyles((t) => ({
 interface PreviewEntry {
   type: 'meta' | 'content'
   entry: Model.GQLTypes.SearchHitPackageMatchingEntry
+  to: string
 }
 
 interface PreviewProps extends PreviewEntry {
   onClose: () => void
 }
 
-export const Preview = React.forwardRef<HTMLDivElement, PreviewProps>(function Preview(
-  { type, entry, onClose },
-  ref,
-) {
+function Preview({ type, entry, onClose, to }: PreviewProps) {
   const classes = usePreviewStyles()
   return (
-    <M.Paper square elevation={2} className={classes.preview} ref={ref}>
-      <div className={classes.header}>
-        <M.Typography variant="h6">{entry.logicalKey}</M.Typography>
-        <M.IconButton className={classes.close} onClick={onClose}>
+    <>
+      <M.DialogTitle className={classes.header} disableTypography>
+        <M.Typography component={StyledLink} to={to} variant="h6">
+          {entry.logicalKey}
+        </M.Typography>
+        <M.IconButton onClick={onClose} className={classes.close}>
           <M.Icon>close</M.Icon>
         </M.IconButton>
-      </div>
+      </M.DialogTitle>
 
-      {type === 'meta' && <EntryMetaDisplay meta={entry.meta} />}
-      {type === 'content' && (
-        <Load
-          handle={s3paths.parseS3Url(entry.physicalKey)}
-          options={{ context: CONTEXT.LISTING }}
-        >
-          {(data: $TSFixMe) => (
-            <Display
-              data={data}
-              noDownload={undefined}
-              onData={undefined}
-              props={undefined} // these props go to the render functions
-            />
-          )}
-        </Load>
-      )}
-    </M.Paper>
+      <M.DialogContent>
+        {type === 'meta' && <EntryMetaDisplay meta={entry.meta} />}
+        {type === 'content' && (
+          <Load
+            handle={s3paths.parseS3Url(entry.physicalKey)}
+            options={{ context: CONTEXT.LISTING }}
+          >
+            {(data: $TSFixMe) => (
+              <Display
+                data={data}
+                noDownload={undefined}
+                onData={undefined}
+                props={undefined} // these props go to the render functions
+              />
+            )}
+          </Load>
+        )}
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button color="primary" variant="contained" onClick={onClose}>
+          Close
+        </M.Button>
+      </M.DialogActions>
+    </>
   )
-})
+}
 
 interface EntryMetaDisplayProps {
   meta: string | null
@@ -120,14 +127,6 @@ interface EntryProps {
 function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
   const classes = useEntryStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const handlePreview = React.useCallback(
-    () => onPreview({ type: 'content', entry }),
-    [entry, onPreview],
-  )
-  const handleMeta = React.useCallback(
-    () => onPreview({ type: 'meta', entry }),
-    [entry, onPreview],
-  )
   const inBucket = React.useMemo(() => {
     const { bucket, key, version } = s3paths.parseS3Url(entry.physicalKey)
     return {
@@ -142,6 +141,14 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
       to: urls.bucketPackageTree(bucket, name, hash, entry.logicalKey),
     }
   }, [entry.logicalKey, packageHandle, urls])
+  const handlePreview = React.useCallback(
+    () => onPreview({ type: 'content', entry, to: inPackage.to }),
+    [entry, onPreview, inPackage],
+  )
+  const handleMeta = React.useCallback(
+    () => onPreview({ type: 'meta', entry, to: inPackage.to }),
+    [entry, onPreview, inPackage],
+  )
   return (
     <M.TableRow hover key={entry.physicalKey} className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
@@ -209,24 +216,6 @@ const useStyles = M.makeStyles((t) => ({
   table: {
     tableLayout: 'fixed',
   },
-  popover: {
-    position: 'absolute',
-    top: '100%',
-    left: t.spacing(-0.5),
-    right: t.spacing(-0.5),
-    zIndex: 10,
-    animation: t.transitions.create(['$growX']),
-    '&::before': {
-      background: M.fade(t.palette.common.black, 0.15),
-      bottom: 0,
-      content: '""',
-      left: 0,
-      position: 'fixed',
-      right: 0,
-      top: 0,
-      zIndex: 20,
-    },
-  },
   sticky: {
     animation: t.transitions.create(['$fade', '$growDown']),
     // It is positioned where it would be without `absolute`,
@@ -254,16 +243,6 @@ const useStyles = M.makeStyles((t) => ({
     },
     '100%': {
       opacity: 1,
-    },
-  },
-  '@keyframes growX': {
-    '0%': {
-      left: 0,
-      right: 0,
-    },
-    '100%': {
-      left: t.spacing(-0.5),
-      right: t.spacing(-0.5),
     },
   },
 }))
@@ -346,13 +325,14 @@ export default function Entries({ entries, packageHandle, totalCount }: EntriesP
           </M.TableBody>
         </M.Table>
 
-        {preview && (
-          <div className={classes.popover}>
-            <M.ClickAwayListener onClickAway={() => setPreview(null)}>
-              <Preview {...preview} onClose={() => setPreview(null)} />
-            </M.ClickAwayListener>
-          </div>
-        )}
+        <M.Dialog
+          open={!!preview}
+          onClose={() => setPreview(null)}
+          maxWidth={preview?.type === 'meta' ? 'md' : 'lg'}
+          fullWidth
+        >
+          {preview && <Preview {...preview} onClose={() => setPreview(null)} />}
+        </M.Dialog>
       </div>
     </div>
   )
