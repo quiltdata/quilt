@@ -104,13 +104,13 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
             <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
           </div>
         )}
-        <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
+        <Link className={classes.title} to={urls.bucketPackageList(bucket.name)}>
           {bucket.title}
         </Link>
       </div>
       <Link
         className={classes.name}
-        to={urls.bucketRoot(bucket.name)}
+        to={urls.bucketDir(bucket.name)}
         title={`s3://${bucket.name}`}
       >
         s3://{bucket.name}

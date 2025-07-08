@@ -41,7 +41,7 @@ export default function Table({ collaborators }: TableProps) {
   )
 
   return (
-    <M.Table size={collaborators.length > 20 ? 'small' : 'medium'}>
+    <M.Table size={collaborators.length > 18 ? 'small' : 'medium'}>
       <M.TableHead>
         <M.TableRow>
           <M.TableCell />
