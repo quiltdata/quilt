@@ -26,7 +26,6 @@ const usePreviewStyles = M.makeStyles((t) => ({
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    // marginBottom: t.spacing(2),
   },
   close: {
     margin: t.spacing(-1, -2),

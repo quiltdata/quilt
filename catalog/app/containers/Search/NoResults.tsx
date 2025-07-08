@@ -135,7 +135,6 @@ export function Empty({ bucket, className }: EmptyProps) {
   } = SearchUIModel.use()
 
   const startNewSearch = React.useCallback(() => {
-    // FIXME: clear search text box
     reset()
   }, [reset])
 
@@ -230,14 +229,13 @@ export function Error({ className, kind = 'unexpected', children }: ErrorProps) 
   } = SearchUIModel.use()
   const startNewSearch = React.useCallback(
     (event) => {
-      // FIXME: clear search field
       event.stopPropagation()
       reset()
     },
     [reset],
   )
   const tryAgain = React.useCallback(() => {
-    // FIXME: retry GQL request
+    // TODO: retry GQL request
     window.location.reload()
   }, [])
 
