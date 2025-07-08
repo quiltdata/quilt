@@ -812,75 +812,83 @@ function AvailableColumns({ filterValue, columns, state }: AvailableColumnsProps
   )
 }
 
-const useConfigureColumnsStyles = M.makeStyles((t) => ({
+const useConfigureColumnsButtonStyles = M.makeStyles((t) => ({
   root: {
-    // TODO: `<M.Drawer classes={{ paper: { position: absolute } }} variant=persistent>`
-    display: 'flex',
-    flexDirection: 'column',
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    transition: t.transitions.create('width'),
-    width: t.spacing(7),
-    alignItems: 'flex-end',
+    paddingLeft: t.spacing(2),
     overflow: 'hidden',
     zIndex: 1,
   },
-  add: {
-    lineHeight: `${t.spacing(3)}px`,
-    padding: t.spacing(1, 2),
-  },
-  close: {
-    marginLeft: 'auto',
-    flexShrink: 0,
-  },
-  head: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
-    '& .MuiBadge-badge': {
-      top: '4px',
-      left: '-9px',
-      right: 'auto',
-    },
+  badge: {
+    top: '4px',
+    left: '-9px',
+    right: 'auto',
   },
   button: {
+    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
     height: t.spacing(5),
     width: t.spacing(5),
     color: t.palette.primary.main,
     background: t.palette.background.paper,
     borderTopRightRadius: t.shape.borderRadius,
-    '&:focus': {
-      border: `2px solid ${t.palette.primary.main}`,
-    },
   },
-  opened: {
-    background: t.palette.background.paper,
-    width: 'auto',
-    minWidth: t.spacing(40),
-    bottom: 0,
-    boxShadow: t.shadows[2],
-    animation: t.transitions.create('$slide'),
-    alignItems: 'stretch',
-    overflow: 'visible',
-    '& $head': {
-      background: t.palette.background.default,
-      borderBottom: `1px solid ${t.palette.divider}`,
-      justifyContent: 'space-between',
-      boxShadow: 'none',
-    },
+}))
+
+interface ConfigureColumnsButtonProps {
+  hasHidden: boolean
+  className: string
+  onClick: () => void
+}
+
+function ConfigureColumnsButton({
+  className,
+  hasHidden,
+  onClick,
+}: ConfigureColumnsButtonProps) {
+  const classes = useConfigureColumnsButtonStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Badge
+        color="secondary"
+        invisible={!hasHidden}
+        overlap="rectangle"
+        variant="dot"
+        classes={{ badge: classes.badge }}
+      >
+        <M.ButtonBase className={classes.button} onClick={onClick}>
+          <M.Icon>keyboard_arrow_down</M.Icon>
+        </M.ButtonBase>
+      </M.Badge>
+    </div>
+  )
+}
+
+const useConfigureColumnsStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  close: {
+    flexShrink: 0,
+    marginLeft: 'auto',
+    padding: t.spacing(1),
+  },
+  head: {
+    display: 'flex',
+    alignItems: 'center',
+    background: t.palette.background.default,
+    borderBottom: `1px solid ${t.palette.divider}`,
+    justifyContent: 'space-between',
+    paddingLeft: t.spacing(2),
   },
   input: {
-    margin: t.spacing(2, 1, 0),
+    margin: t.spacing(2, 2, 0),
   },
-  '@keyframes slide': {
-    '0%': {
-      transform: `translateX(${t.spacing(2)}px)`,
-    },
-    '100%': {
-      transform: 'translateX(0)',
-    },
+  popup: {
+    borderRadius: `0 ${t.shape.borderRadius}px ${t.shape.borderRadius}px 0`,
+    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
+    minWidth: t.spacing(40),
+    position: 'absolute',
   },
 }))
 
@@ -924,32 +932,23 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
 
   const { hiddenColumns } = useContext()
 
-  if (!open) {
-    return (
-      <div className={classes.root} onClick={show}>
-        <div className={classes.head}>
-          <M.Badge
-            color="secondary"
-            invisible={!hiddenColumns.size}
-            overlap="circle"
-            variant="dot"
-          >
-            <M.ButtonBase className={classes.button}>
-              <M.Icon>keyboard_arrow_down</M.Icon>
-            </M.ButtonBase>
-          </M.Badge>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <M.ClickAwayListener onClickAway={hide}>
-      <div className={cx(classes.root, classes.opened)}>
+    <>
+      <ConfigureColumnsButton
+        className={classes.root}
+        hasHidden={!!hiddenColumns.size}
+        onClick={show}
+      />
+
+      <M.Drawer
+        open={open}
+        classes={{ paper: classes.popup }}
+        variant="persistent"
+        onClose={hide}
+        anchor="right"
+      >
         <div className={classes.head}>
-          <M.Typography variant="subtitle2" className={classes.add}>
-            Configure columns:
-          </M.Typography>
+          <M.Typography variant="subtitle2">Configure columns:</M.Typography>
           <M.IconButton onClick={hide} className={classes.close}>
             <M.Icon>close</M.Icon>
           </M.IconButton>
@@ -963,13 +962,15 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
           value={filterValue}
         />
 
-        <AvailableColumns
-          columns={columns}
-          filterValue={filterValue.toLowerCase()}
-          state={state}
-        />
-      </div>
-    </M.ClickAwayListener>
+        {open && (
+          <AvailableColumns
+            columns={columns}
+            filterValue={filterValue.toLowerCase()}
+            state={state}
+          />
+        )}
+      </M.Drawer>
+    </>
   )
 }
 
