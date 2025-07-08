@@ -814,6 +814,7 @@ function AvailableColumns({ filterValue, columns, state }: AvailableColumnsProps
 
 const useConfigureColumnsStyles = M.makeStyles((t) => ({
   root: {
+    // TODO: `<M.Drawer classes={{ paper: { position: absolute } }} variant=persistent>`
     display: 'flex',
     flexDirection: 'column',
     position: 'absolute',
@@ -829,9 +830,14 @@ const useConfigureColumnsStyles = M.makeStyles((t) => ({
     lineHeight: `${t.spacing(3)}px`,
     padding: t.spacing(1, 2),
   },
+  close: {
+    marginLeft: 'auto',
+    flexShrink: 0,
+  },
   head: {
     display: 'flex',
     justifyContent: 'center',
+    alignItems: 'center',
     boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
     '& .MuiBadge-badge': {
       top: '4px',
@@ -861,7 +867,7 @@ const useConfigureColumnsStyles = M.makeStyles((t) => ({
     '& $head': {
       background: t.palette.background.default,
       borderBottom: `1px solid ${t.palette.divider}`,
-      justifyContent: 'flex-start',
+      justifyContent: 'space-between',
       boxShadow: 'none',
     },
   },
@@ -914,36 +920,13 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
   const show = React.useCallback(() => setOpen(true), [])
   const hide = React.useCallback(() => setOpen(false), [])
 
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleMouseEnter = React.useCallback(() => {
-    timeoutRef.current = setTimeout(show, 300)
-  }, [show])
-
-  const handleTimeout = React.useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }, [])
-
-  const handleMouseLeave = React.useCallback(() => {
-    handleTimeout()
-    hide()
-  }, [handleTimeout, hide])
-
   const [filterValue, setFilterValue] = useTextFilter(state)
 
   const { hiddenColumns } = useContext()
 
   if (!open) {
     return (
-      <div
-        className={classes.root}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleTimeout}
-        onClick={show}
-      >
+      <div className={classes.root} onClick={show}>
         <div className={classes.head}>
           <M.Badge
             color="secondary"
@@ -961,27 +944,32 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
   }
 
   return (
-    <div className={cx(classes.root, classes.opened)} onMouseLeave={handleMouseLeave}>
-      <div className={classes.head}>
-        <M.Typography variant="subtitle2" className={classes.add}>
-          Configure columns:
-        </M.Typography>
+    <M.ClickAwayListener onClickAway={hide}>
+      <div className={cx(classes.root, classes.opened)}>
+        <div className={classes.head}>
+          <M.Typography variant="subtitle2" className={classes.add}>
+            Configure columns:
+          </M.Typography>
+          <M.IconButton onClick={hide} className={classes.close}>
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </div>
+
+        <TinyTextField
+          autoFocus
+          className={classes.input}
+          onChange={setFilterValue}
+          placeholder="Find metadata"
+          value={filterValue}
+        />
+
+        <AvailableColumns
+          columns={columns}
+          filterValue={filterValue.toLowerCase()}
+          state={state}
+        />
       </div>
-
-      <TinyTextField
-        autoFocus
-        className={classes.input}
-        onChange={setFilterValue}
-        placeholder="Find metadata"
-        value={filterValue}
-      />
-
-      <AvailableColumns
-        columns={columns}
-        filterValue={filterValue.toLowerCase()}
-        state={state}
-      />
-    </div>
+    </M.ClickAwayListener>
   )
 }
 
