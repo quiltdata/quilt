@@ -6,7 +6,7 @@ import type { JsonSchema } from 'utils/JSONSchema'
 import { getSchemaItemKeysOr } from 'utils/JSONSchema'
 import { metadataSchema, workflowsConfig } from 'containers/Bucket/requests'
 import type { WorkflowsConfig } from 'utils/workflows'
-import { notAvailable } from 'utils/workflows'
+import { notAvailable, notSelected } from 'utils/workflows'
 
 export const Loading = Symbol('loading')
 
@@ -80,11 +80,17 @@ function useMetadataSchema(
     if (workflow instanceof Error) {
       throw workflow
     }
-    if (workflow === null || workflow.slug === notAvailable) return noKeys
+    if (
+      workflow === null ||
+      workflow.slug === notAvailable ||
+      workflow.slug === notSelected
+    ) {
+      return noKeys
+    }
 
     const schemaUrl = workflow?.schema?.url
     if (!schemaUrl) {
-      throw new Error('No schema URL found')
+      throw new Error('No Schema URL found')
     }
     return metadataSchema({ s3, schemaUrl })
   }, [s3, config, selectedWorkflow])
