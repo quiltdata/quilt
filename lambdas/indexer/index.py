@@ -647,7 +647,12 @@ def handler(event, context):
                 logger_.debug("Manifest event, sending to indexer queue: %s", event_)
                 sqs.send_message(
                     QueueUrl=MANIFEST_INDEXER_QUEUE_URL,
-                    MessageBody=json.dumps(event_),
+                    # Partly mimic the structure EventBridge event
+                    MessageBody=json.dumps(
+                        {
+                            "detail": event_,
+                        },
+                    ),
                 )
 
             try:
