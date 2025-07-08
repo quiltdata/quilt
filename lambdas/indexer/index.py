@@ -55,6 +55,7 @@ from os.path import split
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
+import boto3
 import botocore
 import nbformat
 from dateutil.tz import tzutc
@@ -74,7 +75,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from quilt_shared.const import NAMED_PACKAGES_PREFIX
+from quilt_shared.const import MANIFESTS_PREFIX, NAMED_PACKAGES_PREFIX
 from quilt_shared.es import (
     PACKAGE_INDEX_SUFFIX,
     get_manifest_doc_id,
@@ -170,11 +171,14 @@ NB_VERSION = 4  # default notebook version for nbformat
 assert 'SKIP_ROWS_EXTS' in os.environ
 SKIP_ROWS_EXTS = separated_env_to_iter('SKIP_ROWS_EXTS')
 TEST_EVENT = "s3:TestEvent"
+MANIFEST_INDEXER_QUEUE_URL = os.environ.get("MANIFEST_INDEXER_QUEUE_URL")
+assert MANIFEST_INDEXER_QUEUE_URL, "MANIFEST_INDEXER_QUEUE_URL must be set"
 
 
 logger = get_quilt_logger()
 s3_client = make_s3_client()
 es = make_elastic(os.environ["ES_ENDPOINT"])
+sqs = boto3.client("sqs")
 
 
 def now_like_boto3():
@@ -637,6 +641,15 @@ def handler(event, context):
                 continue
             event_ = validated
             logger_.debug("Processing %s", event_)
+
+            # XXX: this is a workaround until bulk scanner is updated to send events to EventBridge
+            if event_["s3"]["object"]["key"].startswith(MANIFESTS_PREFIX):
+                logger_.debug("Manifest event, sending to indexer queue: %s", event_)
+                sqs.send_message(
+                    QueueUrl=MANIFEST_INDEXER_QUEUE_URL,
+                    MessageBody=json.dumps(event_),
+                )
+
             try:
                 event_name = event_["eventName"]
                 # Process all Create:* and Remove:* events

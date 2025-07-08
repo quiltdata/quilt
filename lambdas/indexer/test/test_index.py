@@ -27,7 +27,7 @@ from botocore.stub import Stubber
 from dateutil.tz import tzutc
 from document_queue import EVENT_PREFIX, RetryError
 
-from quilt_shared.const import NAMED_PACKAGES_PREFIX
+from quilt_shared.const import MANIFESTS_PREFIX, NAMED_PACKAGES_PREFIX
 from quilt_shared.es import (
     PACKAGE_INDEX_SUFFIX,
     get_manifest_doc_id,
@@ -1032,6 +1032,22 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65',
             s3_tags={"key": "value"},
         )
+
+    @patch.object(index.sqs, "send_message")
+    def test_manifest_event(self, send_message_mock):
+        """test indexing a manifest file"""
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            expected_es_calls=1,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": MANIFESTS_PREFIX + "a" * 64,
+                },
+                "mock_object": False,
+            }
+        )
+
+        send_message_mock.assert_called_once()
 
     def test_multiple_index_events(self):
         """
