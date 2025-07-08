@@ -9,12 +9,11 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
-import { useNavBar } from './Provider'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
   root: {
-    textTransform: 'none !important',
-    transition: ['opacity 200ms'],
+    textTransform: 'none',
+    transition: 'opacity 200ms',
   },
   locked: {
     opacity: 0,
@@ -33,7 +32,13 @@ const useBucketDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketDisplay({ bucket, select, locked = false, ...props }) {
+interface BucketDisplayProps extends M.BoxProps {
+  bucket: string
+  select: () => void
+  locked: boolean
+}
+
+function BucketDisplay({ bucket, select, locked = false, ...props }: BucketDisplayProps) {
   const classes = useBucketDisplayStyles()
   return (
     <M.Box position="relative" {...props}>
@@ -51,7 +56,7 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
   )
 }
 
-const Container = (props) => (
+const Container = (props: M.BoxProps) => (
   <M.Box
     height="36px"
     display="flex"
@@ -67,29 +72,10 @@ function GlobalControls() {
   const { urls } = NamedRoutes.use()
   const classes = useBucketControlsStyles()
 
-  const [state, setState] = React.useState(null)
-  const search = React.useCallback(() => {
-    setState('search')
-  }, [setState])
-  const cancel = React.useCallback(() => {
-    setState(null)
-  }, [setState])
-  const model = useNavBar()
-  React.useEffect(() => {
-    if (model?.input.expanded === undefined) return
-    if (model.input.expanded) {
-      search()
-    } else {
-      cancel()
-    }
-  }, [model?.input.expanded, cancel, search])
-
   return (
     <Container pr={{ xs: 6, sm: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <M.Fade in={state !== 'search'}>
-          <BucketSelect />
-        </M.Fade>
+        <BucketSelect />
       </div>
       <div>
         <M.Button
@@ -111,31 +97,24 @@ const useBucketControlsStyles = M.makeStyles({
   },
 })
 
-function BucketControls({ bucket }) {
+interface BucketControlsProps {
+  bucket: string
+}
+
+function BucketControls({ bucket }: BucketControlsProps) {
   const { urls } = NamedRoutes.use()
   const classes = useBucketControlsStyles()
 
-  const [state, setState] = React.useState(null)
+  const [state, setState] = React.useState<'select' | null>(null)
   const select = React.useCallback(() => {
     setState('select')
-  }, [setState])
-  const search = React.useCallback(() => {
-    setState('search')
   }, [setState])
   const cancel = React.useCallback(() => {
     setState(null)
   }, [setState])
-  const model = useNavBar()
-  React.useEffect(() => {
-    if (model?.input.expanded === undefined) return
-    if (model.input.expanded) {
-      search()
-    } else {
-      cancel()
-    }
-  }, [model?.input.expanded, cancel, search])
+  React.useEffect(cancel, [cancel])
 
-  const selectRef = React.useRef()
+  const selectRef: React.Ref<HTMLInputElement | void> = React.useRef()
   const focusSelect = React.useCallback(() => {
     if (selectRef.current) selectRef.current.focus()
   }, [])
@@ -145,11 +124,10 @@ function BucketControls({ bucket }) {
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
         <M.Fade in={state === 'select'} onEnter={focusSelect}>
+          {/* @ts-expect-error */}
           <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
         </M.Fade>
-        {cfg.mode === 'PRODUCT' && (
-          <Collaborators bucket={bucket} hidden={state === 'search'} />
-        )}
+        {cfg.mode === 'PRODUCT' && <Collaborators bucket={bucket} hidden={false} />}
       </div>
       <div>
         <M.Button
