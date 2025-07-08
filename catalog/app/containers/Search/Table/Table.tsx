@@ -31,14 +31,13 @@ import { Provider, useContext } from './Provider'
 
 interface AvailableSystemMetaColumnProps {
   column: ColumnSystemMeta
-  onClose: () => void
 }
 
-function AvailableSystemMetaColumn({ column, onClose }: AvailableSystemMetaColumnProps) {
+function AvailableSystemMetaColumn({ column }: AvailableSystemMetaColumnProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const {
-    filterActions: { open },
     columnsActions: { show, hide },
+    filterActions: { open },
   } = useContext()
   const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
 
@@ -50,12 +49,7 @@ function AvailableSystemMetaColumn({ column, onClose }: AvailableSystemMetaColum
     if (!column.state.visible) {
       show(column.filter)
     }
-
-    if (!column.state.filtered) {
-      open(column)
-      onClose()
-    }
-  }, [activatePackagesFilter, column, model.state.filter.predicates, onClose, open, show])
+  }, [activatePackagesFilter, column, model.state.filter.predicates, show])
 
   const hideColumn = React.useCallback(() => {
     if (column.state.filtered) {
@@ -72,9 +66,13 @@ function AvailableSystemMetaColumn({ column, onClose }: AvailableSystemMetaColum
     (_e, checked) => (checked ? showColumn() : hideColumn()),
     [showColumn, hideColumn],
   )
+  const handleClick = React.useCallback(() => {
+    showColumn()
+    open(column)
+  }, [column, showColumn, open])
 
   return (
-    <M.MenuItem onClick={showColumn} selected={column.state.filtered}>
+    <M.MenuItem onClick={handleClick} selected={column.state.filtered}>
       <M.ListItemText
         primary={PACKAGE_FILTER_LABELS[column.filter]}
         secondary={column.state.filtered && 'Filters applied'}
@@ -131,18 +129,13 @@ function getLabel(key: string) {
 
 interface AvailableUserMetaColumnProps extends M.ListItemTextProps {
   column: ColumnUserMeta
-  onClose: () => void
 }
 
-function AvailableUserMetaColumn({
-  column,
-  onClose,
-  ...props
-}: AvailableUserMetaColumnProps) {
+function AvailableUserMetaColumn({ column, ...props }: AvailableUserMetaColumnProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const {
-    filterActions: { open },
     columnsActions: { show, hide },
+    filterActions: { open },
   } = useContext()
   const { activatePackagesMetaFilter, deactivatePackagesMetaFilter } = model.actions
   const showColumn = React.useCallback(() => {
@@ -150,11 +143,7 @@ function AvailableUserMetaColumn({
     if (!column.state.visible) {
       show(column.filter)
     }
-    if (!column.state.filtered) {
-      open(column)
-      onClose()
-    }
-  }, [activatePackagesMetaFilter, column, open, show, onClose])
+  }, [activatePackagesMetaFilter, column, show])
 
   const hideColumn = React.useCallback(() => {
     if (column.state.filtered || column.state.inferred) {
@@ -168,8 +157,12 @@ function AvailableUserMetaColumn({
     (_e, checked) => (checked ? showColumn() : hideColumn()),
     [showColumn, hideColumn],
   )
+  const handleClick = React.useCallback(() => {
+    showColumn()
+    open(column)
+  }, [column, open, showColumn])
   return (
-    <M.MenuItem onClick={showColumn}>
+    <M.MenuItem onClick={handleClick}>
       <M.ListItemText {...props} />
       <M.ListItemSecondaryAction>
         <M.Checkbox edge="end" onChange={handleChange} checked={column.state.visible} />
@@ -602,7 +595,6 @@ interface AvailableUserMetaColumnsTreeProps {
   columns: ColumnsMap
   disabled?: boolean
   items: SearchUIModel.FacetTree['children']
-  onClose: () => void
   path?: string
 }
 
@@ -610,7 +602,6 @@ function AvailableUserMetaColumnsTree({
   columns,
   disabled,
   items,
-  onClose,
   path,
 }: AvailableUserMetaColumnsTreeProps) {
   const classes = useFilterGroupStyles()
@@ -638,7 +629,6 @@ function AvailableUserMetaColumnsTree({
                     items={node.children}
                     path={p}
                     columns={columns}
-                    onClose={onClose}
                   />
                 )
               }
@@ -654,7 +644,6 @@ function AvailableUserMetaColumnsTree({
                 <AvailableUserMetaColumn
                   key={path + p}
                   column={column}
-                  onClose={onClose}
                   {...getLabel(p)}
                 />
               )
@@ -762,17 +751,11 @@ const useAvailableColumnsStyles = M.makeStyles((t) => ({
 
 interface AvailableColumnsProps {
   columns: ColumnsMap
-  onClose: () => void
   filterValue: string
   state: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function AvailableColumns({
-  filterValue,
-  columns,
-  onClose,
-  state,
-}: AvailableColumnsProps) {
+function AvailableColumns({ filterValue, columns, state }: AvailableColumnsProps) {
   const classes = useAvailableColumnsStyles()
 
   const systemMetaColumns = useAvailableSystemMetaColumns(columns, filterValue)
@@ -794,29 +777,20 @@ function AvailableColumns({
         {!!hasSystemMeta && <M.ListSubheader>System metadata</M.ListSubheader>}
 
         {systemMetaColumns.map((column) => (
-          <AvailableSystemMetaColumn
-            key={column.filter}
-            column={column}
-            onClose={onClose}
-          />
+          <AvailableSystemMetaColumn key={column.filter} column={column} />
         ))}
 
         {hasSystemMeta && hasUserMeta && <M.Divider className={classes.divider} />}
 
         {hasUserMeta && <M.ListSubheader>User metadata</M.ListSubheader>}
 
-        <AvailableUserMetaColumnsTree
-          items={selected}
-          columns={columns}
-          onClose={onClose}
-        />
+        <AvailableUserMetaColumnsTree items={selected} columns={columns} />
 
         {available ? (
           <AvailableUserMetaColumnsTree
             items={available}
             columns={columns}
             disabled={fetching}
-            onClose={onClose}
           />
         ) : (
           <AvailableColumnsSkeleton />
@@ -993,7 +967,6 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
       <AvailableColumns
         columns={columns}
         filterValue={filterValue.toLowerCase()}
-        onClose={hide}
         state={state}
       />
     </div>
