@@ -1123,10 +1123,9 @@ interface LayoutProps {
   hits: readonly SearchUIModel.SearchHitPackage[]
   columns: ColumnsMap
   skeletons: ReturnType<typeof Skeleton.useColumns>
-  metaFiltersState: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function Layout({ hits, columns, skeletons, metaFiltersState }: LayoutProps) {
+function Layout({ hits, columns, skeletons }: LayoutProps) {
   const classes = useLayoutStyles()
   const {
     filter,
@@ -1138,7 +1137,11 @@ function Layout({ hits, columns, skeletons, metaFiltersState }: LayoutProps) {
 
   return (
     <M.Paper className={classes.root}>
-      <ConfigureColumns columns={columns} state={metaFiltersState} />
+      <SearchUIModel.AvailablePackagesMetaFilters>
+        {(metaFiltersState) => (
+          <ConfigureColumns columns={columns} state={metaFiltersState} />
+        )}
+      </SearchUIModel.AvailablePackagesMetaFilters>
 
       <div className={classes.scrollWrapper}>
         <div className={classes.scrollArea}>
@@ -1205,12 +1208,7 @@ function TableView({ hits, bucket, metaFiltersState }: TableViewProps) {
           {notReady.message}
         </Lab.Alert>
       )}
-      <Layout
-        columns={columns}
-        hits={hits}
-        skeletons={skeletons}
-        metaFiltersState={metaFiltersState}
-      />
+      <Layout columns={columns} hits={hits} skeletons={skeletons} />
     </>
   )
 }
