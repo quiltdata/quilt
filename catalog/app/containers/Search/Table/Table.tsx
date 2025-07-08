@@ -814,22 +814,26 @@ function AvailableColumns({ filterValue, columns, state }: AvailableColumnsProps
 
 const useConfigureColumnsButtonStyles = M.makeStyles((t) => ({
   root: {
-    paddingLeft: t.spacing(2),
     overflow: 'hidden',
+    paddingLeft: t.spacing(2),
     zIndex: 1,
   },
-  badge: {
-    top: '4px',
-    left: '-9px',
-    right: 'auto',
-  },
   button: {
-    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
-    height: t.spacing(5),
-    width: t.spacing(5),
-    color: t.palette.primary.main,
     background: t.palette.background.paper,
     borderTopRightRadius: t.shape.borderRadius,
+    boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
+    color: t.palette.primary.main,
+    height: t.spacing(5),
+    width: t.spacing(5),
+  },
+  badge: {
+    background: t.palette.secondary.main,
+    borderRadius: '50%',
+    height: t.spacing(1),
+    left: t.spacing(1.5),
+    position: 'absolute',
+    top: 0,
+    width: t.spacing(1),
   },
 }))
 
@@ -847,17 +851,10 @@ function ConfigureColumnsButton({
   const classes = useConfigureColumnsButtonStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <M.Badge
-        color="secondary"
-        invisible={!hasHidden}
-        overlap="rectangle"
-        variant="dot"
-        classes={{ badge: classes.badge }}
-      >
-        <M.ButtonBase className={classes.button} onClick={onClick}>
-          <M.Icon>keyboard_arrow_down</M.Icon>
-        </M.ButtonBase>
-      </M.Badge>
+      <M.ButtonBase className={classes.button} onClick={onClick}>
+        <M.Icon>keyboard_arrow_down</M.Icon>
+      </M.ButtonBase>
+      {hasHidden && <div className={classes.badge} />}
     </div>
   )
 }
@@ -867,6 +864,10 @@ const useConfigureColumnsStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: 0,
     top: 0,
+  },
+  backdrop: {
+    zIndex: t.zIndex.drawer - 1,
+    background: t.palette.action.disabledBackground,
   },
   close: {
     flexShrink: 0,
@@ -924,14 +925,13 @@ interface ConfigureColumnsProps {
 function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
   const classes = useConfigureColumnsStyles()
 
+  const { hiddenColumns } = useContext()
+
   const [open, setOpen] = React.useState(false)
   const show = React.useCallback(() => setOpen(true), [])
   const hide = React.useCallback(() => setOpen(false), [])
 
   const [filterValue, setFilterValue] = useTextFilter(state)
-
-  const { hiddenColumns } = useContext()
-
   return (
     <>
       <ConfigureColumnsButton
@@ -940,6 +940,7 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
         onClick={show}
       />
 
+      <M.Backdrop open={open} className={classes.backdrop} onClick={hide} />
       <M.Drawer
         open={open}
         classes={{ paper: classes.popup }}
