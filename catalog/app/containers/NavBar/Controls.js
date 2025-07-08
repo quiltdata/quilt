@@ -53,12 +53,12 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
 
 const Container = (props) => (
   <M.Box
-    alignItems="center"
-    display="flex"
-    flexGrow={1}
     height="36px"
-    justifyContent="space-between"
+    display="flex"
+    alignItems="center"
     position="relative"
+    flexGrow={1}
+    justifyContent="space-between"
     {...props}
   />
 )
