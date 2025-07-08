@@ -58,7 +58,7 @@ function AvailableSystemMetaColumn({ column }: AvailableSystemMetaColumnProps) {
     if (column.state.filtered) {
       hide(column.filter)
     } else {
-      if (column.filter === 'name') {
+      if (column.tag === ColumnTag.Bucket || column.filter === 'name') {
         hide(column.filter)
       }
       if (column.tag !== ColumnTag.Bucket) {
