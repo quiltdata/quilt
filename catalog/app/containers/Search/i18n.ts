@@ -1,5 +1,6 @@
 // Descriptive filter labels
 export const PACKAGE_FILTER_LABELS = {
+  bucket: 'Bucket',
   comment: 'Package revision comment',
   entries: 'Total number of files in the package',
   hash: 'Package hash',

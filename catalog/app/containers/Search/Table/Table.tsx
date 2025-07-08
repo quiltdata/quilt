@@ -30,7 +30,7 @@ import type {
 import { Provider, useContext } from './Provider'
 
 interface AvailableSystemMetaColumnProps {
-  column: ColumnSystemMeta
+  column: ColumnSystemMeta | ColumnBucket
 }
 
 function AvailableSystemMetaColumn({ column }: AvailableSystemMetaColumnProps) {
@@ -42,7 +42,10 @@ function AvailableSystemMetaColumn({ column }: AvailableSystemMetaColumnProps) {
   const { activatePackagesFilter, deactivatePackagesFilter } = model.actions
 
   const showColumn = React.useCallback(() => {
-    if (!model.state.filter.predicates[column.filter]) {
+    if (
+      column.tag !== ColumnTag.Bucket &&
+      !model.state.filter.predicates[column.filter]
+    ) {
       activatePackagesFilter(column.filter)
     }
 
@@ -58,7 +61,9 @@ function AvailableSystemMetaColumn({ column }: AvailableSystemMetaColumnProps) {
       if (column.filter === 'name') {
         hide(column.filter)
       }
-      deactivatePackagesFilter(column.filter)
+      if (column.tag !== ColumnTag.Bucket) {
+        deactivatePackagesFilter(column.filter)
+      }
     }
   }, [column, deactivatePackagesFilter, hide])
 
@@ -666,11 +671,18 @@ const ReversPackageUserMetaTypename = {
 
 function useAvailableSystemMetaColumns(columns: ColumnsMap, filterValue: string) {
   return React.useMemo(() => {
-    const initial: ColumnSystemMeta[] = []
+    const bucketColumn = columns.get('bucket') as ColumnBucket | undefined
+    const initial: (ColumnSystemMeta | ColumnBucket)[] = bucketColumn
+      ? [bucketColumn]
+      : []
     return [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].reduce(
       (memo, filter) => {
         const column = columns.get(filter)
-        if (!column || column.tag !== ColumnTag.SystemMeta) return memo
+        if (
+          !column ||
+          (column.tag !== ColumnTag.SystemMeta && column.tag !== ColumnTag.Bucket)
+        )
+          return memo
 
         const combinedFilterString = (column.title + column.fullTitle).toLowerCase()
         if (!combinedFilterString.includes(filterValue)) return memo
@@ -1014,7 +1026,7 @@ interface ColumnHeadHideProps {
 
 function ColumnHeadHide({ column }: ColumnHeadHideProps) {
   const {
-    actions: { deactivatePackagesFilter, deactivatePackagesMetaFilter, setBuckets },
+    actions: { deactivatePackagesFilter, deactivatePackagesMetaFilter },
   } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const {
     columnsActions: { hide },
@@ -1038,12 +1050,12 @@ function ColumnHeadHide({ column }: ColumnHeadHideProps) {
         deactivatePackagesMetaFilter(column.filter)
         break
       case ColumnTag.Bucket:
-        setBuckets([])
+        hide(column.filter)
         break
       default:
         assertNever(column)
     }
-  }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter, setBuckets])
+  }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter])
   return (
     <M.IconButton size="small" color="inherit" onClick={handleHide}>
       <IconVisibilityOffOutlined color="inherit" fontSize="inherit" />
@@ -1081,7 +1093,6 @@ interface ColumnHeadProps {
 
 function ColumnHead({ column, single }: ColumnHeadProps) {
   const classes = useColumnHeadStyles()
-  // FIXME: let hiding bucket column
   return (
     <div className={classes.root}>
       <p className={classes.title}>
@@ -1094,7 +1105,7 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
       </p>
       <div className={classes.actions}>
         <ColumnHeadOpen column={column} />
-        {!single && column.tag !== ColumnTag.Bucket && <ColumnHeadHide column={column} />}
+        {!single && <ColumnHeadHide column={column} />}
       </div>
     </div>
   )

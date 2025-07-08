@@ -33,13 +33,15 @@ interface ColumnState {
 export interface ColumnBucket {
   tag: ColumnTag.Bucket
   filter: 'bucket'
-  title: string
+  fullTitle: string
   state: ColumnState
+  title: string
 }
 
 const ColumnBucketCreate = (state: ColumnState): ColumnBucket => ({
   tag: ColumnTag.Bucket,
   filter: 'bucket',
+  fullTitle: PACKAGE_FILTER_LABELS.bucket,
   state,
   title: COLUMN_LABELS.bucket,
 })
