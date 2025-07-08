@@ -205,9 +205,11 @@ export function Empty({ bucket, className }: EmptyProps) {
             Reset the <StyledLink onClick={clearFilters}>search filters</StyledLink>
           </li>
         )}
+        {/* TODO:
         <li>
           Edit your <StyledLink onClick={focus}>search query</StyledLink>
         </li>
+        */}
         <li>
           Start <StyledLink onClick={startNewSearch}>from scratch</StyledLink>
         </li>
@@ -250,7 +252,9 @@ export function Error({ className, kind = 'unexpected', children }: ErrorProps) 
           <>
             Oops, couldn&apos;t parse that search.
             <br />
-            Try quoting <StyledLink onClick={focus}>your query</StyledLink> or read about{' '}
+            {/* TODO:
+              Try quoting <StyledLink onClick={focus}>your query</StyledLink> or read about{' '}*/}
+            Try quoting "your query" or read about{' '}
             <StyledLink href={ES_REF_SYNTAX} target="_blank">
               supported query syntax
             </StyledLink>
