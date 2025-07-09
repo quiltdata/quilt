@@ -19,10 +19,6 @@ USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 
 class Batcher:
-    BATCH_INDEXER_BUCKET = os.getenv("ES_INGEST_BUCKET")
-    BATCH_MAX_BYTES = int(os.getenv("BATCH_MAX_BYTES", 8_000_000))
-    BATCH_MAX_DOCS = int(os.getenv("BATCH_MAX_DOCS", 10_000))
-
     @staticmethod
     def _make_key():
         return f"{random.randbytes(4).hex()}/object"
@@ -32,10 +28,33 @@ class Batcher:
         self.current_batch: list[bytes] = []
         self.current_batch_size = 0
 
-    def __init__(self, s3client, logger) -> None:
+    def __init__(self, s3client, logger, *, bucket: str, batch_max_bytes: int, batch_max_docs: int) -> None:
+        if not bucket:
+            raise ValueError("bucket must be a non-empty string")
+        if batch_max_bytes <= 0 or batch_max_docs <= 0:
+            raise ValueError("batch_max_bytes and batch_max_docs must be positive integers")
+
         self.s3_client = s3client
         self.logger = logger
+        self.bucket = bucket
+        self.batch_max_bytes = batch_max_bytes
+        self.batch_max_docs = batch_max_docs
         self._reset()
+
+    @classmethod
+    def from_env(cls, s3client, logger):
+        bucket = os.getenv("ES_INGEST_BUCKET")
+        if not bucket:
+            raise ValueError("ES_INGEST_BUCKET environment variable is not set")
+        batch_max_bytes = int(os.getenv("BATCH_MAX_BYTES", 8_000_000))
+        batch_max_docs = int(os.getenv("BATCH_MAX_DOCS", 10_000))
+        return cls(
+            s3client=s3client,
+            logger=logger,
+            bucket=bucket,
+            batch_max_bytes=batch_max_bytes,
+            batch_max_docs=batch_max_docs,
+        )
 
     def _send_batch(self):
         """send the current batch to S3"""
@@ -45,12 +64,12 @@ class Batcher:
         self._reset()
         key = self._make_key()
         self.s3_client.put_object(
-            Bucket=self.BATCH_INDEXER_BUCKET,
+            Bucket=self.bucket,
             Key=key,
             Body=b"".join(batch),
             ContentType="application/json",
         )
-        self.logger.debug("Batch sent to s3://%s/%s", self.BATCH_INDEXER_BUCKET, key)
+        self.logger.debug("Batch sent to s3://%s/%s", self.bucket, key)
 
     def append(self, doc: dict):
         # get doc ownership
@@ -62,12 +81,12 @@ class Batcher:
             )
         )
         assert (
-            len(data) < self.BATCH_MAX_BYTES
-        ), f"Document size {len(data)} exceeds max batch size {self.BATCH_MAX_BYTES}"
+            len(data) < self.batch_max_bytes
+        ), f"Document size {len(data)} exceeds max batch size {self.batch_max_bytes}"
 
         if (
-            len(self.current_batch) >= self.BATCH_MAX_DOCS
-            or self.current_batch_size + len(data) > self.BATCH_MAX_BYTES
+            len(self.current_batch) >= self.batch_max_docs
+            or self.current_batch_size + len(data) > self.batch_max_bytes
         ):
             self._send_batch()
 
