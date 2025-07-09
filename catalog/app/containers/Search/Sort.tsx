@@ -22,11 +22,11 @@ const sortOptions = [
     valueOf: () => Model.GQLTypes.SearchResultOrder.OLDEST,
   },
   {
-    toString: () => 'Name (A → Z)',
+    toString: () => 'A → Z',
     valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_ASC,
   },
   {
-    toString: () => 'Name (Z → A)',
+    toString: () => 'Z → A',
     valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_DESC,
   },
 ]
