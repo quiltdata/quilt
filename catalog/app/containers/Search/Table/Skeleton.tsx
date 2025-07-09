@@ -3,7 +3,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 const randomColumnWidth = (min: number = 80, max: number = 200) =>
-  Math.max(min, Math.ceil(Math.random() * max))
+  min + Math.floor(Math.random() * (max - min + 1))
 
 const createColumns = (columnsLen: number) =>
   Array.from({ length: columnsLen }).map((_c, key) => ({
