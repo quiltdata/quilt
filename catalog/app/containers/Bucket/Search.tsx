@@ -18,14 +18,21 @@ const useStyles = M.makeStyles((t) => ({
 
 export function SearchLayout() {
   const bucket = useBucketStrict()
-  const model = SearchUIModel.use()
+  const { state } = SearchUIModel.use()
   const classes = useStyles()
   const tableView =
-    model.state.view === SearchUIModel.View.Table &&
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage
+    state.view === SearchUIModel.View.Table &&
+    state.resultType === SearchUIModel.ResultType.QuiltPackage
+  const titleSegments = React.useMemo(() => {
+    const output = ['Packages', bucket]
+    if (state.searchString) {
+      output.push(state.searchString)
+    }
+    return output
+  }, [bucket, state.searchString])
   return (
     <>
-      <MetaTitle>{['Packages', bucket, model.state.searchString || '']}</MetaTitle>
+      <MetaTitle>{titleSegments}</MetaTitle>
       <Main className={classes.main}>
         {tableView ? <TableResults bucket={bucket} /> : <ListResults />}
       </Main>
