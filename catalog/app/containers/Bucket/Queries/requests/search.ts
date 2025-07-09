@@ -32,7 +32,7 @@ async function search({ req, query }: SearchArgs): Promise<ElasticSearchResults>
       body: JSON.stringify(query.body),
     }
     if (query.size !== undefined) requestOptions.size = query.size
-    if (query.from !== undefined) requestOptions.from = query.size
+    if (query.from !== undefined) requestOptions.from = query.from
     const qs = mkSearch(requestOptions)
     return req(`/search${qs}`)
   } catch (e) {
