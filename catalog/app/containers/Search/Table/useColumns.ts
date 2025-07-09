@@ -130,7 +130,6 @@ function useInferredUserMetaFacets(
               return
             }
 
-            // Not found in the latest workflow schema
             if (
               workflowRootKeys !== Workflow.Loading &&
               workflowRootKeys.includes(path.replace(/^\//, ''), 0)

@@ -1207,7 +1207,7 @@ function TableView({ hits, bucket, metaFiltersState }: TableViewProps) {
     <>
       {notReady instanceof Error && (
         <Lab.Alert className={classes.error} severity="error">
-          {notReady.message}
+          {notReady.message || 'Unexpected error'}
         </Lab.Alert>
       )}
       <Layout columns={columns} hits={hits} skeletons={skeletons} />

@@ -116,9 +116,21 @@ export function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) 
   const config = useWorkflowConfig(bucket)
   const schema = useMetadataSchema(config, selectedWorkflow)
 
-  if (config === Loading || config instanceof Error) return config
+  if (config === Loading) return config
+  if (config instanceof Error) {
+    if (config.message) return config
+    // eslint-disable-next-line no-console
+    console.error(config)
+    return new Error('Failed loading .quilt/workflows/config.yaml')
+  }
 
-  if (schema === Loading || schema instanceof Error) return schema
+  if (schema === Loading) return schema
+  if (schema instanceof Error) {
+    if (schema.message) return schema
+    // eslint-disable-next-line no-console
+    console.error(schema)
+    return new Error(`Failed loading JSON Schema for workflow`)
+  }
 
   return getSchemaItemKeysOr(schema, noKeys)
 }
