@@ -336,9 +336,7 @@ def index_if_pointer(
         body={
             "query": {
                 "bool": {
-                    "filter": [
-                        {"term": {"_id": _id}},
-                    ],
+                    "filter": [{"term": {"_id": _id}}],
                     # Don't try to delete the we're trying to index.
                     # This is to avoid conflict errors that often happen during reindexing, because
                     # we get event for every version of the latest.

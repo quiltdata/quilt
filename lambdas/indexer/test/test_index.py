@@ -906,8 +906,8 @@ class TestIndex(TestCase):
             index=bucket + PACKAGE_INDEX_SUFFIX,
             body={
                 "query": {
-                    "term": {
-                        "_id": get_ptr_doc_id("author/semantic", "1610412903"),
+                    "bool": {
+                        "filter": [{"term": {"_id": get_ptr_doc_id("author/semantic", "1610412903")}}],
                     }
                 }
             },
@@ -947,8 +947,9 @@ class TestIndex(TestCase):
             index=bucket + PACKAGE_INDEX_SUFFIX,
             body={
                 "query": {
-                    "term": {
-                        "_id": get_ptr_doc_id(handle, pointer_file),
+                    "bool": {
+                        "filter": [{"term": {"_id": get_ptr_doc_id("author/semantic", "1610412903")}}],
+                        "must_not": [{"term": {"join_field#mnfst": get_manifest_doc_id("a" * 64)}}],
                     }
                 }
             },
