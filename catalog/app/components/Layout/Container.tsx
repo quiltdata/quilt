@@ -31,11 +31,7 @@ interface ContainerProps extends M.ContainerProps {
   fullWidth: boolean
 }
 
-export default function Container({
-  children,
-  className,
-  fullWidth = false,
-}: ContainerProps) {
+export default function Container({ children, className, fullWidth }: ContainerProps) {
   const classes = useContainerStyles()
   return (
     <M.Container

@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Route, Switch, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Container from 'components/Layout/Container'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { useBucketStrict } from 'containers/Bucket/Routes'
@@ -62,19 +63,13 @@ function BucketLayout({ bucket, section = false, render }: BucketLayoutProps) {
           <M.AppBar position="static" className={classes.appBar}>
             <BucketNav bucket={bucket} section={section} />
           </M.AppBar>
-          <M.Container
-            maxWidth={
-              searchUIModel && searchUIModel.state.view === SearchUIModel.View.Table
-                ? false
-                : 'lg'
-            }
-          >
+          <Container fullWidth={searchUIModel?.state.view === SearchUIModel.View.Table}>
             {bucketExistenceData.case({
               Ok: render,
               Err: displayError(),
               _: SuspensePlaceholder,
             })}
-          </M.Container>
+          </Container>
         </>
       }
     />
