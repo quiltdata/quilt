@@ -40,7 +40,9 @@ interface TableProps {
 }
 
 export function Table({ className }: TableProps) {
-  const [head, ...body] = useColumns()
+  const rows = useColumns()
+  if (!rows.length) return null
+  const [head, ...body] = rows
   return (
     <M.Table className={className} size="small">
       <M.TableHead>
