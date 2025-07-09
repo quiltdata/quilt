@@ -61,19 +61,12 @@ const I18_COUNT_PACKAGES = {
   other: (n: number) => (n > 0 ? `${n} packages` : 'Packages'),
 }
 
-const I18_COUNT_PACKAGED_RESULTS = {
-  one: '1 packaged result',
-  other: (n: number) => (n > 0 ? `${n} packaged results` : 'Packaged results'),
-}
-
 function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
   if (
     state.resultType === SearchUIModel.ResultType.QuiltPackage &&
     state.view === SearchUIModel.View.Table
   ) {
-    return state.latestOnly
-      ? Format.pluralify(n, I18_COUNT_PACKAGES)
-      : Format.pluralify(n, I18_COUNT_PACKAGED_RESULTS)
+    return Format.pluralify(n, I18_COUNT_PACKAGES)
   }
   return Format.pluralify(n, I18_COUNT_RESULTS)
 }
