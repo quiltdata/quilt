@@ -149,7 +149,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
     [entry, onPreview, inPackage],
   )
   return (
-    <M.TableRow hover key={entry.physicalKey} className={className}>
+    <M.TableRow hover className={className}>
       <M.TableCell className={classes.cell} component="th" scope="row">
         <M.Tooltip arrow title={entry.logicalKey}>
           <StyledLink to={inPackage.to}>
@@ -295,7 +295,7 @@ export default function Entries({ entries, packageHandle, totalCount }: EntriesP
             {entries.map((entry) => (
               <Entry
                 className={classes.row}
-                key={entry.logicalKey + entry.physicalKey}
+                key={entry.logicalKey}
                 entry={entry}
                 onPreview={setPreview}
                 packageHandle={packageHandle}
