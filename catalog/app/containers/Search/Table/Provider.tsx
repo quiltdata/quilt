@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as React from 'react'
 
 import type { Column } from './useColumns'
@@ -18,23 +19,7 @@ interface Context {
   }
 }
 
-const noop = () => {}
-
-const initialContext: Context = {
-  filter: null,
-  filterActions: {
-    open: noop,
-    close: noop,
-  },
-
-  hiddenColumns: new Map(),
-  columnsActions: {
-    show: noop,
-    hide: noop,
-  },
-}
-
-const Ctx = React.createContext<Context>(initialContext)
+const Ctx = React.createContext<Context | null>(null)
 
 function removeBool(x: HiddenColumns, f: Column['filter']) {
   const m = new Map(x)
@@ -58,13 +43,11 @@ function addBoolsList(x: HiddenColumns, fs: Column['filter'][]) {
 }
 
 export function Provider({ children }: { children: React.ReactNode }) {
-  const [filter, setFilter] = React.useState<Column | null>(initialContext.filter)
+  const [filter, setFilter] = React.useState<Column | null>(null)
   const open = React.useCallback((c: Column) => setFilter(c), [])
   const close = React.useCallback(() => setFilter(null), [])
 
-  const [hiddenColumns, setHiddenColumns] = React.useState<HiddenColumns>(
-    initialContext.hiddenColumns,
-  )
+  const [hiddenColumns, setHiddenColumns] = React.useState<HiddenColumns>(new Map())
   const filterActions = React.useMemo(() => ({ open, close }), [open, close])
   const show = React.useCallback(
     (filters: Column['filter'] | Column['filter'][]) =>
@@ -93,4 +76,8 @@ export function Provider({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-export const useContext = () => React.useContext(Ctx)
+export const useContext = () => {
+  const ctx = React.useContext(Ctx)
+  invariant(ctx, 'Context must be used within an Table.Provider')
+  return ctx
+}
