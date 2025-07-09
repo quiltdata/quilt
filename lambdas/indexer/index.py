@@ -335,8 +335,14 @@ def index_if_pointer(
         index=index,
         body={
             "query": {
-                "term": {
-                    "_id": _id,
+                "bool": {
+                    "filter": [
+                        {"term": {"_id": _id}},
+                    ],
+                    # Don't try to delete the we're trying to index.
+                    # This is to avoid conflict errors that often happen during reindexing, because
+                    # we get event for every version of the latest.
+                    **({"must_not": [{"term": {"join_field#mnfst": manifest_doc_id}}]} if data else {}),
                 }
             },
         },
