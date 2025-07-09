@@ -27,6 +27,7 @@ import type {
   ColumnUserMeta,
   ColumnsMap,
 } from './useColumns'
+import type { Hit } from './useResults'
 import { Provider, useContext } from './Provider'
 
 interface AvailableSystemMetaColumnProps {
@@ -266,7 +267,7 @@ const usePackageRowStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageRowProps {
-  hit: SearchUIModel.SearchHitPackage
+  hit: Hit
   columns: ColumnsMap
   skeletons?: { key: number; width: number }[]
 }
@@ -1121,7 +1122,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
 }))
 
 interface LayoutProps {
-  hits: readonly SearchUIModel.SearchHitPackage[]
+  hits: readonly Hit[]
   columns: ColumnsMap
   skeletons: ReturnType<typeof Skeleton.useColumns>
 }
@@ -1189,7 +1190,7 @@ const useTableViewStyles = M.makeStyles((t) => ({
 }))
 
 interface TableViewProps {
-  hits: readonly SearchUIModel.SearchHitPackage[]
+  hits: readonly Hit[]
   bucket?: string
   metaFiltersState: SearchUIModel.AvailableFiltersStateInstance
 }
@@ -1215,7 +1216,7 @@ function TableView({ hits, bucket, metaFiltersState }: TableViewProps) {
 }
 
 interface TableViewInitProps {
-  hits: readonly SearchUIModel.SearchHitPackage[]
+  hits: readonly Hit[]
   bucket?: string
 }
 

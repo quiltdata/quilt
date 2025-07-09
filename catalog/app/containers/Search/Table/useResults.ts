@@ -1,8 +1,30 @@
 import * as React from 'react'
 
 import assertNever from 'utils/assertNever'
+import type { Json, JsonRecord } from 'utils/types'
 
 import * as SearchUIModel from '../model'
+
+const isJsonRecord = (obj: Json): obj is JsonRecord =>
+  obj != null && typeof obj === 'object' && !Array.isArray(obj)
+
+export interface Hit extends Omit<SearchUIModel.SearchHitPackage, 'meta'> {
+  meta: JsonRecord | null | Error
+}
+
+function parseMeta(meta: SearchUIModel.SearchHitPackage['meta']): Hit['meta'] {
+  try {
+    if (!meta) return null
+    const json = JSON.parse(meta)
+    return isJsonRecord(json) ? json : new Error('Meta must be object')
+  } catch (err) {
+    return err instanceof Error ? err : new Error(`${err}`)
+  }
+}
+
+function parseHit({ meta, ...rest }: SearchUIModel.SearchHitPackage): Hit {
+  return { meta: parseMeta(meta), ...rest }
+}
 
 interface ResultsIdle {
   _tag: 'idle'
@@ -32,7 +54,7 @@ type ResultsNotFullilled = ResultsInProgress | ResultsFail | ResultsEmpty | Resu
 interface ResultsOk {
   _tag: 'ok'
   cursor: string | null
-  hits: readonly SearchUIModel.SearchHitPackage[]
+  hits: readonly Hit[]
   next?: ResultsNotFullilled
 }
 
@@ -53,7 +75,8 @@ function parseNextResults(
           return { _tag: 'fail' as const, error }
         // case 'ObjectsSearchResultSetPage':
         case 'PackagesSearchResultSetPage':
-          return { _tag: 'ok' as const, ...query.data }
+          const { hits, ...data } = query.data
+          return { _tag: 'ok' as const, hits: hits.map(parseHit), ...data }
         default:
           assertNever(query.data)
       }
@@ -76,7 +99,8 @@ function parseFirstResults(
           const [error] = query.data.errors
           return { _tag: 'fail' as const, error }
         case 'PackagesSearchResultSet':
-          return { _tag: 'ok' as const, ...query.data.firstPage }
+          const { hits, ...data } = query.data.firstPage
+          return { _tag: 'ok' as const, hits: hits.map(parseHit), ...data }
         case 'ObjectsSearchResultSet':
           return {
             _tag: 'fail' as const,

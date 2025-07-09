@@ -12,12 +12,10 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import { readableBytes } from 'utils/string'
-import type { Json, JsonRecord } from 'utils/types'
-
-import * as SearchUIModel from '../model'
 
 import { ColumnTag } from './useColumns'
 import type { Column, FilterType } from './useColumns'
+import type { Hit } from './useResults'
 
 const useNoValueStyles = M.makeStyles((t) => ({
   root: {
@@ -35,9 +33,6 @@ function NoValue() {
     </div>
   )
 }
-
-const isJsonRecord = (obj: Json): obj is JsonRecord =>
-  obj != null && typeof obj === 'object' && !Array.isArray(obj)
 
 const useMatchStyles = M.makeStyles((t) => ({
   root: {
@@ -64,16 +59,15 @@ export const Match = React.forwardRef<HTMLSpanElement, MatchProps>(function Matc
 })
 
 interface UserMetaValueProps {
-  hit: SearchUIModel.SearchHitPackage
+  hit: Hit
   pointer: JSONPointer.Pointer
 }
 
 function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   const value = React.useMemo(() => {
+    if (hit.meta instanceof Error || !hit.meta) return hit.meta
     try {
-      const meta = hit.meta ? JSON.parse(hit.meta) : {}
-      if (!isJsonRecord(meta)) return new Error('Meta must be object')
-      return jsonpath.value(meta, JSONPointer.toJsonPath(pointer))
+      return jsonpath.value(hit.meta || {}, JSONPointer.toJsonPath(pointer))
     } catch (err) {
       return err instanceof Error ? err : new Error(`${err}`)
     }
@@ -101,7 +95,7 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
 }
 
 interface SystemMetaValueProps {
-  hit: SearchUIModel.SearchHitPackage
+  hit: Hit
   filter: FilterType | 'bucket'
 }
 
@@ -149,7 +143,7 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
 
 interface CellValueProps {
   column: Column
-  hit: SearchUIModel.SearchHitPackage
+  hit: Hit
 }
 
 export default function CellValue({ column, hit }: CellValueProps) {
