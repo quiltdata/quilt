@@ -24,11 +24,8 @@ export function SearchLayout() {
     state.view === SearchUIModel.View.Table &&
     state.resultType === SearchUIModel.ResultType.QuiltPackage
   const titleSegments = React.useMemo(() => {
-    const output = ['Packages', bucket]
-    if (state.searchString) {
-      output.push(state.searchString)
-    }
-    return output
+    const base = ['Packages', bucket]
+    return state.searchString ? [...base, state.searchString] : base
   }, [bucket, state.searchString])
   return (
     <>
