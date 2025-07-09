@@ -14,6 +14,9 @@ es = make_elastic(os.environ["ES_ENDPOINT"])
 logger = get_quilt_logger()
 
 
+EXPECTED_ES_RESPONSE_TIME = 10  # seconds
+
+
 class BulkDocumentError(Exception):
     pass
 
@@ -51,7 +54,7 @@ def bulk(context, es, data: bytes):
     t1 = time.time()
     delta = t1 - t0
     logger.info("Bulk request took %s seconds", delta)
-    overtime = delta - 10
+    overtime = delta - EXPECTED_ES_RESPONSE_TIME
     if overtime > 0:
         # if the request took so long ES seems to be overloaded, so it's better to sleep
         # now to avoid 429 Too Many Requests error later causing lambda failure and retry
