@@ -258,7 +258,7 @@ def handler(event, context):
 
     assert len(event["Records"]) == 1, "Package indexer handler expects exactly one record"
 
-    with Batcher(s3_client, logger) as batcher:
+    with Batcher.from_env(s3_client, logger) as batcher:
         for record in event["Records"]:
             body = orjson.loads(record["body"])
             bucket = body["detail"]["s3"]["bucket"]["name"]
