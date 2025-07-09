@@ -17,6 +17,7 @@ from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
     CATALOG_LIMIT_LINES,
     TRUNCATED,
+    decompress_stream,
     extract_excel,
     extract_fcs,
     extract_parquet,
@@ -136,7 +137,7 @@ def lambda_handler(request):
         elif input_type == 'excel':
             html, info = extract_excel(get_bytes(content_iter, compression))
         elif input_type == 'fcs':
-            html, info = extract_fcs(get_bytes(content_iter, compression))
+            html, info = extract_fcs(decompress_stream(content_iter, compression))
         elif input_type == 'ipynb':
             html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
