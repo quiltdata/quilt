@@ -19,10 +19,6 @@ function useUrlQuery() {
   return qs?.q ?? ''
 }
 
-export function useSearchUIModel() {
-  return React.useContext(SearchUIModel.Context)
-}
-
 interface InputState extends M.InputBaseProps {
   helpOpen: boolean
 }
@@ -37,7 +33,7 @@ function useSearchState(bucket?: string): SearchState {
   const history = useHistory()
   const location = useLocation()
 
-  const searchUIModel = useSearchUIModel()
+  const searchUIModel = SearchUIModel.useUnsafe()
 
   const query = useUrlQuery()
 

@@ -17,7 +17,6 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 import * as NavMenu from './NavMenu'
-import { useSearchUIModel } from './Provider'
 import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
@@ -144,7 +143,7 @@ export function Header({ children }: HeaderProps) {
   const classes = useHeaderStyles({
     customBg: !!settings?.theme?.palette?.primary?.main,
   })
-  const searchUIModel = useSearchUIModel()
+  const searchUIModel = SearchUIModel.useUnsafe()
   return (
     <M.Box>
       <M.Toolbar />

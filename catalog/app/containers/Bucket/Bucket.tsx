@@ -35,10 +35,6 @@ const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder
 const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 const Workflows = RT.mkLazy(() => import('./Workflows'), SuspensePlaceholder)
 
-function useSearchUIModel() {
-  return React.useContext(SearchUIModel.Context)
-}
-
 const useStyles = M.makeStyles((t) => ({
   appBar: {
     backgroundColor: t.palette.common.white,
@@ -55,7 +51,7 @@ interface BucketLayoutProps {
 function BucketLayout({ bucket, section = false, render }: BucketLayoutProps) {
   const classes = useStyles()
   const bucketExistenceData = useBucketExistence(bucket)
-  const searchUIModel = useSearchUIModel()
+  const searchUIModel = SearchUIModel.useUnsafe()
   return (
     <Layout
       pre={

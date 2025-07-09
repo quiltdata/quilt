@@ -1618,4 +1618,12 @@ export function useSearchUIModelContext(type?: ResultType) {
   return model
 }
 
-export { SearchUIModelProvider as Provider, useSearchUIModelContext as use }
+export function useSearchUIModelContextUnsafe(): SearchUIModel | null {
+  return React.useContext(Context)
+}
+
+export {
+  SearchUIModelProvider as Provider,
+  useSearchUIModelContext as use,
+  useSearchUIModelContextUnsafe as useUnsafe,
+}
