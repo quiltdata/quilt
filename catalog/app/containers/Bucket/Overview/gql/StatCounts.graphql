@@ -2,9 +2,7 @@ query ($buckets: [String!]) {
   searchPackages(buckets: $buckets) {
     __typename
     ... on PackagesSearchResultSet {
-      stats {
         total
-      }
     }
     ... on InvalidInput {
       errors {
@@ -18,9 +16,7 @@ query ($buckets: [String!]) {
   searchObjects(buckets: $buckets) {
     __typename
     ... on ObjectsSearchResultSet {
-      stats {
         total
-      }
     }
     ... on InvalidInput {
       errors {

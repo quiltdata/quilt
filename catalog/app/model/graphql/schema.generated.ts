@@ -2740,6 +2740,18 @@ export default {
         name: 'ObjectsSearchResultSet',
         fields: [
           {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'stats',
             type: {
               kind: 'NON_NULL',
@@ -2820,18 +2832,6 @@ export default {
         kind: 'OBJECT',
         name: 'ObjectsSearchStats',
         fields: [
-          {
-            name: 'total',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'modified',
             type: {
@@ -3770,6 +3770,18 @@ export default {
         name: 'PackagesSearchResultSet',
         fields: [
           {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'stats',
             type: {
               kind: 'NON_NULL',
@@ -3887,18 +3899,6 @@ export default {
         kind: 'OBJECT',
         name: 'PackagesSearchStats',
         fields: [
-          {
-            name: 'total',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
           {
             name: 'modified',
             type: {

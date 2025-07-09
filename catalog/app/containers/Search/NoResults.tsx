@@ -159,7 +159,7 @@ export function Empty({ bucket, className }: EmptyProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return r.stats.total
+            return r.total
           default:
             return null
         }

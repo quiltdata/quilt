@@ -10,12 +10,10 @@ export type containers_Bucket_Overview_gql_StatCountsQuery = {
   readonly __typename: 'Query'
 } & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'PackagesSearchStats' } & Pick<
-          Types.PackagesSearchStats,
-          'total'
-        >
-      })
+    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
+        Types.PackagesSearchResultSet,
+        'total'
+      >)
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -26,12 +24,10 @@ export type containers_Bucket_Overview_gql_StatCountsQuery = {
         >
       })
   readonly searchObjects:
-    | ({ readonly __typename: 'ObjectsSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'ObjectsSearchStats' } & Pick<
-          Types.ObjectsSearchStats,
-          'total'
-        >
-      })
+    | ({ readonly __typename: 'ObjectsSearchResultSet' } & Pick<
+        Types.ObjectsSearchResultSet,
+        'total'
+      >)
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -89,16 +85,7 @@ export const containers_Bucket_Overview_gql_StatCountsDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
-                          ],
-                        },
-                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                     ],
                   },
                 },
@@ -153,16 +140,7 @@ export const containers_Bucket_Overview_gql_StatCountsDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
-                          ],
-                        },
-                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                     ],
                   },
                 },

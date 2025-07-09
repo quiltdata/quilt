@@ -15,54 +15,52 @@ export type containers_Search_gql_FirstPagePackagesQuery = {
   readonly __typename: 'Query'
 } & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'PackagesSearchStats' } & Pick<
-          Types.PackagesSearchStats,
-          'total'
-        >
-        readonly firstPage: { readonly __typename: 'PackagesSearchResultSetPage' } & Pick<
-          Types.PackagesSearchResultSetPage,
-          'cursor'
-        > & {
-            readonly hits: ReadonlyArray<
-              { readonly __typename: 'SearchHitPackage' } & Pick<
-                Types.SearchHitPackage,
-                | 'id'
-                | 'bucket'
-                | 'name'
-                | 'pointer'
-                | 'hash'
-                | 'score'
-                | 'size'
-                | 'modified'
-                | 'totalEntriesCount'
-                | 'comment'
-                | 'meta'
-                | 'workflow'
-              > & {
-                  readonly matchLocations: {
-                    readonly __typename: 'SearchHitPackageMatchLocations'
-                  } & Pick<
-                    Types.SearchHitPackageMatchLocations,
-                    'comment' | 'meta' | 'name' | 'workflow'
-                  >
-                  readonly matchingEntries: ReadonlyArray<
-                    { readonly __typename: 'SearchHitPackageMatchingEntry' } & Pick<
-                      Types.SearchHitPackageMatchingEntry,
-                      'logicalKey' | 'physicalKey' | 'size' | 'meta'
-                    > & {
-                        readonly matchLocations: {
-                          readonly __typename: 'SearchHitPackageEntryMatchLocations'
-                        } & Pick<
-                          Types.SearchHitPackageEntryMatchLocations,
-                          'contents' | 'logicalKey' | 'meta' | 'physicalKey'
-                        >
-                      }
-                  >
-                }
-            >
-          }
-      })
+    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
+        Types.PackagesSearchResultSet,
+        'total'
+      > & {
+          readonly firstPage: {
+            readonly __typename: 'PackagesSearchResultSetPage'
+          } & Pick<Types.PackagesSearchResultSetPage, 'cursor'> & {
+              readonly hits: ReadonlyArray<
+                { readonly __typename: 'SearchHitPackage' } & Pick<
+                  Types.SearchHitPackage,
+                  | 'id'
+                  | 'bucket'
+                  | 'name'
+                  | 'pointer'
+                  | 'hash'
+                  | 'score'
+                  | 'size'
+                  | 'modified'
+                  | 'totalEntriesCount'
+                  | 'comment'
+                  | 'meta'
+                  | 'workflow'
+                > & {
+                    readonly matchLocations: {
+                      readonly __typename: 'SearchHitPackageMatchLocations'
+                    } & Pick<
+                      Types.SearchHitPackageMatchLocations,
+                      'comment' | 'meta' | 'name' | 'workflow'
+                    >
+                    readonly matchingEntries: ReadonlyArray<
+                      { readonly __typename: 'SearchHitPackageMatchingEntry' } & Pick<
+                        Types.SearchHitPackageMatchingEntry,
+                        'logicalKey' | 'physicalKey' | 'size' | 'meta'
+                      > & {
+                          readonly matchLocations: {
+                            readonly __typename: 'SearchHitPackageEntryMatchLocations'
+                          } & Pick<
+                            Types.SearchHitPackageEntryMatchLocations,
+                            'contents' | 'logicalKey' | 'meta' | 'physicalKey'
+                          >
+                        }
+                    >
+                  }
+              >
+            }
+        })
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -189,16 +187,7 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
-                          ],
-                        },
-                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'firstPage' },

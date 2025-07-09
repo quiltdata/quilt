@@ -15,9 +15,7 @@ query (
   ) {
     __typename
     ... on PackagesSearchResultSet {
-      stats {
-        total
-      }
+      total
       firstPage(order: $order) {
         cursor
         hits {

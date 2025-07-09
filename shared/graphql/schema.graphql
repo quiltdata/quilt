@@ -427,14 +427,12 @@ input PackagesSearchFilter {
 }
 
 type ObjectsSearchStats {
-  total: Int!
   modified: DatetimeExtents!
   size: NumberExtents!
   ext: KeywordExtents!
 }
 
 type PackagesSearchStats {
-  total: Int!
   modified: DatetimeExtents!
   size: NumberExtents!
   entries: NumberExtents!
@@ -444,6 +442,7 @@ type PackagesSearchStats {
 }
 
 type ObjectsSearchResultSet {
+  total: Int!
   stats: ObjectsSearchStats!
   firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
 }
@@ -457,6 +456,7 @@ enum PackageUserMetaFacetType {
 }
 
 type PackagesSearchResultSet {
+  total: Int!
   stats: PackagesSearchStats!
   filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
   firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!

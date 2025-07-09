@@ -116,7 +116,7 @@ function getFirstPage(
             return Eff.Either.right({ hits: [], total: 0 })
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return Eff.Either.right({ hits: d.firstPage.hits, total: d.stats.total })
+            return Eff.Either.right({ hits: d.firstPage.hits, total: d.total })
           default:
             return Eff.absurd<never>(d)
         }
@@ -145,21 +145,20 @@ function useSearchContextModel(): MaybeEitherSearchContext {
         Eff.Option.map(([baseStatsE, firstPageE]) =>
           Eff.Either.gen(function* () {
             const baseStats = yield* baseStatsE
-            const { these, other } = yield* Eff.Either.all(baseStats)
+            const { these /*, other*/ } = yield* Eff.Either.all(baseStats)
             const firstPage = yield* firstPageE
             return {
               resultType,
               otherType,
-              totalBeforeFilters: Eff.Option.match(these, {
-                onNone: () => 0,
-                onSome: (stats) => stats.total,
-              }),
+              totalBeforeFilters: 0,
+              // FIXME: totalBeforeFilters: baseStats.total,
               totalAfterFilters: firstPage.total,
-              totalOther: Eff.Option.match(other, {
-                onNone: () => 0,
-                onSome: (stats) => stats.total,
-              }),
-              facets: Eff.Option.map(these, ({ __typename, total, ...facets }) => facets),
+              totalOther: 0,
+              // FIXME: totalOther: Eff.Option.match(other, {
+              //   onNone: () => 0,
+              //   onSome: (total) => total,
+              // }),
+              facets: Eff.Option.map(these, ({ __typename, ...facets }) => facets),
               firstPage: firstPage.hits,
             }
           }),

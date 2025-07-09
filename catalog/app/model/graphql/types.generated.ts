@@ -587,6 +587,7 @@ export type ObjectsSearchResult =
 
 export interface ObjectsSearchResultSet {
   readonly __typename: 'ObjectsSearchResultSet'
+  readonly total: Scalars['Int']
   readonly stats: ObjectsSearchStats
   readonly firstPage: ObjectsSearchResultSetPage
 }
@@ -604,7 +605,6 @@ export interface ObjectsSearchResultSetPage {
 
 export interface ObjectsSearchStats {
   readonly __typename: 'ObjectsSearchStats'
-  readonly total: Scalars['Int']
   readonly modified: DatetimeExtents
   readonly size: NumberExtents
   readonly ext: KeywordExtents
@@ -848,6 +848,7 @@ export type PackagesSearchResult =
 
 export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'
+  readonly total: Scalars['Int']
   readonly stats: PackagesSearchStats
   readonly filteredUserMetaFacets: ReadonlyArray<PackageUserMetaFacet>
   readonly firstPage: PackagesSearchResultSetPage
@@ -871,7 +872,6 @@ export interface PackagesSearchResultSetPage {
 
 export interface PackagesSearchStats {
   readonly __typename: 'PackagesSearchStats'
-  readonly total: Scalars['Int']
   readonly modified: DatetimeExtents
   readonly size: NumberExtents
   readonly entries: NumberExtents

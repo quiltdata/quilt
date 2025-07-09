@@ -106,7 +106,7 @@ function ResultsCount() {
         case 'PackagesSearchResultSet':
           return (
             <ColumnTitle>
-              {resultsCountI18n(r.data.stats.total, model.state)}
+              {resultsCountI18n(r.data.total, model.state)}
               <RRDom.Switch>
                 <RRDom.Route path={paths.bucketRoot}>
                   <CreatePackage className={classes.create} />
