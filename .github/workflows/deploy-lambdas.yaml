@@ -2,8 +2,8 @@ name: Deploy lambdas to S3 and ECR
 
 on:
   push:
-    branches:
-      - master
+    # branches:
+    #   - master
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
@@ -13,15 +13,16 @@ jobs:
     strategy:
       matrix:
         path:
-          - access_counts
-          - indexer
-          - pkgevents
-          - pkgpush
-          - preview
-          - s3hash
-          - status_reports
-          - tabular_preview
-          - transcode
+          # - access_counts
+          - es_ingest
+          # - pkgevents
+          # - pkgpush
+          # - preview
+          # - s3hash
+          # - status_reports
+          - manifest_indexer
+          # - tabular_preview
+          # - transcode
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -29,6 +30,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Export requirements.txt from uv.lock
+        if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
+        run: |
+          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
       - name: Build zip
         run: |
           BUILDER_IMAGE=quiltdata/lambda:build-$(cat lambdas/${{ matrix.path }}/.python-version)
@@ -55,16 +61,17 @@ jobs:
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
-      - name: Upload zips to GovCloud S3
-        run: |
-          s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
-          ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
+      # - name: Upload zips to GovCloud S3
+      #   run: |
+      #     s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
+      #     ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
 
   deploy-lambda-ecr:
     strategy:
       matrix:
         path:
-          - thumbnail
+          - indexer
+          # - thumbnail
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -87,5 +94,5 @@ jobs:
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
-      - name: Push Docker image to GovCloud ECR
-        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
+      # - name: Push Docker image to GovCloud ECR
+      #   run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
