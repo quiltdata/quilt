@@ -114,7 +114,7 @@ function BucketControls({ bucket }: BucketControlsProps) {
   }, [setState])
   React.useEffect(cancel, [cancel])
 
-  const selectRef: React.Ref<HTMLInputElement | void> = React.useRef()
+  const selectRef: React.Ref<HTMLInputElement> = React.useRef(null)
   const focusSelect = React.useCallback(() => {
     if (selectRef.current) selectRef.current.focus()
   }, [])
