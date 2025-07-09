@@ -177,7 +177,7 @@ assert MANIFEST_INDEXER_QUEUE_URL, "MANIFEST_INDEXER_QUEUE_URL must be set"
 
 logger = get_quilt_logger()
 s3_client = make_s3_client()
-es = make_elastic(os.environ["ES_ENDPOINT"])
+es = make_elastic(os.environ["ES_ENDPOINT"], timeout=30)
 sqs = boto3.client("sqs")
 
 
