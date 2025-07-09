@@ -92,6 +92,7 @@ from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
     PACKAGE_INDEX_SUFFIX,
     POINTER_PREFIX_V1,
+    LAMBDA_TMP_SPACE,
     get_available_memory,
     get_quilt_logger,
     separated_env_to_iter,
@@ -558,6 +559,14 @@ def maybe_get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client
             )
 
         if inferred_ext == ".fcs":
+            if size > LAMBDA_TMP_SPACE:
+                logger_.warning(
+                    "FCS file %s/%s too large (%s) to deserialize; skipping contents",
+                    bucket,
+                    key,
+                    size,
+                )
+                return ""
             obj = _get_obj()
             body, info = extract_fcs(decompress_stream(obj["Body"], compression), as_html=False)
             # be smart and just send column names to ES (instead of bloated full schema)
