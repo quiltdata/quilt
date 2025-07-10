@@ -339,8 +339,8 @@ export function getSchemaItemKeysOr<T extends string[]>(
 
   const sortOrder = schemaItem.required.reduce(
     (memo: { [x: string]: number }, key: string, index: number) => ({
-      [key]: index,
       ...memo,
+      [key]: index,
     }),
     {} as { [x: string]: number },
   )
