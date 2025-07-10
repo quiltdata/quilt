@@ -3,73 +3,12 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { ES_REF_SYNTAX } from 'components/SearchResults'
-import { docs } from 'constants/urls'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
 import * as Hit from './List/Hit'
 import { Table as TableSkeleton } from './Table/Skeleton'
 import * as SearchUIModel from './model'
-
-const EXAMPLE_PACKAGE_URL = `${docs}/walkthrough/editing-a-package`
-
-const useCreatePackageStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  button: {
-    marginRight: t.spacing(2),
-    flexShrink: 0,
-  },
-  docs: {
-    flexBasis: '40%',
-  },
-}))
-
-interface CreatePackageProps {
-  bucket: string
-  className: string
-}
-
-function CreatePackage({ bucket, className }: CreatePackageProps) {
-  const classes = useCreatePackageStyles()
-  const createDialog = usePackageCreationDialog({
-    bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
-  const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
-  return (
-    <div className={cx(className, classes.root)}>
-      <M.Button
-        className={classes.button}
-        color="primary"
-        onClick={handleClick}
-        variant="contained"
-      >
-        Create package
-      </M.Button>
-      <M.Typography className={classes.docs}>
-        or{' '}
-        <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
-          push a package
-        </StyledLink>{' '}
-        with the Quilt Python API.
-      </M.Typography>
-
-      {createDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
-    </div>
-  )
-}
 
 interface SkeletonProps {
   className?: string
@@ -122,11 +61,10 @@ const useEmptyStyles = M.makeStyles((t) => ({
 }))
 
 interface EmptyProps {
-  bucket?: string
   className?: string
 }
 
-export function Empty({ bucket, className }: EmptyProps) {
+export function Empty({ className }: EmptyProps) {
   const classes = useEmptyStyles()
   const {
     actions: { clearFilters, reset, setBuckets, setResultType },
@@ -182,10 +120,6 @@ export function Empty({ bucket, className }: EmptyProps) {
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
-
-      {state.resultType === SearchUIModel.ResultType.QuiltPackage && !!bucket && (
-        <CreatePackage bucket={bucket} className={classes.create} />
-      )}
 
       <M.Typography variant="body1" align="center" className={classes.body}>
         Search for{' '}

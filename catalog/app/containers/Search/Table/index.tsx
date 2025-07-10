@@ -43,9 +43,10 @@ function ResultsInner({ className, results, loadMore, bucket }: ResultsInnerProp
 interface TablePageProps {
   className?: string
   bucket?: string
+  emptyFallback?: JSX.Element
 }
 
-export default function TablePage({ className, bucket }: TablePageProps) {
+export default function TablePage({ className, bucket, emptyFallback }: TablePageProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const [results, loadMore] = useResults()
   switch (results._tag) {
@@ -58,7 +59,7 @@ export default function TablePage({ className, bucket }: TablePageProps) {
         <NoResults.Error className={className}>{results.error.message}</NoResults.Error>
       )
     case 'empty':
-      return <NoResults.Empty className={className} bucket={bucket} />
+      return emptyFallback || <NoResults.Empty className={className} />
     case 'ok':
       return (
         <ResultsInner

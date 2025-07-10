@@ -9,6 +9,7 @@ import { useBucketStrict } from 'containers/Bucket/Routes'
 import Main from 'containers/Search/Layout/Main'
 import ListResults from 'containers/Search/List'
 import TableResults from 'containers/Search/Table'
+import NoPackages from './NoPackages'
 
 const useStyles = M.makeStyles((t) => ({
   main: {
@@ -31,7 +32,11 @@ export function SearchLayout() {
     <>
       <MetaTitle>{titleSegments}</MetaTitle>
       <Main className={classes.main}>
-        {tableView ? <TableResults bucket={bucket} /> : <ListResults />}
+        {tableView ? (
+          <TableResults bucket={bucket} emptyFallback={<NoPackages bucket={bucket} />} />
+        ) : (
+          <ListResults />
+        )}
       </Main>
     </>
   )
