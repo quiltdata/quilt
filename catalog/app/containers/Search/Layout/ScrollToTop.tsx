@@ -12,6 +12,7 @@ const useStyles = M.makeStyles((t) => ({
     bottom: t.spacing(3),
     transform: `translateX(-50%)`,
     animation: t.transitions.create('$slide'),
+    zIndex: 1,
   },
   button: {
     background: t.palette.background.paper,
