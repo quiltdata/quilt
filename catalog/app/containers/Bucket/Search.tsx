@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as SearchUIModel from 'containers/Search/model'
-import AssistantContext from 'containers/Search/AssistantContext'
 import MetaTitle from 'utils/MetaTitle'
 
 import { useBucketStrict } from 'containers/Bucket/Routes'
@@ -17,7 +16,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function SearchLayout() {
+export default function PackageList() {
   const bucket = useBucketStrict()
   const { state } = SearchUIModel.use()
   const classes = useStyles()
@@ -38,15 +37,6 @@ export function SearchLayout() {
           <ListResults />
         )}
       </Main>
-    </>
-  )
-}
-
-export default function PackageListWrapper() {
-  return (
-    <>
-      <AssistantContext />
-      <SearchLayout />
     </>
   )
 }
