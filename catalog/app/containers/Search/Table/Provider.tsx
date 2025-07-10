@@ -14,56 +14,36 @@ interface Context {
 
   hiddenColumns: HiddenColumns
   columnsActions: {
-    show: (fs: Column['filter'] | Column['filter'][]) => void
-    hide: (fs: Column['filter'] | Column['filter'][]) => void
+    show: (fs: Column['filter']) => void
+    hide: (fs: Column['filter']) => void
   }
 }
 
 const Ctx = React.createContext<Context | null>(null)
 
-function removeBool(x: HiddenColumns, f: Column['filter']) {
+const removeBool = (f: Column['filter']) => (x: HiddenColumns) => {
   const m = new Map(x)
   return m.delete(f) ? m : x
 }
 
-function removeBoolsList(x: HiddenColumns, fs: Column['filter'][]) {
-  const m = new Map(x)
-  for (const f of fs) {
-    m.delete(f)
-  }
-  return m
-}
-
-function addBool(x: HiddenColumns, f: Column['filter']) {
-  return new Map(x).set(f, true)
-}
-
-function addBoolsList(x: HiddenColumns, fs: Column['filter'][]) {
-  return new Map(Array.from(x.entries()).concat(fs.map((f) => [f, true])))
-}
+const addBool = (f: Column['filter']) => (x: HiddenColumns) => new Map(x).set(f, true)
 
 export function Provider({ children }: { children: React.ReactNode }) {
   const [filter, setFilter] = React.useState<Column | null>(null)
-  const open = React.useCallback((c: Column) => setFilter(c), [])
-  const close = React.useCallback(() => setFilter(null), [])
+  const filterActions = React.useMemo(
+    () => ({ open: (c: Column) => setFilter(c), close: () => setFilter(null) }),
+    [],
+  )
 
   const [hiddenColumns, setHiddenColumns] = React.useState<HiddenColumns>(new Map())
-  const filterActions = React.useMemo(() => ({ open, close }), [open, close])
-  const show = React.useCallback(
-    (filters: Column['filter'] | Column['filter'][]) =>
-      setHiddenColumns((x) =>
-        Array.isArray(filters) ? removeBoolsList(x, filters) : removeBool(x, filters),
-      ),
+  const columnsActions = React.useMemo(
+    () => ({
+      show: (f: Column['filter']) => setHiddenColumns(removeBool(f)),
+      hide: (f: Column['filter']) => setHiddenColumns(addBool(f)),
+    }),
     [],
   )
-  const hide = React.useCallback(
-    (filters: Column['filter'] | Column['filter'][]) =>
-      setHiddenColumns((x) =>
-        Array.isArray(filters) ? addBoolsList(x, filters) : addBool(x, filters),
-      ),
-    [],
-  )
-  const columnsActions = React.useMemo(() => ({ show, hide }), [show, hide])
+
   const value = React.useMemo(
     () => ({
       filter,
