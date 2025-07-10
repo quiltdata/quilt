@@ -26,7 +26,7 @@ const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
 const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
 const Overview = RT.mkLazy(() => import('./Overview'), SuspensePlaceholder)
-const PackageList = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
+const PackageList = RT.mkLazy(() => import('./PackageList'), SuspensePlaceholder)
 const PackageRevisions = RT.mkLazy(
   () => import('./PackageRevisions'),
   SuspensePlaceholder,
