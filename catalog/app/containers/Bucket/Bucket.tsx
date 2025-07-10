@@ -78,24 +78,11 @@ export default function Bucket() {
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
 
-  const urlState: SearchUIModel.SearchUrlState = React.useMemo(
-    () => ({
-      resultType: SearchUIModel.ResultType.QuiltPackage,
-      filter: SearchUIModel.PackagesSearchFilterIO.fromURLSearchParams(
-        new URLSearchParams(),
-      ),
-      userMetaFilters: SearchUIModel.UserMetaFilters.fromURLSearchParams(
-        new URLSearchParams(),
-        SearchUIModel.META_PREFIX,
-      ),
-      searchString: '',
-      buckets: [bucket],
-      order: SearchUIModel.ResultOrder.NEWEST,
-      view: SearchUIModel.View.Table,
-      latestOnly: true,
-    }),
-    [bucket],
-  )
+  const urlState = SearchUIModel.useMakePackagesSearchUrlState({
+    order: SearchUIModel.ResultOrder.NEWEST,
+    view: SearchUIModel.View.Table,
+    buckets: [bucket],
+  })
 
   return (
     <BucketPreferences.Provider bucket={bucket}>

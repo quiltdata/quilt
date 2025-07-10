@@ -1621,6 +1621,25 @@ export function useSearchUIModelContextUnsafe(): SearchUIModel | null {
   return React.useContext(Context)
 }
 
+function makePackagesSearchUrlState(
+  overrides: Partial<PackagesSearchUrlState>,
+): PackagesSearchUrlState {
+  return {
+    resultType: ResultType.QuiltPackage,
+    filter: overrides.filter || PackagesSearchFilterIO.initialState,
+    userMetaFilters: overrides.userMetaFilters || new UserMetaFilters(),
+    searchString: overrides.searchString || '',
+    buckets: overrides.buckets || [],
+    order: overrides.order || DEFAULT_ORDER,
+    view: overrides.view || DEFAULT_VIEW,
+    latestOnly: true,
+  }
+}
+
+export const useMakePackagesSearchUrlState = (
+  overrides: Partial<PackagesSearchUrlState>,
+) => useMemoEq(overrides, makePackagesSearchUrlState)
+
 export {
   SearchUIModelProvider as Provider,
   useSearchUIModelContext as use,
