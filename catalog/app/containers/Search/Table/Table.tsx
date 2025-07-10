@@ -269,7 +269,7 @@ const usePackageRowStyles = M.makeStyles((t) => ({
 interface PackageRowProps {
   hit: Hit
   columns: ColumnsMap
-  skeletons?: { key: number; width: number }[]
+  skeletons?: Skeleton.Column[]
 }
 
 function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
@@ -1124,7 +1124,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
 interface LayoutProps {
   hits: readonly Hit[]
   columns: ColumnsMap
-  skeletons: ReturnType<typeof Skeleton.useSkeletonSizes>
+  skeletons: Skeleton.Row[]
 }
 
 function Layout({ hits, columns, skeletons }: LayoutProps) {
