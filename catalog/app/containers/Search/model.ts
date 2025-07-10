@@ -1628,7 +1628,7 @@ function makePackagesSearchUrlState(
     resultType: ResultType.QuiltPackage,
     filter: overrides.filter || PackagesSearchFilterIO.initialState,
     userMetaFilters: overrides.userMetaFilters || new UserMetaFilters(),
-    searchString: overrides.searchString || '',
+    searchString: overrides.searchString || null,
     buckets: overrides.buckets || [],
     order: overrides.order || DEFAULT_ORDER,
     view: overrides.view || DEFAULT_VIEW,
@@ -1639,6 +1639,22 @@ function makePackagesSearchUrlState(
 export const useMakePackagesSearchUrlState = (
   overrides: Partial<PackagesSearchUrlState>,
 ) => useMemoEq(overrides, makePackagesSearchUrlState)
+
+function makeObjectsSearchUrlState(
+  overrides: Partial<ObjectsSearchUrlState>,
+): ObjectsSearchUrlState {
+  return {
+    resultType: ResultType.S3Object,
+    filter: overrides.filter || ObjectsSearchFilterIO.initialState,
+    searchString: overrides.searchString || null,
+    buckets: overrides.buckets || [],
+    order: overrides.order || DEFAULT_ORDER,
+    view: overrides.view || View.List,
+  }
+}
+
+export const useMakeObjectsSearchUrlState = (overrides: Partial<ObjectsSearchUrlState>) =>
+  useMemoEq(overrides, makeObjectsSearchUrlState)
 
 export {
   SearchUIModelProvider as Provider,
