@@ -1246,9 +1246,8 @@ export function usePackageSystemMetaFacetExtents(
         case 'InvalidInput':
           return undefined
         case 'PackagesSearchResultSet':
-          return oneOf(['workflow', 'modified', 'size', 'entries'], field)
-            ? r.stats[field]
-            : undefined
+          if (!oneOf(['workflow', 'modified', 'size', 'entries'], field)) return undefined
+          return r.stats[field]
         default:
           assertNever(r)
       }
