@@ -18,7 +18,10 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
-    margin: t.spacing(0, 0, 1.5),
+    margin: t.spacing(0, 0, 0.5),
+  },
+  closable: {
+    marginBottom: t.spacing(1.5),
   },
   title: {
     ...t.typography.body2,
@@ -66,7 +69,7 @@ export default function Container({
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <div className={classes.header}>
+      <div className={cx(classes.header, onDeactivate && classes.closable)}>
         <div className={classes.title}>{title}</div>
         {onDeactivate && (
           <M.IconButton size="small" className={classes.close} onClick={onDeactivate}>

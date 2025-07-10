@@ -1,17 +1,20 @@
 import invariant from 'invariant'
 import cx from 'classnames'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as FiltersUI from 'components/Filters'
 import Skeleton from 'components/Skeleton'
 import * as JSONPointer from 'utils/JSONPointer'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import FilterWidget from '../FilterWidget'
 import { PACKAGE_FILTER_LABELS } from '../i18n'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import * as SearchUIModel from '../model'
 
+import ColumnTitle from './ColumnTitle'
 import FilterSection from './FilterSection'
 import MoreButton from './MoreButton'
 
@@ -364,7 +367,11 @@ const usePackagesRevisionFilterStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PackagesRevisionFilter() {
+interface PackagesRevisionFilterProps {
+  className?: string
+}
+
+function PackagesRevisionFilter({ className }: PackagesRevisionFilterProps) {
   const classes = usePackagesRevisionFilterStyles()
 
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -380,6 +387,7 @@ function PackagesRevisionFilter() {
 
   return (
     <M.FormControlLabel
+      className={className}
       control={<M.Switch checked={!model.state.latestOnly} onChange={handleChange} />}
       label={
         <>
@@ -410,7 +418,13 @@ const usePackageFiltersStyles = M.makeStyles((t) => ({
   title: {
     ...t.typography.h6,
     fontWeight: 400,
+    marginBottom: t.spacing(1),
+  },
+  gutterBottom: {
     marginBottom: t.spacing(2),
+  },
+  gutterTop: {
+    marginTop: t.spacing(2),
   },
   subTitle: {
     ...t.typography.body2,
@@ -438,15 +452,26 @@ export default function PackageFilters({ className }: PackageFiltersProps) {
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
+  const { paths } = NamedRoutes.use()
+
   return (
     <div className={cx(classes.root, className)}>
-      <div className={classes.title}>Filter by</div>
-
-      <FilterSection>
-        <FiltersUI.Container defaultExpanded title="Revisions">
+      <RRDom.Switch>
+        <RRDom.Route path={paths.search} exact>
+          <div className={classes.title}>Revisions</div>
           <PackagesRevisionFilter />
-        </FiltersUI.Container>
-      </FilterSection>
+
+          <div className={cx(classes.title, classes.gutterTop)}>Filter by</div>
+        </RRDom.Route>
+        <RRDom.Route>
+          <ColumnTitle className={classes.gutterBottom}>Filter by</ColumnTitle>
+          <FilterSection>
+            <FiltersUI.Container defaultExpanded title="Revisions">
+              <PackagesRevisionFilter />
+            </FiltersUI.Container>
+          </FilterSection>
+        </RRDom.Route>
+      </RRDom.Switch>
 
       {activeFilters.map((f) => (
         <FilterSection key={f}>

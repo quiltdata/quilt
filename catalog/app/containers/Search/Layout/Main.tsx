@@ -128,7 +128,6 @@ const useFiltersStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1),
   },
   variable: {
-    marginTop: t.spacing(0.5),
     overflow: 'hidden auto',
   },
 }))

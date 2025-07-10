@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -8,7 +9,10 @@ const useColumnTitleStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function ColumnTitle({ children }: React.PropsWithChildren<{}>) {
+export default function ColumnTitle({
+  className,
+  children,
+}: React.PropsWithChildren<{ className?: string }>) {
   const classes = useColumnTitleStyles()
-  return <div className={classes.root}>{children}</div>
+  return <div className={cx(classes.root, className)}>{children}</div>
 }
