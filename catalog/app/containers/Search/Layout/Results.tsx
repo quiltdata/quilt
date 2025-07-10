@@ -144,6 +144,11 @@ const useToggleButtonStyles = M.makeStyles({
   root: {
     // So, it occupies the same height as other buttons in that toolbar
     padding: '5px',
+    // XXX:
+    // This is a color hardcoded for MUI.Button#outlined
+    // https://github.com/mui/material-ui/blob/v4.x/packages/material-ui/src/Button/Button.js#L70
+    // The same color for the latest Lab.ToggleButtonGroup, but we don't use it
+    borderColor: `rgba(0, 0, 0, 0.23)`,
   },
 })
 
