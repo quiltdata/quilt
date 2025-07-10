@@ -20,6 +20,7 @@ where verb is one of
 
 - [Added] Add table grid to show search results (including matched enties) ([#4413](https://github.com/quiltdata/quilt/pull/4413))
 - [Changed] Replace packages list with search results on Packages tab ([#4413](https://github.com/quiltdata/quilt/pull/4413))
+- [Fixed] Freeform search: pass 'size' set to 0 to backend, properly handle 'from' ([#4432](https://github.com/quiltdata/quilt/pull/4432))
 - [Changed] Increase font size in tooltips and make them uniform ([#4425](https://github.com/quiltdata/quilt/pull/4425))
 - [Added] Detect directories and redirect to trailing-slash URLs (e.g., `catalog-host/dir` → `catalog-host/dir/`). ([#4398](https://github.com/quiltdata/quilt/pull/4398))
 - [Fixed] Respect `packageRoot` config property when creating text files using Catalog UI ([#4397](https://github.com/quiltdata/quilt/pull/4397))
