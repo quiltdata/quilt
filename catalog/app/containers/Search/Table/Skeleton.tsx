@@ -2,16 +2,29 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+interface SkeletonColumn {
+  key: React.Key
+  width: number
+}
+
+interface SkeletonRow {
+  key: React.Key
+  columns: SkeletonColumn[]
+}
+
 const randomColumnWidth = (min: number = 80, max: number = 200) =>
   min + Math.floor(Math.random() * (max - min + 1))
 
-const createColumns = (columnsLen: number) =>
+const createColumns = (columnsLen: number): SkeletonColumn[] =>
   Array.from({ length: columnsLen }).map((_c, key) => ({
     key,
     width: randomColumnWidth(),
   }))
 
-export const useColumns = (rowsLen: number = 30, columnsLen: number = 5) =>
+export const useSkeletonSizes = (
+  rowsLen: number = 30,
+  columnsLen: number = 5,
+): SkeletonRow[] =>
   React.useMemo(
     () =>
       Array.from({ length: rowsLen }).map((_r, key) => ({
@@ -40,7 +53,7 @@ interface TableProps {
 }
 
 export function Table({ className }: TableProps) {
-  const rows = useColumns()
+  const rows = useSkeletonSizes()
   if (!rows.length) return null
   const [head, ...body] = rows
   return (

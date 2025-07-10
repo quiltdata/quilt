@@ -1124,7 +1124,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
 interface LayoutProps {
   hits: readonly Hit[]
   columns: ColumnsMap
-  skeletons: ReturnType<typeof Skeleton.useColumns>
+  skeletons: ReturnType<typeof Skeleton.useSkeletonSizes>
 }
 
 function Layout({ hits, columns, skeletons }: LayoutProps) {
@@ -1198,7 +1198,7 @@ interface TableViewProps {
 function TableView({ hits, bucket, metaFiltersState }: TableViewProps) {
   const { hiddenColumns } = useContext()
   const [columns, notReady] = useColumns(hiddenColumns, metaFiltersState, bucket)
-  const skeletons = Skeleton.useColumns(
+  const skeletons = Skeleton.useSkeletonSizes(
     notReady === Workflow.Loading ? hits.length + 1 : 0,
     3,
   )
