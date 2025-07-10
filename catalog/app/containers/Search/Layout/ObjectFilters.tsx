@@ -50,7 +50,7 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
   }, [deactivateObjectsFilter, field])
 
   const change = React.useCallback(
-    (state: $TSFixMe) => {
+    (state: Parameters<typeof setObjectsFilter>[1]) => {
       setObjectsFilter(field, state)
     },
     [setObjectsFilter, field],
