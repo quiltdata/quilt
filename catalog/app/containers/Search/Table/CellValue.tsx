@@ -6,6 +6,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import type { RouteMap } from 'containers/Bucket/Routes'
+import PreviewValue from 'components/JsonEditor/PreviewValue'
 import * as Format from 'utils/format'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -83,15 +84,7 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
     )
   }
 
-  switch (typeof value) {
-    case 'number':
-    case 'string':
-      return <>{value}</>
-    case 'object':
-      return <>{JSON.stringify(value)}</>
-    default:
-      return <NoValue />
-  }
+  return <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
 }
 
 interface SystemMetaValueProps {
