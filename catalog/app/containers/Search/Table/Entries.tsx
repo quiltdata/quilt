@@ -62,14 +62,7 @@ function Preview({ type, entry, onClose, to }: PreviewProps) {
             handle={s3paths.parseS3Url(entry.physicalKey)}
             options={{ context: CONTEXT.LISTING }}
           >
-            {(data: $TSFixMe) => (
-              <Display
-                data={data}
-                noDownload={undefined}
-                onData={undefined}
-                props={undefined} // these props go to the render functions
-              />
-            )}
+            {(data: $TSFixMe) => <Display data={data} />}
           </Load>
         )}
       </M.DialogContent>
