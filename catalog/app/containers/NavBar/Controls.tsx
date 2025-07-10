@@ -124,7 +124,6 @@ function BucketControls({ bucket }: BucketControlsProps) {
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
         <M.Fade in={state === 'select'} onEnter={focusSelect}>
-          {/* @ts-expect-error */}
           <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
         </M.Fade>
         {cfg.mode === 'PRODUCT' && <Collaborators bucket={bucket} hidden={false} />}
