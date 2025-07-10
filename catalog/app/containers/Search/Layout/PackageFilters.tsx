@@ -443,7 +443,7 @@ export default function PackageFilters({ className }: PackageFiltersProps) {
       <div className={classes.title}>Filter by</div>
 
       <FilterSection>
-        <FiltersUI.Container defaultExpanded title="Revisions: all / latest only">
+        <FiltersUI.Container defaultExpanded title="Revisions">
           <PackagesRevisionFilter />
         </FiltersUI.Container>
       </FilterSection>
