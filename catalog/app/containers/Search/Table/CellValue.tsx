@@ -59,12 +59,19 @@ export const Match = React.forwardRef<HTMLSpanElement, MatchProps>(function Matc
   )
 })
 
+const useUserMetaValueStyles = M.makeStyles({
+  root: {
+    verticalAlign: 'middle',
+  },
+})
+
 interface UserMetaValueProps {
   hit: Hit
   pointer: JSONPointer.Pointer
 }
 
 function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
+  const classes = useUserMetaValueStyles()
   const value = React.useMemo(() => {
     if (hit.meta instanceof Error || !hit.meta) return hit.meta
     try {
@@ -76,8 +83,8 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
 
   if (value instanceof Error) {
     return (
-      <M.Tooltip arrow title={`${hit.meta}`}>
-        <M.Icon color="disabled" fontSize="small" style={{ verticalAlign: 'middle' }}>
+      <M.Tooltip arrow title={value.message}>
+        <M.Icon className={classes.root} color="disabled" fontSize="small">
           error_outline
         </M.Icon>
       </M.Tooltip>
