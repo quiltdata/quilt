@@ -1,9 +1,8 @@
 import * as Eff from 'effect'
-import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as uuid from 'uuid'
 
+import DistributedContext from 'utils/DistributedContext'
 import { runtime } from 'utils/Effect'
 import useConst from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
@@ -17,43 +16,9 @@ export interface ContextShape {
   markers: Record<string, boolean>
 }
 
-interface ContextAggregator {
-  push: (context: Partial<ContextShape>) => () => void
-  counter: number
-  getValues: () => Partial<ContextShape>[]
-}
+const ContextAggregator = DistributedContext<Partial<ContextShape>>()
 
-export const ContextAggregatorCtx = React.createContext<ContextAggregator | null>(null)
-
-export function ContextAggregatorProvider({ children }: React.PropsWithChildren<{}>) {
-  const mountedRef = React.useRef<Record<string, Partial<ContextShape>>>({})
-  const [counter, setCounter] = React.useState(0)
-
-  const push = React.useCallback(
-    (context: Partial<ContextShape>) => {
-      const id = uuid.v4()
-      mountedRef.current[id] = context
-      setCounter((c) => c + 1)
-      return () => {
-        delete mountedRef.current[id]
-      }
-    },
-    [mountedRef],
-  )
-
-  const getValues = React.useCallback(
-    () => Object.values(mountedRef.current),
-    [mountedRef],
-  )
-
-  const value = { push, counter, getValues }
-
-  return (
-    <ContextAggregatorCtx.Provider value={value}>
-      {children}
-    </ContextAggregatorCtx.Provider>
-  )
-}
+export const ContextAggregatorProvider = ContextAggregator.Provider
 
 const ROOT_CONTEXT: ContextShape = {
   tools: {},
@@ -61,8 +26,8 @@ const ROOT_CONTEXT: ContextShape = {
   markers: {},
 }
 
-function aggregateContext(contexts: Partial<ContextShape>[]) {
-  return contexts.reduce(
+const aggregateContext = (contexts: Partial<ContextShape>[]) =>
+  contexts.reduce(
     (acc: ContextShape, next) => ({
       // XXX: check for conflicts?
       tools: { ...acc.tools, ...next.tools },
@@ -71,31 +36,11 @@ function aggregateContext(contexts: Partial<ContextShape>[]) {
     }),
     ROOT_CONTEXT,
   )
-}
 
-export function useAggregatedContext(): ContextShape {
-  const ctx = React.useContext(ContextAggregatorCtx)
-  invariant(ctx, 'ContextAggregator must be used within a ContextAggregatorProvider')
+export const useAggregatedContext = ContextAggregator.makeCombinator(aggregateContext)
 
-  const { getValues, counter } = ctx
-  const [computed, setComputed] = React.useState(() => aggregateContext(getValues()))
-
-  React.useEffect(() => {
-    const values = getValues()
-    const aggregated = aggregateContext(values)
-    setComputed(aggregated)
-  }, [setComputed, getValues, counter])
-
-  return computed
-}
-
-export function usePushContext(context: Partial<ContextShape>) {
-  const ctx = React.useContext(ContextAggregatorCtx)
-  invariant(ctx, 'ContextAggregator must be used within a ContextAggregatorProvider')
-  const { push } = ctx
-  const contextMemo = useMemoEq(context, R.identity)
-  React.useEffect(() => push(contextMemo), [push, contextMemo])
-}
+export const usePushContext = (context: Partial<ContextShape>) =>
+  ContextAggregator.useProvide(useMemoEq(context, R.identity))
 
 export function Push(context: Partial<ContextShape>) {
   usePushContext(context)
