@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui/icons'
+import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -238,7 +239,7 @@ const usePackageRowStyles = M.makeStyles((t) => ({
     },
   },
   cell: {
-    minWidth: t.spacing(5),
+    minWidth: t.spacing(12),
     maxWidth: '500px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -271,9 +272,10 @@ interface PackageRowProps {
   hit: Hit
   columns: ColumnsMap
   skeletons?: Skeleton.Column[]
+  minColumnsNumber: number
 }
 
-function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
+function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowProps) {
   const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
@@ -287,7 +289,13 @@ function PackageRow({ columns, hit, skeletons }: PackageRowProps) {
     [hit],
   )
 
-  const visibleColumns = Array.from(columns.values()).filter((c) => c.state.visible)
+  const visibleColumns = React.useMemo(
+    () =>
+      Array.from(columns.values())
+        .filter((c) => c.state.visible)
+        .slice(0, minColumnsNumber),
+    [columns, minColumnsNumber],
+  )
 
   return (
     <>
@@ -1084,6 +1092,7 @@ interface ColumnHeadProps {
 }
 
 function ColumnHead({ column, single }: ColumnHeadProps) {
+  // TODO: see a column predicate and `text-align: right` if it's a number
   const classes = useColumnHeadStyles()
   return (
     <div className={classes.root}>
@@ -1103,19 +1112,53 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
   )
 }
 
+const SCROLL_DEBOUNCE_TIMEOUT = 150
+const SCROLL_DEBOUNCE_MAX_WAIT = SCROLL_DEBOUNCE_TIMEOUT
+const SCROLL_DEBOUNCE_OPTIONS = { maxWait: SCROLL_DEBOUNCE_MAX_WAIT }
+
+// How many columns should we render to fit everything into the scrolled viewport
+function useMinimumColumnsNumberToFit(
+  scrollAreaEl: HTMLElement | null,
+  columnWidth: number,
+  initialColumnsNumber: number = 5,
+) {
+  const [number, setNumber] = React.useState(initialColumnsNumber)
+  const onScrollInternal = React.useCallback(
+    (event) => {
+      if (!event.target) return
+      const { clientWidth, scrollLeft } = event.target
+      const fit = Math.ceil((clientWidth + scrollLeft) / columnWidth)
+      // Don't "un-render" when users scroll to the left.
+      setNumber((n) => (n < fit ? fit : n))
+    },
+    [columnWidth],
+  )
+  const onScroll = useDebouncedCallback(
+    onScrollInternal,
+    SCROLL_DEBOUNCE_TIMEOUT,
+    SCROLL_DEBOUNCE_OPTIONS,
+  )
+  React.useEffect(() => {
+    if (!scrollAreaEl) return
+    const areaWidth = scrollAreaEl.clientWidth
+    setNumber(Math.ceil(areaWidth / columnWidth))
+
+    scrollAreaEl.addEventListener('scroll', onScroll)
+    return () => scrollAreaEl?.removeEventListener('scroll', onScroll)
+  }, [columnWidth, onScroll, scrollAreaEl])
+  return number
+}
+
 const useLayoutStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
-  },
-  scrollWrapper: {
-    overflow: 'hidden',
   },
   scrollArea: {
     minHeight: t.spacing(70),
     overflowX: 'auto',
   },
   cell: {
-    minWidth: t.spacing(5),
+    minWidth: t.spacing(12),
     whiteSpace: 'nowrap',
   },
   placeholder: {
@@ -1136,8 +1179,19 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
     filterActions: { close },
   } = useContext()
 
-  const visibleColumns = Array.from(columns.values()).filter((c) => c.state.visible)
   const [skeletonHead, ...skeletonColumns] = skeletons
+
+  const [scrollElement, setScrollEl] = React.useState<HTMLDivElement | null>(null)
+  const t = M.useTheme()
+  const minColumnsNumber = useMinimumColumnsNumberToFit(scrollElement, t.spacing(12))
+
+  const visibleColumns = React.useMemo(
+    () =>
+      Array.from(columns.values())
+        .filter((c) => c.state.visible)
+        .slice(0, minColumnsNumber),
+    [columns, minColumnsNumber],
+  )
 
   return (
     <M.Paper className={classes.root}>
@@ -1147,35 +1201,34 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
         )}
       </SearchUIModel.AvailablePackagesMetaFilters>
 
-      <div className={classes.scrollWrapper}>
-        <div className={classes.scrollArea}>
-          <M.Table size="small">
-            <M.TableHead>
-              <M.TableRow>
-                <M.TableCell padding="checkbox" />
-                {visibleColumns.map((column) => (
-                  <M.TableCell className={classes.cell} key={column.filter}>
-                    <ColumnHead column={column} single={visibleColumns.length === 1} />
-                  </M.TableCell>
-                ))}
-                {skeletonHead?.columns.map(({ key, width }) => (
-                  <Skeleton.Head key={key} width={width} />
-                ))}
-                <M.TableCell className={classes.placeholder} />
-              </M.TableRow>
-            </M.TableHead>
-            <M.TableBody>
-              {hits.map((hit, index) => (
-                <PackageRow
-                  key={hit.id}
-                  columns={columns}
-                  hit={hit}
-                  skeletons={skeletonColumns[index + 1]?.columns}
-                />
+      <div className={classes.scrollArea} ref={setScrollEl}>
+        <M.Table size="small">
+          <M.TableHead>
+            <M.TableRow>
+              <M.TableCell padding="checkbox" />
+              {visibleColumns.map((column) => (
+                <M.TableCell className={classes.cell} key={column.filter}>
+                  <ColumnHead column={column} single={visibleColumns.length === 1} />
+                </M.TableCell>
               ))}
-            </M.TableBody>
-          </M.Table>
-        </div>
+              {skeletonHead?.columns.map(({ key, width }) => (
+                <Skeleton.Head key={key} width={width} />
+              ))}
+              <M.TableCell className={classes.placeholder} />
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {hits.map((hit, index) => (
+              <PackageRow
+                key={hit.id}
+                columns={columns}
+                hit={hit}
+                skeletons={skeletonColumns[index + 1]?.columns}
+                minColumnsNumber={minColumnsNumber}
+              />
+            ))}
+          </M.TableBody>
+        </M.Table>
       </div>
 
       <M.Dialog open={!!filter} onClose={close} maxWidth="sm" fullWidth scroll="body">
