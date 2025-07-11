@@ -1090,11 +1090,11 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
   },
   actions: {
     color: t.palette.text.hint,
+    display: 'flex',
+    flexDirection: 'inherit',
     transition: t.transitions.create('color'),
-    display: 'grid',
-    gridAutoFlow: 'column',
-    gridColumnGap: '2px',
   },
+  button: {},
   title: {
     ...t.typography.subtitle1,
     fontWeight: 500,
@@ -1104,26 +1104,18 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
     '& $title': {
       marginLeft: t.spacing(1),
     },
-    '& $open': {
-      gridColumn: 2,
-    },
-    '& $hide': {
-      gridColumn: 1,
+    '& $button + $button': {
+      marginRight: '2px',
     },
   },
   inherit: {
     '& $actions': {
       marginLeft: t.spacing(1),
     },
-    '& $open': {
-      gridColumn: 1,
-    },
-    '& $hide': {
-      gridColumn: 2,
+    '& $button + $button': {
+      marginLeft: '2px',
     },
   },
-  open: {},
-  hide: {},
 }))
 
 interface ColumnHeadProps {
@@ -1144,8 +1136,8 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
         </M.Tooltip>
       </p>
       <div className={classes.actions}>
-        <ColumnHeadOpen column={column} className={classes.open} />
-        {!single && <ColumnHeadHide column={column} className={classes.hide} />}
+        <ColumnHeadOpen column={column} className={classes.button} />
+        {!single && <ColumnHeadHide column={column} className={classes.button} />}
       </div>
     </div>
   )
