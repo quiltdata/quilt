@@ -17,6 +17,17 @@ export function Provider({ children }: ProviderProps) {
 }
 
 export function useFullWidth() {
+  const counter = React.useRef(0)
+  React.useEffect(() => {
+    if (counter.current) {
+      throw new Error(
+        'Hook intended to set `fullWidth: true` only once. If you need a different behaviour, please, consider using different implementation.',
+      )
+    } else {
+      counter.current += 1
+    }
+  }, [])
+
   const ctx = React.useContext(Ctx)
   invariant(ctx, 'Context must be used within a Provider')
   const [, setFullWidth] = ctx
