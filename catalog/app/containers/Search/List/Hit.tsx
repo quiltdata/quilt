@@ -12,7 +12,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 
-import * as SearchUIModel from './model'
+import * as SearchUIModel from '../model'
 
 const useCardStyles = M.makeStyles((t) => ({
   card: {
@@ -178,7 +178,7 @@ export function Package({
   const metaJson = React.useMemo(() => {
     if (!hit.meta) return null
     try {
-      return JSON.parse(hit.meta as any)
+      return JSON.parse(hit.meta)
     } catch {
       return null
     }

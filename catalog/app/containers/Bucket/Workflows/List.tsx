@@ -55,7 +55,7 @@ function PackagesLink({ bucket, workflow }: PackagesLinkProps) {
               to={search.makeUrl(bucket, workflow as string)}
               className={cx(classes.root, classes.link)}
             >
-              {r.stats.total} packages
+              {r.total} packages
             </RR.Link>
           )
         case 'InvalidInput':

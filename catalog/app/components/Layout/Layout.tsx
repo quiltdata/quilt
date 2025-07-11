@@ -7,6 +7,8 @@ import * as Bookmarks from 'containers/Bookmarks'
 import * as NavBar from 'containers/NavBar'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+import * as Container from './Container'
+
 const useRootStyles = M.makeStyles({
   root: {
     overflowX: 'hidden',
@@ -48,14 +50,16 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
   const bookmarks = Bookmarks.use()
   return (
     <Root dark={dark}>
-      <NavBar.Provider>
-        {bare ? <NavBar.Container /> : <NavBar.NavBar />}
-        {!!pre && pre}
-        {!!children && <M.Box p={4}>{children}</M.Box>}
-        <M.Box flexGrow={1} />
-        {isHomepage?.isExact && <Footer />}
-        {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
-      </NavBar.Provider>
+      <Container.Provider>
+        <NavBar.Provider>
+          {bare ? <NavBar.Container /> : <NavBar.NavBar />}
+          {!!pre && pre}
+          {!!children && <M.Box p={4}>{children}</M.Box>}
+          <M.Box flexGrow={1} />
+          {isHomepage?.isExact && <Footer />}
+          {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
+        </NavBar.Provider>
+      </Container.Provider>
     </Root>
   )
 }

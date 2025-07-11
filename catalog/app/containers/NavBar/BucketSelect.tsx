@@ -2,7 +2,7 @@ import deburr from 'lodash/deburr'
 import { matchSorter } from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
-import AutosizeInput from 'react-input-autosize'
+import AutosizeInput, { AutosizeInputProps } from 'react-input-autosize'
 import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
@@ -12,7 +12,7 @@ import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-const normalizeBucket = R.pipe(
+const normalizeBucket: (b: string) => string = R.pipe(
   deburr,
   R.toLower,
   R.replace(/^[^a-z0-9]+/g, ''),
@@ -20,7 +20,10 @@ const normalizeBucket = R.pipe(
   R.replace(/[^a-z0-9]+$/g, ''),
 )
 
-function WrappedAutosizeInput({ className, ...props }) {
+function WrappedAutosizeInput({
+  className,
+  ...props
+}: Omit<AutosizeInputProps, 'ref'> & { className?: string }) {
   return <AutosizeInput inputClassName={className} placeholderIsMinWidth {...props} />
 }
 
@@ -42,7 +45,12 @@ const useNavInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-const NavInput = React.forwardRef(function NavInput(
+interface NavInputProps extends Omit<M.InputProps, 'InputLabelProps'> {
+  InputProps: M.InputProps
+  InputLabelProps: any
+}
+
+const NavInput = React.forwardRef<AutosizeInput, NavInputProps>(function NavInput(
   { InputProps, InputLabelProps, ...props },
   ref,
 ) {
@@ -89,11 +97,18 @@ const useBucketStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Bucket({ iconUrl, name, title, description }) {
+interface BucketProps {
+  iconUrl: string | null
+  name: string
+  title: string
+  description: string | null
+}
+
+function Bucket({ iconUrl, name, title, description }: BucketProps) {
   const classes = useBucketStyles()
   return (
-    <div className={classes.root} title={description}>
-      <BucketIcon alt={title} className={classes.icon} src={iconUrl} />
+    <div className={classes.root} title={description || undefined}>
+      <BucketIcon alt={title} className={classes.icon} src={iconUrl || undefined} />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})
@@ -104,7 +119,11 @@ function Bucket({ iconUrl, name, title, description }) {
   )
 }
 
-function CustomPopper({ style: css, ...props }) {
+interface CustomPopperProps extends M.PopperProps {
+  css?: React.CSSProperties
+}
+
+function CustomPopper({ style: css, ...props }: CustomPopperProps) {
   return (
     <M.Popper
       {...props}
@@ -114,15 +133,26 @@ function CustomPopper({ style: css, ...props }) {
   )
 }
 
-function BucketSelect({ cancel, forwardedRef, ...props }) {
+type Option = ReturnType<typeof BucketConfig.useRelevantBucketConfigs>[number] | string
+
+interface FocusHandler {
+  focus: () => void
+}
+
+interface BucketSelectProps extends M.BoxProps {
+  forwardedRef: React.Ref<FocusHandler>
+  cancel?: () => void
+}
+
+function BucketSelect({ cancel, forwardedRef, ...props }: BucketSelectProps) {
   const currentBucket = BucketConfig.useCurrentBucket()
   // XXX: consider using graphql directly
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const bucketConfigs: Option[] = BucketConfig.useRelevantBucketConfigs()
   const history = useHistory()
   const { urls } = NamedRoutes.use()
 
   const [inputValue, setInputValue] = React.useState('')
-  const inputRef = React.useRef()
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   React.useImperativeHandle(forwardedRef, () => ({
     focus: () => {
@@ -141,8 +171,8 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
           options={bucketConfigs}
           value=""
           inputValue={inputValue}
-          onInputChange={(event, newValue) => setInputValue(newValue)}
-          onChange={(event, newValue, reason) => {
+          onInputChange={(_event, newValue) => setInputValue(newValue)}
+          onChange={(_event, newValue, reason) => {
             if (reason === 'select-option' || reason === 'create-option') {
               const to =
                 typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
@@ -175,7 +205,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
 
             if (
               normalizeBucket(params.inputValue) !== '' &&
-              !filtered.find((b) => b.name === params.inputValue)
+              !filtered.find((b) => typeof b !== 'string' && b.name === params.inputValue)
             ) {
               filtered.unshift(params.inputValue)
             }
@@ -218,16 +248,18 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
   )
 }
 
-export default React.forwardRef(function BucketSelectSuspended(props, ref) {
-  return (
-    <React.Suspense
-      fallback={
-        <M.Fade in style={{ transitionDelay: '1000ms' }}>
-          <M.CircularProgress />
-        </M.Fade>
-      }
-    >
-      <BucketSelect {...props} forwardedRef={ref} />
-    </React.Suspense>
-  )
-})
+export default React.forwardRef<FocusHandler, Omit<BucketSelectProps, 'forwardedRef'>>(
+  function BucketSelectSuspended(props, ref) {
+    return (
+      <React.Suspense
+        fallback={
+          <M.Fade in style={{ transitionDelay: '1000ms' }}>
+            <M.CircularProgress />
+          </M.Fade>
+        }
+      >
+        <BucketSelect {...props} forwardedRef={ref} />
+      </React.Suspense>
+    )
+  },
+)

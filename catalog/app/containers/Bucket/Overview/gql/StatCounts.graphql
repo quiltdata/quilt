@@ -1,0 +1,30 @@
+query ($buckets: [String!]) {
+  searchPackages(buckets: $buckets) {
+    __typename
+    ... on PackagesSearchResultSet {
+      total
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+  searchObjects(buckets: $buckets) {
+    __typename
+    ... on ObjectsSearchResultSet {
+      total
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

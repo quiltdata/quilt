@@ -11,10 +11,6 @@ import * as Suggestions from './Suggestions/model'
 
 export const expandAnimationDuration = 200
 
-function nextTick(callback: () => void) {
-  setTimeout(callback, 0)
-}
-
 function useUrlQuery() {
   const { paths } = NamedRoutes.use()
   const location = useLocation()
@@ -23,21 +19,13 @@ function useUrlQuery() {
   return qs?.q ?? ''
 }
 
-function useSearchUIModel() {
-  return React.useContext(SearchUIModel.Context)
-}
-
 interface InputState extends M.InputBaseProps {
-  expanded: boolean
-  focusTrigger: number
   helpOpen: boolean
 }
 
 interface SearchState {
   input: InputState
   onClickAway: () => void
-  focus: () => void
-  reset: () => void
   suggestions: ReturnType<typeof Suggestions.use>
 }
 
@@ -45,14 +33,13 @@ function useSearchState(bucket?: string): SearchState {
   const history = useHistory()
   const location = useLocation()
 
-  const searchUIModel = useSearchUIModel()
+  const searchUIModel = SearchUIModel.useUnsafe()
 
   const query = useUrlQuery()
 
   const [value, change] = React.useState<string | null>(null)
   const [expanded, setExpanded] = React.useState(false)
   const [helpOpen, setHelpOpen] = React.useState(false)
-  const [focusTrigger, setFocusTrigger] = React.useState(0)
   React.useEffect(() => setHelpOpen(false), [location])
 
   const suggestions = Suggestions.use(value || '', bucket || searchUIModel)
@@ -65,13 +52,6 @@ function useSearchState(bucket?: string): SearchState {
     setHelpOpen(true)
     suggestions.setSelected(0)
   }, [suggestions])
-
-  const handleExpand = React.useCallback(() => {
-    handleHelpOpen()
-    if (expanded) return
-    change(query)
-    setExpanded(true)
-  }, [expanded, query, handleHelpOpen])
 
   const handleCollapse = React.useCallback(() => {
     change(null)
@@ -132,32 +112,13 @@ function useSearchState(bucket?: string): SearchState {
     if (expanded || helpOpen) handleCollapse()
   }, [expanded, helpOpen, handleCollapse])
 
-  const focus = React.useCallback(() => {
-    // NOTE: wait for location change (making help closed),
-    //       then focus
-    // FIXME: find out better solution
-    nextTick(() => setFocusTrigger((n) => n + 1))
-  }, [setFocusTrigger])
-
-  const reset = React.useCallback(() => {
-    change('')
-    focus()
-  }, [focus])
-
-  const isExpanded = expanded || !!searchUIModel
-  const focusTriggeredCount = isExpanded ? focusTrigger : 0
   return {
     input: {
-      expanded: isExpanded,
-      focusTrigger: focusTriggeredCount,
       helpOpen,
       onChange,
-      onFocus: handleExpand,
       onKeyDown,
       value: value === null ? query : value,
     },
-    focus,
-    reset,
     onClickAway,
     suggestions,
   }

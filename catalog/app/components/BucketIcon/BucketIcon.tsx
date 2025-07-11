@@ -22,7 +22,7 @@ interface BucketIconProps
     custom?: string
     stub?: string
   }
-  src: string
+  src?: string
 }
 
 export default function BucketIcon({

@@ -15,23 +15,46 @@ query (
   ) {
     __typename
     ... on PackagesSearchResultSet {
-      stats {
-        total
-      }
+      total
       firstPage(order: $order) {
         cursor
         hits {
           __typename
           id
+
           bucket
+          name
+          pointer
+          hash
           score
+
           size
           modified
-          name
-          hash
+          totalEntriesCount
+
           comment
           meta
           workflow
+
+          matchLocations {
+            comment
+            meta
+            name
+            workflow
+          }
+
+          matchingEntries {
+            logicalKey
+            physicalKey
+            size
+            meta
+            matchLocations {
+              contents
+              logicalKey
+              meta
+              physicalKey
+            }
+          }
         }
       }
     }

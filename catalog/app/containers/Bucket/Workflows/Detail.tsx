@@ -129,7 +129,7 @@ function Packages({ bucket, workflow }: PackagesProps) {
         case 'EmptySearchResultSet':
           return <M.Typography>No packages found for this workflow</M.Typography>
         case 'PackagesSearchResultSet':
-          const { firstPage, stats } = d.searchPackages
+          const { firstPage, total } = d.searchPackages
           return (
             <>
               <div className={classes.grid}>
@@ -144,7 +144,7 @@ function Packages({ bucket, workflow }: PackagesProps) {
                 component={RR.Link}
                 to={searchUrl}
               >
-                Explore {stats.total} packages
+                Explore {total} packages
               </M.Button>
             </>
           )

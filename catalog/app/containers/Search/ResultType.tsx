@@ -73,7 +73,7 @@ export default function ResultType() {
     switch (d.__typename) {
       case 'ObjectsSearchResultSet':
       case 'PackagesSearchResultSet':
-        return d.stats.total
+        return d.total
       case 'EmptySearchResultSet':
         return 0
       default:
@@ -93,7 +93,7 @@ export default function ResultType() {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return r.stats.total
+            return r.total
           default:
             return null
         }

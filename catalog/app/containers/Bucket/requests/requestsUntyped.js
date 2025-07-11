@@ -13,8 +13,6 @@ import mkSearch from 'utils/mkSearch'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
-import * as errors from '../errors'
-
 import { decodeS3Key } from './utils'
 
 const promiseProps = (obj) =>
@@ -434,60 +432,6 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     throw e
   }
 }
-
-const withCalculatedRevisions = (s) => ({
-  scripted_metric: {
-    init_script: `
-      state.map = new HashMap();
-    `,
-    map_script: `
-      def k = doc.key.getValue();
-      def mtime = doc.last_modified.getValue().toInstant().toEpochMilli();
-      def del = doc.delete_marker.getValue();
-      def v = ["mtime": mtime, "del": del];
-      state.map.merge(k, v, (old, val) -> val.mtime > old.mtime ? val : old);
-    `,
-    reduce_script: `
-      def merged = new HashMap();
-      for (s in states) {
-        s.map.each((k, v) -> merged.merge(k, v, (old, val) -> val.mtime > old.mtime ? val : old));
-      }
-      ${s}
-    `,
-  },
-})
-
-const TIMESTAMP_RE_SRC = '[0-9]{10}'
-
-// TODO: remove this, only used by Overview ATM
-export const countPackageRevisions = ({ req, bucket, name }) =>
-  req(
-    `/search${mkSearch({
-      index: `${bucket}_packages`,
-      action: 'packages',
-      body: JSON.stringify({
-        query: {
-          bool: {
-            must: [
-              name ? { term: { handle: name } } : { match_all: {} },
-              { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
-            ],
-          },
-        },
-        aggs: {
-          revisions: withCalculatedRevisions(`
-          return merged.count((k, v) -> !v.del);
-        `),
-        },
-      }),
-      size: 0,
-      filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.revisions'].join(
-        ',',
-      ),
-    })}`,
-  )
-    .then(R.path(['aggregations', 'revisions', 'value']))
-    .catch(errors.catchErrors())
 
 // const MANIFESTS_PREFIX = '.quilt/packages/'
 

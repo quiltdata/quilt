@@ -80,10 +80,16 @@ function PreviewObject({ value }: PreviewObjectProps) {
 
 interface PreviewValueProps {
   value: JsonValue
+  fallback?: React.ReactNode
+  strQuot?: string
 }
 
-export default function PreviewValue({ value }: PreviewValueProps) {
-  if (value === EMPTY_VALUE || value === undefined) return ''
+export default function PreviewValue({
+  value,
+  fallback = '',
+  strQuot = '"',
+}: PreviewValueProps) {
+  if (value === EMPTY_VALUE || value === undefined) return fallback
 
   if (Array.isArray(value)) return <PreviewArray value={value} />
 
@@ -91,7 +97,15 @@ export default function PreviewValue({ value }: PreviewValueProps) {
 
   if (value === null) return 'null'
 
-  if (R.is(String, value)) return <span>&quot;{value}&quot;</span>
+  if (R.is(String, value)) {
+    return (
+      <span>
+        {strQuot}
+        {value}
+        {strQuot}
+      </span>
+    )
+  }
 
   return value.toString()
 }

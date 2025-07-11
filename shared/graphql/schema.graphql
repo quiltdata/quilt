@@ -311,6 +311,8 @@ enum SearchResultOrder {
   BEST_MATCH
   NEWEST
   OLDEST
+  LEX_ASC
+  LEX_DESC
 }
 
 type DatetimeExtents {
@@ -425,14 +427,12 @@ input PackagesSearchFilter {
 }
 
 type ObjectsSearchStats {
-  total: Int!
   modified: DatetimeExtents!
   size: NumberExtents!
   ext: KeywordExtents!
 }
 
 type PackagesSearchStats {
-  total: Int!
   modified: DatetimeExtents!
   size: NumberExtents!
   entries: NumberExtents!
@@ -442,6 +442,7 @@ type PackagesSearchStats {
 }
 
 type ObjectsSearchResultSet {
+  total: Int!
   stats: ObjectsSearchStats!
   firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
 }
@@ -455,6 +456,7 @@ enum PackageUserMetaFacetType {
 }
 
 type PackagesSearchResultSet {
+  total: Int!
   stats: PackagesSearchStats!
   filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
   firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
@@ -474,13 +476,14 @@ union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
 
 type SearchHitObject {
   id: ID!
-  bucket: String!
   score: Float!
-  size: Float!
-  modified: Datetime!
 
+  bucket: String!
   key: String!
   version: String!
+
+  size: Float!
+  modified: Datetime!
 
   deleted: Boolean!
   # meta: JsonRecord! # String?
@@ -491,19 +494,48 @@ type SearchHitObject {
 # TODO: reuse package types?
 type SearchHitPackage {
   id: ID!
-  bucket: String!
   score: Float!
+
+  bucket: String!
+  name: String!
+  pointer: String!
+  hash: String!
+
   size: Float!
   modified: Datetime!
-
-  name: String!
-  hash: String!
+  totalEntriesCount: Int!
 
   # specific props
   comment: String
-  meta: JsonRecord # user_meta
+  meta: String # user_meta
   workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
+
+  matchLocations: SearchHitPackageMatchLocations!
+  matchingEntries: [SearchHitPackageMatchingEntry!]!
+}
+
+type SearchHitPackageMatchLocations {
+  name: Boolean!
+  comment: Boolean!
+  meta: Boolean!
+  workflow: Boolean!
+}
+
+type SearchHitPackageMatchingEntry {
+  logicalKey: String!
+  physicalKey: String!
+  # 32-bit Int is too small to represent file size which quite often exceeds several GB
+  size: Float!
+  meta: String
+  matchLocations: SearchHitPackageEntryMatchLocations!
+}
+
+type SearchHitPackageEntryMatchLocations {
+  logicalKey: Boolean!
+  physicalKey: Boolean!
+  meta: Boolean!
+  contents: Boolean!
 }
 
 type SubscriptionState {

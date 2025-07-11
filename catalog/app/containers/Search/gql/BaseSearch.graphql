@@ -2,8 +2,8 @@ query ($buckets: [String!], $searchString: String) {
   searchPackages(buckets: $buckets, searchString: $searchString, latestOnly: true) {
     __typename
     ... on PackagesSearchResultSet {
+      total
       stats {
-        total
         modified {
           min
           max
@@ -56,8 +56,8 @@ query ($buckets: [String!], $searchString: String) {
   searchObjects(buckets: $buckets, searchString: $searchString) {
     __typename
     ... on ObjectsSearchResultSet {
+      total
       stats {
-        total
         modified {
           min
           max

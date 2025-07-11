@@ -36,13 +36,13 @@ const defaultAction = ({ label, ...rest }) => (
 
 export default function PreviewDisplay({
   data,
-  noDownload,
+  noDownload = undefined,
   renderContents = R.identity,
   renderProgress = defaultProgress,
   renderMessage = defaultMessage,
   renderAction = defaultAction,
-  onData,
-  props,
+  onData = undefined,
+  props = undefined,
 }) {
   const noDl = noDownload != null ? noDownload : cfg.noDownload
 
