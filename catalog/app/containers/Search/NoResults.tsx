@@ -16,7 +16,9 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className, state }: SkeletonProps) {
-  if (state.view === SearchUIModel.View.Table) return <TableSkeleton />
+  if (state.view === SearchUIModel.View.Table) {
+    return <TableSkeleton className={className} />
+  }
 
   const Component =
     state.resultType === SearchUIModel.ResultType.QuiltPackage
