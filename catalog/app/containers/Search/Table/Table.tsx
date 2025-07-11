@@ -238,6 +238,7 @@ const usePackageRowStyles = M.makeStyles((t) => ({
     },
   },
   cell: {
+    minWidth: t.spacing(5),
     maxWidth: '500px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -1114,6 +1115,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
     overflowX: 'auto',
   },
   cell: {
+    minWidth: t.spacing(5),
     whiteSpace: 'nowrap',
   },
   placeholder: {
