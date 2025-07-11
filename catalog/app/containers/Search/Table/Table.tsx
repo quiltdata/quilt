@@ -31,6 +31,18 @@ import type {
 import type { Hit } from './useResults'
 import { Provider, useContext } from './Provider'
 
+function getColumnAlign(column: Column) {
+  if (column.tag === ColumnTag.Bucket) return 'inherit'
+  switch (column.predicateType) {
+    case 'Number':
+    case 'Datetime':
+    case 'Boolean':
+      return 'right'
+    default:
+      return 'inherit'
+  }
+}
+
 interface AvailableSystemMetaColumnProps {
   column: ColumnSystemMeta | ColumnBucket
 }
@@ -316,6 +328,7 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
         {visibleColumns.map((column) => (
           <M.TableCell
             key={column.filter}
+            align={getColumnAlign(column)}
             className={classes.cell}
             {...(column.tag === ColumnTag.UserMeta && {
               ['data-search-hit-meta']: column.filter,
@@ -986,10 +999,11 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
 }
 
 interface ColumnHeadOpenProps {
+  className: string
   column: Column
 }
 
-function ColumnHeadOpen({ column }: ColumnHeadOpenProps) {
+function ColumnHeadOpen({ className, column }: ColumnHeadOpenProps) {
   const {
     actions: { activatePackagesMetaFilter, activatePackagesFilter },
   } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -1009,6 +1023,7 @@ function ColumnHeadOpen({ column }: ColumnHeadOpenProps) {
   }, [column, activatePackagesMetaFilter, activatePackagesFilter, open])
   return (
     <M.IconButton
+      className={className}
       size="small"
       color={column.state.filtered ? 'primary' : 'inherit'}
       onClick={showFilter}
@@ -1021,10 +1036,11 @@ function ColumnHeadOpen({ column }: ColumnHeadOpenProps) {
 }
 
 interface ColumnHeadHideProps {
+  className: string
   column: Column
 }
 
-function ColumnHeadHide({ column }: ColumnHeadHideProps) {
+function ColumnHeadHide({ className, column }: ColumnHeadHideProps) {
   const {
     actions: { deactivatePackagesFilter, deactivatePackagesMetaFilter },
   } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -1057,7 +1073,7 @@ function ColumnHeadHide({ column }: ColumnHeadHideProps) {
     }
   }, [column, hide, deactivatePackagesFilter, deactivatePackagesMetaFilter])
   return (
-    <M.IconButton size="small" color="inherit" onClick={handleHide}>
+    <M.IconButton className={className} size="small" color="inherit" onClick={handleHide}>
       <IconVisibilityOffOutlined color="inherit" fontSize="inherit" />
     </M.IconButton>
   )
@@ -1065,8 +1081,8 @@ function ColumnHeadHide({ column }: ColumnHeadHideProps) {
 
 const useColumnHeadStyles = M.makeStyles((t) => ({
   root: {
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
     position: 'relative',
     '&:hover $actions': {
       color: t.palette.text.secondary,
@@ -1075,7 +1091,6 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
   actions: {
     color: t.palette.text.hint,
     transition: t.transitions.create('color'),
-    marginLeft: t.spacing(1),
     display: 'grid',
     gridAutoFlow: 'column',
     gridColumnGap: '2px',
@@ -1084,6 +1099,31 @@ const useColumnHeadStyles = M.makeStyles((t) => ({
     ...t.typography.subtitle1,
     fontWeight: 500,
   },
+  right: {
+    flexDirection: 'row-reverse',
+    '& $title': {
+      marginLeft: t.spacing(1),
+    },
+    '& $open': {
+      gridColumn: 2,
+    },
+    '& $hide': {
+      gridColumn: 1,
+    },
+  },
+  inherit: {
+    '& $actions': {
+      marginLeft: t.spacing(1),
+    },
+    '& $open': {
+      gridColumn: 1,
+    },
+    '& $hide': {
+      gridColumn: 2,
+    },
+  },
+  open: {},
+  hide: {},
 }))
 
 interface ColumnHeadProps {
@@ -1092,10 +1132,9 @@ interface ColumnHeadProps {
 }
 
 function ColumnHead({ column, single }: ColumnHeadProps) {
-  // TODO: see a column predicate and `text-align: right` if it's a number
   const classes = useColumnHeadStyles()
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, classes[getColumnAlign(column)])}>
       <p className={classes.title}>
         <M.Tooltip
           arrow
@@ -1105,8 +1144,8 @@ function ColumnHead({ column, single }: ColumnHeadProps) {
         </M.Tooltip>
       </p>
       <div className={classes.actions}>
-        <ColumnHeadOpen column={column} />
-        {!single && <ColumnHeadHide column={column} />}
+        <ColumnHeadOpen column={column} className={classes.open} />
+        {!single && <ColumnHeadHide column={column} className={classes.hide} />}
       </div>
     </div>
   )
@@ -1207,7 +1246,11 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
             <M.TableRow>
               <M.TableCell padding="checkbox" />
               {visibleColumns.map((column) => (
-                <M.TableCell className={classes.cell} key={column.filter}>
+                <M.TableCell
+                  key={column.filter}
+                  align={getColumnAlign(column)}
+                  className={classes.cell}
+                >
                   <ColumnHead column={column} single={visibleColumns.length === 1} />
                 </M.TableCell>
               ))}
