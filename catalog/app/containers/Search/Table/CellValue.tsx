@@ -59,11 +59,14 @@ export const Match = React.forwardRef<HTMLSpanElement, MatchProps>(function Matc
   )
 })
 
-const useUserMetaValueStyles = M.makeStyles({
+const useUserMetaValueStyles = M.makeStyles((t) => ({
   root: {
     verticalAlign: 'middle',
   },
-})
+  number: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
+}))
 
 interface UserMetaValueProps {
   hit: Hit
@@ -91,7 +94,11 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
     )
   }
 
-  return <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
+  return (
+    <span className={cx(typeof value === 'number' && classes.number)}>
+      <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
+    </span>
+  )
 }
 
 interface SystemMetaValueProps {
