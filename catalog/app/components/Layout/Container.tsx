@@ -1,8 +1,41 @@
 import cx from 'classnames'
+import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const useContainerStyles = M.makeStyles((t) => ({
+const Ctx = React.createContext<
+  [boolean, React.Dispatch<React.SetStateAction<boolean>>] | null
+>(null)
+
+interface ProviderProps {
+  children: React.ReactNode
+}
+
+export function Provider({ children }: ProviderProps) {
+  const value = React.useState(false)
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
+export const useFullWidth = (newFullWidth?: boolean) => {
+  const ctx = React.useContext(Ctx)
+  invariant(ctx, 'Context must be used within an Layout/Container.Provider')
+  const [fullWidth, setFullWidth] = ctx
+
+  React.useEffect(() => {
+    if (typeof newFullWidth === 'undefined') return
+
+    let prev = false
+    setFullWidth((oldFullWidth) => {
+      prev = oldFullWidth
+      return newFullWidth
+    })
+    return () => setFullWidth(prev)
+  }, [setFullWidth, newFullWidth])
+
+  return fullWidth
+}
+
+const useStyles = M.makeStyles((t) => ({
   fullWidth: {
     animation: t.transitions.create('$expand'),
   },
@@ -27,12 +60,9 @@ const useContainerStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ContainerProps extends M.ContainerProps {
-  fullWidth: boolean
-}
-
-export default function Container({ children, className, fullWidth }: ContainerProps) {
-  const classes = useContainerStyles()
+export default function Container({ children, className }: M.ContainerProps) {
+  const classes = useStyles()
+  const fullWidth = useFullWidth()
   return (
     <M.Container
       className={cx(fullWidth ? classes.fullWidth : classes.contained, className)}

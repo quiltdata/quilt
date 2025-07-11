@@ -3,8 +3,6 @@ import * as M from '@material-ui/core'
 
 import Container from 'components/Layout/Container'
 
-import * as SearchUIModel from '../model'
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'fixed',
@@ -36,16 +34,12 @@ const useStyles = M.makeStyles((t) => ({
 
 function Inner() {
   const classes = useStyles()
-  const model = SearchUIModel.use()
   const onClick = React.useCallback(
     () => window.scrollTo({ top: 0, left: 0, behavior: 'smooth' }),
     [],
   )
   return (
-    <Container
-      className={classes.root}
-      fullWidth={model.state.view === SearchUIModel.View.Table}
-    >
+    <Container className={classes.root}>
       <M.Fab className={classes.button} onClick={onClick} variant="extended">
         <M.Icon className={classes.icon}>expand_less</M.Icon>
         Scroll to the top

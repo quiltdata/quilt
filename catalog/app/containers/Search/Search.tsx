@@ -24,7 +24,7 @@ function SearchLayout() {
     model.state.view === SearchUIModel.View.Table &&
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage
   return (
-    <Container fullWidth={tableView}>
+    <Container>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
       <Main className={classes.main}>
         {tableView ? <TableResults /> : <ListResults />}

@@ -9,7 +9,6 @@ import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
-import * as SearchUIModel from 'containers/Search/model'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -143,17 +142,13 @@ export function Header({ children }: HeaderProps) {
   const classes = useHeaderStyles({
     customBg: !!settings?.theme?.palette?.primary?.main,
   })
-  const searchUIModel = SearchUIModel.useUnsafe()
   return (
     <M.Box>
       <M.Toolbar />
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
           <M.Toolbar disableGutters>
-            <LayoutContainer
-              className={classes.container}
-              fullWidth={searchUIModel?.state.view === SearchUIModel.View.Table}
-            >
+            <LayoutContainer className={classes.container}>
               <LogoLink />
               <div className={classes.main}>{children}</div>
             </LayoutContainer>
