@@ -142,7 +142,7 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
     case 'entries':
       return hit.totalEntriesCount
     case 'bucket':
-      return hit.bucket
+      return <StyledLink to={urls.bucketPackageList(hit.bucket)}>{hit.bucket}</StyledLink>
     default:
       assertNever(filter)
   }
