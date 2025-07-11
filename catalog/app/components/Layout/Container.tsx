@@ -16,23 +16,15 @@ export function Provider({ children }: ProviderProps) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-export const useFullWidth = (newFullWidth?: boolean) => {
+export function useFullWidth() {
   const ctx = React.useContext(Ctx)
-  invariant(ctx, 'Context must be used within an Provider')
-  const [fullWidth, setFullWidth] = ctx
+  invariant(ctx, 'Context must be used within a Provider')
+  const [, setFullWidth] = ctx
 
   React.useEffect(() => {
-    if (typeof newFullWidth === 'undefined') return
-
-    let prev = false
-    setFullWidth((oldFullWidth) => {
-      prev = oldFullWidth
-      return newFullWidth
-    })
-    return () => setFullWidth(prev)
-  }, [setFullWidth, newFullWidth])
-
-  return fullWidth
+    setFullWidth(true)
+    return () => setFullWidth(false)
+  }, [setFullWidth])
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -62,7 +54,11 @@ const useStyles = M.makeStyles((t) => ({
 
 export function Container({ children, className }: M.ContainerProps) {
   const classes = useStyles()
-  const fullWidth = useFullWidth()
+
+  const ctx = React.useContext(Ctx)
+  invariant(ctx, 'Context must be used within a Provider')
+  const [fullWidth] = ctx
+
   return (
     <M.Container
       className={cx(fullWidth ? classes.fullWidth : classes.contained, className)}

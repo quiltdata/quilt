@@ -48,7 +48,7 @@ interface TablePageProps {
 }
 
 export default function TablePage({ className, bucket, emptyFallback }: TablePageProps) {
-  Layout.useFullWidth(true)
+  Layout.useFullWidth()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const [results, loadMore] = useResults()
   switch (results._tag) {
