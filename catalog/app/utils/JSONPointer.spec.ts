@@ -46,6 +46,26 @@ describe('utils/JSONPointer', () => {
     expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
   })
 
+  it('should convert pointer with single quotes to valid jsonpath', () => {
+    const pointer = "/a/b'c'd/e"
+    const obj = {
+      a: {
+        "b'c'd": { e: 'true!' },
+      },
+    }
+    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+  })
+
+  it.skip('FIXME: should handle double quotes', () => {
+    const pointer = '/a/b"c"d/e'
+    const obj = {
+      a: {
+        'b"c"d': { e: 'true!' },
+      },
+    }
+    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+  })
+
   it.skip('FIXME: should handle $$', () => {
     const pointer = '/$$'
     const obj = { $$: 'true!' }

@@ -78,6 +78,8 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   const value = React.useMemo(() => {
     if (hit.meta instanceof Error || !hit.meta) return hit.meta
     try {
+      // FIXME: jsonpath is overkill and doesn't handle edge cases very well
+      //        use something like R.path
       return jsonpath.value(hit.meta || {}, JSONPointer.toJsonPath(pointer))
     } catch (err) {
       return err instanceof Error ? err : new Error(`${err}`)

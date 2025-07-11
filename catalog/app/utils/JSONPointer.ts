@@ -20,10 +20,16 @@ export function parse(address: Pointer): Path {
   return address.slice(1).split('/').map(decodeFragment)
 }
 
+// Converts fragments in-between slashes (`/a/b/c`): a, b, c
+// to object property with bracket notation: ['a'], ['b'], ['c']`
+function convertToBracketNotation(fragment: Path[number]): string {
+  return fragment.toString().includes("'") ? `["${fragment}"]` : `['${fragment}']`
+}
+
 export function toJsonPath(address: Path | Pointer): JsonPathExpression {
   if (!Array.isArray(address)) return toJsonPath(parse(address))
 
   // `/a/b/c` → `$..['a']['b']['c']`
   // `/sp ace/da-sh/$$$` → `$..['sp ace']['da-sh']['$$$']`
-  return `$..${address.map((fragment) => `['${fragment}']`).join('')}`
+  return `$..${address.map(convertToBracketNotation).join('')}`
 }
