@@ -18,7 +18,7 @@ export function Provider({ children }: ProviderProps) {
 
 export const useFullWidth = (newFullWidth?: boolean) => {
   const ctx = React.useContext(Ctx)
-  invariant(ctx, 'Context must be used within an Layout/Container.Provider')
+  invariant(ctx, 'Context must be used within an Provider')
   const [fullWidth, setFullWidth] = ctx
 
   React.useEffect(() => {
@@ -60,7 +60,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Container({ children, className }: M.ContainerProps) {
+export function Container({ children, className }: M.ContainerProps) {
   const classes = useStyles()
   const fullWidth = useFullWidth()
   return (
@@ -72,3 +72,5 @@ export default function Container({ children, className }: M.ContainerProps) {
     </M.Container>
   )
 }
+
+export default Container

@@ -1,8 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import Layout from 'components/Layout'
-import Container from 'components/Layout/Container'
+import Layout, { Container } from 'components/Layout'
 import MetaTitle from 'utils/MetaTitle'
 
 import * as SearchUIModel from './model'

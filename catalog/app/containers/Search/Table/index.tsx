@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Container from 'components/Layout/Container'
+import * as Layout from 'components/Layout'
 import assertNever from 'utils/assertNever'
 
 import LoadNextPage from '../Layout/LoadNextPage'
@@ -48,7 +48,7 @@ interface TablePageProps {
 }
 
 export default function TablePage({ className, bucket, emptyFallback }: TablePageProps) {
-  Container.useFullWidth(true)
+  Layout.useFullWidth(true)
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const [results, loadMore] = useResults()
   switch (results._tag) {

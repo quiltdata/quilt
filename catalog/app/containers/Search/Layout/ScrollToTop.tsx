@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import Container from 'components/Layout/Container'
+import * as Layout from 'components/Layout'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -39,12 +39,12 @@ function Inner() {
     [],
   )
   return (
-    <Container className={classes.root}>
+    <Layout.Container className={classes.root}>
       <M.Fab className={classes.button} onClick={onClick} variant="extended">
         <M.Icon className={classes.icon}>expand_less</M.Icon>
         Scroll to the top
       </M.Fab>
-    </Container>
+    </Layout.Container>
   )
 }
 

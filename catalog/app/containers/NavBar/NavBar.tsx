@@ -3,7 +3,7 @@ import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import LayoutContainer from 'components/Layout/Container'
+import * as Layout from 'components/Layout'
 import Logo from 'components/Logo'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
@@ -148,10 +148,10 @@ export function Header({ children }: HeaderProps) {
       <M.Slide appear={false} direction="down" in={!trigger}>
         <AppBar>
           <M.Toolbar disableGutters>
-            <LayoutContainer className={classes.container}>
+            <Layout.Container className={classes.container}>
               <LogoLink />
               <div className={classes.main}>{children}</div>
-            </LayoutContainer>
+            </Layout.Container>
           </M.Toolbar>
         </AppBar>
       </M.Slide>
