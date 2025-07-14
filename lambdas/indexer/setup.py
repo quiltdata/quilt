@@ -19,7 +19,7 @@ setup(
         ),
         (
             "quilt-shared[boto,es] @ https://github.com/quiltdata/quilt/archive/"
-            "7611ee2066238ad9355afccb35ab35b934d3d0d4.zip"
+            "df53c9ce125ea051e0d1ac41d58796336e202256.zip"
             "#subdirectory=py-shared"
         ),
     ],
