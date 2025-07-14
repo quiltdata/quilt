@@ -42,10 +42,14 @@ and will need to explicitly add `Bucket` to the trail.
    * DeleteObject
    * DeleteObjects
 1. Select "Specific bucket(s) by name" and specify `Bucket`
+
     ![](./imgs/event-pattern.png)
+
 1. Now we specify the event Target. You will target the SNS topic
 that you created above.
+
     ![](./imgs/event-target.png)
+
 1. Specify the Input transformer as follows:
     #### Input Path
     ```json
@@ -85,7 +89,9 @@ that you created above.
 1. Save the Rule.
 1. In the Quilt Admin Panel, under Buckets, add `Bucket` and/or set the SNS Topic
 ARN under "Indexing and notifications". 
+
     ![](./imgs/quilt-eventbridge.png)
+
     Now Quilt will receive events directly from EventBridge and does not require S3 event notifications.
 1. Re-index the bucket using the Re-Index and Repair button, but be sure **not** to check the Repair checkbox, as this would attempt to create a new S3 event notification.
 

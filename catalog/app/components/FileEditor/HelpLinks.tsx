@@ -15,7 +15,6 @@ import * as Dialogs from 'utils/GlobalDialogs'
 import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import StyledTooltip from 'utils/StyledTooltip'
 
 // TODO: put this into FileEditor/routes
 function useRouteToEditFile(handle: Model.S3.S3ObjectLocation) {
@@ -179,11 +178,10 @@ const tooltipStyles = M.makeStyles((t) => ({
 export function MissingSourceBucket({ className, children }: MissingSourceBucketProps) {
   const classes = tooltipStyles()
   return (
-    <StyledTooltip
+    <M.Tooltip
       className={className}
       classes={classes}
       interactive
-      maxWidth="md"
       title={
         <ErrorBoundary>
           <MissingSourceBucketTooltip />
@@ -191,6 +189,6 @@ export function MissingSourceBucket({ className, children }: MissingSourceBucket
       }
     >
       <div>{children}</div>
-    </StyledTooltip>
+    </M.Tooltip>
   )
 }
