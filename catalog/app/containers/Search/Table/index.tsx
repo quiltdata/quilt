@@ -45,9 +45,15 @@ interface TablePageProps {
   className?: string
   bucket?: string
   emptyFallback?: JSX.Element
+  onRefine: (action: NoResults.Refine) => void
 }
 
-export default function TablePage({ className, bucket, emptyFallback }: TablePageProps) {
+export default function TablePage({
+  className,
+  bucket,
+  emptyFallback,
+  onRefine,
+}: TablePageProps) {
   Layout.useSetFullWidth()
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const [results, loadMore] = useResults()
@@ -58,10 +64,14 @@ export default function TablePage({ className, bucket, emptyFallback }: TablePag
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
       return (
-        <NoResults.Error className={className}>{results.error.message}</NoResults.Error>
+        <NoResults.Error className={className} onRefine={onRefine}>
+          {results.error.message}
+        </NoResults.Error>
       )
     case 'empty':
-      return emptyFallback || <NoResults.Empty className={className} />
+      return (
+        emptyFallback || <NoResults.Empty className={className} onRefine={onRefine} />
+      )
     case 'ok':
       return (
         <ResultsInner

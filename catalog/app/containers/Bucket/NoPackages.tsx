@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
 import * as SearchUIModel from 'containers/Search/model'
+import * as NoResults from 'containers/Search/NoResults'
 import StyledLink from 'utils/StyledLink'
 
 import { usePackageCreationDialog } from './PackageDialog/PackageCreationForm'
@@ -67,21 +68,6 @@ function CreatePackage({ bucket, className }: CreatePackageProps) {
   )
 }
 
-function useGoToGlobalSearchUrl() {
-  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const globalSearch = SearchUIModel.useMakeUrl()
-  return React.useMemo(
-    () =>
-      globalSearch({
-        ...state,
-        buckets: [],
-        order: SearchUIModel.DEFAULT_ORDER,
-        view: SearchUIModel.DEFAULT_VIEW,
-      }),
-    [globalSearch, state],
-  )
-}
-
 const useEmptyStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -107,20 +93,12 @@ const useEmptyStyles = M.makeStyles((t) => ({
 interface EmptyProps {
   bucket: string
   className?: string
+  onRefine: (action: NoResults.Refine) => void
 }
 
-export default function NoPackages({ bucket, className }: EmptyProps) {
+export default function NoPackages({ bucket, className, onRefine }: EmptyProps) {
   const classes = useEmptyStyles()
-  const {
-    actions: { clearFilters, reset },
-    state,
-  } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-
-  const goToGlobalSearchUrl = useGoToGlobalSearchUrl()
-
-  const startNewSearch = React.useCallback(() => {
-    reset()
-  }, [reset])
+  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   let numFilters = state.filter.order.length + state.userMetaFilters.filters.size
 
@@ -133,26 +111,41 @@ export default function NoPackages({ bucket, className }: EmptyProps) {
       {numFilters ? (
         <>
           <M.Typography variant="body1" align="center" className={classes.body}>
-            Search in <StyledLink to={goToGlobalSearchUrl}>all buckets</StyledLink>{' '}
+            Search in{' '}
+            <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
+              all buckets
+            </StyledLink>{' '}
             instead or adjust your search:
           </M.Typography>
 
           <ul className={classes.list}>
             {numFilters > 0 && (
               <li>
-                Reset the <StyledLink onClick={clearFilters}>search filters</StyledLink>
+                Reset the{' '}
+                <StyledLink onClick={() => onRefine(NoResults.Refine.Filters)}>
+                  search filters
+                </StyledLink>
               </li>
             )}
             <li>
-              Start <StyledLink onClick={startNewSearch}>from scratch</StyledLink>
+              Start{' '}
+              <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>
+                from scratch
+              </StyledLink>
             </li>
           </ul>
         </>
       ) : (
         <M.Typography variant="body1" align="center" className={classes.body}>
-          Search in <StyledLink to={goToGlobalSearchUrl}>all buckets</StyledLink> instead
-          or start your search{' '}
-          <StyledLink onClick={startNewSearch}>from scratch</StyledLink>.
+          Search in{' '}
+          <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
+            all buckets
+          </StyledLink>{' '}
+          instead or start your search{' '}
+          <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>
+            from scratch
+          </StyledLink>
+          .
         </M.Typography>
       )}
     </div>

@@ -30,57 +30,60 @@ interface SearchFieldProps {
   className?: string
 }
 
-function SearchField({ className }: SearchFieldProps) {
-  const classes = useSearchFieldStyles()
+const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
+  function SearchField({ className }, inputRef) {
+    const classes = useSearchFieldStyles()
 
-  const model = SearchUIModel.use()
+    const model = SearchUIModel.use()
 
-  const [query, setQuery] = React.useState(model.state.searchString || '')
-  const onChange = useDebouncedCallback(model.actions.setSearchString, 500)
-  const handleChange = React.useCallback(
-    (event) => {
-      setQuery(event.target.value)
-      onChange(event.target.value)
-    },
-    [onChange],
-  )
-  const clear = React.useCallback(() => {
-    setQuery('')
-    onChange('')
-  }, [onChange])
+    const [query, setQuery] = React.useState(model.state.searchString || '')
+    const onChange = useDebouncedCallback(model.actions.setSearchString, 500)
+    const handleChange = React.useCallback(
+      (event) => {
+        setQuery(event.target.value)
+        onChange(event.target.value)
+      },
+      [onChange],
+    )
+    const clear = React.useCallback(() => {
+      setQuery('')
+      onChange('')
+    }, [onChange])
 
-  React.useEffect(
-    () => setQuery(model.state.searchString || ''),
-    [model.state.searchString],
-  )
+    React.useEffect(
+      () => setQuery(model.state.searchString || ''),
+      [model.state.searchString],
+    )
 
-  return (
-    <M.TextField
-      autoFocus
-      className={cx(classes.root, className)}
-      fullWidth
-      onChange={handleChange}
-      placeholder="Search"
-      size="small"
-      value={query}
-      variant="outlined"
-      InputProps={{
-        startAdornment: (
-          <M.InputAdornment position="start">
-            <M.Icon>search</M.Icon>
-          </M.InputAdornment>
-        ),
-        endAdornment: query && (
-          <M.InputAdornment position="end">
-            <M.IconButton onClick={clear} edge="end">
-              <M.Icon>close</M.Icon>
-            </M.IconButton>
-          </M.InputAdornment>
-        ),
-      }}
-    />
-  )
-}
+    return (
+      <M.TextField
+        autoFocus
+        inputRef={inputRef}
+        className={cx(classes.root, className)}
+        fullWidth
+        onChange={handleChange}
+        placeholder="Search"
+        size="small"
+        value={query}
+        variant="outlined"
+        InputProps={{
+          startAdornment: (
+            <M.InputAdornment position="start">
+              <M.Icon>search</M.Icon>
+            </M.InputAdornment>
+          ),
+          endAdornment: query && (
+            <M.InputAdornment position="end">
+              <M.IconButton onClick={clear} edge="end">
+                <M.Icon>close</M.Icon>
+              </M.IconButton>
+            </M.InputAdornment>
+          ),
+        }}
+      />
+    )
+  },
+)
 
 const useMobileFiltersStyles = M.makeStyles((t) => ({
   filters: {
@@ -189,9 +192,10 @@ const useStyles = M.makeStyles((t) => ({
 interface MainProps {
   className: string
   children: React.ReactNode
+  inputRef: React.Ref<HTMLInputElement>
 }
 
-export default function Main({ className, children }: MainProps) {
+export default function Main({ className, inputRef, children }: MainProps) {
   const model = SearchUIModel.use()
 
   const classes = useStyles()
@@ -208,7 +212,7 @@ export default function Main({ className, children }: MainProps) {
 
   return (
     <div className={className}>
-      <SearchField className={classes.search} />
+      <SearchField className={classes.search} ref={inputRef} />
       <div className={cx(!toggleFilters && classes.withSidebar)}>
         {toggleFilters ? (
           <MobileFilters open={showFilters} onClose={toggleFilters} />

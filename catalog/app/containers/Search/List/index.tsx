@@ -54,6 +54,7 @@ interface NextPageProps {
   className: string
   singleBucket: boolean
   latestOnly: boolean
+  onRefine: (action: NoResults.Refine) => void
 }
 
 function NextPage({
@@ -62,6 +63,7 @@ function NextPage({
   resultType,
   singleBucket,
   latestOnly,
+  onRefine,
 }: NextPageProps) {
   const NextPageQuery =
     resultType === SearchUIModel.ResultType.S3Object
@@ -75,7 +77,9 @@ function NextPage({
             return <LoadNextPage className={className} loading />
           case 'error':
             return (
-              <NoResults.Error className={className}>{r.error.message}</NoResults.Error>
+              <NoResults.Error className={className} onRefine={onRefine}>
+                {r.error.message}
+              </NoResults.Error>
             )
           case 'data':
             switch (r.data.__typename) {
@@ -83,7 +87,7 @@ function NextPage({
                 // should not happen
                 const [err] = r.data.errors
                 return (
-                  <NoResults.Error className={className}>
+                  <NoResults.Error className={className} onRefine={onRefine}>
                     Invalid input at <code>{err.path}</code>: {err.name}
                     <br />
                     {err.message}
@@ -99,6 +103,7 @@ function NextPage({
                     resultType={resultType}
                     singleBucket={singleBucket}
                     latestOnly={latestOnly}
+                    onRefine={onRefine}
                   />
                 )
               default:
@@ -125,6 +130,7 @@ interface ResultsPageProps {
   resultType: SearchUIModel.ResultType
   singleBucket: boolean
   latestOnly: boolean
+  onRefine: (action: NoResults.Refine) => void
 }
 
 function ResultsPage({
@@ -134,6 +140,7 @@ function ResultsPage({
   resultType,
   singleBucket,
   latestOnly,
+  onRefine,
 }: ResultsPageProps) {
   const classes = useResultsPageStyles()
   const [more, setMore] = React.useState(false)
@@ -159,6 +166,7 @@ function ResultsPage({
             resultType={resultType}
             singleBucket={singleBucket}
             latestOnly={latestOnly}
+            onRefine={onRefine}
           />
         ) : (
           <LoadNextPage className={classes.next} onClick={loadMore} />
@@ -169,9 +177,10 @@ function ResultsPage({
 
 interface ListResultsProps {
   className?: string
+  onRefine: (action: NoResults.Refine) => void
 }
 
-export default function ListResults({ className }: ListResultsProps) {
+export default function ListResults({ className, onRefine }: ListResultsProps) {
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
 
@@ -179,22 +188,26 @@ export default function ListResults({ className }: ListResultsProps) {
     case 'fetching':
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'error':
-      return <NoResults.Error className={className}>{r.error.message}</NoResults.Error>
+      return (
+        <NoResults.Error className={className} onRefine={onRefine}>
+          {r.error.message}
+        </NoResults.Error>
+      )
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <NoResults.Empty className={className} />
+          return <NoResults.Empty className={className} onRefine={onRefine} />
         case 'InvalidInput':
           const [err] = r.data.errors
           if (err.name === 'QuerySyntaxError') {
             return (
-              <NoResults.Error className={className} kind="syntax">
+              <NoResults.Error className={className} kind="syntax" onRefine={onRefine}>
                 {err.message}
               </NoResults.Error>
             )
           }
           return (
-            <NoResults.Error className={className}>
+            <NoResults.Error className={className} onRefine={onRefine}>
               Invalid input at <code>{err.path}</code>: {err.name}
               <br />
               {err.message}
@@ -216,6 +229,7 @@ export default function ListResults({ className }: ListResultsProps) {
               cursor={r.data.firstPage.cursor}
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}
+              onRefine={onRefine}
             />
           )
         default:

@@ -62,25 +62,23 @@ const useEmptyStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface EmptyProps {
-  className?: string
+export enum Refine {
+  Buckets,
+  ResultType,
+  Filters,
+  Search,
+  New,
+  Network,
 }
 
-export function Empty({ className }: EmptyProps) {
+interface EmptyProps {
+  className?: string
+  onRefine: (action: Refine) => void
+}
+
+export function Empty({ className, onRefine }: EmptyProps) {
   const classes = useEmptyStyles()
-  const {
-    actions: { clearFilters, reset, setBuckets, setResultType },
-    baseSearchQuery,
-    state,
-  } = SearchUIModel.use()
-
-  const startNewSearch = React.useCallback(() => {
-    reset()
-  }, [reset])
-
-  const resetBuckets = React.useCallback(() => {
-    setBuckets([])
-  }, [setBuckets])
+  const { baseSearchQuery, state } = SearchUIModel.use()
 
   const otherResultType =
     state.resultType === SearchUIModel.ResultType.QuiltPackage
@@ -110,10 +108,6 @@ export function Empty({ className }: EmptyProps) {
 
   const totalOtherResults = getTotalResults(otherResultType)
 
-  const switchResultType = React.useCallback(() => {
-    setResultType(otherResultType)
-  }, [setResultType, otherResultType])
-
   let numFilters = state.filter.order.length
   if (state.resultType === SearchUIModel.ResultType.QuiltPackage) {
     numFilters += state.userMetaFilters.filters.size
@@ -125,7 +119,9 @@ export function Empty({ className }: EmptyProps) {
 
       <M.Typography variant="body1" align="center" className={classes.body}>
         Search for{' '}
-        <StyledLink onClick={switchResultType}>{LABELS[otherResultType]}</StyledLink>{' '}
+        <StyledLink onClick={() => onRefine(Refine.ResultType)}>
+          {LABELS[otherResultType]}
+        </StyledLink>{' '}
         instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or adjust
         your search:
       </M.Typography>
@@ -133,21 +129,24 @@ export function Empty({ className }: EmptyProps) {
       <ul className={classes.list}>
         {state.buckets.length > 0 && (
           <li>
-            Search in <StyledLink onClick={resetBuckets}>all buckets</StyledLink>
+            Search in{' '}
+            <StyledLink onClick={() => onRefine(Refine.Buckets)}>all buckets</StyledLink>
           </li>
         )}
         {numFilters > 0 && (
           <li>
-            Reset the <StyledLink onClick={clearFilters}>search filters</StyledLink>
+            Reset the{' '}
+            <StyledLink onClick={() => onRefine(Refine.Filters)}>
+              search filters
+            </StyledLink>
           </li>
         )}
-        {/* TODO:
         <li>
-          Edit your <StyledLink onClick={focus}>search query</StyledLink>
+          Edit your{' '}
+          <StyledLink onClick={() => onRefine(Refine.Search)}>search query</StyledLink>
         </li>
-        */}
         <li>
-          Start <StyledLink onClick={startNewSearch}>from scratch</StyledLink>
+          Start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
         </li>
       </ul>
     </div>
@@ -158,25 +157,16 @@ interface ErrorProps {
   className?: string
   kind?: 'unexpected' | 'syntax'
   children: React.ReactNode
+  onRefine: (action: Refine) => void
 }
 
-export function Error({ className, kind = 'unexpected', children }: ErrorProps) {
+export function Error({
+  className,
+  kind = 'unexpected',
+  children,
+  onRefine,
+}: ErrorProps) {
   const classes = useEmptyStyles()
-  const {
-    actions: { reset },
-  } = SearchUIModel.use()
-  const startNewSearch = React.useCallback(
-    (event) => {
-      event.stopPropagation()
-      reset()
-    },
-    [reset],
-  )
-  const tryAgain = React.useCallback(() => {
-    // TODO: retry GQL request
-    window.location.reload()
-  }, [])
-
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">
@@ -188,9 +178,9 @@ export function Error({ className, kind = 'unexpected', children }: ErrorProps) 
           <>
             Oops, couldn&apos;t parse that search.
             <br />
-            {/* TODO:
-              Try quoting <StyledLink onClick={focus}>your query</StyledLink> or read about{' '}*/}
-            Try quoting "your query" or read about{' '}
+            Try quoting{' '}
+            <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+            read about{' '}
             <StyledLink href={ES_REF_SYNTAX} target="_blank">
               supported query syntax
             </StyledLink>
@@ -200,8 +190,9 @@ export function Error({ className, kind = 'unexpected', children }: ErrorProps) 
           <>
             Oops, something went wrong.
             <br />
-            <StyledLink onClick={tryAgain}>Try again</StyledLink> or start a{' '}
-            <StyledLink onClick={startNewSearch}>new search</StyledLink>.
+            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            start a{' '}
+            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>
         )}
       </M.Typography>
