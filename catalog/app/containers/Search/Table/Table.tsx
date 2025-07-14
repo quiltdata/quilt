@@ -664,7 +664,7 @@ function AvailableUserMetaColumnsTree({
               if (!column || column.tag !== ColumnTag.UserMeta) {
                 return (
                   <Lab.Alert key={path + p} severity="error">
-                    Failed rendering {node.value.path}
+                    Could not render {node.value.path}
                   </Lab.Alert>
                 )
               }
