@@ -50,7 +50,7 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
   const bookmarks = Bookmarks.use()
   return (
     <Root dark={dark}>
-      <Container.Provider>
+      <Container.FullWidthProvider>
         <NavBar.Provider>
           {bare ? <NavBar.Container /> : <NavBar.NavBar />}
           {!!pre && pre}
@@ -59,7 +59,7 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
           {isHomepage?.isExact && <Footer />}
           {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
         </NavBar.Provider>
-      </Container.Provider>
+      </Container.FullWidthProvider>
     </Root>
   )
 }

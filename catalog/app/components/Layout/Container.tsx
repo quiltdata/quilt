@@ -3,37 +3,41 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const Ctx = React.createContext<
-  [boolean, React.Dispatch<React.SetStateAction<boolean>>] | null
->(null)
+const Ctx = React.createContext<{
+  state: boolean
+  adjustCounter: (inc: number) => void
+} | null>(null)
 
-interface ProviderProps {
+interface FullWidthProviderProps {
   children: React.ReactNode
 }
 
-export function Provider({ children }: ProviderProps) {
-  const value = React.useState(false)
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+export function FullWidthProvider({ children }: FullWidthProviderProps) {
+  const [state, setState] = React.useState(false)
+  const counterRef = React.useRef(0)
+  const adjustCounter = React.useCallback((inc: number) => {
+    counterRef.current += inc
+    setState(counterRef.current > 0)
+  }, [])
+  return <Ctx.Provider value={{ state, adjustCounter }}>{children}</Ctx.Provider>
 }
 
-export function useFullWidth() {
-  const counter = React.useRef(0)
-  React.useEffect(() => {
-    invariant(
-      !counter.current,
-      'Hook intended to set `fullWidth: true` only once. If you need a different behaviour, please, consider using different implementation.',
-    )
-    counter.current += 1
-  }, [])
-
+export function useSetFullWidth() {
   const ctx = React.useContext(Ctx)
   invariant(ctx, 'Context must be used within a Provider')
-  const [, setFullWidth] = ctx
-
+  const { adjustCounter } = ctx
   React.useEffect(() => {
-    setFullWidth(true)
-    return () => setFullWidth(false)
-  }, [setFullWidth])
+    adjustCounter(1)
+    return () => {
+      adjustCounter(-1)
+    }
+  }, [adjustCounter])
+}
+
+export function useGetFullWidth() {
+  const ctx = React.useContext(Ctx)
+  invariant(ctx, 'Context must be used within a Provider')
+  return ctx.state
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -64,9 +68,7 @@ const useStyles = M.makeStyles((t) => ({
 export function Container({ children, className }: M.ContainerProps) {
   const classes = useStyles()
 
-  const ctx = React.useContext(Ctx)
-  invariant(ctx, 'Context must be used within a Provider')
-  const [fullWidth] = ctx
+  const fullWidth = useGetFullWidth()
 
   return (
     <M.Container
