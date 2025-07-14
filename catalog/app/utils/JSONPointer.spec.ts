@@ -1,4 +1,3 @@
-import jsonpath from 'jsonpath'
 import * as JSONPointer from './JSONPointer'
 
 describe('utils/JSONPointer', () => {
@@ -20,55 +19,55 @@ describe('utils/JSONPointer', () => {
     expect(JSONPointer.stringify(JSONPointer.parse(pointer))).toBe(pointer)
   })
 
-  it('should convert pointer consisting from ASCII to valid jsonpath', () => {
+  it('should get value from pointer consisting from ASCII', () => {
     const pointer = '/a/b/c'
     const obj = { a: { b: { c: 'true!' } } }
-    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+    expect(JSONPointer.getValue(obj, pointer)).toBe('true!')
   })
 
-  it('should convert pointer with invalid keys to valid jsonpath', () => {
+  it('should get value from pointer with invalid keys', () => {
     const pointer = '/sp ace/da-sh/eq=al/1337e/汉语/.../___/$'
     const obj = {
       'sp ace': {
         'da-sh': { 'eq=al': { '1337e': { 汉语: { '...': { ___: { $: 'true!' } } } } } },
       },
     }
-    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+    expect(JSONPointer.getValue(obj, pointer)).toBe('true!')
   })
 
-  it('should convert pointer with mixed keys to valid jsonpath', () => {
+  it('should get value from pointer with mixed keys', () => {
     const pointer = '/sp ace/da-sh/val/id/1337e/---/12/a'
     const obj = {
       'sp ace': {
         'da-sh': { val: { id: { '1337e': { '---': { 12: { a: 'true!' } } } } } },
       },
     }
-    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+    expect(JSONPointer.getValue(obj, pointer)).toBe('true!')
   })
 
-  it('should convert pointer with single quotes to valid jsonpath', () => {
+  it('should get value from pointer with single quotes', () => {
     const pointer = "/a/b'c'd/e"
     const obj = {
       a: {
         "b'c'd": { e: 'true!' },
       },
     }
-    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+    expect(JSONPointer.getValue(obj, pointer)).toBe('true!')
   })
 
-  it.skip('FIXME: should handle double quotes', () => {
-    const pointer = '/a/b"c"d/e'
+  it('should get value from pointer with double quotes', () => {
+    const pointer = `/a/b"c"d/e"f'g/h`
     const obj = {
       a: {
-        'b"c"d': { e: 'true!' },
+        'b"c"d': { [`e"f'g`]: { h: 'true!' } },
       },
     }
-    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+    expect(JSONPointer.getValue(obj, pointer)).toBe('true!')
   })
 
-  it.skip('FIXME: should handle $$', () => {
+  it('should get value from pointer with $$', () => {
     const pointer = '/$$'
     const obj = { $$: 'true!' }
-    expect(jsonpath.value(obj, JSONPointer.toJsonPath(pointer))).toBe('true!')
+    expect(JSONPointer.getValue(obj, pointer)).toBe('true!')
   })
 })

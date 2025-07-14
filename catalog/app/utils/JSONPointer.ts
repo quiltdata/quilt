@@ -1,8 +1,8 @@
+import { Json, JsonArray, JsonRecord } from 'utils/types'
+
 export type Path = (number | string)[]
 
 export type Pointer = string
-
-type JsonPathExpression = string
 
 function encodeFragment(fragment: Path[number]) {
   return fragment.toString().replaceAll('~', '~0').replaceAll('/', '~1')
@@ -20,16 +20,21 @@ export function parse(address: Pointer): Path {
   return address.slice(1).split('/').map(decodeFragment)
 }
 
-// Converts fragments in-between slashes (`/a/b/c`): a, b, c
-// to object property with bracket notation: ['a'], ['b'], ['c']`
-function convertToBracketNotation(fragment: Path[number]): string {
-  return fragment.toString().includes("'") ? `["${fragment}"]` : `['${fragment}']`
+const isJsonArray = (obj: Json): obj is JsonArray =>
+  typeof obj === 'object' && Array.isArray(obj)
+
+function getValueByPath(obj: JsonRecord, path: Path): Json {
+  return path.reduce((memo: Json, key) => {
+    if (memo === null || typeof memo !== 'object') {
+      throw new Error(`Path "${stringify(path)}" not found in object`)
+    }
+    if (isJsonArray(memo)) return memo[parseInt(key.toString(), 10)]
+    return memo[key.toString()]
+  }, obj)
 }
 
-export function toJsonPath(address: Path | Pointer): JsonPathExpression {
-  if (!Array.isArray(address)) return toJsonPath(parse(address))
+export function getValue(obj: JsonRecord, address: Path | Pointer): Json {
+  if (!Array.isArray(address)) return getValue(obj, parse(address))
 
-  // `/a/b/c` → `$..['a']['b']['c']`
-  // `/sp ace/da-sh/$$$` → `$..['sp ace']['da-sh']['$$$']`
-  return `$..${address.map(convertToBracketNotation).join('')}`
+  return getValueByPath(obj, address)
 }
