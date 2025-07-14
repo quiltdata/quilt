@@ -30,6 +30,7 @@ EVENT_PREFIX = {
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
+ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
@@ -158,7 +159,7 @@ class DocumentQueue:
         # TODO: use max_backoff on bulk() call
         return make_elastic(
             os.environ["ES_ENDPOINT"],
-            timeout=30,
+            timeout=ELASTIC_TIMEOUT,
             max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
         )
 
