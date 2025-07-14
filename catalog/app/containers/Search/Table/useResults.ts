@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import * as Model from 'model'
 import assertNever from 'utils/assertNever'
 import type { Json, JsonRecord } from 'utils/types'
 
@@ -44,9 +45,29 @@ interface ResultsEmpty {
 
 const EMPTY: ResultsEmpty = { _tag: 'empty' }
 
+interface ResultsErrorPage {
+  _tag: 'page'
+  error:
+    | Extract<SearchUIModel.SearchUIModel['firstPageQuery'], { _tag: 'error' }>['error']
+    | Extract<
+        ReturnType<typeof SearchUIModel.useNextPagePackagesQuery>,
+        { _tag: 'error' }
+      >['error']
+}
+
+interface ResultsErrorData {
+  _tag: 'data'
+  error: Model.GQLTypes.InputError
+}
+
+interface ResultsErrorGeneral {
+  _tag: 'general'
+  error: Error
+}
+
 interface ResultsFail {
   _tag: 'fail'
-  error: Error
+  error: ResultsErrorPage | ResultsErrorData | ResultsErrorGeneral
 }
 
 type ResultsNotFullilled = ResultsInProgress | ResultsFail | ResultsEmpty | ResultsIdle
@@ -67,12 +88,12 @@ function parseNextResults(
     case 'fetching':
       return IN_PROGRESS
     case 'error':
-      return { _tag: 'fail' as const, error: query.error }
+      return { _tag: 'fail' as const, error: { _tag: 'page', error: query.error } }
     case 'data':
       switch (query.data.__typename) {
         case 'InvalidInput':
           const [error] = query.data.errors
-          return { _tag: 'fail' as const, error }
+          return { _tag: 'fail' as const, error: { _tag: 'data', error } }
         // case 'ObjectsSearchResultSetPage':
         case 'PackagesSearchResultSetPage':
           const { hits, ...data } = query.data
@@ -90,23 +111,26 @@ function parseFirstResults(
     case 'fetching':
       return IN_PROGRESS
     case 'error':
-      return { _tag: 'fail' as const, error: query.error }
+      return { _tag: 'fail' as const, error: { _tag: 'page', error: query.error } }
     case 'data':
       switch (query.data.__typename) {
         case 'EmptySearchResultSet':
           return EMPTY
         case 'InvalidInput':
           const [error] = query.data.errors
-          return { _tag: 'fail' as const, error }
+          return { _tag: 'fail' as const, error: { _tag: 'data', error } }
         case 'PackagesSearchResultSet':
           const { hits, ...data } = query.data.firstPage
           return { _tag: 'ok' as const, hits: hits.map(parseHit), ...data }
         case 'ObjectsSearchResultSet':
           return {
             _tag: 'fail' as const,
-            error: new Error(
-              'Not implemented and should not happen in this implementation',
-            ),
+            error: {
+              _tag: 'general',
+              error: new Error(
+                'Not implemented and should not happen in this implementation',
+              ),
+            },
           }
         default:
           assertNever(query.data)

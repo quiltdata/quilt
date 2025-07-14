@@ -200,7 +200,7 @@ export function Error({
       <M.Box mt={3} />
       <M.Typography variant="h6">Error details</M.Typography>
       <M.Box mt={1} />
-      <M.Typography variant="body2" className={classes.body}>
+      <M.Typography variant="body2" className={classes.body} component="div">
         {children}
       </M.Typography>
     </div>
