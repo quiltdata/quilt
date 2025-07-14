@@ -59,7 +59,7 @@ function BucketLayout({ bucket, children }: BucketLayoutProps) {
             {bucketExistenceData.case({
               Ok: () => children,
               Err: displayError(),
-              _: SuspensePlaceholder,
+              _: () => <SuspensePlaceholder />,
             })}
           </Container>
         </>

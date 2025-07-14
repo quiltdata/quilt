@@ -1318,8 +1318,7 @@ export function usePackageUserMetaFacetExtents(path: string): {
 }
 
 function useSearchUIModel(optUrlState?: SearchUrlState, optBase?: string) {
-  const urlStateFromLocation = useUrlState(optUrlState)
-  const urlState = urlStateFromLocation
+  const urlState = useUrlState(optUrlState)
 
   const baseSearchQuery = useBaseSearchQuery(urlState)
   const firstPageQuery = useFirstPageQuery(urlState)

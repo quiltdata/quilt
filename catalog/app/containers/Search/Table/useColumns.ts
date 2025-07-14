@@ -162,7 +162,7 @@ export type ColumnsMap = Map<Column['filter'], Column>
 
 const columnsToMap = (columns: Column[]) => new Map(columns.map((c) => [c.filter, c]))
 
-type InferedColumnsNotReady = Exclude<
+type InferredColumnsNotReady = Exclude<
   Workflow.RequestResult<UserMetaFacets>,
   UserMetaFacets
 >
@@ -171,8 +171,8 @@ export function useColumns(
   hiddenColumns: HiddenColumns,
   metaFiltersState: SearchUIModel.AvailableFiltersStateInstance,
   bucket?: string,
-): [ColumnsMap, InferedColumnsNotReady | null] {
-  const infered: Workflow.RequestResult<UserMetaFacets> =
+): [ColumnsMap, InferredColumnsNotReady | null] {
+  const inferredFacets: Workflow.RequestResult<UserMetaFacets> =
     useInferredUserMetaFacets(metaFiltersState)
 
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -250,11 +250,11 @@ export function useColumns(
 
     const columns = [...fixed, ...systemMeta, ...selectedUserMeta]
 
-    if (infered instanceof Error || infered === Workflow.Loading) {
-      return [columnsToMap(columns), infered]
+    if (inferredFacets instanceof Error || inferredFacets === Workflow.Loading) {
+      return [columnsToMap(columns), inferredFacets]
     }
 
-    const inferedUserMeta = Array.from(infered).map(([filter, predicateType]) =>
+    const inferredUserMeta = Array.from(inferredFacets).map(([filter, predicateType]) =>
       createUserMetaColumn(
         filter,
         SearchUIModel.PackageUserMetaFacetMap[predicateType],
@@ -262,7 +262,7 @@ export function useColumns(
       ),
     )
 
-    return [columnsToMap(columns.concat(inferedUserMeta)), null]
+    return [columnsToMap(columns.concat(inferredUserMeta)), null]
   }, [
     createBucketColumn,
     createNameColumn,
@@ -270,6 +270,6 @@ export function useColumns(
     createSystemMetaColumn,
     createUserMetaColumn,
     state.userMetaFilters.filters,
-    infered,
+    inferredFacets,
   ])
 }

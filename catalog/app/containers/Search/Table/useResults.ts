@@ -70,16 +70,16 @@ interface ResultsFail {
   error: ResultsErrorPage | ResultsErrorData | ResultsErrorGeneral
 }
 
-type ResultsNotFullilled = ResultsInProgress | ResultsFail | ResultsEmpty | ResultsIdle
+type ResultsNotFulfilled = ResultsInProgress | ResultsFail | ResultsEmpty | ResultsIdle
 
 interface ResultsOk {
   _tag: 'ok'
   cursor: string | null
   hits: readonly Hit[]
-  next?: ResultsNotFullilled
+  next?: ResultsNotFulfilled
 }
 
-export type Results = ResultsOk | ResultsNotFullilled
+export type Results = ResultsOk | ResultsNotFulfilled
 
 function parseNextResults(
   query: ReturnType<typeof SearchUIModel.useNextPagePackagesQuery>,
@@ -94,7 +94,6 @@ function parseNextResults(
         case 'InvalidInput':
           const [error] = query.data.errors
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
-        // case 'ObjectsSearchResultSetPage':
         case 'PackagesSearchResultSetPage':
           const { hits, ...data } = query.data
           return { _tag: 'ok' as const, hits: hits.map(parseHit), ...data }
