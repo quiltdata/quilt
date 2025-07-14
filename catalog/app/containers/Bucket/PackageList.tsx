@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import * as SearchUIModel from 'containers/Search/model'
 import MetaTitle from 'utils/MetaTitle'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 
 import { useBucketStrict } from 'containers/Bucket/Routes'
@@ -11,7 +12,9 @@ import Main from 'containers/Search/Layout/Main'
 import { Refine } from 'containers/Search/NoResults'
 import ListResults from 'containers/Search/List'
 import TableResults from 'containers/Search/Table'
+
 import NoPackages from './NoPackages'
+import type { RouteMap } from './Routes'
 
 function useGoToGlobalSearchUrl() {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -37,8 +40,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function PackageList() {
-  const bucket = useBucketStrict()
+interface PackageListProps {
+  bucket: string
+}
+
+function PackageList({ bucket }: PackageListProps) {
   const {
     actions: { clearFilters, reset, setResultType },
     state: { resultType, searchString, view },
@@ -103,5 +109,20 @@ export default function PackageList() {
         )}
       </Main>
     </>
+  )
+}
+
+export default function PackageListWrapper() {
+  const bucket = useBucketStrict()
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const urlState = SearchUIModel.useMakePackagesSearchUrlState({
+    order: SearchUIModel.ResultOrder.NEWEST,
+    view: SearchUIModel.View.Table,
+    buckets: [bucket],
+  })
+  return (
+    <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} urlState={urlState}>
+      <PackageList bucket={bucket} />
+    </SearchUIModel.Provider>
   )
 }

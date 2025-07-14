@@ -6,7 +6,6 @@ import Layout, { Container } from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import { ThrowNotFound } from 'containers/NotFoundPage'
-import * as SearchUIModel from 'containers/Search/model'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -72,13 +71,7 @@ export default function Bucket() {
   const location = useLocation()
   const bucket = useBucketStrict()
 
-  const { paths, urls } = NamedRoutes.use<RouteMap>()
-
-  const urlState = SearchUIModel.useMakePackagesSearchUrlState({
-    order: SearchUIModel.ResultOrder.NEWEST,
-    view: SearchUIModel.View.Table,
-    buckets: [bucket],
-  })
+  const { paths } = NamedRoutes.use<RouteMap>()
 
   return (
     <BucketPreferences.Provider bucket={bucket}>
@@ -98,12 +91,7 @@ export default function Bucket() {
               <Overview />
             </Route>
             <Route path={paths.bucketPackageList} exact>
-              <SearchUIModel.Provider
-                base={urls.bucketPackageList(bucket)}
-                urlState={urlState}
-              >
-                <PackageList />
-              </SearchUIModel.Provider>
+              <PackageList />
             </Route>
             <Route path={paths.bucketPackageDetail} exact>
               <PackageTree />
