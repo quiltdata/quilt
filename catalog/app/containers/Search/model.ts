@@ -14,7 +14,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
-import { oneOf } from 'utils/validate'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
 import FIRST_PAGE_OBJECTS_QUERY from './gql/FirstPageObjects.generated'
@@ -1232,6 +1231,13 @@ export const PackageUserMetaFacetTypeInfo = {
     hasExtents: false,
     inputType: Model.GQLTypes.PackageUserMetaFacetType.BOOLEAN,
   },
+}
+
+function oneOf<T extends string, L extends T[]>(
+  comparisonList: L,
+  subject: T,
+): subject is L[number] {
+  return comparisonList.some((compare) => compare === subject)
 }
 
 export function usePackageSystemMetaFacetExtents(
