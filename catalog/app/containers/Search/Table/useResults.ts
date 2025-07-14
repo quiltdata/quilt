@@ -170,10 +170,23 @@ export function useResults(): [Results, () => void] | [Results] {
         break
       case 'in-progress':
       case 'fail':
-        setResults((prev) => ({
-          ...prev,
-          next,
-        }))
+        setResults((prev) => {
+          if (prev._tag !== 'ok') {
+            return {
+              _tag: 'fail',
+              error: {
+                _tag: 'general',
+                error: new Error(
+                  'We can only append next page to the previous "Ok" page',
+                ),
+              },
+            }
+          }
+          return {
+            ...prev,
+            next,
+          }
+        })
         break
       case 'ok':
         setMore(false)
