@@ -95,6 +95,8 @@ class DocumentQueue:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
         is_delete_marker = False
         if event_type.startswith(EVENT_PREFIX["Created"]):
+            # We need to use update to avoid overwriting existing documents
+            # with "was_packaged" flag.
             _op_type = "update"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
             _op_type = "delete"
