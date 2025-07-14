@@ -731,11 +731,11 @@ function useAvailableUserMetaFacets(
     () =>
       SearchUIModel.groupFacets(
         Array.from(model.state.userMetaFilters.filters)
+          .filter(([path]) => path.toLowerCase().includes(filterValue))
           .map(([path, f]) => ({
             __typename: ReversPackageUserMetaTypename[f._tag],
             path,
-          }))
-          .filter(({ path }) => path.toLowerCase().includes(filterValue)),
+          })),
       )[0].children,
     [model.state.userMetaFilters.filters, filterValue],
   )
