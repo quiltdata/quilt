@@ -95,6 +95,22 @@ function EntryMetaDisplay({ meta }: EntryMetaDisplayProps) {
   )
 }
 
+type EntryKey = 'logicalKey' | 'physicalKey' | 'size' | 'meta' | 'contents'
+
+type EntryColumn = {
+  title: string
+  align?: M.TableCellProps['align']
+  width?: string
+}
+
+const ENTRIES_COLUMNS: Record<EntryKey, EntryColumn> = {
+  logicalKey: { title: 'Logical Key' },
+  physicalKey: { title: 'Physical Key' },
+  size: { title: 'Size', align: 'right', width: '100px' },
+  meta: { title: 'Meta', align: 'center', width: '120px' },
+  contents: { title: 'Contents', align: 'center', width: '90px' },
+}
+
 const useEntryStyles = M.makeStyles((t) => ({
   cell: {
     whiteSpace: 'nowrap',
@@ -143,24 +159,29 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
   )
   return (
     <M.TableRow hover className={className}>
-      <M.TableCell className={classes.cell} component="th" scope="row">
+      <M.TableCell
+        className={classes.cell}
+        component="th"
+        scope="row"
+        align={ENTRIES_COLUMNS.logicalKey.align}
+      >
         <M.Tooltip arrow title={entry.logicalKey}>
           <StyledLink to={inPackage.to}>
             <Match on={entry.matchLocations.logicalKey}>{inPackage.title}</Match>
           </StyledLink>
         </M.Tooltip>
       </M.TableCell>
-      <M.TableCell className={classes.cell}>
+      <M.TableCell className={classes.cell} align={ENTRIES_COLUMNS.physicalKey.align}>
         <M.Tooltip arrow title={entry.physicalKey}>
           <StyledLink to={inBucket.to}>
             <Match on={entry.matchLocations.physicalKey}>{inBucket.title}</Match>
           </StyledLink>
         </M.Tooltip>
       </M.TableCell>
-      <M.TableCell className={classes.cell} align="right">
+      <M.TableCell className={classes.cell} align={ENTRIES_COLUMNS.size.align}>
         {readableBytes(entry.size)}
       </M.TableCell>
-      <M.TableCell className={classes.cell} align="center">
+      <M.TableCell className={classes.cell} align={ENTRIES_COLUMNS.meta.align}>
         {entry.meta ? (
           <M.IconButton
             className={cx(entry.matchLocations.meta && classes.match)}
@@ -177,7 +198,7 @@ function Entry({ className, entry, onPreview, packageHandle }: EntryProps) {
           </M.IconButton>
         )}
       </M.TableCell>
-      <M.TableCell className={classes.cell} align="center">
+      <M.TableCell className={classes.cell} align={ENTRIES_COLUMNS.contents.align}>
         <M.IconButton
           className={cx(entry.matchLocations.contents && classes.match)}
           onClick={handlePreview}
@@ -259,11 +280,8 @@ export default function Entries({ entries, packageHandle, totalCount }: EntriesP
     setHeight(`${ref.current.clientHeight}px`)
   }, [entries])
 
-  // TODO:
-  // const entriesColumns = [{ title: 'Logical Key', key: logicalKey }, ...]
-  // colSpan = entriesColumns.length
-  // and pass it to <Entry />
   const hiddenEntriesCount = totalCount - entries.length
+  const columnsHeads = React.useMemo(() => Object.entries(ENTRIES_COLUMNS), [])
 
   return (
     <div className={cx(classes.root)} style={{ height }}>
@@ -271,17 +289,16 @@ export default function Entries({ entries, packageHandle, totalCount }: EntriesP
         <M.Table size="small" className={classes.table}>
           <M.TableHead>
             <M.TableRow>
-              <M.TableCell className={classes.cell}>Logical Key</M.TableCell>
-              <M.TableCell className={classes.cell}>Physical Key</M.TableCell>
-              <M.TableCell className={classes.cell} align="right" width="100px">
-                Size
-              </M.TableCell>
-              <M.TableCell className={classes.cell} align="center" width="120px">
-                Meta
-              </M.TableCell>
-              <M.TableCell className={classes.cell} align="center" width="90px">
-                Contents
-              </M.TableCell>
+              {columnsHeads.map(([key, column]) => (
+                <M.TableCell
+                  key={key}
+                  className={classes.cell}
+                  align={column.align}
+                  width={column.width}
+                >
+                  {column.title}
+                </M.TableCell>
+              ))}
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
@@ -296,7 +313,10 @@ export default function Entries({ entries, packageHandle, totalCount }: EntriesP
             ))}
             {!!hiddenEntriesCount && (
               <M.TableRow className={classes.row}>
-                <M.TableCell colSpan={5} className={cx(classes.cell, classes.totalCount)}>
+                <M.TableCell
+                  colSpan={columnsHeads.length}
+                  className={cx(classes.cell, classes.totalCount)}
+                >
                   <M.Typography variant="caption" component="p">
                     <StyledLink
                       to={urls.bucketPackageDetail(
