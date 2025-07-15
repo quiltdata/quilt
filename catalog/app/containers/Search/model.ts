@@ -1154,7 +1154,7 @@ type PackageUserMetaFacetFull = Extract<
 
 export type PackageUserMetaFacet = Pick<PackageUserMetaFacetFull, 'path' | '__typename'>
 
-export const PackageUserMetaFacetTypeDisplay = {
+const PackageUserMetaFacetTypeDisplay = {
   NumberPackageUserMetaFacet: 'Number' as const,
   DatetimePackageUserMetaFacet: 'Date' as const,
   KeywordPackageUserMetaFacet: 'Keyword' as const,
@@ -1651,41 +1651,6 @@ export function useSearchUIModelContext(type?: ResultType) {
 export function useSearchUIModelContextUnsafe(): SearchUIModel | null {
   return React.useContext(Context)
 }
-
-function makePackagesSearchUrlState(
-  overrides: Partial<PackagesSearchUrlState>,
-): PackagesSearchUrlState {
-  return {
-    resultType: ResultType.QuiltPackage,
-    filter: overrides.filter || PackagesSearchFilterIO.initialState,
-    userMetaFilters: overrides.userMetaFilters || new UserMetaFilters(),
-    searchString: overrides.searchString || null,
-    buckets: overrides.buckets || [],
-    order: overrides.order || DEFAULT_ORDER,
-    view: overrides.view || DEFAULT_VIEW,
-    latestOnly: true,
-  }
-}
-
-export const useMakePackagesSearchUrlState = (
-  overrides: Partial<PackagesSearchUrlState>,
-) => useMemoEq(overrides, makePackagesSearchUrlState)
-
-function makeObjectsSearchUrlState(
-  overrides: Partial<ObjectsSearchUrlState>,
-): ObjectsSearchUrlState {
-  return {
-    resultType: ResultType.S3Object,
-    filter: overrides.filter || ObjectsSearchFilterIO.initialState,
-    searchString: overrides.searchString || null,
-    buckets: overrides.buckets || [],
-    order: overrides.order || DEFAULT_ORDER,
-    view: overrides.view || View.List,
-  }
-}
-
-export const useMakeObjectsSearchUrlState = (overrides: Partial<ObjectsSearchUrlState>) =>
-  useMemoEq(overrides, makeObjectsSearchUrlState)
 
 export {
   SearchUIModelProvider as Provider,
