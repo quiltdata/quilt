@@ -1,0 +1,31 @@
+[project]
+name = "t4_lambda_manifest_indexer"
+version = "0.1.0"
+authors = [
+    { name = "Sergey Fedoseev", email = "fedoseev.sergey@quiltdata.io" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "jsonpointer~=2.4",
+    "orjson~=3.10",
+    "quilt-shared[boto,es]",
+    "t4-lambda-shared",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+t4-lambda-shared = { url = "https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip", subdirectory = "lambdas/shared" }
+quilt-shared = { url = "https://github.com/quiltdata/quilt/archive/df53c9ce125ea051e0d1ac41d58796336e202256.zip", subdirectory = "py-shared" }
+
+[dependency-groups]
+test = [
+    "pytest~=8.4",
+    "pytest-cov~=6.2",
+    "pytest-env~=1.1",
+]
+
+[tool.uv]
+default-groups = ["test"]

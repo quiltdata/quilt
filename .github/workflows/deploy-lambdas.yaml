@@ -14,12 +14,13 @@ jobs:
       matrix:
         path:
           - access_counts
-          - indexer
+          - es_ingest
           - pkgevents
           - pkgpush
           - preview
           - s3hash
           - status_reports
+          - manifest_indexer
           - tabular_preview
           - transcode
     runs-on: ubuntu-latest
@@ -29,6 +30,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Export requirements.txt from uv.lock
+        if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
+        run: |
+          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
       - name: Build zip
         run: |
           BUILDER_IMAGE=quiltdata/lambda:build-$(cat lambdas/${{ matrix.path }}/.python-version)
@@ -64,6 +70,7 @@ jobs:
     strategy:
       matrix:
         path:
+          - indexer
           - thumbnail
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
