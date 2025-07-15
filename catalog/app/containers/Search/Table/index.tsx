@@ -64,21 +64,18 @@ export default function TablePage({
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
       const { error, _tag: tag } = results.error
+      const kind = error.name === 'QuerySyntaxError' ? 'syntax' : undefined
       switch (tag) {
         case 'general':
         case 'page':
           return (
-            <NoResults.Error
-              className={className}
-              kind={error.name === 'QuerySyntaxError' ? 'syntax' : undefined}
-              onRefine={onRefine}
-            >
+            <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
               {error.message}
             </NoResults.Error>
           )
         case 'data':
           return (
-            <NoResults.Error className={className} onRefine={onRefine}>
+            <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
               Invalid input at <code>{error.path}</code>: {error.name}
               <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
             </NoResults.Error>
