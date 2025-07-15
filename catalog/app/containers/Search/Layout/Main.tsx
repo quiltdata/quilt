@@ -120,7 +120,6 @@ const useFiltersStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridRowGap: t.spacing(2),
     gridTemplateRows: 'auto',
-    paddingBottom: t.spacing(12), // space reserved for "Scroll to top"
     // TODO: Make scroll for sidebar
     // TODO: Also, consider that buckets filter disappears
     // overflow: 'hidden auto',
@@ -167,6 +166,9 @@ function Filters({ className }: FiltersProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(3, 0, 12), // space reserved for "Scroll to top"
+  },
   withSidebar: {
     alignItems: 'start',
     display: 'grid',
@@ -190,12 +192,11 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface MainProps {
-  className: string
   children: React.ReactNode
   inputRef: React.Ref<HTMLInputElement>
 }
 
-export default function Main({ className, inputRef, children }: MainProps) {
+export default function Main({ inputRef, children }: MainProps) {
   const model = SearchUIModel.use()
 
   const classes = useStyles()
@@ -211,7 +212,7 @@ export default function Main({ className, inputRef, children }: MainProps) {
   )
 
   return (
-    <div className={className}>
+    <div className={classes.root}>
       <SearchField className={classes.search} ref={inputRef} />
       <div className={cx(!toggleFilters && classes.withSidebar)}>
         {toggleFilters ? (

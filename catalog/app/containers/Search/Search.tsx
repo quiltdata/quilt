@@ -1,5 +1,4 @@
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
 import Layout, { Container } from 'components/Layout'
 import assertNever from 'utils/assertNever'
@@ -12,14 +11,7 @@ import ListResults from './List'
 import { Refine } from './NoResults'
 import TableResults from './Table'
 
-const useStyles = M.makeStyles((t) => ({
-  main: {
-    padding: t.spacing(3, 0),
-  },
-}))
-
 function SearchLayout() {
-  const classes = useStyles()
   const {
     actions: { clearFilters, reset, setBuckets, setResultType },
     state: { resultType, searchString, view },
@@ -66,7 +58,7 @@ function SearchLayout() {
   return (
     <Container>
       <MetaTitle>{searchString || 'Search'}</MetaTitle>
-      <Main className={classes.main} inputRef={setInputEl}>
+      <Main inputRef={setInputEl}>
         {tableView ? (
           <TableResults onRefine={handleRefine} />
         ) : (

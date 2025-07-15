@@ -1,6 +1,5 @@
 import * as React from 'react'
 import * as RR from 'react-router-dom'
-import * as M from '@material-ui/core'
 
 import * as SearchUIModel from 'containers/Search/model'
 import MetaTitle from 'utils/MetaTitle'
@@ -34,12 +33,6 @@ function useGoToGlobalSearchUrl() {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
-  main: {
-    padding: t.spacing(3, 0),
-  },
-}))
-
 interface PackageListProps {
   bucket: string
 }
@@ -49,7 +42,6 @@ function PackageList({ bucket }: PackageListProps) {
     actions: { clearFilters, reset, setResultType },
     state: { resultType, searchString, view },
   } = SearchUIModel.use()
-  const classes = useStyles()
   const tableView =
     view === SearchUIModel.View.Table &&
     resultType === SearchUIModel.ResultType.QuiltPackage
@@ -97,7 +89,7 @@ function PackageList({ bucket }: PackageListProps) {
   return (
     <>
       <MetaTitle>{titleSegments}</MetaTitle>
-      <Main className={classes.main} inputRef={setInputEl}>
+      <Main inputRef={setInputEl}>
         {tableView ? (
           <TableResults
             bucket={bucket}
