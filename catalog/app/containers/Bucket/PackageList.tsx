@@ -115,13 +115,16 @@ function PackageList({ bucket }: PackageListProps) {
 export default function PackageListWrapper() {
   const bucket = useBucketStrict()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const urlState = SearchUIModel.useMakePackagesSearchUrlState({
-    order: SearchUIModel.ResultOrder.NEWEST,
-    view: SearchUIModel.View.Table,
-    buckets: [bucket],
-  })
+  const defaults = React.useMemo(
+    () => ({
+      buckets: [bucket],
+      order: SearchUIModel.ResultOrder.NEWEST,
+      view: SearchUIModel.View.Table,
+    }),
+    [bucket],
+  )
   return (
-    <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} urlState={urlState}>
+    <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
       <PackageList bucket={bucket} />
     </SearchUIModel.Provider>
   )

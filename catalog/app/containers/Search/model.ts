@@ -38,6 +38,16 @@ export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
 export const DEFAULT_VIEW = View.List
 
+type Defaults = Partial<Omit<SearchUrlState, 'filter' | 'userMetaFilters'>>
+
+const createFallbacks = (defaults?: Defaults): Required<Defaults> => ({
+  searchString: defaults?.searchString || null,
+  resultType: defaults?.resultType || DEFAULT_RESULT_TYPE,
+  view: defaults?.view || DEFAULT_VIEW,
+  buckets: defaults?.buckets || [],
+  order: defaults?.order || DEFAULT_ORDER,
+})
+
 export const ResultOrder = Model.GQLTypes.SearchResultOrder
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type ResultOrder = Model.GQLTypes.SearchResultOrder
@@ -90,14 +100,10 @@ interface PackagesSearchUrlState extends SearchUrlStateBase {
 
 export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
 
-function parseOrder(input: string | null): ResultOrder {
+function parseOrder(input: string | null, fallback: ResultOrder): ResultOrder {
   return Object.values(ResultOrder).includes(input as any)
     ? (input as ResultOrder)
-    : DEFAULT_ORDER
-}
-
-function serializeOrder(order: ResultOrder): string | null {
-  return order === DEFAULT_ORDER ? null : order
+    : fallback
 }
 
 type Tagged<Tag extends string, T> = T & { _tag: Tag }
@@ -533,7 +539,11 @@ export class UserMetaFilters {
   }
 }
 
-function parseResultType(t: string | null, legacy: string | null): ResultType {
+function parseResultType(
+  t: string | null,
+  legacy: string | null,
+  fallback: ResultType,
+): ResultType {
   switch (legacy) {
     case 'packages':
       return ResultType.QuiltPackage
@@ -546,38 +556,40 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
     case ResultType.S3Object:
       return ResultType.S3Object
   }
-  return DEFAULT_RESULT_TYPE
+  return fallback
 }
 
-function parseView(view: string | null): View {
+function parseView(view: string | null, fallback: View): View {
   switch (view) {
     case View.List:
       return View.List
     case View.Table:
       return View.Table
   }
-  return DEFAULT_VIEW
+  return fallback
 }
 
 export const META_PREFIX = 'meta.'
 
 // XXX: use @effect/schema for morphisms between url (querystring) and search state
-export function parseSearchParams(
-  qs: string,
-  optUrlState?: SearchUrlState,
-): SearchUrlState {
-  const params =
-    qs || !optUrlState ? new URLSearchParams(qs) : serializeSearchUrlState(optUrlState)
-  const searchString = params.get('q')
+export function parseSearchParams(qs: string, defaults?: Defaults): SearchUrlState {
+  const fallbacks = createFallbacks(defaults)
+  const params = new URLSearchParams(qs)
 
-  const resultType = parseResultType(params.get('t'), params.get('mode'))
+  const searchString = params.get('q') || fallbacks.searchString
 
-  const view = parseView(params.get('v'))
+  const resultType = parseResultType(
+    params.get('t'),
+    params.get('mode'),
+    fallbacks.resultType,
+  )
+
+  const view = parseView(params.get('v'), fallbacks.view)
 
   const bucketsInput = params.get('buckets') || params.get('b')
-  const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
+  const buckets = bucketsInput ? bucketsInput.split(',').sort() : fallbacks.buckets
 
-  const order = parseOrder(params.get('o'))
+  const order = parseOrder(params.get('o'), fallbacks.order)
 
   const base = { searchString, buckets, order, view }
   switch (resultType) {
@@ -600,20 +612,37 @@ export function parseSearchParams(
   }
 }
 
+function areBucketsEqual(left: readonly string[], right: readonly string[]) {
+  if (!left.length && !right.length) return true
+  if (left.length !== right.length) return false
+  const leftCache: Record<(typeof left)[number], null> = left.reduce(
+    (memo, l) => ({ ...memo, [l]: true }),
+    {},
+  )
+  return right.every((r) => leftCache[r])
+}
+
 // XXX: return string?
-function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
+function serializeSearchUrlState(
+  state: SearchUrlState,
+  defaults?: Defaults,
+): URLSearchParams {
+  const fallbacks = createFallbacks(defaults)
   const params = new URLSearchParams()
 
-  if (state.searchString) params.set('q', state.searchString)
+  if (state.searchString && state.searchString !== fallbacks.searchString) {
+    params.set('q', state.searchString)
+  }
 
-  if (state.resultType !== DEFAULT_RESULT_TYPE) params.set('t', state.resultType)
+  if (state.resultType !== fallbacks.resultType) params.set('t', state.resultType)
 
-  if (state.view !== DEFAULT_VIEW) params.set('v', state.view)
+  if (state.view !== fallbacks.view) params.set('v', state.view)
 
-  if (state.buckets.length) params.set('b', state.buckets.join(','))
+  if (!areBucketsEqual(state.buckets, fallbacks.buckets)) {
+    params.set('b', state.buckets.join(','))
+  }
 
-  const order = serializeOrder(state.order)
-  if (order) params.set('o', order)
+  if (state.order !== fallbacks.order) params.set('o', state.order)
 
   function appendParams(pairs: [string, string][]) {
     pairs.forEach(([k, v]) => params.append(k, v))
@@ -635,25 +664,22 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
   return params
 }
 
-function useUrlState(optUrlState?: SearchUrlState): SearchUrlState {
+function useUrlState(defaults?: Defaults): SearchUrlState {
   const l = RR.useLocation()
-  return React.useMemo(
-    () => parseSearchParams(l.search, optUrlState),
-    [l.search, optUrlState],
-  )
+  return React.useMemo(() => parseSearchParams(l.search, defaults), [l.search, defaults])
 }
 
-export function useMakeUrl(optBase?: string) {
+export function useMakeUrl(optBase?: string, defaults?: Defaults) {
   const { urls } = NamedRoutes.use()
   const base = optBase || urls.search({})
   return React.useCallback(
     (state: SearchUrlState) => {
       const parts = [base]
-      const qs = serializeSearchUrlState(state).toString()
+      const qs = serializeSearchUrlState(state, defaults).toString()
       if (qs) parts.push(qs)
       return parts.join('?')
     },
-    [base],
+    [base, defaults],
   )
 }
 
@@ -681,7 +707,7 @@ function addMagicWildcardsQS(s: string | null): string | null {
   return `${s}*`
 }
 
-export function useMagicWildcardsQS(s: string | null) {
+function useMagicWildcardsQS(s: string | null) {
   return React.useMemo(() => addMagicWildcardsQS(s), [s])
 }
 
@@ -1323,13 +1349,13 @@ export function usePackageUserMetaFacetExtents(path: string): {
   })
 }
 
-function useSearchUIModel(optUrlState?: SearchUrlState, optBase?: string) {
-  const urlState = useUrlState(optUrlState)
+function useSearchUIModel(optBase?: string, defaults?: Defaults) {
+  const urlState = useUrlState(defaults)
 
   const baseSearchQuery = useBaseSearchQuery(urlState)
   const firstPageQuery = useFirstPageQuery(urlState)
 
-  const makeUrl = useMakeUrl(optBase)
+  const makeUrl = useMakeUrl(optBase, defaults)
 
   const history = RR.useHistory()
 
@@ -1599,9 +1625,9 @@ export const Context = React.createContext<SearchUIModel | null>(null)
 export function SearchUIModelProvider({
   base,
   children,
-  urlState,
-}: React.PropsWithChildren<{ urlState?: SearchUrlState; base?: string }>) {
-  const state = useSearchUIModel(urlState, base)
+  defaults,
+}: React.PropsWithChildren<{ defaults?: Partial<SearchUrlState>; base?: string }>) {
+  const state = useSearchUIModel(base, defaults)
   return React.createElement(Context.Provider, { value: state }, children)
 }
 
