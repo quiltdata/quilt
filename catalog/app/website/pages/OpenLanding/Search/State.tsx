@@ -1,51 +1,28 @@
 import * as React from 'react'
-import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
-
-import * as SearchUIModel from 'containers/Search/model'
-import * as BucketConfig from 'utils/BucketConfig'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import parse from 'utils/parseSearch'
 
 import * as Suggestions from './Suggestions/model'
 
 export const expandAnimationDuration = 200
 
-function useUrlQuery() {
-  const { paths } = NamedRoutes.use()
-  const location = useLocation()
-  const match = useRouteMatch(paths.search)
-  const qs = match && parse(location.search, true)
-  return qs?.q ?? ''
-}
-
-interface InputState extends M.InputBaseProps {
-  helpOpen: boolean
-}
-
 interface SearchState {
-  input: InputState
+  helpOpen: boolean
+  input: Pick<M.InputBaseProps, 'onChange' | 'onFocus' | 'onKeyDown' | 'value'>
   onClickAway: () => void
   suggestions: ReturnType<typeof Suggestions.use>
 }
 
-function useSearchState(bucket?: string): SearchState {
-  const history = useHistory()
-  const location = useLocation()
+export default function useState(): SearchState {
+  const history = RRDom.useHistory()
 
-  const searchUIModel = SearchUIModel.useUnsafe()
-
-  const query = useUrlQuery()
-
-  const [value, change] = React.useState<string | null>(null)
-  const [expanded, setExpanded] = React.useState(false)
+  const [value, setValue] = React.useState<string>('')
   const [helpOpen, setHelpOpen] = React.useState(false)
-  React.useEffect(() => setHelpOpen(false), [location])
 
-  const suggestions = Suggestions.use(value || '', bucket || searchUIModel)
+  const suggestions = Suggestions.use(value)
 
   const onChange = React.useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
-    change(evt.target.value)
+    setValue(evt.target.value)
   }, [])
 
   const handleHelpOpen = React.useCallback(() => {
@@ -54,8 +31,7 @@ function useSearchState(bucket?: string): SearchState {
   }, [suggestions])
 
   const handleCollapse = React.useCallback(() => {
-    change(null)
-    setExpanded(false)
+    setValue('')
     setHelpOpen(false)
   }, [])
 
@@ -109,33 +85,18 @@ function useSearchState(bucket?: string): SearchState {
   )
 
   const onClickAway = React.useCallback(() => {
-    if (expanded || helpOpen) handleCollapse()
-  }, [expanded, helpOpen, handleCollapse])
+    if (helpOpen) handleCollapse()
+  }, [helpOpen, handleCollapse])
 
   return {
     input: {
-      helpOpen,
       onChange,
+      onFocus: handleHelpOpen,
       onKeyDown,
-      value: value === null ? query : value,
+      value,
     },
+    helpOpen,
     onClickAway,
     suggestions,
   }
 }
-
-const Ctx = React.createContext<SearchState | null>(null)
-
-interface ProviderProps {
-  children: React.ReactNode
-}
-
-export function Provider({ children }: ProviderProps) {
-  const bucket = BucketConfig.useCurrentBucket()
-  const value = useSearchState(bucket)
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
-}
-
-export const useNavBar = () => React.useContext(Ctx)
-
-export const use = useNavBar
