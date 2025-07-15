@@ -4,20 +4,16 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { useDebouncedCallback } from 'use-debounce'
 
-import { docs } from 'constants/urls'
 import BucketSelector from 'containers/Search/Buckets'
 import ResultTypeSelector from 'containers/Search/ResultType'
 import * as SearchUIModel from 'containers/Search/model'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 
 import ColumnTitle from './ColumnTitle'
 import ObjectFilters from './ObjectFilters'
 import PackageFilters from './PackageFilters'
 import ResultsToolbar from './Results'
 import ScrollToTop from './ScrollToTop'
-
-const ES_V = '6.7'
 
 function useMobileView() {
   const t = M.useTheme()
@@ -61,18 +57,6 @@ const SearchField = React.forwardRef<HTMLInputElement, SearchFieldProps>(
 
     return (
       <M.TextField
-        helperText={
-          <>
-            We use ElasticSearch {ES_V}. Learn the{' '}
-            <StyledLink
-              href={`${docs}/quilt-platform-catalog-user/search#search-bar`}
-              target="_blank"
-            >
-              advanced search syntax
-            </StyledLink>{' '}
-            for query string queries.
-          </>
-        }
         autoFocus
         inputRef={inputRef}
         className={className}
@@ -193,7 +177,7 @@ const useStyles = M.makeStyles((t) => ({
     gridTemplateColumns: `${t.spacing(40)}px auto`,
   },
   search: {
-    marginBottom: t.spacing(1),
+    marginBottom: t.spacing(2),
   },
   results: {
     display: 'grid',
