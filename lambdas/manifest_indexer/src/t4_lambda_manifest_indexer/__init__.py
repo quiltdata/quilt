@@ -179,7 +179,7 @@ def index_manifest(
                 continue
             total_files += 1
             total_bytes += entry["size"]
-            meta = entry.get("meta")  # XXX: both system and user metadata, do we need only user?
+            meta = entry.get("meta")  # both system and user metadata
             pk = entry["physical_keys"][0]
             pk_parsed = parse_s3_physical_key(pk)
 
@@ -201,7 +201,6 @@ def index_manifest(
                     yield {
                         "_index": pk_parsed["bucket"],
                         "_op_type": "update",
-                        # TODO: check version_id for non-versioned buckets
                         "_id": get_object_doc_id(pk_parsed["key"], pk_parsed["version_id"]),
                         "doc": {"was_packaged": True},
                         "doc_as_upsert": True,
