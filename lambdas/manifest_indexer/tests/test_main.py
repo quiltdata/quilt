@@ -106,7 +106,7 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
             "physical_keys": ["file:///local/path/non-s3.txt"],
             "size": 200,
             "hash": "testhash",
-            "meta": {"test": "metadata"},
+            "meta": {"test": "metadata", "user_meta": "42"},
         },
     ]
 
@@ -209,7 +209,7 @@ def test_index_manifest(mock_s3_client, mock_es, mock_batcher):
                 "entry_pk_parsed.s3": None,
                 "entry_size": 200,
                 "entry_hash": "testhash",
-                "entry_metadata": json.dumps({"test": "metadata"}, separators=(",", ":")),
+                "entry_metadata": json.dumps({"test": "metadata", "user_meta": "42"}, separators=(",", ":")),
             }
         ),
         call(
