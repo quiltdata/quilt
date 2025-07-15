@@ -80,8 +80,11 @@ def handler(event, context):
 
     bucket = event["s3"]["bucket"]["name"]
     key = event["s3"]["object"]["key"]
-    # XXX: try to get version ID from the event, if available?
+    version_id = event["s3"]["object"].get("versionId")
+    params = {"Bucket": bucket, "Key": key}
+    if version_id:
+        params["VersionId"] = version_id
 
-    data = s3_client.get_object(Bucket=bucket, Key=key)["Body"].read()
+    data = s3_client.get_object(**params)["Body"].read()
     bulk(context, es, data)
-    s3_client.delete_object(Bucket=bucket, Key=key)
+    s3_client.delete_object(**params)
