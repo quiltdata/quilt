@@ -8,7 +8,7 @@ import StyledLink from 'utils/StyledLink'
 
 import type { Suggestion } from './model'
 
-const ES_V = '6.7'
+const ES_V = '6.8'
 
 const displaySuggestion = (s: Suggestion) => (
   <>

@@ -56,7 +56,7 @@ function KeywordWildcardFilterWidget({
   const debounced = useDebouncedState(state.wildcard, handleWildcardChange, 500)
 
   // TODO: link to docs:
-  // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-wildcard-query.html
+  // https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-wildcard-query.html
   return (
     <FiltersUI.KeywordWildcard
       onChange={debounced.set}
@@ -82,7 +82,7 @@ function TextFilterWidget({
   const debounced = useDebouncedState(state.queryString, handleChange, 500)
 
   // TODO: link to docs:
-  // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-simple-query-string-query.html
+  // https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html
   return (
     <FiltersUI.TextField
       onChange={debounced.set}
