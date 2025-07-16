@@ -1317,6 +1317,9 @@ export default function TableViewInit({ hits, bucket }: TableViewInitProps) {
     <Provider>
       <SearchUIModel.AvailablePackagesMetaFilters>
         {(metaFiltersState) => (
+          // NOTE: This unmounts TableView when `metaFiltersState` change.
+          // TODO: Make the `TableView` preserve state and just change the prop.
+          //       Probably, by refactoring `AvailablePackagesMetaFilters` into hook
           <TableView hits={hits} bucket={bucket} metaFiltersState={metaFiltersState} />
         )}
       </SearchUIModel.AvailablePackagesMetaFilters>
