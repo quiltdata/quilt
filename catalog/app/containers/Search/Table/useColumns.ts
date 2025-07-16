@@ -10,7 +10,7 @@ import * as SearchUIModel from '../model'
 import type { HiddenColumns } from './Provider'
 import useInferredUserMetaFacets from './userMeta'
 
-// Skip 'name' because, it is visible by default
+// Skip 'name' because it is visible by default
 const AVAILABLE_PACKAGES_FILTERS = [
   ...PACKAGES_FILTERS_PRIMARY,
   ...PACKAGES_FILTERS_SECONDARY,
