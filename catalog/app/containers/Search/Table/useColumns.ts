@@ -31,6 +31,12 @@ interface ColumnState {
   inferred: boolean
 }
 
+const ColumnStateCreate = (state?: Partial<ColumnState>): ColumnState => ({
+  filtered: state?.filtered ?? false,
+  visible: state?.visible ?? false,
+  inferred: state?.inferred ?? false,
+})
+
 export interface ColumnBucket {
   tag: ColumnTag.Bucket
   filter: 'bucket'
@@ -39,11 +45,11 @@ export interface ColumnBucket {
   title: string
 }
 
-const ColumnBucketCreate = (state: ColumnState): ColumnBucket => ({
+const ColumnBucketCreate = (state?: ColumnState): ColumnBucket => ({
   tag: ColumnTag.Bucket,
   filter: 'bucket',
   fullTitle: PACKAGE_FILTER_LABELS.bucket,
-  state,
+  state: ColumnStateCreate(state),
   title: COLUMN_LABELS.bucket,
 })
 
@@ -57,20 +63,20 @@ export interface ColumnSystemMeta {
 }
 
 const ColumnSystemMetaCreate = (
-  state: ColumnState,
   filter: FilterType,
   predicateType?: SearchUIModel.KnownPredicate['_tag'],
+  state?: ColumnState,
 ): ColumnSystemMeta => ({
   tag: ColumnTag.SystemMeta,
   filter,
   fullTitle: PACKAGE_FILTER_LABELS[filter],
   predicateType: predicateType || 'Text',
-  state,
+  state: ColumnStateCreate(state),
   title: COLUMN_LABELS[filter],
 })
 
-const ColumnNameCreate = (state: ColumnState): ColumnSystemMeta =>
-  ColumnSystemMetaCreate(state, 'name', 'KeywordWildcard')
+const ColumnNameCreate = (state?: ColumnState): ColumnSystemMeta =>
+  ColumnSystemMetaCreate('name', 'KeywordWildcard', state)
 
 export interface ColumnUserMeta {
   tag: ColumnTag.UserMeta
@@ -80,15 +86,15 @@ export interface ColumnUserMeta {
   title: string
 }
 
-const ColumnUserMetaCreate = (
-  state: ColumnState,
+export const ColumnUserMetaCreate = (
   filter: string,
   predicateType: SearchUIModel.KnownPredicate['_tag'],
+  state?: ColumnState,
 ): ColumnUserMeta => ({
   tag: ColumnTag.UserMeta,
   filter,
   predicateType,
-  state,
+  state: ColumnStateCreate(state),
   title: filter.replace(/^\//, ''),
 })
 
@@ -205,15 +211,11 @@ export function useColumns(
   const createSystemMetaColumn = React.useCallback(
     (filter: FilterType) => {
       const predicate = state.filter.predicates[filter]
-      return ColumnSystemMetaCreate(
-        {
-          filtered: !!modifiedFilters && !!modifiedFilters[filter],
-          visible: !!predicate && !hiddenColumns.has(filter),
-          inferred: false,
-        },
-        filter,
-        predicate?._tag,
-      )
+      return ColumnSystemMetaCreate(filter, predicate?._tag, {
+        filtered: !!modifiedFilters && !!modifiedFilters[filter],
+        visible: !!predicate && !hiddenColumns.has(filter),
+        inferred: false,
+      })
     },
     [hiddenColumns, modifiedFilters, state.filter.predicates],
   )
@@ -225,15 +227,11 @@ export function useColumns(
       predicateType: SearchUIModel.KnownPredicate['_tag'],
       inferred: boolean,
     ): ColumnUserMeta =>
-      ColumnUserMetaCreate(
-        {
-          filtered: !!modifiedUserMetaFilters?.find(({ path }) => path === filter),
-          visible: !hiddenColumns.has(filter),
-          inferred,
-        },
-        filter,
-        predicateType,
-      ),
+      ColumnUserMetaCreate(filter, predicateType, {
+        filtered: !!modifiedUserMetaFilters?.find(({ path }) => path === filter),
+        visible: !hiddenColumns.has(filter),
+        inferred,
+      }),
     [hiddenColumns, modifiedUserMetaFilters],
   )
 

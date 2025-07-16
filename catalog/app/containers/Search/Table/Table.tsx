@@ -20,7 +20,7 @@ import * as SearchUIModel from '../model'
 import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
-import { ColumnTag, useColumns } from './useColumns'
+import { ColumnTag, useColumns, ColumnUserMetaCreate } from './useColumns'
 import type {
   Column,
   ColumnBucket,
@@ -662,7 +662,7 @@ function AvailableUserMetaColumnsTree({
                 )
               }
               const column = columns.get(node.value.path)
-              if (!column || column.tag !== ColumnTag.UserMeta) {
+              if (column && column.tag !== ColumnTag.UserMeta) {
                 return (
                   <Lab.Alert key={path + p} severity="error">
                     Could not render {node.value.path}
@@ -672,7 +672,13 @@ function AvailableUserMetaColumnsTree({
               return (
                 <AvailableUserMetaColumn
                   key={path + p}
-                  column={column}
+                  column={
+                    column ||
+                    ColumnUserMetaCreate(
+                      node.value.path,
+                      SearchUIModel.PackageUserMetaFacetMap[node.value.__typename],
+                    )
+                  }
                   {...getLabel(p)}
                 />
               )
