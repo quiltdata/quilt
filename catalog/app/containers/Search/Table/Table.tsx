@@ -983,24 +983,15 @@ function ConfigureColumns({ open, columns, state, onClose }: ConfigureColumnsPro
             Ready: (r) =>
               SearchUIModel.FacetsFilteringState.match(
                 {
-                  Enabled: ({ isFiltered, serverSide }) => {
-                    if (serverSide && !isFiltered) {
-                      return (
-                        <M.FormHelperText className={classes.help}>
-                          Some metadata not displayed.
-                          <br />
-                          Enter search query to see more.
-                        </M.FormHelperText>
-                      )
-                    }
-                    if (isFiltered && !r.facets.available.length) {
-                      return (
-                        <M.FormHelperText className={classes.help}>
-                          No metadata found matching your query
-                        </M.FormHelperText>
-                      )
-                    }
-                  },
+                  Enabled: ({ isFiltered, serverSide }) =>
+                    serverSide &&
+                    !isFiltered && (
+                      <M.FormHelperText className={classes.help}>
+                        Some metadata not displayed.
+                        <br />
+                        Enter search query to see more.
+                      </M.FormHelperText>
+                    ),
                   Disabled: () => null,
                 },
                 r.filtering,
