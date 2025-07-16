@@ -881,11 +881,6 @@ function ConfigureColumnsButton({
 }
 
 const useConfigureColumnsStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
   backdrop: {
     zIndex: t.zIndex.drawer - 1,
     background: t.palette.action.disabledBackground,
@@ -911,6 +906,9 @@ const useConfigureColumnsStyles = M.makeStyles((t) => ({
     boxShadow: '-2px 0 8px rgba(0, 0, 0, 0.3)',
     minWidth: t.spacing(40),
     position: 'absolute',
+  },
+  help: {
+    padding: t.spacing(0, 2),
   },
 }))
 
@@ -941,37 +939,27 @@ function useTextFilter(state: SearchUIModel.AvailableFiltersStateInstance) {
 interface ConfigureColumnsProps {
   columns: ColumnsMap
   state: SearchUIModel.AvailableFiltersStateInstance
+  open: boolean
+  onClose: () => void
 }
 
-function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
+function ConfigureColumns({ open, columns, state, onClose }: ConfigureColumnsProps) {
   const classes = useConfigureColumnsStyles()
-
-  const { hiddenColumns } = useContext()
-
-  const [open, setOpen] = React.useState(false)
-  const show = React.useCallback(() => setOpen(true), [])
-  const hide = React.useCallback(() => setOpen(false), [])
 
   const [filterValue, setFilterValue] = useTextFilter(state)
   return (
     <>
-      <ConfigureColumnsButton
-        className={classes.root}
-        hasHidden={!!hiddenColumns.size}
-        onClick={show}
-      />
-
-      <M.Backdrop open={open} className={classes.backdrop} onClick={hide} />
+      <M.Backdrop open={open} className={classes.backdrop} onClick={onClose} />
       <M.Drawer
         open={open}
         classes={{ paper: classes.popup }}
         variant="persistent"
-        onClose={hide}
+        onClose={onClose}
         anchor="right"
       >
         <div className={classes.head}>
           <M.Typography variant="subtitle2">Configure columns:</M.Typography>
-          <M.IconButton onClick={hide} className={classes.close}>
+          <M.IconButton onClick={onClose} className={classes.close}>
             <M.Icon>close</M.Icon>
           </M.IconButton>
         </div>
@@ -983,6 +971,39 @@ function ConfigureColumns({ columns, state }: ConfigureColumnsProps) {
           placeholder="Find metadata"
           value={filterValue}
         />
+
+        {SearchUIModel.AvailableFiltersState.match(
+          {
+            Ready: (r) =>
+              SearchUIModel.FacetsFilteringState.match(
+                {
+                  Enabled: ({ isFiltered, serverSide }) => {
+                    if (serverSide && !isFiltered) {
+                      return (
+                        <M.FormHelperText className={classes.help}>
+                          Some metadata not displayed.
+                          <br />
+                          Enter search query to see more.
+                        </M.FormHelperText>
+                      )
+                    }
+                    if (isFiltered && !r.facets.available.length) {
+                      return (
+                        <M.FormHelperText className={classes.help}>
+                          No metadata found matching your query
+                        </M.FormHelperText>
+                      )
+                    }
+                  },
+                  Disabled: () => null,
+                },
+                r.filtering,
+              ),
+            Loading: () => null,
+            Empty: () => null,
+          },
+          state,
+        )}
 
         {open && (
           <AvailableColumns
@@ -1193,6 +1214,11 @@ const useLayoutStyles = M.makeStyles((t) => ({
   placeholder: {
     width: t.spacing(5),
   },
+  configure: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
 }))
 
 interface LayoutProps {
@@ -1206,6 +1232,7 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
   const {
     filter,
     filterActions: { close },
+    hiddenColumns,
   } = useContext()
 
   const [skeletonHead, ...skeletonColumns] = skeletons
@@ -1222,11 +1249,26 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
     [columns, minColumnsNumber],
   )
 
+  const [open, setOpen] = React.useState(false)
+  const show = React.useCallback(() => setOpen(true), [])
+  const hide = React.useCallback(() => setOpen(false), [])
+
   return (
     <M.Paper className={classes.root}>
+      <ConfigureColumnsButton
+        className={classes.configure}
+        hasHidden={!!hiddenColumns.size}
+        onClick={show}
+      />
+
       <SearchUIModel.AvailablePackagesMetaFilters>
         {(metaFiltersState) => (
-          <ConfigureColumns columns={columns} state={metaFiltersState} />
+          <ConfigureColumns
+            columns={columns}
+            onClose={hide}
+            open={open}
+            state={metaFiltersState}
+          />
         )}
       </SearchUIModel.AvailablePackagesMetaFilters>
 
