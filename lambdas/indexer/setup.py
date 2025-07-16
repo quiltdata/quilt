@@ -14,7 +14,7 @@ setup(
         "tenacity ~= 9.0",
         (
             "t4_lambda_shared[mem,preview] @ https://github.com/quiltdata/quilt/archive/"
-            "a79f50466acb59bb09dbd70333f471a80348ec23.zip"
+            "198277e45db0aeb62e21d181930ef26f86bd3c70.zip"
             "#subdirectory=lambdas/shared"
         ),
         (

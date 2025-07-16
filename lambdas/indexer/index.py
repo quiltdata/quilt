@@ -752,7 +752,7 @@ def handler(event, context):
                 # given how common they are, we shouldn't fail the batch for this
                 except Exception as exc:  # pylint: disable=broad-except
                     text = ""
-                    logger_.warning("Content extraction failed %s %s %s", bucket, key, exc)
+                    logger_.exception("Content extraction failed %s %s", bucket, key)
 
                 # XXX: we could replace head_object() call above with get_object(Range='bytes=0-0')
                 #      which returns TagsCount, so we could optimize out get_object_tagging() call
