@@ -707,7 +707,7 @@ function addMagicWildcardsQS(s: string | null): string | null {
   return `${s}*`
 }
 
-function useMagicWildcardsQS(s: string | null) {
+export function useMagicWildcardsQS(s: string | null) {
   return React.useMemo(() => addMagicWildcardsQS(s), [s])
 }
 
@@ -865,7 +865,6 @@ interface RenderProps<T> {
   children: RenderFn<T>
 }
 
-// TODO: make it similar to `model.state.firstPageQuery`
 export function AvailablePackagesMetaFilters({
   children,
 }: RenderProps<AvailableFiltersStateInstance>) {

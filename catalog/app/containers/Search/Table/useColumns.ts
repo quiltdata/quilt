@@ -8,7 +8,7 @@ import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
 import * as SearchUIModel from '../model'
 
 import type { HiddenColumns } from './Provider'
-import { useMetadataRootKeys } from './workflow'
+import useInferredUserMetaFacets from './userMeta'
 
 // Skip 'name' because, it is visible by default
 const AVAILABLE_PACKAGES_FILTERS = [
@@ -100,86 +100,12 @@ export const ColumnUserMetaCreate = (
 
 export type Column = ColumnBucket | ColumnSystemMeta | ColumnUserMeta
 
-type UserMetaFacets = Map<string, SearchUIModel.PackageUserMetaFacet['__typename']>
-
-function useInferredUserMetaFacets(
-  metaFiltersState: SearchUIModel.AvailableFiltersStateInstance,
-): Request.Result<UserMetaFacets> {
-  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const selectedSingleBucket = React.useMemo(() => {
-    if (state.buckets.length !== 1) return
-    return state.buckets[0]
-  }, [state.buckets])
-
-  const selectedSingleWorkflow = React.useMemo(() => {
-    const workflows = state.filter.predicates.workflow
-    if (!workflows || workflows.terms.length !== 1) return
-    return workflows.terms[0]
-  }, [state.filter.predicates.workflow])
-
-  const workflowRootKeys = useMetadataRootKeys(
-    selectedSingleBucket,
-    selectedSingleWorkflow,
-  )
-
-  return React.useMemo(() => {
-    if (workflowRootKeys === Request.Loading || workflowRootKeys instanceof Error) {
-      return workflowRootKeys
-    }
-    return SearchUIModel.AvailableFiltersState.match(
-      {
-        Loading: (): Request.Result<UserMetaFacets> => Request.Loading,
-        Empty: () => new Map(),
-        Ready: ({ facets }) => {
-          const allFacets: UserMetaFacets = new Map()
-          const workflowFacets: UserMetaFacets = new Map()
-          facets.available.forEach(({ __typename, path }) => {
-            // Already selected
-            if (state.userMetaFilters.filters.has(path)) {
-              return
-            }
-
-            if (
-              workflowRootKeys !== Request.Idle &&
-              workflowRootKeys.includes(path.replace(/^\//, ''), 0)
-            ) {
-              // Use keywords when possible
-              if (workflowFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
-                // TODO: keep sort order from workflow
-                workflowFacets.set(path, __typename)
-              }
-            }
-
-            // If workflow has facets, then we will use only them
-            // and we don't need to keep fillng `allFacets`
-            if (workflowFacets.size) return
-
-            // Use keywords when possible
-            if (allFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
-              allFacets.set(path, __typename)
-            }
-          })
-          return workflowFacets.size ? workflowFacets : allFacets
-        },
-      },
-      metaFiltersState,
-    )
-  }, [metaFiltersState, state.userMetaFilters.filters, workflowRootKeys])
-}
-
 export type ColumnsMap = Map<Column['filter'], Column>
 
 const columnsToMap = (columns: Column[]) => new Map(columns.map((c) => [c.filter, c]))
 
-type InferredColumnsNotReady = Exclude<Request.Result<UserMetaFacets>, UserMetaFacets>
-
-export function useColumns(
-  hiddenColumns: HiddenColumns,
-  metaFiltersState: SearchUIModel.AvailableFiltersStateInstance,
-  bucket?: string,
-): [ColumnsMap, InferredColumnsNotReady | null] {
-  const inferredFacets: Request.Result<UserMetaFacets> =
-    useInferredUserMetaFacets(metaFiltersState)
+export function useColumns(hiddenColumns: HiddenColumns, bucket?: string) {
+  const inferredFacets = useInferredUserMetaFacets()
 
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
@@ -253,7 +179,7 @@ export function useColumns(
       inferredFacets === Request.Loading ||
       inferredFacets === Request.Idle
     ) {
-      return [columnsToMap(columns), inferredFacets]
+      return { columns: columnsToMap(columns), notReady: inferredFacets }
     }
 
     const inferredUserMeta = Array.from(inferredFacets).map(([filter, predicateType]) =>
@@ -264,7 +190,7 @@ export function useColumns(
       ),
     )
 
-    return [columnsToMap(columns.concat(inferredUserMeta)), null]
+    return { columns: columnsToMap(columns.concat(inferredUserMeta)) }
   }, [
     createBucketColumn,
     createNameColumn,

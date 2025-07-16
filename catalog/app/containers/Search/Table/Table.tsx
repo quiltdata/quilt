@@ -1320,12 +1320,11 @@ const useTableViewStyles = M.makeStyles((t) => ({
 interface TableViewProps {
   hits: readonly Hit[]
   bucket?: string
-  metaFiltersState: SearchUIModel.AvailableFiltersStateInstance
 }
 
-function TableView({ hits, bucket, metaFiltersState }: TableViewProps) {
+function TableView({ hits, bucket }: TableViewProps) {
   const { hiddenColumns } = useContext()
-  const [columns, notReady] = useColumns(hiddenColumns, metaFiltersState, bucket)
+  const { columns, notReady } = useColumns(hiddenColumns, bucket)
   const skeletons = Skeleton.useSkeletonSizes(
     notReady === Request.Loading ? hits.length + 1 : 0,
     3,
@@ -1351,14 +1350,7 @@ interface TableViewInitProps {
 export default function TableViewInit({ hits, bucket }: TableViewInitProps) {
   return (
     <Provider>
-      <SearchUIModel.AvailablePackagesMetaFilters>
-        {(metaFiltersState) => (
-          // NOTE: This unmounts TableView when `metaFiltersState` change.
-          // TODO: Make the `TableView` preserve state and just change the prop.
-          //       Probably, by refactoring `AvailablePackagesMetaFilters` into hook
-          <TableView hits={hits} bucket={bucket} metaFiltersState={metaFiltersState} />
-        )}
-      </SearchUIModel.AvailablePackagesMetaFilters>
+      <TableView hits={hits} bucket={bucket} />
     </Provider>
   )
 }

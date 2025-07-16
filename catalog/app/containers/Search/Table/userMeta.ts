@@ -1,13 +1,66 @@
 import * as React from 'react'
 
+import { metadataSchema, workflowsConfig } from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
-
+import * as GQL from 'utils/GraphQL'
 import type { JsonSchema } from 'utils/JSONSchema'
 import { getSchemaItemKeysOr } from 'utils/JSONSchema'
-import { metadataSchema, workflowsConfig } from 'containers/Bucket/requests'
+import assertNever from 'utils/assertNever'
 import type { WorkflowsConfig } from 'utils/workflows'
 import { notAvailable, notSelected } from 'utils/workflows'
 import * as Request from 'utils/useRequest'
+
+import * as SearchUIModel from '../model'
+
+import META_FACETS_QUERY from '../gql/PackageMetaFacets.generated'
+
+interface AvailableUserMetaFacets {
+  facets: readonly SearchUIModel.PackageUserMetaFacet[]
+  truncated: boolean
+}
+
+function useAvailableUserMetaFacets(): Request.Result<AvailableUserMetaFacets> {
+  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const filter = SearchUIModel.PackagesSearchFilterIO.toGQL(state.filter)
+
+  const searchString = SearchUIModel.useMagicWildcardsQS(state.searchString)
+
+  const query = GQL.useQuery(META_FACETS_QUERY, {
+    searchString,
+    buckets: state.buckets,
+    filter,
+    latestOnly: state.latestOnly,
+  })
+
+  return React.useMemo(
+    () =>
+      GQL.fold(query, {
+        data: ({ searchPackages: r }) => {
+          switch (r.__typename) {
+            case 'EmptySearchResultSet':
+              return { facets: [], truncated: false }
+            case 'InvalidInput':
+              return new Error(r.errors[0].message)
+            case 'PackagesSearchResultSet':
+              return {
+                facets: r.stats.userMeta.filter(
+                  (f) => !state.userMetaFilters.filters.has(f.path),
+                ),
+                // TODO: it is not used now,
+                //       but you can figure out how to show that not all columns are shown
+                truncated: r.stats.userMetaTruncated,
+              }
+            default:
+              assertNever(r)
+          }
+        },
+        fetching: () => Request.Loading,
+        error: (e) => new Error(e.message),
+      }),
+    [query, state.userMetaFilters.filters],
+  )
+}
 
 const noKeys: string[] = []
 
@@ -78,7 +131,7 @@ function getSelectedWorkflow({ workflows }: WorkflowsConfig, selectedWorkflow?: 
   )
 }
 
-export function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) {
+function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) {
   const config = useWorkflowConfig(bucket)
   const schema = useMetadataSchema(config, selectedWorkflow)
 
@@ -99,4 +152,68 @@ export function useMetadataRootKeys(bucket?: string, selectedWorkflow?: string) 
   }
 
   return getSchemaItemKeysOr(schema, noKeys)
+}
+
+type UserMetaFacets = Map<string, SearchUIModel.PackageUserMetaFacet['__typename']>
+
+export default function useInferredUserMetaFacets(): Request.Result<UserMetaFacets> {
+  const facets = useAvailableUserMetaFacets()
+  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+  const selectedSingleBucket = React.useMemo(() => {
+    if (state.buckets.length !== 1) return
+    return state.buckets[0]
+  }, [state.buckets])
+
+  const selectedSingleWorkflow = React.useMemo(() => {
+    const workflows = state.filter.predicates.workflow
+    if (!workflows || workflows.terms.length !== 1) return
+    return workflows.terms[0]
+  }, [state.filter.predicates.workflow])
+
+  const workflowRootKeys = useMetadataRootKeys(
+    selectedSingleBucket,
+    selectedSingleWorkflow,
+  )
+
+  return React.useMemo(() => {
+    if (
+      facets === Request.Idle ||
+      facets === Request.Loading ||
+      facets instanceof Error
+    ) {
+      return facets
+    }
+    if (workflowRootKeys === Request.Loading || workflowRootKeys instanceof Error) {
+      return workflowRootKeys
+    }
+    const allFacets: UserMetaFacets = new Map()
+    const workflowFacets: UserMetaFacets = new Map()
+    facets.facets.forEach(({ __typename, path }) => {
+      // Already selected
+      if (state.userMetaFilters.filters.has(path)) {
+        return
+      }
+
+      if (
+        workflowRootKeys !== Request.Idle &&
+        workflowRootKeys.includes(path.replace(/^\//, ''), 0)
+      ) {
+        // Use keywords when possible
+        if (workflowFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
+          // TODO: keep sort order from workflow
+          workflowFacets.set(path, __typename)
+        }
+      }
+
+      // If workflow has facets, then we will use only them
+      // and we don't need to keep fillng `allFacets`
+      if (workflowFacets.size) return
+
+      // Use keywords when possible
+      if (allFacets.get(path) !== 'KeywordPackageUserMetaFacet') {
+        allFacets.set(path, __typename)
+      }
+    })
+    return workflowFacets.size ? workflowFacets : allFacets
+  }, [facets, state.userMetaFilters.filters, workflowRootKeys])
 }
