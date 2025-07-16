@@ -696,17 +696,14 @@ const ReversPackageUserMetaTypename = {
 function useAvailableSystemMetaColumns(columns: ColumnsMap, filterValue: string) {
   return React.useMemo(() => {
     const bucketColumn = columns.get('bucket') as ColumnBucket | undefined
-    const initial: (ColumnSystemMeta | ColumnBucket)[] = bucketColumn
-      ? [bucketColumn]
-      : []
+    const initial: (ColumnSystemMeta | ColumnBucket)[] =
+      bucketColumn && 'bucket'.includes(filterValue) ? [bucketColumn] : []
     return [...PACKAGES_FILTERS_PRIMARY, ...PACKAGES_FILTERS_SECONDARY].reduce(
       (memo, filter) => {
         const column = columns.get(filter)
-        if (
-          !column ||
-          (column.tag !== ColumnTag.SystemMeta && column.tag !== ColumnTag.Bucket)
-        )
+        if (column?.tag !== ColumnTag.SystemMeta && column?.tag !== ColumnTag.Bucket) {
           return memo
+        }
 
         const combinedFilterString = (column.title + column.fullTitle).toLowerCase()
         if (!combinedFilterString.includes(filterValue)) return memo
