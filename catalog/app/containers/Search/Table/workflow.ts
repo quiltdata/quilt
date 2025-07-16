@@ -29,8 +29,11 @@ function useMetadataSchema(
 ) {
   const s3 = AWS.S3.use()
   const req = React.useCallback(async () => {
-    if (config === Request.Idle || config === Request.Loading) return config
-    if (config instanceof Error) {
+    if (
+      config === Request.Idle ||
+      config === Request.Loading ||
+      config instanceof Error
+    ) {
       throw config
     }
     if (config === null) return noKeys
@@ -58,7 +61,7 @@ function useMetadataSchema(
   }, [s3, config, selectedWorkflow])
   return Request.use<JsonSchema>(
     req,
-    !(config === Request.Loading || config instanceof Error),
+    !(config === Request.Idle || config === Request.Loading || config instanceof Error),
   )
 }
 
