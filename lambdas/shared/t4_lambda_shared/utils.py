@@ -114,7 +114,7 @@ def set_soft_mem_limit(context):
     """
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
     try:
-        resource.setrlimit(resource.RLIMIT_AS, (context.memory_limit_in_mb * 2 ** 20, hard))
+        resource.setrlimit(resource.RLIMIT_AS, (int(context.memory_limit_in_mb) * 2 ** 20, hard))
         yield
     finally:
         resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
