@@ -341,6 +341,7 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
           </M.TableCell>
         ))}
         {skeletons?.map(({ key, width }) => <Skeleton.Cell key={key} width={width} />)}
+        {/* TODO: use second table for placeholder  */}
         <M.TableCell className={classes.placeholder} />
       </M.TableRow>
       {!!hit.matchingEntries?.length && (
@@ -1249,6 +1250,7 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
               {skeletonHead?.columns.map(({ key, width }) => (
                 <Skeleton.Head key={key} width={width} />
               ))}
+              {/* TODO: use second table for placeholder  */}
               <M.TableCell className={classes.placeholder} />
             </M.TableRow>
           </M.TableHead>
