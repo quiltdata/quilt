@@ -10,6 +10,7 @@ import { TinyTextField, List } from 'components/Filters'
 import * as BucketConfig from 'utils/BucketConfig'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
+import * as Request from 'utils/useRequest'
 
 import FilterWidget from '../FilterWidget'
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
@@ -19,7 +20,6 @@ import * as SearchUIModel from '../model'
 import Entries from './Entries'
 import CellValue from './CellValue'
 import * as Skeleton from './Skeleton'
-import * as Workflow from './workflow'
 import { ColumnTag, useColumns } from './useColumns'
 import type {
   Column,
@@ -1289,7 +1289,7 @@ function TableView({ hits, bucket, metaFiltersState }: TableViewProps) {
   const { hiddenColumns } = useContext()
   const [columns, notReady] = useColumns(hiddenColumns, metaFiltersState, bucket)
   const skeletons = Skeleton.useSkeletonSizes(
-    notReady === Workflow.Loading ? hits.length + 1 : 0,
+    notReady === Request.Loading ? hits.length + 1 : 0,
     3,
   )
   const classes = useTableViewStyles()

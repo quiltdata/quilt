@@ -1,13 +1,14 @@
 import * as React from 'react'
 
 import * as JSONPointer from 'utils/JSONPointer'
+import * as Request from 'utils/useRequest'
 
 import { PACKAGES_FILTERS_PRIMARY, PACKAGES_FILTERS_SECONDARY } from '../constants'
 import { COLUMN_LABELS, PACKAGE_FILTER_LABELS } from '../i18n'
 import * as SearchUIModel from '../model'
 
-import * as Workflow from './workflow'
 import type { HiddenColumns } from './Provider'
+import { useMetadataRootKeys } from './workflow'
 
 // Skip 'name' because, it is visible by default
 const AVAILABLE_PACKAGES_FILTERS = [
@@ -97,7 +98,7 @@ type UserMetaFacets = Map<string, SearchUIModel.PackageUserMetaFacet['__typename
 
 function useInferredUserMetaFacets(
   metaFiltersState: SearchUIModel.AvailableFiltersStateInstance,
-): Workflow.RequestResult<UserMetaFacets> {
+): Request.Result<UserMetaFacets> {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const selectedSingleBucket = React.useMemo(() => {
     if (state.buckets.length !== 1) return
@@ -110,16 +111,18 @@ function useInferredUserMetaFacets(
     return workflows.terms[0]
   }, [state.filter.predicates.workflow])
 
-  const workflowRootKeys = Workflow.useMetadataRootKeys(
+  const workflowRootKeys = useMetadataRootKeys(
     selectedSingleBucket,
     selectedSingleWorkflow,
   )
 
   return React.useMemo(() => {
-    if (workflowRootKeys instanceof Error) return workflowRootKeys
+    if (workflowRootKeys === Request.Loading || workflowRootKeys instanceof Error) {
+      return workflowRootKeys
+    }
     return SearchUIModel.AvailableFiltersState.match(
       {
-        Loading: (): Workflow.RequestResult<UserMetaFacets> => Workflow.Loading,
+        Loading: (): Request.Result<UserMetaFacets> => Request.Loading,
         Empty: () => new Map(),
         Ready: ({ facets }) => {
           const allFacets: UserMetaFacets = new Map()
@@ -131,7 +134,7 @@ function useInferredUserMetaFacets(
             }
 
             if (
-              workflowRootKeys !== Workflow.Loading &&
+              workflowRootKeys !== Request.Idle &&
               workflowRootKeys.includes(path.replace(/^\//, ''), 0)
             ) {
               // Use keywords when possible
@@ -162,17 +165,14 @@ export type ColumnsMap = Map<Column['filter'], Column>
 
 const columnsToMap = (columns: Column[]) => new Map(columns.map((c) => [c.filter, c]))
 
-type InferredColumnsNotReady = Exclude<
-  Workflow.RequestResult<UserMetaFacets>,
-  UserMetaFacets
->
+type InferredColumnsNotReady = Exclude<Request.Result<UserMetaFacets>, UserMetaFacets>
 
 export function useColumns(
   hiddenColumns: HiddenColumns,
   metaFiltersState: SearchUIModel.AvailableFiltersStateInstance,
   bucket?: string,
 ): [ColumnsMap, InferredColumnsNotReady | null] {
-  const inferredFacets: Workflow.RequestResult<UserMetaFacets> =
+  const inferredFacets: Request.Result<UserMetaFacets> =
     useInferredUserMetaFacets(metaFiltersState)
 
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
@@ -250,7 +250,11 @@ export function useColumns(
 
     const columns = [...fixed, ...systemMeta, ...selectedUserMeta]
 
-    if (inferredFacets instanceof Error || inferredFacets === Workflow.Loading) {
+    if (
+      inferredFacets instanceof Error ||
+      inferredFacets === Request.Loading ||
+      inferredFacets === Request.Idle
+    ) {
       return [columnsToMap(columns), inferredFacets]
     }
 
