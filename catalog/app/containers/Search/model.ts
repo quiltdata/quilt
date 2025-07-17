@@ -38,9 +38,9 @@ export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
 export const DEFAULT_VIEW = View.List
 
-type Defaults = Partial<Omit<SearchUrlState, 'filter' | 'userMetaFilters'>>
+type Defaults = Omit<SearchUrlState, 'filter' | 'userMetaFilters'>
 
-const createFallbacks = (defaults?: Defaults): Required<Defaults> => ({
+const createFallbacks = (defaults?: Partial<Defaults>): Defaults => ({
   searchString: defaults?.searchString || null,
   resultType: defaults?.resultType || DEFAULT_RESULT_TYPE,
   view: defaults?.view || DEFAULT_VIEW,
@@ -572,7 +572,10 @@ function parseView(view: string | null, fallback: View): View {
 export const META_PREFIX = 'meta.'
 
 // XXX: use @effect/schema for morphisms between url (querystring) and search state
-export function parseSearchParams(qs: string, defaults?: Defaults): SearchUrlState {
+export function parseSearchParams(
+  qs: string,
+  defaults?: Partial<Defaults>,
+): SearchUrlState {
   const fallbacks = createFallbacks(defaults)
   const params = new URLSearchParams(qs)
 
@@ -625,7 +628,7 @@ function areBucketsEqual(left: readonly string[], right: readonly string[]) {
 // XXX: return string?
 function serializeSearchUrlState(
   state: SearchUrlState,
-  defaults?: Defaults,
+  defaults?: Partial<Defaults>,
 ): URLSearchParams {
   const fallbacks = createFallbacks(defaults)
   const params = new URLSearchParams()
@@ -664,12 +667,12 @@ function serializeSearchUrlState(
   return params
 }
 
-function useUrlState(defaults?: Defaults): SearchUrlState {
+function useUrlState(defaults?: Partial<Defaults>): SearchUrlState {
   const l = RR.useLocation()
   return React.useMemo(() => parseSearchParams(l.search, defaults), [l.search, defaults])
 }
 
-export function useMakeUrl(optBase?: string, defaults?: Defaults) {
+export function useMakeUrl(optBase?: string, defaults?: Partial<Defaults>) {
   const { urls } = NamedRoutes.use()
   const base = optBase || urls.search({})
   return React.useCallback(
@@ -1348,7 +1351,7 @@ export function usePackageUserMetaFacetExtents(path: string): {
   })
 }
 
-function useSearchUIModel(optBase?: string, defaults?: Defaults) {
+function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
   const urlState = useUrlState(defaults)
 
   const baseSearchQuery = useBaseSearchQuery(urlState)
@@ -1625,7 +1628,7 @@ export function SearchUIModelProvider({
   base,
   children,
   defaults,
-}: React.PropsWithChildren<{ defaults?: Partial<SearchUrlState>; base?: string }>) {
+}: React.PropsWithChildren<{ defaults?: Partial<Defaults>; base?: string }>) {
   const state = useSearchUIModel(base, defaults)
   return React.createElement(Context.Provider, { value: state }, children)
 }
