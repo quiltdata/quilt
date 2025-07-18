@@ -29,7 +29,7 @@ indexing for the following file extensions:
 
 ### Search page
 
-The search page in the catalog provides a convenient
+The search page in the catalog, accessible from the search button in the top menu bar, provides a convenient
 way for searching objects and packages in an Amazon S3
 bucket.
 
