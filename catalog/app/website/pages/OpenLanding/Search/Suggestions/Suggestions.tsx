@@ -6,10 +6,9 @@ import * as style from 'constants/style'
 import { docs } from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 
-import { useNavBar } from '../Provider'
 import type { Suggestion } from './model'
 
-const ES_V = '6.7'
+const ES_V = '6.8'
 
 const displaySuggestion = (s: Suggestion) => (
   <>
@@ -100,17 +99,14 @@ interface SuggestionsContainerProps {
     contents?: string
   }
   open: boolean
+  suggestions: { items: Suggestion[]; selected: number }
 }
 
 export default function SuggestionsContainer({
   classes,
   open,
+  suggestions: { items, selected },
 }: SuggestionsContainerProps) {
-  const navbarModel = useNavBar()
-  if (!navbarModel) return null
-  const {
-    suggestions: { items, selected },
-  } = navbarModel
   if (!Array.isArray(items) || !items.length) return null
   return (
     <PaperWrapper classes={classes} open={open}>

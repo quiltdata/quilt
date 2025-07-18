@@ -1715,7 +1715,7 @@ function EditPage({ back }: EditPageProps) {
       try {
         const { bucketUpdate: r } = await update({ name: bucket.name, input })
         if (r.__typename !== 'BucketUpdateSuccess') {
-          // Generated `InputError` lacks optional properties and not infered correctly
+          // Generated `InputError` lacks optional properties and not inferred correctly
           return r as Exclude<
             Model.GQLTypes.BucketUpdateResult,
             Model.GQLTypes.BucketUpdateSuccess
@@ -1755,7 +1755,7 @@ function AddPage({ back }: AddPageProps) {
       try {
         const { bucketAdd: r } = await add({ input })
         if (r.__typename !== 'BucketAddSuccess') {
-          // TS infered shape but not the actual type
+          // TS inferred shape but not the actual type
           return r as Exclude<
             Model.GQLTypes.BucketAddResult,
             Model.GQLTypes.BucketAddSuccess

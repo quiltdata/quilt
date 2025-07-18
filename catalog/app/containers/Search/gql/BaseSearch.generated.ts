@@ -9,11 +9,11 @@ export type containers_Search_gql_BaseSearchQueryVariables = Types.Exact<{
 
 export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Query' } & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'PackagesSearchStats' } & Pick<
-          Types.PackagesSearchStats,
-          'total'
-        > & {
+    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
+        Types.PackagesSearchResultSet,
+        'total'
+      > & {
+          readonly stats: { readonly __typename: 'PackagesSearchStats' } & {
             readonly modified: { readonly __typename: 'DatetimeExtents' } & Pick<
               Types.DatetimeExtents,
               'min' | 'max'
@@ -66,7 +66,7 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
                 >)
             >
           }
-      })
+        })
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -77,11 +77,11 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
         >
       })
   readonly searchObjects:
-    | ({ readonly __typename: 'ObjectsSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'ObjectsSearchStats' } & Pick<
-          Types.ObjectsSearchStats,
-          'total'
-        > & {
+    | ({ readonly __typename: 'ObjectsSearchResultSet' } & Pick<
+        Types.ObjectsSearchResultSet,
+        'total'
+      > & {
+          readonly stats: { readonly __typename: 'ObjectsSearchStats' } & {
             readonly modified: { readonly __typename: 'DatetimeExtents' } & Pick<
               Types.DatetimeExtents,
               'min' | 'max'
@@ -95,7 +95,7 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
               'values'
             >
           }
-      })
+        })
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -171,13 +171,13 @@ export const containers_Search_gql_BaseSearchDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'stats' },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                             {
                               kind: 'Field',
                               name: { kind: 'Name', value: 'modified' },
@@ -418,13 +418,13 @@ export const containers_Search_gql_BaseSearchDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'stats' },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                             {
                               kind: 'Field',
                               name: { kind: 'Name', value: 'modified' },
