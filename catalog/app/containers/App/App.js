@@ -58,6 +58,7 @@ const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
+const Redir = protect(RT.mkLazy(() => import('containers/Redir'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
   RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
@@ -155,6 +156,10 @@ export default function App() {
 
         <Route path={paths.bucketRoot}>
           <Bucket />
+        </Route>
+
+        <Route path={paths.redir}>
+          <Redir />
         </Route>
 
         <Route>
