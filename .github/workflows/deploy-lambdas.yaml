@@ -2,8 +2,8 @@ name: Deploy lambdas to S3 and ECR
 
 on:
   push:
-    branches:
-      - master
+    # branches:
+    #   - master
     paths:
       - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
@@ -13,16 +13,16 @@ jobs:
     strategy:
       matrix:
         path:
-          - access_counts
-          - es_ingest
-          - pkgevents
-          - pkgpush
+          # - access_counts
+          # - es_ingest
+          # - pkgevents
+          # - pkgpush
           - preview
-          - s3hash
-          - status_reports
-          - manifest_indexer
-          - tabular_preview
-          - transcode
+          # - s3hash
+          # - status_reports
+          # - manifest_indexer
+          # - tabular_preview
+          # - transcode
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -71,7 +71,7 @@ jobs:
       matrix:
         path:
           - indexer
-          - thumbnail
+          # - thumbnail
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -94,5 +94,5 @@ jobs:
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
-      - name: Push Docker image to GovCloud ECR
-        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
+      # - name: Push Docker image to GovCloud ECR
+      #   run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"

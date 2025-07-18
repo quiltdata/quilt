@@ -85,6 +85,7 @@ from quilt_shared.es import (
 )
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_LINES,
+    decompress_stream,
     extract_excel,
     extract_fcs,
     extract_parquet,
@@ -93,6 +94,7 @@ from t4_lambda_shared.preview import (
     trim_to_bytes,
 )
 from t4_lambda_shared.utils import (
+    LAMBDA_TMP_SPACE,
     get_available_memory,
     get_quilt_logger,
     separated_env_to_iter,
@@ -398,8 +400,16 @@ def maybe_get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client
             )
 
         if inferred_ext == ".fcs":
+            if size > LAMBDA_TMP_SPACE:
+                logger_.warning(
+                    "FCS file %s/%s too large (%s) to deserialize; skipping contents",
+                    bucket,
+                    key,
+                    size,
+                )
+                return ""
             obj = _get_obj()
-            body, info = extract_fcs(get_bytes(obj["Body"], compression), as_html=False)
+            body, info = extract_fcs(decompress_stream(obj["Body"], compression), as_html=False)
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
             content = trim_to_bytes(f"{body}\n{info}", get_content_index_bytes(bucket_name=bucket))
