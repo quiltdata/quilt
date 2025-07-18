@@ -62,7 +62,7 @@ interface ListProps {
   onChange: (v: string[]) => void
   placeholder?: string
   searchThreshold?: number
-  value: string[]
+  value: readonly string[]
 }
 
 export default function List({

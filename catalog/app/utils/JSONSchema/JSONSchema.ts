@@ -327,3 +327,24 @@ export function getDefaultValue(optSchema?: JsonSchema): any {
 export function makeSchemaDefaultsSetter(optSchema?: JsonSchema) {
   return (obj: any) => scanSchemaAndPrefillValues(getDefaultValue, obj, optSchema)
 }
+
+export function getSchemaItemKeysOr<T extends string[]>(
+  schemaItem: JsonSchema,
+  defaultKeys: T,
+): string[] {
+  if (!schemaItem || !schemaItem.properties) return defaultKeys
+  const keys = Object.keys(schemaItem.properties)
+
+  if (!schemaItem.required) return keys
+
+  const sortOrder = schemaItem.required.reduce(
+    (memo: { [x: string]: number }, key: string, index: number) => ({
+      ...memo,
+      [key]: index,
+    }),
+    {} as { [x: string]: number },
+  )
+  const getSortIndex = (key: string) =>
+    R.ifElse(R.has(key), R.prop(key), R.always(Infinity))(sortOrder)
+  return R.sortBy(getSortIndex, keys)
+}

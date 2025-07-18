@@ -579,7 +579,7 @@ function Tables({ adding, bucketName, onAdding, tables }: TablesProps) {
       try {
         setSubmitting(true)
         const response = await setTable({ bucketName, tableName, config: null })
-        // Generated `InputError` lacks optional properties and not infered correctly
+        // Generated `InputError` lacks optional properties and not inferred correctly
         const r = response.admin
           .bucketSetTabulatorTable as Model.GQLTypes.BucketSetTabulatorTableResult
         setSubmitting(false)
