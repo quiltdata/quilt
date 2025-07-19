@@ -4,8 +4,9 @@ Misc helper functions
 import json
 import logging
 import os
+import sys
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from testfixtures import LogCapture
@@ -15,6 +16,7 @@ from t4_lambda_shared.utils import (
     get_default_origins,
     make_json_response,
     separated_env_to_iter,
+    set_soft_mem_limit,
 )
 
 
@@ -171,3 +173,13 @@ def test_logger(level: int, message: str, call: str, expected: str, name: str):
             buffer.check(('fake', call.upper(), expected))
         else:
             buffer.check()
+
+
+@pytest.mark.skipif(sys.platform != "Linux", reason="does't work at least on macOS")
+def test_set_soft_mem_limit():
+    mock_context = MagicMock()
+    mock_context.memory_limit_in_mb = "1024"
+
+    # just smoke test it
+    with set_soft_mem_limit(mock_context):
+        pass
