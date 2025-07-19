@@ -1,11 +1,13 @@
 import * as React from 'react'
-import { Redirect, useHistory, useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
+
+import Redirect from './Redirect'
 
 const useStyles = M.makeStyles((t) => ({
   container: {
@@ -22,23 +24,17 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function UriResolver() {
-  const params = useParams<{ uri?: string }>()
+interface FormProps {
+  initialValue: string
+  error: PackageUri.PackageUriError | null
+}
 
+function Form({ initialValue, error }: FormProps) {
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const classes = useStyles()
 
-  const uri = decodeURIComponent(params.uri || '')
-  const [parsed, error] = React.useMemo(() => {
-    try {
-      return [uri ? PackageUri.parse(uri) : null]
-    } catch (e) {
-      return [null, e as unknown as PackageUri.PackageUriError]
-    }
-  }, [uri])
-
-  const [value, setValue] = React.useState(uri)
+  const [value, setValue] = React.useState(initialValue)
 
   const handleChange = React.useCallback(
     (e) => {
@@ -50,21 +46,10 @@ export default function UriResolver() {
   const handleSubmit = React.useCallback(
     (e) => {
       e.preventDefault()
-      if (value !== uri) history.push(urls.uriResolver(value))
+      if (value !== initialValue) history.push(urls.uriResolver(value))
     },
-    [value, uri, history, urls],
+    [value, initialValue, history, urls],
   )
-
-  const to =
-    parsed &&
-    urls.bucketPackageTree(
-      parsed.bucket,
-      parsed.name,
-      parsed.hash || parsed.tag,
-      parsed.path,
-    ) + NamedRoutes.mkSearch({ resolvedFrom: uri })
-
-  if (to) return <Redirect to={to} />
 
   return (
     <Layout
@@ -105,4 +90,29 @@ export default function UriResolver() {
       }
     />
   )
+}
+
+function useUriResolver(decoded: string) {
+  return React.useMemo(() => {
+    if (!decoded) return null
+
+    try {
+      return PackageUri.parse(decoded)
+    } catch (e) {
+      return e as unknown as PackageUri.PackageUriError
+    }
+  }, [decoded])
+}
+
+export default function UriResolver() {
+  const params = useParams<{ uri?: string }>()
+
+  const decoded = decodeURIComponent(params.uri || '')
+  const uri = useUriResolver(decoded)
+
+  if (!uri || uri instanceof Error) {
+    return <Layout pre={<Form initialValue={decoded} error={uri} />} />
+  }
+
+  return <Redirect parsed={uri} decoded={decoded} />
 }

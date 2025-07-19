@@ -75,6 +75,11 @@ export const uriResolver = route(
   (uri: string) => `/uri/${uri ? encodeURIComponent(uri) : ''}`,
 )
 
+export const redir = route(
+  '/redir/:uri(.*)',
+  (uri: string) => `/redir/${uri ? encodeURIComponent(uri) : ''}`,
+)
+
 // Bucket
 export const bucketRoot = route('/b/:bucket', (bucket: string) => `/b/${bucket}`)
 export const bucketOverview = bucketRoot
