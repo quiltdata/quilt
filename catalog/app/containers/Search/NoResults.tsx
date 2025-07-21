@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import InnerEmpty from 'components/Empty'
+import Empty from 'components/Empty'
 import { ES_REF_SYNTAX } from 'components/SearchResults'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
@@ -50,12 +50,12 @@ export enum Refine {
   Network,
 }
 
-interface EmptyProps {
+interface EmptyWrapperProps {
   className?: string
   onRefine: (action: Refine) => void
 }
 
-export function Empty({ className, onRefine }: EmptyProps) {
+function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
   const { baseSearchQuery, state } = SearchUIModel.use()
 
   const otherResultType =
@@ -92,52 +92,43 @@ export function Empty({ className, onRefine }: EmptyProps) {
   }
 
   return (
-    <InnerEmpty
-      className={className}
-      title={`No matching ${LABELS[state.resultType]}`}
-      description={
-        <>
-          <p>
-            Search for{' '}
-            <StyledLink onClick={() => onRefine(Refine.ResultType)}>
-              {LABELS[otherResultType]}
-            </StyledLink>{' '}
-            instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or
-            adjust your search:
-          </p>
-          <ul>
-            {state.buckets.length > 0 && (
-              <li>
-                Search in{' '}
-                <StyledLink onClick={() => onRefine(Refine.Buckets)}>
-                  all buckets
-                </StyledLink>
-              </li>
-            )}
-            {numFilters > 0 && (
-              <li>
-                Reset the{' '}
-                <StyledLink onClick={() => onRefine(Refine.Filters)}>
-                  search filters
-                </StyledLink>
-              </li>
-            )}
-            <li>
-              Edit your{' '}
-              <StyledLink onClick={() => onRefine(Refine.Search)}>
-                search query
-              </StyledLink>
-            </li>
-            <li>
-              Start{' '}
-              <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
-            </li>
-          </ul>
-        </>
-      }
-    />
+    <Empty className={className} title={`No matching ${LABELS[state.resultType]}`}>
+      <p>
+        Search for{' '}
+        <StyledLink onClick={() => onRefine(Refine.ResultType)}>
+          {LABELS[otherResultType]}
+        </StyledLink>{' '}
+        instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or adjust
+        your search:
+      </p>
+      <ul>
+        {state.buckets.length > 0 && (
+          <li>
+            Search in{' '}
+            <StyledLink onClick={() => onRefine(Refine.Buckets)}>all buckets</StyledLink>
+          </li>
+        )}
+        {numFilters > 0 && (
+          <li>
+            Reset the{' '}
+            <StyledLink onClick={() => onRefine(Refine.Filters)}>
+              search filters
+            </StyledLink>
+          </li>
+        )}
+        <li>
+          Edit your{' '}
+          <StyledLink onClick={() => onRefine(Refine.Search)}>search query</StyledLink>
+        </li>
+        <li>
+          Start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
+        </li>
+      </ul>
+    </Empty>
   )
 }
+
+export { EmptyWrapper as Empty }
 
 const useErrorStyles = M.makeStyles((t) => ({
   root: {

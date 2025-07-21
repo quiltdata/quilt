@@ -52,56 +52,64 @@ interface EmptyProps {
   onRefine: (action: NoResults.Refine) => void
 }
 
-export default function NoPackages({ bucket, className, onRefine }: EmptyProps) {
-  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-
-  let numFilters = state.filter.order.length + state.userMetaFilters.filters.size
-
+function WithFilters({ bucket, className, onRefine }: EmptyProps) {
   return (
     <Empty
       className={className}
       title="No matching packages"
-      description={
-        numFilters ? (
-          <>
-            <p>
-              Search in{' '}
-              <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
-                all buckets
-              </StyledLink>{' '}
-              instead or adjust your search:
-            </p>
-            <ul>
-              <li>
-                Reset the{' '}
-                <StyledLink onClick={() => onRefine(NoResults.Refine.Filters)}>
-                  search filters
-                </StyledLink>
-              </li>
-              <li>
-                Start{' '}
-                <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>
-                  from scratch
-                </StyledLink>
-              </li>
-            </ul>
-          </>
-        ) : (
-          <p>
-            Search in{' '}
-            <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
-              all buckets
-            </StyledLink>{' '}
-            instead or start your search{' '}
-            <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>
-              from scratch
-            </StyledLink>
-            .
-          </p>
-        )
-      }
+      description={<CreatePackage bucket={bucket} />}
     >
-      <CreatePackage bucket={bucket} />
+      <p>
+        Search in{' '}
+        <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
+          all buckets
+        </StyledLink>{' '}
+        instead or adjust your search:
+      </p>
+      <ul>
+        <li>
+          Reset the{' '}
+          <StyledLink onClick={() => onRefine(NoResults.Refine.Filters)}>
+            search filters
+          </StyledLink>
+        </li>
+        <li>
+          Start{' '}
+          <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>
+            from scratch
+          </StyledLink>
+        </li>
+      </ul>
     </Empty>
   )
+}
+
+function BareFilters({ bucket, className, onRefine }: EmptyProps) {
+  return (
+    <Empty
+      className={className}
+      title="No matching packages"
+      description={<CreatePackage bucket={bucket} />}
+    >
+      <p>
+        Search in{' '}
+        <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
+          all buckets
+        </StyledLink>{' '}
+        instead or start your search{' '}
+        <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>
+          from scratch
+        </StyledLink>
+        .
+      </p>
+    </Empty>
+  )
+}
+
+export default function NoPackages(props: EmptyProps) {
+  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  let numFilters = state.filter.order.length + state.userMetaFilters.filters.size
+
+  return numFilters ? <WithFilters {...props} /> : <BareFilters {...props} />
 }

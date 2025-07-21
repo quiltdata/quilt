@@ -35,25 +35,27 @@ function WaitingScreen({ uri }: WaitingScreenProps) {
             className={classes.root}
             title={uri instanceof Error ? 'Failed to redirect' : 'Redirecting…'}
             description={
-              uri instanceof Error && (
-                <M.Typography color="error">
-                  Error parsing URI: {uri.msg || `${uri}`}
+              <>
+                <M.Button
+                  color="primary"
+                  component="a"
+                  href={uri instanceof Error ? 'quilt+s3://' : PackageUri.stringify(uri)}
+                  variant="contained"
+                >
+                  Open QuiltSync
+                </M.Button>
+
+                <M.Typography>
+                  Click the button if you’re not redirected automatically.
                 </M.Typography>
-              )
+              </>
             }
           >
-            <M.Button
-              color="primary"
-              component="a"
-              href={uri instanceof Error ? 'quilt+s3://' : PackageUri.stringify(uri)}
-              variant="contained"
-            >
-              Open QuiltSync
-            </M.Button>
-
-            <M.Typography>
-              Click the button if you’re not redirected automatically.
-            </M.Typography>
+            {uri instanceof Error && (
+              <M.Typography color="error">
+                Error parsing URI: {uri.msg || `${uri}`}
+              </M.Typography>
+            )}
           </Empty>
         </>
       }

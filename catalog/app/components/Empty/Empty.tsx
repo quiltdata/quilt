@@ -48,9 +48,9 @@ export default function Empty({ className, children, description, title }: Empty
     <div className={cx(classes.root, className)}>
       {title && <M.Typography variant="h4">{title}</M.Typography>}
 
-      {children && <div className={classes.main}>{children}</div>}
+      {description && <div className={classes.main}>{description}</div>}
 
-      <div className={classes.description}>{description}</div>
+      {children && <div className={classes.description}>{children}</div>}
     </div>
   )
 }
