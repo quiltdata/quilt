@@ -9,6 +9,24 @@ import * as UriResolver from 'containers/UriResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as PackageUri from 'utils/PackageUri'
 
+interface OpenInDesktopProps {
+  href: string
+}
+
+function OpenInDesktop({ href }: OpenInDesktopProps) {
+  return (
+    <>
+      <M.Button color="primary" component="a" href={href} variant="contained">
+        Open QuiltSync
+      </M.Button>
+
+      <M.Typography>
+        Click the button if you’re not redirected automatically.
+      </M.Typography>
+    </>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     margin: t.spacing(6, 0),
@@ -16,50 +34,36 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface WaitingScreenProps {
-  uri: PackageUri.PackageUri | PackageUri.PackageUriError
+  uri: PackageUri.PackageUri
+  className: string
 }
 
-// FIXME
-// Two different states for waiting valid uri,
-// and for showing that redirect failed because uri is invalid
-function WaitingScreen({ uri }: WaitingScreenProps) {
-  const classes = useStyles()
-
+function WaitingScreen({ className, uri }: WaitingScreenProps) {
   return (
-    <Layout
-      pre={
-        <>
-          <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
-
-          <Empty
-            className={classes.root}
-            title={uri instanceof Error ? 'Failed to redirect' : 'Redirecting…'}
-            description={
-              <>
-                <M.Button
-                  color="primary"
-                  component="a"
-                  href={uri instanceof Error ? 'quilt+s3://' : PackageUri.stringify(uri)}
-                  variant="contained"
-                >
-                  Open QuiltSync
-                </M.Button>
-
-                <M.Typography>
-                  Click the button if you’re not redirected automatically.
-                </M.Typography>
-              </>
-            }
-          >
-            {uri instanceof Error && (
-              <M.Typography color="error">
-                Error parsing URI: {uri.msg || `${uri}`}
-              </M.Typography>
-            )}
-          </Empty>
-        </>
-      }
+    <Empty
+      className={className}
+      title="Redirecting…"
+      description={<OpenInDesktop href={PackageUri.stringify(uri)} />}
     />
+  )
+}
+
+interface RedirectFailedProps {
+  className: string
+  error: PackageUri.PackageUriError
+}
+
+function RedirectFailed({ className, error }: RedirectFailedProps) {
+  return (
+    <Empty
+      className={className}
+      title="Failed to redirect"
+      description={<OpenInDesktop href="quilt+s3://" />}
+    >
+      <M.Typography color="error">
+        Error parsing URI: {error.msg || `${error}`}
+      </M.Typography>
+    </Empty>
   )
 }
 
@@ -78,21 +82,37 @@ export default function Redir() {
 
   invariant(params.uri, '`uri` must be defined')
 
+  const classes = useStyles()
+
   const decoded = decodeURIComponent(params.uri || '')
   const uri = useUriResolver(decoded)
 
-  const [opened, setOpened] = React.useState(false)
+  const [redirecting, setRedirecting] = React.useState<PackageUri.PackageUri | null>(null)
   React.useEffect(() => {
     if (uri instanceof Error) return
     window.location.assign(decoded)
     setTimeout(() => {
-      setOpened(true)
+      setRedirecting(uri)
     }, 3000)
   }, [decoded, uri])
 
-  if (!opened || uri instanceof Error) {
-    return <Layout pre={<WaitingScreen uri={uri} />} />
+  if (redirecting) {
+    return <UriResolver.Redirect parsed={redirecting} decoded={decoded} />
   }
 
-  return <UriResolver.Redirect parsed={uri} decoded={decoded} />
+  // TODO: use children instead of `pre`
+  return (
+    <Layout
+      pre={
+        <>
+          <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
+          {uri instanceof Error ? (
+            <RedirectFailed className={classes.root} error={uri} />
+          ) : (
+            <WaitingScreen className={classes.root} uri={uri} />
+          )}
+        </>
+      }
+    />
+  )
 }
