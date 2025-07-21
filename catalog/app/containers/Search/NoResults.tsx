@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import InnerEmpty from 'components/Empty'
 import { ES_REF_SYNTAX } from 'components/SearchResults'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
@@ -40,28 +41,6 @@ const LABELS = {
   [SearchUIModel.ResultType.S3Object]: 'objects',
 }
 
-const useEmptyStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  body: {
-    maxWidth: '30rem',
-    marginTop: t.spacing(3),
-  },
-  list: {
-    ...t.typography.body1,
-    paddingLeft: 0,
-  },
-  create: {
-    maxWidth: '30rem',
-    borderBottom: `1px solid ${t.palette.divider}`,
-    marginTop: t.spacing(2),
-    paddingBottom: t.spacing(2),
-  },
-}))
-
 export enum Refine {
   Buckets,
   ResultType,
@@ -77,7 +56,6 @@ interface EmptyProps {
 }
 
 export function Empty({ className, onRefine }: EmptyProps) {
-  const classes = useEmptyStyles()
   const { baseSearchQuery, state } = SearchUIModel.use()
 
   const otherResultType =
@@ -114,44 +92,64 @@ export function Empty({ className, onRefine }: EmptyProps) {
   }
 
   return (
-    <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
-
-      <M.Typography variant="body1" align="center" className={classes.body}>
-        Search for{' '}
-        <StyledLink onClick={() => onRefine(Refine.ResultType)}>
-          {LABELS[otherResultType]}
-        </StyledLink>{' '}
-        instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or adjust
-        your search:
-      </M.Typography>
-
-      <ul className={classes.list}>
-        {state.buckets.length > 0 && (
-          <li>
-            Search in{' '}
-            <StyledLink onClick={() => onRefine(Refine.Buckets)}>all buckets</StyledLink>
-          </li>
-        )}
-        {numFilters > 0 && (
-          <li>
-            Reset the{' '}
-            <StyledLink onClick={() => onRefine(Refine.Filters)}>
-              search filters
-            </StyledLink>
-          </li>
-        )}
-        <li>
-          Edit your{' '}
-          <StyledLink onClick={() => onRefine(Refine.Search)}>search query</StyledLink>
-        </li>
-        <li>
-          Start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
-        </li>
-      </ul>
-    </div>
+    <InnerEmpty
+      className={className}
+      title={`No matching ${LABELS[state.resultType]}`}
+      description={
+        <>
+          <p>
+            Search for{' '}
+            <StyledLink onClick={() => onRefine(Refine.ResultType)}>
+              {LABELS[otherResultType]}
+            </StyledLink>{' '}
+            instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or
+            adjust your search:
+          </p>
+          <ul>
+            {state.buckets.length > 0 && (
+              <li>
+                Search in{' '}
+                <StyledLink onClick={() => onRefine(Refine.Buckets)}>
+                  all buckets
+                </StyledLink>
+              </li>
+            )}
+            {numFilters > 0 && (
+              <li>
+                Reset the{' '}
+                <StyledLink onClick={() => onRefine(Refine.Filters)}>
+                  search filters
+                </StyledLink>
+              </li>
+            )}
+            <li>
+              Edit your{' '}
+              <StyledLink onClick={() => onRefine(Refine.Search)}>
+                search query
+              </StyledLink>
+            </li>
+            <li>
+              Start{' '}
+              <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
+            </li>
+          </ul>
+        </>
+      }
+    />
   )
 }
+
+const useErrorStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  body: {
+    maxWidth: '30rem',
+    marginTop: t.spacing(3),
+  },
+}))
 
 interface ErrorProps {
   className?: string
@@ -166,7 +164,7 @@ export function Error({
   children,
   onRefine,
 }: ErrorProps) {
-  const classes = useEmptyStyles()
+  const classes = useErrorStyles()
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">
