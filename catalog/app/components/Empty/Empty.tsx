@@ -8,7 +8,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
   },
-  main: {
+  actions: {
     alignItems: 'center',
     borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
@@ -25,7 +25,7 @@ const useStyles = M.makeStyles((t) => ({
       flexBasis: '40%',
     },
   },
-  description: {
+  main: {
     ...t.typography.body1,
     alignItems: 'center',
     display: 'flex',
@@ -38,19 +38,19 @@ const useStyles = M.makeStyles((t) => ({
 interface EmptyProps {
   children?: React.ReactNode
   className?: string
-  description?: React.ReactNode
+  actions?: React.ReactNode
   title?: string
 }
 
-export default function Empty({ className, children, description, title }: EmptyProps) {
+export default function Empty({ className, children, actions, title }: EmptyProps) {
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
       {title && <M.Typography variant="h4">{title}</M.Typography>}
 
-      {description && <div className={classes.main}>{description}</div>}
+      {actions && <div className={classes.actions}>{actions}</div>}
 
-      {children && <div className={classes.description}>{children}</div>}
+      {children && <div className={classes.main}>{children}</div>}
     </div>
   )
 }

@@ -57,7 +57,7 @@ function WithFilters({ bucket, className, onRefine }: EmptyProps) {
     <Empty
       className={className}
       title="No matching packages"
-      description={<CreatePackage bucket={bucket} />}
+      actions={<CreatePackage bucket={bucket} />}
     >
       <p>
         Search in{' '}
@@ -89,7 +89,7 @@ function BareFilters({ bucket, className, onRefine }: EmptyProps) {
     <Empty
       className={className}
       title="No matching packages"
-      description={<CreatePackage bucket={bucket} />}
+      actions={<CreatePackage bucket={bucket} />}
     >
       <p>
         Search in{' '}

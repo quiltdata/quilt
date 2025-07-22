@@ -64,7 +64,7 @@ export default function Redir() {
       {isError(uri) ? (
         <Empty
           className={classes.root}
-          description={<OpenInDesktop href="quilt+s3://" />}
+          actions={<OpenInDesktop href="quilt+s3://" />}
           title="Failed to redirect"
         >
           <M.Typography color="error">
@@ -74,7 +74,7 @@ export default function Redir() {
       ) : (
         <Empty
           className={classes.root}
-          description={<OpenInDesktop href={PackageUri.stringify(uri)} />}
+          actions={<OpenInDesktop href={PackageUri.stringify(uri)} />}
           title="Redirecting…"
         />
       )}
