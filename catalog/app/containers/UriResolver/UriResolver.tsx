@@ -13,9 +13,9 @@ import parsePackageUriSafe from './parsePackageUriSafe'
 
 const useStyles = M.makeStyles((t) => ({
   container: {
-    paddingTop: t.spacing(6),
-    paddingBottom: t.spacing(6),
     maxWidth: '656px !important',
+    paddingBottom: t.spacing(2),
+    paddingTop: t.spacing(2),
   },
   form: {
     display: 'flex',
@@ -54,43 +54,39 @@ function Form({ initialValue, error }: FormProps) {
   )
 
   return (
-    <Layout
-      pre={
-        <M.Container className={classes.container}>
-          <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
+    <M.Container className={classes.container}>
+      <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
 
-          <M.Typography variant="h4" align="center">
-            Resolve a Quilt+ URI
+      <M.Typography variant="h4" align="center">
+        Resolve a Quilt+ URI
+      </M.Typography>
+
+      <form className={classes.form} onSubmit={handleSubmit}>
+        <M.Input
+          value={value}
+          onChange={handleChange}
+          error={!!error}
+          placeholder="Enter a URI, e.g. quilt+s3://your-bucket#package=user/package@hash"
+          fullWidth
+        />
+        <M.Button
+          className={classes.btn}
+          type="submit"
+          variant="contained"
+          color="primary"
+        >
+          Resolve
+        </M.Button>
+      </form>
+
+      {!!error && (
+        <M.Box mt={2}>
+          <M.Typography color="error" data-testid="uri-error">
+            Error parsing URI: {error.msg || `${error}`}
           </M.Typography>
-
-          <form className={classes.form} onSubmit={handleSubmit}>
-            <M.Input
-              value={value}
-              onChange={handleChange}
-              error={!!error}
-              placeholder="Enter a URI, e.g. quilt+s3://your-bucket#package=user/package@hash"
-              fullWidth
-            />
-            <M.Button
-              className={classes.btn}
-              type="submit"
-              variant="contained"
-              color="primary"
-            >
-              Resolve
-            </M.Button>
-          </form>
-
-          {!!error && (
-            <M.Box mt={2}>
-              <M.Typography color="error" data-testid="uri-error">
-                Error parsing URI: {error.msg || `${error}`}
-              </M.Typography>
-            </M.Box>
-          )}
-        </M.Container>
-      }
-    />
+        </M.Box>
+      )}
+    </M.Container>
   )
 }
 
@@ -105,5 +101,9 @@ export default function UriResolver() {
 
   if (uri && !isError(uri)) return <Redirect parsed={uri} decoded={decoded} />
 
-  return <Layout pre={<Form initialValue={decoded} error={uri} />} />
+  return (
+    <Layout>
+      <Form initialValue={decoded} error={uri} />
+    </Layout>
+  )
 }
