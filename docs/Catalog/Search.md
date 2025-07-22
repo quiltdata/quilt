@@ -27,10 +27,10 @@ indexing for the following file extensions:
   * .pptx
   * .xls, .xlsx
 
-### Search Bar
+### Search page
 
-The search bar on every page in the catalog provides a convenient
-shortcut for searching objects and packages in an Amazon S3
+The search page in the catalog, accessible from the search button in the top menu bar, provides a convenient
+way for searching objects and packages in an Amazon S3
 bucket.
 
 NOTE: Quilt uses Elasticsearch 6.7 [query string
