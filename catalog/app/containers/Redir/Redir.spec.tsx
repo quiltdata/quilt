@@ -77,6 +77,7 @@ describe('containers/Redir/Redir', () => {
   it('redirects to package page', async () => {
     // TODO: spy on window.location.assign
     jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+    jest.useFakeTimers()
     useParams.mockImplementation(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
     }))
@@ -85,12 +86,7 @@ describe('containers/Redir/Redir', () => {
         <Redir />
       </NamedRoutes.Provider>,
     )
-    await renderer.act(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(resolve, 1100)
-        }),
-    )
+    await renderer.act(() => jest.runAllTimersAsync())
     expect(tree).toMatchSnapshot()
   })
 })
