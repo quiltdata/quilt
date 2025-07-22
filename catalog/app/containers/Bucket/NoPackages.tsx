@@ -27,13 +27,6 @@ function CreatePackage({ bucket }: CreatePackageProps) {
       <M.Button color="primary" onClick={handleClick} variant="contained">
         Create package
       </M.Button>
-      <M.Typography>
-        or{' '}
-        <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
-          push a package
-        </StyledLink>{' '}
-        with the Quilt Python API.
-      </M.Typography>
 
       {createDialog.render({
         successTitle: 'Package created',
@@ -52,13 +45,9 @@ interface EmptyProps {
   onRefine: (action: NoResults.Refine) => void
 }
 
-function WithFilters({ bucket, className, onRefine }: EmptyProps) {
+function WithFilters({ onRefine }: { onRefine: (action: NoResults.Refine) => void }) {
   return (
-    <Empty
-      className={className}
-      title="No matching packages"
-      actions={<CreatePackage bucket={bucket} />}
-    >
+    <>
       <p>
         Search in{' '}
         <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
@@ -80,36 +69,49 @@ function WithFilters({ bucket, className, onRefine }: EmptyProps) {
           </StyledLink>
         </li>
       </ul>
-    </Empty>
+    </>
   )
 }
 
-function BareFilters({ bucket, className, onRefine }: EmptyProps) {
+function BareFilters({ onRefine }: { onRefine: (action: NoResults.Refine) => void }) {
+  return (
+    <p>
+      Search in{' '}
+      <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
+        all buckets
+      </StyledLink>{' '}
+      instead or start your search{' '}
+      <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>from scratch</StyledLink>
+      .
+    </p>
+  )
+}
+
+export default function NoPackages({ className, bucket, onRefine }: EmptyProps) {
+  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
+
+  const numFilters = state.filter.order.length + state.userMetaFilters.filters.size
+
   return (
     <Empty
       className={className}
       title="No matching packages"
-      actions={<CreatePackage bucket={bucket} />}
+      primary={<CreatePackage bucket={bucket} />}
+      secondary={
+        <>
+          or{' '}
+          <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
+            push a package
+          </StyledLink>{' '}
+          with the Quilt Python API.
+        </>
+      }
     >
-      <p>
-        Search in{' '}
-        <StyledLink onClick={() => onRefine(NoResults.Refine.Buckets)}>
-          all buckets
-        </StyledLink>{' '}
-        instead or start your search{' '}
-        <StyledLink onClick={() => onRefine(NoResults.Refine.New)}>
-          from scratch
-        </StyledLink>
-        .
-      </p>
+      {numFilters ? (
+        <WithFilters onRefine={onRefine} />
+      ) : (
+        <BareFilters onRefine={onRefine} />
+      )}
     </Empty>
   )
-}
-
-export default function NoPackages(props: EmptyProps) {
-  const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-
-  let numFilters = state.filter.order.length + state.userMetaFilters.filters.size
-
-  return numFilters ? <WithFilters {...props} /> : <BareFilters {...props} />
 }

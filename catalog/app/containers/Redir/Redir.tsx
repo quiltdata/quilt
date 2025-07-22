@@ -16,15 +16,9 @@ interface OpenInDesktopProps {
 
 function OpenInDesktop({ href }: OpenInDesktopProps) {
   return (
-    <>
-      <M.Button color="primary" component="a" href={href} variant="contained">
-        Open QuiltSync
-      </M.Button>
-
-      <M.Typography>
-        Click the button if you’re not redirected automatically.
-      </M.Typography>
-    </>
+    <M.Button color="primary" component="a" href={href} variant="contained">
+      Open QuiltSync
+    </M.Button>
   )
 }
 
@@ -64,7 +58,8 @@ export default function Redir() {
       {isError(uri) ? (
         <Empty
           className={classes.root}
-          actions={<OpenInDesktop href="quilt+s3://" />}
+          primary={<OpenInDesktop href="quilt+s3://" />}
+          secondary="FIXME"
           title="Failed to redirect"
         >
           <M.Typography color="error">
@@ -74,7 +69,8 @@ export default function Redir() {
       ) : (
         <Empty
           className={classes.root}
-          actions={<OpenInDesktop href={PackageUri.stringify(uri)} />}
+          primary={<OpenInDesktop href={PackageUri.stringify(uri)} />}
+          secondary="Click the button if you’re not redirected automatically."
           title="Redirecting…"
         />
       )}

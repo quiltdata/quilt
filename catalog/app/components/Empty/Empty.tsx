@@ -17,13 +17,13 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
     maxWidth: '30rem',
     paddingBottom: t.spacing(2),
-    '& > :first-child': {
-      flexShrink: 0,
-      margin: t.spacing(0, 2),
-    },
-    '& > :nth-child(2)': {
-      flexBasis: '40%',
-    },
+  },
+  primary: {
+    flexShrink: 0,
+  },
+  secondary: {
+    marginLeft: t.spacing(2),
+    flexBasis: '40%',
   },
   main: {
     ...t.typography.body1,
@@ -38,17 +38,29 @@ const useStyles = M.makeStyles((t) => ({
 interface EmptyProps {
   children?: React.ReactNode
   className?: string
-  actions?: React.ReactNode
+  primary?: React.ReactNode
+  secondary?: React.ReactNode
   title?: string
 }
 
-export default function Empty({ className, children, actions, title }: EmptyProps) {
+export default function Empty({
+  children,
+  className,
+  primary,
+  secondary,
+  title,
+}: EmptyProps) {
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
       {title && <M.Typography variant="h4">{title}</M.Typography>}
 
-      {actions && <div className={classes.actions}>{actions}</div>}
+      {primary && secondary && (
+        <div className={classes.actions}>
+          <div className={classes.primary}>{primary}</div>
+          <M.Typography className={classes.secondary}>{secondary}</M.Typography>
+        </div>
+      )}
 
       {children && <div className={classes.main}>{children}</div>}
     </div>
