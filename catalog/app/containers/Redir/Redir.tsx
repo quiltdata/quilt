@@ -8,6 +8,7 @@ import Layout from 'components/Layout'
 import * as UriResolver from 'containers/UriResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as PackageUri from 'utils/PackageUri'
+import { isError } from 'utils/error'
 
 interface OpenInDesktopProps {
   href: string
@@ -27,16 +28,6 @@ function OpenInDesktop({ href }: OpenInDesktopProps) {
   )
 }
 
-function useUriResolver(decoded: string) {
-  return React.useMemo(() => {
-    try {
-      return PackageUri.parse(decoded)
-    } catch (e) {
-      return e as unknown as PackageUri.PackageUriError
-    }
-  }, [decoded])
-}
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     margin: t.spacing(2, 0),
@@ -53,11 +44,11 @@ export default function Redir() {
   const classes = useStyles()
 
   const decoded = decodeURIComponent(params.uri)
-  const uri = useUriResolver(decoded)
+  const uri = React.useMemo(() => UriResolver.parsePackageUriSafe(decoded), [decoded])
 
   const [redirecting, setRedirecting] = React.useState<PackageUri.PackageUri | null>(null)
   React.useEffect(() => {
-    if (uri instanceof Error) return
+    if (isError(uri)) return
 
     window.location.assign(decoded)
 
@@ -70,7 +61,7 @@ export default function Redir() {
   return (
     <Layout>
       <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
-      {uri instanceof Error ? (
+      {isError(uri) ? (
         <Empty
           className={classes.root}
           description={<OpenInDesktop href="quilt+s3://" />}

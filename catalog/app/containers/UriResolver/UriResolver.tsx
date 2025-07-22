@@ -6,8 +6,10 @@ import Layout from 'components/Layout'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
+import { isError } from 'utils/error'
 
 import Redirect from './Redirect'
+import parsePackageUriSafe from './parsePackageUriSafe'
 
 const useStyles = M.makeStyles((t) => ({
   container: {
@@ -92,25 +94,16 @@ function Form({ initialValue, error }: FormProps) {
   )
 }
 
-function useUriResolver(decoded: string) {
-  return React.useMemo(() => {
-    if (!decoded) return null
-
-    try {
-      return PackageUri.parse(decoded)
-    } catch (e) {
-      return e as unknown as PackageUri.PackageUriError
-    }
-  }, [decoded])
-}
-
 export default function UriResolver() {
   const params = useParams<{ uri?: string }>()
 
   const decoded = decodeURIComponent(params.uri || '')
-  const uri = useUriResolver(decoded)
+  const uri = React.useMemo(
+    () => (decoded ? parsePackageUriSafe(decoded) : null),
+    [decoded],
+  )
 
-  if (uri && !(uri instanceof Error)) return <Redirect parsed={uri} decoded={decoded} />
+  if (uri && !isError(uri)) return <Redirect parsed={uri} decoded={decoded} />
 
   return <Layout pre={<Form initialValue={decoded} error={uri} />} />
 }
