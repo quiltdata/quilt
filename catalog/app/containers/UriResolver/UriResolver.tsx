@@ -110,9 +110,7 @@ export default function UriResolver() {
   const decoded = decodeURIComponent(params.uri || '')
   const uri = useUriResolver(decoded)
 
-  if (!uri || uri instanceof Error) {
-    return <Layout pre={<Form initialValue={decoded} error={uri} />} />
-  }
+  if (uri && !(uri instanceof Error)) return <Redirect parsed={uri} decoded={decoded} />
 
-  return <Redirect parsed={uri} decoded={decoded} />
+  return <Layout pre={<Form initialValue={decoded} error={uri} />} />
 }

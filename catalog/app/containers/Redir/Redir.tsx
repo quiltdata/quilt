@@ -65,9 +65,7 @@ export default function Redir() {
     return () => clearTimeout(timeoutId)
   }, [decoded, uri])
 
-  if (redirecting) {
-    return <UriResolver.Redirect parsed={redirecting} decoded={decoded} />
-  }
+  if (redirecting) return <UriResolver.Redirect parsed={redirecting} decoded={decoded} />
 
   return (
     <Layout>
