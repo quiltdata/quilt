@@ -52,7 +52,7 @@ export default function Redir() {
 
   const classes = useStyles()
 
-  const decoded = decodeURIComponent(params.uri || '')
+  const decoded = decodeURIComponent(params.uri)
   const uri = useUriResolver(decoded)
 
   const [redirecting, setRedirecting] = React.useState<PackageUri.PackageUri | null>(null)
