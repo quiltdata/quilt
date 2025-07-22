@@ -80,6 +80,8 @@ export const redir = route(
   (uri: string) => `/redir/${uri ? encodeURIComponent(uri) : ''}`,
 )
 
+export type RedirArgs = Parameters<typeof redir.url>
+
 // Bucket
 export const bucketRoot = route('/b/:bucket', (bucket: string) => `/b/${bucket}`)
 export const bucketOverview = bucketRoot
