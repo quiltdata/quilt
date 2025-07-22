@@ -59,7 +59,7 @@ export default function Redir() {
         <Empty
           className={classes.root}
           primary={<OpenInDesktop href="quilt+s3://" />}
-          secondary="FIXME"
+          secondary="Click the button to open QuiltSync"
           title="Failed to redirect"
         >
           <M.Typography color="error">

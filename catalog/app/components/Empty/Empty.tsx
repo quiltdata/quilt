@@ -16,6 +16,7 @@ const useStyles = M.makeStyles((t) => ({
     margin: 'auto',
     marginTop: t.spacing(2),
     maxWidth: '30rem',
+    minWidth: '15rem',
     paddingBottom: t.spacing(2),
   },
   primary: {
@@ -55,10 +56,12 @@ export default function Empty({
     <div className={cx(classes.root, className)}>
       {title && <M.Typography variant="h4">{title}</M.Typography>}
 
-      {primary && secondary && (
+      {(primary || secondary) && (
         <div className={classes.actions}>
-          <div className={classes.primary}>{primary}</div>
-          <M.Typography className={classes.secondary}>{secondary}</M.Typography>
+          {primary && <div className={classes.primary}>{primary}</div>}
+          {secondary && (
+            <M.Typography className={classes.secondary}>{secondary}</M.Typography>
+          )}
         </div>
       )}
 

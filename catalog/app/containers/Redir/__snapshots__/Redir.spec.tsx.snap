@@ -22,21 +22,25 @@ exports[`containers/Redir/Redir shows error 1`] = `
       Failed to redirect
     </h4>
     <div
-      className="makeStyles-main-3"
+      className="makeStyles-actions-3"
     >
-      <a
-        href="quilt+s3://"
+      <div
+        className="makeStyles-primary-4"
       >
-        Open QuiltSync
-      </a>
+        <a
+          href="quilt+s3://"
+        >
+          Open QuiltSync
+        </a>
+      </div>
       <p
-        className="MuiTypography-root MuiTypography-body1"
+        className="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
       >
-        Click the button if you’re not redirected automatically.
+        Click the button to open QuiltSync
       </p>
     </div>
     <div
-      className="makeStyles-description-4"
+      className="makeStyles-main-6"
     >
       <p
         className="MuiTypography-root MuiTypography-body1 MuiTypography-colorError"
@@ -62,17 +66,21 @@ exports[`containers/Redir/Redir shows waiting screen 1`] = `
       Redirecting…
     </h4>
     <div
-      className="makeStyles-main-3"
+      className="makeStyles-actions-3"
     >
-      <a
-        href="quilt+s3://bucket#package=pkg/name@hash"
+      <div
+        className="makeStyles-primary-4"
       >
-        Open QuiltSync
-      </a>
+        <a
+          href="quilt+s3://bucket#package=pkg/name@hash"
+        >
+          Open QuiltSync
+        </a>
+      </div>
       <p
-        className="MuiTypography-root MuiTypography-body1"
+        className="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
       >
-        Click the button if you’re not redirected automatically.
+        Click the button if you’re not redirected automatically.
       </p>
     </div>
   </div>
