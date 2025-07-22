@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Added] Add page for redirecting Quilt+ URIs to QuiltSync ([#4446](https://github.com/quiltdata/quilt/pull/4446))
 - [Added] Search: Table view for package search results (including matching entries) ([#4413](https://github.com/quiltdata/quilt/pull/4413))
 - [Changed] Packages tab: Use search view to navigate packages ([#4413](https://github.com/quiltdata/quilt/pull/4413))
 - [Fixed] Freeform search: pass 'size' set to 0 to backend, properly handle 'from' ([#4432](https://github.com/quiltdata/quilt/pull/4432))
