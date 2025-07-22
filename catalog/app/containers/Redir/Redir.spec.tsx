@@ -42,8 +42,11 @@ jest.mock(
 )
 
 describe('containers/Redir/Redir', () => {
-  it('must have uri', () => {
+  beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+  })
+
+  it('must have uri', () => {
     const tree = renderer.create(
       <ErrorBoundary>
         <Redir />
@@ -53,8 +56,6 @@ describe('containers/Redir/Redir', () => {
   })
 
   it('shows waiting screen', () => {
-    // TODO: spy on window.location.assign
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
     useParams.mockImplementationOnce(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
     }))
@@ -76,7 +77,6 @@ describe('containers/Redir/Redir', () => {
 
   it('redirects to package page', async () => {
     // TODO: spy on window.location.assign
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
     jest.useFakeTimers()
     useParams.mockImplementation(() => ({
       uri: 'quilt+s3://bucket#package=pkg/name@hash',
