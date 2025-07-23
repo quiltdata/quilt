@@ -314,7 +314,7 @@ function useStats(bucket: string, overviewUrl?: string | null) {
             case 'InvalidInput':
               return '?'
             case 'PackagesSearchResultSet':
-              return formatQuantity(r.total)
+              return r.total >= 0 ? formatQuantity(r.total) : '?'
             default:
               assertNever(r)
           }
