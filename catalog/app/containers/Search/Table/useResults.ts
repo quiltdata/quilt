@@ -76,15 +76,19 @@ interface ResultsOk {
   _tag: 'ok'
   cursor: string | null
   hits: readonly Hit[]
-  indeterminate: boolean
+  determinate: boolean
   next?: ResultsNotFulfilled
 }
 
 export type Results = ResultsOk | ResultsNotFulfilled
 
+type NextResults =
+  | Omit<ResultsOk, 'determinate'>
+  | Exclude<ResultsNotFulfilled, ResultsEmpty | ResultsIdle>
+
 function parseNextResults(
   query: ReturnType<typeof SearchUIModel.useNextPagePackagesQuery>,
-): Exclude<Results, ResultsEmpty | ResultsIdle> {
+): NextResults {
   switch (query._tag) {
     case 'fetching':
       return IN_PROGRESS
@@ -100,7 +104,6 @@ function parseNextResults(
           return {
             _tag: 'ok' as const,
             hits: hits.map(parseHit),
-            indeterminate: false,
             ...data,
           }
         default:
@@ -130,7 +133,7 @@ function parseFirstResults(
           return {
             _tag: 'ok' as const,
             hits: hits.map(parseHit),
-            indeterminate: query.data.total === -1,
+            determinate: query.data.total > -1,
             ...data,
           }
         case 'ObjectsSearchResultSet':
@@ -157,7 +160,11 @@ function useFirstPage() {
   )
 }
 
-function useNextPage(acc: Results, loadMore: boolean): Exclude<Results, ResultsEmpty> {
+type NextPage =
+  | Omit<ResultsOk, 'determinate'>
+  | Exclude<ResultsNotFulfilled, ResultsEmpty>
+
+function useNextPage(acc: Results, loadMore: boolean): NextPage {
   const after = (acc._tag === 'ok' && acc.cursor) || ''
   const pause = !loadMore || !after
   const nextPage = SearchUIModel.useNextPagePackagesQuery(after, pause)
@@ -207,7 +214,7 @@ export function useResults(): [Results, () => void] | [Results] {
           return {
             _tag: prev._tag,
             hits: prev.hits.concat(next.hits),
-            indeterminate: prev.indeterminate,
+            determinate: prev.determinate,
             cursor: next.cursor,
           }
         })

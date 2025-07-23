@@ -55,7 +55,7 @@ interface NextPageProps {
   singleBucket: boolean
   latestOnly: boolean
   onRefine: (action: NoResults.Refine) => void
-  indeterminate: boolean
+  determinate: boolean
 }
 
 function NextPage({
@@ -65,7 +65,7 @@ function NextPage({
   singleBucket,
   latestOnly,
   onRefine,
-  indeterminate,
+  determinate,
 }: NextPageProps) {
   const NextPageQuery =
     resultType === SearchUIModel.ResultType.S3Object
@@ -77,7 +77,7 @@ function NextPage({
         switch (r._tag) {
           case 'fetching':
             return (
-              <LoadNextPage className={className} loading indeterminate={indeterminate} />
+              <LoadNextPage className={className} loading determinate={determinate} />
             )
           case 'error':
             return (
@@ -108,7 +108,7 @@ function NextPage({
                     singleBucket={singleBucket}
                     latestOnly={latestOnly}
                     onRefine={onRefine}
-                    indeterminate={indeterminate}
+                    determinate={determinate}
                   />
                 )
               default:
@@ -136,7 +136,7 @@ interface ResultsPageProps {
   singleBucket: boolean
   latestOnly: boolean
   onRefine: (action: NoResults.Refine) => void
-  indeterminate: boolean
+  determinate: boolean
 }
 
 function ResultsPage({
@@ -147,7 +147,7 @@ function ResultsPage({
   singleBucket,
   latestOnly,
   onRefine,
-  indeterminate,
+  determinate,
 }: ResultsPageProps) {
   const classes = useResultsPageStyles()
   const [more, setMore] = React.useState(false)
@@ -174,13 +174,13 @@ function ResultsPage({
             singleBucket={singleBucket}
             latestOnly={latestOnly}
             onRefine={onRefine}
-            indeterminate={indeterminate}
+            determinate={determinate}
           />
         ) : (
           <LoadNextPage
             className={classes.next}
             onClick={loadMore}
-            indeterminate={indeterminate}
+            determinate={determinate}
           />
         ))}
     </div>
@@ -245,7 +245,7 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}
               onRefine={onRefine}
-              indeterminate={r.data.total === -1}
+              determinate={r.data.total > -1}
             />
           )
         default:

@@ -20,7 +20,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface ResultsInnerProps {
   className?: string
-  results: Extract<Results, { _tag: 'ok' | 'indeterminate' }>
+  results: Extract<Results, { _tag: 'ok' }>
   bucket?: string
   loadMore?: () => void
 }
@@ -33,12 +33,9 @@ function ResultsInner({ className, results, loadMore, bucket }: ResultsInnerProp
       {loadMore && (
         <LoadNextPage
           className={classes.next}
-          loading={
-            (results._tag === 'ok' || results._tag === 'indeterminate') &&
-            results.next?._tag === 'in-progress'
-          }
+          loading={results._tag === 'ok' && results.next?._tag === 'in-progress'}
           onClick={loadMore}
-          indeterminate={results.indeterminate}
+          determinate={!!results.determinate}
         />
       )}
     </div>

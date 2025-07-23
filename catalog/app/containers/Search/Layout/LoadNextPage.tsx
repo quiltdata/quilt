@@ -18,21 +18,21 @@ const useLoadNextPageStyles = M.makeStyles((t) => ({
 
 interface LoadNextPageProps {
   className: string
-  indeterminate: boolean
+  determinate: boolean
   loading?: boolean
   onClick?: () => void
 }
 
 export default function LoadNextPage({
   className,
-  indeterminate,
+  determinate,
   loading = false,
   onClick,
 }: LoadNextPageProps) {
   const classes = useLoadNextPageStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <M.Tooltip title={!!indeterminate && WE_DONT_KNOW_IF_NEXT_PAGE_AVAILABLE}>
+      <M.Tooltip title={!determinate && WE_DONT_KNOW_IF_NEXT_PAGE_AVAILABLE}>
         <M.Button
           endIcon={
             loading ? <M.CircularProgress size={16} /> : <M.Icon>expand_more</M.Icon>
