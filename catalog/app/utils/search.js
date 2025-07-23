@@ -37,7 +37,7 @@ const getBucketFromIndex = (idx) => {
 }
 
 const extractData = ({ _score: score, _source: src, _index: idx }) => {
-  const { bucket } = getBucketFromIndex(idx)
+  const bucket = getBucketFromIndex(idx)
   const key = `object:${bucket}/${src.key}`
   return {
     [key]: {
