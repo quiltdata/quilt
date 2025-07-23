@@ -126,6 +126,7 @@ function parseFirstResults(
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
         case 'PackagesSearchResultSet':
           const { hits, ...data } = query.data.firstPage
+          if (!hits.length) return EMPTY
           return {
             _tag: 'ok' as const,
             hits: hits.map(parseHit),
