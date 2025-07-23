@@ -18,7 +18,7 @@ const splitNumber = (n, suffixes) => {
 const numberFormat = new Intl.NumberFormat('en-US')
 
 /**
- * @param {number} n Must be >= 0
+ * @param {number} q Must be >= 0
  */
 export function formatQuantity(
   q,
