@@ -97,7 +97,7 @@ export function Empty({ className, onRefine }: EmptyProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return r.total
+            return r.total >= 0 ? r.total : null
           default:
             return null
         }

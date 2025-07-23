@@ -215,6 +215,9 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
           )
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
+          if (!r.data.firstPage.hits.length) {
+            return <NoResults.Empty className={className} onRefine={onRefine} />
+          }
           const latestOnly =
             model.state.resultType === SearchUIModel.ResultType.QuiltPackage
               ? model.state.latestOnly
