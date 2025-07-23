@@ -76,14 +76,11 @@ interface ResultsOk {
   _tag: 'ok'
   cursor: string | null
   hits: readonly Hit[]
+  indeterminate: boolean
   next?: ResultsNotFulfilled
 }
 
-interface ResultsIndeterminate extends Omit<ResultsOk, '_tag'> {
-  _tag: 'indeterminate'
-}
-
-export type Results = ResultsOk | ResultsIndeterminate | ResultsNotFulfilled
+export type Results = ResultsOk | ResultsNotFulfilled
 
 function parseNextResults(
   query: ReturnType<typeof SearchUIModel.useNextPagePackagesQuery>,
@@ -100,7 +97,12 @@ function parseNextResults(
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
         case 'PackagesSearchResultSetPage':
           const { hits, ...data } = query.data
-          return { _tag: 'ok' as const, hits: hits.map(parseHit), ...data }
+          return {
+            _tag: 'ok' as const,
+            hits: hits.map(parseHit),
+            indeterminate: false,
+            ...data,
+          }
         default:
           assertNever(query.data)
       }
@@ -125,8 +127,9 @@ function parseFirstResults(
         case 'PackagesSearchResultSet':
           const { hits, ...data } = query.data.firstPage
           return {
-            _tag: query.data.total === -1 ? ('indeterminate' as const) : ('ok' as const),
+            _tag: 'ok' as const,
             hits: hits.map(parseHit),
+            indeterminate: query.data.total === -1,
             ...data,
           }
         case 'ObjectsSearchResultSet':
@@ -154,7 +157,7 @@ function useFirstPage() {
 }
 
 function useNextPage(acc: Results, loadMore: boolean): Exclude<Results, ResultsEmpty> {
-  const after = ((acc._tag === 'ok' || acc._tag === 'indeterminate') && acc.cursor) || ''
+  const after = (acc._tag === 'ok' && acc.cursor) || ''
   const pause = !loadMore || !after
   const nextPage = SearchUIModel.useNextPagePackagesQuery(after, pause)
   return React.useMemo(
@@ -179,7 +182,7 @@ export function useResults(): [Results, () => void] | [Results] {
       case 'in-progress':
       case 'fail':
         setResults((prev) => {
-          if (prev._tag !== 'ok' && prev._tag !== 'indeterminate') {
+          if (prev._tag !== 'ok') {
             return {
               _tag: 'fail',
               error: {
@@ -196,14 +199,14 @@ export function useResults(): [Results, () => void] | [Results] {
           }
         })
         break
-      case 'indeterminate':
       case 'ok':
         setMore(false)
         setResults((prev) => {
-          if (prev._tag !== 'ok' && prev._tag !== 'indeterminate') return prev
+          if (prev._tag !== 'ok') return prev
           return {
             _tag: prev._tag,
             hits: prev.hits.concat(next.hits),
+            indeterminate: prev.indeterminate,
             cursor: next.cursor,
           }
         })
@@ -215,7 +218,7 @@ export function useResults(): [Results, () => void] | [Results] {
 
   return React.useMemo(
     () =>
-      (results._tag === 'ok' || results._tag === 'indeterminate') && !!results.cursor
+      results._tag === 'ok' && !!results.cursor
         ? [results, () => setMore(true)]
         : [results],
     [results],

@@ -38,7 +38,7 @@ function ResultsInner({ className, results, loadMore, bucket }: ResultsInnerProp
             results.next?._tag === 'in-progress'
           }
           onClick={loadMore}
-          indeterminate={results._tag === 'indeterminate'}
+          indeterminate={results.indeterminate}
         />
       )}
     </div>
@@ -91,7 +91,6 @@ export default function TablePage({
       return (
         emptyFallback || <NoResults.Empty className={className} onRefine={onRefine} />
       )
-    case 'indeterminate':
     case 'ok':
       return (
         <ResultsInner
