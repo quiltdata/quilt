@@ -30,9 +30,10 @@ export default function LoadNextPage({
   onClick,
 }: LoadNextPageProps) {
   const classes = useLoadNextPageStyles()
+  const title = determinate ? '' : WE_DONT_KNOW_IF_NEXT_PAGE_AVAILABLE
   return (
     <div className={cx(classes.root, className)}>
-      <M.Tooltip title={!determinate && WE_DONT_KNOW_IF_NEXT_PAGE_AVAILABLE}>
+      <M.Tooltip title={title}>
         <M.Button
           endIcon={
             loading ? <M.CircularProgress size={16} /> : <M.Icon>expand_more</M.Icon>
