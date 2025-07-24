@@ -75,7 +75,7 @@ type ResultsNotFulfilled = ResultsInProgress | ResultsFail | ResultsEmpty | Resu
 interface ResultsOk {
   _tag: 'ok'
   cursor: string | null
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
   determinate: boolean
   next?: ResultsNotFulfilled
 }
@@ -129,10 +129,9 @@ function parseFirstResults(
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
         case 'PackagesSearchResultSet':
           const { hits, ...data } = query.data.firstPage
-          if (!hits.length) return EMPTY
           return {
             _tag: 'ok' as const,
-            hits: hits.map(parseHit),
+            hits: hits.length ? hits.map(parseHit) : [null],
             determinate: query.data.total > -1,
             ...data,
           }

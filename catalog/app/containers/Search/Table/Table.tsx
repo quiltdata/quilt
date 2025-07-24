@@ -364,6 +364,34 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
   )
 }
 
+interface EmptyRowProps {
+  columns: ColumnsMap
+  skeletonsSpan: number
+  minColumnsNumber: number
+}
+
+function EmptyRow({ columns, minColumnsNumber, skeletonsSpan }: EmptyRowProps) {
+  const visibleColumns = React.useMemo(
+    () =>
+      Array.from(columns.values())
+        .filter((c) => c.state.visible)
+        .slice(0, minColumnsNumber),
+    [columns, minColumnsNumber],
+  )
+  return (
+    <M.TableRow>
+      <M.TableCell padding="checkbox" />
+      <M.TableCell colSpan={visibleColumns.length + 1 + skeletonsSpan}>
+        <M.Typography>
+          Some search results may exist, but you don't have access to them.
+          <br />
+          You can try load more results, or start from scratch.
+        </M.Typography>
+      </M.TableCell>
+    </M.TableRow>
+  )
+}
+
 interface FilterDialogProps {
   column: Column
   onClose: () => void
@@ -1219,7 +1247,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
 }))
 
 interface LayoutProps {
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
   columns: ColumnsMap
   skeletons: Skeleton.Row[]
 }
@@ -1291,15 +1319,24 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
-            {hits.map((hit, index) => (
-              <PackageRow
-                key={hit.id}
-                columns={columns}
-                hit={hit}
-                skeletons={skeletonColumns[index + 1]?.columns}
-                minColumnsNumber={minColumnsNumber}
-              />
-            ))}
+            {hits.map((hit, index) =>
+              hit ? (
+                <PackageRow
+                  key={hit.id}
+                  columns={columns}
+                  hit={hit}
+                  skeletons={skeletonColumns[index + 1]?.columns}
+                  minColumnsNumber={minColumnsNumber}
+                />
+              ) : (
+                <EmptyRow
+                  key={`empty_${index}`}
+                  columns={columns}
+                  skeletonsSpan={skeletonHead?.columns.length || 0}
+                  minColumnsNumber={minColumnsNumber}
+                />
+              ),
+            )}
           </M.TableBody>
         </M.Table>
       </div>
@@ -1318,7 +1355,7 @@ const useTableViewStyles = M.makeStyles((t) => ({
 }))
 
 interface TableViewProps {
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
   bucket?: string
 }
 
@@ -1343,7 +1380,7 @@ function TableView({ hits, bucket }: TableViewProps) {
 }
 
 interface TableViewInitProps {
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
   bucket?: string
 }
 
