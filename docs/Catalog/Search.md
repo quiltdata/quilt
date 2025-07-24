@@ -54,11 +54,11 @@ The following are all valid search parameters:
 
 All the package metadata is indexed in ES as three different types of documents:
 
-- Manifests (`mnfst`) contain package metadata, including the hash, comment, and
+* Manifests (`mnfst`) contain package metadata, including the hash, comment, and
   workflow information.
-- Pointers (`ptr`) represent named package revisions, and associate Manifests
+* Pointers (`ptr`) represent named package revisions, and associate Manifests
   with names and tags.
-- Entries (`entry`) represent individual objects in the package with their metadata.
+* Entries (`entry`) represent individual objects in the package with their metadata.
 
 Top-level hits displayed by the search page are always Pointers, merged with the
 corresponding Manifest and matching Entries.
