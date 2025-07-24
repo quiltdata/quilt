@@ -87,5 +87,12 @@ export default function Options({ handle, hideCode }: OptionsProps) {
   if (hideCode) return download
 
   const code = <CodePanel handle={handle} />
-  return <Tabs {...{ download, code }} />
+  return (
+    <Tabs>
+      {[
+        { label: 'Download', panel: download },
+        { label: 'Code', panel: code },
+      ]}
+    </Tabs>
+  )
 }

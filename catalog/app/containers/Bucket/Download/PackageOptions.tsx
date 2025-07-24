@@ -174,5 +174,12 @@ export default function Options({
   if (hideCode) return download
 
   const code = <CodePanel hashOrTag={hashOrTag} uri={uri} />
-  return <Tabs {...{ download, code }} />
+  return (
+    <Tabs>
+      {[
+        { label: 'Download', panel: download },
+        { label: 'Code', panel: code },
+      ]}
+    </Tabs>
+  )
 }

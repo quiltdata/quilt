@@ -22,7 +22,6 @@ import type * as workflows from 'utils/workflows'
 import * as Download from './Download'
 import * as AssistantContext from './DirAssistantContext'
 import * as Listing from './Listing'
-import Menu from './Menu'
 import * as PD from './PackageDialog'
 import * as Selection from './Selection'
 import * as Successors from './Successors'
@@ -37,34 +36,18 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const { prefs } = BucketPreferences.use()
   const prompt = FileEditor.useCreateFileInBucket(bucket, path)
-  const menuItems = React.useMemo(
-    () =>
-      BucketPreferences.Result.match(
-        {
-          Ok: ({ ui: { actions } }) => {
-            const menu = []
-            if (actions.writeFile) {
-              menu.push({
-                onClick: prompt.open,
-                title: 'Create file',
-              })
-            }
-            return menu
-          },
-          _: () => [],
-        },
-        prefs,
-      ),
-    [prefs, prompt.open],
-  )
-  if (!menuItems.length) return null
   return (
-    <>
-      {prompt.render()}
-      <Menu className={className} items={menuItems} />
-    </>
+    <Buttons.WithPopover className={className} icon="add" label="Add files">
+      <M.List dense>
+        <M.ListItem onClick={prompt.open} button>
+          <M.ListItemIcon>
+            <M.Icon>create</M.Icon>
+          </M.ListItemIcon>
+          <M.ListItemText primary="Create file" style={{ whiteSpace: 'nowrap' }} />
+        </M.ListItem>
+      </M.List>
+    </Buttons.WithPopover>
   )
 }
 
@@ -309,10 +292,18 @@ export default function Dir() {
                       />
                     </Download.Button>
                   )}
+                  {actions.writeFile && (
+                    <DirectoryMenu
+                      className={classes.button}
+                      bucket={bucket}
+                      path={path}
+                    />
+                  )}
                 </>
               ),
               Pending: () => (
                 <>
+                  <Buttons.Skeleton className={classes.button} size="small" />
                   <Buttons.Skeleton className={classes.button} size="small" />
                   <Buttons.Skeleton className={classes.button} size="small" />
                 </>
@@ -321,7 +312,6 @@ export default function Dir() {
             },
             prefs,
           )}
-          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>
       </div>
 
