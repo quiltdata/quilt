@@ -103,7 +103,7 @@ function parseNextResults(
           const { hits, ...data } = query.data
           return {
             _tag: 'ok' as const,
-            hits: hits.map(parseHit),
+            hits: hits.length ? hits.map(parseHit) : [null],
             ...data,
           }
         default:
