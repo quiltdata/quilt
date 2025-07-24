@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
+import * as Dialog from 'components/Dialog'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
@@ -29,6 +30,22 @@ import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
+const useDirectoryMenuStyles = M.makeStyles((t) => ({
+  upload: {
+    width: t.spacing(80),
+  },
+  drop: {
+    alignItems: 'center',
+    border: `2px dashed ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    display: 'flex',
+    flexDirection: 'column',
+    height: t.spacing(40),
+    justifyContent: 'center',
+    marginBottom: t.spacing(1),
+  },
+}))
+
 interface DirectoryMenuProps {
   bucket: string
   className?: string
@@ -36,17 +53,35 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
+  const classes = useDirectoryMenuStyles()
   const prompt = FileEditor.useCreateFileInBucket(bucket, path)
+  const create = React.useCallback(
+    () => ({
+      label: 'Create',
+      panel: (
+        <M.Button startIcon={<M.Icon>create</M.Icon>} type="submit" onClick={prompt.open}>
+          Create file
+        </M.Button>
+      ),
+    }),
+    [prompt],
+  )
+  const upload = React.useCallback(
+    () => ({
+      className: classes.upload,
+      label: 'Upload',
+      panel: (
+        <div className={classes.drop}>
+          <M.Typography gutterBottom>Click or drag'n'drop files here</M.Typography>
+          <M.Icon>publish</M.Icon>
+        </div>
+      ),
+    }),
+    [classes],
+  )
   return (
     <Buttons.WithPopover className={className} icon="add" label="Add files">
-      <M.List dense>
-        <M.ListItem onClick={prompt.open} button>
-          <M.ListItemIcon>
-            <M.Icon>create</M.Icon>
-          </M.ListItemIcon>
-          <M.ListItemText primary="Create file" style={{ whiteSpace: 'nowrap' }} />
-        </M.ListItem>
-      </M.List>
+      <Dialog.Tabs>{[create(), upload()]}</Dialog.Tabs>
     </Buttons.WithPopover>
   )
 }
