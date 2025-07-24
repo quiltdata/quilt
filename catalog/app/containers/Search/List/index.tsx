@@ -123,6 +123,9 @@ function NextPage({
 }
 
 const useResultsPageStyles = M.makeStyles((t) => ({
+  emptyPage: {
+    marginBottom: t.spacing(1),
+  },
   next: {
     marginTop: t.spacing(1),
   },
@@ -165,6 +168,13 @@ function ResultsPage({
           showRevision={!latestOnly}
         />
       ))}
+      {!hits.length && (
+        <NoResults.SecureSearch
+          className={classes.emptyPage}
+          onRefine={onRefine}
+          onLoadMore={loadMore}
+        />
+      )}
       {!!cursor &&
         (more ? (
           <NextPage
@@ -227,9 +237,6 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
           )
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
-          if (!r.data.firstPage.hits.length) {
-            return <NoResults.Empty className={className} onRefine={onRefine} />
-          }
           const latestOnly =
             model.state.resultType === SearchUIModel.ResultType.QuiltPackage
               ? model.state.latestOnly

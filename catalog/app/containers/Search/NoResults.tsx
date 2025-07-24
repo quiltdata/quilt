@@ -153,6 +153,23 @@ export function Empty({ className, onRefine }: EmptyProps) {
   )
 }
 
+interface SecureSearchProps extends EmptyProps {
+  onLoadMore: () => void
+}
+
+export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchProps) {
+  return (
+    <div className={className}>
+      <Hit.PackagePlaceholder>
+        Some search results may exist, but you don't have access to them.
+        <br />
+        You can try <StyledLink onClick={onLoadMore}>load more</StyledLink> results, or
+        start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>.
+      </Hit.PackagePlaceholder>
+    </div>
+  )
+}
+
 interface ErrorProps {
   className?: string
   kind?: 'unexpected' | 'syntax'

@@ -97,7 +97,6 @@ function ResultsCount() {
           return null
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
-          if (!r.data.firstPage.hits.length) return null
           return (
             <ColumnTitle>
               {resultsCountI18n(r.data.total, model.state)}
