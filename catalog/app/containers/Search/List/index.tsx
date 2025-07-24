@@ -55,6 +55,7 @@ interface NextPageProps {
   singleBucket: boolean
   latestOnly: boolean
   onRefine: (action: NoResults.Refine) => void
+  determinate: boolean
 }
 
 function NextPage({
@@ -64,6 +65,7 @@ function NextPage({
   singleBucket,
   latestOnly,
   onRefine,
+  determinate,
 }: NextPageProps) {
   const NextPageQuery =
     resultType === SearchUIModel.ResultType.S3Object
@@ -74,7 +76,9 @@ function NextPage({
       {(r) => {
         switch (r._tag) {
           case 'fetching':
-            return <LoadNextPage className={className} loading />
+            return (
+              <LoadNextPage className={className} loading determinate={determinate} />
+            )
           case 'error':
             return (
               <NoResults.Error className={className} onRefine={onRefine}>
@@ -104,6 +108,7 @@ function NextPage({
                     singleBucket={singleBucket}
                     latestOnly={latestOnly}
                     onRefine={onRefine}
+                    determinate={determinate}
                   />
                 )
               default:
@@ -118,6 +123,9 @@ function NextPage({
 }
 
 const useResultsPageStyles = M.makeStyles((t) => ({
+  emptyPage: {
+    marginBottom: t.spacing(1),
+  },
   next: {
     marginTop: t.spacing(1),
   },
@@ -131,6 +139,7 @@ interface ResultsPageProps {
   singleBucket: boolean
   latestOnly: boolean
   onRefine: (action: NoResults.Refine) => void
+  determinate: boolean
 }
 
 function ResultsPage({
@@ -141,6 +150,7 @@ function ResultsPage({
   singleBucket,
   latestOnly,
   onRefine,
+  determinate,
 }: ResultsPageProps) {
   const classes = useResultsPageStyles()
   const [more, setMore] = React.useState(false)
@@ -158,6 +168,13 @@ function ResultsPage({
           showRevision={!latestOnly}
         />
       ))}
+      {!hits.length && (
+        <NoResults.SecureSearch
+          className={classes.emptyPage}
+          onRefine={onRefine}
+          onLoadMore={loadMore}
+        />
+      )}
       {!!cursor &&
         (more ? (
           <NextPage
@@ -167,9 +184,14 @@ function ResultsPage({
             singleBucket={singleBucket}
             latestOnly={latestOnly}
             onRefine={onRefine}
+            determinate={determinate}
           />
         ) : (
-          <LoadNextPage className={classes.next} onClick={loadMore} />
+          <LoadNextPage
+            className={classes.next}
+            onClick={loadMore}
+            determinate={determinate}
+          />
         ))}
     </div>
   )
@@ -230,6 +252,7 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}
               onRefine={onRefine}
+              determinate={r.data.total > -1}
             />
           )
         default:
