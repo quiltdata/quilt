@@ -35,7 +35,7 @@ interface TabProps {
   onClick: () => void
 }
 
-export function Tab({ active, onClick, className, children }: TabProps) {
+function Tab({ active, onClick, className, children }: TabProps) {
   const classes = useTabStyles()
   return (
     <M.Button
@@ -55,11 +55,11 @@ const useTabsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TabsProps {
+interface TabsContainerProps {
   children: NonNullable<React.ReactNode>
 }
 
-export function Tabs({ children }: TabsProps) {
+function TabsContainer({ children }: TabsContainerProps) {
   const classes = useTabsStyles()
   return (
     <M.Paper className={classes.root} elevation={1}>
@@ -89,7 +89,57 @@ interface TabPanelProps {
   className?: string
 }
 
-export function TabPanel({ children, className }: TabPanelProps) {
+function TabPanel({ children, className }: TabPanelProps) {
   const classes = useTabPanelStyles()
   return <div className={cx(classes.root, className)}>{children}</div>
+}
+
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    overflow: 'hidden',
+    transition: t.transitions.create('width', {
+      duration: t.transitions.duration.short,
+      easing: t.transitions.easing.easeOut,
+    }),
+  },
+  '@keyframes activate': {
+    '0%': {
+      transform: 'scaleX(0.5)',
+    },
+    '100%': {
+      transform: 'scaleX(1)',
+    },
+  },
+}))
+
+interface TabsProps {
+  children: {
+    label: NonNullable<React.ReactNode>
+    panel: NonNullable<React.ReactNode>
+    className?: string
+  }[]
+}
+
+export function Tabs({ children }: TabsProps) {
+  const classes = useStyles()
+  const [activeIndex, setActiveIndex] = React.useState<number>(0)
+  const activeTab = children[activeIndex]
+  return (
+    <div className={cx(classes.root, activeTab.className)}>
+      {children.length > 1 && (
+        <TabsContainer>
+          {children.map(({ label }, index) => (
+            <Tab
+              key={index}
+              active={activeIndex === index}
+              onClick={() => setActiveIndex(index)}
+            >
+              {label}
+            </Tab>
+          ))}
+        </TabsContainer>
+      )}
+      <TabPanel>{activeTab.panel}</TabPanel>
+    </div>
+  )
 }

@@ -1,13 +1,13 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { Tabs } from 'components/Dialog'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 
 import * as FileView from '../FileView'
 
 import { DirCodeSamples, FileCodeSamples } from './BucketCodeSamples'
-import { Tabs, TabPanel } from './OptionsTabs'
 
 type FileHandle = Model.S3.S3ObjectLocation
 type DirHandle = { bucket: string; path: string }
@@ -49,14 +49,10 @@ interface DownloadPanelProps {
 }
 
 function DownloadPanel({ handle }: DownloadPanelProps) {
-  return (
-    <TabPanel>
-      {isFile(handle) ? (
-        <DownloadFile fileHandle={handle} />
-      ) : (
-        <DownloadDir dirHandle={handle} />
-      )}
-    </TabPanel>
+  return isFile(handle) ? (
+    <DownloadFile fileHandle={handle} />
+  ) : (
+    <DownloadDir dirHandle={handle} />
   )
 }
 
@@ -65,16 +61,21 @@ interface CodePanelProps {
 }
 
 function CodePanel({ handle }: CodePanelProps) {
-  return (
-    <TabPanel>
-      {isFile(handle) ? (
-        <FileCodeSamples bucket={handle.bucket} path={handle.key} />
-      ) : (
-        <DirCodeSamples bucket={handle.bucket} path={handle.path} />
-      )}
-    </TabPanel>
+  return isFile(handle) ? (
+    <FileCodeSamples bucket={handle.bucket} path={handle.key} />
+  ) : (
+    <DirCodeSamples bucket={handle.bucket} path={handle.path} />
   )
 }
+
+const useOptionsStyles = M.makeStyles((t) => ({
+  download: {
+    width: t.spacing(40),
+  },
+  code: {
+    width: t.spacing(80),
+  },
+}))
 
 interface OptionsProps {
   handle: Handle
@@ -82,17 +83,26 @@ interface OptionsProps {
 }
 
 export default function Options({ handle, hideCode }: OptionsProps) {
-  const download = <DownloadPanel handle={handle} />
-
-  if (hideCode) return download
-
-  const code = <CodePanel handle={handle} />
-  return (
-    <Tabs>
-      {[
-        { label: 'Download', panel: download },
-        { label: 'Code', panel: code },
-      ]}
-    </Tabs>
+  const classes = useOptionsStyles()
+  const download = React.useCallback(
+    () => ({
+      className: classes.download,
+      label: 'Download',
+      panel: <DownloadPanel handle={handle} />,
+    }),
+    [classes.download, handle],
   )
+  const code = React.useCallback(
+    () => ({
+      className: classes.code,
+      label: 'Code',
+      panel: <CodePanel handle={handle} />,
+    }),
+    [classes.code, handle],
+  )
+  const tabs = React.useMemo(
+    () => (hideCode ? [download()] : [download(), code()]),
+    [code, download, hideCode],
+  )
+  return <Tabs>{tabs}</Tabs>
 }
