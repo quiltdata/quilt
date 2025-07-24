@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { ES_REF_SYNTAX } from 'components/SearchResults'
+import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
@@ -161,10 +162,21 @@ export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchPr
   return (
     <div className={className}>
       <Hit.PackagePlaceholder>
-        Some search results may exist, but you don't have access to them.
+        The initial batch of results was filtered out due to{' '}
+        <StyledLink
+          href={`${docs}/quilt-platform-catalog-user/search#secure-search`}
+          target="_blank"
+        >
+          secure search
+        </StyledLink>
+        .
         <br />
-        You can try <StyledLink onClick={onLoadMore}>load more</StyledLink> results, or
-        start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>.
+        <StyledLink onClick={onLoadMore}>Load more</StyledLink> to try additional results,
+        or{' '}
+        <StyledLink onClick={() => onRefine(Refine.New)}>
+          enter a different search
+        </StyledLink>
+        .
       </Hit.PackagePlaceholder>
     </div>
   )

@@ -7,7 +7,9 @@ import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui
 import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
+import { docs } from 'constants/urls'
 import * as BucketConfig from 'utils/BucketConfig'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 import * as Request from 'utils/useRequest'
@@ -363,9 +365,14 @@ function EmptyRow({ columnsList, skeletons }: Omit<PackageRowProps, 'hit'>) {
       <M.TableCell padding="checkbox" />
       <M.TableCell colSpan={colSpan}>
         <M.Typography>
-          Some search results may exist, but you don't have access to them.
-          <br />
-          You can try load more results, or start from scratch.
+          The initial batch of results was filtered out due to{' '}
+          <StyledLink
+            href={`${docs}/quilt-platform-catalog-user/search#secure-search`}
+            target="_blank"
+          >
+            secure search
+          </StyledLink>
+          . Click "Load more" to try additional results, or enter a different search.
         </M.Typography>
       </M.TableCell>
     </M.TableRow>

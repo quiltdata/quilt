@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 const WE_DONT_KNOW_IF_NEXT_PAGE_AVAILABLE =
-  'Due to secure search, we must load and filter each result individually. More results might exist.'
+  'Due to secure search restrictions, some results may be filtered out. More results might exist.'
 
 const useLoadNextPageStyles = M.makeStyles((t) => ({
   root: {
