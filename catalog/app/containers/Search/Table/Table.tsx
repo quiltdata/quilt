@@ -282,12 +282,11 @@ const usePackageRowStyles = M.makeStyles((t) => ({
 
 interface PackageRowProps {
   hit: Hit
-  columns: ColumnsMap
+  columnsList: Column[]
   skeletons?: Skeleton.Column[]
-  minColumnsNumber: number
 }
 
-function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowProps) {
+function PackageRow({ columnsList, hit, skeletons }: PackageRowProps) {
   const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
@@ -299,14 +298,6 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
       hash: hit.hash,
     }),
     [hit],
-  )
-
-  const visibleColumns = React.useMemo(
-    () =>
-      Array.from(columns.values())
-        .filter((c) => c.state.visible)
-        .slice(0, minColumnsNumber),
-    [columns, minColumnsNumber],
   )
 
   return (
@@ -325,7 +316,7 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
             />
           )}
         </M.TableCell>
-        {visibleColumns.map((column) => (
+        {columnsList.map((column) => (
           <M.TableCell
             key={column.filter}
             align={getColumnAlign(column)}
@@ -348,7 +339,7 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
         <M.TableRow>
           <M.TableCell
             className={classes.entries}
-            colSpan={visibleColumns.length + 2 + (skeletons?.length || 0)}
+            colSpan={columnsList.length + 2 + (skeletons?.length || 0)}
           >
             {open && (
               <Entries
@@ -364,24 +355,13 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
   )
 }
 
-interface EmptyRowProps {
-  columns: ColumnsMap
-  skeletonsSpan: number
-  minColumnsNumber: number
-}
-
-function EmptyRow({ columns, minColumnsNumber, skeletonsSpan }: EmptyRowProps) {
-  const visibleColumns = React.useMemo(
-    () =>
-      Array.from(columns.values())
-        .filter((c) => c.state.visible)
-        .slice(0, minColumnsNumber),
-    [columns, minColumnsNumber],
-  )
+function EmptyRow({ columnsList, skeletons }: Omit<PackageRowProps, 'hit'>) {
+  const colSpan =
+    columnsList.length + (skeletons?.length || 0) + 1 /* for placeholder column */
   return (
     <M.TableRow>
       <M.TableCell padding="checkbox" />
-      <M.TableCell colSpan={visibleColumns.length + 1 + skeletonsSpan}>
+      <M.TableCell colSpan={colSpan}>
         <M.Typography>
           Some search results may exist, but you don't have access to them.
           <br />
@@ -1323,17 +1303,15 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
               hit ? (
                 <PackageRow
                   key={hit.id}
-                  columns={columns}
+                  columnsList={visibleColumns}
                   hit={hit}
                   skeletons={skeletonColumns[index + 1]?.columns}
-                  minColumnsNumber={minColumnsNumber}
                 />
               ) : (
                 <EmptyRow
                   key={`empty_${index}`}
-                  columns={columns}
-                  skeletonsSpan={skeletonHead?.columns.length || 0}
-                  minColumnsNumber={minColumnsNumber}
+                  columnsList={visibleColumns}
+                  skeletons={skeletonHead?.columns}
                 />
               ),
             )}
