@@ -104,8 +104,10 @@ six==1.16.0
     # via python-dateutil
 soupsieve==2.6
     # via beautifulsoup4
-t4-lambda-shared[mem,preview] @ https://github.com/quiltdata/quilt/archive/d496dffbfb4b7a2ae05f6c1f7f0cb7d5d43bc984.zip#subdirectory=lambdas/shared
-    # via t4_lambda_preview (setup.py)
+t4-lambda-shared[mem,preview] @ https://github.com/quiltdata/quilt/archive/cc09a5b7cab9a7ea447e700bbc94ddb3ccb3f989.zip#subdirectory=lambdas/shared
+    # via
+    #   t4-lambda-shared
+    #   t4_lambda_preview (setup.py)
 tinycss2==1.4.0
     # via nbconvert
 tornado==6.5.1
