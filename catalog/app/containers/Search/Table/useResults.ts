@@ -1,10 +1,13 @@
 import * as React from 'react'
 
 import * as Model from 'model'
+import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import type { Json, JsonRecord } from 'utils/types'
 
 import * as SearchUIModel from '../model'
+
+import NEXT_PAGE_PACKAGES_QUERY from '../gql/NextPagePackages.generated'
 
 const isJsonRecord = (obj: Json): obj is JsonRecord =>
   obj != null && typeof obj === 'object' && !Array.isArray(obj)
@@ -163,22 +166,32 @@ type NextPage =
   | Omit<ResultsOk, 'determinate'>
   | Exclude<ResultsNotFulfilled, ResultsEmpty>
 
-function useNextPage(acc: Results, loadMore: boolean): NextPage {
+function useNextPage(acc: Results): [NextPage, () => void] {
   const after = (acc._tag === 'ok' && acc.cursor) || ''
-  const pause = !loadMore || !after
-  const nextPage = SearchUIModel.useNextPagePackagesQuery(after, pause)
-  return React.useMemo(
-    () => (pause ? IDLE : parseNextResults(nextPage)),
-    [pause, nextPage],
+  const nextQuery = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after }, { pause: true })
+  const next: NextPage = React.useMemo(
+    () =>
+      !nextQuery.data && !nextQuery.error && !nextQuery.fetching
+        ? IDLE
+        : parseNextResults(
+            GQL.fold(nextQuery, {
+              data: ({ searchMorePackages: data }) => ({ _tag: 'data' as const, data }),
+              fetching: () => ({ _tag: 'fetching' as const }),
+              error: (error) => ({ _tag: 'error' as const, error }),
+            }),
+          ),
+    [nextQuery],
   )
+  const { run } = nextQuery
+  const loadMore = React.useCallback(() => run(), [run])
+  return [next, loadMore]
 }
 
 export function useResults(): [Results, () => void] | [Results] {
   const [results, setResults] = React.useState<Results>(IDLE)
-  const [more, setMore] = React.useState<boolean>(false)
 
   const first = useFirstPage()
-  const next = useNextPage(results, more)
+  const [next, loadNext] = useNextPage(results)
 
   React.useEffect(() => setResults(first), [first])
 
@@ -207,9 +220,9 @@ export function useResults(): [Results, () => void] | [Results] {
         })
         break
       case 'ok':
-        setMore(false)
         setResults((prev) => {
           if (prev._tag !== 'ok') return prev
+          if (prev.cursor === next.cursor) return prev
           return {
             _tag: prev._tag,
             hits: prev.hits.concat(next.hits),
@@ -224,10 +237,7 @@ export function useResults(): [Results, () => void] | [Results] {
   }, [next])
 
   return React.useMemo(
-    () =>
-      results._tag === 'ok' && !!results.cursor
-        ? [results, () => setMore(true)]
-        : [results],
-    [results],
+    () => (results._tag === 'ok' && !!results.cursor ? [results, loadNext] : [results]),
+    [results, loadNext],
   )
 }

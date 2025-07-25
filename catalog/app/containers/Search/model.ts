@@ -787,8 +787,8 @@ function useFirstPageQuery(state: SearchUrlState) {
   }
 }
 
-export function useNextPageObjectsQuery(after: string, pause?: boolean) {
-  const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after }, { pause })
+export function useNextPageObjectsQuery(after: string) {
+  const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after })
   const folded = GQL.fold(result, {
     data: ({ searchMoreObjects: data }) => addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
@@ -797,8 +797,8 @@ export function useNextPageObjectsQuery(after: string, pause?: boolean) {
   return folded
 }
 
-export function useNextPagePackagesQuery(after: string, pause?: boolean) {
-  const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after }, { pause })
+export function useNextPagePackagesQuery(after: string) {
+  const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after })
   const folded = GQL.fold(result, {
     data: ({ searchMorePackages: data }) => addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
