@@ -78,7 +78,12 @@ interface FoldConfig<Data, OnData, OnFecthing, OnError>
  * ```ts
  * const result = useQuery(...)
  * const value = fold(result, {
- *   data: (data) => data,
+ *   data: (data, { fetching }) => {
+ *     if (fetching) {
+ *       return 'fetching new data, but returning the previous data'
+ *     }
+ *     return data
+ *   },
  *   fetching: () => 'fetching',
  * })
  * ```
