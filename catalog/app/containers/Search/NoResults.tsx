@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { ES_REF_SYNTAX } from 'components/SearchResults'
+import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
@@ -97,7 +98,7 @@ export function Empty({ className, onRefine }: EmptyProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return r.total
+            return r.total >= 0 ? r.total : null
           default:
             return null
         }
@@ -149,6 +150,34 @@ export function Empty({ className, onRefine }: EmptyProps) {
           Start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
         </li>
       </ul>
+    </div>
+  )
+}
+
+interface SecureSearchProps extends EmptyProps {
+  onLoadMore: () => void
+}
+
+export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchProps) {
+  return (
+    <div className={className}>
+      <Hit.PackagePlaceholder>
+        The initial batch of results was filtered out due to{' '}
+        <StyledLink
+          href={`${docs}/quilt-platform-catalog-user/search#secure-search`}
+          target="_blank"
+        >
+          secure search
+        </StyledLink>
+        .
+        <br />
+        <StyledLink onClick={onLoadMore}>Load more</StyledLink> to try additional results,
+        or{' '}
+        <StyledLink onClick={() => onRefine(Refine.New)}>
+          enter a different search
+        </StyledLink>
+        .
+      </Hit.PackagePlaceholder>
     </div>
   )
 }
