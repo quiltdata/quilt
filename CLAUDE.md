@@ -3,70 +3,52 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Architecture Overview
+## Project Structure
 
-Quilt is a data lakehouse platform consisting of three main components:
+Quilt is organized into several main components, each with its own CLAUDE.md file for detailed guidance:
 
-1. **Quilt Platform/Catalog** (`/catalog`) - React/TypeScript web application for data visualization, search, and browsing
-2. **Quilt Python SDK** (`/api/python`) - Python library for programmatic data package management  
-3. **AWS Lambda Functions** (`/lambdas`) - Serverless processing for indexing, previews, thumbnails, etc.
+### Core Platform Components
 
-The catalog is a React application using Material-UI, Redux/Redux-Saga for state management, and GraphQL/URQL for API communication. Lambda functions handle backend processing like document indexing, file previews, and thumbnail generation.
+1. **[Catalog Web Application](/catalog/CLAUDE.md)** (`/catalog/`) 
+   - React/TypeScript web interface for data visualization and browsing
+   - Material-UI, Redux/Redux-Saga, GraphQL/URQL stack
+   - **Quick start**: `cd catalog && npm install && npm start`
 
-## Common Development Commands
+2. **[Python SDK](/api/python/CLAUDE.md)** (`/api/python/`)
+   - Core `quilt3` Python library for package management
+   - AWS S3 integration, authentication, CLI interface  
+   - **Quick start**: `cd api/python && pip install -e .[tests] && pytest`
 
-### Catalog (Web Application)
+3. **[Lambda Functions](/lambdas/CLAUDE.md)** (`/lambdas/`)
+   - AWS serverless backend processing (indexing, previews, thumbnails)
+   - 12+ individual functions with shared utilities
+   - **Quick start**: `cd lambdas/<function> && python ../run_lambda.py`
 
-```bash
-cd catalog
-npm install                    # Install dependencies
-npm start                      # Start development server
-npm run build                  # Production build
-npm test                       # Run tests
-npm run lint                   # Lint JavaScript/TypeScript
-npm run lint:app               # Lint app code specifically
-npm run gql:generate           # Generate GraphQL types
-```
+### Documentation and Tooling
 
-### Python SDK
+4. **[Documentation](/docs/CLAUDE.md)** (`/docs/`)
+   - User guides, API reference, tutorials
+   - Related: `/gendocs` (API doc generation), `/testdocs` (doc validation)
+   - **Quick start**: See `/docs/CLAUDE.md` for workflow details
 
-```bash
-cd api/python
-pip install -e .[tests]       # Install for development
-pytest --disable-warnings     # Run tests
-make test                      # Alternative test command
-make install-local            # Install locally for development
-```
+### Shared Resources
 
-### Lambda Functions
+- `/shared/` - GraphQL schemas and shared configurations
+- `/py-shared/` - Python utilities shared across components  
+- Root configuration files (`.gitignore`, `renovate.json`, etc.)
 
-Each lambda has its own directory under `/lambdas/` with individual requirements.txt and test suites. Use `lambdas/run_lambda.py` for local testing.
+## Development Workflow
 
-## Key Directories and Patterns
+1. **Choose your component** - Review the appropriate project-specific CLAUDE.md file
+2. **Set up environment** - Follow the setup instructions in that component's guide
+3. **Make changes** - Use the patterns and conventions documented for that component
+4. **Test thoroughly** - Each component has its own testing approach
+5. **Update docs** - Regenerate API docs if needed (`/gendocs/build.py`)
 
-- `/catalog/app/` - Main React application code
-- `/catalog/app/components/` - Reusable UI components
-- `/catalog/app/containers/` - Page-level containers with business logic
-- `/catalog/app/utils/` - Shared utilities and helpers
-- `/api/python/quilt3/` - Core Python SDK implementation
-- `/lambdas/` - AWS Lambda functions for backend processing
-- `/docs/` - Documentation and user guides
-- `/shared/` - Shared schemas and GraphQL definitions
+## Cross-Component Integration
 
-## GraphQL and TypeScript
+- **GraphQL Schema**: Shared in `/shared/graphql/schema.graphql`
+- **Python Shared Code**: Located in `/py-shared/` and `/lambdas/shared/`
+- **Build Coordination**: Some scripts coordinate across multiple components
 
-The catalog uses GraphQL with code generation. After modifying `.graphql` files, run `npm run gql:generate` to update TypeScript types. GraphQL schema is shared in `/shared/graphql/schema.graphql`.
-
-## Testing Patterns
-
-- Catalog: Jest with React Testing Library
-- Python: pytest with coverage
-- Each component typically has `.spec.tsx` or `.test.py` files alongside source
-
-## State Management
-
-The catalog uses Redux with Redux-Saga for side effects. State is organized by feature domains in `/catalog/app/containers/` with actions, reducers, and sagas co-located.
-
-## Build and Deployment
-
-The catalog builds to static assets via Webpack. Lambda functions are packaged as ZIP files or Docker containers. Build scripts are in `/catalog/internals/scripts/` and `/lambdas/scripts/`.
+For component-specific guidance, always refer to the individual CLAUDE.md files in each project directory.
