@@ -3,6 +3,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## IDE Integration
+
+1. **Claude Code** - This project is actively developed using [Claude Code](https://claude.ai/code) via the `dev@quiltdata.io` account
+2. **Recommended setup** - Run this in the Terminal or in your favorite IDE (currently supports VS Code and Cursor)
+
 ## Project Structure
 
 Quilt is organized into several main components, each with its own CLAUDE.md file for detailed guidance:
@@ -50,3 +55,34 @@ Quilt is organized into several main components, each with its own CLAUDE.md fil
 - **Build Coordination**: Some scripts coordinate across multiple components
 
 For component-specific guidance, always refer to the individual CLAUDE.md files in each project directory.
+
+## Development Best Practices
+
+### Code Quality
+
+1. **Always check and fix linting issues** - Pay attention to diagnostic warnings from the editor and resolve them
+2. **For markdown files** - Add `<!-- markdownlint-disable MD013 -->` at the top to disable line-length restrictions
+3. **Test after changes** - Ensure no new diagnostic issues are introduced
+
+### Testing and Validation
+
+1. **Run relevant test suites** before considering work complete:
+   - Catalog: `npm test`
+   - Python SDK: `pytest`
+   - Lambda functions: `pytest` in function directory
+   - Documentation: `poetry run pytest --codeblocks ../docs` (from testdocs/)
+
+### Git and Commits
+
+1. **Always ask to create a commit** after implementing a signficant change, and (if there are uncommitted changes) before doing something new
+2. **When creating commits** (if requested):
+   - Use descriptive commit messages
+   - Include `🤖 Generated with [Claude Code](https://claude.ai/code)` footer
+   - Run tests before committing
+
+### Documentation
+
+1. **Update documentation** when making significant changes:
+   - Regenerate API docs if Python SDK changes (`gendocs/build.py`)
+   - Update relevant CLAUDE.md files for architectural changes
+   - Validate documentation examples remain current
