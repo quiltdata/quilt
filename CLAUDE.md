@@ -74,7 +74,7 @@ For component-specific guidance, always refer to the individual CLAUDE.md files 
 
 ### Git and Commits
 
-1. **Always ask to create a commit** after implementing a signficant change, and (if there are uncommitted changes) before doing something new
+1. **Always ask to create a commit** after implementing a significant change, and (if there are uncommitted changes) before doing something new
 2. **When creating commits** (if requested):
    - Use descriptive commit messages
    - Include `🤖 Generated with [Claude Code](https://claude.ai/code)` footer
