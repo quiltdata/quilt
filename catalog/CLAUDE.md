@@ -1,4 +1,5 @@
-# CLAUDE.md
+<!-- markdownlint-disable MD013 -->
+# CLAUDE.md quiltdata/quilt/catalog
 
 This file provides guidance to Claude Code (claude.ai/code) when working with the Quilt Catalog web application.
 
@@ -19,7 +20,7 @@ npm run test:watch             # Run tests in watch mode
 ## Code Organization
 
 - `app/` - Main application source code
-  - `components/` - Reusable UI components 
+  - `components/` - Reusable UI components
   - `containers/` - Page-level containers with Redux integration
   - `utils/` - Shared utilities and helpers
   - `constants/` - Application constants and configuration
@@ -32,18 +33,21 @@ npm run test:watch             # Run tests in watch mode
 ## Architecture Patterns
 
 ### State Management
+
 - **Redux** with **Redux-Saga** for side effects
 - State organized by feature domains in `containers/`
 - Actions, reducers, and sagas co-located with containers
 - Immutable state updates using Immutable.js
 
 ### GraphQL Integration
+
 - **URQL** client for GraphQL communication
 - Generated TypeScript types from GraphQL schema
 - Run `npm run gql:generate` after modifying `.graphql` files
 - Schema located in `../shared/graphql/schema.graphql`
 
 ### Component Structure
+
 - Material-UI for design system components
 - Functional components with React Hooks
 - TypeScript for type safety
@@ -84,17 +88,20 @@ npm run prettify               # Format code with Prettier
 ## Common Tasks
 
 ### Adding New Components
+
 1. Create component in appropriate directory under `app/components/`
 2. Include TypeScript types and props interface
 3. Add test file with `.spec.tsx` extension
 4. Export from `index.ts` file
 
 ### Working with GraphQL
+
 1. Add/modify `.graphql` files alongside components
 2. Run `npm run gql:generate` to update TypeScript types
 3. Import generated hooks in components
 
 ### State Management
+
 1. Create actions, reducer, and saga in container directory
 2. Connect container to Redux store
 3. Use selectors for accessing state

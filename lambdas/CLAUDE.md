@@ -1,4 +1,5 @@
-# CLAUDE.md
+<!-- markdownlint-disable MD013 -->
+# CLAUDE.md: quiltdata/quilt/lambdas
 
 This file provides guidance to Claude Code (claude.ai/code) when working with the Quilt Lambda functions.
 
@@ -9,17 +10,20 @@ The Quilt Lambda functions provide serverless backend processing for the Quilt d
 ## Lambda Functions Overview
 
 ### Core Processing Functions
+
 - **indexer** - Extracts text content from documents for search indexing
-- **preview** - Generates HTML previews for various file formats 
+- **preview** - Generates HTML previews for various file formats
 - **thumbnail** - Creates image thumbnails for visual files
 - **tabular_preview** - Handles previews for tabular data (CSV, Parquet, etc.)
 
 ### Package Management Functions  
+
 - **pkgpush** - Handles package pushing and copying operations
 - **pkgevents** - Processes package lifecycle events
 - **manifest_indexer** - Indexes package manifests for search
 
 ### Supporting Functions
+
 - **access_counts** - Tracks file access metrics
 - **s3hash** - Computes file checksums for integrity verification
 - **es_ingest** - Manages Elasticsearch data ingestion
@@ -27,11 +31,13 @@ The Quilt Lambda functions provide serverless backend processing for the Quilt d
 - **transcode** - Handles file format conversions
 
 ### Shared Components
+
 - **shared** - Common utilities and libraries used across functions
 
 ## Development Setup
 
 ### Local Testing
+
 ```bash
 cd lambdas/<function_name>
 pip install -r requirements.txt        # Install dependencies
@@ -40,6 +46,7 @@ pytest                                 # Run tests
 ```
 
 ### Using Local Test Server
+
 ```bash
 cd lambdas/<function_name>
 python ../run_lambda.py               # Start local test server on port 8080
@@ -49,7 +56,8 @@ python ../run_lambda.py               # Start local test server on port 8080
 ## Code Organization Patterns
 
 Each lambda function follows a similar structure:
-```
+
+```tree
 <function_name>/
 ├── index.py                  # Main lambda handler
 ├── requirements.txt          # Runtime dependencies
@@ -64,14 +72,18 @@ Each lambda function follows a similar structure:
 ## Modern vs Legacy Patterns
 
 ### Modern Functions (pyproject.toml)
+
 Some newer functions use modern Python packaging:
+
 - `pyproject.toml` instead of `setup.py`
 - `src/` layout with namespaced packages
 - `uv.lock` for dependency locking
 - Examples: `es_ingest`, `manifest_indexer`, `thumbnail`
 
 ### Legacy Functions (setup.py)
+
 Older functions use traditional packaging:
+
 - `setup.py` for configuration
 - Direct source in root directory
 - `requirements.txt` for dependencies
@@ -87,6 +99,7 @@ Older functions use traditional packaging:
 ## Common Development Tasks
 
 ### Adding New Lambda Function
+
 1. Create directory under `/lambdas/`
 2. Implement `lambda_handler(event, context)` in `index.py`
 3. Add dependencies to `requirements.txt` or `pyproject.toml`
@@ -94,12 +107,14 @@ Older functions use traditional packaging:
 5. Add build scripts to `scripts/` if needed
 
 ### Local Development Workflow
+
 1. Use `run_lambda.py` for local testing
 2. Mock S3 events in test data
 3. Test with real file samples in `tests/data/`
 4. Use pytest for unit and integration tests
 
 ### Deployment
+
 - Functions are packaged as ZIP files or Docker containers
 - Build scripts in `/lambdas/scripts/`
 - Dependencies bundled with function code
@@ -108,7 +123,9 @@ Older functions use traditional packaging:
 ## Event Processing Patterns
 
 ### S3 Event Processing
+
 Most functions process S3 events with this pattern:
+
 ```python
 def lambda_handler(event, context):
     for record in event['Records']:
@@ -118,7 +135,9 @@ def lambda_handler(event, context):
 ```
 
 ### API Gateway Events
+
 Some functions handle HTTP requests:
+
 ```python
 def lambda_handler(event, context):
     method = event['httpMethod']
@@ -130,12 +149,15 @@ def lambda_handler(event, context):
 ## Shared Dependencies
 
 ### t4_lambda_shared
+
 Common functionality is centralized in the `shared` package:
+
 - `decorator.py` - Function decorators and error handling
 - `preview.py` - Common preview generation utilities  
 - `utils.py` - Shared helper functions
 
 Functions reference shared code via GitHub URLs in setup.py:
+
 ```python
 install_requires=[
     "t4_lambda_shared[preview] @ https://github.com/quiltdata/quilt/archive/HASH.zip#subdirectory=lambdas/shared"
@@ -145,16 +167,19 @@ install_requires=[
 ## File Format Support
 
 ### Indexer
+
 - Text extraction from PDF, Office docs, notebooks
 - Parquet metadata extraction
 - Error handling for malformed files
 
 ### Preview  
+
 - HTML generation for CSV, JSON, text files
 - Notebook rendering with nbconvert
 - Parquet data sampling
 
 ### Thumbnail
+
 - Image resizing and format conversion
 - PDF page extraction
 - Scientific image formats (OME-TIFF)

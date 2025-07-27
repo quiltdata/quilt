@@ -1,4 +1,5 @@
-# CLAUDE.md
+<!-- markdownlint-disable MD013 -->
+# CLAUDE.md: quiltdata/quilt/api/python
 
 This file provides guidance to Claude Code (claude.ai/code) when working with the Quilt Python SDK.
 
@@ -41,17 +42,20 @@ pytest -k "test_function_name" # Run specific test
 ## Core Architecture
 
 ### Main Classes
+
 - **Package** - Represents a versioned data package with files and metadata
 - **Bucket** - Interface for browsing and managing S3 buckets
 - **Admin API** - Administrative functions for user/role management
 
 ### Key Modules
+
 - `api.py` - High-level functions like `search()`, `copy()`, `list_packages()`
 - `data_transfer.py` - File upload/download and transfer optimization
 - `session.py` - Authentication with AWS and Quilt services
 - `util.py` - Shared utilities and helper functions
 
 ### Backend System
+
 - Pluggable storage backends in `backends/`
 - S3 backend handles AWS S3 operations
 - Local backend for filesystem operations
@@ -60,6 +64,7 @@ pytest -k "test_function_name" # Run specific test
 ## Authentication and Configuration
 
 The SDK handles authentication through:
+
 - AWS credentials (boto3 session)
 - Quilt service authentication tokens
 - Configuration stored in user's home directory
@@ -68,6 +73,7 @@ The SDK handles authentication through:
 ## Package Management
 
 ### Creating Packages
+
 ```python
 import quilt3
 pkg = quilt3.Package()
@@ -76,6 +82,7 @@ pkg.push("username/packagename", registry="s3://bucket")
 ```
 
 ### Installing Packages
+
 ```python
 pkg = quilt3.Package.install("username/packagename", registry="s3://bucket")
 ```
@@ -91,6 +98,7 @@ pkg = quilt3.Package.install("username/packagename", registry="s3://bucket")
 ## CLI Interface
 
 The package provides a command-line interface through `main.py`:
+
 - Entry point: `quilt3` command
 - Subcommands for package operations, authentication, catalog browsing
 - JSON argument parsing for complex parameters
@@ -98,6 +106,7 @@ The package provides a command-line interface through `main.py`:
 ## Dependencies
 
 Core dependencies:
+
 - `boto3` - AWS SDK for S3 operations
 - `requests` - HTTP client for API calls
 - `jsonschema` - Schema validation
@@ -105,24 +114,28 @@ Core dependencies:
 - `tqdm` - Progress bars for long operations
 
 Optional dependencies:
+
 - `pandas`, `pyarrow` - Data format support
 - `anndata` - AnnData format support for scientific data
 
 ## Common Development Tasks
 
 ### Adding New API Functions
+
 1. Add function to `api.py` or appropriate module
 2. Update `__init__.py` exports
 3. Add tests in `tests/test_api.py`
 4. Update CLI interface in `main.py` if needed
 
 ### Adding New Backends
+
 1. Create new backend class in `backends/`
 2. Implement required interface methods
 3. Register backend in `backends/__init__.py`
 4. Add backend-specific tests
 
 ### Working with Package Format
+
 - Packages are represented as manifests (JSON metadata)
 - Files are referenced by logical keys and S3 paths
 - Metadata can be attached at package and file levels
