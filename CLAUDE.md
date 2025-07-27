@@ -9,7 +9,7 @@ Quilt is organized into several main components, each with its own CLAUDE.md fil
 
 ### Core Platform Components
 
-1. **[Catalog Web Application](/catalog/CLAUDE.md)** (`/catalog/`) 
+1. **[Catalog Web Application](/catalog/CLAUDE.md)** (`/catalog/`)
    - React/TypeScript web interface for data visualization and browsing
    - Material-UI, Redux/Redux-Saga, GraphQL/URQL stack
    - **Quick start**: `cd catalog && npm install && npm start`
@@ -23,8 +23,6 @@ Quilt is organized into several main components, each with its own CLAUDE.md fil
    - AWS serverless backend processing (indexing, previews, thumbnails)
    - 12+ individual functions with shared utilities
    - **Quick start**: `cd lambdas/<function> && python ../run_lambda.py`
-
-### Documentation and Tooling
 
 4. **[Documentation](/docs/CLAUDE.md)** (`/docs/`)
    - User guides, API reference, tutorials
