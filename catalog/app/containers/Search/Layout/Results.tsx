@@ -186,6 +186,7 @@ const useResultsStyles = M.makeStyles((t) => ({
   controls: {
     display: 'flex',
     marginLeft: 'auto',
+    alignItems: 'center',
   },
   toolbar: {
     alignItems: 'flex-end',

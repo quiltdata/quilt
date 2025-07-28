@@ -41,6 +41,7 @@ const useStyles = M.makeStyles((t) => ({
   value: {
     fontWeight: t.typography.fontWeightMedium,
     marginLeft: t.spacing(0.5),
+    whiteSpace: 'nowrap',
   },
 }))
 
