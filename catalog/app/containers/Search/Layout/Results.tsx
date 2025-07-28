@@ -16,11 +16,7 @@ import * as SearchUIModel from '../model'
 
 import ColumnTitle from './ColumnTitle'
 
-interface CreatePackageProps {
-  className: string
-}
-
-function CreatePackage({ className }: CreatePackageProps) {
+function CreatePackage() {
   const bucket = useBucketStrict()
   const createDialog = usePackageCreationDialog({
     bucket,
@@ -28,17 +24,18 @@ function CreatePackage({ className }: CreatePackageProps) {
     disableStateDisplay: true,
   })
   const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
     <>
       <M.Button
-        className={className}
         color="primary"
         onClick={handleClick}
-        size="small"
+        size={sm ? 'medium' : 'small'}
         startIcon={<M.Icon>add</M.Icon>}
         variant="contained"
       >
-        Create new package
+        {sm ? 'Create' : 'Create new package'}
       </M.Button>
       {createDialog.render({
         successTitle: 'Package created',
@@ -72,11 +69,8 @@ function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
 }
 
 const useResultsCountStyles = M.makeStyles((t) => ({
-  create: {
-    marginLeft: t.spacing(2),
-    [t.breakpoints.down('sm')]: {
-      marginLeft: 'auto',
-    },
+  count: {
+    marginRight: t.spacing(2),
   },
 }))
 
@@ -99,10 +93,12 @@ function ResultsCount() {
         case 'PackagesSearchResultSet':
           return (
             <ColumnTitle>
-              {resultsCountI18n(r.data.total, model.state)}
+              <span className={classes.count}>
+                {resultsCountI18n(r.data.total, model.state)}
+              </span>
               <RRDom.Switch>
                 <RRDom.Route path={paths.bucketRoot}>
-                  <CreatePackage className={classes.create} />
+                  <CreatePackage />
                 </RRDom.Route>
               </RRDom.Switch>
             </ColumnTitle>
