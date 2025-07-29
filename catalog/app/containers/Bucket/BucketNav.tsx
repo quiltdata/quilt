@@ -28,7 +28,7 @@ function useBucketSection() {
     if (matchPath(location.pathname, { path: paths.bucketOverview, exact: true })) {
       return 'overview'
     }
-    if (matchPath(location.pathname, { path: paths.bucketPackageList, exact: true })) {
+    if (matchPath(location.pathname, { path: paths.bucketPackageList })) {
       return 'packages'
     }
     if (
