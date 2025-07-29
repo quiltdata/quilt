@@ -76,11 +76,8 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   const classes = useUserMetaValueStyles()
   const value = React.useMemo(() => {
     if (hit.meta instanceof Error || !hit.meta) return hit.meta
-    try {
-      return JSONPointer.getValue(hit.meta || {}, pointer)
-    } catch (err) {
-      return err instanceof Error ? err : new Error(`${err}`)
-    }
+    if (!hit.meta) return new Error('No user meta')
+    return JSONPointer.getValue(hit.meta, pointer)
   }, [hit.meta, pointer])
 
   if (value instanceof Error) {

@@ -23,17 +23,17 @@ export function parse(address: Pointer): Path {
 const isJsonArray = (obj: Json): obj is JsonArray =>
   typeof obj === 'object' && Array.isArray(obj)
 
-function getValueByPath(obj: JsonRecord, path: Path): Json {
-  return path.reduce((memo: Json, key) => {
-    if (memo === null || typeof memo !== 'object') {
-      throw new Error(`Path "${stringify(path)}" not found in object`)
+function getValueByPath(obj: JsonRecord, path: Path): Json | undefined {
+  return path.reduce((memo: Json | undefined, key) => {
+    if (!memo || typeof memo !== 'object') {
+      return undefined
     }
     if (isJsonArray(memo)) return memo[parseInt(key.toString(), 10)]
     return memo[key.toString()]
   }, obj)
 }
 
-export function getValue(obj: JsonRecord, address: Path | Pointer): Json {
+export function getValue(obj: JsonRecord, address: Path | Pointer): Json | undefined {
   if (!Array.isArray(address)) return getValue(obj, parse(address))
 
   return getValueByPath(obj, address)
