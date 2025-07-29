@@ -5,10 +5,6 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'inline-flex',
-    [t.breakpoints.down('sm')]: {
-      borderRadius: 0,
-      boxShadow: 'none',
-    },
   },
   button: {
     ...t.typography.body1,
@@ -36,9 +32,12 @@ export interface ValueBase {
   valueOf: () => string | number | boolean | null
 }
 
+type Breakpoint = M.Theme['breakpoints']['keys'][number]
+
 interface SelectDropdownProps<Value extends ValueBase> {
   ButtonProps?: M.ButtonProps
   adaptive?: boolean
+  breakpoint?: Breakpoint
   children?: React.ReactNode
   disabled?: boolean
   emptySlot?: React.ReactNode
@@ -58,6 +57,7 @@ interface SelectDropdownProps<Value extends ValueBase> {
 export default function SelectDropdown<Value extends ValueBase>({
   ButtonProps,
   adaptive = true,
+  breakpoint = 'sm',
   children,
   className,
   classes: classesProp,
@@ -97,7 +97,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   )
 
   const t = M.useTheme()
-  const aboveSm = M.useMediaQuery(t.breakpoints.up('sm'))
+  const aboveSm = M.useMediaQuery(t.breakpoints.up(breakpoint))
   const { className: buttonClassName, ...buttonProps } = ButtonProps || {}
 
   return (
