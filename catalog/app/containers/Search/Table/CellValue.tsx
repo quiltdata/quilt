@@ -94,9 +94,14 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   }
 
   return (
-    <span className={cx(typeof value === 'number' && classes.number)}>
-      <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
-    </span>
+    <M.Tooltip
+      placement="bottom-start"
+      title={typeof value === 'string' && value.length > 50 ? value : ''}
+    >
+      <span className={cx(typeof value === 'number' && classes.number)}>
+        <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
+      </span>
+    </M.Tooltip>
   )
 }
 
