@@ -16,11 +16,21 @@ import * as SearchUIModel from '../model'
 
 import ColumnTitle from './ColumnTitle'
 
+const useCreatePackageStyles = M.makeStyles({
+  label: {
+    display: 'block',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+})
+
 interface CreatePackageProps {
   className: string
 }
 
 function CreatePackage({ className }: CreatePackageProps) {
+  const classes = useCreatePackageStyles()
   const bucket = useBucketStrict()
   const createDialog = usePackageCreationDialog({
     bucket,
@@ -28,18 +38,33 @@ function CreatePackage({ className }: CreatePackageProps) {
     disableStateDisplay: true,
   })
   const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
     <>
-      <M.Button
-        className={className}
-        color="primary"
-        onClick={handleClick}
-        size="small"
-        startIcon={<M.Icon>add</M.Icon>}
-        variant="contained"
-      >
-        Create new package
-      </M.Button>
+      {xs ? (
+        <M.Button
+          className={className}
+          color="primary"
+          onClick={handleClick}
+          size="medium"
+          variant="contained"
+        >
+          <M.Icon>add</M.Icon>
+        </M.Button>
+      ) : (
+        <M.Button
+          className={className}
+          color="primary"
+          onClick={handleClick}
+          size={sm ? 'medium' : 'small'}
+          startIcon={<M.Icon>add</M.Icon>}
+          variant="contained"
+        >
+          <span className={classes.label}>Create new package</span>
+        </M.Button>
+      )}
       {createDialog.render({
         successTitle: 'Package created',
         successRenderMessage: ({ packageLink }) => (
@@ -71,20 +96,13 @@ function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
   return Format.pluralify(n, I18_COUNT_RESULTS)
 }
 
-const useResultsCountStyles = M.makeStyles((t) => ({
-  create: {
-    marginLeft: t.spacing(2),
-    [t.breakpoints.down('sm')]: {
-      marginLeft: 'auto',
-    },
-  },
-}))
+interface ResultsCountProps {
+  className: string
+}
 
-function ResultsCount() {
-  const classes = useResultsCountStyles()
+function ResultsCount({ className }: ResultsCountProps) {
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
-  const { paths } = NamedRoutes.use()
   switch (r._tag) {
     case 'fetching':
       return <Skeleton width={140} height={24} />
@@ -98,13 +116,8 @@ function ResultsCount() {
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           return (
-            <ColumnTitle>
+            <ColumnTitle className={className}>
               {resultsCountI18n(r.data.total, model.state)}
-              <RRDom.Switch>
-                <RRDom.Route path={paths.bucketRoot}>
-                  <CreatePackage className={classes.create} />
-                </RRDom.Route>
-              </RRDom.Switch>
             </ColumnTitle>
           )
         default:
@@ -147,7 +160,7 @@ const useToggleButtonStyles = M.makeStyles({
     // XXX:
     // This is a color hardcoded for MUI.Button#outlined
     // https://github.com/mui/material-ui/blob/v4.x/packages/material-ui/src/Button/Button.js#L70
-    // The same color for the latest Lab.ToggleButtonGroup, but we don't use it
+    // Latest Lab.ToggleButtonGroup has correct color, but we don't use it
     borderColor: `rgba(0, 0, 0, 0.23)`,
   },
 })
@@ -182,19 +195,40 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
 }
 
 const useResultsStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'row',
+    minHeight: t.spacing(4.5),
+    flexWrap: 'wrap',
+    [t.breakpoints.down('xs')]: {
+      flexDirection: 'column',
+    },
+  },
   button: {
     '& + &': {
       marginLeft: t.spacing(1),
     },
   },
   controls: {
+    alignItems: 'center',
     display: 'flex',
-    marginLeft: 'auto',
+    flexGrow: 1,
+    overflow: 'hidden',
   },
-  toolbar: {
-    alignItems: 'flex-end',
+  title: {
+    flexShrink: 0,
+    marginRight: t.spacing(2),
+  },
+  create: {
+    marginRight: t.spacing(4),
+  },
+  controlsInner: {
+    alignItems: 'center',
     display: 'flex',
-    minHeight: '36px',
+    flexGrow: 1,
+    flexShrink: 0,
+    justifyContent: 'flex-end',
+    whiteSpace: 'nowrap',
   },
 }))
 
@@ -205,15 +239,25 @@ interface ResultsProps {
 export default function Results({ onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
   const classes = useResultsStyles()
+  const { paths } = NamedRoutes.use()
   return (
-    <div className={classes.toolbar}>
-      <ResultsCount />
+    <div className={classes.root}>
+      <ResultsCount className={classes.title} />
+
       <div className={classes.controls}>
-        {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
-          <ToggleResultsView className={classes.button} />
-        )}
-        {onFilters && <FiltersButton className={classes.button} onClick={onFilters} />}
-        <SortSelector className={classes.button} />
+        <RRDom.Switch>
+          <RRDom.Route path={paths.bucketRoot}>
+            <CreatePackage className={classes.create} />
+          </RRDom.Route>
+        </RRDom.Switch>
+
+        <div className={classes.controlsInner}>
+          {model.state.resultType === SearchUIModel.ResultType.QuiltPackage && (
+            <ToggleResultsView className={classes.button} />
+          )}
+          {onFilters && <FiltersButton className={classes.button} onClick={onFilters} />}
+          <SortSelector className={classes.button} />
+        </div>
       </div>
     </div>
   )
