@@ -182,9 +182,13 @@ function AvailableUserMetaColumn({ column, ...props }: AvailableUserMetaColumnPr
     showColumn()
     open(column)
   }, [column, open, showColumn])
+
   return (
     <M.MenuItem onClick={handleClick}>
-      <M.ListItemText {...props} />
+      <M.ListItemText
+        secondary={column?.state?.filtered && 'Filters applied'}
+        {...props}
+      />
       <M.ListItemSecondaryAction>
         <M.Checkbox edge="end" onChange={handleChange} checked={column.state.visible} />
       </M.ListItemSecondaryAction>
