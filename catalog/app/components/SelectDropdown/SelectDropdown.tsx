@@ -32,17 +32,9 @@ export interface ValueBase {
   valueOf: () => string | number | boolean | null
 }
 
-type Breakpoint = M.Theme['breakpoints']['keys'][number]
-
-function useBreakpoint(breakpoint?: Breakpoint) {
-  const t = M.useTheme()
-  const triggered = M.useMediaQuery(t.breakpoints.up(breakpoint || 'xl'))
-  return breakpoint ? triggered : null
-}
-
 interface SelectDropdownProps<Value extends ValueBase> {
   ButtonProps?: M.ButtonProps
-  breakpoint?: Breakpoint
+  shrink?: boolean
   children?: React.ReactNode
   disabled?: boolean
   emptySlot?: React.ReactNode
@@ -61,7 +53,7 @@ interface SelectDropdownProps<Value extends ValueBase> {
 
 export default function SelectDropdown<Value extends ValueBase>({
   ButtonProps,
-  breakpoint,
+  shrink = false,
   children,
   className,
   classes: classesProp,
@@ -100,7 +92,6 @@ export default function SelectDropdown<Value extends ValueBase>({
     [onChange],
   )
 
-  const showLabel = useBreakpoint(breakpoint)
   const { className: buttonClassName, ...buttonProps } = ButtonProps || {}
 
   return (
@@ -118,7 +109,7 @@ export default function SelectDropdown<Value extends ValueBase>({
         {...buttonProps}
       >
         {children}
-        {showLabel && (
+        {!shrink && (
           <>
             <span className={cx(classes.value, classesProp?.value)}>
               {value.toString()}
