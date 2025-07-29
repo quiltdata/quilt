@@ -209,7 +209,6 @@ export function Dropdown({
   return (
     <SelectDropdown
       ButtonProps={ButtonProps}
-      adaptive={false}
       className={className}
       disabled={!onChange || (Array.isArray(successors) && !successors?.length)}
       emptySlot={emptySlot}
