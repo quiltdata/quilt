@@ -35,6 +35,7 @@ function ResultsInner({ className, results, loadMore, bucket }: ResultsInnerProp
           className={classes.next}
           loading={results._tag === 'ok' && results.next?._tag === 'in-progress'}
           onClick={loadMore}
+          determinate={!!results.determinate}
         />
       )}
     </div>

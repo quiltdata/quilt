@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import Empty from 'components/Empty'
 import { ES_REF_SYNTAX } from 'components/SearchResults'
+import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
@@ -75,7 +76,7 @@ function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return r.total
+            return r.total >= 0 ? r.total : null
           default:
             return null
         }
@@ -141,6 +142,34 @@ const useErrorStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(3),
   },
 }))
+
+interface SecureSearchProps extends EmptyWrapperProps {
+  onLoadMore: () => void
+}
+
+export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchProps) {
+  return (
+    <div className={className}>
+      <Hit.PackagePlaceholder>
+        The initial batch of results was filtered out due to{' '}
+        <StyledLink
+          href={`${docs}/quilt-platform-catalog-user/search#secure-search`}
+          target="_blank"
+        >
+          secure search
+        </StyledLink>
+        .
+        <br />
+        <StyledLink onClick={onLoadMore}>Load more</StyledLink> to try additional results,
+        or{' '}
+        <StyledLink onClick={() => onRefine(Refine.New)}>
+          enter a different search
+        </StyledLink>
+        .
+      </Hit.PackagePlaceholder>
+    </div>
+  )
+}
 
 interface ErrorProps {
   className?: string
