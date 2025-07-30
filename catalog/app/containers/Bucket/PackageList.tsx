@@ -85,7 +85,7 @@ function PackageList({ bucket }: PackageListProps) {
     },
     [inputEl, goToGlobalSearchUrl, resultType, clearFilters, setResultType, reset],
   )
-
+  const emptyFallback = <NoPackages bucket={bucket} onRefine={handleRefine} />
   return (
     <>
       <MetaTitle>{titleSegments}</MetaTitle>
@@ -93,11 +93,11 @@ function PackageList({ bucket }: PackageListProps) {
         {tableView ? (
           <TableResults
             bucket={bucket}
-            emptyFallback={<NoPackages bucket={bucket} onRefine={handleRefine} />}
+            emptyFallback={emptyFallback}
             onRefine={handleRefine}
           />
         ) : (
-          <ListResults onRefine={handleRefine} />
+          <ListResults emptyFallback={emptyFallback} onRefine={handleRefine} />
         )}
       </Main>
     </>
