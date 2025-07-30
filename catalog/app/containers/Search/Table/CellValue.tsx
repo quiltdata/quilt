@@ -75,7 +75,8 @@ interface UserMetaValueProps {
 function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   const classes = useUserMetaValueStyles()
   const value = React.useMemo(() => {
-    if (hit.meta instanceof Error || !hit.meta) return hit.meta
+    if (hit.meta instanceof Error) return hit.meta
+    if (!hit.meta) return undefined
     return JSONPointer.getValue(hit.meta, pointer)
   }, [hit.meta, pointer])
 
