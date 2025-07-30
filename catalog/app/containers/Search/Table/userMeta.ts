@@ -101,12 +101,13 @@ function useMetadataSchema(
     if (
       workflow === null ||
       workflow.slug === notAvailable ||
-      workflow.slug === notSelected
+      workflow.slug === notSelected ||
+      !workflow.schema
     ) {
       return noKeys
     }
 
-    const schemaUrl = workflow?.schema?.url
+    const schemaUrl = workflow.schema.url
     if (!schemaUrl) {
       throw new Error('No Schema URL found')
     }
