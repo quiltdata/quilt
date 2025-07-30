@@ -129,7 +129,8 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
         </StyledLink>
       )
     case 'comment':
-      return hit.comment ? (
+      return hit.comment &&
+        hit.comment !== 'None' /* FIXME: remove it when backend fixed */ ? (
         <M.Tooltip arrow title={hit.comment} placement="bottom-start">
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
         </M.Tooltip>
