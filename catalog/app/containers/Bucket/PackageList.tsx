@@ -113,8 +113,8 @@ const usePackageListErrorBoundaryStyles = M.makeStyles((t) => ({
 
 function PackageListErrorBoundary({ error, resetErrorBoundary }: FallbackProps) {
   const classes = usePackageListErrorBoundaryStyles()
-  const handleRefine = React.useCallback(
-    (action: NoResults.Refine) =>
+  const handleRefine: NoResults.UnexpectedErrorProps['onRefine'] = React.useCallback(
+    (action) =>
       action === NoResults.Refine.Network
         ? window.location.reload() // TODO: retry GQL request
         : resetErrorBoundary(),

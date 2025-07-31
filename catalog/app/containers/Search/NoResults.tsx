@@ -74,7 +74,7 @@ export enum Refine {
 
 interface EmptyProps {
   className?: string
-  onRefine: (action: Refine) => void
+  onRefine: (action: Exclude<Refine, Refine.Network>) => void
 }
 
 export function Empty({ className, onRefine }: EmptyProps) {
@@ -154,8 +154,10 @@ export function Empty({ className, onRefine }: EmptyProps) {
   )
 }
 
-interface SecureSearchProps extends EmptyProps {
+interface SecureSearchProps {
+  className?: string
   onLoadMore: () => void
+  onRefine: (action: Refine.New) => void
 }
 
 export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchProps) {
@@ -182,19 +184,23 @@ export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchPr
   )
 }
 
-interface ErrorProps {
+export interface UnexpectedErrorProps {
   className?: string
-  kind?: 'unexpected' | 'syntax'
+  kind?: 'unexpected'
   children: React.ReactNode
-  onRefine: (action: Refine) => void
+  onRefine: (action: Refine.Network | Refine.New) => void
 }
 
-export function Error({
-  className,
-  kind = 'unexpected',
-  children,
-  onRefine,
-}: ErrorProps) {
+export interface SyntaxErrorProps {
+  className?: string
+  kind: 'syntax'
+  children: React.ReactNode
+  onRefine: (action: Refine.Search) => void
+}
+
+export type ErrorProps = UnexpectedErrorProps | SyntaxErrorProps
+
+export function Error({ className, kind, children, onRefine }: ErrorProps) {
   const classes = useEmptyStyles()
   return (
     <div className={cx(classes.root, className)}>
