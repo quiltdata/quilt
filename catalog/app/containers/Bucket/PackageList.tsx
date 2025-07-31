@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -8,7 +9,6 @@ import Main from 'containers/Search/Layout/Main'
 import * as NoResults from 'containers/Search/NoResults'
 import TableResults from 'containers/Search/Table'
 import * as SearchUIModel from 'containers/Search/model'
-import { createBoundary } from 'utils/ErrorBoundary'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
@@ -111,25 +111,14 @@ const usePackageListErrorBoundaryStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface PackageListErrorBoundaryProps {
-  bucket: string
-  error: Error
-}
-
-function PackageListErrorBoundary({ bucket, error }: PackageListErrorBoundaryProps) {
+function PackageListErrorBoundary({ error, resetErrorBoundary }: FallbackProps) {
   const classes = usePackageListErrorBoundaryStyles()
-  const history = RR.useHistory()
-  const { urls } = NamedRoutes.use<RouteMap>()
   const handleRefine = React.useCallback(
-    (action: NoResults.Refine) => {
-      if (action === NoResults.Refine.Network) {
-        // TODO: retry GQL request
-        window.location.reload()
-      } else {
-        history.push(urls.bucketPackageList(bucket))
-      }
-    },
-    [bucket, history, urls],
+    (action: NoResults.Refine) =>
+      action === NoResults.Refine.Network
+        ? window.location.reload() // TODO: retry GQL request
+        : resetErrorBoundary(),
+    [resetErrorBoundary],
   )
   return (
     <NoResults.Error className={classes.root} onRefine={handleRefine}>
@@ -138,15 +127,9 @@ function PackageListErrorBoundary({ bucket, error }: PackageListErrorBoundaryPro
   )
 }
 
-const ErrorBoundary = createBoundary(
-  ({ bucket }: { bucket: string }) =>
-    (error: Error) => <PackageListErrorBoundary bucket={bucket} error={error} />,
-  'PackageListErrorBoundary',
-)
-
 export default function PackageListWrapper() {
-  const location = RR.useLocation()
   const bucket = useBucketStrict()
+  const { push } = RR.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const defaults = React.useMemo(
     () => ({
@@ -156,8 +139,12 @@ export default function PackageListWrapper() {
     }),
     [bucket],
   )
+  const onReset = React.useCallback(
+    () => push(urls.bucketPackageList(bucket)),
+    [bucket, push, urls],
+  )
   return (
-    <ErrorBoundary bucket={bucket} key={JSON.stringify(location)}>
+    <ErrorBoundary FallbackComponent={PackageListErrorBoundary} onReset={onReset}>
       <SearchUIModel.Provider base={urls.bucketPackageList(bucket)} defaults={defaults}>
         <PackageList bucket={bucket} />
       </SearchUIModel.Provider>
