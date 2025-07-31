@@ -10,6 +10,7 @@ import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as KTree from 'utils/KeyedTree'
+import Log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 import * as tagged from 'utils/taggedV2'
@@ -144,6 +145,15 @@ function Predicate<Tag extends string, State, GQLType>(input: {
   }
 }
 
+function parseJsonOr(input: string, errorMessage: string) {
+  try {
+    return JSON.parse(input)
+  } catch (e) {
+    Log.error(e)
+    throw new Error(errorMessage)
+  }
+}
+
 const STRICT_MARKER = '$s$:'
 
 export const Predicates = {
@@ -154,7 +164,7 @@ export const Predicates = {
       lte: null as Date | null,
     },
     fromString: (input: string) => {
-      const json = JSON.parse(input)
+      const json = parseJsonOr(input, 'Failed parsing dates')
       return {
         gte: parseDate(json.gte),
         lte: parseDate(json.lte),
@@ -174,7 +184,7 @@ export const Predicates = {
       lte: null as number | null,
     },
     fromString: (input: string) => {
-      const json = JSON.parse(input)
+      const json = parseJsonOr(input, 'Failed parsing numbers')
       return {
         gte: (json.gte as number) ?? null,
         lte: (json.lte as number) ?? null,
@@ -201,7 +211,9 @@ export const Predicates = {
   KeywordEnum: Predicate({
     tag: 'KeywordEnum',
     init: { terms: [] as string[] },
-    fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
+    fromString: (input: string) => ({
+      terms: parseJsonOr(`[${input}]`, 'Failed parsing keywords') as string[],
+    }),
     toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
     toGQL: ({ terms }) =>
       terms.length
