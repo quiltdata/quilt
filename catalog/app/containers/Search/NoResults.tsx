@@ -61,6 +61,9 @@ const useEmptyStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
     paddingBottom: t.spacing(2),
   },
+  details: {
+    marginTop: t.spacing(3),
+  },
 }))
 
 export enum Refine {
@@ -184,60 +187,84 @@ export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchPr
   )
 }
 
+const useErrorDetailsStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  body: {
+    maxWidth: '30rem',
+    marginTop: t.spacing(4),
+  },
+}))
+
+interface ErrorDetailsProps {
+  className: string
+  children: React.ReactNode
+}
+
+function ErrorDetails({ className, children }: ErrorDetailsProps) {
+  const classes = useErrorDetailsStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h6">Error details</M.Typography>
+      <M.Typography variant="body2" className={classes.body} component="div">
+        {children}
+      </M.Typography>
+    </div>
+  )
+}
+
 export interface UnexpectedErrorProps {
   className?: string
-  kind?: 'unexpected'
   children: React.ReactNode
   onRefine: (action: Refine.Network | Refine.New) => void
 }
 
+export function UnexpectedError({ className, children, onRefine }: UnexpectedErrorProps) {
+  const classes = useEmptyStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h4">Unexpected error</M.Typography>
+      <M.Box mt={3} />
+      <M.Typography variant="body1" align="center" className={classes.body}>
+        Oops, something went wrong.
+        <br />
+        <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+        start a <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
+      </M.Typography>
+
+      <ErrorDetails className={classes.details}>{children}</ErrorDetails>
+    </div>
+  )
+}
+
 export interface SyntaxErrorProps {
   className?: string
-  kind: 'syntax'
   children: React.ReactNode
   onRefine: (action: Refine.Search) => void
 }
 
-export type ErrorProps = UnexpectedErrorProps | SyntaxErrorProps
-
-export function Error({ className, kind, children, onRefine }: ErrorProps) {
+export function SyntaxError({ className, children, onRefine }: SyntaxErrorProps) {
   const classes = useEmptyStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">
-        {kind === 'syntax' ? 'Query syntax error' : 'Unexpected error'}
-      </M.Typography>
+      <M.Typography variant="h4">Query syntax error</M.Typography>
       <M.Box mt={3} />
       <M.Typography variant="body1" align="center" className={classes.body}>
-        {kind === 'syntax' ? (
-          <>
-            Oops, couldn&apos;t parse that search.
-            <br />
-            Try quoting{' '}
-            <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
-            read about{' '}
-            <StyledLink href={ES_REF_SYNTAX} target="_blank">
-              supported query syntax
-            </StyledLink>
-            .
-          </>
-        ) : (
-          <>
-            Oops, something went wrong.
-            <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
-            start a{' '}
-            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
-          </>
-        )}
+        Oops, couldn&apos;t parse that search.
+        <br />
+        Try quoting{' '}
+        <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+        read about{' '}
+        <StyledLink href={ES_REF_SYNTAX} target="_blank">
+          supported query syntax
+        </StyledLink>
+        .
       </M.Typography>
 
-      <M.Box mt={3} />
-      <M.Typography variant="h6">Error details</M.Typography>
-      <M.Box mt={1} />
-      <M.Typography variant="body2" className={classes.body} component="div">
-        {children}
-      </M.Typography>
+      <ErrorDetails className={classes.details}>{children}</ErrorDetails>
     </div>
   )
 }

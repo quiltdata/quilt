@@ -121,9 +121,9 @@ function PackageListErrorBoundary({ error, resetErrorBoundary }: FallbackProps) 
     [resetErrorBoundary],
   )
   return (
-    <NoResults.Error className={classes.root} onRefine={handleRefine}>
+    <NoResults.UnexpectedError className={classes.root} onRefine={handleRefine}>
       {error.message}
-    </NoResults.Error>
+    </NoResults.UnexpectedError>
   )
 }
 

@@ -82,7 +82,9 @@ function SearchErrorBoundary({ error, resetErrorBoundary }: FallbackProps) {
   )
   return (
     <Layout>
-      <NoResults.Error onRefine={handleRefine}>{error.message}</NoResults.Error>
+      <NoResults.UnexpectedError onRefine={handleRefine}>
+        {error.message}
+      </NoResults.UnexpectedError>
     </Layout>
   )
 }
