@@ -70,4 +70,10 @@ describe('utils/JSONPointer', () => {
     const obj = { $$: 'true!' }
     expect(JSONPointer.getValue(obj, pointer)).toBe('true!')
   })
+
+  it('should return `undefined` when value not found', () => {
+    expect(JSONPointer.getValue({ d: 'true!' }, '/d')).toBe('true!')
+    expect(JSONPointer.getValue({ d: 'true!' }, '/a/b')).toBe(undefined)
+    expect(JSONPointer.getValue({}, '/a')).toBe(undefined)
+  })
 })
