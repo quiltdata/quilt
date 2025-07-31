@@ -58,6 +58,22 @@ export const Match = React.forwardRef<HTMLSpanElement, MatchProps>(function Matc
   )
 })
 
+const useOverflowTextTooltipStyles = M.makeStyles((t) => ({
+  arrow: {
+    // `left` is set by inline styles, so we need `!important`
+    left: `${t.spacing(2)}px !important`,
+  },
+}))
+
+function OverflowTextTooltip({ title, children, ...props }: M.TooltipProps) {
+  const classes = useOverflowTextTooltipStyles()
+  return (
+    <M.Tooltip arrow classes={classes} placement="bottom-start" title={title} {...props}>
+      {children}
+    </M.Tooltip>
+  )
+}
+
 const useUserMetaValueStyles = M.makeStyles((t) => ({
   root: {
     verticalAlign: 'middle',
@@ -91,14 +107,13 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   }
 
   return (
-    <M.Tooltip
-      placement="bottom-start"
+    <OverflowTextTooltip
       title={typeof value === 'string' && value.length > 50 ? value : ''}
     >
       <span className={cx(typeof value === 'number' && classes.number)}>
         <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
       </span>
-    </M.Tooltip>
+    </OverflowTextTooltip>
   )
 }
 
@@ -132,9 +147,9 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       )
     case 'comment':
       return hit.comment ? (
-        <M.Tooltip arrow title={hit.comment} placement="bottom-start">
+        <OverflowTextTooltip title={hit.comment}>
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
-        </M.Tooltip>
+        </OverflowTextTooltip>
       ) : (
         <NoValue />
       )
