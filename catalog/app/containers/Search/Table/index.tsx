@@ -65,21 +65,26 @@ export default function TablePage({
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
       const { error, _tag: tag } = results.error
-      const kind = error.name === 'QuerySyntaxError' ? 'syntax' : undefined
+      const ErrorMessage =
+        error.name === 'QuerySyntaxError'
+          ? NoResults.SyntaxError
+          : NoResults.UnexpectedError
       switch (tag) {
         case 'general':
         case 'page':
           return (
-            <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
+            <ErrorMessage className={className} onRefine={onRefine}>
               {error.message}
-            </NoResults.Error>
+            </ErrorMessage>
           )
         case 'data':
           return (
-            <NoResults.Error className={className} kind={kind} onRefine={onRefine}>
-              Invalid input at <code>{error.path}</code>: {error.name}
-              <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
-            </NoResults.Error>
+            <ErrorMessage className={className} onRefine={onRefine}>
+              <>
+                Invalid input at <code>{error.path}</code>: {error.name}
+                <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
+              </>
+            </ErrorMessage>
           )
         default:
           assertNever(tag)
