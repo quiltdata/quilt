@@ -100,6 +100,7 @@ export default function Sort({ className }: SortProps) {
       value={value}
       onChange={handleChange}
       ButtonProps={{ classes: buttonClasses, size: 'medium' }}
+      shrink={sm}
     >
       {sm ? <M.Icon>sort</M.Icon> : 'Sort by:'}
     </SelectDropdown>
