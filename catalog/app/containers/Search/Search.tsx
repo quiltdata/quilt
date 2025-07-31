@@ -11,7 +11,7 @@ import * as SearchUIModel from './model'
 import AssistantContext from './AssistantContext'
 import Main from './Layout/Main'
 import ListResults from './List'
-import { Refine, Error as NoResultsError } from './NoResults'
+import * as NoResults from './NoResults'
 import TableResults from './Table'
 
 function SearchLayout() {
@@ -25,29 +25,29 @@ function SearchLayout() {
   const [inputEl, setInputEl] = React.useState<HTMLInputElement | null>(null)
 
   const handleRefine = React.useCallback(
-    (action: Refine) => {
+    (action: NoResults.Refine) => {
       switch (action) {
-        case Refine.Buckets:
+        case NoResults.Refine.Buckets:
           setBuckets([])
           break
-        case Refine.ResultType:
+        case NoResults.Refine.ResultType:
           const otherResultType =
             resultType === SearchUIModel.ResultType.QuiltPackage
               ? SearchUIModel.ResultType.S3Object
               : SearchUIModel.ResultType.QuiltPackage
           setResultType(otherResultType)
           break
-        case Refine.Filters:
+        case NoResults.Refine.Filters:
           clearFilters()
           break
-        case Refine.Search:
+        case NoResults.Refine.Search:
           inputEl?.select()
           break
-        case Refine.New:
+        case NoResults.Refine.New:
           reset()
           inputEl?.focus()
           break
-        case Refine.Network:
+        case NoResults.Refine.Network:
           // TODO: retry GQL request
           window.location.reload()
           break
@@ -80,8 +80,8 @@ function SearchErrorBoundary({ error }: SearchErrorBoundaryProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const handleRefine = React.useCallback(
-    (action: Refine) => {
-      if (action === Refine.Network) {
+    (action: NoResults.Refine) => {
+      if (action === NoResults.Refine.Network) {
         // TODO: retry GQL request
         window.location.reload()
       } else {
@@ -92,7 +92,7 @@ function SearchErrorBoundary({ error }: SearchErrorBoundaryProps) {
   )
   return (
     <Layout>
-      <NoResultsError onRefine={handleRefine}>{error.message}</NoResultsError>
+      <NoResults.Error onRefine={handleRefine}>{error.message}</NoResults.Error>
     </Layout>
   )
 }
