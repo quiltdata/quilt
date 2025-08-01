@@ -164,8 +164,12 @@ function KeywordEnumFilterWidget({
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordEnum']>) {
   const handleChange = React.useCallback(
-    (value: string[]) => {
-      onChange({ ...state, terms: value })
+    (value: FiltersUI.Value<string[]>) => {
+      if (value instanceof Error) {
+        onChange(value)
+      } else {
+        onChange({ ...state, terms: value })
+      }
     },
     [onChange, state],
   )

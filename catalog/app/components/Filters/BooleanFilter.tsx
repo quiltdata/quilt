@@ -23,7 +23,11 @@ export default function BooleanFilter({
   onChange,
 }: BooleanFilterProps) {
   const handleChange = React.useCallback(
-    (bools: string[]) => {
+    (bools: Value<string[]>) => {
+      if (bools instanceof Error) {
+        onChange(bools)
+        return
+      }
       if (bools.some((b) => b !== 'true' && b !== 'false')) {
         onChange(new Error(`Value ${bools} out of bounds`))
         return

@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import TinyTextField from './TinyTextField'
+import type { Value } from './types'
 
 // Number of items, when we show search text field
 const TEXT_FIELD_VISIBLE_THRESHOLD = 8
@@ -59,7 +60,7 @@ const useStyles = M.makeStyles((t) => ({
 interface ListProps {
   className?: string
   extents: readonly string[]
-  onChange: (v: string[]) => void
+  onChange: (v: Value<string[]>) => void
   placeholder?: string
   searchThreshold?: number
   value: readonly string[]
