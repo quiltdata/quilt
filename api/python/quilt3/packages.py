@@ -1414,10 +1414,6 @@ class Package:
         workflow, print_info, force: bool, dedupe: bool,
         copy_file_list_fn: T.Optional[CopyFileListFn] = None,
     ):
-        if selector_fn is None:
-            def selector_fn(*args):
-                return True
-
         if copy_file_list_fn is None:
             copy_file_list_fn = copy_file_list
 
@@ -1447,6 +1443,15 @@ class Package:
                     f"is a local file. To store a package in the local registry, use "
                     f"'build' instead."
                 )
+        
+        if selector_fn is None:
+            # When pushing to S3, do not copy files if they are in the same
+            # bucket as the destination registry.
+            def selector_fn(logical_key, entry):
+                if not registry_parsed.is_local():
+                    if entry.physical_key.bucket == registry_parsed.bucket:
+                        return False
+                return True
 
         if callable(dest):
             def dest_fn(*args, **kwargs):
