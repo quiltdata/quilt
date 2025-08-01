@@ -8,7 +8,7 @@ import Layout from 'components/Layout'
 import * as UriResolver from 'containers/UriResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as PackageUri from 'utils/PackageUri'
-import { isError } from 'utils/error'
+import { BaseError } from 'utils/error'
 
 interface OpenInDesktopProps {
   href: string
@@ -42,7 +42,7 @@ export default function Redir() {
 
   const [redirecting, setRedirecting] = React.useState<PackageUri.PackageUri | null>(null)
   React.useEffect(() => {
-    if (isError(uri)) return
+    if (uri instanceof BaseError) return
 
     window.location.assign(decoded)
 
@@ -55,7 +55,7 @@ export default function Redir() {
   return (
     <Layout>
       <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
-      {isError(uri) ? (
+      {uri instanceof BaseError ? (
         <Empty
           className={classes.root}
           primary={<OpenInDesktop href="quilt+s3://" />}

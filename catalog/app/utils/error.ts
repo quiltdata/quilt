@@ -68,7 +68,3 @@ export class JsonInvalidAgainstSchema extends BaseError {
     this.validationErrors = props.errors
   }
 }
-
-export function isError<T, E extends BaseError>(e: T | E): e is E {
-  return e instanceof BaseError
-}

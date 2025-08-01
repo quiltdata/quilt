@@ -6,7 +6,7 @@ import Layout from 'components/Layout'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
-import { isError } from 'utils/error'
+import { BaseError } from 'utils/error'
 
 import Redirect from './Redirect'
 import parsePackageUriSafe from './parsePackageUriSafe'
@@ -99,7 +99,9 @@ export default function UriResolver() {
     [decoded],
   )
 
-  if (uri && !isError(uri)) return <Redirect parsed={uri} decoded={decoded} />
+  if (uri && !(uri instanceof BaseError)) {
+    return <Redirect parsed={uri} decoded={decoded} />
+  }
 
   return (
     <Layout>
