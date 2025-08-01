@@ -130,7 +130,7 @@ typing-extensions==4.14.0
     #   types-aiobotocore-s3
 tzdata==2024.2
     # via pandas
-urllib3==2.2.3
+urllib3==2.5.0
     # via
     #   botocore
     #   elasticsearch
