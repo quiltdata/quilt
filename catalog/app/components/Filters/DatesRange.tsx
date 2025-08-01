@@ -1,3 +1,10 @@
+// TODO:
+// keep internal state in individual filters
+// onChange -> value or Error
+// outside, debounce value on change at the top level (in PackageFilters.tsx)
+// outside, disable "Submit" button if error
+// outside, if error don't call onChange
+
 import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'

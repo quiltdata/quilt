@@ -1,69 +1,32 @@
-import { useDebouncedCallback } from 'use-debounce'
 import * as React from 'react'
 
 import * as FiltersUI from 'components/Filters'
 
 import * as SearchUIModel from './model'
 
-interface DebouncedState<T> {
-  value: T
-  set: (value: T) => void
-}
-
-function useDebouncedState<T>(
-  initialValue: T,
-  onChange: (value: T) => void,
-  delay: number,
-): DebouncedState<T> {
-  const [value, setValue] = React.useState<T>(initialValue)
-  const debouncedCallback = useDebouncedCallback(onChange, delay)
-
-  React.useEffect(() => {
-    if (!debouncedCallback.isPending()) setValue(initialValue)
-  }, [debouncedCallback, initialValue])
-
-  React.useEffect(() => () => debouncedCallback.flush(), [debouncedCallback])
-
-  const set = React.useCallback(
-    (newValue: T) => {
-      setValue(newValue)
-      debouncedCallback(newValue)
-    },
-    [debouncedCallback],
-  )
-
-  return { value, set }
-}
+type KeywordWildcardFilterValue = SearchUIModel.Untag<
+  SearchUIModel.PredicateState<SearchUIModel.Predicates['KeywordWildcard']>
+>
 
 function KeywordWildcardFilterWidget({
   state,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordWildcard']>) {
-  const handleWildcardChange = React.useCallback(
-    (wildcard: string) => {
-      onChange({ ...state, wildcard })
+  const handleChange = React.useCallback(
+    (v: FiltersUI.Value<KeywordWildcardFilterValue>) => {
+      if (v instanceof Error) {
+        onChange(v)
+      } else {
+        onChange({ ...state, ...v })
+      }
     },
     [onChange, state],
   )
-
-  const handleStrictChange = React.useCallback(
-    (strict: boolean) => {
-      onChange({ ...state, strict })
-    },
-    [onChange, state],
-  )
-
-  const debounced = useDebouncedState(state.wildcard, handleWildcardChange, 500)
-
-  // TODO: link to docs:
-  // https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-wildcard-query.html
   return (
     <FiltersUI.KeywordWildcard
-      onChange={debounced.set}
+      onChange={handleChange}
       placeholder="Match against (wildcards supported)"
-      value={debounced.value}
-      strict={state.strict}
-      onStrictChange={handleStrictChange}
+      value={state}
     />
   )
 }
@@ -73,21 +36,23 @@ function TextFilterWidget({
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Text']>) {
   const handleChange = React.useCallback(
-    (queryString: string) => {
-      onChange({ ...state, queryString })
+    (queryString: FiltersUI.Value<string>) => {
+      if (queryString instanceof Error) {
+        onChange(queryString)
+      } else {
+        onChange({ ...state, queryString })
+      }
     },
     [onChange, state],
   )
-
-  const debounced = useDebouncedState(state.queryString, handleChange, 500)
 
   // TODO: link to docs:
   // https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html
   return (
     <FiltersUI.TextField
-      onChange={debounced.set}
+      onChange={handleChange}
       placeholder="Search for"
-      value={debounced.value}
+      value={state.queryString}
     />
   )
 }
@@ -101,8 +66,12 @@ function BooleanFilterWidget({
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Boolean']>) {
   const handleChange = React.useCallback(
-    (value: BooleanFilterValue) => {
-      onChange({ ...state, ...value })
+    (value: FiltersUI.Value<BooleanFilterValue>) => {
+      if (value instanceof Error) {
+        onChange(value)
+      } else {
+        onChange({ ...state, ...value })
+      }
     },
     [onChange, state],
   )
@@ -114,7 +83,7 @@ interface FilterWidgetProps<
 > {
   state: SearchUIModel.PredicateState<P>
   extents?: SearchUIModel.ExtentsForPredicate<P>
-  onChange: (state: SearchUIModel.PredicateState<P>) => void
+  onChange: (state: FiltersUI.Value<SearchUIModel.PredicateState<P>>) => void
 }
 
 function NumberFilterWidget({

@@ -233,9 +233,34 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
     deactivatePackagesMetaFilter(path)
   }, [deactivatePackagesMetaFilter, path])
 
-  const change = React.useCallback(
-    (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => {
-      setPackagesMetaFilter(path, state)
+  const id = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  React.useEffect(
+    () => () => {
+      if (id.current) {
+        clearTimeout(id.current)
+      }
+    },
+    [],
+  )
+  // TODO: use `useDebounceCallback` with `{ leading: state._tag !== 'KeywordWildcard' && state._tag !== 'Text' }`
+  const handleChange = React.useCallback(
+    (
+      state: FiltersUI.Value<SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>>,
+    ) => {
+      if (state instanceof Error) {
+        // TODO: show error
+        return
+      }
+      if (state._tag !== 'KeywordWildcard' && state._tag !== 'Text') {
+        setPackagesMetaFilter(path, state)
+        return
+      }
+      if (id.current) {
+        clearTimeout(id.current)
+      }
+      id.current = setTimeout(() => {
+        setPackagesMetaFilter(path, state)
+      }, 500)
     },
     [setPackagesMetaFilter, path],
   )
@@ -257,7 +282,7 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
           <Skeleton height={32} mt={1} />
         </>
       ) : (
-        <FilterWidget state={predicateState} extents={extents} onChange={change} />
+        <FilterWidget state={predicateState} extents={extents} onChange={handleChange} />
       )}
     </FiltersUI.Container>
   )
@@ -337,9 +362,32 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
     deactivatePackagesFilter(field)
   }, [deactivatePackagesFilter, field])
 
-  const change = React.useCallback(
-    (state: $TSFixMe) => {
-      setPackagesFilter(field, state)
+  const id = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  React.useEffect(
+    () => () => {
+      if (id.current) {
+        clearTimeout(id.current)
+      }
+    },
+    [],
+  )
+  // TODO: use `useDebounceCallback` with `{ leading: state._tag !== 'KeywordWildcard' && state._tag !== 'Text' }`
+  const handleChange = React.useCallback(
+    (state: FiltersUI.Value<$TSFixMe>) => {
+      if (state instanceof Error) {
+        // TODO: show error
+        return
+      }
+      if (state._tag !== 'KeywordWildcard' && state._tag !== 'Text') {
+        setPackagesFilter(field, state)
+        return
+      }
+      if (id.current) {
+        clearTimeout(id.current)
+      }
+      id.current = setTimeout(() => {
+        setPackagesFilter(field, state)
+      }, 500)
     },
     [setPackagesFilter, field],
   )
@@ -351,7 +399,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
       onDeactivate={deactivate}
       title={PACKAGE_FILTER_LABELS[field]}
     >
-      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      <FilterWidget state={predicateState} extents={extents} onChange={handleChange} />
     </FiltersUI.Container>
   )
 }

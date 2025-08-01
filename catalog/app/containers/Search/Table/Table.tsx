@@ -6,7 +6,7 @@ import * as Lab from '@material-ui/lab'
 import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui/icons'
 import { useDebouncedCallback } from 'use-debounce'
 
-import { TinyTextField, List } from 'components/Filters'
+import { TinyTextField, List, Value } from 'components/Filters'
 import { docs } from 'constants/urls'
 import * as BucketConfig from 'utils/BucketConfig'
 import StyledLink from 'utils/StyledLink'
@@ -490,6 +490,14 @@ function FilterDialogSystemMeta({ column, onClose }: FilterDialogSystemMetaProps
     [column, model.actions],
   )
 
+  const handleChange = React.useCallback((value: Value<$TSFixMe>) => {
+    if (value instanceof Error) {
+      // TODO: handle error
+      return
+    }
+    setInnerState(value)
+  }, [])
+
   return (
     <FilterDialogLayout
       onClose={onClose}
@@ -499,7 +507,7 @@ function FilterDialogSystemMeta({ column, onClose }: FilterDialogSystemMetaProps
       modified={!!innerState}
       resetTitle="Clear filter values and remove column"
     >
-      <Filter filter={column.filter} value={innerState} onChange={setInnerState} />
+      <Filter filter={column.filter} value={innerState} onChange={handleChange} />
     </FilterDialogLayout>
   )
 }
@@ -526,6 +534,17 @@ function FilterDialogUserMeta({ column, onClose }: FilterDialogUserMetaProps) {
     [column, model.actions],
   )
 
+  const handleChange = React.useCallback(
+    (value: Value<SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>>) => {
+      if (value instanceof Error) {
+        // TODO: handle error
+        return
+      }
+      setInnerState(value)
+    },
+    [],
+  )
+
   return (
     <FilterDialogLayout
       onClose={onClose}
@@ -534,7 +553,7 @@ function FilterDialogUserMeta({ column, onClose }: FilterDialogUserMetaProps) {
       onSubmit={onSubmit}
       modified={!!innerState}
     >
-      <MetaFilter path={column.filter} value={innerState} onChange={setInnerState} />
+      <MetaFilter path={column.filter} value={innerState} onChange={handleChange} />
     </FilterDialogLayout>
   )
 }
@@ -573,7 +592,7 @@ function FilterDialogBuckets({ column, onClose }: FilterDialogBucketsProps) {
 
 interface FilterProps {
   filter: keyof SearchUIModel.PackagesSearchFilter
-  onChange: (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => void
+  onChange: Parameters<typeof FilterWidget>[0]['onChange']
   value: null | SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
 }
 
@@ -590,7 +609,7 @@ function Filter({ filter, onChange, value }: FilterProps) {
 
 interface MetaFilterProps {
   path: string
-  onChange: (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => void
+  onChange: Parameters<typeof FilterWidget>[0]['onChange']
   value: null | SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
 }
 

@@ -50,7 +50,11 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
   }, [deactivateObjectsFilter, field])
 
   const change = React.useCallback(
-    (state: Parameters<typeof setObjectsFilter>[1]) => {
+    (state: FiltersUI.Value<Parameters<typeof setObjectsFilter>[1]>) => {
+      if (state instanceof Error) {
+        // TODO: show error
+        return
+      }
       setObjectsFilter(field, state)
     },
     [setObjectsFilter, field],

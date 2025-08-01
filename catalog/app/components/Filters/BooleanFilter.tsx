@@ -1,28 +1,7 @@
-import cx from 'classnames'
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
-import useId from 'utils/useId'
-
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
-  },
-  checkboxWrapper: {
-    minWidth: t.spacing(4),
-    paddingLeft: '2px',
-  },
-  label: {
-    cursor: 'pointer',
-    display: 'block',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  listItem: {
-    padding: 0,
-  },
-}))
+import List from './List'
+import type { Value } from './types'
 
 const KEYS = ['true', 'false'] as const
 
@@ -35,7 +14,7 @@ type BooleanFilterValue = {
 interface BooleanFilterProps {
   className?: string
   value: BooleanFilterValue
-  onChange: (v: BooleanFilterValue) => void
+  onChange: (v: Value<BooleanFilterValue>) => void
 }
 
 export default function BooleanFilter({
@@ -43,35 +22,30 @@ export default function BooleanFilter({
   value,
   onChange,
 }: BooleanFilterProps) {
-  const classes = useStyles()
-  const id = useId()
   const handleChange = React.useCallback(
-    (key: Key, checked: boolean) => {
-      onChange({ ...value, [key]: checked })
+    (bools: string[]) => {
+      if (bools.some((b) => b !== 'true' && b !== 'false')) {
+        onChange(new Error(`Value ${bools} out of bounds`))
+        return
+      }
+      onChange({
+        true: bools.includes('true'),
+        false: bools.includes('false'),
+      })
     },
-    [onChange, value],
+    [onChange],
   )
+  const bools = React.useMemo(() => {
+    let output = []
+    if (value.true) {
+      output.push('true')
+    }
+    if (value.false) {
+      output.push('false')
+    }
+    return output
+  }, [value])
   return (
-    <div className={cx(classes.root, className)}>
-      <M.List dense disablePadding>
-        {KEYS.map((key) => (
-          <M.ListItem key={key} disableGutters className={classes.listItem} button>
-            <M.ListItemIcon className={classes.checkboxWrapper}>
-              <M.Checkbox
-                checked={value[key]}
-                id={`${key}_${id}`}
-                onChange={(event, checked) => handleChange(key, checked)}
-                size="small"
-              />
-            </M.ListItemIcon>
-            <M.ListItemText>
-              <label className={classes.label} htmlFor={`${key}_${id}`}>
-                {key}
-              </label>
-            </M.ListItemText>
-          </M.ListItem>
-        ))}
-      </M.List>
-    </div>
+    <List className={className} extents={KEYS} onChange={handleChange} value={bools} />
   )
 }
