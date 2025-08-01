@@ -18,7 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] Search: Table view for package search results (including matching entries) ([#4413](https://github.com/quiltdata/quilt/pull/4413))
+- [Added] Search: Table view for package search results (including matching entries) ([#4413](https://github.com/quiltdata/quilt/pull/4413), [#4451](https://github.com/quiltdata/quilt/pull/4451), [#4452](https://github.com/quiltdata/quilt/pull/4452), [#4460](https://github.com/quiltdata/quilt/pull/4460), [#4461](https://github.com/quiltdata/quilt/pull/4461), [#4462](https://github.com/quiltdata/quilt/pull/4462))
 - [Changed] Packages tab: Use search view to navigate packages ([#4413](https://github.com/quiltdata/quilt/pull/4413))
 - [Fixed] Freeform search: pass 'size' set to 0 to backend, properly handle 'from' ([#4432](https://github.com/quiltdata/quilt/pull/4432))
 - [Changed] Increase font size in tooltips and make them uniform ([#4425](https://github.com/quiltdata/quilt/pull/4425))
