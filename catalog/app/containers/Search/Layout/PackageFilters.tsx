@@ -3,6 +3,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { useDebouncedCallback } from 'use-debounce'
 
 import * as FiltersUI from 'components/Filters'
 import Skeleton from 'components/Skeleton'
@@ -233,37 +234,24 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
     deactivatePackagesMetaFilter(path)
   }, [deactivatePackagesMetaFilter, path])
 
-  const id = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  React.useEffect(
-    () => () => {
-      if (id.current) {
-        clearTimeout(id.current)
-      }
-    },
-    [],
-  )
-  // TODO: use `useDebounceCallback` with `{ leading: state._tag !== 'KeywordWildcard' && state._tag !== 'Text' }`
-  const handleChange = React.useCallback(
+  const change = React.useCallback(
     (
       state: FiltersUI.Value<SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>>,
     ) => {
       if (state instanceof Error) {
         // TODO: show error
-        return
-      }
-      if (state._tag !== 'KeywordWildcard' && state._tag !== 'Text') {
+      } else {
         setPackagesMetaFilter(path, state)
-        return
       }
-      if (id.current) {
-        clearTimeout(id.current)
-      }
-      id.current = setTimeout(() => {
-        setPackagesMetaFilter(path, state)
-      }, 500)
     },
     [setPackagesMetaFilter, path],
   )
+  const { _tag: tag } = predicateState
+  const debounceOptions = React.useMemo(
+    () => ({ leading: tag === 'Boolean' || tag === 'KeywordEnum' }),
+    [tag],
+  )
+  const handleChange = useDebouncedCallback(change, 500, debounceOptions)
 
   const title = React.useMemo(() => JSONPointer.parse(path).join(' / '), [path])
 
@@ -362,35 +350,19 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
     deactivatePackagesFilter(field)
   }, [deactivatePackagesFilter, field])
 
-  const id = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  React.useEffect(
-    () => () => {
-      if (id.current) {
-        clearTimeout(id.current)
-      }
-    },
-    [],
-  )
-  // TODO: use `useDebounceCallback` with `{ leading: state._tag !== 'KeywordWildcard' && state._tag !== 'Text' }`
-  const handleChange = React.useCallback(
+  const change = React.useCallback(
     (state: FiltersUI.Value<$TSFixMe>) => {
       if (state instanceof Error) {
         // TODO: show error
-        return
-      }
-      if (state._tag !== 'KeywordWildcard' && state._tag !== 'Text') {
+      } else {
         setPackagesFilter(field, state)
-        return
       }
-      if (id.current) {
-        clearTimeout(id.current)
-      }
-      id.current = setTimeout(() => {
-        setPackagesFilter(field, state)
-      }, 500)
     },
     [setPackagesFilter, field],
   )
+  const { _tag: tag } = predicateState
+  const debounceOptions = React.useMemo(() => ({ leading: tag === 'KeywordEnum' }), [tag])
+  const handleChange = useDebouncedCallback(change, 500, debounceOptions)
 
   return (
     <FiltersUI.Container

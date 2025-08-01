@@ -92,8 +92,12 @@ function NumberFilterWidget({
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
   const handleChange = React.useCallback(
-    (value: { min: number | null; max: number | null }) => {
-      onChange({ ...state, gte: value.min, lte: value.max })
+    (value: FiltersUI.Value<{ min: number | null; max: number | null }>) => {
+      if (value instanceof Error) {
+        onChange(value)
+      } else {
+        onChange({ ...state, gte: value.min, lte: value.max })
+      }
     },
     [onChange, state],
   )

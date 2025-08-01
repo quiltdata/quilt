@@ -1,6 +1,7 @@
 import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { useDebouncedCallback } from 'use-debounce'
 
 import * as FiltersUI from 'components/Filters'
 import * as GQL from 'utils/GraphQL'
@@ -59,6 +60,9 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
     },
     [setObjectsFilter, field],
   )
+  const handleChange = useDebouncedCallback(change, 500, {
+    leading: predicateState._tag === 'Boolean' || predicateState._tag === 'KeywordEnum',
+  })
 
   return (
     <FiltersUI.Container
@@ -67,7 +71,7 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
       onDeactivate={deactivate}
       title={OBJECT_FILTER_LABELS[field]}
     >
-      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      <FilterWidget state={predicateState} extents={extents} onChange={handleChange} />
     </FiltersUI.Container>
   )
 }

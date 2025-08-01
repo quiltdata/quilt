@@ -2,8 +2,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as d3Scale from 'd3-scale'
 
-import * as Notifications from 'containers/Notifications'
 import { formatQuantity } from 'utils/string'
+
+import type { Value } from './types'
 
 const MAX_TICKS = 100
 const SCALE_CURVE = 2
@@ -12,6 +13,14 @@ const ROUNDING_THRESHOLD = 100
 const roundAboveThreshold = (n: number) => (n > ROUNDING_THRESHOLD ? Math.round(n) : n)
 
 type Scale = d3Scale.ScaleContinuousNumeric<number, number>
+
+function ValueLabelComponent({ children, open, value }: M.ValueLabelProps) {
+  return (
+    <M.Tooltip open={open} enterTouchDelay={0} title={value}>
+      {children}
+    </M.Tooltip>
+  )
+}
 
 function useScale(min: number, max: number) {
   const range = Math.min(Math.ceil(max - min), MAX_TICKS)
@@ -72,70 +81,69 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
+const useSliderStyles = M.makeStyles(() => ({
+  mark: {
+    opacity: 0.38,
+  },
+}))
+
 interface NumbersRangeProps {
   extents: { min: number; max: number }
-  onChange: (v: { min: number | null; max: number | null }) => void
+  onChange: (v: Value<{ min: number | null; max: number | null }>) => void
   value: { min: number | null; max: number | null }
 }
 
 export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
   const { marks, scale } = useScale(extents.min, extents.max)
-  const [invalidId, setInvalidId] = React.useState('')
-  const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
-  const validate = React.useCallback(
-    (v) => {
-      if (invalidId) {
-        setInvalidId('')
-        dismiss(invalidId)
-      }
-
-      if (!isNumber(v)) {
-        const {
-          notification: { id },
-        } = notify('Enter valid number, please')
-        setInvalidId(id)
-      }
-    },
-    [dismiss, invalidId, notify],
-  )
-  // XXX: it would be nice to debounce high-frequency URL changes, but it's not that trivial
+  const sliderClasses = useSliderStyles()
   const handleSlider = React.useCallback(
-    (_event, [min, max]) => onChange(convertDomainToValues(scale)([min, max])),
+    (_event, sliderValues) => {
+      const { min, max } = convertDomainToValues(scale)(sliderValues)
+      setMin(min)
+      setMax(max)
+      onChange({ min, max })
+    },
     [onChange, scale],
   )
 
-  const min = value.min || extents.min
-  const max = value.max || extents.max
+  const [error, setError] = React.useState<Error | null>(null)
+  const [min, setMin] = React.useState(value.min || extents.min)
+  const [max, setMax] = React.useState(value.max || extents.max)
+
   const handleFrom = React.useCallback(
     (event) => {
+      setMin(event.target.value)
+
       const newMin = Number(event.target.value)
-      if (isNumber(newMin)) {
-        onChange({ min: newMin, max })
-      }
-      validate(newMin)
+      const invalid = isNumber(newMin) ? null : new Error('Enter valid number, please')
+      onChange(invalid ?? { min: newMin, max })
+      setError(invalid)
     },
-    [onChange, max, validate],
+    [onChange, max],
   )
   const handleTo = React.useCallback(
     (event) => {
+      setMax(event.target.value)
+
       const newMax = Number(event.target.value)
-      if (isNumber(newMax)) {
-        onChange({ min, max: newMax })
-      }
-      validate(newMax)
+      const invalid = isNumber(newMax) ? null : new Error('Enter valid number, please')
+      onChange(invalid ?? { min, max: newMax })
+      setError(invalid)
     },
-    [onChange, min, validate],
+    [onChange, min],
   )
   const sliderValue = React.useMemo(
-    () => convertValuesToDomain(scale)(value),
-    [value, scale],
+    () => convertValuesToDomain(scale)({ min, max }),
+    [min, max, scale],
   )
   const valueLabelFormat = React.useMemo(() => createValueLabelFormat(scale), [scale])
   return (
     <div>
       <div className={classes.slider}>
         <M.Slider
+          ValueLabelComponent={ValueLabelComponent}
+          classes={sliderClasses}
           marks={marks}
           onChange={handleSlider}
           value={sliderValue}
@@ -161,6 +169,7 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
           variant="outlined"
         />
       </div>
+      {error && <M.FormHelperText error>{error.message}</M.FormHelperText>}
     </div>
   )
 }
