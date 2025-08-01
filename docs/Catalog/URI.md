@@ -40,6 +40,13 @@ references.
 
 ![Resolving URIs](../imgs/uri-resolve.png)
 
+#### Redirects
+
+If you want to invoke a Quilt+ URI via a standard HTTP URL,
+you can use a redirect page from the Quilt catalog. For example:
+
+`https://your-catalog-host/redir/quilt%2Bs3%3A%2F%2Fquilt-example%23package%3Dakarve%2Fcord19%40e21682f00929661879633a5128aaa27cc7bc1e2973d49d4c868a90f9fad9f34b%26path%3DCORD19.ipynb`.
+
 ### Syntax
 
 A Quilt+ URI contains the following components:
