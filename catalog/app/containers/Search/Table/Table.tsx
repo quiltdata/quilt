@@ -576,6 +576,14 @@ function FilterDialogBuckets({ column, onClose }: FilterDialogBucketsProps) {
   // it is hidden on the `/b/bucket/packages` page
   const onReset = React.useCallback(() => model.actions.setBuckets([]), [model.actions])
 
+  const handleChange = React.useCallback((value: Value<readonly string[]>) => {
+    if (value instanceof Error) {
+      // TODO: handle error
+      return
+    }
+    setInnerState(value)
+  }, [])
+
   return (
     <FilterDialogLayout
       onClose={onClose}
@@ -585,7 +593,7 @@ function FilterDialogBuckets({ column, onClose }: FilterDialogBucketsProps) {
       modified={!!innerState}
       resetTitle="Show results for all buckets"
     >
-      <BucketsFilter value={innerState} onChange={setInnerState} />
+      <BucketsFilter value={innerState} onChange={handleChange} />
     </FilterDialogLayout>
   )
 }
@@ -630,7 +638,7 @@ function MetaFilter({ path, onChange, value }: MetaFilterProps) {
 }
 
 interface BucketsFilterProps {
-  onChange: (state: readonly string[]) => void
+  onChange: Parameters<typeof List>[0]['onChange']
   value: null | readonly string[]
 }
 

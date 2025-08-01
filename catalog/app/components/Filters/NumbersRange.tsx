@@ -64,6 +64,21 @@ const convertDomainToValues =
 
 const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
+const NaNError = new Error('Enter valid number, please')
+
+interface Numbers {
+  min: number | null
+  max: number | null
+}
+
+function validate(value: { min: string; max: string }): Numbers | Error {
+  const min = Number(value.min)
+  if (!isNumber(min)) return NaNError
+  const max = Number(value.max)
+  if (!isNumber(max)) return NaNError
+  return { min, max }
+}
+
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
   return {
@@ -100,25 +115,27 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
   const handleSlider = React.useCallback(
     (_event, sliderValues) => {
       const { min, max } = convertDomainToValues(scale)(sliderValues)
-      setMin(min)
-      setMax(max)
+      setMin(min.toString())
+      setMax(max.toString())
       onChange({ min, max })
     },
     [onChange, scale],
   )
 
   const [error, setError] = React.useState<Error | null>(null)
-  const [min, setMin] = React.useState(value.min || extents.min)
-  const [max, setMax] = React.useState(value.max || extents.max)
+  const [min, setMin] = React.useState((value.min || extents.min).toString())
+  const [max, setMax] = React.useState((value.max || extents.max).toString())
 
   const handleFrom = React.useCallback(
     (event) => {
       setMin(event.target.value)
+      setError(null)
 
-      const newMin = Number(event.target.value)
-      const invalid = isNumber(newMin) ? null : new Error('Enter valid number, please')
-      onChange(invalid ?? { min: newMin, max })
-      setError(invalid)
+      const output = validate({ min: event.target.value, max })
+      onChange(output)
+      if (output instanceof Error) {
+        setError(output)
+      }
     },
     [onChange, max],
   )
@@ -126,17 +143,20 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
     (event) => {
       setMax(event.target.value)
 
-      const newMax = Number(event.target.value)
-      const invalid = isNumber(newMax) ? null : new Error('Enter valid number, please')
-      onChange(invalid ?? { min, max: newMax })
-      setError(invalid)
+      const output = validate({ min, max: event.target.value })
+      onChange(output)
+      if (output instanceof Error) {
+        setError(output)
+      }
     },
     [onChange, min],
   )
-  const sliderValue = React.useMemo(
-    () => convertValuesToDomain(scale)({ min, max }),
-    [min, max, scale],
-  )
+  const sliderValue = React.useMemo(() => {
+    const numbers = validate({ min, max })
+    return convertValuesToDomain(scale)(
+      numbers instanceof Error ? { min: null, max: null } : numbers,
+    )
+  }, [min, max, scale])
   const valueLabelFormat = React.useMemo(() => createValueLabelFormat(scale), [scale])
   return (
     <div>

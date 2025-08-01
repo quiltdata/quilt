@@ -141,8 +141,12 @@ function DatetimeFilterWidget({
   )
 
   const handleChange = React.useCallback(
-    (v: { min: Date | null; max: Date | null }) => {
-      onChange({ ...state, gte: v.min, lte: v.max })
+    (v: FiltersUI.Value<{ min: Date | null; max: Date | null }>) => {
+      if (v instanceof Error) {
+        onChange(v)
+      } else {
+        onChange({ ...state, gte: v.min, lte: v.max })
+      }
     },
     [onChange, state],
   )
