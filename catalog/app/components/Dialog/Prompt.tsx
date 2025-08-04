@@ -4,19 +4,23 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 interface DialogProps {
+  children: React.ReactNode
   initialValue?: string
   onCancel: () => void
   onSubmit: (value: string) => void
   open: boolean
+  placeholder?: string
   title: string
   validate: (value: string) => Error | undefined
 }
 
 function Dialog({
+  children,
   initialValue,
-  open,
   onCancel,
   onSubmit,
+  open,
+  placeholder,
   title,
   validate,
 }: DialogProps) {
@@ -26,6 +30,7 @@ function Dialog({
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
   const handleSubmit = React.useCallback(
     (event) => {
+      event.stopPropagation()
       event.preventDefault()
       setSubmitted(true)
       if (!error) onSubmit(value)
@@ -37,11 +42,13 @@ function Dialog({
       <form onSubmit={handleSubmit}>
         <M.DialogTitle>{title}</M.DialogTitle>
         <M.DialogContent>
+          {children}
           <M.TextField
             autoFocus
             fullWidth
             margin="dense"
             onChange={handleChange}
+            placeholder={placeholder}
             value={value}
           />
           {!!error && !!submitted && (
@@ -69,11 +76,19 @@ function Dialog({
 interface PromptProps {
   initialValue?: string
   onSubmit: (value: string) => void
+  placeholder?: string
   title: string
   validate: (value: string) => Error | undefined
 }
 
-export function usePrompt({ initialValue, title, onSubmit, validate }: PromptProps) {
+// TODO: Re-use utils/Dialog
+export function usePrompt({
+  onSubmit,
+  initialValue,
+  placeholder,
+  validate,
+  title,
+}: PromptProps) {
   const [key, setKey] = React.useState(0)
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => {
@@ -89,20 +104,22 @@ export function usePrompt({ initialValue, title, onSubmit, validate }: PromptPro
     [close, onSubmit],
   )
   const render = React.useCallback(
-    () => (
+    (children?: React.ReactNode) => (
       <Dialog
         {...{
+          children,
           initialValue,
           key,
           onCancel: close,
           onSubmit: handleSubmit,
           open: opened,
+          placeholder,
           title,
           validate,
         }}
       />
     ),
-    [initialValue, key, close, handleSubmit, opened, title, validate],
+    [close, handleSubmit, initialValue, key, opened, placeholder, title, validate],
   )
   return React.useMemo(
     () => ({

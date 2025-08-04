@@ -1,0 +1,7 @@
+{
+  "default": true,
+  "no-blanks-blockquote": false,
+  "no-duplicate-heading": {
+    "siblings_only": true
+  }
+}

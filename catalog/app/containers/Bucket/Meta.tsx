@@ -21,10 +21,6 @@ interface MetaData {
   version?: string
 }
 
-const errorHandler = (error: Error) => (
-  <Lab.Alert severity="error">{error.message}</Lab.Alert>
-)
-
 const noop = () => null
 
 const useHeadCellStyles = M.makeStyles((t) => ({
@@ -83,8 +79,9 @@ interface PackageMetaSectionProps {
 
 export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProps) {
   const classes = usePackageMetaStyles()
-  if (!meta || R.isEmpty(meta)) return null
+  if (!meta) return null
   const { message, user_meta: userMeta, workflow } = meta
+  if (!message && !userMeta && !workflow) return null
   return (
     <Section icon="list" heading="Metadata" defaultExpanded>
       <M.Table className={classes.table} size="small" data-testid="package-meta">
@@ -109,7 +106,6 @@ export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProp
                 User metadata:
               </HeadCell>
               <M.TableCell>
-                {/* @ts-expect-error */}
                 <JsonDisplay
                   defaultExpanded={preferences.userMeta.expanded}
                   value={userMeta}
@@ -127,7 +123,6 @@ export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProp
                 Workflow:
               </HeadCell>
               <M.TableCell>
-                {/* @ts-expect-error */}
                 <JsonDisplay
                   defaultExpanded={preferences.workflows.expanded}
                   value={workflow}
@@ -150,7 +145,6 @@ export function ObjectMetaSection({ meta, title = 'Metadata' }: ObjectMetaSectio
   if (!meta || R.isEmpty(meta)) return null
   return (
     <Section icon="list" heading={title} defaultExpanded>
-      {/* @ts-expect-error */}
       <JsonDisplay value={meta} defaultExpanded={1} />
     </Section>
   )
@@ -168,7 +162,7 @@ export function ObjectMeta({ handle }: ObjectMetaProps) {
   })
   return metaData.case({
     Ok: (meta?: JsonRecord) => <ObjectMetaSection meta={meta} title="S3 Metadata" />,
-    Err: errorHandler,
+    Err: (e: Error) => <Lab.Alert severity="error">S3 Metadata: {e.message}</Lab.Alert>,
     _: noop,
   })
 }
@@ -181,7 +175,6 @@ function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
   if (!tags || R.isEmpty(tags)) return null
   return (
     <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
-      {/* @ts-expect-error */}
       <JsonDisplay value={tags} defaultExpanded={1} />
     </Section>
   )
@@ -199,7 +192,9 @@ export function ObjectTags({ handle }: ObjectTagsProps) {
   })
   return tagsData.case({
     Ok: (tags: Record<string, string>) => <ObjectTagsSection tags={tags} />,
-    Err: errorHandler,
+    Err: (e: Error) => (
+      <Lab.Alert severity="error">S3 Object Tags: {e.message}</Lab.Alert>
+    ),
     _: noop,
   })
 }

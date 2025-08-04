@@ -16,6 +16,26 @@ export function AddFileButton({ onClick }: AddFileButtonProps) {
   )
 }
 
+interface PreviewButtonProps extends EditorState {
+  className?: string
+  onPreview: NonNullable<EditorState['onPreview']>
+}
+
+export function PreviewButton({ className, preview, onPreview }: PreviewButtonProps) {
+  const handleClick = React.useCallback(() => onPreview(!preview), [onPreview, preview])
+  return (
+    <M.FormControlLabel
+      onClick={(event) => event.stopPropagation()}
+      className={className}
+      control={
+        <M.Switch checked={preview} onChange={handleClick} size="small" color="primary" />
+      }
+      label="Preview"
+      labelPlacement="end"
+    />
+  )
+}
+
 interface ControlsProps extends EditorState {
   className?: string
 }
@@ -63,7 +83,7 @@ export function Controls({
           <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
             {types.map((type) => (
               <M.MenuItem onClick={() => handleTypeClick(type)} key={type.brace}>
-                Edit as {type.title || type.brace}
+                {type.title || 'Edit file'}
               </M.MenuItem>
             ))}
           </M.Menu>

@@ -1,0 +1,10 @@
+query {
+  admin {
+    packager {
+      eventRules {
+        name
+        enabled
+      }
+    }
+  }
+}

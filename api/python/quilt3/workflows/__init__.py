@@ -146,7 +146,7 @@ class WorkflowConfig:
 
         return schema_pk
 
-    def load_schema(self, schema_pk: util.PhysicalKey) -> (bytes, util.PhysicalKey):
+    def load_schema(self, schema_pk: util.PhysicalKey) -> tuple[bytes, util.PhysicalKey]:
         handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
         try:
             return get_bytes_and_effective_pk(schema_pk)

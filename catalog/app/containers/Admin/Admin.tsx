@@ -82,7 +82,7 @@ export default function Admin() {
 
   const sections = {
     users: { path: paths.adminUsers, exact: true },
-    buckets: { path: paths.adminBuckets, exact: true },
+    buckets: { path: paths.adminBuckets },
     sync: { path: paths.adminSync, exact: true },
     settings: { path: paths.adminSettings, exact: true },
     status: { path: paths.adminStatus, exact: true },
@@ -105,9 +105,6 @@ export default function Admin() {
           <RR.Route path={paths.adminUsers} exact strict>
             <UsersAndRoles />
           </RR.Route>
-          <RR.Route path={paths.adminBuckets} exact>
-            <Buckets />
-          </RR.Route>
           {cfg.desktop && (
             <RR.Route path={paths.adminSync} exact>
               <Sync />
@@ -118,6 +115,9 @@ export default function Admin() {
           </RR.Route>
           <RR.Route path={paths.adminStatus} exact>
             <Status />
+          </RR.Route>
+          <RR.Route path={paths.adminBuckets}>
+            <Buckets />
           </RR.Route>
           <RR.Route>
             <ThrowNotFound />

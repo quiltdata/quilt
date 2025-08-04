@@ -35,16 +35,15 @@ interface Meta<TypeTag, VMap, CMap> {
 export type InstanceOf<T> = T extends { meta: Meta<infer TypeTag, infer VMap, any> }
   ? Instance<TypeTag, keyof VMap, VMap[keyof VMap]>
   : T extends InstanceConstructor<infer TypeTag, infer VariantTag, any, infer Value>
-  ? Instance<TypeTag, VariantTag, Value>
-  : never
+    ? Instance<TypeTag, VariantTag, Value>
+    : never
 
 export type ConstructorOf<T> = T extends { meta: Meta<any, any, infer CMap> }
   ? CMap[keyof CMap]
   : never
 
-export type ValueOf<T> = T extends InstanceConstructor<any, any, any, infer Value>
-  ? Value
-  : never
+export type ValueOf<T> =
+  T extends InstanceConstructor<any, any, any, infer Value> ? Value : never
 
 const mkCons =
   <TypeTag>(typeTag: TypeTag) =>

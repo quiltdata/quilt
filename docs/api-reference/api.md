@@ -43,6 +43,16 @@ __Arguments__
 * __top_hash (str)__:  Optional. A package hash to delete, instead of the whole package.
 
 
+## get\_boto3\_session(\*, fallback: bool = True) -> boto3.session.Session  {#get\_boto3\_session}
+
+Return a Boto3 session with Quilt stack credentials and AWS region.
+In case of no Quilt credentials found, return a "normal" Boto3 session if `fallback` is `True`,
+otherwise raise a `QuiltException`.
+
+> Note: you need to call `quilt3.config("https://your-catalog-homepage/")` to have region set on the session,
+if you previously called it in quilt3 < 6.1.0.
+
+
 ## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
 Lists versions of a given package.
 
@@ -93,36 +103,21 @@ Launches a web browser and asks the user for a token.
 Do not use Quilt credentials. Useful if you have existing AWS credentials.
 
 
-## search(query, limit=10)  {#search}
+## search(query: Union[str, dict], limit: int = 10) -> List[dict]  {#search}
 
 Execute a search against the configured search endpoint.
 
 __Arguments__
 
-* __query (str)__:  query string to search
-* __limit (number)__:  maximum number of results to return. Defaults to 10
+* __query__:  query string to query if passed as `str`, DSL query body if passed as `dict`
+* __limit__:  maximum number of results to return. Defaults to 10
 
 Query Syntax:
-    [simple query string query](
-        https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
-
+    [Query String Query](
+        https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
+    [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
 
 __Returns__
 
-a list of objects with the following structure:
-```
-[{
-`"_id"`: <document unique id>
-`"_index"`: <source index>,
-`"_score"`: <relevance score>
-    "_source":
-`"key"`: <key of the object>,
-`"size"`: <size of object in bytes>,
-`"user_meta"`: <user metadata from meta= via quilt3>,
-`"last_modified"`: <timestamp from ElasticSearch>,
-`"updated"`: <object timestamp from S3>,
-`"version_id"`: <version_id of object version>
-`"_type"`: <document type>
-}, ...]
-```
+search results
 

@@ -1,0 +1,2342 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/JsonEditor/State iterateJsonDict should add sortIndexes to nested fields of object 1`] = `
+[
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+        ],
+        "errors": [],
+        "key": "a",
+        "reactId": "/a+{"b":{"123":123,"c":"ccc","d":"ddd"}}",
+        "required": false,
+        "sortIndex": 0,
+        "value": {
+          "b": {
+            "123": 123,
+            "c": "ccc",
+            "d": "ddd",
+          },
+        },
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "b",
+        ],
+        "errors": [],
+        "key": "b",
+        "reactId": "/b+"bbb"",
+        "required": false,
+        "sortIndex": 0,
+        "value": "bbb",
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "123",
+        ],
+        "errors": [],
+        "key": "123",
+        "reactId": "/123+123",
+        "required": false,
+        "sortIndex": 1,
+        "value": 123,
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "123": 123,
+      "a": {
+        "b": {
+          "123": 123,
+          "c": "ccc",
+          "d": "ddd",
+        },
+      },
+      "b": "bbb",
+    },
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+        ],
+        "errors": [],
+        "key": "b",
+        "reactId": "/a/b+{"123":123,"c":"ccc","d":"ddd"}",
+        "required": false,
+        "sortIndex": 0,
+        "value": {
+          "123": 123,
+          "c": "ccc",
+          "d": "ddd",
+        },
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "b": {
+        "123": 123,
+        "c": "ccc",
+        "d": "ddd",
+      },
+    },
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          "123",
+        ],
+        "errors": [],
+        "key": "123",
+        "reactId": "/a/b/123+123",
+        "required": false,
+        "sortIndex": 0,
+        "value": 123,
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "a",
+          "b",
+          "d",
+        ],
+        "errors": [],
+        "key": "d",
+        "reactId": "/a/b/d+"ddd"",
+        "required": false,
+        "sortIndex": 2,
+        "value": "ddd",
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "a",
+          "b",
+          "c",
+        ],
+        "errors": [],
+        "key": "c",
+        "reactId": "/a/b/c+"ccc"",
+        "required": false,
+        "sortIndex": 3,
+        "value": "ccc",
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "123": 123,
+      "c": "ccc",
+      "d": "ddd",
+    },
+  },
+]
+`;
+
+exports[`components/JsonEditor/State iterateJsonDict should add sortIndexes to object 1`] = `
+[
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+        ],
+        "errors": [],
+        "key": "a",
+        "reactId": "/a+{"b":{"123":123,"c":"ccc","d":"ddd"}}",
+        "required": false,
+        "sortIndex": 1,
+        "value": {
+          "b": {
+            "123": 123,
+            "c": "ccc",
+            "d": "ddd",
+          },
+        },
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "123",
+        ],
+        "errors": [],
+        "key": "123",
+        "reactId": "/123+123",
+        "required": false,
+        "sortIndex": 2,
+        "value": 123,
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "b",
+        ],
+        "errors": [],
+        "key": "b",
+        "reactId": "/b+"bbb"",
+        "required": false,
+        "sortIndex": 3,
+        "value": "bbb",
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "123": 123,
+      "a": {
+        "b": {
+          "123": 123,
+          "c": "ccc",
+          "d": "ddd",
+        },
+      },
+      "b": "bbb",
+    },
+  },
+]
+`;
+
+exports[`components/JsonEditor/State iterateJsonDict should return one state object utilizing Schema keys and object keys, when input is a flat object 1`] = `
+[
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+        ],
+        "errors": [],
+        "key": "a",
+        "reactId": "/a+1",
+        "required": true,
+        "sortIndex": -9007199254740990,
+        "type": "number",
+        "value": 1,
+        "valueSchema": {
+          "default": 10000000000,
+          "type": "number",
+        },
+      },
+      {
+        "address": [
+          "b",
+        ],
+        "errors": [],
+        "key": "b",
+        "reactId": "/b+undefined",
+        "required": true,
+        "sortIndex": -9007199254740988,
+        "type": "string",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "type": "string",
+        },
+      },
+      {
+        "address": [
+          "optList",
+        ],
+        "errors": [],
+        "key": "optList",
+        "reactId": "/optList+undefined",
+        "required": false,
+        "sortIndex": -9007199254740986,
+        "type": "array",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "items": {
+            "properties": {
+              "id": {
+                "default": 123,
+                "type": "number",
+              },
+              "name": {
+                "default": "Abcdef",
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "type": "array",
+        },
+      },
+      {
+        "address": [
+          "optEnum",
+        ],
+        "errors": [],
+        "key": "optEnum",
+        "reactId": "/optEnum+undefined",
+        "required": false,
+        "sortIndex": -9007199254740979,
+        "type": "string",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            "one",
+            "two",
+            "three",
+          ],
+          "type": "string",
+        },
+      },
+      {
+        "address": [
+          "enumObjects",
+        ],
+        "errors": [],
+        "key": "enumObjects",
+        "reactId": "/enumObjects+undefined",
+        "required": false,
+        "sortIndex": -9007199254740977,
+        "type": "object",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            {
+              "id": 1,
+            },
+            {
+              "id": 2,
+            },
+            {
+              "id": 3,
+            },
+          ],
+          "type": "object",
+        },
+      },
+      {
+        "address": [
+          "enumArrays",
+        ],
+        "errors": [],
+        "key": "enumArrays",
+        "reactId": "/enumArrays+undefined",
+        "required": false,
+        "sortIndex": -9007199254740975,
+        "type": "array",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            [
+              1,
+              2,
+              3,
+            ],
+            [
+              3,
+              4,
+              5,
+            ],
+            [
+              6,
+              7,
+              8,
+            ],
+          ],
+          "type": "array",
+        },
+      },
+      {
+        "address": [
+          "enumArraysAndObjects",
+        ],
+        "errors": [],
+        "key": "enumArraysAndObjects",
+        "reactId": "/enumArraysAndObjects+undefined",
+        "required": false,
+        "sortIndex": -9007199254740973,
+        "type": "array",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            [
+              "miles",
+              {
+                "format": "12h",
+              },
+            ],
+            [
+              "kilometers",
+              {
+                "format": "24h",
+              },
+            ],
+            {
+              "name": "unspecified",
+            },
+          ],
+          "type": "array",
+        },
+      },
+      {
+        "address": [
+          "111",
+        ],
+        "errors": [],
+        "key": "111",
+        "reactId": "/111+"aaa"",
+        "required": false,
+        "sortIndex": 0,
+        "value": "aaa",
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "d",
+        ],
+        "errors": [],
+        "key": "d",
+        "reactId": "/d+{"e":"f"}",
+        "required": false,
+        "sortIndex": 0,
+        "value": {
+          "e": "f",
+        },
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "c",
+        ],
+        "errors": [],
+        "key": "c",
+        "reactId": "/c+[1,2,3]",
+        "required": false,
+        "sortIndex": 15,
+        "value": [
+          1,
+          2,
+          3,
+        ],
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "111": "aaa",
+      "a": 1,
+      "c": [
+        1,
+        2,
+        3,
+      ],
+      "d": {
+        "e": "f",
+      },
+    },
+  },
+]
+`;
+
+exports[`components/JsonEditor/State iterateJsonDict should return one state object utilizing Schema keys, when input is an empty object 1`] = `
+[
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+        ],
+        "errors": [],
+        "key": "a",
+        "reactId": "/a+undefined",
+        "required": true,
+        "sortIndex": 1,
+        "type": "number",
+        "value": 10000000000,
+        "valueSchema": {
+          "default": 10000000000,
+          "type": "number",
+        },
+      },
+      {
+        "address": [
+          "b",
+        ],
+        "errors": [],
+        "key": "b",
+        "reactId": "/b+undefined",
+        "required": true,
+        "sortIndex": 3,
+        "type": "string",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "type": "string",
+        },
+      },
+      {
+        "address": [
+          "optList",
+        ],
+        "errors": [],
+        "key": "optList",
+        "reactId": "/optList+undefined",
+        "required": false,
+        "sortIndex": 5,
+        "type": "array",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "items": {
+            "properties": {
+              "id": {
+                "default": 123,
+                "type": "number",
+              },
+              "name": {
+                "default": "Abcdef",
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "type": "array",
+        },
+      },
+      {
+        "address": [
+          "optEnum",
+        ],
+        "errors": [],
+        "key": "optEnum",
+        "reactId": "/optEnum+undefined",
+        "required": false,
+        "sortIndex": 12,
+        "type": "string",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            "one",
+            "two",
+            "three",
+          ],
+          "type": "string",
+        },
+      },
+      {
+        "address": [
+          "enumObjects",
+        ],
+        "errors": [],
+        "key": "enumObjects",
+        "reactId": "/enumObjects+undefined",
+        "required": false,
+        "sortIndex": 14,
+        "type": "object",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            {
+              "id": 1,
+            },
+            {
+              "id": 2,
+            },
+            {
+              "id": 3,
+            },
+          ],
+          "type": "object",
+        },
+      },
+      {
+        "address": [
+          "enumArrays",
+        ],
+        "errors": [],
+        "key": "enumArrays",
+        "reactId": "/enumArrays+undefined",
+        "required": false,
+        "sortIndex": 16,
+        "type": "array",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            [
+              1,
+              2,
+              3,
+            ],
+            [
+              3,
+              4,
+              5,
+            ],
+            [
+              6,
+              7,
+              8,
+            ],
+          ],
+          "type": "array",
+        },
+      },
+      {
+        "address": [
+          "enumArraysAndObjects",
+        ],
+        "errors": [],
+        "key": "enumArraysAndObjects",
+        "reactId": "/enumArraysAndObjects+undefined",
+        "required": false,
+        "sortIndex": 18,
+        "type": "array",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "enum": [
+            [
+              "miles",
+              {
+                "format": "12h",
+              },
+            ],
+            [
+              "kilometers",
+              {
+                "format": "24h",
+              },
+            ],
+            {
+              "name": "unspecified",
+            },
+          ],
+          "type": "array",
+        },
+      },
+    ],
+    "parent": {},
+  },
+]
+`;
+
+exports[`components/JsonEditor/State iterateJsonDict should return three state objects, when input is an empty object and the path is provided 1`] = `
+[
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+        ],
+        "errors": [],
+        "key": "a",
+        "reactId": "/a+undefined",
+        "required": false,
+        "sortIndex": 1,
+        "type": "object",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "properties": {
+            "b": {
+              "properties": {
+                "c": {
+                  "properties": {
+                    "d": {
+                      "properties": {
+                        "e": {
+                          "properties": {
+                            "f": {
+                              "properties": {
+                                "g": {
+                                  "properties": {
+                                    "h": {
+                                      "properties": {
+                                        "i": {
+                                          "properties": {
+                                            "j": {
+                                              "properties": {
+                                                "k": {
+                                                  "properties": {
+                                                    "testMaxItems": {
+                                                      "items": [
+                                                        {
+                                                          "maxItems": 3,
+                                                          "type": "number",
+                                                        },
+                                                      ],
+                                                      "type": "array",
+                                                    },
+                                                  },
+                                                  "type": "object",
+                                                },
+                                              },
+                                              "type": "object",
+                                            },
+                                          },
+                                          "type": "object",
+                                        },
+                                      },
+                                      "type": "object",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+    ],
+    "parent": {},
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+        ],
+        "errors": [],
+        "key": "b",
+        "reactId": "/a/b+undefined",
+        "required": false,
+        "sortIndex": 3,
+        "type": "object",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "properties": {
+            "c": {
+              "properties": {
+                "d": {
+                  "properties": {
+                    "e": {
+                      "properties": {
+                        "f": {
+                          "properties": {
+                            "g": {
+                              "properties": {
+                                "h": {
+                                  "properties": {
+                                    "i": {
+                                      "properties": {
+                                        "j": {
+                                          "properties": {
+                                            "k": {
+                                              "properties": {
+                                                "testMaxItems": {
+                                                  "items": [
+                                                    {
+                                                      "maxItems": 3,
+                                                      "type": "number",
+                                                    },
+                                                  ],
+                                                  "type": "array",
+                                                },
+                                              },
+                                              "type": "object",
+                                            },
+                                          },
+                                          "type": "object",
+                                        },
+                                      },
+                                      "type": "object",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+    ],
+    "parent": undefined,
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          "c",
+        ],
+        "errors": [],
+        "key": "c",
+        "reactId": "/a/b/c+undefined",
+        "required": false,
+        "sortIndex": 5,
+        "type": "object",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "properties": {
+            "d": {
+              "properties": {
+                "e": {
+                  "properties": {
+                    "f": {
+                      "properties": {
+                        "g": {
+                          "properties": {
+                            "h": {
+                              "properties": {
+                                "i": {
+                                  "properties": {
+                                    "j": {
+                                      "properties": {
+                                        "k": {
+                                          "properties": {
+                                            "testMaxItems": {
+                                              "items": [
+                                                {
+                                                  "maxItems": 3,
+                                                  "type": "number",
+                                                },
+                                              ],
+                                              "type": "array",
+                                            },
+                                          },
+                                          "type": "object",
+                                        },
+                                      },
+                                      "type": "object",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+    ],
+    "parent": undefined,
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          "c",
+          "d",
+        ],
+        "errors": [],
+        "key": "d",
+        "reactId": "/a/b/c/d+undefined",
+        "required": false,
+        "sortIndex": 7,
+        "type": "object",
+        "value": Symbol(empty),
+        "valueSchema": {
+          "properties": {
+            "e": {
+              "properties": {
+                "f": {
+                  "properties": {
+                    "g": {
+                      "properties": {
+                        "h": {
+                          "properties": {
+                            "i": {
+                              "properties": {
+                                "j": {
+                                  "properties": {
+                                    "k": {
+                                      "properties": {
+                                        "testMaxItems": {
+                                          "items": [
+                                            {
+                                              "maxItems": 3,
+                                              "type": "number",
+                                            },
+                                          ],
+                                          "type": "array",
+                                        },
+                                      },
+                                      "type": "object",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+    ],
+    "parent": undefined,
+  },
+]
+`;
+
+exports[`components/JsonEditor/State iterateJsonDict should return three state objects, when input is an object, no Schema and path is provided 1`] = `
+[
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+        ],
+        "errors": [],
+        "key": "a",
+        "reactId": "/a+{"b":[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]}",
+        "required": false,
+        "sortIndex": 0,
+        "value": {
+          "b": [
+            1,
+            2,
+            {
+              "c": [
+                {
+                  "d": {
+                    "e": [
+                      1,
+                      2,
+                      3,
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "a": {
+        "b": [
+          1,
+          2,
+          {
+            "c": [
+              {
+                "d": {
+                  "e": [
+                    1,
+                    2,
+                    3,
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+        ],
+        "errors": [],
+        "key": "b",
+        "reactId": "/a/b+[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]",
+        "required": false,
+        "sortIndex": 0,
+        "value": [
+          1,
+          2,
+          {
+            "c": [
+              {
+                "d": {
+                  "e": [
+                    1,
+                    2,
+                    3,
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "b": [
+        1,
+        2,
+        {
+          "c": [
+            {
+              "d": {
+                "e": [
+                  1,
+                  2,
+                  3,
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          0,
+        ],
+        "errors": [],
+        "key": 0,
+        "reactId": "/a/b/0+1",
+        "required": false,
+        "sortIndex": 0,
+        "value": 1,
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "a",
+          "b",
+          1,
+        ],
+        "errors": [],
+        "key": 1,
+        "reactId": "/a/b/1+2",
+        "required": false,
+        "sortIndex": 0,
+        "value": 2,
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+        ],
+        "errors": [],
+        "key": 2,
+        "reactId": "/a/b/2+{"c":[{"d":{"e":[1,2,3]}}]}",
+        "required": false,
+        "sortIndex": 0,
+        "value": {
+          "c": [
+            {
+              "d": {
+                "e": [
+                  1,
+                  2,
+                  3,
+                ],
+              },
+            },
+          ],
+        },
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": [
+      1,
+      2,
+      {
+        "c": [
+          {
+            "d": {
+              "e": [
+                1,
+                2,
+                3,
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+          "c",
+        ],
+        "errors": [],
+        "key": "c",
+        "reactId": "/a/b/2/c+[{"d":{"e":[1,2,3]}}]",
+        "required": false,
+        "sortIndex": 0,
+        "value": [
+          {
+            "d": {
+              "e": [
+                1,
+                2,
+                3,
+              ],
+            },
+          },
+        ],
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "c": [
+        {
+          "d": {
+            "e": [
+              1,
+              2,
+              3,
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+          "c",
+          0,
+        ],
+        "errors": [],
+        "key": 0,
+        "reactId": "/a/b/2/c/0+{"d":{"e":[1,2,3]}}",
+        "required": false,
+        "sortIndex": 0,
+        "value": {
+          "d": {
+            "e": [
+              1,
+              2,
+              3,
+            ],
+          },
+        },
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": [
+      {
+        "d": {
+          "e": [
+            1,
+            2,
+            3,
+          ],
+        },
+      },
+    ],
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+          "c",
+          0,
+          "d",
+        ],
+        "errors": [],
+        "key": "d",
+        "reactId": "/a/b/2/c/0/d+{"e":[1,2,3]}",
+        "required": false,
+        "sortIndex": 0,
+        "value": {
+          "e": [
+            1,
+            2,
+            3,
+          ],
+        },
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "d": {
+        "e": [
+          1,
+          2,
+          3,
+        ],
+      },
+    },
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+          "c",
+          0,
+          "d",
+          "e",
+        ],
+        "errors": [],
+        "key": "e",
+        "reactId": "/a/b/2/c/0/d/e+[1,2,3]",
+        "required": false,
+        "sortIndex": 0,
+        "value": [
+          1,
+          2,
+          3,
+        ],
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": {
+      "e": [
+        1,
+        2,
+        3,
+      ],
+    },
+  },
+  {
+    "items": [
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+          "c",
+          0,
+          "d",
+          "e",
+          0,
+        ],
+        "errors": [],
+        "key": 0,
+        "reactId": "/a/b/2/c/0/d/e/0+1",
+        "required": false,
+        "sortIndex": 0,
+        "value": 1,
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+          "c",
+          0,
+          "d",
+          "e",
+          1,
+        ],
+        "errors": [],
+        "key": 1,
+        "reactId": "/a/b/2/c/0/d/e/1+2",
+        "required": false,
+        "sortIndex": 0,
+        "value": 2,
+        "valueSchema": undefined,
+      },
+      {
+        "address": [
+          "a",
+          "b",
+          2,
+          "c",
+          0,
+          "d",
+          "e",
+          2,
+        ],
+        "errors": [],
+        "key": 2,
+        "reactId": "/a/b/2/c/0/d/e/2+3",
+        "required": false,
+        "sortIndex": 0,
+        "value": 3,
+        "valueSchema": undefined,
+      },
+    ],
+    "parent": [
+      1,
+      2,
+      3,
+    ],
+  },
+]
+`;
+
+exports[`components/JsonEditor/State iterateSchema should return first value only for deep nesting level of Schema, when type is \`array\` 1`] = `
+{
+  "/longNestedList": {
+    "address": [
+      "longNestedList",
+    ],
+    "required": false,
+    "sortIndex": 1,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "items": {
+              "items": {
+                "items": {
+                  "items": {
+                    "items": {
+                      "items": {
+                        "items": {
+                          "type": "number",
+                        },
+                        "type": "array",
+                      },
+                      "type": "array",
+                    },
+                    "type": "array",
+                  },
+                  "type": "array",
+                },
+                "type": "array",
+              },
+              "type": "array",
+            },
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 2,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "items": {
+              "items": {
+                "items": {
+                  "items": {
+                    "items": {
+                      "items": {
+                        "type": "number",
+                      },
+                      "type": "array",
+                    },
+                    "type": "array",
+                  },
+                  "type": "array",
+                },
+                "type": "array",
+              },
+              "type": "array",
+            },
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 3,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "items": {
+              "items": {
+                "items": {
+                  "items": {
+                    "items": {
+                      "type": "number",
+                    },
+                    "type": "array",
+                  },
+                  "type": "array",
+                },
+                "type": "array",
+              },
+              "type": "array",
+            },
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 4,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "items": {
+              "items": {
+                "items": {
+                  "items": {
+                    "type": "number",
+                  },
+                  "type": "array",
+                },
+                "type": "array",
+              },
+              "type": "array",
+            },
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 5,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "items": {
+              "items": {
+                "items": {
+                  "type": "number",
+                },
+                "type": "array",
+              },
+              "type": "array",
+            },
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 6,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "items": {
+              "items": {
+                "type": "number",
+              },
+              "type": "array",
+            },
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 7,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "items": {
+              "type": "number",
+            },
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*/__*/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 8,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "items": {
+            "type": "number",
+          },
+          "type": "array",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*/__*/__*/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 9,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "items": {
+          "type": "number",
+        },
+        "type": "array",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*/__*/__*/__*/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 10,
+    "type": "array",
+    "valueSchema": {
+      "items": {
+        "type": "number",
+      },
+      "type": "array",
+    },
+  },
+  "/longNestedList/__*/__*/__*/__*/__*/__*/__*/__*/__*/__*": {
+    "address": [
+      "longNestedList",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 11,
+    "type": "number",
+    "valueSchema": {
+      "type": "number",
+    },
+  },
+}
+`;
+
+exports[`components/JsonEditor/State iterateSchema should return values for a flat Schema 1`] = `
+{
+  "/boolValue": {
+    "address": [
+      "boolValue",
+    ],
+    "required": false,
+    "sortIndex": 3,
+    "type": "boolean",
+    "valueSchema": {
+      "type": "boolean",
+    },
+  },
+  "/enumBool": {
+    "address": [
+      "enumBool",
+    ],
+    "required": false,
+    "sortIndex": 5,
+    "type": "boolean",
+    "valueSchema": {
+      "enum": [
+        true,
+        false,
+      ],
+      "type": "boolean",
+    },
+  },
+  "/nullValue": {
+    "address": [
+      "nullValue",
+    ],
+    "required": false,
+    "sortIndex": 1,
+    "type": "null",
+    "valueSchema": {
+      "type": "null",
+    },
+  },
+}
+`;
+
+exports[`components/JsonEditor/State iterateSchema should return values for every nesting level of Schema, when type is \`object\` 1`] = `
+{
+  "/a": {
+    "address": [
+      "a",
+    ],
+    "required": false,
+    "sortIndex": 1,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "b": {
+          "properties": {
+            "c": {
+              "properties": {
+                "d": {
+                  "properties": {
+                    "e": {
+                      "properties": {
+                        "f": {
+                          "properties": {
+                            "g": {
+                              "properties": {
+                                "h": {
+                                  "properties": {
+                                    "i": {
+                                      "properties": {
+                                        "j": {
+                                          "properties": {
+                                            "k": {
+                                              "properties": {
+                                                "testMaxItems": {
+                                                  "items": [
+                                                    {
+                                                      "maxItems": 3,
+                                                      "type": "number",
+                                                    },
+                                                  ],
+                                                  "type": "array",
+                                                },
+                                              },
+                                              "type": "object",
+                                            },
+                                          },
+                                          "type": "object",
+                                        },
+                                      },
+                                      "type": "object",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b": {
+    "address": [
+      "a",
+      "b",
+    ],
+    "required": false,
+    "sortIndex": 3,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "c": {
+          "properties": {
+            "d": {
+              "properties": {
+                "e": {
+                  "properties": {
+                    "f": {
+                      "properties": {
+                        "g": {
+                          "properties": {
+                            "h": {
+                              "properties": {
+                                "i": {
+                                  "properties": {
+                                    "j": {
+                                      "properties": {
+                                        "k": {
+                                          "properties": {
+                                            "testMaxItems": {
+                                              "items": [
+                                                {
+                                                  "maxItems": 3,
+                                                  "type": "number",
+                                                },
+                                              ],
+                                              "type": "array",
+                                            },
+                                          },
+                                          "type": "object",
+                                        },
+                                      },
+                                      "type": "object",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c": {
+    "address": [
+      "a",
+      "b",
+      "c",
+    ],
+    "required": false,
+    "sortIndex": 5,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "d": {
+          "properties": {
+            "e": {
+              "properties": {
+                "f": {
+                  "properties": {
+                    "g": {
+                      "properties": {
+                        "h": {
+                          "properties": {
+                            "i": {
+                              "properties": {
+                                "j": {
+                                  "properties": {
+                                    "k": {
+                                      "properties": {
+                                        "testMaxItems": {
+                                          "items": [
+                                            {
+                                              "maxItems": 3,
+                                              "type": "number",
+                                            },
+                                          ],
+                                          "type": "array",
+                                        },
+                                      },
+                                      "type": "object",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+    ],
+    "required": false,
+    "sortIndex": 7,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "e": {
+          "properties": {
+            "f": {
+              "properties": {
+                "g": {
+                  "properties": {
+                    "h": {
+                      "properties": {
+                        "i": {
+                          "properties": {
+                            "j": {
+                              "properties": {
+                                "k": {
+                                  "properties": {
+                                    "testMaxItems": {
+                                      "items": [
+                                        {
+                                          "maxItems": 3,
+                                          "type": "number",
+                                        },
+                                      ],
+                                      "type": "array",
+                                    },
+                                  },
+                                  "type": "object",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+    ],
+    "required": false,
+    "sortIndex": 9,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "f": {
+          "properties": {
+            "g": {
+              "properties": {
+                "h": {
+                  "properties": {
+                    "i": {
+                      "properties": {
+                        "j": {
+                          "properties": {
+                            "k": {
+                              "properties": {
+                                "testMaxItems": {
+                                  "items": [
+                                    {
+                                      "maxItems": 3,
+                                      "type": "number",
+                                    },
+                                  ],
+                                  "type": "array",
+                                },
+                              },
+                              "type": "object",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e/f": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+    ],
+    "required": false,
+    "sortIndex": 11,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "g": {
+          "properties": {
+            "h": {
+              "properties": {
+                "i": {
+                  "properties": {
+                    "j": {
+                      "properties": {
+                        "k": {
+                          "properties": {
+                            "testMaxItems": {
+                              "items": [
+                                {
+                                  "maxItems": 3,
+                                  "type": "number",
+                                },
+                              ],
+                              "type": "array",
+                            },
+                          },
+                          "type": "object",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e/f/g": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+    ],
+    "required": false,
+    "sortIndex": 13,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "h": {
+          "properties": {
+            "i": {
+              "properties": {
+                "j": {
+                  "properties": {
+                    "k": {
+                      "properties": {
+                        "testMaxItems": {
+                          "items": [
+                            {
+                              "maxItems": 3,
+                              "type": "number",
+                            },
+                          ],
+                          "type": "array",
+                        },
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e/f/g/h": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+    ],
+    "required": false,
+    "sortIndex": 15,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "i": {
+          "properties": {
+            "j": {
+              "properties": {
+                "k": {
+                  "properties": {
+                    "testMaxItems": {
+                      "items": [
+                        {
+                          "maxItems": 3,
+                          "type": "number",
+                        },
+                      ],
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e/f/g/h/i": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+    ],
+    "required": false,
+    "sortIndex": 17,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "j": {
+          "properties": {
+            "k": {
+              "properties": {
+                "testMaxItems": {
+                  "items": [
+                    {
+                      "maxItems": 3,
+                      "type": "number",
+                    },
+                  ],
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e/f/g/h/i/j": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+      "j",
+    ],
+    "required": false,
+    "sortIndex": 19,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "k": {
+          "properties": {
+            "testMaxItems": {
+              "items": [
+                {
+                  "maxItems": 3,
+                  "type": "number",
+                },
+              ],
+              "type": "array",
+            },
+          },
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e/f/g/h/i/j/k": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+      "j",
+      "k",
+    ],
+    "required": false,
+    "sortIndex": 21,
+    "type": "object",
+    "valueSchema": {
+      "properties": {
+        "testMaxItems": {
+          "items": [
+            {
+              "maxItems": 3,
+              "type": "number",
+            },
+          ],
+          "type": "array",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "/a/b/c/d/e/f/g/h/i/j/k/testMaxItems": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+      "j",
+      "k",
+      "testMaxItems",
+    ],
+    "required": false,
+    "sortIndex": 23,
+    "type": "array",
+    "valueSchema": {
+      "items": [
+        {
+          "maxItems": 3,
+          "type": "number",
+        },
+      ],
+      "type": "array",
+    },
+  },
+  "/a/b/c/d/e/f/g/h/i/j/k/testMaxItems/__*": {
+    "address": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+      "j",
+      "k",
+      "testMaxItems",
+      "__*",
+    ],
+    "required": false,
+    "sortIndex": 24,
+    "type": undefined,
+    "valueSchema": [
+      {
+        "maxItems": 3,
+        "type": "number",
+      },
+    ],
+  },
+}
+`;

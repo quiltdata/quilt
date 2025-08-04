@@ -37,6 +37,8 @@ type Ok {
   _: Boolean
 }
 
+union OperationResult = Ok | InvalidInput | OperationError
+
 type Unavailable {
   _: Boolean
 }
@@ -120,6 +122,11 @@ type CollaboratorBucketConnection {
   permissionLevel: BucketPermissionLevel!
 }
 
+type TabulatorTable {
+  name: String!
+  config: String!
+}
+
 type BucketConfig {
   name: String!
   title: String!
@@ -139,6 +146,7 @@ type BucketConfig {
   associatedPolicies: [PolicyBucketPermission!]! @admin
   associatedRoles: [RoleBucketPermission!]! @admin
   collaborators: [CollaboratorBucketConnection!]!
+  tabulatorTables: [TabulatorTable!]!
 }
 
 # XXX: consider unifying ManagedRole and UnmanagedRole
@@ -189,6 +197,21 @@ type RoleBucketPermission implements BucketPermission {
   level: BucketPermissionLevel!
 }
 
+type User {
+  name: String!
+  email: String!
+  dateJoined: Datetime!
+  lastLogin: Datetime!
+  isActive: Boolean!
+  isAdmin: Boolean!
+  isSsoOnly: Boolean!
+  isService: Boolean!
+  role: Role
+  extraRoles: [Role!]!
+  isRoleAssignmentDisabled: Boolean!
+  isAdminAssignmentDisabled: Boolean!
+}
+
 type AccessCountForDate {
   date: Datetime!
   value: Int!
@@ -197,6 +220,16 @@ type AccessCountForDate {
 type AccessCounts {
   total: Int!
   counts: [AccessCountForDate!]!
+}
+
+type AccessCountsGroup {
+  ext: String!
+  counts: AccessCounts!
+}
+
+type BucketAccessCounts {
+  byExt(groups: Int): [AccessCountsGroup!]!
+  combined: AccessCounts!
 }
 
 type PackageDir {
@@ -278,6 +311,8 @@ enum SearchResultOrder {
   BEST_MATCH
   NEWEST
   OLDEST
+  LEX_ASC
+  LEX_DESC
 }
 
 type DatetimeExtents {
@@ -392,31 +427,39 @@ input PackagesSearchFilter {
 }
 
 type ObjectsSearchStats {
-  total: Int!
   modified: DatetimeExtents!
   size: NumberExtents!
   ext: KeywordExtents!
 }
 
 type PackagesSearchStats {
-  total: Int!
   modified: DatetimeExtents!
   size: NumberExtents!
   entries: NumberExtents!
   workflow: KeywordExtents!
   userMeta: [PackageUserMetaFacet!]!
+  userMetaTruncated: Boolean!
 }
 
 type ObjectsSearchResultSet {
+  total: Int!
   stats: ObjectsSearchStats!
   firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
 }
 
+enum PackageUserMetaFacetType {
+  NUMBER
+  DATETIME
+  KEYWORD
+  TEXT
+  BOOLEAN
+}
+
 type PackagesSearchResultSet {
+  total: Int!
   stats: PackagesSearchStats!
+  filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
   firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
-  # XXX: do we need this at all? do we need to accept type here?
-  # userMetaFacet(path: String!): PackageUserMetaFacet
 }
 
 type EmptySearchResultSet {
@@ -433,38 +476,119 @@ union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
 
 type SearchHitObject {
   id: ID!
-  bucket: String!
   score: Float!
-  size: Float!
-  modified: Datetime!
 
+  bucket: String!
   key: String!
   version: String!
+
+  size: Float!
+  modified: Datetime!
 
   deleted: Boolean!
   # meta: JsonRecord! # String?
   # tags
+  indexedContent: String
 }
 
 # TODO: reuse package types?
 type SearchHitPackage {
   id: ID!
-  bucket: String!
   score: Float!
+
+  bucket: String!
+  name: String!
+  pointer: String!
+  hash: String!
+
   size: Float!
   modified: Datetime!
-
-  name: String!
-  hash: String!
+  totalEntriesCount: Int!
 
   # specific props
   comment: String
-  meta: JsonRecord # user_meta
+  meta: String # user_meta
   workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
+
+  matchLocations: SearchHitPackageMatchLocations!
+  matchingEntries: [SearchHitPackageMatchingEntry!]!
 }
 
+type SearchHitPackageMatchLocations {
+  name: Boolean!
+  comment: Boolean!
+  meta: Boolean!
+  workflow: Boolean!
+}
+
+type SearchHitPackageMatchingEntry {
+  logicalKey: String!
+  physicalKey: String!
+  # 32-bit Int is too small to represent file size which quite often exceeds several GB
+  size: Float!
+  meta: String
+  matchLocations: SearchHitPackageEntryMatchLocations!
+}
+
+type SearchHitPackageEntryMatchLocations {
+  logicalKey: Boolean!
+  physicalKey: Boolean!
+  meta: Boolean!
+  contents: Boolean!
+}
+
+type SubscriptionState {
+  active: Boolean!
+  timestamp: Datetime!
+}
+
+type UserAdminQueries {
+  list: [User!]!
+  get(name: String!): User
+}
+
+type SsoConfig {
+  text: String!
+  timestamp: Datetime!
+  uploader: User!
+}
+
+type PackagerEventRule {
+  name: String!
+  enabled: Boolean!
+}
+
+type PackagerAdminQueries {
+  eventRules: [PackagerEventRule!]!
+  eventRule(name: String!): PackagerEventRule
+}
+
+type AdminQueries {
+  user: UserAdminQueries!
+  ssoConfig: SsoConfig
+  isDefaultRoleSettingDisabled: Boolean!
+  tabulatorOpenQuery: Boolean!
+  packager: PackagerAdminQueries!
+}
+
+type MyRole {
+  name: String!
+}
+
+type Me {
+  name: String!
+  email: String!
+  isAdmin: Boolean!
+  role: MyRole!
+  roles: [MyRole!]!
+}
+
+union SwitchRoleResult = Me | InvalidInput | OperationError
+
 type Query {
+  me: Me
+
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
@@ -481,9 +605,17 @@ type Query {
     searchString: String
     filter: PackagesSearchFilter
     userMetaFilters: [PackageUserMetaPredicate!]
+    latestOnly: Boolean! = false
   ): PackagesSearchResult!
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
+  subscription: SubscriptionState!
+
+  bucketAccessCounts(bucket: String!, window: Int!): BucketAccessCounts
+  objectAccessCounts(bucket: String!, key: String!, window: Int!): AccessCounts
+
+  admin: AdminQueries! @admin
+
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
@@ -570,6 +702,10 @@ type IndexingInProgress {
   _: Boolean
 }
 
+type SubscriptionInvalid {
+  _: Boolean
+}
+
 union BucketAddResult =
     BucketAddSuccess
   | BucketAlreadyAdded
@@ -580,6 +716,7 @@ union BucketAddResult =
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
+  | SubscriptionInvalid
 
 type BucketUpdateSuccess {
   bucketConfig: BucketConfig!
@@ -631,6 +768,10 @@ type RoleNameInvalid {
   _: Boolean
 }
 
+type RoleNameUsedBySsoConfig {
+  _: Boolean
+}
+
 type RoleDoesNotExist {
   _: Boolean
 }
@@ -667,6 +808,7 @@ union RoleUpdateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
+  | RoleNameUsedBySsoConfig
   | RoleIsManaged
   | RoleIsUnmanaged
   | RoleHasTooManyPoliciesToAttach
@@ -683,9 +825,14 @@ union RoleDeleteResult =
     RoleDeleteSuccess
   | RoleDoesNotExist
   | RoleNameReserved
+  | RoleNameUsedBySsoConfig
   | RoleAssigned
 
-union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+type SsoConfigConflict {
+  _: Boolean
+}
+
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist | SsoConfigConflict
 
 type RoleSetDefaultSuccess {
   role: Role!
@@ -715,12 +862,19 @@ input PackagePushParams {
   name: String!
 }
 
+input PackageEntryHash {
+  type: String!
+  value: String!
+}
+
 input PackageConstructEntry {
   logicalKey: String!
   physicalKey: String!
-  hash: String
+  hash: PackageEntryHash
   # 32-bit Int may be too small to represent file size which may exceed several GB
   size: Float
+  # `meta` is the full metadata dict for entry that includes optional `user_meta` property,
+  # see PackageEntry._meta vs PackageEntry.meta.
   meta: JsonRecord
 }
 
@@ -732,17 +886,6 @@ input PackagePromoteSource {
   bucket: String!
   name: String!
   hash: String!
-}
-
-input PackageFromFolderEntry {
-  isDir: Boolean!
-  logicalKey: String!
-  path: String!
-}
-
-input PackageFromFolderSource {
-  bucket: String!
-  entries: [PackageFromFolderEntry!]!
 }
 
 type PackagePushSuccess {
@@ -761,11 +904,6 @@ union PackageConstructResult =
 
 union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 
-union PackageFromFolderResult =
-    PackagePushSuccess
-  | InvalidInput
-  | OperationError
-
 union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
   | OperationError
@@ -782,7 +920,57 @@ union BrowsingSessionRefreshResult =
 
 union BrowsingSessionDisposeResult = Ok | OperationError
 
+input UserInput {
+  name: String!
+  email: String!
+  role: String!
+  extraRoles: [String!]
+}
+
+union UserResult = User | InvalidInput | OperationError
+
+type MutateUserAdminMutations {
+  delete: OperationResult!
+  setEmail(email: String!): UserResult!
+  setRole(role: String!, extraRoles: [String!], append: Boolean! = false): UserResult!
+  addRoles(roles: [String!]!): UserResult!
+  removeRoles(roles: [String!]!, fallback: String): UserResult!
+  setAdmin(admin: Boolean!): UserResult!
+  setActive(active: Boolean!): UserResult!
+  resetPassword: OperationResult!
+}
+
+type UserAdminMutations {
+  create(input: UserInput!): UserResult!
+  mutate(name: String!): MutateUserAdminMutations
+}
+
+union SetSsoConfigResult = SsoConfig | InvalidInput | OperationError
+
+union BucketSetTabulatorTableResult = BucketConfig | InvalidInput | OperationError
+
+type TabulatorOpenQueryResult {
+  tabulatorOpenQuery: Boolean!
+}
+
+union PackagerEventRuleToggleResult = PackagerEventRule | OperationError | InvalidInput
+
+type PackagerAdminMutations {
+  toggleEventRule(name: String!, enabled: Boolean!): PackagerEventRuleToggleResult!
+}
+
+type AdminMutations {
+  user: UserAdminMutations!
+  setSsoConfig(config: String): SetSsoConfigResult
+  bucketSetTabulatorTable(bucketName: String!, tableName: String!, config: String): BucketSetTabulatorTableResult!
+  bucketRenameTabulatorTable(bucketName: String!, tableName: String!, newTableName: String!): BucketSetTabulatorTableResult!
+  setTabulatorOpenQuery(enabled: Boolean!): TabulatorOpenQueryResult!
+  packager: PackagerAdminMutations!
+}
+
 type Mutation {
+  switchRole(roleName: String!): SwitchRoleResult!
+
   packageConstruct(
     params: PackagePushParams!
     src: PackageConstructSource!
@@ -790,16 +978,15 @@ type Mutation {
   packagePromote(
     params: PackagePushParams!
     src: PackagePromoteSource!
+    destPrefix: String
   ): PackagePromoteResult!
-  packageFromFolder(
-    params: PackagePushParams!
-    src: PackageFromFolderSource!
-  ): PackageFromFolderResult!
   packageRevisionDelete(
     bucket: String!
     name: String!
     hash: String!
   ): PackageRevisionDeleteResult!
+
+  admin: AdminMutations! @admin
 
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!

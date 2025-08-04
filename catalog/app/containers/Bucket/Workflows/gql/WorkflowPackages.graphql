@@ -1,0 +1,30 @@
+query ($buckets: [String!]!, $filter: PackagesSearchFilter!) {
+  searchPackages(buckets: $buckets, filter: $filter, latestOnly: true) {
+    __typename
+    ... on PackagesSearchResultSet {
+      total
+      firstPage(size: 6, order: NEWEST) {
+        hits {
+          __typename
+          id
+          bucket
+          size
+          modified
+          name
+          hash
+          comment
+          meta
+          workflow
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

@@ -31,8 +31,8 @@ async function search({ req, query }: SearchArgs): Promise<ElasticSearchResults>
       action: 'freeform',
       body: JSON.stringify(query.body),
     }
-    if (query.size) requestOptions.size = query.size
-    if (query.from) requestOptions.from = query.size
+    if (query.size !== undefined) requestOptions.size = query.size
+    if (query.from !== undefined) requestOptions.from = query.from
     const qs = mkSearch(requestOptions)
     return req(`/search${qs}`)
   } catch (e) {

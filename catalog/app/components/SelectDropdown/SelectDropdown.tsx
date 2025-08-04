@@ -5,10 +5,6 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'inline-flex',
-    [t.breakpoints.down('sm')]: {
-      borderRadius: 0,
-      boxShadow: 'none',
-    },
   },
   button: {
     ...t.typography.body1,
@@ -38,7 +34,7 @@ export interface ValueBase {
 
 interface SelectDropdownProps<Value extends ValueBase> {
   ButtonProps?: M.ButtonProps
-  adaptive?: boolean
+  shrink?: boolean
   children?: React.ReactNode
   disabled?: boolean
   emptySlot?: React.ReactNode
@@ -57,7 +53,7 @@ interface SelectDropdownProps<Value extends ValueBase> {
 
 export default function SelectDropdown<Value extends ValueBase>({
   ButtonProps,
-  adaptive = true,
+  shrink = false,
   children,
   className,
   classes: classesProp,
@@ -96,8 +92,6 @@ export default function SelectDropdown<Value extends ValueBase>({
     [onChange],
   )
 
-  const t = M.useTheme()
-  const aboveSm = M.useMediaQuery(t.breakpoints.up('sm'))
   const { className: buttonClassName, ...buttonProps } = ButtonProps || {}
 
   return (
@@ -115,7 +109,7 @@ export default function SelectDropdown<Value extends ValueBase>({
         {...buttonProps}
       >
         {children}
-        {(aboveSm || !adaptive) && (
+        {!shrink && (
           <>
             <span className={cx(classes.value, classesProp?.value)}>
               {value.toString()}

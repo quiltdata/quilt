@@ -1,0 +1,11 @@
+# import UserResultSelection from "./UserResultSelection.graphql"
+
+mutation ($input: UserInput!) {
+  admin {
+    user {
+      create(input: $input) {
+        ...UserResultSelection
+      }
+    }
+  }
+}

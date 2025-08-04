@@ -98,7 +98,6 @@ function ParquetMeta({
               </span>
             ))}
             {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-              /* @ts-expect-error */
               <JsonDisplay value={s} />
             ))}
           </tbody>
@@ -245,7 +244,6 @@ export default function Perspective({
         onLoadMore={onLoadMore}
         truncated={truncated}
       />
-      {/* @ts-expect-error */}
       {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
       {!!parquetMeta && <ParquetMeta className={classes.meta} {...parquetMeta} />}
       {children}

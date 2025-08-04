@@ -1,4 +1,12 @@
-export type Mode = '__quiltConfig' | 'less' | 'json' | 'markdown' | 'plain_text' | 'yaml'
+export type Mode =
+  | '__bucketPreferences'
+  | '__quiltConfig'
+  | '__quiltSummarize'
+  | 'json'
+  | 'less'
+  | 'markdown'
+  | 'plain_text'
+  | 'yaml'
 
 export interface EditorInputType {
   title?: string

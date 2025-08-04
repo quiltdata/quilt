@@ -36,13 +36,13 @@ const defaultAction = ({ label, ...rest }) => (
 
 export default function PreviewDisplay({
   data,
-  noDownload,
+  noDownload = undefined,
   renderContents = R.identity,
   renderProgress = defaultProgress,
   renderMessage = defaultMessage,
   renderAction = defaultAction,
-  onData,
-  props,
+  onData = undefined,
+  props = undefined,
 }) {
   const noDl = noDownload != null ? noDownload : cfg.noDownload
 
@@ -103,7 +103,8 @@ export default function PreviewDisplay({
           }),
         Unsupported: ({ handle }) =>
           renderMessage({
-            heading: 'Preview Not Available',
+            heading: 'Preview Not Supported',
+            body: 'Previewing this data type is not supported',
             action:
               !noDl &&
               AWS.Signer.withDownloadUrl(handle, (href) =>
@@ -127,14 +128,14 @@ export default function PreviewDisplay({
           }),
         Expired: ({ retry }) =>
           renderMessage({
-            heading: 'Session is expired',
-            body: 'Try to reload the page',
+            heading: 'Session expired',
+            body: !retry && 'Try to reload the page',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
-        Unexpected: ({ retry }) =>
+        Unexpected: ({ retry, message }) =>
           renderMessage({
             heading: 'Unexpected Error',
-            body: 'Something went wrong while loading preview',
+            body: message || 'Something went wrong while loading preview',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
         __: ({ retry }) =>

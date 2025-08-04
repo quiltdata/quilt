@@ -13,30 +13,29 @@ export type containers_Search_gql_FirstPageObjectsQuery = {
   readonly __typename: 'Query'
 } & {
   readonly searchObjects:
-    | ({ readonly __typename: 'ObjectsSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'ObjectsSearchStats' } & Pick<
-          Types.ObjectsSearchStats,
-          'total'
-        >
-        readonly firstPage: { readonly __typename: 'ObjectsSearchResultSetPage' } & Pick<
-          Types.ObjectsSearchResultSetPage,
-          'cursor'
-        > & {
-            readonly hits: ReadonlyArray<
-              { readonly __typename: 'SearchHitObject' } & Pick<
-                Types.SearchHitObject,
-                | 'id'
-                | 'bucket'
-                | 'score'
-                | 'size'
-                | 'modified'
-                | 'key'
-                | 'version'
-                | 'deleted'
+    | ({ readonly __typename: 'ObjectsSearchResultSet' } & Pick<
+        Types.ObjectsSearchResultSet,
+        'total'
+      > & {
+          readonly firstPage: {
+            readonly __typename: 'ObjectsSearchResultSetPage'
+          } & Pick<Types.ObjectsSearchResultSetPage, 'cursor'> & {
+              readonly hits: ReadonlyArray<
+                { readonly __typename: 'SearchHitObject' } & Pick<
+                  Types.SearchHitObject,
+                  | 'id'
+                  | 'bucket'
+                  | 'score'
+                  | 'size'
+                  | 'modified'
+                  | 'key'
+                  | 'version'
+                  | 'deleted'
+                  | 'indexedContent'
+                >
               >
-            >
-          }
-      })
+            }
+        })
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -125,16 +124,7 @@ export const containers_Search_gql_FirstPageObjectsDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
-                          ],
-                        },
-                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'firstPage' },
@@ -187,6 +177,10 @@ export const containers_Search_gql_FirstPageObjectsDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'deleted' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'indexedContent' },
                                   },
                                 ],
                               },

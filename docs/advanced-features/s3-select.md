@@ -1,6 +1,9 @@
 <!--pytest-codeblocks:skipfile-->
 <!-- markdownlint-disable -->
 
+> NOTE: As of July 25, 2024, Amazon S3 Select is [no longer available](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WhatsNew.html) to new customers. The following documentation only applies to accounts that were created before that date. 
+
+
 [S3 Select](https://aws.amazon.com/blogs/aws/s3-glacier-select/) is an S3 feature that allows you to operate on JSON, CSV, and Parquet files in a row-based manner using SQL syntax. QUILT features experimental support for S3 Select queries as part of the `Bucket` interface:
 
 ```python

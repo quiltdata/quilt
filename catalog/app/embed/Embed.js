@@ -40,6 +40,7 @@ import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
 import * as RT from 'utils/reactTools'
 import * as s3paths from 'utils/s3paths'
+import * as Tracking from 'utils/tracking'
 import useConstant from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
@@ -356,6 +357,7 @@ function App({ init }) {
     Notifications.Provider,
     [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
     [Auth.Provider, { storage }],
+    [Tracking.Provider, { userSelector: Auth.selectors.username }],
     AWS.Credentials.Provider,
     AWS.Config.Provider,
     AWS.S3.Provider,

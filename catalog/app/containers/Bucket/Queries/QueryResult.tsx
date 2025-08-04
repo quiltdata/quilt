@@ -24,13 +24,7 @@ export default function QueryResult({ results }: QueryResultProps) {
     <div>
       <M.Typography variant="body1">Search results</M.Typography>
       <M.Paper className={classes.content}>
-        <JsonDisplay
-          className=""
-          value={results}
-          name={undefined}
-          topLevel
-          defaultExpanded
-        />
+        <JsonDisplay value={results} topLevel defaultExpanded />
       </M.Paper>
     </div>
   )

@@ -1,19 +1,28 @@
+import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as Sentry from '@sentry/react'
 
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
-import * as bucketErrors from 'containers/Bucket/errors'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator } from 'utils/JSONSchema'
+import { JsonInvalidAgainstSchema } from 'utils/error'
 import * as tagged from 'utils/taggedV2'
+import type { JsonRecord } from 'utils/types'
 import * as YAML from 'utils/yaml'
 
 export type ActionPreferences = Record<
-  'copyPackage' | 'createPackage' | 'deleteRevision' | 'openInDesktop' | 'revisePackage',
+  | 'copyPackage'
+  | 'createPackage'
+  | 'deleteRevision'
+  | 'downloadObject'
+  | 'downloadPackage'
+  | 'openInDesktop'
+  | 'revisePackage'
+  | 'writeFile',
   boolean
 >
 
-interface MetaBlockPreferencesInput {
+export interface MetaBlockPreferencesInput {
   user_meta?: {
     expanded: boolean | number
   }
@@ -39,6 +48,7 @@ interface BlocksPreferencesInput {
   code?: boolean
   meta?: boolean | MetaBlockPreferencesInput
   gallery?: boolean | GalleryPreferences
+  qurator?: boolean
 }
 
 interface BlocksPreferences {
@@ -47,12 +57,16 @@ interface BlocksPreferences {
   code: boolean
   meta: false | MetaBlockPreferences
   gallery: false | GalleryPreferences
+  qurator: boolean
 }
 
-export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
+export type NavPreferences = Record<
+  'files' | 'packages' | 'workflows' | 'queries',
+  boolean
+>
 
-interface PackagePreferencesInput {
-  message?: true
+export interface PackagePreferencesInput {
+  message?: boolean
   user_meta?: ReadonlyArray<string>
 }
 export interface PackagePreferences {
@@ -67,7 +81,7 @@ interface PackagesListPreferences {
 
 type DefaultSourceBucketInput = string
 type PackageDescriptionMultiline = boolean
-type SourceBucketsInput = Record<string, null>
+type SourceBucketsInput = Record<string, {}>
 
 interface AthenaPreferencesInput {
   defaultWorkflow?: string // @deprecated, was used by mistake
@@ -79,7 +93,7 @@ export interface AthenaPreferences {
 }
 
 interface UiPreferencesInput {
-  actions?: Partial<ActionPreferences>
+  actions?: Partial<ActionPreferences> | false
   athena?: AthenaPreferences
   blocks?: Partial<BlocksPreferencesInput>
   defaultSourceBucket?: DefaultSourceBucketInput
@@ -89,7 +103,7 @@ interface UiPreferencesInput {
   sourceBuckets?: SourceBucketsInput
 }
 
-interface BucketPreferencesInput {
+export interface BucketPreferencesInput {
   ui?: UiPreferencesInput
 }
 
@@ -107,7 +121,7 @@ interface UiPreferences {
   sourceBuckets: SourceBuckets
 }
 
-interface BucketPreferences {
+export interface BucketPreferences {
   ui: UiPreferences
 }
 
@@ -133,8 +147,11 @@ const defaultPreferences: BucketPreferences = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
-      openInDesktop: false,
+      downloadObject: true,
+      downloadPackage: true,
+      openInDesktop: true,
       revisePackage: true,
+      writeFile: true,
     },
     athena: {},
     blocks: {
@@ -143,9 +160,11 @@ const defaultPreferences: BucketPreferences = {
       code: true,
       meta: defaultBlockMeta,
       gallery: defaultGallery,
+      qurator: true,
     },
     nav: {
       files: true,
+      workflows: true,
       packages: true,
       queries: true,
     },
@@ -170,9 +189,24 @@ const normalizeBucketName = (input: string) =>
 
 const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 
-function validate(data: unknown): asserts data is BucketPreferencesInput {
-  const errors = bucketPreferencesValidator(data)
-  if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
+export function validate(data: unknown): asserts data is BucketPreferencesInput {
+  const obj = typeof data === 'string' ? YAML.parse(data) : data
+  const errors = bucketPreferencesValidator(obj)
+  if (errors.length) {
+    if (errors[0] instanceof Error) throw errors
+    throw new JsonInvalidAgainstSchema({ errors: errors as ErrorObject[] })
+  }
+}
+
+function parseActions(actions?: Partial<ActionPreferences> | false): ActionPreferences {
+  if (actions === false) {
+    return R.map(R.F, defaultPreferences.ui.actions)
+  }
+
+  return {
+    ...defaultPreferences.ui.actions,
+    ...actions,
+  }
 }
 
 function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
@@ -266,6 +300,7 @@ export function extendDefaults(data: BucketPreferencesInput): BucketPreferences 
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
+      actions: parseActions(data?.ui?.actions),
       athena: parseAthena(data?.ui?.athena),
       blocks: parseBlocks(data?.ui?.blocks),
       packageDescription: parsePackages(
@@ -298,3 +333,20 @@ export const Result = tagged.create('app/utils/BucketPreferences:Result' as cons
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type Result = tagged.InstanceOf<typeof Result>
+
+export function merge(bucketPreferencesYaml: string, update: BucketPreferencesInput) {
+  try {
+    const prefs = YAML.parse(bucketPreferencesYaml) as JsonRecord
+    return YAML.stringify(R.mergeDeepRight(prefs, update))
+  } catch (e) {
+    return YAML.stringify(update as JsonRecord)
+  }
+}
+
+export const sourceBucket = (bucket: string): BucketPreferencesInput => ({
+  ui: {
+    sourceBuckets: {
+      [bucket]: {},
+    },
+  },
+})

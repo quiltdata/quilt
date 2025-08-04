@@ -6,6 +6,7 @@ import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import { useMutation } from 'utils/GraphQL'
@@ -138,14 +139,15 @@ function DialogForm({
             workflow.slug === workflows.notAvailable
               ? null
               : workflow.slug === workflows.notSelected
-              ? ''
-              : workflow.slug,
+                ? ''
+                : workflow.slug,
         },
         src: {
           bucket,
           name: initialName,
           hash,
         },
+        destPrefix: successor.copyData && cfg.packageRoot ? cfg.packageRoot : null,
       })
       switch (r.__typename) {
         case 'PackagePushSuccess':
@@ -254,7 +256,6 @@ function DialogForm({
 
               <RF.Field
                 component={PD.WorkflowInput}
-                bucket={bucket}
                 name="workflow"
                 workflowsConfig={workflowsConfig}
                 initialValue={selectedWorkflow}
@@ -362,7 +363,6 @@ function DialogError({ bucket, error, onCancel }: DialogErrorProps) {
 
   return (
     <PD.DialogError
-      bucket={bucket}
       error={error}
       skeletonElement={<FormSkeleton animate={false} />}
       title={

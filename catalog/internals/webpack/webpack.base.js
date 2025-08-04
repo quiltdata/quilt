@@ -9,9 +9,6 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
-const { execSync } = require('child_process')
-
-const revisionHash = execSync('git rev-parse HEAD').toString()
 
 class RevertPathOverwriteByPerspective {
   apply(compiler) {
@@ -144,11 +141,11 @@ module.exports = (options) => ({
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({
       LOGGER_REDUX: process.env.LOGGER_REDUX || 'enabled',
-      REVISION_HASH: revisionHash,
     }),
 
     new webpack.ProvidePlugin({
       process: 'process/browser.js',
+      Buffer: ['buffer', 'Buffer'],
     }),
 
     new PerspectivePlugin(),

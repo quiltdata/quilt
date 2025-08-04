@@ -1,7 +1,14 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
+import { handleToS3Url } from 'utils/s3paths'
 
 import Logo from '.'
+
+jest.mock('utils/AWS', () => ({
+  Signer: {
+    useS3Signer: () => handleToS3Url,
+  },
+}))
 
 describe('components/Logo', () => {
   it('should render squared logo', () => {
@@ -14,7 +21,7 @@ describe('components/Logo', () => {
     expect(tree).toMatchSnapshot()
   })
 
-  it.skip('should render custom logo', () => {
+  it('should render custom logo', () => {
     // TODO: mock AWS.Signer
     const tree = renderer
       .create(<Logo src="https://example.com/example.png" height="10px" width="10px" />)

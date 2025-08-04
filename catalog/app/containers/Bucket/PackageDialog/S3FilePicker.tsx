@@ -1,3 +1,5 @@
+import type { AWSError } from 'aws-sdk'
+import invariant from 'invariant'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -22,6 +24,11 @@ const useSelectionWidgetStyles = M.makeStyles((t) => ({
     position: 'absolute',
     zIndex: 2,
   },
+  close: {
+    position: 'absolute',
+    right: t.spacing(2),
+    top: t.spacing(2),
+  },
   popup: {
     minHeight: t.spacing(40),
     position: 'absolute',
@@ -31,51 +38,32 @@ const useSelectionWidgetStyles = M.makeStyles((t) => ({
     zIndex: 10,
     padding: t.spacing(2),
   },
-  close: {
-    position: 'absolute',
-    right: t.spacing(2),
-    top: t.spacing(2),
-  },
 }))
 
 interface SelectionWidgetProps {
   className: string
-  selection: Selection.PrefixedKeysMap
-  onSelection: (changed: Selection.PrefixedKeysMap) => void
 }
 
-function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
+function SelectionWidget({ className }: SelectionWidgetProps) {
   const classes = useSelectionWidgetStyles()
-  const [selectionOpened, setSelectionOpened] = React.useState(false)
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-  const open = React.useCallback(() => setSelectionOpened(true), [])
-  const close = React.useCallback(() => setSelectionOpened(false), [])
+  const [open, setOpen] = React.useState(false)
+  const toggle = React.useCallback(() => setOpen((o) => !o), [])
+  const backdrop = React.useRef<HTMLElement | null>(null)
   return (
     <>
-      <M.Badge
-        badgeContent={count}
-        className={className}
-        color="primary"
-        max={999}
-        showZero
+      <Selection.Button className={className} onClick={toggle} />
+      <M.Backdrop
+        className={classes.backdrop}
+        onClick={(event) => backdrop.current === event.target && toggle()}
+        open={open}
+        ref={backdrop}
       >
-        <M.Button onClick={open} size="small">
-          Selected items
-        </M.Button>
-      </M.Badge>
-      <M.Backdrop open={selectionOpened} onClick={close} className={classes.backdrop}>
-        <M.Grow in={selectionOpened}>
-          <M.Paper className={classes.popup}>
-            <M.IconButton className={classes.close} onClick={close} size="small">
-              <M.Icon>close</M.Icon>
-            </M.IconButton>
-            <Selection.Dashboard
-              onSelection={onSelection}
-              onDone={close}
-              selection={selection}
-            />
-          </M.Paper>
-        </M.Grow>
+        <M.Paper className={classes.popup}>
+          <M.IconButton className={classes.close} onClick={toggle} size="small">
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+          <Selection.Dashboard onClose={toggle} />
+        </M.Paper>
       </M.Backdrop>
     </>
   )
@@ -187,11 +175,8 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
-  const [selection, setSelection] = React.useState(Selection.EMPTY_MAP)
-  const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix],
-  )
+  const slt = Selection.use()
+  invariant(slt.inited, 'Selection must be used within an Selection.Provider')
 
   const [locked, setLocked] = React.useState(false)
 
@@ -226,7 +211,19 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     [selectBucket],
   )
 
-  const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
+  const data = useData(
+    bucketListing,
+    {
+      bucket,
+      path,
+      prefix,
+      prev,
+      drain: true,
+    },
+    {
+      noAutoFetch: !open,
+    },
+  )
 
   const loadMore = React.useCallback(() => {
     AsyncResult.case(
@@ -245,20 +242,20 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const add = React.useCallback(async () => {
     try {
       setLocked(true)
-      const handles = Selection.toHandlesList(selection)
+      const handles = Selection.toHandlesList(slt.selection)
       const filesMap = await getFiles(handles)
       onClose({ filesMap })
     } finally {
       setLocked(false)
     }
-  }, [getFiles, onClose, selection])
+  }, [getFiles, onClose, slt.selection])
 
   const handleExited = React.useCallback(() => {
     setPath('')
     setPrefix('')
     setPrev(null)
-    setSelection(Selection.EMPTY_MAP)
-  }, [])
+    slt.clear()
+  }, [slt])
 
   return (
     <M.Dialog
@@ -281,21 +278,27 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           ) : (
             bucket
           )}
+          {/* TODO: Add link to the documentation: how to add buckets to `ui.sourceBuckets` */}
         </M.Typography>
       </M.DialogTitle>
       <div className={classes.header}>
         <div className={classes.crumbs}>
           {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
         </div>
-        <SelectionWidget
-          className={classes.selectionButton}
-          selection={selection}
-          onSelection={setSelection}
-        />
+        <SelectionWidget className={classes.selectionButton} />
       </div>
       {data.case({
         // TODO: customized error display?
-        Err: displayError(),
+        Err: displayError([
+          [
+            (e: unknown) => (e as AWSError)?.code === 'InvalidBucketName',
+            (e: AWSError) => (
+              <M.Box m={2}>
+                <M.Typography>{e.message}</M.Typography>
+              </M.Box>
+            ),
+          ],
+        ]),
         Init: () => null,
         _: (x: $TSFixMe) => {
           const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
@@ -306,8 +309,12 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
               setPath={setPath}
               setPrefix={setPrefix}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
-              onSelectionChange={handleSelection}
+              selection={Selection.getDirectorySelection(
+                slt.selection,
+                res.bucket,
+                res.path,
+              )}
+              onSelectionChange={(ids) => slt.merge(ids, bucket, path, prefix)}
             />
           ) : (
             // TODO: skeleton
@@ -325,7 +332,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           onClick={add}
           variant="contained"
           color="primary"
-          disabled={locked || R.isEmpty(selection)}
+          disabled={locked || slt.isEmpty}
         >
           Add files
         </M.Button>
@@ -362,8 +369,8 @@ interface DirContentsProps {
   setPath: (path: string) => void
   setPrefix: (prefix: string) => void
   loadMore: () => void
-  selection: string[]
-  onSelectionChange: (ids: string[]) => void
+  selection: Selection.SelectionItem[]
+  onSelectionChange: (ids: Selection.SelectionItem[]) => void
 }
 
 function DirContents({

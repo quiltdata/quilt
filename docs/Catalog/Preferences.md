@@ -14,13 +14,17 @@ key, then the following defaults are used:
 ui:
   nav:
     files: True
+    workflows: True
     packages: True
     queries: True
   actions:
     copyPackage: True
     createPackage: True
+    downloadObject: True
+    downloadPackage: True
     deleteRevision: False
     revisePackage: True
+    writeFile: True
   blocks:
     analytics: True
     browser: True
@@ -44,13 +48,19 @@ ui:
 ### Properties
 
 * `ui.nav.files: False` - hide Files tab
+* `ui.nav.workflows: False` - hide Workflows tab
 * `ui.nav.packages: False` - hide Packages tab
 * `ui.nav.queries: False` - hide Queries tab
+* `ui.actions: False` - hide all buttons used to create and edit packages and files
+(make the catalog "read-only")
 * `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
+* `ui.actions.downloadObject: False` - hide download buttons under "Bucket" tab
+* `ui.actions.downloadPackage: False` - hide download buttons under "Packages" tab
 * `ui.actions.revisePackage: False` - hide the button to revise packages
+* `ui.actions.writeFile: False` - hide buttons to create or edit files
 * `ui.blocks.analytics: False` - hide Analytics block on file page
 * `ui.blocks.browser: False` - hide files browser on both Bucket and Packages tab
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
@@ -75,10 +85,12 @@ or is empty the feature "Add files from Bucket" is disabled
 that is selected by default; if it doesn't match any bucket then it's ignored
 * `ui.package_description` - a dictionary
 that maps package handle regular expressions
-or literals to JSONPath expressions of fields to show from package metadata
+to JSONPath expressions of fields to show from package metadata
 in the package list view.
 * `ui.package_description_multiline: True` - expands package metadata's root key/values
 * `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
+
+![Alongside text editor users can use visual form to modify the config](../imgs/bucket-preferences-editor.png)
 
 #### `ui.sourceBuckets` example
 
@@ -91,11 +103,21 @@ ui:
   defaultSourceBucket: s3://bucket-b
 ```
 
+Note that the `ui.sourceBuckets` is empty by default.
+As a result, when users create or revise a package in a new bucket
+they can't add files from any bucket, including that one.
+Instead, you need to manually add a configuration file,
+or click "auto-add current bucket"
+(which will create or edit the configuration file to add
+the current bucket to the list of `ui.sourceBuckets`)
+
+![Users can auto-add the current bucket to ui.sourceBuckets](../imgs/auto-add-source-bucket.png)
+
 #### `ui.package_description` example
-  
+
 ```yaml
 ui:
-  packages:
+  package_description:
     # match all packages
     .*:
       # show the message
@@ -104,7 +126,7 @@ ui:
       user_meta:
         - $.labels
     # for any package with a handle prefix of foo
-    foo/*:
+    ^foo/.*:
       # JSONPath expressions to the fields to display
       user_meta:
         - $.key1.key2

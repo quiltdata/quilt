@@ -14,7 +14,7 @@ import StyledLink from 'utils/StyledLink'
 
 import * as requests from './requests'
 
-const ES_V = '6.7'
+const ES_V = '6.8'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/search.html`
 
 const ajv = new Ajv({ allErrors: true, verbose: true })
@@ -106,7 +106,7 @@ export default function QueryViewer({
         )}
       </M.Paper>
       <M.FormHelperText>
-        Quilt uses ElasticSearch 6.7 Search API.{' '}
+        Quilt uses ElasticSearch {ES_V} Search API.{' '}
         <StyledLink href={ES_REF} target="_blank">
           Learn more
         </StyledLink>

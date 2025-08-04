@@ -5,7 +5,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Buttons from 'components/Buttons'
-import * as FileEditor from 'components/FileEditor'
 import * as Preview from 'components/Preview'
 import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
 import AsyncResult from 'utils/AsyncResult'
@@ -16,27 +15,6 @@ import { getBasename } from 'utils/s3paths'
 
 import * as Gallery from './Gallery'
 import * as Summarize from './Summarize'
-
-const useAddReadmeSectionStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    margin: t.spacing(2, 0),
-  },
-}))
-
-function AddReadmeSection({ packageHandle, path }) {
-  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
-  const classes = useAddReadmeSectionStyles()
-  return (
-    <div className={classes.root}>
-      {prompt.render()}
-      <M.Button color="primary" size="small" variant="contained" onClick={prompt.open}>
-        Add README
-      </M.Button>
-    </div>
-  )
-}
 
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
@@ -115,7 +93,7 @@ function ThumbnailsWrapper({
 // files: Array of s3 handles
 export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
@@ -137,11 +115,16 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { actions } }) =>
-            !readme &&
+            (!readme || !summarize) &&
             !path &&
             !!packageHandle &&
             !!actions.revisePackage && (
-              <AddReadmeSection packageHandle={packageHandle} path={path} />
+              <Summarize.ConfigureAppearance
+                hasReadme={!!readme}
+                hasSummarizeJson={!!summarize}
+                packageHandle={packageHandle}
+                path={path}
+              />
             ),
           Pending: () => <Buttons.Skeleton size="small" />,
           Init: () => null,

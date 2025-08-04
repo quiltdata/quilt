@@ -6,6 +6,7 @@ export type containers_Search_gql_PackageMetaFacetsQueryVariables = Types.Exact<
   buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
   searchString: Types.Maybe<Types.Scalars['String']>
   filter: Types.Maybe<Types.PackagesSearchFilter>
+  latestOnly: Types.Scalars['Boolean']
 }>
 
 export type containers_Search_gql_PackageMetaFacetsQuery = {
@@ -13,44 +14,33 @@ export type containers_Search_gql_PackageMetaFacetsQuery = {
 } & {
   readonly searchPackages:
     | ({ readonly __typename: 'PackagesSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'PackagesSearchStats' } & {
-          readonly userMeta: ReadonlyArray<
-            | ({ readonly __typename: 'NumberPackageUserMetaFacet' } & Pick<
-                Types.NumberPackageUserMetaFacet,
-                'path'
-              > & {
-                  readonly numberExtents: { readonly __typename: 'NumberExtents' } & Pick<
-                    Types.NumberExtents,
-                    'min' | 'max'
-                  >
-                })
-            | ({ readonly __typename: 'DatetimePackageUserMetaFacet' } & Pick<
-                Types.DatetimePackageUserMetaFacet,
-                'path'
-              > & {
-                  readonly datetimeExtents: {
-                    readonly __typename: 'DatetimeExtents'
-                  } & Pick<Types.DatetimeExtents, 'min' | 'max'>
-                })
-            | ({ readonly __typename: 'KeywordPackageUserMetaFacet' } & Pick<
-                Types.KeywordPackageUserMetaFacet,
-                'path'
-              > & {
-                  readonly extents: { readonly __typename: 'KeywordExtents' } & Pick<
-                    Types.KeywordExtents,
-                    'values'
-                  >
-                })
-            | ({ readonly __typename: 'TextPackageUserMetaFacet' } & Pick<
-                Types.TextPackageUserMetaFacet,
-                'path'
-              >)
-            | ({ readonly __typename: 'BooleanPackageUserMetaFacet' } & Pick<
-                Types.BooleanPackageUserMetaFacet,
-                'path'
-              >)
-          >
-        }
+        readonly stats: { readonly __typename: 'PackagesSearchStats' } & Pick<
+          Types.PackagesSearchStats,
+          'userMetaTruncated'
+        > & {
+            readonly userMeta: ReadonlyArray<
+              | ({ readonly __typename: 'NumberPackageUserMetaFacet' } & Pick<
+                  Types.NumberPackageUserMetaFacet,
+                  'path'
+                >)
+              | ({ readonly __typename: 'DatetimePackageUserMetaFacet' } & Pick<
+                  Types.DatetimePackageUserMetaFacet,
+                  'path'
+                >)
+              | ({ readonly __typename: 'KeywordPackageUserMetaFacet' } & Pick<
+                  Types.KeywordPackageUserMetaFacet,
+                  'path'
+                >)
+              | ({ readonly __typename: 'TextPackageUserMetaFacet' } & Pick<
+                  Types.TextPackageUserMetaFacet,
+                  'path'
+                >)
+              | ({ readonly __typename: 'BooleanPackageUserMetaFacet' } & Pick<
+                  Types.BooleanPackageUserMetaFacet,
+                  'path'
+                >)
+            >
+          }
       })
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
@@ -95,6 +85,14 @@ export const containers_Search_gql_PackageMetaFacetsDocument = {
             name: { kind: 'Name', value: 'PackagesSearchFilter' },
           },
         },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'latestOnly' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'Boolean' } },
+          },
+        },
       ],
       selectionSet: {
         kind: 'SelectionSet',
@@ -121,6 +119,11 @@ export const containers_Search_gql_PackageMetaFacetsDocument = {
                 name: { kind: 'Name', value: 'filter' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
               },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'latestOnly' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'latestOnly' } },
+              },
             ],
             selectionSet: {
               kind: 'SelectionSet',
@@ -141,6 +144,10 @@ export const containers_Search_gql_PackageMetaFacetsDocument = {
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'userMetaTruncated' },
+                            },
                             {
                               kind: 'Field',
                               name: { kind: 'Name', value: 'userMeta' },
@@ -166,103 +173,6 @@ export const containers_Search_gql_PackageMetaFacetsDocument = {
                                         {
                                           kind: 'Field',
                                           name: { kind: 'Name', value: 'path' },
-                                        },
-                                      ],
-                                    },
-                                  },
-                                  {
-                                    kind: 'InlineFragment',
-                                    typeCondition: {
-                                      kind: 'NamedType',
-                                      name: {
-                                        kind: 'Name',
-                                        value: 'NumberPackageUserMetaFacet',
-                                      },
-                                    },
-                                    selectionSet: {
-                                      kind: 'SelectionSet',
-                                      selections: [
-                                        {
-                                          kind: 'Field',
-                                          alias: { kind: 'Name', value: 'numberExtents' },
-                                          name: { kind: 'Name', value: 'extents' },
-                                          selectionSet: {
-                                            kind: 'SelectionSet',
-                                            selections: [
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'min' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'max' },
-                                              },
-                                            ],
-                                          },
-                                        },
-                                      ],
-                                    },
-                                  },
-                                  {
-                                    kind: 'InlineFragment',
-                                    typeCondition: {
-                                      kind: 'NamedType',
-                                      name: {
-                                        kind: 'Name',
-                                        value: 'DatetimePackageUserMetaFacet',
-                                      },
-                                    },
-                                    selectionSet: {
-                                      kind: 'SelectionSet',
-                                      selections: [
-                                        {
-                                          kind: 'Field',
-                                          alias: {
-                                            kind: 'Name',
-                                            value: 'datetimeExtents',
-                                          },
-                                          name: { kind: 'Name', value: 'extents' },
-                                          selectionSet: {
-                                            kind: 'SelectionSet',
-                                            selections: [
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'min' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'max' },
-                                              },
-                                            ],
-                                          },
-                                        },
-                                      ],
-                                    },
-                                  },
-                                  {
-                                    kind: 'InlineFragment',
-                                    typeCondition: {
-                                      kind: 'NamedType',
-                                      name: {
-                                        kind: 'Name',
-                                        value: 'KeywordPackageUserMetaFacet',
-                                      },
-                                    },
-                                    selectionSet: {
-                                      kind: 'SelectionSet',
-                                      selections: [
-                                        {
-                                          kind: 'Field',
-                                          name: { kind: 'Name', value: 'extents' },
-                                          selectionSet: {
-                                            kind: 'SelectionSet',
-                                            selections: [
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'values' },
-                                              },
-                                            ],
-                                          },
                                         },
                                       ],
                                     },

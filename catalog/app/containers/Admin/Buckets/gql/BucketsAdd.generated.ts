@@ -28,6 +28,7 @@ export type containers_Admin_Buckets_gql_BucketsAddMutation = {
     | { readonly __typename: 'NotificationConfigurationError' }
     | { readonly __typename: 'NotificationTopicNotFound' }
     | { readonly __typename: 'SnsInvalid' }
+    | { readonly __typename: 'SubscriptionInvalid' }
 }
 
 export const containers_Admin_Buckets_gql_BucketsAddDocument = {

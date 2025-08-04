@@ -24,9 +24,6 @@ const useStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(0, 0, 4),
   },
-  sectionHeader: {
-    margin: t.spacing(0, 0, 1),
-  },
   select: {
     margin: t.spacing(3, 0),
   },
@@ -62,7 +59,7 @@ interface QueriesStateRenderProps {
   error: Error | null
   handleError: (error: Error | null) => void
   handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
-  handleQueryMetaChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
+  handleQueryMetaChange: (q: requests.Query | requests.athena.Query | null) => void
   handleSubmit: (q: requests.ElasticSearchQuery) => () => void
   queries: requests.Query[]
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
@@ -99,7 +96,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   )
 
   const handleQueryMetaChange = React.useCallback(
-    (q: requests.athena.AthenaQuery | requests.Query | null) => {
+    (q: requests.athena.Query | requests.Query | null) => {
       setQueryMeta(q as requests.Query | null)
       setCustomQueryBody(null)
     },
@@ -212,10 +209,8 @@ export default function ElastiSearch() {
           <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
           <div className={classes.select}>
-            <M.Typography className={classes.sectionHeader} variant="body1">
-              Select query
-            </M.Typography>
             <QuerySelect<requests.Query>
+              label="Select query"
               queries={queries}
               onChange={handleQueryMetaChange}
               value={customQueryBody ? null : queryMeta}

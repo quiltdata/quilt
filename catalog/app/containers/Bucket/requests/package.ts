@@ -1,22 +1,22 @@
 import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 
-import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
+import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/JSONSchema'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
 
 import * as errors from '../errors'
-import * as requests from './requestsUntyped'
+import { fetchFile } from './object'
 
 export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: string }) => {
   if (!schemaUrl) return null
 
-  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
+  const handle = s3paths.parseS3Url(schemaUrl)
 
   try {
-    const response = await requests.fetchFile({ s3, bucket, path: key, version })
-    return JSON.parse(response.Body.toString('utf-8'))
+    const response = await fetchFile({ s3, handle })
+    return JSON.parse(response.body?.toString('utf-8') || '{}')
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
 

@@ -25,6 +25,17 @@ functions:
 ![](../imgs/admin-users-roles.png)
 
 You may invite new users to your Quilt stack by clicking the + button, upper right.
+You must assign one or more roles to all new users (default role is pre-selected for you).
+You can edit existing users' attributes by clicking on underlined cells.
+
+![](../imgs/admin-users-invite.png)
+
+Users can switch between assigned roles via the drodpwon menu in the navbar
+(if assigned more than one).
+
+![](../imgs/switch-role-menu.png)
+
+![](../imgs/switch-role-dialog.png)
 
 You must select the default role for all new users, else they will not be able
 to sign in to the Quilt catalog. The default role is shown in bold.

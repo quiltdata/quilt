@@ -43,7 +43,7 @@ export function Head({
             )}
           </M.TableCell>
         ))}
-        {withInlineActions && <M.TableCell align="right">Actions</M.TableCell>}
+        {withInlineActions && <M.TableCell align="right">&nbsp;</M.TableCell>}
       </M.TableRow>
     </M.TableHead>
   )

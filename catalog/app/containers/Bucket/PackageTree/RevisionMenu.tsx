@@ -1,6 +1,5 @@
 import * as React from 'react'
 
-import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 import Menu from '../Menu'
@@ -9,16 +8,14 @@ interface RevisionMenuProps {
   className: string
   onCreateFile: () => void
   onDelete: () => void
-  onDesktop: () => void
 }
 
 export default function RevisionMenu({
   className,
   onCreateFile,
   onDelete,
-  onDesktop,
 }: RevisionMenuProps) {
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const items = React.useMemo(
     () =>
@@ -26,7 +23,7 @@ export default function RevisionMenu({
         {
           Ok: ({ ui: { actions } }) => {
             const menu = []
-            if (actions.revisePackage) {
+            if (actions.writeFile && actions.revisePackage) {
               menu.push({
                 onClick: onCreateFile,
                 title: 'Create file',
@@ -38,19 +35,13 @@ export default function RevisionMenu({
                 title: 'Delete revision',
               })
             }
-            if (actions.openInDesktop && !cfg.desktop) {
-              menu.push({
-                onClick: onDesktop,
-                title: 'Open in Teleport',
-              })
-            }
             return menu
           },
           _: () => [],
         },
         prefs,
       ),
-    [onCreateFile, onDelete, onDesktop, prefs],
+    [onCreateFile, onDelete, prefs],
   )
 
   if (!items.length) return null

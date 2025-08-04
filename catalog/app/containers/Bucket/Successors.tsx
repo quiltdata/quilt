@@ -3,32 +3,27 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Buttons from 'components/Buttons'
+import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import StyledLink from 'utils/StyledLink'
-import type * as workflows from 'utils/workflows'
+import * as workflows from 'utils/workflows'
 
-import WorkflowsConfigLink from './WorkflowsConfigLink'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 
-interface EmptySlotProps {
-  bucket: string
-}
-
-function EmptySlot({ bucket }: EmptySlotProps) {
+function EmptySlot() {
   return (
     <M.Box px={2} py={1}>
       <M.Typography gutterBottom>
-        Add or update a{' '}
-        <WorkflowsConfigLink bucket={bucket}>config.yml</WorkflowsConfigLink> file to
+        Add or update a <WorkflowsConfigLink>config.yml</WorkflowsConfigLink> file to
         populate this menu.
       </M.Typography>
       <M.Typography>
         <StyledLink
-          href={`${docs}/advanced/workflows#cross-bucket-package-push-quilt-catalog`}
+          href={`${docs}/workflows#cross-bucket-package-push-quilt-catalog`}
           target="_blank"
         >
           Learn more
@@ -52,7 +47,7 @@ function ErrorSlot({ error }: ErrorSlotProps) {
       {error instanceof ERRORS.WorkflowsConfigInvalid && (
         <M.Typography>
           Please fix the workflows config according to{' '}
-          <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
+          <StyledLink href={`${docs}/workflows`} target="_blank">
             the documentation
           </StyledLink>
         </M.Typography>
@@ -90,18 +85,24 @@ function MenuPlaceholder() {
 
 function useSuccessors(
   bucket: string,
-  { noAutoFetch = false },
+  {
+    currentBucketCanBeSuccessor,
+    noAutoFetch = false,
+  }: { currentBucketCanBeSuccessor: boolean; noAutoFetch?: boolean },
 ): workflows.Successor[] | Error | undefined {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch })
   return React.useMemo(
     () =>
       data.case({
-        Ok: ({ successors }: { successors: workflows.Successor[] }) => successors,
+        Ok: ({ successors }: { successors: workflows.Successor[] }) =>
+          currentBucketCanBeSuccessor && !successors.find(({ slug }) => slug === bucket)
+            ? [workflows.bucketToSuccessor(bucket), ...successors]
+            : successors,
         Err: (error: Error) => error,
         _: () => undefined,
       }),
-    [data],
+    [bucket, currentBucketCanBeSuccessor, data],
   )
 }
 
@@ -134,7 +135,7 @@ function SuccessorsSelect({
               </M.MenuItem>
             ))
           ) : (
-            <EmptySlot bucket={bucket} />
+            <EmptySlot />
           ),
         _: () => <MenuPlaceholder />,
         Err: (error: Error) => <ErrorSlot error={error} />,
@@ -152,14 +153,21 @@ const useButtonStyles = M.makeStyles({
 interface InputProps {
   bucket: string
   className?: string
+  currentBucketCanBeSuccessor: boolean
   onChange?: (value: workflows.Successor) => void
   successor: workflows.Successor
 }
 
-export function Dropdown({ bucket, className, onChange, successor }: InputProps) {
+export function Dropdown({
+  bucket,
+  className,
+  currentBucketCanBeSuccessor,
+  onChange,
+  successor,
+}: InputProps) {
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
-  const successors = useSuccessors(bucket, { noAutoFetch })
+  const successors = useSuccessors(bucket, { currentBucketCanBeSuccessor, noAutoFetch })
   const options = React.useMemo(
     () =>
       Array.isArray(successors)
@@ -184,12 +192,8 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   )
   const emptySlot = React.useMemo(
     () =>
-      successors instanceof Error ? (
-        <ErrorSlot error={successors} />
-      ) : (
-        <EmptySlot bucket={bucket} />
-      ),
-    [bucket, successors],
+      successors instanceof Error ? <ErrorSlot error={successors} /> : <EmptySlot />,
+    [successors],
   )
   const loading = !successors && open
 
@@ -205,7 +209,6 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   return (
     <SelectDropdown
       ButtonProps={ButtonProps}
-      adaptive={false}
       className={className}
       disabled={!onChange || (Array.isArray(successors) && !successors?.length)}
       emptySlot={emptySlot}

@@ -5,6 +5,7 @@ Contains the Bucket class, which provides several useful functions
     over an s3 bucket.
 """
 import pathlib
+import typing as T
 
 from .data_transfer import (
     copy_file,
@@ -36,36 +37,23 @@ class Bucket:
         if self._pk.path or self._pk.version_id is not None:
             raise QuiltException("Bucket URI shouldn't contain a path or a version ID")
 
-    def search(self, query, limit=10):
+    def search(self, query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
         """
         Execute a search against the configured search endpoint.
 
         Args:
-            query (str): query string to search
-            limit (number): maximum number of results to return. Defaults to 10
+            query: query string to query if passed as `str`, DSL query body if passed as `dict`
+            limit: maximum number of results to return. Defaults to 10
 
         Query Syntax:
-            By default, a normal plaintext search will be executed over the query string.
-            You can use field-match syntax to filter on exact matches for fields in
-                your metadata.
-            The syntax for field match is `user_meta.$field_name:"exact_match"`.
+            [Query String Query](
+                https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
+            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
 
         Returns:
-            a list of objects with the following structure:
-            ```
-            [{
-                "key": <key of the object>,
-                "version_id": <version_id of object version>,
-                "operation": <"Create" or "Delete">,
-                "meta": <metadata attached to object>,
-                "size": <size of object in bytes>,
-                "text": <indexed text of object>,
-                "source": <source document for object (what is actually stored in ElasticSeach)>,
-                "time": <timestamp for operation>,
-            }...]
-            ```
+            search results
         """
-        return search_api(query, index=self._pk.bucket, limit=limit)
+        return search_api(query, index=f"{self._pk.bucket},{self._pk.bucket}_packages", limit=limit)["hits"]["hits"]
 
     def put_file(self, key, path):
         """

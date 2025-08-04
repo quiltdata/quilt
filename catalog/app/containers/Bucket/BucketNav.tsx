@@ -1,10 +1,13 @@
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { matchPath, Link, useLocation } from 'react-router-dom'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import type { RouteMap } from './Routes'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -13,17 +16,45 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+export type Section = 'es' | 'overview' | 'packages' | 'queries' | 'tree' | 'workflows'
+
+function useBucketSection() {
+  const location = useLocation()
+  const { paths } = NamedRoutes.use<RouteMap>()
+  return React.useMemo(() => {
+    if (matchPath(location.pathname, { path: paths.bucketESQueries, exact: true })) {
+      return 'es'
+    }
+    if (matchPath(location.pathname, { path: paths.bucketOverview, exact: true })) {
+      return 'overview'
+    }
+    if (matchPath(location.pathname, { path: paths.bucketPackageList })) {
+      return 'packages'
+    }
+    if (
+      matchPath(location.pathname, { path: paths.bucketFile, exact: true, strict: true })
+    ) {
+      return 'tree'
+    }
+    if (matchPath(location.pathname, { path: paths.bucketDir, exact: true })) {
+      return 'tree'
+    }
+    if (matchPath(location.pathname, { path: paths.bucketQueries })) {
+      return 'queries'
+    }
+    if (matchPath(location.pathname, { path: paths.bucketWorkflowList })) {
+      return 'workflows'
+    }
+    return false
+  }, [location.pathname, paths])
+}
+
 type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
 
 function NavTab(props: NavTabProps) {
   const classes = useStyles()
 
   return <M.Tab className={classes.root} component={Link} {...props} />
-}
-
-interface BucketNavProps {
-  bucket: string
-  section: 'es' | 'overview' | 'packages' | 'queries' | 'tree' | false // `keyof` sections object
 }
 
 const useBucketNavSkeletonStyles = M.makeStyles((t) => ({
@@ -56,6 +87,7 @@ interface TabsProps {
 }
 
 function Tabs({ bucket, preferences, section = false }: TabsProps) {
+  const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
@@ -70,10 +102,17 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
       {preferences.files && (
         <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
       )}
+      {preferences.workflows && (
+        <NavTab
+          label="Workflows"
+          value="workflows"
+          to={urls.bucketWorkflowList(bucket)}
+        />
+      )}
       {preferences.packages && (
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
       )}
-      {preferences.queries && (
+      {preferences.queries && authenticated && (
         <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
       )}
       {preferences.queries && (section === 'queries' || section === 'es') && (
@@ -83,8 +122,13 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
   )
 }
 
-export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const prefs = BucketPreferences.use()
+interface BucketNavProps {
+  bucket: string
+}
+
+export function BucketNav({ bucket }: BucketNavProps) {
+  const section = useBucketSection()
+  const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { nav } }) => (

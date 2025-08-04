@@ -7,16 +7,13 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
-import boto3
 import pytest
 from testfixtures import LogCapture
 
 from t4_lambda_shared.utils import (
-    IncompleteResultException,
     get_available_memory,
     get_default_origins,
     make_json_response,
-    query_manifest_content,
     separated_env_to_iter,
 )
 
@@ -142,76 +139,6 @@ class TestUtils(TestCase):
         assert status == 200
         assert json.loads(body) == {'foo': 'bar'}
         assert headers == {'Content-Type': 'application/json', 'Content-Length': '123'}
-
-    def test_call_s3select(self):
-        """
-        Test that parameters are correctly passed to
-        S3 Select (without a prefix)
-        """
-        bucket = "bucket"
-        key = ".quilt/packages/manifest_hash"
-
-        expected_sql = "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s"
-        expected_args = {
-            'Bucket': bucket,
-            'Key': key,
-            'Expression': expected_sql,
-            'ExpressionType': 'SQL',
-            'InputSerialization': {
-                'CompressionType': 'NONE',
-                'JSON': {'Type': 'LINES'}
-                },
-            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
-        }
-
-        mock_s3 = boto3.client('s3')
-        with patch.object(
-                mock_s3,
-                'select_object_content',
-                return_value=self.s3response
-        ) as patched:
-            query_manifest_content(
-                mock_s3,
-                bucket=bucket,
-                key=key,
-                sql_stmt=expected_sql)
-            patched.assert_called_once_with(**expected_args)
-
-    def test_call_s3select_incomplete_response(self):
-        """
-        Test that an incomplete response from S3 Select is
-        detected and an exception is raised.
-        """
-        bucket = "bucket"
-        key = ".quilt/packages/manifest_hash"
-
-        expected_sql = "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s"
-        expected_args = {
-            'Bucket': bucket,
-            'Key': key,
-            'Expression': expected_sql,
-            'ExpressionType': 'SQL',
-            'InputSerialization': {
-                'CompressionType': 'NONE',
-                'JSON': {'Type': 'LINES'}
-                },
-            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
-        }
-
-        mock_s3 = boto3.client('s3')
-        with patch.object(
-                mock_s3,
-                'select_object_content',
-                return_value=self.s3response_incomplete
-        ) as patched:
-            with self.assertRaises(IncompleteResultException):
-                query_manifest_content(
-                    mock_s3,
-                    bucket=bucket,
-                    key=key,
-                    sql_stmt=expected_sql
-                )
-                patched.assert_called_once_with(**expected_args)
 
 
 @pytest.mark.parametrize(

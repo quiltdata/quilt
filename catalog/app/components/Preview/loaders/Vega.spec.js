@@ -1,5 +1,12 @@
 import { traverseUrls } from './Vega'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    apiGatewayEndpoint: '',
+  })),
+)
+
 describe('components/Preview/loaders/Vega', () => {
   describe('traverseUrls', () => {
     const transformFn = (url) => `A${url}B`

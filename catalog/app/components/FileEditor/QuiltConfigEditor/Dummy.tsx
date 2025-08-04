@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import type { JsonSchema } from 'utils/json-schema'
+import type { JsonSchema } from 'utils/JSONSchema'
 
 export interface ConfigDetailsProps {
   children: (props: {

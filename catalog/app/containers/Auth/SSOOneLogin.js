@@ -47,6 +47,10 @@ export default function SSOOneLogin({ mutex, ...props }) {
           notify(
             'Unable to assign role. Ask your Quilt administrator to set a default role.',
           )
+        } else if (e instanceof errors.SubscriptionInvalid) {
+          notify(
+            'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
+          )
         } else {
           notify('Unable to sign in with OneLogin. Try again later or contact support.')
           sentry('captureException', e)

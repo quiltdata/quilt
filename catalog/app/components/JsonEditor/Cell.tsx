@@ -5,13 +5,19 @@ import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
 import * as JSONPointer from 'utils/JSONPointer'
-import { isSchemaEnum } from 'utils/json-schema'
+import { isSchemaEnum } from 'utils/JSONSchema'
 
 import ContextMenu from './ContextMenu'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { COLUMN_IDS, JsonValue, RowData, EMPTY_VALUE } from './constants'
+import {
+  COLUMN_IDS,
+  EMPTY_VALUE,
+  JSON_POINTER_PLACEHOLDER,
+  JsonValue,
+  RowData,
+} from './constants'
 import { parseJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
@@ -77,10 +83,12 @@ export default function Cell({
   const isKeyCell = column.id === COLUMN_IDS.KEY
   const isValueCell = column.id === COLUMN_IDS.VALUE
 
-  const isEditable = React.useMemo(
-    () => !(isKeyCell && row.original.valueSchema),
-    [isKeyCell, row.original],
-  )
+  const isEditable = React.useMemo(() => {
+    const isPathDefinedInSchema =
+      row.original.valueSchema &&
+      R.last(row.original.address) !== JSON_POINTER_PLACEHOLDER
+    return !(isKeyCell && isPathDefinedInSchema)
+  }, [isKeyCell, row.original])
 
   const isEnumCell = React.useMemo(
     () => isValueCell && isSchemaEnum(row.original.valueSchema),

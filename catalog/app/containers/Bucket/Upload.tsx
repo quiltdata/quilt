@@ -7,7 +7,7 @@ import type * as RF from 'react-final-form'
 import { JsonValue } from 'components/JsonEditor/constants'
 import useDragging from 'utils/dragging'
 import * as IPC from 'utils/electron/ipc-provider'
-import { JsonSchema } from 'utils/json-schema'
+import { JsonSchema } from 'utils/JSONSchema'
 import * as workflows from 'utils/workflows'
 import { getMetaValue, getWorkflowApiParam } from 'containers/Bucket/requests/package'
 
@@ -109,8 +109,8 @@ export function LocalFolderInput({
             disabledInternal // eslint-disable-line no-nested-ternary
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
-              ? 'error'
-              : undefined
+                ? 'error'
+                : undefined
           }
         >
           {title}

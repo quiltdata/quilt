@@ -2,8 +2,8 @@
 # import InvalidInputSelection from "./InvalidInputSelection.graphql"
 # import OperationErrorSelection from "./OperationErrorSelection.graphql"
 
-mutation ($params: PackagePushParams!, $src: PackagePromoteSource!) {
-  packagePromote(params: $params, src: $src) {
+mutation ($params: PackagePushParams!, $src: PackagePromoteSource!, $destPrefix: String) {
+  packagePromote(params: $params, src: $src, destPrefix: $destPrefix) {
     __typename
     ...PackagePushSuccessSelection
     ...InvalidInputSelection

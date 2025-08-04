@@ -25,6 +25,7 @@ export type containers_Search_gql_NextPageObjectsQuery = {
               | 'key'
               | 'version'
               | 'deleted'
+              | 'indexedContent'
             >
           >
         })
@@ -100,6 +101,10 @@ export const containers_Search_gql_NextPageObjectsDocument = {
                             { kind: 'Field', name: { kind: 'Name', value: 'key' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'version' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'deleted' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'indexedContent' },
+                            },
                           ],
                         },
                       },

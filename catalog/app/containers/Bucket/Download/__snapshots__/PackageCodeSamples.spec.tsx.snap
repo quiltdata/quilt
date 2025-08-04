@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/CodeSamples/Package renders catalog property 1`] = `
+<div>
+  <dl
+    data-help="https://docs.quilt.bio/quilt-python-sdk-developers/api-reference/package#package.browse"
+  >
+    <dt>
+      Browse using Quilt3 Python API
+      :
+    </dt>
+    <dd>
+      import quilt3 as q3
+    </dd>
+    <dd>
+      q3.Package.browse("name", top_hash="hash", registry="s3://bucket")
+    </dd>
+  </dl>
+  <dl
+    data-help="https://docs.quilt.bio/quilt-python-sdk-developers/api-reference/package#package.install"
+  >
+    <dt>
+      Install using Quilt3 Python API
+      :
+    </dt>
+    <dd>
+      import quilt3 as q3
+    </dd>
+    <dd>
+      q3.Package.install("name", path="path", top_hash="hash", registry="s3://bucket", dest=".")
+    </dd>
+  </dl>
+  <dl
+    data-help="https://docs.quilt.bio/quilt-python-sdk/api-reference/cli#install"
+  >
+    <dt>
+      Install using Quilt3 CLI
+      :
+    </dt>
+    <dd>
+      quilt3 install "name" --path "path" --top-hash hash --registry s3://bucket --dest .
+    </dd>
+  </dl>
+</div>
+`;

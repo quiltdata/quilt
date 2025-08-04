@@ -1,0 +1,50 @@
+query (
+  $buckets: [String!]
+  $searchString: String
+  $filter: PackagesSearchFilter
+  $latestOnly: Boolean!
+  $path: String!
+  $type: PackageUserMetaFacetType!
+) {
+  searchPackages(
+    buckets: $buckets
+    searchString: $searchString
+    filter: $filter
+    latestOnly: $latestOnly
+  ) {
+    __typename
+    ... on PackagesSearchResultSet {
+      filteredUserMetaFacets(path: $path, type: $type) {
+        __typename
+        ... on IPackageUserMetaFacet {
+          path
+        }
+        ... on NumberPackageUserMetaFacet {
+          numberExtents: extents {
+            min
+            max
+          }
+        }
+        ... on DatetimePackageUserMetaFacet {
+          datetimeExtents: extents {
+            min
+            max
+          }
+        }
+        ... on KeywordPackageUserMetaFacet {
+          extents {
+            values
+          }
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

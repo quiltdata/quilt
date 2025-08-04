@@ -27,7 +27,6 @@ import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
-import * as Download from '../Download'
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import * as Upload from '../Upload'
@@ -74,6 +73,8 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),
     Object.entries,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    R.filter(([path, file]) => file !== FI.EMPTY_DIR_MARKER),
     R.map(([path, file]) => ({
       logical_key: path,
       meta: file.meta?.user_meta || {},
@@ -93,12 +94,11 @@ function createReadmeFile(name: string) {
   return FI.computeHash(f) as FI.LocalFile
 }
 
-// XXX: move to dialogs module
-interface DialogsOpenProps {
-  close: (reason?: string) => void
+interface ConfirmReadmeProps {
+  close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
 }
 
-function ConfirmReadme({ close }: DialogsOpenProps) {
+function ConfirmReadme({ close }: ConfirmReadmeProps) {
   return (
     <>
       <M.DialogTitle>Add a README file?</M.DialogTitle>
@@ -145,6 +145,7 @@ function FormError({ submitting, error }: FormErrorProps) {
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
+    overflowY: 'auto',
   },
   filesWithError: {
     height: `calc(90% - ${t.spacing()}px)`,
@@ -181,6 +182,7 @@ interface PackageCreationFormProps {
   setWorkflow: (workflow: workflows.Workflow) => void
   sourceBuckets: BucketPreferences.SourceBuckets
   workflowsConfig: workflows.WorkflowsConfig
+  currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
   ui?: {
@@ -206,6 +208,7 @@ function PackageCreationForm({
   sourceBuckets,
   validate: validateMetaInput,
   workflowsConfig,
+  currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
   ui = {},
@@ -294,6 +297,7 @@ function PackageCreationForm({
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
+      if (file === FI.EMPTY_DIR_MARKER) return
       if (isS3File(file)) {
         addedS3Entries.push({ path, file })
       } else {
@@ -303,13 +307,13 @@ function PackageCreationForm({
 
     const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]
-      return !e || e.hash !== file.hash.value
+      return !e || !R.equals(e.hash, file.hash.value)
     })
 
     const entries = filesStateToEntries(files)
 
     if (!entries.length) {
-      const reason = await dialogs.open((props: DialogsOpenProps) => (
+      const reason = await dialogs.open<'cancel' | 'empty' | 'readme'>((props) => (
         <ConfirmReadme {...props} />
       ))
       if (reason === 'cancel') return mkFormError(CANCEL)
@@ -333,7 +337,7 @@ function PackageCreationForm({
       uploadedEntries = await uploads.upload({
         files: toUpload,
         bucket: successor.slug,
-        prefix: name,
+        getCanonicalKey: (path) => s3paths.canonicalKey(name, path, cfg.packageRoot),
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {
@@ -384,8 +388,8 @@ function PackageCreationForm({
             workflow.slug === workflows.notAvailable
               ? null
               : workflow.slug === workflows.notSelected
-              ? ''
-              : workflow.slug,
+                ? ''
+                : workflow.slug,
         },
         src: {
           entries: allEntries,
@@ -438,7 +442,6 @@ function PackageCreationForm({
     [nameWarning, nameExistence],
   )
 
-  const [filesDisabled, setFilesDisabled] = React.useState(false)
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
@@ -451,11 +454,9 @@ function PackageCreationForm({
       const hashihgError = delayHashing && FI.validateHashingComplete(files)
       if (hashihgError) return hashihgError
 
-      setFilesDisabled(true)
       const entries = filesStateToEntries(files)
       const errors = await validateEntries(entries)
       setEntriesError(errors || null)
-      setFilesDisabled(false)
       if (errors?.length) {
         return 'schema'
       }
@@ -465,9 +466,6 @@ function PackageCreationForm({
 
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
-
-  // TODO: move useLocalFolder to its own component shared by Download and Upload
-  const [defaultLocalFolder] = Download.useLocalFolder()
 
   return (
     <RF.Form
@@ -495,6 +493,7 @@ function PackageCreationForm({
             {ui.title || 'Create package'} in{' '}
             <Successors.Dropdown
               bucket={bucket || ''}
+              currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
               successor={successor}
               onChange={onSuccessor}
             />{' '}
@@ -526,7 +525,6 @@ function PackageCreationForm({
                 <Layout.LeftColumn>
                   <RF.Field
                     component={PD.WorkflowInput}
-                    bucket={bucket}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
@@ -586,53 +584,36 @@ function PackageCreationForm({
                 </Layout.LeftColumn>
 
                 <Layout.RightColumn>
-                  {cfg.desktop ? (
-                    <RF.Field
-                      className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
-                      })}
-                      component={Upload.LocalFolderInput}
-                      initialValue={defaultLocalFolder}
-                      name="localFolder"
-                      title="Local directory"
-                      errors={{
-                        required: 'Add directory to create a package',
-                      }}
-                      validate={validators.required as FF.FieldValidator<string>}
-                    />
-                  ) : (
-                    <RF.Field
-                      className={cx(classes.files, {
-                        [classes.filesWithError]: !!entriesError,
-                      })}
-                      // @ts-expect-error
-                      component={FI.FilesInput}
-                      name="files"
-                      validate={validateFiles as FF.FieldValidator<$TSFixMe>}
-                      validateFields={['files']}
-                      errors={{
-                        schema: 'Files should match schema',
-                        [FI.HASHING]: 'Please wait while we hash the files',
-                        [FI.HASHING_ERROR]:
-                          'Error hashing files, probably some of them are too large. Please try again or contact support.',
-                      }}
-                      totalProgress={uploads.progress}
-                      title="Files"
-                      onFilesAction={onFilesAction}
-                      isEqual={R.equals}
-                      initialValue={initialFiles}
-                      bucket={selectedBucket}
-                      buckets={sourceBuckets.list}
-                      selectBucket={selectBucket}
-                      delayHashing={delayHashing}
-                      disableStateDisplay={disableStateDisplay}
-                      ui={{ reset: ui.resetFiles }}
-                      validationErrors={
-                        submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
-                      }
-                      disabled={filesDisabled}
-                    />
-                  )}
+                  <RF.Field
+                    className={cx(classes.files, {
+                      [classes.filesWithError]: submitFailed && !!entriesError,
+                    })}
+                    // @ts-expect-error
+                    component={FI.FilesInput}
+                    name="files"
+                    validate={validateFiles as FF.FieldValidator<$TSFixMe>}
+                    validateFields={['files']}
+                    errors={{
+                      schema: 'Files should match schema',
+                      [FI.HASHING]: 'Please wait while we hash the files',
+                      [FI.HASHING_ERROR]:
+                        'Error hashing files, probably some of them are too large. Please try again or contact support.',
+                    }}
+                    totalProgress={uploads.progress}
+                    title="Files"
+                    onFilesAction={onFilesAction}
+                    isEqual={R.equals}
+                    initialValue={initialFiles}
+                    bucket={selectedBucket}
+                    buckets={sourceBuckets.list}
+                    selectBucket={selectBucket}
+                    delayHashing={delayHashing}
+                    disableStateDisplay={disableStateDisplay}
+                    ui={{ reset: ui.resetFiles }}
+                    validationErrors={
+                      submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
+                    }
+                  />
 
                   <JsonValidationErrors
                     className={classes.filesError}
@@ -742,6 +723,7 @@ export function usePackageCreationDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
+  const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()
@@ -750,7 +732,7 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  const prefs = BucketPreferences.use()
+  const { prefs } = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,
@@ -803,7 +785,7 @@ export function usePackageCreationDialog({
     async (initial?: {
       successor?: workflows.Successor
       path?: string
-      selection?: Selection.PrefixedKeysMap
+      selection?: Selection.ListingSelection
     }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)
@@ -884,7 +866,6 @@ export function usePackageCreationDialog({
           ),
           Error: (e) => (
             <DialogError
-              bucket={bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}
@@ -914,6 +895,7 @@ export function usePackageCreationDialog({
                       name: src?.name,
                       ...manifest,
                     },
+                    currentBucketCanBeSuccessor,
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,

@@ -9,7 +9,7 @@ import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
-import * as requests from '../requests'
+import * as Model from './model'
 
 function Empty() {
   return (
@@ -63,9 +63,9 @@ const useResultsStyles = M.makeStyles((t) => ({
 
 interface ResultsProps {
   className?: string
-  columns: requests.athena.QueryResultsColumns
+  columns: Model.QueryResultsColumns
   onLoadMore?: () => void
-  rows: requests.athena.QueryResultsRows
+  rows: Model.QueryResultsRows
 }
 
 export default function Results({ className, columns, onLoadMore, rows }: ResultsProps) {

@@ -1,29 +1,23 @@
-query ($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter) {
-  searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
+query (
+  $buckets: [String!]
+  $searchString: String
+  $filter: PackagesSearchFilter
+  $latestOnly: Boolean!
+) {
+  searchPackages(
+    buckets: $buckets
+    searchString: $searchString
+    filter: $filter
+    latestOnly: $latestOnly
+  ) {
     __typename
     ... on PackagesSearchResultSet {
       stats {
+        userMetaTruncated
         userMeta {
           __typename
           ... on IPackageUserMetaFacet {
             path
-          }
-          ... on NumberPackageUserMetaFacet {
-            numberExtents: extents {
-              min
-              max
-            }
-          }
-          ... on DatetimePackageUserMetaFacet {
-            datetimeExtents: extents {
-              min
-              max
-            }
-          }
-          ... on KeywordPackageUserMetaFacet {
-            extents {
-              values
-            }
           }
         }
       }

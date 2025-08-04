@@ -6,6 +6,7 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { getPartSize, MIN_PART_SIZE } from 'utils/checksums'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
@@ -67,12 +68,12 @@ export function useUploads() {
     async ({
       files,
       bucket,
-      prefix,
+      getCanonicalKey,
       getMeta,
     }: {
       files: { path: string; file: LocalFile }[]
       bucket: string
-      prefix: string
+      getCanonicalKey: (path: string) => string
       getMeta?: (path: string) => Model.EntryMeta | undefined
     }) => {
       const limit = pLimit(2)
@@ -85,11 +86,16 @@ export function useUploads() {
           return undefined as never
         }
 
-        const upload: S3.ManagedUpload = s3.upload({
-          Bucket: bucket,
-          Key: `${prefix}/${path}`,
-          Body: file,
-        })
+        const upload: S3.ManagedUpload = s3.upload(
+          {
+            Bucket: bucket,
+            Key: getCanonicalKey(path),
+            Body: file,
+          },
+          {
+            partSize: getPartSize(file.size) || MIN_PART_SIZE,
+          },
+        )
 
         upload.on('httpUploadProgress', ({ loaded }) => {
           if (rejected) return

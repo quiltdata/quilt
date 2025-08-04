@@ -1,0 +1,27 @@
+fragment AccessCountsSelection on AccessCounts {
+  total
+  counts {
+    date
+    value
+  }
+}
+
+query ($bucket: String!, $window: Int!) {
+  bucketAccessCounts(bucket: $bucket, window: $window) {
+    byExt {
+      ext
+      counts {
+        ...AccessCountsSelection
+      }
+    }
+    byExtCollapsed: byExt(groups: 10) {
+      ext
+      counts {
+        ...AccessCountsSelection
+      }
+    }
+    combined {
+      ...AccessCountsSelection
+    }
+  }
+}

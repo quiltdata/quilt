@@ -35,6 +35,11 @@ from PIL import Image
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
+# See https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open.
+# Use 0 to disable the limit.
+if _MAX_IMAGE_PIXELS := os.environ.get("MAX_IMAGE_PIXELS"):
+    Image.MAX_IMAGE_PIXELS = int(_MAX_IMAGE_PIXELS) or None
+
 # Eventually we'll want to precompute/cache thumbnails, so we won't be able to support
 # arbitrary sizes. Might as well copy Dropbox' API:
 # https://www.dropbox.com/developers/documentation/http/documentation#files-get_thumbnail

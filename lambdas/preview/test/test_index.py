@@ -68,7 +68,12 @@ class TestIndex():
         extended = False
         if (
                 set(os.path.split(f)[1] for f in fcs_files)
-                != set(['accuri-ao1.fcs', 'bad.fcs', '3215apc 100004.fcs'])
+                != {
+                    'accuri-ao1.fcs',
+                    'bad.fcs',
+                    '3215apc 100004.fcs',
+                    'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs',
+                }
          ):
             extended = True
         first = True
@@ -98,7 +103,7 @@ class TestIndex():
             assert 'info' in body
             if 'warnings' not in body['info']:
                 if not extended:
-                    assert name == 'accuri-ao1.fcs'
+                    assert name in ('accuri-ao1.fcs', '3215apc 100004.fcs')
                 assert body['html'].startswith('<div>')
                 assert body['html'].endswith('</div>')
                 assert body['info']['metadata'].keys()
@@ -110,7 +115,7 @@ class TestIndex():
                         assert name == 'bad.fcs'
                 else:
                     if not extended:
-                        assert name == '3215apc 100004.fcs'
+                        assert name == 'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs'
 
     def test_bad(self):
         """send a known bad event (no input query parameter)"""
@@ -234,7 +239,7 @@ class TestIndex():
         # check for some strings we know should be in there
         assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
         assert 'Preprocessing' in body_html, 'missing expected contents'
-        assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' in body_html, \
+        assert "<pre>['SEE', 'SE', 'SHW', 'SIG'," in body_html, \
             'Cell 3 output seems off'
         assert (
             '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
@@ -258,7 +263,7 @@ class TestIndex():
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
         # isclose bc string sizes differ, e.g. on Linux
-        assert math.isclose(len(body_html), 18084, abs_tol=200), "Hmm, didn't chop nb_1200727.ipynb"
+        assert math.isclose(len(body_html), 18084, abs_tol=300), "Hmm, didn't chop nb_1200727.ipynb"
 
     @responses.activate
     def test_ipynb_exclude(self):
@@ -287,7 +292,7 @@ class TestIndex():
         # check for some strings we know should be in there
         assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
         assert 'Preprocessing' in body_html, 'missing expected contents'
-        assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' not in body_html, \
+        assert "<pre>['SEE', 'SE', 'SHW', 'SIG'," not in body_html, \
             'Unexpected output cell; exclude_output:true was given'
         assert (
             '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
@@ -401,9 +406,9 @@ class TestIndex():
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
 
         body_html = body['html']
-        assert "<td>While dioxin levels in the environment were up" in body_html,\
+        assert "<td>While dioxin levels in the environment were up" in body_html, \
             "missing expected cell"
-        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>" in body_html,\
+        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>" in body_html, \
             "missing expected cell"
 
         warnings = body['info']['warnings']

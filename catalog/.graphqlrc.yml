@@ -1,5 +1,4 @@
 schema: '../shared/graphql/schema.graphql'
-documents: './app/**/*.{graphql,js,ts,tsx}'
 extensions:
   codegen:
     hooks:

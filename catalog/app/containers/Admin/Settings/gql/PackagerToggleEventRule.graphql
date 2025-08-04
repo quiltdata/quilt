@@ -1,0 +1,22 @@
+mutation ($name: String!, $enabled: Boolean!) {
+  admin {
+    packager {
+      toggleEventRule(name: $name, enabled: $enabled) {
+        __typename
+        ... on InvalidInput {
+          errors {
+            path
+            message
+          }
+        }
+        ... on OperationError {
+          message
+        }
+        ... on PackagerEventRule {
+          name
+          enabled
+        }
+      }
+    }
+  }
+}

@@ -54,20 +54,21 @@ currently supported.
 
 ## Advanced: HTML rendering and Quilt Package File Server
 
-The Quilt Catalog supports HTML and JavaScript in preview via iframes. By default,
-preview iframes do not have IAM permissions and are therefore unable to access
-private files in S3.
+The Quilt Catalog supports HTML and JavaScript in preview via iframes. By
+default, preview iframes do not have IAM permissions and are therefore unable to
+access private files in S3.
 
 If you wish for your HTML to access data within the enclosing package or bucket
-(at the viewer's level of permissions) and/or use origin-aware Web APIs
-such as data storage/cookies, you must opt in to
-`Enable permissive HTML rendering` in [Bucket settings](Admin.md#buckets).
+(at the viewer's level of permissions) and/or use origin-aware Web APIs such as
+data storage/cookies, you must opt in to `Enable permissive HTML rendering` in
+[Bucket settings](Admin.md#buckets). This explicitly allows cross-origin resource
+sharing (CORS).
 
 > You should _only enable this feature for buckets where you implicitly
 > trust_ the contents of the HTML files.
 
-Depending on the context where the HTML file is rendered (package vs bucket view),
-the iframe gets the following origin:
+Depending on the context where the HTML file is rendered (package vs bucket
+view), the iframe gets the following origin:
 
 * Inside a package view with permissive rendering **enabled**:
   the origin is the **Quilt Package File Server**.
@@ -75,14 +76,20 @@ the iframe gets the following origin:
 * Inside a bucket view with permissive rendering **enabled**:
   the origin is the AWS S3 bucket endpoint.
 
-* With permissive rendering **disabled** (irrespective of package or bucket view):
-  the resource is treated as being from a special origin that always fails the
-  same-origin policy
-  ([`allow-same-origin` iframe sandbox token](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#sandbox)
+* With permissive rendering **disabled** (irrespective of package or bucket
+  view): the resource is treated as being from a special origin that always
+  fails the same-origin policy ([`allow-same-origin` iframe sandbox
+  token](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#sandbox)
   is not set).
 
 > An important implication of same-origin policy is that the scripts
 > executed under the same origin share LocalStorage data and cookies.
+
+### Allowing Forms and Popups
+
+> New in Quilt Platform version 1.59.0 or higher
+
+Enabling Permissive HTML now allows forms and popups to work from iframes.
 
 ### Package view example with permissive rendering enabled
 

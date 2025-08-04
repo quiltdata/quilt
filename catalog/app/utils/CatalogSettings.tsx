@@ -30,7 +30,7 @@ export interface CatalogSettings {
 }
 
 async function fetchSettings({ s3 }: { s3: S3 }) {
-  if (cfg.mode === 'MARKETING' || cfg.mode === 'LOCAL') return null
+  if (cfg.mode === 'LOCAL') return null
 
   const location = `s3://${cfg.serviceBucket}/${CONFIG_KEY}`
   try {

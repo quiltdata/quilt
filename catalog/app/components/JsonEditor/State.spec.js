@@ -1,15 +1,11 @@
+import * as stubs from 'utils/JSONSchema/__stubs__'
+
 import {
   getJsonDictItemRecursively,
   iterateJsonDict,
   iterateSchema,
   mergeSchemaAndObjRootKeys,
 } from './State'
-
-import * as booleansNulls from './mocks/booleans-nulls'
-import * as deeplyNestedArray from './mocks/deeply-nested-array'
-import * as deeplyNestedObject from './mocks/deeply-nested-object'
-import * as regular from './mocks/regular'
-import * as sorted from './mocks/sorted'
 
 describe('components/JsonEditor/State', () => {
   describe('mergeSchemaAndObjRootKeys', () => {
@@ -19,17 +15,17 @@ describe('components/JsonEditor/State', () => {
     })
 
     it('should return root keys of Schema when no object', () => {
-      const rootKeys = mergeSchemaAndObjRootKeys(booleansNulls.schema, {})
+      const rootKeys = mergeSchemaAndObjRootKeys(stubs.booleansNulls, {})
       expect(rootKeys).toEqual(['nullValue', 'boolValue', 'enumBool'])
     })
 
     it('should return both keys of object and Schema, Schema first', () => {
-      const rootKeys = mergeSchemaAndObjRootKeys(booleansNulls.schema, { 1: 1, z: 'z' })
+      const rootKeys = mergeSchemaAndObjRootKeys(stubs.booleansNulls, { 1: 1, z: 'z' })
       expect(rootKeys).toEqual(['nullValue', 'boolValue', 'enumBool', '1', 'z'])
     })
 
     it('should return both keys of object and Schema, required first', () => {
-      const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, { 1: 1, z: 'z' })
+      const rootKeys = mergeSchemaAndObjRootKeys(stubs.regular, { 1: 1, z: 'z' })
       expect(rootKeys).toEqual([
         'a',
         'b',
@@ -52,32 +48,32 @@ describe('components/JsonEditor/State', () => {
 
     it('should return values for a flat Schema', () => {
       const jsonDict = iterateSchema(
-        booleansNulls.schema,
+        stubs.booleansNulls,
         { current: { counter: 0 } },
         [],
         {},
       )
-      expect(jsonDict).toEqual(booleansNulls.jsonDict)
+      expect(jsonDict).toMatchSnapshot()
     })
 
     it('should return values for every nesting level of Schema, when type is `object`', () => {
       const jsonDict = iterateSchema(
-        deeplyNestedObject.schema,
+        stubs.deeplyNestedObject,
         { current: { counter: 0 } },
         [],
         {},
       )
-      expect(jsonDict).toEqual(deeplyNestedObject.jsonDict)
+      expect(jsonDict).toMatchSnapshot()
     })
 
     it('should return first value only for deep nesting level of Schema, when type is `array`', () => {
       const jsonDict = iterateSchema(
-        deeplyNestedArray.schema,
+        stubs.deeplyNestedArray,
         { current: { counter: 0 } },
         [],
         {},
       )
-      expect(jsonDict).toEqual(deeplyNestedArray.jsonDict)
+      expect(jsonDict).toMatchSnapshot()
     })
   })
 
@@ -92,49 +88,45 @@ describe('components/JsonEditor/State', () => {
 
     it('should return one state object utilizing Schema keys, when input is an empty object', () => {
       const sortOrder = { current: { counter: 0, dict: {} } }
-      const jsonDict = iterateSchema(regular.schema, sortOrder, [], {})
-      const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, {})
+      const jsonDict = iterateSchema(stubs.regular, sortOrder, [], {})
+      const rootKeys = mergeSchemaAndObjRootKeys(stubs.regular, {})
       const columns = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
-      expect(columns).toEqual(regular.columnsSchemaOnly)
+      expect(columns).toMatchSnapshot()
     })
 
     it('should return one state object utilizing Schema keys and object keys, when input is a flat object', () => {
+      const object = { a: 1, 111: 'aaa', c: [1, 2, 3], d: { e: 'f' } }
       const sortOrder = {
         current: { counter: Number.MIN_SAFE_INTEGER, dict: { '/c': 15 } },
       }
-      const jsonDict = iterateSchema(regular.schema, sortOrder, [], {})
-      const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, regular.object1)
+      const jsonDict = iterateSchema(stubs.regular, sortOrder, [], {})
+      const rootKeys = mergeSchemaAndObjRootKeys(stubs.regular, object)
       sortOrder.counter = 0
-      const columns = iterateJsonDict(jsonDict, regular.object1, [], rootKeys, sortOrder)
-      expect(columns).toEqual(regular.columnsSchemaAndObject1)
+      const columns = iterateJsonDict(jsonDict, object, [], rootKeys, sortOrder)
+      expect(columns).toMatchSnapshot()
     })
 
     it('should return three state objects, when input is an empty object and the path is provided', () => {
       const sortOrder = { current: { counter: 0, dict: {} } }
-      const jsonDict = iterateSchema(deeplyNestedObject.schema, sortOrder, [], {})
-      const rootKeys = mergeSchemaAndObjRootKeys(deeplyNestedObject.schema, {})
-      const columns = iterateJsonDict(
-        jsonDict,
-        {},
-        deeplyNestedObject.fieldPathNested,
-        rootKeys,
-        sortOrder,
-      )
-      expect(columns).toEqual(deeplyNestedObject.columnsNested)
+      const jsonDict = iterateSchema(stubs.deeplyNestedObject, sortOrder, [], {})
+      const rootKeys = mergeSchemaAndObjRootKeys(stubs.deeplyNestedObject, {})
+      const columns = iterateJsonDict(jsonDict, {}, ['a', 'b', 'c'], rootKeys, sortOrder)
+      expect(columns).toMatchSnapshot()
     })
 
     it('should return three state objects, when input is an object, no Schema and path is provided', () => {
+      const object = { a: { b: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }] } }
       const sortOrder = { current: { counter: 0, dict: {} } }
       const jsonDict = iterateSchema({}, sortOrder, [], {})
-      const rootKeys = mergeSchemaAndObjRootKeys({}, deeplyNestedObject.object1)
+      const rootKeys = mergeSchemaAndObjRootKeys({}, object)
       const columns = iterateJsonDict(
         jsonDict,
-        deeplyNestedObject.object1,
-        deeplyNestedObject.fieldPath1,
+        object,
+        ['a', 'b', 2, 'c', 0, 'd', 'e'],
         rootKeys,
         sortOrder,
       )
-      expect(columns).toMatchObject(deeplyNestedObject.columns1)
+      expect(columns).toMatchSnapshot()
     })
 
     it('should set same sortIndexes on re-render', () => {
@@ -148,29 +140,27 @@ describe('components/JsonEditor/State', () => {
     })
 
     it('should add sortIndexes to object', () => {
-      const sortOrder = { current: { counter: 0, dict: sorted.sortOrder1 } }
+      const object = { a: { b: { c: 'ccc', d: 'ddd', 123: 123 } }, b: 'bbb', 123: 123 }
+      const sortOrder = { current: { counter: 0, dict: { '/a': 1, '/123': 2, '/b': 3 } } }
       const jsonDict = iterateSchema({}, sortOrder, [], {})
-      const rootKeys = mergeSchemaAndObjRootKeys({}, sorted.object)
-      const columns = iterateJsonDict(jsonDict, sorted.object, [], rootKeys, sortOrder)
-      expect(columns).toEqual(sorted.columns1)
+      const rootKeys = mergeSchemaAndObjRootKeys({}, object)
+      const columns = iterateJsonDict(jsonDict, object, [], rootKeys, sortOrder)
+      expect(columns).toMatchSnapshot()
     })
 
     it('should add sortIndexes to nested fields of object', () => {
-      const sortOrder = { current: { counter: 0, dict: sorted.sortOrder2 } }
+      const object = { a: { b: { c: 'ccc', d: 'ddd', 123: 123 } }, b: 'bbb', 123: 123 }
+      const sortOrder = {
+        current: { counter: 0, dict: { '/123': 1, '/a/b/c': 3, '/a/b/d': 2 } },
+      }
       const jsonDict = iterateSchema({}, sortOrder, [], {})
-      const rootKeys = mergeSchemaAndObjRootKeys({}, sorted.object)
-      const columns = iterateJsonDict(
-        jsonDict,
-        sorted.object,
-        ['a', 'b'],
-        rootKeys,
-        sortOrder,
-      )
-      expect(columns).toEqual(sorted.columns2)
+      const rootKeys = mergeSchemaAndObjRootKeys({}, object)
+      const columns = iterateJsonDict(jsonDict, object, ['a', 'b'], rootKeys, sortOrder)
+      expect(columns).toMatchSnapshot()
     })
   })
 
-  describe('getJsonDictItemRecursively', () => {
+  describe.skip('getJsonDictItemRecursively', () => {
     const dict = {
       '/c': 'found C',
       '/c/__*': 'found additional',

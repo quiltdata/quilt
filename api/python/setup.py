@@ -15,7 +15,7 @@ revision history) so that teams can experiment faster in machine learning,
 biotech, and other data-driven domains.
 
 The `quilt3` PyPI package allows you to build, push, and install data packages.
-Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
+Visit the `documentation quickstart <https://docs.quilt.bio/quickstart>`_
 to learn more.
 """
 
@@ -40,16 +40,16 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
-    python_requires='>=3.7',
+    python_requires='>=3.9',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
@@ -58,16 +58,15 @@ setup(
     keywords='',
     install_requires=[
         'platformdirs>=2',
-        'aws-requests-auth>=0.4.2',
-        'boto3>=1.10.0',
+        'boto3>=1.21.7',
         'jsonlines==1.2.0',
         'PyYAML>=5.1',
         'requests>=2.12.4',
-        'tenacity>=5.1.1',
+        'tenacity>=5.1.1,!=8.4.0',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
-        'importlib_metadata; python_version < "3.8"',
+        "pydantic>=2.0.0,<3.0.0",
     ],
     extras_require={
         'pyarrow': [
@@ -88,7 +87,7 @@ setup(
             'git-pylint-commit-hook',
         ],
         'catalog': [
-            'quilt3_local>=1,<2',
+            'quilt3_local>=2,<3',
             'uvicorn>=0.15,<0.18',
             # Workaround to reduce backtracking during `pip install quilt3[catalog]`.
             'aiobotocore[boto3]>=2',

@@ -1,4 +1,4 @@
-export * as athena from './athena'
+export type * as athena from '../Athena/model/requests'
 
 export * from './queriesConfig'
 

@@ -84,6 +84,7 @@ export default function Stats({ latest, stats, statsWindow }: StatsProps) {
             ...titleTextProps,
           },
           color: CHART_COLORS,
+          // @ts-expect-error
           series: [
             {
               type: 'pie',
@@ -96,13 +97,11 @@ export default function Stats({ latest, stats, statsWindow }: StatsProps) {
                 rich: {
                   main: {
                     fontSize: t.typography.subtitle1.fontSize,
-                    // @ts-expect-error
                     fontWeight: t.typography.subtitle1.fontWeight,
                     lineHeight: 24,
                   },
                   sub: {
                     fontSize: t.typography.subtitle2.fontSize,
-                    // @ts-expect-error
                     fontWeight: t.typography.subtitle2.fontWeight,
                     lineHeight: 16,
                   },

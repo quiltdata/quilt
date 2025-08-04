@@ -11,12 +11,12 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "docker"
-    directory: "/lambdas/thumbnail"
+    directory: "/lambdas/indexer"
     schedule:
       interval: "daily"
 
   - package-ecosystem: "docker"
-    directory: "/lambdas/molecule"
+    directory: "/lambdas/thumbnail"
     schedule:
       interval: "daily"
 

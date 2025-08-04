@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
@@ -220,9 +221,10 @@ interface RowActionsProps {
   to: string
   archived?: boolean
   physicalKey?: string
+  prefs: BucketPreferences.ActionPreferences
 }
 
-export function RowActions({ archived, physicalKey, to }: RowActionsProps) {
+export function RowActions({ archived, physicalKey, to, prefs }: RowActionsProps) {
   const classes = useRowActionsStyles()
   const { location, handle, revision, path } = useMatchedParams(to)
 
@@ -235,14 +237,16 @@ export function RowActions({ archived, physicalKey, to }: RowActionsProps) {
         <div className={classes.wrapper}>
           <div className={classes.container}>
             <Bookmark className={classes.item} location={location} />
-            <DownloadButton className={classes.item} location={location} />
+            {prefs.downloadObject && (
+              <DownloadButton className={classes.item} location={location} />
+            )}
           </div>
         </div>
       </div>
     )
   }
 
-  if (handle) {
+  if (handle && prefs.downloadPackage) {
     return (
       <div className={classes.root}>
         <div className={classes.wrapper}>

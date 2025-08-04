@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 import JsonEditor from 'components/JsonEditor'
 import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
 import JsonValidationErrors from 'components/JsonValidationErrors'
-import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import { JsonSchema, makeSchemaValidator } from 'utils/JSONSchema'
 
 import 'brace/mode/json'
 import 'brace/theme/eclipse'

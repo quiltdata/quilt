@@ -70,10 +70,10 @@ export default function UriResolver() {
     <Layout
       pre={
         <M.Container className={classes.container}>
-          <MetaTitle>Resolve a Quilt package URI</MetaTitle>
+          <MetaTitle>Resolve a Quilt+ URI</MetaTitle>
 
           <M.Typography variant="h4" align="center">
-            Resolve a Quilt package URI
+            Resolve a Quilt+ URI
           </M.Typography>
 
           <form className={classes.form} onSubmit={handleSubmit}>

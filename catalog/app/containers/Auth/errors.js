@@ -132,3 +132,11 @@ export class SSOError extends AuthError {
     )
   }
 }
+
+export class SubscriptionInvalid extends AuthError {
+  static displayName = 'SubscriptionInvalid'
+
+  constructor(props) {
+    super(withDefaultMessage('Subscription invalid', props))
+  }
+}

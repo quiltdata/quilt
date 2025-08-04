@@ -1,0 +1,13 @@
+# import UserResultSelection from "./UserResultSelection.graphql"
+
+mutation ($name: String!, $active: Boolean!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        setActive(active: $active) {
+          ...UserResultSelection
+        }
+      }
+    }
+  }
+}

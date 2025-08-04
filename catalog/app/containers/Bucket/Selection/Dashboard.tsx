@@ -1,17 +1,22 @@
 import { basename } from 'path'
 
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
+import type { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
-import { EMPTY_MAP, PrefixedKeysMap, toHandlesMap } from './utils'
+import * as FileView from '../FileView'
+
+import { useSelection } from './Provider'
+import { toHandlesMap, toHandlesList } from './utils'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
@@ -26,6 +31,41 @@ function EmptyState() {
       Nothing selected
     </M.Typography>
   )
+}
+
+interface FileLinkProps {
+  className: string
+  handle: Model.S3.S3ObjectLocation
+  packageHandle?: PackageHandle
+}
+
+function FileLink({ className, handle, packageHandle }: FileLinkProps) {
+  const { urls } = NamedRoutes.use()
+
+  if (!packageHandle) {
+    const to = s3paths.isDir(handle.key)
+      ? urls.bucketDir(handle.bucket, handle.key)
+      : urls.bucketFile(handle.bucket, handle.key)
+    const children = decodeURIComponent(s3paths.handleToS3Url(handle))
+    return <StyledLink {...{ children, className, to }} />
+  }
+
+  const to = urls.bucketPackageTree(
+    packageHandle.bucket,
+    packageHandle.name,
+    packageHandle.hash,
+    handle.key,
+  )
+  const packageUri = PackageUri.stringify({
+    ...packageHandle,
+    path: handle.key,
+    catalog: window.location.hostname,
+  })
+  const children = decodeURIComponent(
+    packageUri.slice(0, packageUri.indexOf('@') + 10) +
+      packageUri.slice(packageUri.indexOf('&path')),
+  )
+  return <StyledLink {...{ children, className, to }} />
 }
 
 const useListItemStyles = M.makeStyles((t) => ({
@@ -49,45 +89,48 @@ const useListItemStyles = M.makeStyles((t) => ({
   icon: {
     minWidth: t.spacing(5),
   },
+  action: {
+    right: 0, // https://github.com/mui/material-ui/issues/21722
+  },
 }))
 
 interface ListItemProps {
+  packageHandle?: PackageHandle
+  bookmarks?: ReturnType<typeof Bookmarks.use>
   handle: Model.S3.S3ObjectLocation
   className: string
   onClear: () => void
 }
 
-function ListItem({ className, handle, onClear }: ListItemProps) {
+function ListItem({
+  bookmarks,
+  className,
+  handle,
+  onClear,
+  packageHandle,
+}: ListItemProps) {
   const classes = useListItemStyles()
   const isDir = s3paths.isDir(handle.key)
-  const { urls } = NamedRoutes.use()
-  const url = isDir
-    ? urls.bucketDir(handle.bucket, handle.key)
-    : urls.bucketFile(handle.bucket, handle.key)
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
-
-  const bookmarks = Bookmarks.use()
   const isBookmarked = bookmarks?.isBookmarked('main', handle)
   const toggleBookmark = () => bookmarks?.toggle('main', handle)
   return (
     <M.ListItem className={cx(classes.root, className)} disableGutters>
-      <M.ListItemIcon className={classes.icon}>
-        {bookmarks && (
+      {bookmarks && (
+        <M.ListItemIcon className={classes.icon}>
           <M.IconButton size="small" onClick={toggleBookmark}>
             <M.Icon fontSize="small">
               {isBookmarked ? 'turned_in' : 'turned_in_not'}
             </M.Icon>
           </M.IconButton>
-        )}
-      </M.ListItemIcon>
+        </M.ListItemIcon>
+      )}
       <M.ListItemIcon className={classes.icon}>
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
       </M.ListItemIcon>
       <span className={classes.name}>{name}</span>
-      <StyledLink className={classes.link} to={url}>
-        {decodeURIComponent(s3paths.handleToS3Url(handle))}
-      </StyledLink>
-      <M.ListItemSecondaryAction>
+      <FileLink className={classes.link} packageHandle={packageHandle} handle={handle} />
+      <M.ListItemSecondaryAction className={classes.action}>
         <M.IconButton size="small" onClick={onClear}>
           <M.Icon fontSize="small">clear</M.Icon>
         </M.IconButton>
@@ -100,10 +143,16 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
   },
+  buttons: {
+    display: 'flex',
+  },
   button: {
     '& + &': {
       marginLeft: t.spacing(1),
     },
+  },
+  divider: {
+    marginTop: t.spacing(2),
   },
   list: {
     background: t.palette.background.paper,
@@ -125,17 +174,35 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface DashboardProps {
-  onDone: () => void
-  onSelection: (changed: PrefixedKeysMap) => void
-  selection: PrefixedKeysMap
+  onClose: () => void
+  packageHandle?: PackageHandle
 }
 
-export default function Dashboard({ onDone, onSelection, selection }: DashboardProps) {
+export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
   const classes = useStyles()
-  const lists = React.useMemo(() => toHandlesMap(selection), [selection])
-  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
 
-  const bookmarks = Bookmarks.use()
+  const slt = useSelection()
+  const lists = React.useMemo(() => toHandlesMap(slt.selection), [slt.selection])
+  const handleClear = React.useCallback(() => {
+    slt.clear()
+    onClose()
+  }, [slt, onClose])
+
+  const handleRemove = React.useCallback(
+    (prefixUrl: string, index: number) => {
+      const { isEmpty } = slt.remove(prefixUrl, index)
+      if (isEmpty) {
+        onClose()
+      }
+    },
+    [onClose, slt],
+  )
+
+  const bookmarksCtx = Bookmarks.use()
+  const bookmarks = React.useMemo(
+    () => (!packageHandle ? bookmarksCtx : null),
+    [packageHandle, bookmarksCtx],
+  )
   const hasSomethingToBookmark = React.useMemo(
     () =>
       bookmarks &&
@@ -154,30 +221,14 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
     }
   }, [hasSomethingToBookmark, lists, bookmarks])
 
-  const handleClear = React.useCallback(() => {
-    onSelection(EMPTY_MAP)
-    onDone()
-  }, [onSelection, onDone])
-
-  const handleRemove = React.useCallback(
-    (prefixUrl: string, index: number) => {
-      const newSelection = R.dissocPath<PrefixedKeysMap>([prefixUrl, index], selection)
-      onSelection(newSelection)
-      if (!Object.values(newSelection).some((ids) => !!ids.length)) {
-        onDone()
-      }
-    },
-    [onDone, onSelection, selection],
-  )
-
   return (
     <div className={classes.root}>
-      <>
+      <div className={classes.buttons}>
         {bookmarks && (
           <M.Button
             className={classes.button}
             color="primary"
-            disabled={!hasSelection}
+            disabled={slt.isEmpty}
             onClick={handleBookmarks}
             size="small"
             variant="outlined"
@@ -185,19 +236,28 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
             {hasSomethingToBookmark ? 'Add to bookmarks' : 'Remove from bookmarks'}
           </M.Button>
         )}
+        {!!packageHandle && (
+          <FileView.ZipDownloadForm
+            suffix={`package/${packageHandle.bucket}/${packageHandle.name}/${packageHandle.hash}`}
+            className={classes.button}
+            files={toHandlesList(slt.selection).map(({ key }) => key)}
+          >
+            <Buttons.Iconized label="Download selected" icon="archive" type="submit" />
+          </FileView.ZipDownloadForm>
+        )}
         <M.Button
           className={classes.button}
           color="primary"
-          disabled={!hasSelection}
+          disabled={slt.isEmpty}
           onClick={handleClear}
           size="small"
           variant="outlined"
         >
           Clear selection
         </M.Button>
-        <M.Divider style={{ marginTop: '16px' }} />
-      </>
-      {hasSelection ? (
+      </div>
+      <M.Divider className={classes.divider} />
+      {!slt.isEmpty ? (
         <M.List dense disablePadding className={classes.list}>
           {Object.entries(lists).map(([prefixUrl, handles]) =>
             handles.length ? (
@@ -208,9 +268,11 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
                     {handles.map((handle, index) => (
                       <ListItem
                         key={handle.key}
+                        bookmarks={bookmarks}
                         className={classes.item}
                         handle={handle}
                         onClear={() => handleRemove(prefixUrl, index)}
+                        packageHandle={packageHandle}
                       />
                     ))}
                   </M.List>
