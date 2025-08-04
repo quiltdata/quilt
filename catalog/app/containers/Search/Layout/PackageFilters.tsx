@@ -222,40 +222,46 @@ interface PackageMetaFilterProps {
   path: string
 }
 
+type UserMetaState = SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
+
 function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
-  const predicateState = model.state.userMetaFilters.filters.get(path)
-  invariant(predicateState, 'Filter not active')
+  const initialValue = model.state.userMetaFilters.filters.get(path)
+  invariant(initialValue, 'Filter not active')
+
+  const { fetching, extents } = SearchUIModel.usePackageUserMetaFacetExtents(path)
 
   const { deactivatePackagesMetaFilter, setPackagesMetaFilter } = model.actions
+
+  const [value, setValue] = React.useState<UserMetaState>(initialValue)
+  const [error, setError] = React.useState<Error | null>(null)
 
   const deactivate = React.useCallback(() => {
     deactivatePackagesMetaFilter(path)
   }, [deactivatePackagesMetaFilter, path])
 
-  const change = React.useCallback(
-    (
-      state: FiltersUI.Value<SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>>,
-    ) => {
-      if (state instanceof Error) {
-        // TODO: show error
-      } else {
-        setPackagesMetaFilter(path, state)
-      }
-    },
-    [setPackagesMetaFilter, path],
-  )
-  const { _tag: tag } = predicateState
+  const { _tag: tag } = initialValue
   const debounceOptions = React.useMemo(
     () => ({ leading: tag === 'Boolean' || tag === 'KeywordEnum' }),
     [tag],
   )
-  const handleChange = useDebouncedCallback(change, 500, debounceOptions)
+  const onChange = useDebouncedCallback(setPackagesMetaFilter, 500, debounceOptions)
+
+  const handleChange = React.useCallback(
+    (state: FiltersUI.Value<UserMetaState>) => {
+      if (state instanceof Error) {
+        setError(state)
+      } else {
+        setError(null)
+        setValue(state)
+        onChange(path, state)
+      }
+    },
+    [onChange, path],
+  )
 
   const title = React.useMemo(() => JSONPointer.parse(path).join(' / '), [path])
-
-  const { fetching, extents } = SearchUIModel.usePackageUserMetaFacetExtents(path)
 
   return (
     <FiltersUI.Container
@@ -270,7 +276,12 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
           <Skeleton height={32} mt={1} />
         </>
       ) : (
-        <FilterWidget state={predicateState} extents={extents} onChange={handleChange} />
+        <FilterWidget
+          error={error}
+          extents={extents}
+          onChange={handleChange}
+          state={value}
+        />
       )}
     </FiltersUI.Container>
   )
@@ -339,30 +350,38 @@ interface PackagesFilterProps {
 
 function PackagesFilter({ className, field }: PackagesFilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const predicateState = model.state.filter.predicates[field]
-  invariant(predicateState, 'Filter not active')
+  const initialValue = model.state.filter.predicates[field]
+  invariant(initialValue, 'Filter not active')
 
   const extents = SearchUIModel.usePackageSystemMetaFacetExtents(field)
 
   const { deactivatePackagesFilter, setPackagesFilter } = model.actions
 
+  const [value, setValue] = React.useState<$TSFixMe>(initialValue)
+  const [error, setError] = React.useState<Error | null>(null)
+
   const deactivate = React.useCallback(() => {
     deactivatePackagesFilter(field)
   }, [deactivatePackagesFilter, field])
 
-  const change = React.useCallback(
+  const { _tag: tag } = initialValue
+  const debounceOptions = React.useMemo(() => ({ leading: tag === 'KeywordEnum' }), [tag])
+  const onChange = useDebouncedCallback(setPackagesFilter, 500, debounceOptions)
+
+  const handleChange = React.useCallback(
     (state: FiltersUI.Value<$TSFixMe>) => {
       if (state instanceof Error) {
-        // TODO: show error
+        setError(state)
       } else {
-        setPackagesFilter(field, state)
+        setError(null)
+        setValue(state)
+        onChange(field, state)
       }
     },
-    [setPackagesFilter, field],
+    [onChange, field],
   )
-  const { _tag: tag } = predicateState
-  const debounceOptions = React.useMemo(() => ({ leading: tag === 'KeywordEnum' }), [tag])
-  const handleChange = useDebouncedCallback(change, 500, debounceOptions)
+
+  React.useEffect(() => setValue(initialValue), [initialValue])
 
   return (
     <FiltersUI.Container
@@ -371,7 +390,12 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
       onDeactivate={deactivate}
       title={PACKAGE_FILTER_LABELS[field]}
     >
-      <FilterWidget state={predicateState} extents={extents} onChange={handleChange} />
+      <FilterWidget
+        error={error}
+        extents={extents}
+        onChange={handleChange}
+        state={value}
+      />
     </FiltersUI.Container>
   )
 }

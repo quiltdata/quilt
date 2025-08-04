@@ -412,33 +412,29 @@ const useFilterDialogLayoutStyles = M.makeStyles((t) => ({
 }))
 
 interface FilterDialogLayoutProps {
-  onClose: () => void
-  title: string
   children: React.ReactNode
-  onReset: () => void
+  invalid: boolean
   modified: boolean
-  onSubmit: () => void
+  onClose: () => void
+  onReset?: () => void
+  onSubmit?: () => void
   resetTitle?: string
+  title: string
 }
 
 function FilterDialogLayout({
   children,
+  invalid,
+  modified,
   onClose,
-  title,
   onReset,
   onSubmit,
-  modified,
   resetTitle,
+  title,
 }: FilterDialogLayoutProps) {
   const classes = useFilterDialogLayoutStyles()
-  const handleReset = React.useCallback(() => {
-    onReset()
-    onClose()
-  }, [onClose, onReset])
-  const handleSubmit = React.useCallback(() => {
-    onSubmit()
-    onClose()
-  }, [onClose, onSubmit])
+  const submitDisabled = !modified || invalid
+  const resetDisabled = modified
   return (
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
@@ -447,9 +443,9 @@ function FilterDialogLayout({
         <M.Tooltip title={resetTitle || ''}>
           <M.Button
             className={classes.reset}
-            onClick={handleReset}
+            onClick={resetDisabled ? undefined : onReset}
             color="inherit"
-            disabled={modified}
+            disabled={resetDisabled}
           >
             Reset
           </M.Button>
@@ -461,8 +457,8 @@ function FilterDialogLayout({
         <M.Button
           color="primary"
           variant="contained"
-          onClick={handleSubmit}
-          disabled={!modified}
+          onClick={submitDisabled ? undefined : onSubmit}
+          disabled={submitDisabled}
         >
           Apply
         </M.Button>
@@ -475,39 +471,55 @@ interface FilterDialogSystemMetaProps extends FilterDialogProps {
   column: ColumnSystemMeta
 }
 
+type SystemMetaState = $TSFixMe
+
 function FilterDialogSystemMeta({ column, onClose }: FilterDialogSystemMetaProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
-  const [innerState, setInnerState] = React.useState<$TSFixMe>(null)
+  const initialValue = model.state.filter.predicates[column.filter]
+  invariant(initialValue, 'Filter not active')
 
-  const onSubmit = React.useCallback(
-    () => innerState && model.actions.setPackagesFilter(column.filter, innerState),
-    [column, innerState, model.actions],
-  )
+  const extents = SearchUIModel.usePackageSystemMetaFacetExtents(column.filter)
+
+  const [value, setValue] = React.useState<SystemMetaState>(initialValue)
+  const [error, setError] = React.useState<Error | null>(null)
+  const [modified, setModified] = React.useState(false)
+
+  const onSubmit = React.useCallback(() => {
+    model.actions.setPackagesFilter(column.filter, value)
+  }, [column, value, model.actions])
 
   const onReset = React.useCallback(
     () => model.actions.deactivatePackagesFilter(column.filter),
     [column, model.actions],
   )
 
-  const handleChange = React.useCallback((value: Value<$TSFixMe>) => {
-    if (value instanceof Error) {
-      // TODO: handle error
-      return
+  const handleChange = React.useCallback((v: Value<SystemMetaState>) => {
+    if (v instanceof Error) {
+      setError(v)
+    } else {
+      setValue(v)
+      setModified(true)
+      setError(null)
     }
-    setInnerState(value)
   }, [])
 
   return (
     <FilterDialogLayout
+      invalid={!!error}
+      modified={modified}
       onClose={onClose}
-      title={column.fullTitle}
       onReset={onReset}
       onSubmit={onSubmit}
-      modified={!!innerState}
       resetTitle="Clear filter values and remove column"
+      title={column.fullTitle}
     >
-      <Filter filter={column.filter} value={innerState} onChange={handleChange} />
+      <FilterWidget
+        error={error}
+        extents={extents}
+        onChange={handleChange}
+        state={value}
+      />
     </FilterDialogLayout>
   )
 }
@@ -516,17 +528,25 @@ interface FilterDialogUserMetaProps extends FilterDialogProps {
   column: ColumnUserMeta
 }
 
+type UserMetaState = SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
+
 function FilterDialogUserMeta({ column, onClose }: FilterDialogUserMetaProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
-  const [innerState, setInnerState] =
-    React.useState<SearchUIModel.PredicateState<SearchUIModel.KnownPredicate> | null>(
-      null,
-    )
+  const initialValue = model.state.userMetaFilters.filters.get(column.filter)
+  invariant(initialValue, 'Filter not active')
+
+  const { fetching, extents } = SearchUIModel.usePackageUserMetaFacetExtents(
+    column.filter,
+  )
+
+  const [value, setValue] = React.useState<UserMetaState>(initialValue)
+  const [error, setError] = React.useState<Error | null>(null)
+  const [modified, setModified] = React.useState(false)
 
   const onSubmit = React.useCallback(
-    () => innerState && model.actions.setPackagesMetaFilter(column.filter, innerState),
-    [column, innerState, model.actions],
+    () => value && model.actions.setPackagesMetaFilter(column.filter, value),
+    [column, value, model.actions],
   )
 
   const onReset = React.useCallback(
@@ -534,26 +554,38 @@ function FilterDialogUserMeta({ column, onClose }: FilterDialogUserMetaProps) {
     [column, model.actions],
   )
 
-  const handleChange = React.useCallback(
-    (value: Value<SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>>) => {
-      if (value instanceof Error) {
-        // TODO: handle error
-        return
-      }
-      setInnerState(value)
-    },
-    [],
-  )
+  const handleChange = React.useCallback((v: Value<UserMetaState>) => {
+    if (v instanceof Error) {
+      setError(v)
+    } else {
+      setValue(v)
+      setModified(true)
+      setError(null)
+    }
+  }, [])
 
   return (
     <FilterDialogLayout
+      invalid={!!error}
+      modified={modified}
       onClose={onClose}
-      title={column.title}
       onReset={onReset}
       onSubmit={onSubmit}
-      modified={!!innerState}
+      title={column.title}
     >
-      <MetaFilter path={column.filter} value={innerState} onChange={handleChange} />
+      {fetching ? (
+        <M.Box display="grid" gridAutoFlow="row" gridRowGap={1}>
+          <Lab.Skeleton height={32} />
+          <Lab.Skeleton height={32} />
+        </M.Box>
+      ) : (
+        <FilterWidget
+          error={error}
+          state={value}
+          extents={extents}
+          onChange={handleChange}
+        />
+      )}
     </FilterDialogLayout>
   )
 }
@@ -565,91 +597,49 @@ interface FilterDialogBucketsProps extends FilterDialogProps {
 function FilterDialogBuckets({ column, onClose }: FilterDialogBucketsProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
-  const [innerState, setInnerState] = React.useState<readonly string[] | null>(null)
-
-  const onSubmit = React.useCallback(
-    () => innerState && model.actions.setBuckets(innerState),
-    [innerState, model.actions],
-  )
-
-  // `bucket` column exists on the `/search` page only
-  // it is hidden on the `/b/bucket/packages` page
-  const onReset = React.useCallback(() => model.actions.setBuckets([]), [model.actions])
-
-  const handleChange = React.useCallback((value: Value<readonly string[]>) => {
-    if (value instanceof Error) {
-      // TODO: handle error
-      return
-    }
-    setInnerState(value)
-  }, [])
-
-  return (
-    <FilterDialogLayout
-      onClose={onClose}
-      title={column.title}
-      onReset={onReset}
-      onSubmit={onSubmit}
-      modified={!!innerState}
-      resetTitle="Show results for all buckets"
-    >
-      <BucketsFilter value={innerState} onChange={handleChange} />
-    </FilterDialogLayout>
-  )
-}
-
-interface FilterProps {
-  filter: keyof SearchUIModel.PackagesSearchFilter
-  onChange: Parameters<typeof FilterWidget>[0]['onChange']
-  value: null | SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
-}
-
-function Filter({ filter, onChange, value }: FilterProps) {
-  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const initialValue = model.state.filter.predicates[filter]
-  invariant(initialValue, 'Filter not active')
-  const extents = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
-
-  return (
-    <FilterWidget state={value || initialValue} extents={extents} onChange={onChange} />
-  )
-}
-
-interface MetaFilterProps {
-  path: string
-  onChange: Parameters<typeof FilterWidget>[0]['onChange']
-  value: null | SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>
-}
-
-function MetaFilter({ path, onChange, value }: MetaFilterProps) {
-  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
-  const initialValue = model.state.userMetaFilters.filters.get(path)
-  invariant(initialValue, 'Filter not active')
-
-  const { fetching, extents } = SearchUIModel.usePackageUserMetaFacetExtents(path)
-  return fetching ? (
-    <M.Box display="grid" gridAutoFlow="row" gridRowGap={1}>
-      <Lab.Skeleton height={32} />
-      <Lab.Skeleton height={32} />
-    </M.Box>
-  ) : (
-    <FilterWidget state={value || initialValue} extents={extents} onChange={onChange} />
-  )
-}
-
-interface BucketsFilterProps {
-  onChange: Parameters<typeof List>[0]['onChange']
-  value: null | readonly string[]
-}
-
-function BucketsFilter({ onChange, value }: BucketsFilterProps) {
-  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const initialValue = model.state.buckets
   invariant(initialValue, 'Filter not active')
 
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
-  return <List extents={extents} value={value || initialValue} onChange={onChange} />
+
+  const [value, setValue] = React.useState<readonly string[]>(initialValue)
+  const [error, setError] = React.useState<Error | null>(null)
+  const [modified, setModified] = React.useState(false)
+
+  const onSubmit = React.useCallback(
+    () => value && model.actions.setBuckets(value),
+    [value, model.actions],
+  )
+
+  // `bucket` column exists on the `/search` page only.
+  // It is hidden on the `/b/bucket/packages` page.
+  // So, we are able to reset buckets.
+  const onReset = React.useCallback(() => model.actions.setBuckets([]), [model.actions])
+
+  const handleChange = React.useCallback((v: Value<readonly string[]>) => {
+    if (v instanceof Error) {
+      setError(v)
+    } else {
+      setValue(v)
+      setModified(true)
+      setError(null)
+    }
+  }, [])
+
+  return (
+    <FilterDialogLayout
+      invalid={!!error}
+      modified={modified}
+      onClose={onClose}
+      onReset={onReset}
+      onSubmit={onSubmit}
+      resetTitle="Show results for all buckets"
+      title={column.title}
+    >
+      <List error={error} extents={extents} value={value} onChange={handleChange} />
+    </FilterDialogLayout>
+  )
 }
 
 const useFilterGroupStyles = M.makeStyles((t) => ({

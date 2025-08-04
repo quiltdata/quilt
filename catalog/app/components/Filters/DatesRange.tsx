@@ -32,7 +32,12 @@ interface Dates {
   max: Date | null
 }
 
-function validate(dates: { min: string; max: string }): Dates | Error {
+interface DatesStr {
+  min: string
+  max: string
+}
+
+function parseDates(dates: DatesStr): Dates | Error {
   const min = ymdToDate(dates.min)
   if (min instanceof Error) return min
   const max = ymdToDate(dates.max)
@@ -55,41 +60,29 @@ const useStyles = M.makeStyles((t) => {
 })
 
 interface DateRangeProps {
+  error: Error | null
   extents: { min: Date; max: Date }
-  onChange: (v: Value<{ min: Date | null; max: Date | null }>) => void
-  value: { min: Date | null; max: Date | null }
+  onChange: (v: Value<Dates>) => void
+  value: Dates
 }
 
-export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
+export default function DatesRange({ error, extents, onChange, value }: DateRangeProps) {
   const classes = useStyles()
   const from = value.min || extents.min
   const to = value.max || extents.max
   const [min, setMin] = React.useState(from ? dateToYmd(from) : from)
   const [max, setMax] = React.useState(to ? dateToYmd(to) : to)
-  const [error, setError] = React.useState<Error | null>(null)
-  const handleFrom = React.useCallback(
+  const handleMin = React.useCallback(
     (event) => {
       setMin(event.target.value)
-      setError(null)
-
-      const dates = validate({ min: event.target.value, max })
-      onChange(dates)
-      if (dates instanceof Error) {
-        setError(dates)
-      }
+      onChange(parseDates({ min: event.target.value, max }))
     },
     [onChange, max],
   )
-  const handleTo = React.useCallback(
+  const handleMax = React.useCallback(
     (event) => {
       setMax(event.target.value)
-      setError(null)
-
-      const dates = validate({ min, max: event.target.value })
-      onChange(dates)
-      if (dates instanceof Error) {
-        setError(dates)
-      }
+      onChange(parseDates({ min, max: event.target.value }))
     },
     [onChange, min],
   )
@@ -106,14 +99,14 @@ export default function DatesRange({ extents, value, onChange }: DateRangeProps)
         className={classes.input}
         inputProps={inputProps}
         label="From "
-        onChange={handleFrom}
+        onChange={handleMin}
         value={min}
       />
       <DateField
         className={classes.input}
         inputProps={inputProps}
         label="To"
-        onChange={handleTo}
+        onChange={handleMax}
         value={max}
       />
       {error && <M.FormHelperText error>{error.message}</M.FormHelperText>}

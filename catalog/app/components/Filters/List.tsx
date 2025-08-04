@@ -29,9 +29,6 @@ const useStyles = M.makeStyles((t) => ({
     minWidth: t.spacing(4),
     paddingLeft: '2px',
   },
-  help: {
-    marginTop: t.spacing(1),
-  },
   label: {
     cursor: 'pointer',
     display: 'block',
@@ -59,6 +56,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface ListProps {
   className?: string
+  error: Error | null
   extents: readonly string[]
   onChange: (v: Value<string[]>) => void
   placeholder?: string
@@ -68,6 +66,7 @@ interface ListProps {
 
 export default function List({
   className,
+  error,
   extents: rawExtents,
   onChange,
   placeholder,
@@ -89,11 +88,12 @@ export default function List({
     [filter, extents],
   )
   const handleChange = React.useCallback(
-    (extent, checked) => {
+    (extent: string, checked: boolean) => {
+      if (!extents.includes(extent)) return new Error(`Value ${extent} out of bounds`)
       const newValue = checked ? [...value, extent] : value.filter((v) => v !== extent)
       onChange(newValue)
     },
-    [onChange, value],
+    [onChange, extents, value],
   )
   const hiddenNumber = extents.length - filteredExtents.length
   return (
@@ -141,12 +141,13 @@ export default function List({
           )}
         </M.List>
       </div>
+      {error && <M.FormHelperText error>{error.message}</M.FormHelperText>}
       {!!hiddenNumber && (
-        <M.Typography variant="caption" className={classes.help}>
+        <M.FormHelperText error={!filteredExtents.length}>
           {filteredExtents.length
             ? `There are ${hiddenNumber} more items available. Loosen search query to see more.`
             : `${hiddenNumber} available items are hidden. Clear filters to see them.`}
-        </M.Typography>
+        </M.FormHelperText>
       )}
     </div>
   )

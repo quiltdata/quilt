@@ -17,7 +17,7 @@ function KeywordWildcardFilterWidget({
       if (v instanceof Error) {
         onChange(v)
       } else {
-        onChange({ ...state, ...v })
+        onChange(SearchUIModel.addTag(state._tag, v))
       }
     },
     [onChange, state],
@@ -40,7 +40,7 @@ function TextFilterWidget({
       if (queryString instanceof Error) {
         onChange(queryString)
       } else {
-        onChange({ ...state, queryString })
+        onChange(SearchUIModel.addTag(state._tag, { queryString }))
       }
     },
     [onChange, state],
@@ -57,25 +57,41 @@ function TextFilterWidget({
   )
 }
 
-type BooleanFilterValue = SearchUIModel.Untag<
-  SearchUIModel.PredicateState<SearchUIModel.Predicates['Boolean']>
->
+const BOOLEAN_EXTENTS = ['true', 'false'] as const
+// type Boolean = (typeof BOOLEAN_EXTENTS)[number]
 
 function BooleanFilterWidget({
-  state,
+  error,
   onChange,
+  state,
 }: FilterWidgetProps<SearchUIModel.Predicates['Boolean']>) {
+  const value = React.useMemo(
+    () => BOOLEAN_EXTENTS.filter((bool) => state[bool]),
+    [state],
+  )
   const handleChange = React.useCallback(
-    (value: FiltersUI.Value<BooleanFilterValue>) => {
-      if (value instanceof Error) {
-        onChange(value)
+    (v: FiltersUI.Value<string[]>) => {
+      if (v instanceof Error) {
+        onChange(v)
       } else {
-        onChange({ ...state, ...value })
+        onChange(
+          SearchUIModel.addTag(state._tag, {
+            true: v.includes('true'),
+            false: v.includes('false'),
+          }),
+        )
       }
     },
     [onChange, state],
   )
-  return <FiltersUI.BooleanFilter onChange={handleChange} value={state} />
+  return (
+    <FiltersUI.List
+      error={error}
+      extents={BOOLEAN_EXTENTS}
+      onChange={handleChange}
+      value={value}
+    />
+  )
 }
 
 interface FilterWidgetProps<
@@ -83,12 +99,15 @@ interface FilterWidgetProps<
 > {
   state: SearchUIModel.PredicateState<P>
   extents?: SearchUIModel.ExtentsForPredicate<P>
+  error: Error | null
   onChange: (state: FiltersUI.Value<SearchUIModel.PredicateState<P>>) => void
+  // TODO: units
 }
 
 function NumberFilterWidget({
   state,
   extents,
+  error,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
   const handleChange = React.useCallback(
@@ -96,7 +115,8 @@ function NumberFilterWidget({
       if (value instanceof Error) {
         onChange(value)
       } else {
-        onChange({ ...state, gte: value.min, lte: value.max })
+        const { min: gte, max: lte } = value
+        onChange(SearchUIModel.addTag(state._tag, { gte, lte }))
       }
     },
     [onChange, state],
@@ -111,23 +131,27 @@ function NumberFilterWidget({
     [extents?.min, extents?.max, state.gte, state.lte],
   )
 
+  const initialValue = React.useMemo(() => ({ min: state.gte, max: state.lte }), [state])
+
   return (
     <FiltersUI.NumbersRange
+      error={error}
       extents={extentsComputed}
+      initialValue={initialValue}
       onChange={handleChange}
       // XXX: add units for known filters
       // unit={unit}
-      value={{ min: state.gte, max: state.lte }}
     />
   )
 }
 
 function DatetimeFilterWidget({
+  error,
   state,
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Datetime']>) {
-  const fixedExtents = React.useMemo(
+  const extentsComputed = React.useMemo(
     () => ({
       min: extents?.min ?? new Date(),
       max: extents?.max ?? new Date(),
@@ -135,7 +159,7 @@ function DatetimeFilterWidget({
     [extents?.min, extents?.max],
   )
 
-  const fixedValue = React.useMemo(
+  const value = React.useMemo(
     () => ({ min: state.gte, max: state.lte }),
     [state.gte, state.lte],
   )
@@ -145,7 +169,7 @@ function DatetimeFilterWidget({
       if (v instanceof Error) {
         onChange(v)
       } else {
-        onChange({ ...state, gte: v.min, lte: v.max })
+        onChange(SearchUIModel.addTag(state._tag, { gte: v.min, lte: v.max }))
       }
     },
     [onChange, state],
@@ -153,9 +177,10 @@ function DatetimeFilterWidget({
 
   return (
     <FiltersUI.DatesRange
-      extents={fixedExtents}
+      error={error}
+      extents={extentsComputed}
       onChange={handleChange}
-      value={fixedValue}
+      value={value}
     />
   )
 }
@@ -163,6 +188,7 @@ function DatetimeFilterWidget({
 const EMPTY_TERMS: string[] = []
 
 function KeywordEnumFilterWidget({
+  error,
   state,
   extents,
   onChange,
@@ -172,7 +198,7 @@ function KeywordEnumFilterWidget({
       if (value instanceof Error) {
         onChange(value)
       } else {
-        onChange({ ...state, terms: value })
+        onChange(SearchUIModel.addTag(state._tag, { terms: value }))
       }
     },
     [onChange, state],
@@ -181,10 +207,11 @@ function KeywordEnumFilterWidget({
 
   return (
     <FiltersUI.List
+      error={error}
       extents={availableValues}
       onChange={handleChange}
-      value={state.terms}
       placeholder="Find"
+      value={state.terms}
     />
   )
 }

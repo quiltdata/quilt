@@ -1,5 +1,4 @@
 export { default as Activator } from './Activator'
-export { default as BooleanFilter } from './BooleanFilter'
 export { default as Container } from './Container'
 export { default as DatesRange } from './DatesRange'
 export { default as Enum } from './Enum'
