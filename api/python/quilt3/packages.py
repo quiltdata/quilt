@@ -488,6 +488,21 @@ class Package:
 
         return repr_str
 
+    # Selector Functions
+
+    # Copy all files to canonical location
+    def selector_fn_COPY_ALL(*args):
+        return True
+
+    # Copy local files only
+    def selector_fn_COPY_LOCAL(logical_key, entry):
+        return entry.physical_key.is_local()
+
+    # COPY_NONE is intentionally not implemented to help users avoid
+    # pushing local physical keys to S3
+    # def selector_fn_COPY_NONE(logical_key, entry):
+    #    return False
+
     @property
     def meta(self):
         return self._meta.get('user_meta', {})
@@ -1443,7 +1458,7 @@ class Package:
                     f"is a local file. To store a package in the local registry, use "
                     f"'build' instead."
                 )
-        
+
         if selector_fn is None:
             # When pushing to S3, do not copy files if they are in the same
             # bucket as the destination registry.
