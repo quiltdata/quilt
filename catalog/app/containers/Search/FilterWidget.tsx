@@ -58,7 +58,7 @@ function TextFilterWidget({
 }
 
 const BOOLEAN_EXTENTS = ['true', 'false'] as const
-// type Boolean = (typeof BOOLEAN_EXTENTS)[number]
+type Boolean = (typeof BOOLEAN_EXTENTS)[number]
 
 function BooleanFilterWidget({
   error,
@@ -70,7 +70,7 @@ function BooleanFilterWidget({
     [state],
   )
   const handleChange = React.useCallback(
-    (v: FiltersUI.Value<string[]>) => {
+    (v: FiltersUI.Value<readonly Boolean[]>) => {
       if (v instanceof Error) {
         onChange(v)
       } else {
@@ -185,7 +185,7 @@ function DatetimeFilterWidget({
   )
 }
 
-const EMPTY_TERMS: string[] = []
+const EMPTY_TERMS: readonly string[] = []
 
 function KeywordEnumFilterWidget({
   error,
@@ -194,7 +194,7 @@ function KeywordEnumFilterWidget({
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordEnum']>) {
   const handleChange = React.useCallback(
-    (value: FiltersUI.Value<string[]>) => {
+    (value: FiltersUI.Value<readonly string[]>) => {
       if (value instanceof Error) {
         onChange(value)
       } else {

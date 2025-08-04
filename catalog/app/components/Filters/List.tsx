@@ -10,7 +10,7 @@ import type { Value } from './types'
 // Number of items, when we show search text field
 const TEXT_FIELD_VISIBLE_THRESHOLD = 8
 
-function fuzzySearchExtents(extents: string[], searchStr: string): string[] {
+function fuzzySearchExtents<T>(extents: T[], searchStr: string): T[] {
   if (!searchStr) return extents
   const fuse = new Fuse(extents, { includeScore: true })
   return fuse
@@ -54,17 +54,17 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ListProps {
+interface ListProps<T> {
   className?: string
   error: Error | null
-  extents: readonly string[]
-  onChange: (v: Value<string[]>) => void
+  extents: readonly T[]
+  onChange: (v: Value<readonly T[]>) => void
   placeholder?: string
   searchThreshold?: number
-  value: readonly string[]
+  value: readonly T[]
 }
 
-export default function List({
+export default function List<T extends string = string>({
   className,
   error,
   extents: rawExtents,
@@ -72,7 +72,7 @@ export default function List({
   placeholder,
   value,
   searchThreshold = TEXT_FIELD_VISIBLE_THRESHOLD,
-}: ListProps) {
+}: ListProps<T>) {
   const extents = React.useMemo(
     () => R.uniq([...value, ...rawExtents]),
     [value, rawExtents],
@@ -88,8 +88,11 @@ export default function List({
     [filter, extents],
   )
   const handleChange = React.useCallback(
-    (extent: string, checked: boolean) => {
-      if (!extents.includes(extent)) return new Error(`Value ${extent} out of bounds`)
+    (extent: T, checked: boolean) => {
+      if (!extents.includes(extent)) {
+        onChange(new Error(`Value ${extent} out of bounds`))
+        return
+      }
       const newValue = checked ? [...value, extent] : value.filter((v) => v !== extent)
       onChange(newValue)
     },
