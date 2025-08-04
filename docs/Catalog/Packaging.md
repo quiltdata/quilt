@@ -238,3 +238,18 @@ print("SQS Target Attached to EventBridge Rule:", response)
    will not actually create a new revision, since the content hash will be the
    same. However, that would still waste computational cycles, so you should
    avoid doing so.
+
+## Scalability Limits
+
+> This feature requires Quilt Platform version 1.59.0 or higher
+
+Newer versions leverage increased concurrency to support
+significantly larger packages within AWS’s 15-minute timeout limit.
+
+To help you take full advantage of these improvements, the system no longer
+enforces limits on number of files and their total size when calling the
+Packaging Engine directly. The updated engine accepts arbitrarily large
+requests, though some may still fail due to timeouts.
+
+If a packaging operation fails, please review the
+PackagerLambdaLogGroup logs in CloudWatch to determine whether a timeout occurred.
