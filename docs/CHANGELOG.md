@@ -20,6 +20,10 @@ Entries inside each section should be ordered by type:
 
 ### Python API
 
+* [Changed] **BREAKING:** Changed the default `selector_fn` for `Package.push`. Now, files in the same bucket as the destination registry are not copied by default. This change was requested by users who were inadvertently creating extra copies of files in packages that were created from files in S3. ([#4464](https://github.com/quiltdata/quilt/pull/4464))
+
+### Python API
+
 * [Changed] **BREAKING:** Forbid using non-finite `float`s in package metadata. Previously that was allowed and resulted in package manifests that are not compliant to RFC 8259 ([#4340](https://github.com/quiltdata/quilt/pull/4340))
 
 ## 6.3.0 - 2025-01-24
