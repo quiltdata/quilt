@@ -4,23 +4,30 @@ import * as FiltersUI from 'components/Filters'
 
 import * as SearchUIModel from './model'
 
+interface FilterWidgetProps<
+  P extends SearchUIModel.KnownPredicate = SearchUIModel.KnownPredicate,
+> {
+  state: SearchUIModel.PredicateState<P>
+  extents?: SearchUIModel.ExtentsForPredicate<P>
+  error: Error | null
+  onChange: (state: FiltersUI.Value<SearchUIModel.PredicateState<P>>) => void
+  // TODO: units
+}
+
 type KeywordWildcardFilterValue = SearchUIModel.Untag<
   SearchUIModel.PredicateState<SearchUIModel.Predicates['KeywordWildcard']>
 >
+
+const tagKeywordWildcard = (v: FiltersUI.Value<KeywordWildcardFilterValue>) =>
+  v instanceof Error ? v : SearchUIModel.addTag('KeywordWildcard', v)
 
 function KeywordWildcardFilterWidget({
   state,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordWildcard']>) {
   const handleChange = React.useCallback(
-    (v: FiltersUI.Value<KeywordWildcardFilterValue>) => {
-      if (v instanceof Error) {
-        onChange(v)
-      } else {
-        onChange(SearchUIModel.addTag(state._tag, v))
-      }
-    },
-    [onChange, state],
+    (v: FiltersUI.Value<KeywordWildcardFilterValue>) => onChange(tagKeywordWildcard(v)),
+    [onChange],
   )
   return (
     <FiltersUI.KeywordWildcard
@@ -31,19 +38,18 @@ function KeywordWildcardFilterWidget({
   )
 }
 
+const tagText = (queryString: FiltersUI.Value<string>) =>
+  queryString instanceof Error
+    ? queryString
+    : SearchUIModel.addTag('Text', { queryString })
+
 function TextFilterWidget({
   state,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Text']>) {
   const handleChange = React.useCallback(
-    (queryString: FiltersUI.Value<string>) => {
-      if (queryString instanceof Error) {
-        onChange(queryString)
-      } else {
-        onChange(SearchUIModel.addTag(state._tag, { queryString }))
-      }
-    },
-    [onChange, state],
+    (queryString: FiltersUI.Value<string>) => onChange(tagText(queryString)),
+    [onChange],
   )
 
   // TODO: link to docs:
@@ -60,6 +66,14 @@ function TextFilterWidget({
 const BOOLEAN_EXTENTS = ['true', 'false'] as const
 type Boolean = (typeof BOOLEAN_EXTENTS)[number]
 
+const tagBoolean = (value: FiltersUI.Value<readonly Boolean[]>) =>
+  value instanceof Error
+    ? value
+    : SearchUIModel.addTag('Boolean', {
+        true: value.includes('true'),
+        false: value.includes('false'),
+      })
+
 function BooleanFilterWidget({
   error,
   onChange,
@@ -70,19 +84,8 @@ function BooleanFilterWidget({
     [state],
   )
   const handleChange = React.useCallback(
-    (v: FiltersUI.Value<readonly Boolean[]>) => {
-      if (v instanceof Error) {
-        onChange(v)
-      } else {
-        onChange(
-          SearchUIModel.addTag(state._tag, {
-            true: v.includes('true'),
-            false: v.includes('false'),
-          }),
-        )
-      }
-    },
-    [onChange, state],
+    (v: FiltersUI.Value<readonly Boolean[]>) => onChange(tagBoolean(v)),
+    [onChange],
   )
   return (
     <FiltersUI.List
@@ -94,15 +97,8 @@ function BooleanFilterWidget({
   )
 }
 
-interface FilterWidgetProps<
-  P extends SearchUIModel.KnownPredicate = SearchUIModel.KnownPredicate,
-> {
-  state: SearchUIModel.PredicateState<P>
-  extents?: SearchUIModel.ExtentsForPredicate<P>
-  error: Error | null
-  onChange: (state: FiltersUI.Value<SearchUIModel.PredicateState<P>>) => void
-  // TODO: units
-}
+const tagNumber = (value: FiltersUI.Value<FiltersUI.Numbers>) =>
+  value instanceof Error ? value : SearchUIModel.addTag('Number', value)
 
 function NumberFilterWidget({
   state,
@@ -110,18 +106,6 @@ function NumberFilterWidget({
   error,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
-  const handleChange = React.useCallback(
-    (value: FiltersUI.Value<{ min: number | null; max: number | null }>) => {
-      if (value instanceof Error) {
-        onChange(value)
-      } else {
-        const { min: gte, max: lte } = value
-        onChange(SearchUIModel.addTag(state._tag, { gte, lte }))
-      }
-    },
-    [onChange, state],
-  )
-
   // XXX: revisit this logic
   const extentsComputed = React.useMemo(
     () => ({
@@ -130,20 +114,24 @@ function NumberFilterWidget({
     }),
     [extents?.min, extents?.max, state.gte, state.lte],
   )
-
-  const initialValue = React.useMemo(() => ({ min: state.gte, max: state.lte }), [state])
-
+  const handleChange = React.useCallback(
+    (value: FiltersUI.Value<FiltersUI.Numbers>) => onChange(tagNumber(value)),
+    [onChange],
+  )
   return (
     <FiltersUI.NumbersRange
       error={error}
       extents={extentsComputed}
-      initialValue={initialValue}
+      initialValue={state}
       onChange={handleChange}
       // XXX: add units for known filters
       // unit={unit}
     />
   )
 }
+
+const tagDatetime = (value: FiltersUI.Value<FiltersUI.Dates>) =>
+  value instanceof Error ? value : SearchUIModel.addTag('Datetime', value)
 
 function DatetimeFilterWidget({
   error,
@@ -159,20 +147,9 @@ function DatetimeFilterWidget({
     [extents?.min, extents?.max],
   )
 
-  const value = React.useMemo(
-    () => ({ min: state.gte, max: state.lte }),
-    [state.gte, state.lte],
-  )
-
   const handleChange = React.useCallback(
-    (v: FiltersUI.Value<{ min: Date | null; max: Date | null }>) => {
-      if (v instanceof Error) {
-        onChange(v)
-      } else {
-        onChange(SearchUIModel.addTag(state._tag, { gte: v.min, lte: v.max }))
-      }
-    },
-    [onChange, state],
+    (v: FiltersUI.Value<FiltersUI.Dates>) => onChange(tagDatetime(v)),
+    [onChange],
   )
 
   return (
@@ -180,10 +157,13 @@ function DatetimeFilterWidget({
       error={error}
       extents={extentsComputed}
       onChange={handleChange}
-      value={value}
+      value={state}
     />
   )
 }
+
+const tagEnum = (terms: FiltersUI.Value<readonly string[]>) =>
+  terms instanceof Error ? terms : SearchUIModel.addTag('KeywordEnum', { terms })
 
 const EMPTY_TERMS: readonly string[] = []
 
@@ -194,21 +174,14 @@ function KeywordEnumFilterWidget({
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordEnum']>) {
   const handleChange = React.useCallback(
-    (value: FiltersUI.Value<readonly string[]>) => {
-      if (value instanceof Error) {
-        onChange(value)
-      } else {
-        onChange(SearchUIModel.addTag(state._tag, { terms: value }))
-      }
-    },
-    [onChange, state],
+    (value: FiltersUI.Value<readonly string[]>) => onChange(tagEnum(value)),
+    [onChange],
   )
-  const availableValues = extents?.values ?? EMPTY_TERMS
-
+  const extentsComputed = extents?.values ?? EMPTY_TERMS
   return (
     <FiltersUI.List
       error={error}
-      extents={availableValues}
+      extents={extentsComputed}
       onChange={handleChange}
       placeholder="Find"
       value={state.terms}

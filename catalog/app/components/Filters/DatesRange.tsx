@@ -27,22 +27,22 @@ function DateField(props: M.TextFieldProps) {
   )
 }
 
-interface Dates {
-  min: Date | null
-  max: Date | null
+export interface Dates {
+  gte: Date | null
+  lte: Date | null
 }
 
 interface DatesStr {
-  min: string
-  max: string
+  gte: string
+  lte: string
 }
 
 function parseDates(dates: DatesStr): Dates | Error {
-  const min = ymdToDate(dates.min)
-  if (min instanceof Error) return min
-  const max = ymdToDate(dates.max)
-  if (max instanceof Error) return max
-  return { min, max }
+  const gte = ymdToDate(dates.gte)
+  if (gte instanceof Error) return gte
+  const lte = ymdToDate(dates.lte)
+  if (lte instanceof Error) return lte
+  return { gte, lte }
 }
 
 const useStyles = M.makeStyles((t) => {
@@ -68,23 +68,23 @@ interface DateRangeProps {
 
 export default function DatesRange({ error, extents, onChange, value }: DateRangeProps) {
   const classes = useStyles()
-  const from = value.min || extents.min
-  const to = value.max || extents.max
-  const [min, setMin] = React.useState(from ? dateToYmd(from) : from)
-  const [max, setMax] = React.useState(to ? dateToYmd(to) : to)
-  const handleMin = React.useCallback(
+  const initialGte = dateToYmd(value.gte || extents.min)
+  const initialLte = dateToYmd(value.lte || extents.max)
+  const [gte, setGte] = React.useState(initialGte)
+  const [lte, setLte] = React.useState(initialLte)
+  const handleGte = React.useCallback(
     (event) => {
-      setMin(event.target.value)
-      onChange(parseDates({ min: event.target.value, max }))
+      setGte(event.target.value)
+      onChange(parseDates({ gte: event.target.value, lte }))
     },
-    [onChange, max],
+    [onChange, lte],
   )
-  const handleMax = React.useCallback(
+  const handleLte = React.useCallback(
     (event) => {
-      setMax(event.target.value)
-      onChange(parseDates({ min, max: event.target.value }))
+      setLte(event.target.value)
+      onChange(parseDates({ gte, lte: event.target.value }))
     },
-    [onChange, min],
+    [onChange, gte],
   )
   const inputProps = React.useMemo(
     () => ({
@@ -99,15 +99,15 @@ export default function DatesRange({ error, extents, onChange, value }: DateRang
         className={classes.input}
         inputProps={inputProps}
         label="From "
-        onChange={handleMin}
-        value={min}
+        onChange={handleGte}
+        value={gte}
       />
       <DateField
         className={classes.input}
         inputProps={inputProps}
         label="To"
-        onChange={handleMax}
-        value={max}
+        onChange={handleLte}
+        value={lte}
       />
       {error && <M.FormHelperText error>{error.message}</M.FormHelperText>}
     </div>

@@ -6,14 +6,14 @@ import { formatQuantity } from 'utils/string'
 
 import type { Value } from './types'
 
-interface Numbers {
-  min: number | null
-  max: number | null
+export interface Numbers {
+  gte: number | null
+  lte: number | null
 }
 
 interface NumbersStr {
-  min: string
-  max: string
+  gte: string
+  lte: string
 }
 
 const MAX_TICKS = 100
@@ -62,24 +62,24 @@ const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.i
 
 const NaNError = new Error('Enter valid number, please')
 
-const convertValuesToDomain = (scale: Scale, { min, max }: Numbers) => [
-  min != null ? scale.invert(min) : 0,
-  max != null ? scale.invert(max) : 100,
+const convertValuesToDomain = (scale: Scale, { gte, lte }: Numbers) => [
+  gte != null ? scale.invert(gte) : 0,
+  lte != null ? scale.invert(lte) : 100,
 ]
 
 const convertDomainToValues =
   (scale: Scale) =>
-  ([min, max]: [number, number]) => ({
-    min: roundAboveThreshold(scale(min)),
-    max: roundAboveThreshold(scale(max)),
+  ([gte, lte]: [number, number]) => ({
+    gte: roundAboveThreshold(scale(gte)),
+    lte: roundAboveThreshold(scale(lte)),
   })
 
 function parseNumbersOr<T>(value: NumbersStr, fallback: T): Numbers | T {
-  const min = Number(value.min)
-  if (!isNumber(min)) return fallback
-  const max = Number(value.max)
-  if (!isNumber(max)) return fallback
-  return { min, max }
+  const gte = Number(value.gte)
+  if (!isNumber(gte)) return fallback
+  const lte = Number(value.lte)
+  if (!isNumber(lte)) return fallback
+  return { gte, lte }
 }
 
 const useStyles = M.makeStyles((t) => {
@@ -129,23 +129,23 @@ export default function NumbersRange({
   const sliderClasses = useSliderStyles()
 
   const { marks, scale } = useScale(extents.min, extents.max)
-  const [min, setMin] = React.useState((initialValue.min || extents.min).toString())
-  const [max, setMax] = React.useState((initialValue.max || extents.max).toString())
+  const [gte, setGte] = React.useState((initialValue.gte || extents.min).toString())
+  const [lte, setLte] = React.useState((initialValue.lte || extents.max).toString())
 
   React.useEffect(
-    () => setMin((initialValue.min || extents.min).toString()),
-    [initialValue.min, extents.min],
+    () => setGte((initialValue.gte || extents.min).toString()),
+    [initialValue.gte, extents.min],
   )
   React.useEffect(
-    () => setMax((initialValue.max || extents.max).toString()),
-    [initialValue.max, extents.max],
+    () => setLte((initialValue.lte || extents.max).toString()),
+    [initialValue.lte, extents.max],
   )
 
   const handleSlider = React.useCallback(
     (_event, sliderValues) => {
       const values = convertDomainToValues(scale)(sliderValues)
-      setMin(values.min.toString())
-      setMax(values.max.toString())
+      setGte(values.gte.toString())
+      setLte(values.lte.toString())
       onChange(values)
     },
     [onChange, scale],
@@ -154,23 +154,23 @@ export default function NumbersRange({
     () =>
       convertValuesToDomain(
         scale,
-        parseNumbersOr({ min, max }, { min: null, max: null }),
+        parseNumbersOr({ gte, lte }, { gte: null, lte: null }),
       ),
-    [min, max, scale],
+    [gte, lte, scale],
   )
   const handleMin = React.useCallback(
     (event) => {
-      setMin(event.target.value)
-      onChange(parseNumbersOr({ min: event.target.value, max }, NaNError))
+      setGte(event.target.value)
+      onChange(parseNumbersOr({ gte: event.target.value, lte }, NaNError))
     },
-    [onChange, max],
+    [onChange, lte],
   )
   const handleMax = React.useCallback(
     (event) => {
-      setMax(event.target.value)
-      onChange(parseNumbersOr({ min, max: event.target.value }, NaNError))
+      setLte(event.target.value)
+      onChange(parseNumbersOr({ gte, lte: event.target.value }, NaNError))
     },
-    [onChange, min],
+    [onChange, gte],
   )
   const valueLabelFormat = React.useMemo(() => createValueLabelFormat(scale), [scale])
   return (
@@ -192,7 +192,7 @@ export default function NumbersRange({
           label="From"
           onChange={handleMin}
           size="small"
-          value={min}
+          value={gte}
           variant="outlined"
         />
         <M.TextField
@@ -200,7 +200,7 @@ export default function NumbersRange({
           label="To"
           onChange={handleMax}
           size="small"
-          value={max}
+          value={lte}
           variant="outlined"
         />
       </div>
