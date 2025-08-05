@@ -274,10 +274,29 @@ __Raises__
 
 ## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False)  {#Package.push}
 
-Copies objects to path, then creates a new package that points to those objects.
-Copies each object in this package to path according to logical key structure,
-then adds to the registry a serialized version of this package with
-physical keys that point to the new copies.
+Push creates a new package, or a new revision of an existing package in a package registry in Amazon S3.
+
+By default, local files are copied to the destination S3 bucket and path according to logical key structure. After any local objects are copied, a new package manifest is created that points to the objects in their new locations.
+
+The optional parameter, `selector_fn`, allows callers to choose which files are copied to the destination bucket, and which retain their existing physical key. When using selector functions, it is important to always copy local files to S3, otherwise the resulting package will be inaccessible to users accessing it from Amazon S3.
+
+The Package class includes two additional built-in selector functions:
+* `Package.selector_fn_COPY_ALL` copies all files to the destination path
+* `Package.selector_fn_LOCAL_ONLY` copies only local files to the destination path. Any PackageEntry's with physical keys pointing to objects in other buckets will retain their existing physical keys in the resulting package.
+
+If we have a package with entries:
+`pkg["entry_1"].physical_key = s3://bucket1/user/pkg_name/entry_1`
+`pkg["entry_2"].physical_key = s3://bucket2/folder1/entry_2`
+
+And, we call `pkg.push("user/pkg_name", registry="s3://bucket2")`, the file referenced by entry_1 will be copied, while the file referenced by entry_2 will now. The resulting package will have the following entries:
+`pkg["entry_1"].physical_key = s3://bucket2/user/pkg_name/entry_1`
+`pkg["entry_2"].physical_key = s3://bucket2/folder1/entry_2`
+
+Quilt3 Versions 6.3.1 and earlier copied all files to the destination path by default. To match this behavior in later versions, callers should use `selector_fn=Package.selector_fn_COPY_ALL`.
+
+Using the same initial package and push, but adding `selector_fn=Package.selector_fn.COPY_ALL` will result in both files being copied to the destionation path, producing the following package:
+`pkg["entry_1"].physical_key = s3://bucket2/user/pkg_name/entry_1`
+`pkg["entry_2"].physical_key = s3://bucket2/user/pkg_name/entry_2`
 
 Note that push is careful to not push data unnecessarily. To illustrate, imagine you have
 a PackageEntry: `pkg["entry_1"].physical_key = "/tmp/package_entry_1.json"`
@@ -286,14 +305,6 @@ If that entry would be pushed to `s3://bucket/prefix/entry_1.json`, but
 `s3://bucket/prefix/entry_1.json` already contains the exact same bytes as
 '/tmp/package_entry_1.json', `quilt3` will not push the bytes to s3, no matter what
 `selector_fn('entry_1', pkg["entry_1"])` returns.
-
-However, selector_fn will dictate whether the new package points to the local file or to s3:
-
-If `selector_fn('entry_1', pkg["entry_1"]) == False`,
-`new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
-
-If `selector_fn('entry_1', pkg["entry_1"]) == True`,
-`new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
 By default, push will not overwrite an existing package if its top hash does not match
 the parent hash of the package being pushed. Use `force=True` to skip the check.
