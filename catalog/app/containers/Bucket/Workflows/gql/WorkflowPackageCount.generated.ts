@@ -12,12 +12,10 @@ export type containers_Bucket_Workflows_gql_WorkflowPackageCountQuery = {
   readonly __typename: 'Query'
 } & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'PackagesSearchStats' } & Pick<
-          Types.PackagesSearchStats,
-          'total'
-        >
-      })
+    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
+        Types.PackagesSearchResultSet,
+        'total'
+      >)
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -102,16 +100,7 @@ export const containers_Bucket_Workflows_gql_WorkflowPackageCountDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
-                          ],
-                        },
-                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                     ],
                   },
                 },

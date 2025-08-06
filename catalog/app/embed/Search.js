@@ -9,7 +9,8 @@ import parseSearch from 'utils/parseSearch'
 import useSearch from 'utils/search'
 
 function Results({ bucket, query, page, makePageUrl, retry, retryUrl, scrollRef }) {
-  const data = Data.use(useSearch(), { buckets: [bucket], mode: 'objects', query, retry })
+  // TODO: use GQL to fetch search results
+  const data = Data.use(useSearch(), { buckets: [bucket], query, retry })
   return data.case({
     _: () => (
       <SearchResults.Progress>

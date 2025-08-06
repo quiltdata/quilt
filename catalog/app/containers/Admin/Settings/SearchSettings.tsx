@@ -87,7 +87,6 @@ export default function SearchSettings() {
     <div className={classes.root}>
       <div className={classes.actions}>
         <SelectDropdown
-          adaptive={false}
           value={value}
           options={searchModes}
           ButtonProps={{ className: classes.selectBtn }}
