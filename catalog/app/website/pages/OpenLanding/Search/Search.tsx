@@ -1,14 +1,12 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-// TODO: decouple NavBar layout/state from gql and auth calls
-//       and place it into components/SearchBar
-import { useNavBar } from 'containers/NavBar/Provider'
-import Suggestions from 'containers/NavBar/Suggestions'
-
 import img2x from 'utils/img2x'
 
 import Dots from 'website/components/Backgrounds/Dots'
+
+import Suggestions from './Suggestions'
+import useState from './State'
 
 import bg from './search-bg.png'
 import bg2x from './search-bg@2x.png'
@@ -21,6 +19,25 @@ const useHelpStyles = M.makeStyles((t) => ({
     position: 'absolute',
     width: '100%',
     zIndex: 1,
+  },
+}))
+
+const useInputStyles = M.makeStyles((t) => ({
+  root: {
+    animation: '$slideDown 0.3s ease',
+    background: t.palette.common.white,
+    borderRadius: t.typography.pxToRem(40),
+    color: t.palette.getContrastText(t.palette.common.white),
+    fontSize: t.typography.pxToRem(30),
+    lineHeight: t.typography.pxToRem(80),
+    maxWidth: 960,
+    overflow: 'hidden',
+    paddingLeft: 0,
+    width: '100%',
+  },
+  input: {
+    height: 'auto',
+    padding: t.spacing(0, 4, 0, 10),
   },
 }))
 
@@ -52,32 +69,6 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.down('xs')]: {
       paddingTop: t.spacing(20),
     },
-  },
-  inputRoot: {
-    animation: '$slideDown 0.3s ease',
-    background: t.palette.common.white,
-    borderRadius: t.typography.pxToRem(40),
-    color: t.palette.getContrastText(t.palette.common.white),
-    fontSize: t.typography.pxToRem(30),
-    lineHeight: t.typography.pxToRem(80),
-    maxWidth: 960,
-    overflow: 'hidden',
-    paddingLeft: 0,
-    width: '100%',
-  },
-  inputInput: {
-    height: 'auto',
-    padding: t.spacing(0, 4, 0, 10),
-  },
-  inputOptions: {
-    borderColor: t.palette.grey[300],
-    borderRadius: 0,
-    borderWidth: '0 1px 0 0',
-    color: t.palette.grey[600],
-    padding: t.spacing(1.5, 1.5, 1.5, 3),
-  },
-  inputOptionsSelected: {
-    boxShadow: 'inset -1px 0 4px rgba(0, 0, 0, 0.2)',
   },
   inputWrapper: {
     display: 'flex',
@@ -120,9 +111,10 @@ const useStyles = M.makeStyles((t) => ({
 export default function Search() {
   const classes = useStyles()
   const helpClasses = useHelpStyles()
+  const inputClasses = useInputStyles()
 
-  const { input, onClickAway } = useNavBar()
-  const ref = React.useRef(null)
+  const { helpOpen, input, onClickAway, suggestions } = useState()
+  const ref = React.useRef<HTMLInputElement>(null)
   const focus = React.useCallback(() => ref.current?.focus(), [])
 
   return (
@@ -134,18 +126,22 @@ export default function Search() {
             <div className={classes.inputWrapper}>
               <M.InputBase
                 {...input}
+                classes={inputClasses}
+                placeholder="Search"
+                ref={ref}
                 startAdornment={
-                  <M.InputAdornment className={classes.adornment}>
+                  <M.InputAdornment className={classes.adornment} position="start">
                     <M.Icon className={classes.icon} onClick={focus}>
                       search
                     </M.Icon>
                   </M.InputAdornment>
                 }
-                classes={{ root: classes.inputRoot, input: classes.inputInput }}
-                placeholder="Search"
-                ref={ref}
               />
-              <Suggestions classes={helpClasses} open={input.helpOpen} />
+              <Suggestions
+                classes={helpClasses}
+                open={helpOpen}
+                suggestions={suggestions}
+              />
             </div>
           </M.ClickAwayListener>
         </div>

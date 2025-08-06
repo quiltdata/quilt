@@ -6,52 +6,15 @@ import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
+import * as Request from 'utils/useRequest'
+import assertNever from 'utils/assertNever'
 
 import * as requests from './requests'
 import { displayError } from './errors'
 
-const Loading = Symbol('loading')
-
 const Dir = Symbol('dir')
 
 const File = Symbol('file')
-
-type RequestResult<T> = typeof Loading | Error | T
-
-function useRequest<T>(req: () => Promise<T>, proceed: boolean = true): RequestResult<T> {
-  const [result, setResult] = React.useState<RequestResult<T>>(Loading)
-
-  const currentReq = React.useRef<Promise<T>>()
-
-  React.useEffect(() => {
-    setResult(Loading)
-
-    if (!proceed) {
-      currentReq.current = undefined
-      return
-    }
-
-    const p = req()
-    currentReq.current = p
-
-    function handleResult(r: T | Error) {
-      // if the request is not the current one, ignore the result
-      if (currentReq.current === p) setResult(r)
-    }
-
-    p.then(handleResult, handleResult)
-  }, [req, proceed])
-
-  // cleanup on unmount
-  React.useEffect(
-    () => () => {
-      currentReq.current = undefined
-    },
-    [],
-  )
-
-  return result
-}
 
 // If object exists, then this is 100% an object page
 function useIsObject(handle: Model.S3.S3ObjectLocation) {
@@ -65,7 +28,7 @@ function useIsObject(handle: Model.S3.S3ObjectLocation) {
     [s3, bucket, key, version],
   )
 
-  return useRequest<boolean>(req)
+  return Request.use<boolean>(req)
 }
 
 // If prefix contains at least something, then it is a directory.
@@ -85,18 +48,30 @@ function useIsDirectory(handle: Model.S3.S3ObjectLocation, proceed: boolean) {
     [bucketListing, bucket, path],
   )
 
-  return useRequest(req, proceed)
+  return Request.use(req, proceed)
 }
 
 function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
   const isObject = useIsObject(handle)
   const isDirectory = useIsDirectory(handle, !isObject)
 
-  if (isObject === Loading || isObject instanceof Error) return isObject
+  if (
+    isObject === Request.Idle ||
+    isObject === Request.Loading ||
+    isObject instanceof Error
+  ) {
+    return isObject
+  }
 
   if (isObject) return File
 
-  if (isDirectory === Loading || isDirectory instanceof Error) return isDirectory
+  if (
+    isDirectory === Request.Idle ||
+    isDirectory === Request.Loading ||
+    isDirectory instanceof Error
+  ) {
+    return isDirectory
+  }
 
   return isDirectory ? Dir : File
 }
@@ -111,8 +86,12 @@ export default function FallbackToDir({ children, handle }: FallbackToDirProps) 
 
   const pageType = useFallbackToDir(handle)
 
+  if (pageType instanceof Error) return <>{displayError()(pageType)}</>
+
   switch (pageType) {
-    case Loading:
+    case Request.Idle:
+      return null
+    case Request.Loading:
       return <Placeholder color="text.secondary" />
     case Dir:
       const dirPage = urls.bucketDir(handle.bucket, s3paths.ensureSlash(handle.key))
@@ -120,6 +99,6 @@ export default function FallbackToDir({ children, handle }: FallbackToDirProps) 
     case File:
       return <>{children}</>
     default:
-      return <>{displayError()(pageType)}</>
+      assertNever(pageType)
   }
 }

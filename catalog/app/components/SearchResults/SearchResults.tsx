@@ -23,7 +23,7 @@ import usePrevious from 'utils/usePrevious'
 import * as requests from 'containers/Bucket/requests'
 
 const PER_PAGE = 10
-const ES_V = '6.7'
+const ES_V = '6.8'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}`
 export const ES_REF_SYNTAX = `${ES_REF}/query-dsl-query-string-query.html#query-string-syntax`
 const ES_REF_WILDCARDS = `${ES_REF}/query-dsl-query-string-query.html#_wildcards`

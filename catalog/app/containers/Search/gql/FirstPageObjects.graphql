@@ -7,9 +7,7 @@ query (
   searchObjects(buckets: $buckets, searchString: $searchString, filter: $filter) {
     __typename
     ... on ObjectsSearchResultSet {
-      stats {
-        total
-      }
+      total
       firstPage(order: $order) {
         cursor
         hits {

@@ -27,10 +27,10 @@ indexing for the following file extensions:
   * .pptx
   * .xls, .xlsx
 
-### Search Bar
+### Search page
 
-The search bar on every page in the catalog provides a convenient
-shortcut for searching objects and packages in an Amazon S3
+The search page in the catalog, accessible from the search button in the top menu bar, provides a convenient
+way for searching objects and packages in an Amazon S3
 bucket.
 
 NOTE: Quilt uses Elasticsearch 6.7 [query string
@@ -100,3 +100,7 @@ more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-req
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
 * `body` — the search query body as a JSON dictionary ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html))
+
+### Secure Search
+
+Secure Search adds object-level permission enforcement to search results. When enabled, it filters Elasticsearch hits by verifying the user's actual S3 permissions using HEAD requests. This ensures that users only see results they are authorized to access, providing stronger restrictions beyond just bucket-level indices.

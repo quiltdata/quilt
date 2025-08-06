@@ -10,8 +10,11 @@ import Skeleton from 'components/Skeleton'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
+import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 import useConst from 'utils/useConstant'
 
@@ -21,6 +24,8 @@ import { ColorPool, makeColorPool } from './ColorPool'
 import Downloads from './Downloads'
 
 import bg from './Overview-bg.jpg'
+
+import STAT_COUNTS_QUERY from './gql/StatCounts.generated'
 
 // interface StatsData {
 //   exts: ExtData[]
@@ -201,18 +206,18 @@ function ObjectsByExt({ data, colorPool, ...props }: ObjectsByExtProps) {
   )
 }
 
-const useStatDisplayStyles = M.makeStyles((t) => ({
+const useStatsItemStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
     display: 'flex',
-    '& + &': {
-      marginLeft: t.spacing(1.5),
-      [t.breakpoints.up('sm')]: {
-        marginLeft: t.spacing(4),
-      },
-      [t.breakpoints.up('md')]: {
-        marginLeft: t.spacing(6),
-      },
+  },
+  label: {
+    ...t.typography.body2,
+    color: t.palette.grey[300],
+    lineHeight: 1,
+    marginLeft: t.spacing(0.5),
+    [t.breakpoints.up('sm')]: {
+      marginLeft: t.spacing(1),
     },
   },
   value: {
@@ -225,16 +230,26 @@ const useStatDisplayStyles = M.makeStyles((t) => ({
       lineHeight: '32px',
     },
   },
-  label: {
-    ...t.typography.body2,
-    color: t.palette.grey[300],
-    lineHeight: 1,
-    marginLeft: t.spacing(0.5),
-    [t.breakpoints.up('sm')]: {
-      marginLeft: t.spacing(1),
-    },
-  },
-  skeletonContainer: {
+}))
+
+interface StatsItemProps {
+  label?: string
+  value: string
+}
+
+function StatsItem({ label, value }: StatsItemProps) {
+  const classes = useStatsItemStyles()
+  return (
+    <span className={classes.root}>
+      <span className={classes.value}>{value}</span>
+      {!!label && <span className={classes.label}>{label}</span>}
+    </span>
+  )
+}
+
+const useStatsItemSkeletonStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
     alignItems: 'center',
     height: 20,
     [t.breakpoints.up('sm')]: {
@@ -252,37 +267,102 @@ const useStatDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface StatDisplayProps {
-  value: $TSFixMe // AsyncResult<?>
-  label?: string
-  format?: (v: any) => any
-  fallback?: (v: any) => any
+function StatsItemSkeleton() {
+  const classes = useStatsItemSkeletonStyles()
+  return (
+    <div className={classes.root}>
+      <Skeleton className={classes.skeleton} bgcolor="grey.400" />
+    </div>
+  )
 }
 
-function StatDisplay({ value, label, format, fallback }: StatDisplayProps) {
-  const classes = useStatDisplayStyles()
-  return Eff.pipe(
-    value,
-    AsyncResult.case({
-      Ok: Eff.flow(format || Eff.identity, AsyncResult.Ok),
-      Err: Eff.flow(fallback || Eff.identity, AsyncResult.Ok),
-      _: Eff.identity,
-    }),
-    AsyncResult.case({
-      Ok: (v: $TSFixMe) =>
-        v != null && (
-          <span className={classes.root}>
-            <span className={classes.value}>{v}</span>
-            {!!label && <span className={classes.label}>{label}</span>}
-          </span>
-        ),
-      _: () => (
-        <div className={cx(classes.root, classes.skeletonContainer)}>
-          <Skeleton className={classes.skeleton} bgcolor="grey.400" />
-        </div>
+function useStats(bucket: string, overviewUrl?: string | null) {
+  const s3 = AWS.S3.use()
+  const req = APIConnector.use()
+  const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
+  const countQuery = GQL.useQuery(STAT_COUNTS_QUERY, { buckets: [bucket] })
+  const totalBytes: string | null = React.useMemo(
+    () =>
+      AsyncResult.case(
+        {
+          Ok: (v: $TSFixMe) => readableBytes(v.totalBytes),
+          Err: () => '? B',
+          _: () => null,
+        },
+        statsData.result,
       ),
-    }),
-  ) as JSX.Element
+    [statsData.result],
+  )
+  const totalObjects: string | null = React.useMemo(
+    () =>
+      AsyncResult.case(
+        {
+          Ok: (v: $TSFixMe) => readableQuantity(v.totalObjects),
+          Err: () => '?',
+          _: () => null,
+        },
+        statsData.result,
+      ),
+    [statsData.result],
+  )
+  const pkgCount: string | null = React.useMemo(
+    () =>
+      GQL.fold(countQuery, {
+        data: ({ searchPackages: r }) => {
+          switch (r.__typename) {
+            case 'EmptySearchResultSet':
+            case 'InvalidInput':
+              return '?'
+            case 'PackagesSearchResultSet':
+              return r.total >= 0 ? formatQuantity(r.total) : '?'
+            default:
+              assertNever(r)
+          }
+        },
+        fetching: () => null,
+        error: () => '?',
+      }),
+    [countQuery],
+  )
+  return { totalBytes, totalObjects, pkgCount }
+}
+
+const useStatsStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    alignItems: 'baseline',
+    gridTemplateColumns: 'auto auto auto',
+    gridColumnGap: t.spacing(1.5),
+    justifyContent: 'flex-start',
+    [t.breakpoints.up('sm')]: {
+      gridColumnGap: t.spacing(4),
+    },
+    [t.breakpoints.up('md')]: {
+      gridColumnGap: t.spacing(6),
+    },
+  },
+}))
+
+interface StatsProps {
+  className: string
+  bucket: string
+  overviewUrl?: string | null
+}
+
+function Stats({ className, bucket, overviewUrl }: StatsProps) {
+  const classes = useStatsStyles()
+  const { totalBytes, totalObjects, pkgCount } = useStats(bucket, overviewUrl)
+  return (
+    <div className={cx(classes.root, className)}>
+      {totalBytes ? <StatsItem value={totalBytes} /> : <StatsItemSkeleton />}
+      {totalObjects ? (
+        <StatsItem value={totalObjects} label="Objects" />
+      ) : (
+        <StatsItemSkeleton />
+      )}
+      {pkgCount ? <StatsItem value={pkgCount} label="Packages" /> : <StatsItemSkeleton />}
+    </div>
+  )
 }
 
 // use the same height as the bar chart: 20px per bar with 2px margin
@@ -322,6 +402,14 @@ const useStyles = M.makeStyles((t) => ({
     right: t.spacing(2),
     top: t.spacing(2),
   },
+  stats: {
+    [t.breakpoints.down('xs')]: {
+      marginTop: t.spacing(2),
+    },
+    [t.breakpoints.up('sm')]: {
+      marginTop: t.spacing(3),
+    },
+  },
 }))
 
 interface HeaderProps {
@@ -337,7 +425,6 @@ export default function Header({ s3, overviewUrl, bucket, description }: HeaderP
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => makeColorPool(COLOR_MAP))
   const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
-  const pkgCountData = useData(requests.countPackageRevisions, { req, bucket })
   const { urls } = NamedRoutes.use()
   const isAdmin = redux.useSelector(authSelectors.isAdmin)
   return (
@@ -366,25 +453,7 @@ export default function Header({ s3, overviewUrl, bucket, description }: HeaderP
             </M.Typography>
           </M.Box>
         )}
-        <M.Box mt={{ xs: 2, sm: 3 }} display="flex" alignItems="baseline">
-          <StatDisplay
-            value={AsyncResult.prop('totalBytes', statsData.result)}
-            format={readableBytes}
-            fallback={() => '? B'}
-          />
-          <StatDisplay
-            value={AsyncResult.prop('totalObjects', statsData.result)}
-            format={readableQuantity}
-            label="Objects"
-            fallback={() => '?'}
-          />
-          <StatDisplay
-            value={pkgCountData.result}
-            format={formatQuantity}
-            label="Packages"
-            fallback={() => null}
-          />
-        </M.Box>
+        <Stats className={classes.stats} bucket={bucket} overviewUrl={overviewUrl} />
         {isAdmin && (
           <RRLink className={classes.settings} to={urls.adminBucketEdit(bucket)}>
             <M.IconButton color="inherit">

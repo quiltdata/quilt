@@ -15,32 +15,52 @@ export type containers_Search_gql_FirstPagePackagesQuery = {
   readonly __typename: 'Query'
 } & {
   readonly searchPackages:
-    | ({ readonly __typename: 'PackagesSearchResultSet' } & {
-        readonly stats: { readonly __typename: 'PackagesSearchStats' } & Pick<
-          Types.PackagesSearchStats,
-          'total'
-        >
-        readonly firstPage: { readonly __typename: 'PackagesSearchResultSetPage' } & Pick<
-          Types.PackagesSearchResultSetPage,
-          'cursor'
-        > & {
-            readonly hits: ReadonlyArray<
-              { readonly __typename: 'SearchHitPackage' } & Pick<
-                Types.SearchHitPackage,
-                | 'id'
-                | 'bucket'
-                | 'score'
-                | 'size'
-                | 'modified'
-                | 'name'
-                | 'hash'
-                | 'comment'
-                | 'meta'
-                | 'workflow'
+    | ({ readonly __typename: 'PackagesSearchResultSet' } & Pick<
+        Types.PackagesSearchResultSet,
+        'total'
+      > & {
+          readonly firstPage: {
+            readonly __typename: 'PackagesSearchResultSetPage'
+          } & Pick<Types.PackagesSearchResultSetPage, 'cursor'> & {
+              readonly hits: ReadonlyArray<
+                { readonly __typename: 'SearchHitPackage' } & Pick<
+                  Types.SearchHitPackage,
+                  | 'id'
+                  | 'bucket'
+                  | 'name'
+                  | 'pointer'
+                  | 'hash'
+                  | 'score'
+                  | 'size'
+                  | 'modified'
+                  | 'totalEntriesCount'
+                  | 'comment'
+                  | 'meta'
+                  | 'workflow'
+                > & {
+                    readonly matchLocations: {
+                      readonly __typename: 'SearchHitPackageMatchLocations'
+                    } & Pick<
+                      Types.SearchHitPackageMatchLocations,
+                      'comment' | 'meta' | 'name' | 'workflow'
+                    >
+                    readonly matchingEntries: ReadonlyArray<
+                      { readonly __typename: 'SearchHitPackageMatchingEntry' } & Pick<
+                        Types.SearchHitPackageMatchingEntry,
+                        'logicalKey' | 'physicalKey' | 'size' | 'meta'
+                      > & {
+                          readonly matchLocations: {
+                            readonly __typename: 'SearchHitPackageEntryMatchLocations'
+                          } & Pick<
+                            Types.SearchHitPackageEntryMatchLocations,
+                            'contents' | 'logicalKey' | 'meta' | 'physicalKey'
+                          >
+                        }
+                    >
+                  }
               >
-            >
-          }
-      })
+            }
+        })
     | { readonly __typename: 'EmptySearchResultSet' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
@@ -167,16 +187,7 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
-                          ],
-                        },
-                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                       {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'firstPage' },
@@ -211,6 +222,18 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                   },
                                   {
                                     kind: 'Field',
+                                    name: { kind: 'Name', value: 'name' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'pointer' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'hash' },
+                                  },
+                                  {
+                                    kind: 'Field',
                                     name: { kind: 'Name', value: 'score' },
                                   },
                                   {
@@ -223,11 +246,7 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                   },
                                   {
                                     kind: 'Field',
-                                    name: { kind: 'Name', value: 'name' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'hash' },
+                                    name: { kind: 'Name', value: 'totalEntriesCount' },
                                   },
                                   {
                                     kind: 'Field',
@@ -240,6 +259,87 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                                   {
                                     kind: 'Field',
                                     name: { kind: 'Name', value: 'workflow' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'matchLocations' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'comment' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'meta' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'name' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'workflow' },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'matchingEntries' },
+                                    selectionSet: {
+                                      kind: 'SelectionSet',
+                                      selections: [
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'logicalKey' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'physicalKey' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'size' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'meta' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'matchLocations' },
+                                          selectionSet: {
+                                            kind: 'SelectionSet',
+                                            selections: [
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'contents' },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: {
+                                                  kind: 'Name',
+                                                  value: 'logicalKey',
+                                                },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'meta' },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: {
+                                                  kind: 'Name',
+                                                  value: 'physicalKey',
+                                                },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                      ],
+                                    },
                                   },
                                 ],
                               },

@@ -11,21 +11,23 @@ import * as SearchUIModel from './model'
 const sortOptions = [
   {
     toString: () => 'Best match',
-    valueOf() {
-      return Model.GQLTypes.SearchResultOrder.BEST_MATCH
-    },
+    valueOf: () => Model.GQLTypes.SearchResultOrder.BEST_MATCH,
   },
   {
     toString: () => 'Most recent first',
-    valueOf() {
-      return Model.GQLTypes.SearchResultOrder.NEWEST
-    },
+    valueOf: () => Model.GQLTypes.SearchResultOrder.NEWEST,
   },
   {
     toString: () => 'Least recent first',
-    valueOf() {
-      return Model.GQLTypes.SearchResultOrder.OLDEST
-    },
+    valueOf: () => Model.GQLTypes.SearchResultOrder.OLDEST,
+  },
+  {
+    toString: () => 'A → Z',
+    valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_ASC,
+  },
+  {
+    toString: () => 'Z → A',
+    valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_DESC,
   },
 ]
 
@@ -98,6 +100,7 @@ export default function Sort({ className }: SortProps) {
       value={value}
       onChange={handleChange}
       ButtonProps={{ classes: buttonClasses, size: 'medium' }}
+      shrink={sm}
     >
       {sm ? <M.Icon>sort</M.Icon> : 'Sort by:'}
     </SelectDropdown>
