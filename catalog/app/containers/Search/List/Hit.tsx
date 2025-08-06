@@ -12,7 +12,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Format from 'utils/format'
 import { readableBytes } from 'utils/string'
 
-import * as SearchUIModel from './model'
+import * as SearchUIModel from '../model'
 
 const useCardStyles = M.makeStyles((t) => ({
   card: {
@@ -178,7 +178,7 @@ export function Package({
   const metaJson = React.useMemo(() => {
     if (!hit.meta) return null
     try {
-      return JSON.parse(hit.meta as any)
+      return JSON.parse(hit.meta)
     } catch {
       return null
     }
@@ -548,6 +548,24 @@ export function PackageSkeleton() {
       </Section>
       <Section divider>
         <Skeleton height={20} width="100%" />
+      </Section>
+    </Card>
+  )
+}
+
+interface PackagePlaceholderProps {
+  children: React.ReactNode
+}
+
+export function PackagePlaceholder({ children }: PackagePlaceholderProps) {
+  return (
+    <Card>
+      <Section>
+        <Skeleton height={20} width="60%" animate={false} />
+        <M.Typography style={{ marginTop: '8px' }}>{children}</M.Typography>
+      </Section>
+      <Section divider>
+        <Skeleton height={20} width="100%" animate={false} />
       </Section>
     </Card>
   )

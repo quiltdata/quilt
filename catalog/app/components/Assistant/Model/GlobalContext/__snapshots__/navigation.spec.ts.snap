@@ -310,6 +310,20 @@ exports[`components/Assistant/Model/GlobalTools/navigation NavigateSchema produc
                       "title": "OLDEST",
                       "type": "string",
                     },
+                    {
+                      "enum": [
+                        "LEX_ASC",
+                      ],
+                      "title": "LEX_ASC",
+                      "type": "string",
+                    },
+                    {
+                      "enum": [
+                        "LEX_DESC",
+                      ],
+                      "title": "LEX_DESC",
+                      "type": "string",
+                    },
                   ],
                   "description": "Order of search results",
                   "title": "Search result order",

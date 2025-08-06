@@ -3,21 +3,26 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { ES_REF_SYNTAX } from 'components/SearchResults'
-import { useNavBar } from 'containers/NavBar'
+import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
-import * as Hit from './Hit'
+import * as Hit from './List/Hit'
+import { Table as TableSkeleton } from './Table/Skeleton'
 import * as SearchUIModel from './model'
 
-interface ResultsSkeletonProps {
+interface SkeletonProps {
   className?: string
-  type: SearchUIModel.ResultType
+  state: SearchUIModel.SearchUrlState
 }
 
-export function ResultsSkeleton({ className, type }: ResultsSkeletonProps) {
+export function Skeleton({ className, state }: SkeletonProps) {
+  if (state.view === SearchUIModel.View.Table) {
+    return <TableSkeleton className={className} />
+  }
+
   const Component =
-    type === SearchUIModel.ResultType.QuiltPackage
+    state.resultType === SearchUIModel.ResultType.QuiltPackage
       ? Hit.PackageSkeleton
       : Hit.ObjectSkeleton
   return (
@@ -36,7 +41,7 @@ const LABELS = {
   [SearchUIModel.ResultType.S3Object]: 'objects',
 }
 
-const useEmptyResultsStyles = M.makeStyles((t) => ({
+const useEmptyStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
@@ -44,34 +49,37 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
   },
   body: {
     maxWidth: '30rem',
+    marginTop: t.spacing(3),
   },
   list: {
     ...t.typography.body1,
     paddingLeft: 0,
   },
+  create: {
+    maxWidth: '30rem',
+    borderBottom: `1px solid ${t.palette.divider}`,
+    marginTop: t.spacing(2),
+    paddingBottom: t.spacing(2),
+  },
 }))
 
-interface EmptyResultsProps {
-  className?: string
+export enum Refine {
+  Buckets,
+  ResultType,
+  Filters,
+  Search,
+  New,
+  Network,
 }
 
-export function EmptyResults({ className }: EmptyResultsProps) {
-  const classes = useEmptyResultsStyles()
-  const {
-    actions: { clearFilters, reset, setBuckets, setResultType },
-    baseSearchQuery,
-    state,
-  } = SearchUIModel.use()
-  const focus = useNavBar()?.focus
+interface EmptyProps {
+  className?: string
+  onRefine: (action: Refine) => void
+}
 
-  const startNewSearch = React.useCallback(() => {
-    reset()
-    focus?.()
-  }, [focus, reset])
-
-  const resetBuckets = React.useCallback(() => {
-    setBuckets([])
-  }, [setBuckets])
+export function Empty({ className, onRefine }: EmptyProps) {
+  const classes = useEmptyStyles()
+  const { baseSearchQuery, state } = SearchUIModel.use()
 
   const otherResultType =
     state.resultType === SearchUIModel.ResultType.QuiltPackage
@@ -90,7 +98,7 @@ export function EmptyResults({ className }: EmptyResultsProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return r.stats.total
+            return r.total >= 0 ? r.total : null
           default:
             return null
         }
@@ -101,10 +109,6 @@ export function EmptyResults({ className }: EmptyResultsProps) {
 
   const totalOtherResults = getTotalResults(otherResultType)
 
-  const switchResultType = React.useCallback(() => {
-    setResultType(otherResultType)
-  }, [setResultType, otherResultType])
-
   let numFilters = state.filter.order.length
   if (state.resultType === SearchUIModel.ResultType.QuiltPackage) {
     numFilters += state.userMetaFilters.filters.size
@@ -114,10 +118,11 @@ export function EmptyResults({ className }: EmptyResultsProps) {
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
 
-      <M.Box mt={3} />
       <M.Typography variant="body1" align="center" className={classes.body}>
         Search for{' '}
-        <StyledLink onClick={switchResultType}>{LABELS[otherResultType]}</StyledLink>{' '}
+        <StyledLink onClick={() => onRefine(Refine.ResultType)}>
+          {LABELS[otherResultType]}
+        </StyledLink>{' '}
         instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or adjust
         your search:
       </M.Typography>
@@ -125,54 +130,72 @@ export function EmptyResults({ className }: EmptyResultsProps) {
       <ul className={classes.list}>
         {state.buckets.length > 0 && (
           <li>
-            Search in <StyledLink onClick={resetBuckets}>all buckets</StyledLink>
+            Search in{' '}
+            <StyledLink onClick={() => onRefine(Refine.Buckets)}>all buckets</StyledLink>
           </li>
         )}
         {numFilters > 0 && (
           <li>
-            Reset the <StyledLink onClick={clearFilters}>search filters</StyledLink>
+            Reset the{' '}
+            <StyledLink onClick={() => onRefine(Refine.Filters)}>
+              search filters
+            </StyledLink>
           </li>
         )}
         <li>
-          Edit your <StyledLink onClick={focus}>search query</StyledLink>
+          Edit your{' '}
+          <StyledLink onClick={() => onRefine(Refine.Search)}>search query</StyledLink>
         </li>
         <li>
-          Start <StyledLink onClick={startNewSearch}>from scratch</StyledLink>
+          Start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
         </li>
       </ul>
     </div>
   )
 }
 
-interface SearchErrorProps {
-  className?: string
-  kind?: 'unexpected' | 'syntax'
-  details: React.ReactNode
+interface SecureSearchProps extends EmptyProps {
+  onLoadMore: () => void
 }
 
-export function SearchError({
+export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchProps) {
+  return (
+    <div className={className}>
+      <Hit.PackagePlaceholder>
+        The initial batch of results was filtered out due to{' '}
+        <StyledLink
+          href={`${docs}/quilt-platform-catalog-user/search#secure-search`}
+          target="_blank"
+        >
+          secure search
+        </StyledLink>
+        .
+        <br />
+        <StyledLink onClick={onLoadMore}>Load more</StyledLink> to try additional results,
+        or{' '}
+        <StyledLink onClick={() => onRefine(Refine.New)}>
+          enter a different search
+        </StyledLink>
+        .
+      </Hit.PackagePlaceholder>
+    </div>
+  )
+}
+
+interface ErrorProps {
+  className?: string
+  kind?: 'unexpected' | 'syntax'
+  children: React.ReactNode
+  onRefine: (action: Refine) => void
+}
+
+export function Error({
   className,
   kind = 'unexpected',
-  details,
-}: SearchErrorProps) {
-  const classes = useEmptyResultsStyles()
-  const {
-    actions: { reset },
-  } = SearchUIModel.use()
-  const focus = useNavBar()?.focus
-  const startNewSearch = React.useCallback(
-    (event) => {
-      event.stopPropagation()
-      reset()
-      focus?.()
-    },
-    [reset, focus],
-  )
-  const tryAgain = React.useCallback(() => {
-    // FIXME: retry GQL request
-    window.location.reload()
-  }, [])
-
+  children,
+  onRefine,
+}: ErrorProps) {
+  const classes = useEmptyStyles()
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">
@@ -184,7 +207,9 @@ export function SearchError({
           <>
             Oops, couldn&apos;t parse that search.
             <br />
-            Try quoting <StyledLink onClick={focus}>your query</StyledLink> or read about{' '}
+            Try quoting{' '}
+            <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+            read about{' '}
             <StyledLink href={ES_REF_SYNTAX} target="_blank">
               supported query syntax
             </StyledLink>
@@ -194,8 +219,9 @@ export function SearchError({
           <>
             Oops, something went wrong.
             <br />
-            <StyledLink onClick={tryAgain}>Try again</StyledLink> or start a{' '}
-            <StyledLink onClick={startNewSearch}>new search</StyledLink>.
+            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            start a{' '}
+            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>
         )}
       </M.Typography>
@@ -203,8 +229,8 @@ export function SearchError({
       <M.Box mt={3} />
       <M.Typography variant="h6">Error details</M.Typography>
       <M.Box mt={1} />
-      <M.Typography variant="body2" className={classes.body}>
-        {details}
+      <M.Typography variant="body2" className={classes.body} component="div">
+        {children}
       </M.Typography>
     </div>
   )
