@@ -7,7 +7,9 @@ import { VisibilityOffOutlined as IconVisibilityOffOutlined } from '@material-ui
 import { useDebouncedCallback } from 'use-debounce'
 
 import { TinyTextField, List } from 'components/Filters'
+import { docs } from 'constants/urls'
 import * as BucketConfig from 'utils/BucketConfig'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 import * as Request from 'utils/useRequest'
@@ -180,9 +182,13 @@ function AvailableUserMetaColumn({ column, ...props }: AvailableUserMetaColumnPr
     showColumn()
     open(column)
   }, [column, open, showColumn])
+
   return (
     <M.MenuItem onClick={handleClick}>
-      <M.ListItemText {...props} />
+      <M.ListItemText
+        secondary={column?.state?.filtered && 'Filters applied'}
+        {...props}
+      />
       <M.ListItemSecondaryAction>
         <M.Checkbox edge="end" onChange={handleChange} checked={column.state.visible} />
       </M.ListItemSecondaryAction>
@@ -282,12 +288,11 @@ const usePackageRowStyles = M.makeStyles((t) => ({
 
 interface PackageRowProps {
   hit: Hit
-  columns: ColumnsMap
+  columnsList: Column[]
   skeletons?: Skeleton.Column[]
-  minColumnsNumber: number
 }
 
-function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowProps) {
+function PackageRow({ columnsList, hit, skeletons }: PackageRowProps) {
   const classes = usePackageRowStyles()
   const [open, setOpen] = React.useState(false)
   const toggle = React.useCallback(() => setOpen((x) => !x), [])
@@ -299,14 +304,6 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
       hash: hit.hash,
     }),
     [hit],
-  )
-
-  const visibleColumns = React.useMemo(
-    () =>
-      Array.from(columns.values())
-        .filter((c) => c.state.visible)
-        .slice(0, minColumnsNumber),
-    [columns, minColumnsNumber],
   )
 
   return (
@@ -325,7 +322,7 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
             />
           )}
         </M.TableCell>
-        {visibleColumns.map((column) => (
+        {columnsList.map((column) => (
           <M.TableCell
             key={column.filter}
             align={getColumnAlign(column)}
@@ -348,7 +345,7 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
         <M.TableRow>
           <M.TableCell
             className={classes.entries}
-            colSpan={visibleColumns.length + 2 + (skeletons?.length || 0)}
+            colSpan={columnsList.length + 2 + (skeletons?.length || 0)}
           >
             {open && (
               <Entries
@@ -361,6 +358,28 @@ function PackageRow({ columns, hit, minColumnsNumber, skeletons }: PackageRowPro
         </M.TableRow>
       )}
     </>
+  )
+}
+
+function EmptyRow({ columnsList, skeletons }: Omit<PackageRowProps, 'hit'>) {
+  const colSpan =
+    columnsList.length + (skeletons?.length || 0) + 1 /* for placeholder column */
+  return (
+    <M.TableRow>
+      <M.TableCell padding="checkbox" />
+      <M.TableCell colSpan={colSpan}>
+        <M.Typography>
+          The initial batch of results was filtered out due to{' '}
+          <StyledLink
+            href={`${docs}/quilt-platform-catalog-user/search#secure-search`}
+            target="_blank"
+          >
+            secure search
+          </StyledLink>
+          . Click "Load more" to try additional results, or enter a different search.
+        </M.Typography>
+      </M.TableCell>
+    </M.TableRow>
   )
 }
 
@@ -1219,7 +1238,7 @@ const useLayoutStyles = M.makeStyles((t) => ({
 }))
 
 interface LayoutProps {
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
   columns: ColumnsMap
   skeletons: Skeleton.Row[]
 }
@@ -1291,15 +1310,22 @@ function Layout({ hits, columns, skeletons }: LayoutProps) {
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
-            {hits.map((hit, index) => (
-              <PackageRow
-                key={hit.id}
-                columns={columns}
-                hit={hit}
-                skeletons={skeletonColumns[index + 1]?.columns}
-                minColumnsNumber={minColumnsNumber}
-              />
-            ))}
+            {hits.map((hit, index) =>
+              hit ? (
+                <PackageRow
+                  key={hit.id}
+                  columnsList={visibleColumns}
+                  hit={hit}
+                  skeletons={skeletonColumns[index + 1]?.columns}
+                />
+              ) : (
+                <EmptyRow
+                  key={`empty_${index}`}
+                  columnsList={visibleColumns}
+                  skeletons={skeletonHead?.columns}
+                />
+              ),
+            )}
           </M.TableBody>
         </M.Table>
       </div>
@@ -1318,7 +1344,7 @@ const useTableViewStyles = M.makeStyles((t) => ({
 }))
 
 interface TableViewProps {
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
   bucket?: string
 }
 
@@ -1343,7 +1369,7 @@ function TableView({ hits, bucket }: TableViewProps) {
 }
 
 interface TableViewInitProps {
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
   bucket?: string
 }
 

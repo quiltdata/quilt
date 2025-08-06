@@ -75,15 +75,20 @@ type ResultsNotFulfilled = ResultsInProgress | ResultsFail | ResultsEmpty | Resu
 interface ResultsOk {
   _tag: 'ok'
   cursor: string | null
-  hits: readonly Hit[]
+  hits: readonly (Hit | null)[]
+  determinate: boolean
   next?: ResultsNotFulfilled
 }
 
 export type Results = ResultsOk | ResultsNotFulfilled
 
+type NextResults =
+  | Omit<ResultsOk, 'determinate'>
+  | Exclude<ResultsNotFulfilled, ResultsEmpty | ResultsIdle>
+
 function parseNextResults(
   query: ReturnType<typeof SearchUIModel.useNextPagePackagesQuery>,
-): Exclude<Results, ResultsEmpty | ResultsIdle> {
+): NextResults {
   switch (query._tag) {
     case 'fetching':
       return IN_PROGRESS
@@ -96,7 +101,11 @@ function parseNextResults(
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
         case 'PackagesSearchResultSetPage':
           const { hits, ...data } = query.data
-          return { _tag: 'ok' as const, hits: hits.map(parseHit), ...data }
+          return {
+            _tag: 'ok' as const,
+            hits: hits.length ? hits.map(parseHit) : [null],
+            ...data,
+          }
         default:
           assertNever(query.data)
       }
@@ -120,7 +129,12 @@ function parseFirstResults(
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
         case 'PackagesSearchResultSet':
           const { hits, ...data } = query.data.firstPage
-          return { _tag: 'ok' as const, hits: hits.map(parseHit), ...data }
+          return {
+            _tag: 'ok' as const,
+            hits: hits.length ? hits.map(parseHit) : [null],
+            determinate: query.data.total > -1,
+            ...data,
+          }
         case 'ObjectsSearchResultSet':
           return {
             _tag: 'fail' as const,
@@ -145,7 +159,11 @@ function useFirstPage() {
   )
 }
 
-function useNextPage(acc: Results, loadMore: boolean): Exclude<Results, ResultsEmpty> {
+type NextPage =
+  | Omit<ResultsOk, 'determinate'>
+  | Exclude<ResultsNotFulfilled, ResultsEmpty>
+
+function useNextPage(acc: Results, loadMore: boolean): NextPage {
   const after = (acc._tag === 'ok' && acc.cursor) || ''
   const pause = !loadMore || !after
   const nextPage = SearchUIModel.useNextPagePackagesQuery(after, pause)
@@ -193,8 +211,9 @@ export function useResults(): [Results, () => void] | [Results] {
         setResults((prev) => {
           if (prev._tag !== 'ok') return prev
           return {
-            _tag: 'ok',
+            _tag: prev._tag,
             hits: prev.hits.concat(next.hits),
+            determinate: prev.determinate,
             cursor: next.cursor,
           }
         })
