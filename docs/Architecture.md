@@ -95,7 +95,7 @@ The infrastructure costs of running a Quilt stack vary with usage. Baseline infr
 
 | Service  | Cost |
 | ------------- | ------------- |
-| Elasticsearch Service | $516.83 |
+| Elasticsearch Service | $258.42 |
 | RDS  | $75.56 |
 | ECS (Fargate) | $26.64 |
 | Lambda | Variable |
