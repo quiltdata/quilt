@@ -552,3 +552,21 @@ export function PackageSkeleton() {
     </Card>
   )
 }
+
+interface PackagePlaceholderProps {
+  children: React.ReactNode
+}
+
+export function PackagePlaceholder({ children }: PackagePlaceholderProps) {
+  return (
+    <Card>
+      <Section>
+        <Skeleton height={20} width="60%" animate={false} />
+        <M.Typography style={{ marginTop: '8px' }}>{children}</M.Typography>
+      </Section>
+      <Section divider>
+        <Skeleton height={20} width="100%" animate={false} />
+      </Section>
+    </Card>
+  )
+}

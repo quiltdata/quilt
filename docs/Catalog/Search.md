@@ -100,3 +100,7 @@ more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-req
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
 * `body` — the search query body as a JSON dictionary ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html))
+
+### Secure Search
+
+Secure Search adds object-level permission enforcement to search results. When enabled, it filters Elasticsearch hits by verifying the user's actual S3 permissions using HEAD requests. This ensures that users only see results they are authorized to access, providing stronger restrictions beyond just bucket-level indices.

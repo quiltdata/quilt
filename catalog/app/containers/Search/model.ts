@@ -790,7 +790,8 @@ function useFirstPageQuery(state: SearchUrlState) {
 export function useNextPageObjectsQuery(after: string, pause?: boolean) {
   const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after }, { pause })
   const folded = GQL.fold(result, {
-    data: ({ searchMoreObjects: data }) => addTag('data', { data }),
+    data: ({ searchMoreObjects: data }, { fetching }) =>
+      fetching ? addTag('fetching', {}) : addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
     error: (error) => addTag('error', { error }),
   })
@@ -800,7 +801,8 @@ export function useNextPageObjectsQuery(after: string, pause?: boolean) {
 export function useNextPagePackagesQuery(after: string, pause?: boolean) {
   const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after }, { pause })
   const folded = GQL.fold(result, {
-    data: ({ searchMorePackages: data }) => addTag('data', { data }),
+    data: ({ searchMorePackages: data }, { fetching }) =>
+      fetching ? addTag('fetching', {}) : addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
     error: (error) => addTag('error', { error }),
   })
