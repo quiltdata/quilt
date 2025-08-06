@@ -1,5 +1,6 @@
 import * as Eff from 'effect'
-import { JSONSchema, Schema } from '@effect/schema'
+
+import { makeJSONSchema } from '../Tool'
 
 import * as nav from './navigation'
 
@@ -12,7 +13,7 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
   describe('NavigateSchema', () => {
     describe('produced JSON Schema', () => {
       it('should match the snapshot', () => {
-        const jsonSchema = JSONSchema.make(nav.NavigateSchema)
+        const jsonSchema = makeJSONSchema(nav.NavigateSchema)
         expect(jsonSchema).toMatchSnapshot()
       })
     })
@@ -80,7 +81,7 @@ describe('components/Assistant/Model/GlobalTools/navigation', () => {
     ]
 
     const encode = Eff.flow(
-      Schema.decodeUnknown(nav.NavigableRouteSchema),
+      Eff.Schema.decodeUnknown(nav.NavigableRouteSchema),
       Eff.Effect.andThen(nav.locationFromRoute),
       Eff.Effect.runPromise,
     )

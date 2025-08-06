@@ -1,9 +1,36 @@
 import * as Eff from 'effect'
-import * as S from '@effect/schema/Schema'
+import { Schema as S } from 'effect'
+import invariant from 'invariant'
+import { useParams } from 'react-router-dom'
 
 import * as routes from 'constants/routes'
 // import * as Model from 'model'
 import * as Nav from 'utils/Navigation'
+
+export interface RouteMap {
+  bucketDir: routes.BucketDirArgs
+  bucketESQueries: routes.BucketESQueriesArgs
+  bucketFile: routes.BucketFileArgs
+  bucketOverview: routes.BucketOverviewArgs
+  bucketPackageDetail: routes.BucketPackageDetailArgs
+  bucketPackageList: routes.BucketPackageListArgs
+  bucketPackageRevisions: routes.BucketPackageRevisionsArgs
+  bucketPackageTree: routes.BucketPackageTreeArgs
+  bucketQueries: routes.BucketQueriesArgs
+  bucketWorkflowDetail: routes.BucketWorkflowDetailArgs
+  bucketWorkflowList: routes.BucketWorkflowListArgs
+}
+
+export function useBucketSafe() {
+  const { bucket } = useParams<{ bucket?: string }>()
+  return bucket
+}
+
+export function useBucketStrict() {
+  const bucket = useBucketSafe()
+  invariant(!!bucket, '`bucket` must be defined')
+  return bucket
+}
 
 const BucketPathParams = S.Struct({
   // XXX: constraints?

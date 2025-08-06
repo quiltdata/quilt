@@ -9,7 +9,7 @@ import * as LLM from './LLM'
 
 const MODULE = 'Bedrock'
 
-const MODEL_ID = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
+const MODEL_ID = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
 
 const mapContent = (contentBlocks: BedrockRuntime.ContentBlocks | undefined) =>
   Eff.pipe(

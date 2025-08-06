@@ -575,6 +575,7 @@ function FileDisplayQuery({
   crumbs,
   ...props
 }: FileDisplayQueryProps) {
+  const { urls } = NamedRoutes.use()
   const fileQuery = GQL.useQuery(FILE_QUERY, { bucket, name, hash, path })
   return GQL.fold(fileQuery, {
     fetching: () => <FileDisplaySkeleton crumbs={crumbs} />,
@@ -582,6 +583,18 @@ function FileDisplayQuery({
       const file = d.package?.revision?.file
 
       if (!file) {
+        if (d.package?.revision?.dir) {
+          return (
+            <RRDom.Redirect
+              to={urls.bucketPackageTree(
+                bucket,
+                name,
+                props.hashOrTag,
+                s3paths.ensureSlash(path),
+              )}
+            />
+          )
+        }
         // eslint-disable-next-line no-console
         if (fileQuery.error) console.error(fileQuery.error)
         return (
@@ -697,8 +710,11 @@ function FileDisplay({
     [file, packageHandle],
   )
 
-  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle, path)
-  const handleEdit = React.useCallback(() => history.push(editUrl), [editUrl, history])
+  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle)
+  const handleEdit = React.useCallback(
+    () => history.push(editUrl(path)),
+    [editUrl, history, path],
+  )
   const packageUri = React.useMemo(
     () => ({
       ...packageHandle,

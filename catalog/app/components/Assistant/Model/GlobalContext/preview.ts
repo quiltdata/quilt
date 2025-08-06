@@ -2,7 +2,7 @@ import { basename, extname } from 'path'
 
 import type AWSSDK from 'aws-sdk'
 import * as Eff from 'effect'
-import * as S from '@effect/schema/Schema'
+import { Schema as S } from 'effect'
 
 import cfg from 'constants/config'
 import { S3ObjectLocation } from 'model/S3'

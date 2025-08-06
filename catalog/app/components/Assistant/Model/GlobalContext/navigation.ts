@@ -1,7 +1,7 @@
 import * as Eff from 'effect'
+import { Schema as S } from 'effect'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
-import { Schema as S } from '@effect/schema'
 
 import bucketRoutes from 'containers/Bucket/Routes'
 import search from 'containers/Search/Route'

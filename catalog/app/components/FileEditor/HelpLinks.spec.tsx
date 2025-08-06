@@ -17,15 +17,19 @@ jest.mock(
 )
 
 jest.mock(
-  'utils/StyledTooltip',
-  () =>
-    ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
-      <div>
-        {title}
-        <hr />
-        {children}
-      </div>
+  '@material-ui/core',
+  jest.fn(() => ({
+    ...jest.requireActual('@material-ui/core'),
+    Tooltip: jest.fn(
+      ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
+        <div>
+          {title}
+          <hr />
+          {children}
+        </div>
+      ),
     ),
+  })),
 )
 
 jest.mock('components/Code', () => ({ children }: React.PropsWithChildren<{}>) => (
