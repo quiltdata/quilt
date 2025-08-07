@@ -1393,23 +1393,23 @@ class Package:
 
         The Package class includes two additional built-in selector functions:
 
-        - `Package.selector_fn_copy_all` copies all files to the destination path.
-        - `Package.selector_fn_copy_local` copies only local files to the
+        * `Package.selector_fn_copy_all` copies all files to the destination path.
+        * `Package.selector_fn_copy_local` copies only local files to the
           destination path. Any PackageEntry's with physical keys pointing to
           objects in other buckets will retain their existing physical keys in
           the resulting package.
 
         If we have a package with entries:
 
-        - `pkg["entry_1"].physical_key = s3://bucket1/user/pkg_name/entry_1`
-        - `pkg["entry_2"].physical_key = s3://bucket2/folder1/entry_2`
+        * `pkg["entry_1"].physical_key = s3://bucket1/user/pkg_name/entry_1`
+        * `pkg["entry_2"].physical_key = s3://bucket2/folder1/entry_2`
 
         And, we call `pkg.push("user/pkg_name", registry="s3://bucket2")`, the
-        file referenced by entry_1 will be copied, while the file referenced by
-        entry_2 will not. The resulting package will have the following entries:
+        file referenced by `entry_1` will be copied, while the file referenced by
+        `entry_2` will not. The resulting package will have the following entries:
 
-        - `pkg["entry_1"].physical_key = s3://bucket2/user/pkg_name/entry_1`
-        - `pkg["entry_2"].physical_key = s3://bucket2/folder1/entry_2`
+        * `pkg["entry_1"].physical_key = s3://bucket2/user/pkg_name/entry_1`
+        * `pkg["entry_2"].physical_key = s3://bucket2/folder1/entry_2`
 
         Quilt3 Versions 6.3.1 and earlier copied all files to the destination
         path by default. To match this behavior in later versions, callers
@@ -1419,16 +1419,16 @@ class Package:
         `selector_fn=Package.selector_fn_copy_all` will result in both files
         being copied to the destionation path, producing the following package:
 
-        - `pkg["entry_1"].physical_key = s3://bucket2/user/pkg_name/entry_1`
-        - `pkg["entry_2"].physical_key = s3://bucket2/user/pkg_name/entry_2`
+        * `pkg["entry_1"].physical_key = s3://bucket2/user/pkg_name/entry_1`
+        * `pkg["entry_2"].physical_key = s3://bucket2/user/pkg_name/entry_2`
 
         Note that push is careful to not push data unnecessarily. To illustrate,
-        imagine you have a PackageEntry: `pkg["entry_1"].physical_key =
-        "/tmp/package_entry_1.json"`
+        imagine you have a PackageEntry:
+        `pkg["entry_1"].physical_key = "/tmp/package_entry_1.json"`
 
         If that entry would be pushed to `s3://bucket/prefix/entry_1.json`, but
         `s3://bucket/prefix/entry_1.json` already contains the exact same bytes
-        as '/tmp/package_entry_1.json', `quilt3` will not push the bytes to s3,
+        as '/tmp/package_entry_1.json', `quilt3` will not push the bytes to S3,
         no matter what `selector_fn('entry_1', pkg["entry_1"])` returns.
 
         By default, push will not overwrite an existing package if its top hash does not match
@@ -1446,7 +1446,7 @@ class Package:
                 PackageEntry should not be copied to the destination registry during push.
                 If for example you have a package where the files are spread over multiple buckets
                 and you add a single local file, you can use selector_fn to only
-                push the local file to s3 (instead of pushing all data to the destination bucket).
+                push the local file to S3 (instead of pushing all data to the destination bucket).
             %(workflow)s
             force: skip the top hash check and overwrite any existing package
             dedupe: don't push if the top hash matches the existing package top hash; return the current package
