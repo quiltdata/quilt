@@ -16,11 +16,13 @@ Entries inside each section should be ordered by type:
 
 # Changelog
 
-## 6.3.1 - 2025-03-10
+## unreleased - YYYY-MM-DD
 
 ### Python API
 
-* [Changed] **BREAKING:** Changed the default `selector_fn` for `Package.push`. Now, files in the same bucket as the destination registry are not copied by default. This change was requested by users who were inadvertently creating extra copies of files in packages that were created from files in S3. ([#4464](https://github.com/quiltdata/quilt/pull/4464))
+* [Changed] **BREAKING:** Change the default `selector_fn` for `Package.push`. Now, files in the same bucket as the destination registry are not copied by default. This change was requested by users who were inadvertently creating extra copies of files in packages that were created from files in S3. ([#4464](https://github.com/quiltdata/quilt/pull/4464))
+
+## 6.3.1 - 2025-03-10
 
 ### Python API
 
