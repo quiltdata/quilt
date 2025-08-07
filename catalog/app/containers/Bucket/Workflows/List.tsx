@@ -50,7 +50,9 @@ function PackagesLink({ bucket, workflow }: PackagesLinkProps) {
         case 'EmptySearchResultSet':
           return <span className={classes.root}>No packages</span>
         case 'PackagesSearchResultSet':
-          return (
+          return !r.total ? (
+            <span className={classes.root}>No packages</span>
+          ) : (
             <RR.Link
               to={search.makeUrl(bucket, workflow as string)}
               className={cx(classes.root, classes.link)}
