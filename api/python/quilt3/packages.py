@@ -1417,7 +1417,7 @@ class Package:
 
         Using the same initial package and push, but adding
         `selector_fn=Package.selector_fn_copy_all` will result in both files
-        being copied to the destionation path, producing the following package:
+        being copied to the destination path, producing the following package:
 
         * `pkg["entry_1"].physical_key = s3://bucket2/user/pkg_name/entry_1`
         * `pkg["entry_2"].physical_key = s3://bucket2/user/pkg_name/entry_2`
