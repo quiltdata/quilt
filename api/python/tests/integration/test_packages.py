@@ -2006,17 +2006,21 @@ class PackageTest(QuiltTestCase):
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     @patch('quilt3.Package._push_manifest', mock.MagicMock())
+    @patch('quilt3.packages.calculate_checksum')
     @patch('quilt3.packages.copy_file_list')
-    def test_push_selector_functions(self, copy_file_list_mock):
+    def test_push_selector_functions(self, copy_file_list_mock, calculate_checksum_mock):
         """Test that selector functions on push work as expected."""
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         copy_file_list_mock.side_effect = _mock_copy_file_list
+        calculate_checksum_mock.side_effect = lambda keys, _: ['dummy_hash'] * len(keys)
 
         pkg = Package()
+
         # local file
-        local_file = Path('local.txt')
+        local_file = pathlib.Path('local.txt')
         local_file.write_text('local')
         pkg.set('local.txt', local_file)
+        local_file_uri = local_file.resolve().as_uri()
 
         # remote files
         with patch('quilt3.packages.get_size_and_version', return_value=(123, 'v1')):
@@ -2032,7 +2036,7 @@ class PackageTest(QuiltTestCase):
 
         file_list = copy_file_list_mock.call_args[0][0]
         copied_sources = {str(fk) for fk, _, _ in file_list}
-        assert copied_sources == {local_file.as_uri(), 's3://src-bucket/remote_other.txt'}
+        assert copied_sources == {local_file_uri, 's3://src-bucket/remote_other.txt?versionId=v1'}
 
         # Scenario 2: selector_fn_copy_all
         copy_file_list_mock.reset_mock()
@@ -2040,9 +2044,9 @@ class PackageTest(QuiltTestCase):
         file_list = copy_file_list_mock.call_args[0][0]
         copied_sources = {str(fk) for fk, _, _ in file_list}
         assert copied_sources == {
-            local_file.as_uri(),
-            's3://dst-bucket/remote_same.txt',
-            's3://src-bucket/remote_other.txt'
+            local_file_uri,
+            's3://dst-bucket/remote_same.txt?versionId=v1',
+            's3://src-bucket/remote_other.txt?versionId=v1'
         }
 
         # Scenario 3: selector_fn_copy_local
@@ -2050,7 +2054,7 @@ class PackageTest(QuiltTestCase):
         pkg.push(pkg_name, registry=registry, selector_fn=Package.selector_fn_copy_local, force=True)
         file_list = copy_file_list_mock.call_args[0][0]
         copied_sources = {str(fk) for fk, _, _ in file_list}
-        assert copied_sources == {local_file.as_uri()}
+        assert copied_sources == {local_file_uri}
 
     def test_package_dump_file_mode(self):
         """
