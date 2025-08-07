@@ -2004,6 +2004,54 @@ class PackageTest(QuiltTestCase):
             BytesIO(push_manifest_mock.call_args[0][2])
         )[lk].physical_key == PhysicalKey(dst_bucket, dst_key, dst_version)
 
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    @patch('quilt3.Package._push_manifest', mock.MagicMock())
+    @patch('quilt3.packages.copy_file_list')
+    def test_push_selector_functions(self, copy_file_list_mock):
+        """Test that selector functions on push work as expected."""
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        copy_file_list_mock.side_effect = _mock_copy_file_list
+
+        pkg = Package()
+        # local file
+        local_file = Path('local.txt')
+        local_file.write_text('local')
+        pkg.set('local.txt', local_file)
+
+        # remote files
+        with patch('quilt3.packages.get_size_and_version', return_value=(123, 'v1')):
+            pkg.set('remote_same.txt', 's3://dst-bucket/remote_same.txt')
+            pkg.set('remote_other.txt', 's3://src-bucket/remote_other.txt')
+
+        registry = 's3://dst-bucket'
+        pkg_name = 'test/pkg'
+
+        # Scenario 1: default selector (do not copy files from the same bucket)
+        copy_file_list_mock.reset_mock()
+        pkg.push(pkg_name, registry=registry, force=True)
+
+        file_list = copy_file_list_mock.call_args[0][0]
+        copied_sources = {str(fk) for fk, _, _ in file_list}
+        assert copied_sources == {local_file.as_uri(), 's3://src-bucket/remote_other.txt'}
+
+        # Scenario 2: selector_fn_copy_all
+        copy_file_list_mock.reset_mock()
+        pkg.push(pkg_name, registry=registry, selector_fn=Package.selector_fn_copy_all, force=True)
+        file_list = copy_file_list_mock.call_args[0][0]
+        copied_sources = {str(fk) for fk, _, _ in file_list}
+        assert copied_sources == {
+            local_file.as_uri(),
+            's3://dst-bucket/remote_same.txt',
+            's3://src-bucket/remote_other.txt'
+        }
+
+        # Scenario 3: selector_fn_copy_local
+        copy_file_list_mock.reset_mock()
+        pkg.push(pkg_name, registry=registry, selector_fn=Package.selector_fn_copy_local, force=True)
+        file_list = copy_file_list_mock.call_args[0][0]
+        copied_sources = {str(fk) for fk, _, _ in file_list}
+        assert copied_sources == {local_file.as_uri()}
+
     def test_package_dump_file_mode(self):
         """
         Package.dump() works with both files opened in binary and text mode.
