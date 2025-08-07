@@ -1,10 +1,7 @@
-import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const ymdToDate = (ymd: string): Date => new Date(ymd)
-
-const dateToYmd = (date: Date): string => dateFns.format(date, 'yyyy-MM-dd')
+import DateField from './DateField'
 
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
@@ -14,50 +11,31 @@ const useStyles = M.makeStyles((t) => {
       gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
       columnGap: gap,
     },
-    input: {
-      background: t.palette.background.paper,
-    },
   }
 })
 
 interface DateRangeProps {
-  extents: { min: Date; max: Date }
+  extents: { min?: Date; max?: Date }
   onChange: (v: { min: Date | null; max: Date | null }) => void
   value: { min: Date | null; max: Date | null }
 }
 
 export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
   const classes = useStyles()
-  const min = value.min || extents.min
-  const max = value.max || extents.max
-  const handleFrom = React.useCallback(
-    (event) => onChange({ min: ymdToDate(event.target.value), max }),
-    [onChange, max],
+  const gte = value.min || extents.min || null
+  const lte = value.max || extents.max || null
+  const handleGte = React.useCallback(
+    (min) => onChange({ min, max: lte }),
+    [lte, onChange],
   )
-  const handleTo = React.useCallback(
-    (event) => onChange({ min, max: ymdToDate(event.target.value) }),
-    [onChange, min],
+  const handleLte = React.useCallback(
+    (max) => onChange({ min: gte, max }),
+    [gte, onChange],
   )
   return (
     <div className={classes.root}>
-      <M.TextField
-        className={classes.input}
-        label="From"
-        onChange={handleFrom}
-        size="small"
-        type="date"
-        value={dateToYmd(min)}
-        variant="outlined"
-      />
-      <M.TextField
-        className={classes.input}
-        label="To"
-        onChange={handleTo}
-        size="small"
-        type="date"
-        value={dateToYmd(max)}
-        variant="outlined"
-      />
+      <DateField date={gte} extents={extents} onChange={handleGte} label="From" />
+      <DateField date={lte} extents={extents} onChange={handleLte} label="To" />
     </div>
   )
 }
