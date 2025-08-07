@@ -76,7 +76,7 @@ export default function KeywordWildcard({
         <StyledLink to={ES_REF} target="_blank">
           documentation
         </StyledLink>{' '}
-        on Wildcard Quieries
+        on Wildcard Queries
       </M.FormHelperText>
       <M.FormControlLabel
         className={classes.checkbox}
