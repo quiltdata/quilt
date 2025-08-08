@@ -124,18 +124,22 @@ function NumberFilterWidget({
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
-  // FIXME: debounce
   const handleChange = React.useCallback(
     (v: { gte: number | null; lte: number | null }) => onChange({ ...state, ...v }),
     [onChange, state],
   )
+  const value = React.useMemo(() => {
+    const { gte, lte } = state
+    return { gte, lte }
+  }, [state])
+  const debounced = useDebouncedState(value, handleChange, 500)
   return (
     <FiltersUI.NumbersRange
       extents={extents || NO_RANGE_EXTENTS}
-      onChange={handleChange}
+      onChange={debounced.set}
       // TODO: add units for known filters
       // unit={unit}
-      value={state}
+      value={debounced.value}
     />
   )
 }
