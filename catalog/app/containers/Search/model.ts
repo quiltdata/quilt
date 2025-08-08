@@ -1270,26 +1270,29 @@ function oneOf<T extends string, L extends T[]>(
   return comparisonList.some((compare) => compare === subject)
 }
 
-export function usePackageSystemMetaFacetExtents(
-  field: keyof PackagesSearchFilter,
-): Extents | undefined {
+export function usePackageSystemMetaFacetExtents(field: keyof PackagesSearchFilter): {
+  fetching: boolean
+  extents: Extents | undefined
+} {
   const model = useSearchUIModelContext(ResultType.QuiltPackage)
   return GQL.fold(model.baseSearchQuery, {
     data: ({ searchPackages: r }) => {
       switch (r.__typename) {
         case 'EmptySearchResultSet':
-          return undefined
+          return { fetching: false, extents: undefined }
         case 'InvalidInput':
-          return undefined
+          return { fetching: false, extents: undefined }
         case 'PackagesSearchResultSet':
-          if (!oneOf(['workflow', 'modified', 'size', 'entries'], field)) return undefined
-          return r.stats[field]
+          if (oneOf(['workflow', 'modified', 'size', 'entries'], field)) {
+            return { fetching: false, extents: r.stats[field] }
+          }
+          return { fetching: false, extents: undefined }
         default:
           assertNever(r)
       }
     },
-    fetching: () => undefined,
-    error: () => undefined,
+    fetching: () => ({ fetching: true, extents: undefined }),
+    error: () => ({ fetching: false, extents: undefined }),
   })
 }
 
