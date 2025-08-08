@@ -29,10 +29,8 @@ function Err<V>(value: V, error: unknown): InputStateError<V> {
 const InputLabelProps = { shrink: true }
 
 function fromYmd(ymd: string): InputState<string, Date> {
-  const date = new Date(ymd)
-  return Number.isNaN(date.valueOf())
-    ? Err(ymd, new Error(date.toString()))
-    : Ok(ymd, date)
+  const date = dateFns.parseISO(ymd)
+  return dateFns.isValid(date) ? Ok(ymd, date) : Err(ymd, new Error(date.toString()))
 }
 
 function fromDate(date?: Date | null): InputState<string, Date> {
