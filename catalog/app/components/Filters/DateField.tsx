@@ -4,20 +4,21 @@ import * as M from '@material-ui/core'
 
 import Log from 'utils/Logging'
 
-type ValueOk<T> = { _tag: 'ok'; value: T }
+type ValueOk<V, P> = { _tag: 'ok'; value: V; parsed: P }
 
-type ValueErr<T> = { _tag: 'error'; value: T; error: Error }
+type ValueErr<V> = { _tag: 'error'; value: V; error: Error }
 
-type Value<T> = ValueOk<T> | ValueErr<T>
+type Value<V, P> = ValueOk<V, P> | ValueErr<V>
 
-function Ok<T>(value: T): ValueOk<T> {
+function Ok<V, P>(value: V, parsed: P): ValueOk<V, P> {
   return {
     _tag: 'ok',
     value,
+    parsed,
   }
 }
 
-function Err<T>(value: T, error: unknown): ValueErr<T> {
+function Err<V>(value: V, error: unknown): ValueErr<V> {
   return {
     _tag: 'error',
     value,
@@ -27,40 +28,23 @@ function Err<T>(value: T, error: unknown): ValueErr<T> {
 
 const InputLabelProps = { shrink: true }
 
-// TODO: return Value?
-const ymdToDate = (ymd: string): Date => new Date(ymd)
+const fromYmd = (ymd: string): Value<string, Date> => {
+  const date = new Date(ymd)
+  if (Number.isNaN(date.valueOf())) {
+    const error = new Error(date.toString())
+    return Err(ymd, error)
+  }
+  return Ok(ymd, date)
+}
 
-const dateToYmd = (date?: Date | null): Value<string> => {
+const fromDate = (date?: Date | null): Value<string, Date> => {
   if (!date) return Err('', new Error('Empty date'))
   try {
-    return Ok(dateFns.format(date, 'yyyy-MM-dd'))
+    return Ok(dateFns.format(date, 'yyyy-MM-dd'), date)
   } catch (e) {
     Log.error(e)
     return Err('', e)
   }
-}
-
-function useDateInput(date: Date | null): {
-  state: Value<string>
-  setValue: (v: string) => Error | Date
-} {
-  const [state, setState] = React.useState<Value<string>>(Ok(''))
-
-  React.useEffect(() => setState(dateToYmd(date)), [date])
-
-  const setValue = React.useCallback((value: string) => {
-    const d = ymdToDate(value)
-    if (!Number.isNaN(d.valueOf())) {
-      setState(Ok(value))
-      return d
-    }
-
-    const invalid = new Error(d.toString())
-    setState(Err(value, invalid))
-    return invalid
-  }, [])
-
-  return { state, setValue }
 }
 
 const useDateFieldStyles = M.makeStyles((t) => ({
@@ -72,7 +56,7 @@ const useDateFieldStyles = M.makeStyles((t) => ({
 interface DateFieldProps {
   className?: string
   date: Date | null
-  onChange: (v: Date) => void
+  onChange: (v: Date | null) => void
   extents: { min?: Date; max?: Date }
 }
 
@@ -85,18 +69,23 @@ export default function DateField({
 }: Omit<M.TextFieldProps, 'value' | 'onChange'> & DateFieldProps) {
   const classes = useDateFieldStyles()
 
-  const { state, setValue } = useDateInput(date)
+  const [state, setState] = React.useState<Value<string, Date | null>>(Ok('', date))
+
+  React.useEffect(() => setState(fromDate(date)), [date])
+
   const handleChange = React.useCallback(
     (event) => {
-      const dateOrError = setValue(event.target.value)
-      if (dateOrError instanceof Error) return
-      onChange(dateOrError)
+      const newState = fromYmd(event.target.value)
+      setState(newState)
+      if (newState._tag === 'ok') {
+        onChange(newState.parsed)
+      }
     },
-    [onChange, setValue],
+    [onChange],
   )
 
   const inputProps = React.useMemo(
-    () => ({ min: dateToYmd(extents.min).value, max: dateToYmd(extents.max).value }),
+    () => ({ min: fromDate(extents.min).value, max: fromDate(extents.max).value }),
     [extents],
   )
 
