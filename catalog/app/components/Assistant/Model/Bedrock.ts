@@ -9,7 +9,23 @@ import * as LLM from './LLM'
 
 const MODULE = 'Bedrock'
 
-const MODEL_ID = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+export const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
+export const DEFAULT_MODEL_ID = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+
+export const getModelIdOverride = () =>
+  (typeof localStorage !== 'undefined' && localStorage.getItem(MODEL_ID_KEY)) || ''
+
+export const setModelIdOverride = (modelId: string) => {
+  if (typeof localStorage !== 'undefined') {
+    if (modelId) {
+      localStorage.setItem(MODEL_ID_KEY, modelId)
+    } else {
+      localStorage.removeItem(MODEL_ID_KEY)
+    }
+  }
+}
+
+const getModelId = Eff.Effect.sync(() => getModelIdOverride() || DEFAULT_MODEL_ID)
 
 const mapContent = (contentBlocks: BedrockRuntime.ContentBlocks | undefined) =>
   Eff.pipe(
@@ -120,39 +136,32 @@ export function LLMBedrock(bedrock: BedrockRuntime) {
   const converse = (prompt: LLM.Prompt, opts?: LLM.Options) =>
     Log.scoped({
       name: `${MODULE}.converse`,
-      enter: [
-        Log.br,
-        'model id:',
-        MODEL_ID,
-        Log.br,
-        'prompt:',
-        prompt,
-        Log.br,
-        'opts:',
-        opts,
-      ],
+      enter: [Log.br, 'prompt:', prompt, Log.br, 'opts:', opts],
     })(
-      Eff.Effect.tryPromise({
-        try: () =>
-          bedrock
-            .converse({
-              modelId: MODEL_ID,
-              system: [{ text: prompt.system }],
-              messages: messagesToBedrock(prompt.messages),
-              toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
-              ...opts,
-            })
-            .promise()
-            .then((backendResponse) => ({
-              backendResponse,
-              content: mapContent(backendResponse.output.message?.content),
-            })),
-        catch: (e) =>
-          new LLM.LLMError({
-            message: isAWSError(e)
-              ? `Bedrock error (${e.code}): ${e.message}`
-              : `Unexpected error: ${e}`,
-          }),
+      Eff.Effect.gen(function* () {
+        const modelId = yield* getModelId
+        return yield* Eff.Effect.tryPromise({
+          try: () =>
+            bedrock
+              .converse({
+                modelId,
+                system: [{ text: prompt.system }],
+                messages: messagesToBedrock(prompt.messages),
+                toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
+                ...opts,
+              })
+              .promise()
+              .then((backendResponse) => ({
+                backendResponse,
+                content: mapContent(backendResponse.output.message?.content),
+              })),
+          catch: (e) =>
+            new LLM.LLMError({
+              message: isAWSError(e)
+                ? `Bedrock error (${e.code}): ${e.message}`
+                : `Unexpected error: ${e}`,
+            }),
+        })
       }),
     )
 
