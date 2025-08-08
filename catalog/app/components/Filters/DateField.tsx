@@ -4,13 +4,13 @@ import * as M from '@material-ui/core'
 
 import Log from 'utils/Logging'
 
-type ValueOk<V, P> = { _tag: 'ok'; value: V; parsed: P }
+type InputStateOk<V, P> = { _tag: 'ok'; value: V; parsed: P }
 
-type ValueErr<V> = { _tag: 'error'; value: V; error: Error }
+type InputStateError<V> = { _tag: 'error'; value: V; error: Error }
 
-type Value<V, P> = ValueOk<V, P> | ValueErr<V>
+type InputState<V, P> = InputStateOk<V, P> | InputStateError<V>
 
-function Ok<V, P>(value: V, parsed: P): ValueOk<V, P> {
+function Ok<V, P>(value: V, parsed: P): InputStateOk<V, P> {
   return {
     _tag: 'ok',
     value,
@@ -18,7 +18,7 @@ function Ok<V, P>(value: V, parsed: P): ValueOk<V, P> {
   }
 }
 
-function Err<V>(value: V, error: unknown): ValueErr<V> {
+function Err<V>(value: V, error: unknown): InputStateError<V> {
   return {
     _tag: 'error',
     value,
@@ -28,7 +28,7 @@ function Err<V>(value: V, error: unknown): ValueErr<V> {
 
 const InputLabelProps = { shrink: true }
 
-const fromYmd = (ymd: string): Value<string, Date> => {
+const fromYmd = (ymd: string): InputState<string, Date> => {
   const date = new Date(ymd)
   if (Number.isNaN(date.valueOf())) {
     const error = new Error(date.toString())
@@ -37,7 +37,7 @@ const fromYmd = (ymd: string): Value<string, Date> => {
   return Ok(ymd, date)
 }
 
-const fromDate = (date?: Date | null): Value<string, Date> => {
+const fromDate = (date?: Date | null): InputState<string, Date> => {
   if (!date) return Err('', new Error('Empty date'))
   try {
     return Ok(dateFns.format(date, 'yyyy-MM-dd'), date)
@@ -69,7 +69,7 @@ export default function DateField({
 }: Omit<M.TextFieldProps, 'value' | 'onChange'> & DateFieldProps) {
   const classes = useDateFieldStyles()
 
-  const [state, setState] = React.useState<Value<string, Date | null>>(Ok('', date))
+  const [state, setState] = React.useState<InputState<string, Date | null>>(Ok('', date))
 
   React.useEffect(() => setState(fromDate(date)), [date])
 
