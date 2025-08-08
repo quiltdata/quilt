@@ -117,39 +117,30 @@ interface FilterWidgetProps<
   onChange: (state: SearchUIModel.PredicateState<P>) => void
 }
 
+const NO_RANGE_EXTENTS = { min: undefined, max: undefined }
+
 function NumberFilterWidget({
   state,
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
+  // FIXME: debounce
   const handleChange = React.useCallback(
     (value: { min: number | null; max: number | null }) => {
       onChange({ ...state, gte: value.min, lte: value.max })
     },
     [onChange, state],
   )
-
-  // XXX: revisit this logic
-  const extentsComputed = React.useMemo(
-    () => ({
-      min: extents?.min ?? state.gte ?? 0,
-      max: extents?.max ?? state.lte ?? 0,
-    }),
-    [extents?.min, extents?.max, state.gte, state.lte],
-  )
-
   return (
     <FiltersUI.NumbersRange
-      extents={extentsComputed}
+      extents={extents || NO_RANGE_EXTENTS}
       onChange={handleChange}
-      // XXX: add units for known filters
+      // TODO: add units for known filters
       // unit={unit}
       value={{ min: state.gte, max: state.lte }}
     />
   )
 }
-
-const NO_RANGE_EXTENTS = { min: undefined, max: undefined }
 
 function DatetimeFilterWidget({
   extents,
