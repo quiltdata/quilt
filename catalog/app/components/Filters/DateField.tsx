@@ -4,58 +4,49 @@ import * as M from '@material-ui/core'
 
 import Log from 'utils/Logging'
 
+type ValueOk<T> = { _tag: 'ok'; value: T }
+
+type ValueErr<T> = { _tag: 'error'; value: T; error: Error }
+
+type Value<T> = ValueOk<T> | ValueErr<T>
+
+function Ok<T>(value: T): ValueOk<T> {
+  return {
+    _tag: 'ok',
+    value,
+  }
+}
+
+function Err<T>(value: T, error: unknown): ValueErr<T> {
+  return {
+    _tag: 'error',
+    value,
+    error: error instanceof Error ? error : new Error('Invalid date'),
+  }
+}
+
 const InputLabelProps = { shrink: true }
 
 // TODO: return Value?
 const ymdToDate = (ymd: string): Date => new Date(ymd)
 
-// TODO: return Value?
-const dateToYmd = (date: Date): string => dateFns.format(date, 'yyyy-MM-dd')
-
-const dateToYmdSafe = (date?: Date): string | undefined => {
-  if (!date) return undefined
+const dateToYmd = (date?: Date | null): Value<string> => {
+  if (!date) return Err('', new Error('Empty date'))
   try {
-    return dateToYmd(date)
+    return Ok(dateFns.format(date, 'yyyy-MM-dd'))
   } catch (e) {
     Log.error(e)
-    return undefined
+    return Err('', e)
   }
 }
 
-type ValueOk = { _tag: 'ok'; value: string }
-
-type ValueErr = { _tag: 'error'; value: string; error: Error }
-
-type Value = ValueOk | ValueErr
-
-const Ok = (value: string): ValueOk => ({
-  _tag: 'ok',
-  value,
-})
-
-const Err = (value: string, error: unknown): ValueErr => ({
-  _tag: 'error',
-  value,
-  error: error instanceof Error ? error : new Error('Invalid date'),
-})
-
 function useDateInput(date: Date | null): {
-  state: Value
+  state: Value<string>
   setValue: (v: string) => Error | Date
 } {
-  const [state, setState] = React.useState<ValueOk | ValueErr>(Ok(''))
+  const [state, setState] = React.useState<Value<string>>(Ok(''))
 
-  React.useEffect(() => {
-    if (!date) {
-      setState(Err('', new Error('Empty date')))
-      return
-    }
-    try {
-      setState(Ok(dateToYmd(date)))
-    } catch (e) {
-      setState(Err('', e))
-    }
-  }, [date])
+  React.useEffect(() => setState(dateToYmd(date)), [date])
 
   const setValue = React.useCallback((value: string) => {
     const d = ymdToDate(value)
@@ -105,7 +96,7 @@ export default function DateField({
   )
 
   const inputProps = React.useMemo(
-    () => ({ min: dateToYmdSafe(extents.min), max: dateToYmdSafe(extents.max) }),
+    () => ({ min: dateToYmd(extents.min).value, max: dateToYmd(extents.max).value }),
     [extents],
   )
 
