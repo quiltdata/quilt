@@ -31,6 +31,10 @@ const onChange = jest.fn()
 const findInput = (tree: any) => tree.root.findByType('input')
 
 describe('DateField', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   it('renders with a valid date prop', () => {
     const renderer = create(
       <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
@@ -133,5 +137,37 @@ describe('DateField', () => {
     const inputChanged = findInput(renderer)
     expect(inputChanged.props.value).toBe('2025-01-13')
     expect(inputChanged.props['data-error']).toBeFalsy()
+  })
+
+  it('does not trigger an extra render when updating with the same Date instance', () => {
+    const { TextField } = require('@material-ui/core') as {
+      TextField: jest.Mock
+    }
+    const date = new Date(2025, 0, 13)
+
+    // Initial render called once
+    const renderer = create(<DateField date={date} extents={{}} onChange={onChange} />)
+    expect(TextField).toHaveBeenCalledTimes(1)
+
+    // Only the parent update render should occur (no extra render from state change)
+    TextField.mockClear()
+    act(() => {
+      renderer.update(<DateField date={date} extents={{}} onChange={onChange} />)
+    })
+    expect(TextField).toHaveBeenCalledTimes(1)
+
+    // And the value stays the same, no error text
+    const input = findInput(renderer)
+    expect(input.props.value).toBe('2025-01-13')
+    expect(input.props['data-error']).toBeFalsy()
+
+    // One render for the prop change + one more due to state update from effect
+    TextField.mockClear()
+    act(() => {
+      renderer.update(
+        <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
+      )
+    })
+    expect(TextField).toHaveBeenCalledTimes(2)
   })
 })

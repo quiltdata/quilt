@@ -43,6 +43,15 @@ function fromDate(date?: Date | null): InputState<string, Date> {
   }
 }
 
+function areEqual(
+  a: InputState<string, Date | null>,
+  b: InputState<string, Date | null>,
+): boolean {
+  if (a._tag === 'ok' && b._tag === 'ok') return a.parsed === b.parsed
+  if (a._tag === 'error' && b._tag === 'error') return a.error.message === b.error.message
+  return false
+}
+
 const useDateFieldStyles = M.makeStyles((t) => ({
   input: {
     background: t.palette.background.paper,
@@ -69,7 +78,14 @@ export default function DateField({
     fromDate(date),
   )
 
-  React.useEffect(() => setState(fromDate(date)), [date])
+  React.useEffect(
+    () =>
+      setState((prev) => {
+        const newDate = fromDate(date)
+        return areEqual(prev, newDate) ? prev : newDate
+      }),
+    [date],
+  )
 
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
