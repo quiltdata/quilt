@@ -51,16 +51,16 @@ const createValueLabelFormat = (scale: Scale) => (number: number) => {
 
 const convertValuesToDomain =
   (scale: Scale) =>
-  ({ min, max }: { min: number | null; max: number | null }) => [
-    min != null ? scale.invert(min) : 0,
-    max != null ? scale.invert(max) : 100,
+  ({ gte, lte }: { gte: number | null; lte: number | null }) => [
+    gte != null ? scale.invert(gte) : 0,
+    lte != null ? scale.invert(lte) : 100,
   ]
 
 const convertDomainToValues =
   (scale: Scale) =>
-  ([min, max]: [number, number]) => ({
-    min: roundAboveThreshold(scale(min)),
-    max: roundAboveThreshold(scale(max)),
+  ([gte, lte]: [number, number]) => ({
+    gte: roundAboveThreshold(scale(gte)),
+    lte: roundAboveThreshold(scale(lte)),
   })
 
 const useSliderStyles = M.makeStyles((t) => ({
@@ -73,8 +73,8 @@ interface SliderProps {
   className?: string
   min: number
   max: number
-  onChange: (v: { min: number; max: number }) => void
-  value: { min: number | null; max: number | null }
+  onChange: (v: { gte: number; lte: number }) => void
+  value: { gte: number | null; lte: number | null }
 }
 
 function Slider({ className, min, max, onChange, value }: SliderProps) {
@@ -86,8 +86,8 @@ function Slider({ className, min, max, onChange, value }: SliderProps) {
         Log.error('Not a range of numbers')
         return
       }
-      const [gte, lte] = range
-      onChange(convertDomainToValues(scale)([gte, lte]))
+      const [left, right] = range
+      onChange(convertDomainToValues(scale)([left, right]))
     },
     [onChange, scale],
   )
@@ -127,23 +127,23 @@ const useStyles = M.makeStyles((t) => {
 
 interface NumbersRangeProps {
   extents: { min?: number; max?: number }
-  onChange: (v: { min: number | null; max: number | null }) => void
-  value: { min: number | null; max: number | null }
+  onChange: (v: { gte: number | null; lte: number | null }) => void
+  value: { gte: number | null; lte: number | null }
 }
 
 export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
   const classes = useStyles()
 
   const { min, max } = extents
-  const left = value.min ?? min ?? null
-  const right = value.max ?? max ?? null
+  const left = value.gte ?? min ?? null
+  const right = value.lte ?? max ?? null
 
   const handleGte = React.useCallback(
-    (gte: number | null) => onChange({ min: gte, max: right }),
+    (gte: number | null) => onChange({ gte, lte: right }),
     [onChange, right],
   )
   const handleLte = React.useCallback(
-    (lte: number | null) => onChange({ min: left, max: lte }),
+    (lte: number | null) => onChange({ gte: left, lte }),
     [onChange, left],
   )
   return (

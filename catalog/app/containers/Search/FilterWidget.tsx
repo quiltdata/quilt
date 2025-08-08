@@ -126,9 +126,7 @@ function NumberFilterWidget({
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
   // FIXME: debounce
   const handleChange = React.useCallback(
-    (value: { min: number | null; max: number | null }) => {
-      onChange({ ...state, gte: value.min, lte: value.max })
-    },
+    (v: { gte: number | null; lte: number | null }) => onChange({ ...state, ...v }),
     [onChange, state],
   )
   return (
@@ -137,7 +135,7 @@ function NumberFilterWidget({
       onChange={handleChange}
       // TODO: add units for known filters
       // unit={unit}
-      value={{ min: state.gte, max: state.lte }}
+      value={state}
     />
   )
 }
