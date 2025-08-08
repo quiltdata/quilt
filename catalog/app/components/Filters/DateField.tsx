@@ -28,16 +28,14 @@ function Err<V>(value: V, error: unknown): InputStateError<V> {
 
 const InputLabelProps = { shrink: true }
 
-const fromYmd = (ymd: string): InputState<string, Date> => {
+function fromYmd(ymd: string): InputState<string, Date> {
   const date = new Date(ymd)
-  if (Number.isNaN(date.valueOf())) {
-    const error = new Error(date.toString())
-    return Err(ymd, error)
-  }
-  return Ok(ymd, date)
+  return Number.isNaN(date.valueOf())
+    ? Err(ymd, new Error(date.toString()))
+    : Ok(ymd, date)
 }
 
-const fromDate = (date?: Date | null): InputState<string, Date> => {
+function fromDate(date?: Date | null): InputState<string, Date> {
   if (!date) return Err('', new Error('Empty date'))
   try {
     return Ok(dateFns.format(date, 'yyyy-MM-dd'), date)
