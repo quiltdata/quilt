@@ -200,7 +200,7 @@ export const Predicates = {
 
   KeywordEnum: Predicate({
     tag: 'KeywordEnum',
-    init: { terms: [] as string[] },
+    init: { terms: [] as readonly string[] },
     fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
     toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
     toGQL: ({ terms }) =>

@@ -1,6 +1,7 @@
 import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { useDebouncedCallback } from 'use-debounce'
 
 import * as FiltersUI from 'components/Filters'
 import * as GQL from 'utils/GraphQL'
@@ -20,8 +21,9 @@ interface ObjectsFilterProps {
 
 function ObjectsFilter({ className, field }: ObjectsFilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.S3Object)
-  const predicateState = model.state.filter.predicates[field]
-  invariant(predicateState, 'Filter not active')
+
+  const initialValue = model.state.filter.predicates[field]
+  invariant(initialValue, 'Filter not active')
 
   const extents = GQL.fold(model.baseSearchQuery, {
     data: ({ searchObjects: r }) => {
@@ -45,15 +47,33 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
 
   const { deactivateObjectsFilter, setObjectsFilter } = model.actions
 
+  type ObjectFilterState = NonNullable<Parameters<typeof setObjectsFilter>[1]>
+
+  const [value, setValue] = React.useState<ObjectFilterState>(initialValue)
+  const [error, setError] = React.useState<Error | null>(null)
+
   const deactivate = React.useCallback(() => {
     deactivateObjectsFilter(field)
   }, [deactivateObjectsFilter, field])
 
-  const change = React.useCallback(
-    (state: Parameters<typeof setObjectsFilter>[1]) => {
-      setObjectsFilter(field, state)
+  const { _tag: tag } = initialValue
+  const debounceOptions = React.useMemo(
+    () => ({ leading: tag === 'KeywordEnum' || tag === 'Boolean' }),
+    [tag],
+  )
+  const onChange = useDebouncedCallback(setObjectsFilter, 500, debounceOptions)
+
+  const handleChange = React.useCallback(
+    (state: FiltersUI.Value<ObjectFilterState>) => {
+      if (state instanceof Error) {
+        setError(state)
+      } else {
+        setError(null)
+        setValue(state)
+        onChange(field, state)
+      }
     },
-    [setObjectsFilter, field],
+    [onChange, field],
   )
 
   return (
@@ -63,7 +83,12 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
       onDeactivate={deactivate}
       title={OBJECT_FILTER_LABELS[field]}
     >
-      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      <FilterWidget
+        error={error}
+        state={value}
+        extents={extents}
+        onChange={handleChange}
+      />
     </FiltersUI.Container>
   )
 }

@@ -2,8 +2,19 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as d3Scale from 'd3-scale'
 
-import * as Notifications from 'containers/Notifications'
 import { formatQuantity } from 'utils/string'
+
+import type { Value } from './types'
+
+export interface Numbers {
+  gte: number | null
+  lte: number | null
+}
+
+interface NumbersStr {
+  gte: string
+  lte: string
+}
 
 const MAX_TICKS = 100
 const SCALE_CURVE = 2
@@ -12,6 +23,14 @@ const ROUNDING_THRESHOLD = 100
 const roundAboveThreshold = (n: number) => (n > ROUNDING_THRESHOLD ? Math.round(n) : n)
 
 type Scale = d3Scale.ScaleContinuousNumeric<number, number>
+
+function ValueLabelComponent({ children, open, value }: M.ValueLabelProps) {
+  return (
+    <M.Tooltip open={open} enterTouchDelay={0} title={value}>
+      {children}
+    </M.Tooltip>
+  )
+}
 
 function useScale(min: number, max: number) {
   const range = Math.min(Math.ceil(max - min), MAX_TICKS)
@@ -39,21 +58,29 @@ const createValueLabelFormat = (scale: Scale) => (number: number) => {
   })
 }
 
-const convertValuesToDomain =
-  (scale: Scale) =>
-  ({ min, max }: { min: number | null; max: number | null }) => [
-    min != null ? scale.invert(min) : 0,
-    max != null ? scale.invert(max) : 100,
-  ]
+const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
+
+const NaNError = new Error('Enter valid number, please')
+
+const convertValuesToDomain = (scale: Scale, { gte, lte }: Numbers) => [
+  gte != null ? scale.invert(gte) : 0,
+  lte != null ? scale.invert(lte) : 100,
+]
 
 const convertDomainToValues =
   (scale: Scale) =>
-  ([min, max]: [number, number]) => ({
-    min: roundAboveThreshold(scale(min)),
-    max: roundAboveThreshold(scale(max)),
+  ([gte, lte]: [number, number]) => ({
+    gte: roundAboveThreshold(scale(gte)),
+    lte: roundAboveThreshold(scale(lte)),
   })
 
-const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
+function parseNumbersOr<T>(value: NumbersStr, fallback: T): Numbers | T {
+  const gte = Number(value.gte)
+  if (!isNumber(gte)) return fallback
+  const lte = Number(value.lte)
+  if (!isNumber(lte)) return fallback
+  return { gte, lte }
+}
 
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
@@ -72,70 +99,86 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
+const useSliderStyles = M.makeStyles(() => ({
+  mark: {
+    opacity: 0.38,
+  },
+}))
+
 interface NumbersRangeProps {
   extents: { min: number; max: number }
-  onChange: (v: { min: number | null; max: number | null }) => void
-  value: { min: number | null; max: number | null }
+  onChange: (v: Value<Numbers>) => void
+  initialValue: Numbers
+  error: Error | null
 }
 
-export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
-  const { marks, scale } = useScale(extents.min, extents.max)
-  const [invalidId, setInvalidId] = React.useState('')
-  const { push: notify, dismiss } = Notifications.use()
-  const classes = useStyles()
-  const validate = React.useCallback(
-    (v) => {
-      if (invalidId) {
-        setInvalidId('')
-        dismiss(invalidId)
-      }
+// 1. It is possible to type letters in input field.
+// 2. It doesn't make sense to return strings (not numbers) in `onChange`.
+// 3. So,
+//    * we store valid state outside of the component,
+//    * and intermitent state inside the component.
+// That's why it has `initialValue` and not a `value`
 
-      if (!isNumber(v)) {
-        const {
-          notification: { id },
-        } = notify('Enter valid number, please')
-        setInvalidId(id)
-      }
-    },
-    [dismiss, invalidId, notify],
+export default function NumbersRange({
+  error,
+  extents,
+  initialValue,
+  onChange,
+}: NumbersRangeProps) {
+  const classes = useStyles()
+  const sliderClasses = useSliderStyles()
+
+  const { marks, scale } = useScale(extents.min, extents.max)
+  const [gte, setGte] = React.useState((initialValue.gte || extents.min).toString())
+  const [lte, setLte] = React.useState((initialValue.lte || extents.max).toString())
+
+  React.useEffect(
+    () => setGte((initialValue.gte || extents.min).toString()),
+    [initialValue.gte, extents.min],
   )
-  // XXX: it would be nice to debounce high-frequency URL changes, but it's not that trivial
+  React.useEffect(
+    () => setLte((initialValue.lte || extents.max).toString()),
+    [initialValue.lte, extents.max],
+  )
+
   const handleSlider = React.useCallback(
-    (_event, [min, max]) => onChange(convertDomainToValues(scale)([min, max])),
+    (_event, sliderValues) => {
+      const values = convertDomainToValues(scale)(sliderValues)
+      setGte(values.gte.toString())
+      setLte(values.lte.toString())
+      onChange(values)
+    },
     [onChange, scale],
   )
-
-  const min = value.min || extents.min
-  const max = value.max || extents.max
-  const handleFrom = React.useCallback(
-    (event) => {
-      const newMin = Number(event.target.value)
-      if (isNumber(newMin)) {
-        onChange({ min: newMin, max })
-      }
-      validate(newMin)
-    },
-    [onChange, max, validate],
-  )
-  const handleTo = React.useCallback(
-    (event) => {
-      const newMax = Number(event.target.value)
-      if (isNumber(newMax)) {
-        onChange({ min, max: newMax })
-      }
-      validate(newMax)
-    },
-    [onChange, min, validate],
-  )
   const sliderValue = React.useMemo(
-    () => convertValuesToDomain(scale)(value),
-    [value, scale],
+    () =>
+      convertValuesToDomain(
+        scale,
+        parseNumbersOr({ gte, lte }, { gte: null, lte: null }),
+      ),
+    [gte, lte, scale],
+  )
+  const handleMin = React.useCallback(
+    (event) => {
+      setGte(event.target.value)
+      onChange(parseNumbersOr({ gte: event.target.value, lte }, NaNError))
+    },
+    [onChange, lte],
+  )
+  const handleMax = React.useCallback(
+    (event) => {
+      setLte(event.target.value)
+      onChange(parseNumbersOr({ gte, lte: event.target.value }, NaNError))
+    },
+    [onChange, gte],
   )
   const valueLabelFormat = React.useMemo(() => createValueLabelFormat(scale), [scale])
   return (
     <div>
       <div className={classes.slider}>
         <M.Slider
+          ValueLabelComponent={ValueLabelComponent}
+          classes={sliderClasses}
           marks={marks}
           onChange={handleSlider}
           value={sliderValue}
@@ -147,20 +190,21 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
         <M.TextField
           className={classes.input}
           label="From"
-          onChange={handleFrom}
+          onChange={handleMin}
           size="small"
-          value={min}
+          value={gte}
           variant="outlined"
         />
         <M.TextField
           className={classes.input}
           label="To"
-          onChange={handleTo}
+          onChange={handleMax}
           size="small"
-          value={max}
+          value={lte}
           variant="outlined"
         />
       </div>
+      {error && <M.FormHelperText error>{error.message}</M.FormHelperText>}
     </div>
   )
 }
