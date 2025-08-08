@@ -14,28 +14,28 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
-interface DateRangeProps {
+interface DateRangeProps<Value = { gte: Date | null; lte: Date | null }> {
   extents: { min?: Date; max?: Date }
-  onChange: (v: { min: Date | null; max: Date | null }) => void
-  value: { min: Date | null; max: Date | null }
+  onChange: (v: Value) => void
+  value: Value
 }
 
 export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
   const classes = useStyles()
-  const gte = value.min || extents.min || null
-  const lte = value.max || extents.max || null
+  const left = value.gte || extents.min || null
+  const right = value.lte || extents.max || null
   const handleGte = React.useCallback(
-    (min) => onChange({ min, max: lte }),
-    [lte, onChange],
+    (gte: Date | null) => onChange({ gte, lte: right }),
+    [right, onChange],
   )
   const handleLte = React.useCallback(
-    (max) => onChange({ min: gte, max }),
-    [gte, onChange],
+    (lte: Date | null) => onChange({ gte: left, lte }),
+    [left, onChange],
   )
   return (
     <div className={classes.root}>
-      <DateField date={gte} extents={extents} onChange={handleGte} label="From" />
-      <DateField date={lte} extents={extents} onChange={handleLte} label="To" />
+      <DateField date={left} extents={extents} onChange={handleGte} label="From" />
+      <DateField date={right} extents={extents} onChange={handleLte} label="To" />
     </div>
   )
 }

@@ -351,6 +351,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
       onDeactivate={deactivate}
       title={PACKAGE_FILTER_LABELS[field]}
     >
+      {/* TODO: add units */}
       {!fetching && (
         <FilterWidget state={predicateState} extents={extents} onChange={change} />
       )}
