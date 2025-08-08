@@ -67,12 +67,14 @@ export default function DateField({
 }: Omit<M.TextFieldProps, 'value' | 'onChange'> & DateFieldProps) {
   const classes = useDateFieldStyles()
 
-  const [state, setState] = React.useState<InputState<string, Date | null>>(Ok('', date))
+  const [state, setState] = React.useState<InputState<string, Date | null>>(
+    fromDate(date),
+  )
 
   React.useEffect(() => setState(fromDate(date)), [date])
 
   const handleChange = React.useCallback(
-    (event) => {
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       const newState = fromYmd(event.target.value)
       setState(newState)
       if (newState._tag === 'ok') {
@@ -83,7 +85,10 @@ export default function DateField({
   )
 
   const inputProps = React.useMemo(
-    () => ({ min: fromDate(extents.min).value, max: fromDate(extents.max).value }),
+    () => ({
+      min: fromDate(extents.min).value || undefined,
+      max: fromDate(extents.max).value || undefined,
+    }),
     [extents],
   )
 
