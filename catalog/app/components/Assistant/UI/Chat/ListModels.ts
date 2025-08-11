@@ -35,7 +35,7 @@ async function tryConverse(runtime: BedrockRuntimeClient, modelId: string): Prom
   )
 }
 
-function classifyError(err: any): { status: ModelCheckResult['status']; detail: string } {
+function classifyError(err: Error | unknown): { status: ModelCheckResult['status']; detail: string } {
   const code = err?.name || err?.Code || 'Unknown'
   if (typeof code === 'string' && code.includes('AccessDenied')) return { status: 'NO_ACCESS', detail: code }
   if (
