@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Search: handle invalid numbers gracefully ([#4468](https://github.com/quiltdata/quilt/pull/4468))
+- [Added] Search: add dates slider ([#4468](https://github.com/quiltdata/quilt/pull/4468))
 - [Fixed] Search: handle invalid dates ([#4466](https://github.com/quiltdata/quilt/pull/4466))
 - [Added] A page for redirecting Quilt+ URIs to QuiltSync ([#4446](https://github.com/quiltdata/quilt/pull/4446))
 - [Added] Search: Table view for package search results (including matching entries) ([#4413](https://github.com/quiltdata/quilt/pull/4413), [#4451](https://github.com/quiltdata/quilt/pull/4451), [#4452](https://github.com/quiltdata/quilt/pull/4452), [#4460](https://github.com/quiltdata/quilt/pull/4460), [#4461](https://github.com/quiltdata/quilt/pull/4461), [#4462](https://github.com/quiltdata/quilt/pull/4462))
