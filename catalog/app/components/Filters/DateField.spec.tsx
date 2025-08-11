@@ -35,7 +35,7 @@ describe('DateField', () => {
     jest.clearAllMocks()
   })
 
-  it('renders with a valid date prop', () => {
+  it('renders with a valid date', () => {
     const renderer = create(
       <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
     )
@@ -43,7 +43,7 @@ describe('DateField', () => {
     expect(input.props.value).toBe('2025-01-13')
   })
 
-  it('updates value when prop "date" changes', () => {
+  it('updates value when value changes', () => {
     const renderer = create(
       <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
     )

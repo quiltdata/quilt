@@ -1,6 +1,6 @@
+import * as d3Scale from 'd3-scale'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as d3Scale from 'd3-scale'
 
 import Log from 'utils/Logging'
 import { formatQuantity } from 'utils/string'
