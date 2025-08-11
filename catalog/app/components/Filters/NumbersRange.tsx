@@ -5,7 +5,30 @@ import * as d3Scale from 'd3-scale'
 import Log from 'utils/Logging'
 import { formatQuantity } from 'utils/string'
 
-import NumberField from './NumberField'
+import * as RangeField from './RangeField'
+
+function fromString(str: string): RangeField.InputState<string, number> {
+  const num = Number(str)
+  return typeof num !== 'number' || Number.isNaN(num)
+    ? RangeField.Err(str, new Error('Not a number'))
+    : RangeField.Ok(str, num)
+}
+
+function fromNumber(num?: number | null): RangeField.InputState<string, number> {
+  if (num == null) return RangeField.Err('', new Error('Enter number, please'))
+  if (typeof num !== 'number' || Number.isNaN(num)) {
+    const error = new Error('Not a number')
+    Log.error(error)
+    return RangeField.Err('', error)
+  }
+  return RangeField.Ok(num.toString(), num)
+}
+
+type NumberFieldProps = Omit<RangeField.Props<number>, 'fromValue' | 'toValue'>
+
+export const NumberField = (props: NumberFieldProps) => (
+  <RangeField.Field fromValue={fromNumber} toValue={fromString} {...props} />
+)
 
 const MAX_TICKS = 100
 const SCALE_CURVE = 2

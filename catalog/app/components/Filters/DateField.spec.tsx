@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { act, create } from 'react-test-renderer'
 
-import DateField from './DateField'
+import { DateField } from './DatesRange'
 
 jest.mock(
   '@material-ui/core',
@@ -37,7 +37,7 @@ describe('DateField', () => {
 
   it('renders with a valid date prop', () => {
     const renderer = create(
-      <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
+      <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
     )
     const input = findInput(renderer)
     expect(input.props.value).toBe('2025-01-13')
@@ -45,7 +45,7 @@ describe('DateField', () => {
 
   it('updates value when prop "date" changes', () => {
     const renderer = create(
-      <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
+      <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
     )
 
     const inputInitial = findInput(renderer)
@@ -53,7 +53,7 @@ describe('DateField', () => {
 
     act(() => {
       renderer.update(
-        <DateField date={new Date(2025, 6, 15)} extents={{}} onChange={onChange} />,
+        <DateField value={new Date(2025, 6, 15)} extents={{}} onChange={onChange} />,
       )
     })
 
@@ -67,7 +67,7 @@ describe('DateField', () => {
 
     const renderer = create(
       <DateField
-        date={new Date(2025, 0, 13)}
+        value={new Date(2025, 0, 13)}
         extents={{ min, max }}
         onChange={onChange}
       />,
@@ -80,7 +80,7 @@ describe('DateField', () => {
 
   it('handles null/undefined extents gracefully', () => {
     const renderer = create(
-      <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
+      <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
     )
 
     const input = findInput(renderer)
@@ -89,14 +89,14 @@ describe('DateField', () => {
   })
 
   it('shows empty value when date is null', () => {
-    const renderer = create(<DateField date={null} extents={{}} onChange={onChange} />)
+    const renderer = create(<DateField value={null} extents={{}} onChange={onChange} />)
     const input = findInput(renderer)
     expect(input.props.value).toBe('')
   })
 
   it('shows empty value and error when date is invalid', () => {
     const renderer = create(
-      <DateField date={new Date('I XIII MMXXV')} extents={{}} onChange={onChange} />,
+      <DateField value={new Date('I XIII MMXXV')} extents={{}} onChange={onChange} />,
     )
     const input = findInput(renderer)
     expect(input.props.value).toBe('')
@@ -105,14 +105,14 @@ describe('DateField', () => {
 
   it('shows error when clear the date', () => {
     const renderer = create(
-      <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
+      <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
     )
 
     const inputInitial = findInput(renderer)
     expect(inputInitial.props.value).toBe('2025-01-13')
 
     act(() => {
-      renderer.update(<DateField date={null} extents={{}} onChange={onChange} />)
+      renderer.update(<DateField value={null} extents={{}} onChange={onChange} />)
     })
 
     const inputChanged = findInput(renderer)
@@ -122,7 +122,7 @@ describe('DateField', () => {
 
   it('resets error when date is fine', () => {
     const renderer = create(
-      <DateField date={new Date('I XIII MMXXV')} extents={{}} onChange={onChange} />,
+      <DateField value={new Date('I XIII MMXXV')} extents={{}} onChange={onChange} />,
     )
     const inputInitial = findInput(renderer)
     expect(inputInitial.props.value).toBe('')
@@ -130,7 +130,7 @@ describe('DateField', () => {
 
     act(() => {
       renderer.update(
-        <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
+        <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
       )
     })
 
@@ -146,13 +146,13 @@ describe('DateField', () => {
     const date = new Date(2025, 0, 13)
 
     // Initial render called once
-    const renderer = create(<DateField date={date} extents={{}} onChange={onChange} />)
+    const renderer = create(<DateField value={date} extents={{}} onChange={onChange} />)
     expect(TextField).toHaveBeenCalledTimes(1)
 
     // Only the parent update render should occur (no extra render from state change)
     TextField.mockClear()
     act(() => {
-      renderer.update(<DateField date={date} extents={{}} onChange={onChange} />)
+      renderer.update(<DateField value={date} extents={{}} onChange={onChange} />)
     })
     expect(TextField).toHaveBeenCalledTimes(1)
 
@@ -165,7 +165,7 @@ describe('DateField', () => {
     TextField.mockClear()
     act(() => {
       renderer.update(
-        <DateField date={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
+        <DateField value={new Date(2025, 0, 13)} extents={{}} onChange={onChange} />,
       )
     })
     expect(TextField).toHaveBeenCalledTimes(2)

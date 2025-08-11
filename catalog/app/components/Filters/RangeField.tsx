@@ -1,16 +1,13 @@
-import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-
-import Log from 'utils/Logging'
 
 type InputStateOk<V, P> = { _tag: 'ok'; value: V; parsed: P }
 
 type InputStateError<V> = { _tag: 'error'; value: V; error: Error }
 
-type InputState<V, P> = InputStateOk<V, P> | InputStateError<V>
+export type InputState<V, P> = InputStateOk<V, P> | InputStateError<V>
 
-function Ok<V, P>(value: V, parsed: P): InputStateOk<V, P> {
+export function Ok<V, P>(value: V, parsed: P): InputStateOk<V, P> {
   return {
     _tag: 'ok',
     value,
@@ -18,7 +15,7 @@ function Ok<V, P>(value: V, parsed: P): InputStateOk<V, P> {
   }
 }
 
-function Err<V>(value: V, error: unknown): InputStateError<V> {
+export function Err<V>(value: V, error: unknown): InputStateError<V> {
   return {
     _tag: 'error',
     value,
@@ -26,26 +23,9 @@ function Err<V>(value: V, error: unknown): InputStateError<V> {
   }
 }
 
-const InputLabelProps = { shrink: true }
-
-function fromYmd(ymd: string): InputState<string, Date> {
-  const date = dateFns.parseISO(ymd)
-  return dateFns.isValid(date) ? Ok(ymd, date) : Err(ymd, new Error(date.toString()))
-}
-
-function fromDate(date?: Date | null): InputState<string, Date> {
-  if (!date) return Err('', new Error('Empty date'))
-  try {
-    return Ok(dateFns.format(date, 'yyyy-MM-dd'), date)
-  } catch (e) {
-    Log.error(e)
-    return Err('', e)
-  }
-}
-
-function areEqual(
-  a: InputState<string, Date | null>,
-  b: InputState<string, Date | null>,
+function areEqual<Value>(
+  a: InputState<string, Value | null>,
+  b: InputState<string, Value | null>,
 ): boolean {
   if (a._tag === 'ok' && b._tag === 'ok') return a.parsed === b.parsed
   if (a._tag === 'error' && b._tag === 'error') return a.error.message === b.error.message
@@ -58,59 +38,65 @@ const useDateFieldStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DateFieldProps {
+interface RangeFieldProps<Value> {
   className?: string
-  date: Date | null
-  onChange: (v: Date | null) => void
-  extents: { min?: Date; max?: Date }
+  value: Value | null
+  extents: { min?: Value; max?: Value }
+  fromValue: (date?: Value | null) => InputState<string, Value>
+  onChange: (v: Value | null) => void
+  toValue: (ymd: string) => InputState<string, Value>
 }
 
-export default function DateField({
+export type Props<Value> = Omit<M.TextFieldProps, 'value' | 'onChange'> &
+  RangeFieldProps<Value>
+
+function RangeField<Value>({
   className,
-  date,
   extents,
+  fromValue,
   onChange,
+  toValue,
+  value,
   ...props
-}: Omit<M.TextFieldProps, 'value' | 'onChange'> & DateFieldProps) {
+}: Props<Value>) {
   const classes = useDateFieldStyles()
 
-  const [state, setState] = React.useState<InputState<string, Date | null>>(
-    fromDate(date),
+  const [state, setState] = React.useState<InputState<string, Value | null>>(
+    fromValue(value),
   )
 
   React.useEffect(
     () =>
       setState((prev) => {
-        const newDate = fromDate(date)
-        return areEqual(prev, newDate) ? prev : newDate
+        const next = fromValue(value)
+        return areEqual(prev, next) ? prev : next
       }),
-    [date],
+    [fromValue, value],
   )
 
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newState = fromYmd(event.target.value)
+      const newState = toValue(event.target.value)
       setState(newState)
       if (newState._tag === 'ok') {
         onChange(newState.parsed)
       }
     },
-    [onChange],
+    [onChange, toValue],
   )
 
   const inputProps = React.useMemo(
     () => ({
-      min: fromDate(extents.min).value || undefined,
-      max: fromDate(extents.max).value || undefined,
+      min: fromValue(extents.min).value || undefined,
+      max: fromValue(extents.max).value || undefined,
     }),
-    [extents],
+    [extents, fromValue],
   )
 
   const InputProps = React.useMemo(() => ({ classes }), [classes])
 
   return (
     <M.TextField
-      InputLabelProps={InputLabelProps}
       InputProps={InputProps}
       className={className}
       error={state._tag === 'error'}
@@ -125,3 +111,5 @@ export default function DateField({
     />
   )
 }
+
+export const Field = RangeField
