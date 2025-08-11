@@ -6,6 +6,7 @@ import Log from 'utils/Logging'
 
 const MAX_TICKS = 100
 const SCALE_CURVE = 2
+const ROUNDING_THRESHOLD = 100
 
 function ValueLabelComponent({ children, open, value }: M.ValueLabelProps) {
   return (
@@ -15,7 +16,7 @@ function ValueLabelComponent({ children, open, value }: M.ValueLabelProps) {
   )
 }
 
-export type Scale = d3Scale.ScaleContinuousNumeric<number, number>
+type Scale = d3Scale.ScaleContinuousNumeric<number, number>
 
 function useScale(min: number, max: number) {
   const range = Math.min(Math.ceil(max - min), MAX_TICKS)
@@ -36,36 +37,48 @@ function useScale(min: number, max: number) {
   return { marks, scale }
 }
 
+type NumberLike = number | { valueOf(): number }
+
+function convertDomainToValues<V>(scale: Scale, convert: (v: number) => V) {
+  return ([gte, lte]: [number, number]) => ({
+    gte: convert(roundAboveThreshold(scale(gte))),
+    lte: convert(roundAboveThreshold(scale(lte))),
+  })
+}
+
+const convertValuesToDomain =
+  (scale: Scale) =>
+  ({ gte, lte }: { gte: NumberLike | null; lte: NumberLike | null }) => [
+    gte != null ? scale.invert(gte) : 0,
+    lte != null ? scale.invert(lte) : 100,
+  ]
+
+const roundAboveThreshold = (n: number) => (n > ROUNDING_THRESHOLD ? Math.round(n) : n)
+
 const useSliderStyles = M.makeStyles((t) => ({
   mark: {
     opacity: t.palette.action.disabledOpacity,
   },
 }))
 
-type NumberLike = number | { valueOf(): number }
-
-interface SliderProps<Value> {
+interface SliderProps<Value extends NumberLike> {
   className?: string
-  createValueLabelFormat: (scale: Scale) => (number: number) => React.ReactNode
-  fromValues: (
-    scale: Scale,
-  ) => ({ gte, lte }: { gte: Value | null; lte: Value | null }) => number[]
+  convert: (v: number) => Value
+  formatLabel: (number: number) => React.ReactNode
   max: Value
   min: Value
   onChange: (v: { gte: Value; lte: Value }) => void
-  toValues: (scale: Scale) => ([gte, lte]: [number, number]) => { gte: Value; lte: Value }
   value: { gte: Value | null; lte: Value | null }
 }
 
 export default function Slider<Value extends NumberLike>({
   className,
+  convert,
   min,
   max,
   onChange,
   value,
-  toValues,
-  createValueLabelFormat,
-  fromValues,
+  formatLabel,
 }: SliderProps<Value>) {
   const classes = useSliderStyles()
   const { marks, scale } = useScale(min.valueOf(), max.valueOf())
@@ -76,17 +89,17 @@ export default function Slider<Value extends NumberLike>({
         return
       }
       const [left, right] = range
-      onChange(toValues(scale)([left, right]))
+      onChange(convertDomainToValues(scale, convert)([left, right]))
     },
-    [onChange, scale, toValues],
+    [convert, onChange, scale],
   )
   const sliderValue = React.useMemo(
-    () => fromValues(scale)(value),
-    [fromValues, scale, value],
+    () => convertValuesToDomain(scale)(value),
+    [scale, value],
   )
-  const valueLabelFormat = React.useMemo(
-    () => createValueLabelFormat(scale),
-    [createValueLabelFormat, scale],
+  const valueLabelFormat = React.useCallback(
+    (number: number) => formatLabel(roundAboveThreshold(scale(number))),
+    [formatLabel, scale],
   )
   return (
     <div className={className}>

@@ -1,3 +1,4 @@
+import * as IO from 'io-ts'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -6,16 +7,15 @@ import { formatQuantity } from 'utils/string'
 
 import * as RangeField from './RangeField'
 import Slider from './Slider'
-import type { Scale } from './Slider'
 
-function fromString(str: string): RangeField.InputState<number> {
+function parse(str: string): RangeField.InputState<number> {
   const num = Number(str)
   return Number.isNaN(num)
     ? RangeField.Err(str, new Error('Not a number'))
     : RangeField.Ok(str, num)
 }
 
-function fromNumber(num?: number | null): RangeField.InputState<number> {
+function stringify(num?: number | null): RangeField.InputState<number> {
   if (num == null) return RangeField.Err('', new Error('Enter number, please'))
   if (typeof num !== 'number' || Number.isNaN(num)) {
     const error = new Error('Not a number')
@@ -28,33 +28,11 @@ function fromNumber(num?: number | null): RangeField.InputState<number> {
 type NumberFieldProps = Omit<RangeField.Props<number>, 'parse' | 'stringify'>
 
 export const NumberField = (props: NumberFieldProps) => (
-  <RangeField.Field stringify={fromNumber} parse={fromString} {...props} />
+  <RangeField.Field stringify={stringify} parse={parse} {...props} />
 )
 
-const ROUNDING_THRESHOLD = 100
-
-const roundAboveThreshold = (n: number) => (n > ROUNDING_THRESHOLD ? Math.round(n) : n)
-
-const createValueLabelFormat = (scale: Scale) => (number: number) => {
-  const scaled = scale(number)
-  return formatQuantity(roundAboveThreshold(scaled), {
-    fallback: (n: number) => Math.round(n * 100) / 100,
-  })
-}
-
-const convertValuesToDomain =
-  (scale: Scale) =>
-  ({ gte, lte }: { gte: number | null; lte: number | null }) => [
-    gte != null ? scale.invert(gte) : 0,
-    lte != null ? scale.invert(lte) : 100,
-  ]
-
-const convertDomainToValues =
-  (scale: Scale) =>
-  ([gte, lte]: [number, number]) => ({
-    gte: roundAboveThreshold(scale(gte)),
-    lte: roundAboveThreshold(scale(lte)),
-  })
+const formatLabel = (number: number) =>
+  formatQuantity(number, { fallback: (n: number) => Math.round(n * 100) / 100 })
 
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
@@ -70,18 +48,25 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
-type Range = { gte: number | null; lte: number | null }
+type Range<Parsed> = { gte: Parsed | null; lte: Parsed | null }
 
-const alignRange = ({ gte, lte }: Range): Range =>
-  gte != null && lte != null && gte > lte ? { gte: lte, lte: gte } : { gte, lte }
+type Extents<Parsed> = { min?: Parsed; max?: Parsed }
 
-interface NumbersRangeProps {
-  extents: { min?: number; max?: number }
-  onChange: (v: Range) => void
-  value: Range
+function alignRange<T>({ gte, lte }: Range<T>): Range<T> {
+  return gte != null && lte != null && gte > lte ? { gte: lte, lte: gte } : { gte, lte }
 }
 
-export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
+interface NumbersRangeProps<Parsed> {
+  extents: Extents<Parsed>
+  onChange: (v: Range<Parsed>) => void
+  value: Range<Parsed>
+}
+
+export default function NumbersRange({
+  extents,
+  value,
+  onChange,
+}: NumbersRangeProps<number>) {
   const classes = useStyles()
 
   const { min, max } = extents
@@ -96,17 +81,17 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
     (lte: number | null) => onChange(alignRange({ gte: left, lte })),
     [onChange, left],
   )
+
   return (
     <div>
       {min != null && max != null && min !== max && (
         <Slider
           className={classes.slider}
-          createValueLabelFormat={createValueLabelFormat}
-          fromValues={convertValuesToDomain}
+          convert={IO.identity}
+          formatLabel={formatLabel}
           max={max}
           min={min}
           onChange={onChange}
-          toValues={convertDomainToValues}
           value={value}
         />
       )}
