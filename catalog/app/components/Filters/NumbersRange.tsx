@@ -84,11 +84,23 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
   const right = value.lte ?? max ?? null
 
   const handleGte = React.useCallback(
-    (gte: number | null) => onChange({ gte, lte: right }),
+    (gte: number | null) => {
+      if (gte != null && right != null && gte > right) {
+        onChange({ gte: right, lte: gte })
+      } else {
+        onChange({ gte, lte: right })
+      }
+    },
     [onChange, right],
   )
   const handleLte = React.useCallback(
-    (lte: number | null) => onChange({ gte: left, lte }),
+    (lte: number | null) => {
+      if (lte != null && left != null && left > lte) {
+        onChange({ gte: lte, lte: left })
+      } else {
+        onChange({ gte: left, lte })
+      }
+    },
     [onChange, left],
   )
   return (

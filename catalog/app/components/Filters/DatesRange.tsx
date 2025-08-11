@@ -87,11 +87,23 @@ export default function DatesRange({ extents, value, onChange }: DateRangeProps)
   const left = value.gte || min || null
   const right = value.lte || max || null
   const handleGte = React.useCallback(
-    (gte: Date | null) => onChange({ gte, lte: right }),
+    (gte: Date | null) => {
+      if (gte != null && right != null && gte > right) {
+        onChange({ gte: right, lte: gte })
+      } else {
+        onChange({ gte, lte: right })
+      }
+    },
     [right, onChange],
   )
   const handleLte = React.useCallback(
-    (lte: Date | null) => onChange({ gte: left, lte }),
+    (lte: Date | null) => {
+      if (lte != null && left != null && left > lte) {
+        onChange({ gte: lte, lte: left })
+      } else {
+        onChange({ gte: left, lte })
+      }
+    },
     [left, onChange],
   )
   return (
