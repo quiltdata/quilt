@@ -4,6 +4,11 @@ import { act, create } from 'react-test-renderer'
 import { DateField } from './DatesRange'
 
 jest.mock(
+  'd3-scale',
+  jest.fn(() => {}),
+)
+
+jest.mock(
   '@material-ui/core',
   jest.fn(() => ({
     ...jest.requireActual('@material-ui/core'),
