@@ -19,7 +19,7 @@ export function Err<V>(value: V, error: unknown): InputStateError<V> {
   return {
     _tag: 'error',
     value,
-    error: error instanceof Error ? error : new Error('Invalid date'),
+    error: error instanceof Error ? error : new Error('Invalid value'),
   }
 }
 
