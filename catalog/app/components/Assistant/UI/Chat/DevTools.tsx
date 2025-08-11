@@ -2,11 +2,12 @@ import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import ClearIcon from '@material-ui/icons/Clear'
+import DeleteIcon from '@material-ui/icons/Delete'
+import GetAppIcon from '@material-ui/icons/GetApp'
 
 import JsonDisplay from 'components/JsonDisplay'
 
 import * as Model from '../../Model'
-import * as Bedrock from '../../Model/Bedrock'
 
 const useModelIdOverrideStyles = M.makeStyles((t) => ({
   root: {
@@ -15,34 +16,32 @@ const useModelIdOverrideStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ModelIdOverride() {
-  const classes = useModelIdOverrideStyles()
+type ModelIdOverrideProps = Model.Assistant.API['devTools']['modelIdOverride']
 
-  const [modelId, setModelId] = React.useState(Bedrock.getModelIdOverride)
+function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
+  const classes = useModelIdOverrideStyles()
 
   const handleModelIdChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      setModelId(event.target.value)
+      setValue(event.target.value)
     },
-    [],
+    [setValue],
   )
 
-  React.useEffect(() => Bedrock.setModelIdOverride(modelId), [modelId])
-
-  const handleClear = React.useCallback(() => setModelId(''), [])
+  const handleClear = React.useCallback(() => setValue(''), [setValue])
 
   return (
     <div className={classes.root}>
       <M.TextField
         label="Bedrock Model ID"
-        placeholder={Bedrock.DEFAULT_MODEL_ID}
-        value={modelId}
+        placeholder={Model.Assistant.DEFAULT_MODEL_ID}
+        value={value}
         onChange={handleModelIdChange}
         fullWidth
         helperText="Leave empty to use default"
         InputLabelProps={{ shrink: true }}
         InputProps={{
-          endAdornment: modelId ? (
+          endAdornment: value ? (
             <M.InputAdornment position="end">
               <M.IconButton
                 aria-label="Clear model ID override"
@@ -58,6 +57,84 @@ function ModelIdOverride() {
           ) : null,
         }}
       />
+    </div>
+  )
+}
+
+const useRecordingControlsStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: t.spacing(1),
+    margin: t.spacing(2, 0),
+    padding: t.spacing(0, 2),
+  },
+  label: {
+    ...t.typography.body2,
+    flexGrow: 1,
+    padding: t.spacing(0, 2),
+  },
+}))
+
+type RecordingControlsProps = Model.Assistant.API['devTools']['recording']
+
+function RecordingControls({ enabled, log, enable, clear }: RecordingControlsProps) {
+  const classes = useRecordingControlsStyles()
+
+  const handleToggleRecording = React.useCallback(() => {
+    enable(!enabled)
+  }, [enabled, enable])
+
+  const handleDownload = React.useCallback(() => {
+    const data = `[\n${log.join(',\n')}\n]`
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `qurator-session-${new Date().toISOString()}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [log])
+
+  return (
+    <div className={classes.root}>
+      <M.Button
+        onClick={handleToggleRecording}
+        variant="contained"
+        color="primary"
+        size="small"
+      >
+        {enabled ? 'Stop' : 'Start'} Recording
+      </M.Button>
+
+      {(enabled || log.length > 0) && (
+        <div className={classes.label}>
+          {log.length > 0 ? `${log.length} item(s) recorded` : 'Recording...'}
+        </div>
+      )}
+
+      {log.length > 0 && (
+        <>
+          <M.Button
+            onClick={handleDownload}
+            size="small"
+            variant="outlined"
+            startIcon={<GetAppIcon />}
+          >
+            Download Log
+          </M.Button>
+          <M.Button
+            onClick={clear}
+            size="small"
+            variant="outlined"
+            startIcon={<DeleteIcon />}
+          >
+            Clear Log
+          </M.Button>
+        </>
+      )}
     </div>
   )
 }
@@ -86,9 +163,11 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DevToolsProps {
   state: Model.Assistant.API['state']
+  modelIdOverride: Model.Assistant.API['devTools']['modelIdOverride']
+  recording: Model.Assistant.API['devTools']['recording']
 }
 
-export default function DevTools({ state }: DevToolsProps) {
+export default function DevTools({ state, modelIdOverride, recording }: DevToolsProps) {
   const classes = useStyles()
 
   const context = Model.Context.useAggregatedContext()
@@ -108,7 +187,10 @@ export default function DevTools({ state }: DevToolsProps) {
     <section className={classes.root}>
       <h1 className={classes.heading}>Qurator Developer Tools</h1>
       <div className={classes.contents}>
-        <ModelIdOverride />
+        <ModelIdOverride {...modelIdOverride} />
+        <M.Divider />
+        <RecordingControls {...recording} />
+        <M.Divider />
         <JsonDisplay className={classes.json} name="Context" value={context} />
         <JsonDisplay className={classes.json} name="State" value={state} />
         <JsonDisplay className={classes.json} name="Prompt" value={prompt} />

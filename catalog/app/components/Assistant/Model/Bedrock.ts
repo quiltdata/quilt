@@ -9,23 +9,10 @@ import * as LLM from './LLM'
 
 const MODULE = 'Bedrock'
 
-export const MODEL_ID_KEY = 'QUILT_BEDROCK_MODEL_ID'
-export const DEFAULT_MODEL_ID = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
-
-export const getModelIdOverride = () =>
-  (typeof localStorage !== 'undefined' && localStorage.getItem(MODEL_ID_KEY)) || ''
-
-export const setModelIdOverride = (modelId: string) => {
-  if (typeof localStorage !== 'undefined') {
-    if (modelId) {
-      localStorage.setItem(MODEL_ID_KEY, modelId)
-    } else {
-      localStorage.removeItem(MODEL_ID_KEY)
-    }
-  }
+interface BedrockOptions {
+  modelId: Eff.Effect.Effect<string>
+  record?: (r: string) => Eff.Effect.Effect<void>
 }
-
-const getModelId = Eff.Effect.sync(() => getModelIdOverride() || DEFAULT_MODEL_ID)
 
 const mapContent = (contentBlocks: BedrockRuntime.ContentBlocks | undefined) =>
   Eff.pipe(
@@ -132,29 +119,24 @@ function isAWSError(e: any): e is AWSSDK.AWSError {
 }
 
 // a layer providing the service over aws.bedrock
-export function LLMBedrock(bedrock: BedrockRuntime) {
+export function LLMBedrock(bedrock: BedrockRuntime, options: BedrockOptions) {
   const converse = (prompt: LLM.Prompt, opts?: LLM.Options) =>
     Log.scoped({
       name: `${MODULE}.converse`,
       enter: [Log.br, 'prompt:', prompt, Log.br, 'opts:', opts],
     })(
       Eff.Effect.gen(function* () {
-        const modelId = yield* getModelId
-        return yield* Eff.Effect.tryPromise({
-          try: () =>
-            bedrock
-              .converse({
-                modelId,
-                system: [{ text: prompt.system }],
-                messages: messagesToBedrock(prompt.messages),
-                toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
-                ...opts,
-              })
-              .promise()
-              .then((backendResponse) => ({
-                backendResponse,
-                content: mapContent(backendResponse.output.message?.content),
-              })),
+        const requestTimestamp = new Date(yield* Eff.Clock.currentTimeMillis)
+        const modelId = yield* options.modelId
+        const requestBody = {
+          modelId,
+          system: [{ text: prompt.system }],
+          messages: messagesToBedrock(prompt.messages),
+          toolConfig: prompt.toolConfig && toolConfigToBedrock(prompt.toolConfig),
+          ...opts,
+        }
+        const backendResponse = yield* Eff.Effect.tryPromise({
+          try: () => bedrock.converse(requestBody).promise(),
           catch: (e) =>
             new LLM.LLMError({
               message: isAWSError(e)
@@ -162,6 +144,25 @@ export function LLMBedrock(bedrock: BedrockRuntime) {
                 : `Unexpected error: ${e}`,
             }),
         })
+        const responseTimestamp = new Date(yield* Eff.Clock.currentTimeMillis)
+        if (options.record) {
+          const entry = JSON.stringify(
+            {
+              requestTimestamp,
+              responseTimestamp,
+              modelId,
+              request: requestBody,
+              response: backendResponse,
+            },
+            null,
+            2,
+          )
+          yield* options.record(entry)
+        }
+        return {
+          backendResponse,
+          content: mapContent(backendResponse.output.message?.content),
+        }
       }),
     )
 
