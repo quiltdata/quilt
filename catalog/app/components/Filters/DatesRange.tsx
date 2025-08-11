@@ -75,10 +75,15 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
-interface DateRangeProps<Value = { gte: Date | null; lte: Date | null }> {
+type Range = { gte: Date | null; lte: Date | null }
+
+const alignRange = ({ gte, lte }: Range): Range =>
+  gte != null && lte != null && gte > lte ? { gte: lte, lte: gte } : { gte, lte }
+
+interface DateRangeProps {
   extents: { min?: Date; max?: Date }
-  onChange: (v: Value) => void
-  value: Value
+  onChange: (v: Range) => void
+  value: Range
 }
 
 export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
@@ -87,23 +92,11 @@ export default function DatesRange({ extents, value, onChange }: DateRangeProps)
   const left = value.gte ?? min ?? null
   const right = value.lte ?? max ?? null
   const handleGte = React.useCallback(
-    (gte: Date | null) => {
-      if (gte != null && right != null && gte > right) {
-        onChange({ gte: right, lte: gte })
-      } else {
-        onChange({ gte, lte: right })
-      }
-    },
+    (gte: Date | null) => onChange(alignRange({ gte, lte: right })),
     [right, onChange],
   )
   const handleLte = React.useCallback(
-    (lte: Date | null) => {
-      if (lte != null && left != null && left > lte) {
-        onChange({ gte: lte, lte: left })
-      } else {
-        onChange({ gte: left, lte })
-      }
-    },
+    (lte: Date | null) => onChange(alignRange({ gte: left, lte })),
     [left, onChange],
   )
   return (

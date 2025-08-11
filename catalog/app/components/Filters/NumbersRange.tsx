@@ -70,10 +70,15 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
+type Range = { gte: number | null; lte: number | null }
+
+const alignRange = ({ gte, lte }: Range): Range =>
+  gte != null && lte != null && gte > lte ? { gte: lte, lte: gte } : { gte, lte }
+
 interface NumbersRangeProps {
   extents: { min?: number; max?: number }
-  onChange: (v: { gte: number | null; lte: number | null }) => void
-  value: { gte: number | null; lte: number | null }
+  onChange: (v: Range) => void
+  value: Range
 }
 
 export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
@@ -84,23 +89,11 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
   const right = value.lte ?? max ?? null
 
   const handleGte = React.useCallback(
-    (gte: number | null) => {
-      if (gte != null && right != null && gte > right) {
-        onChange({ gte: right, lte: gte })
-      } else {
-        onChange({ gte, lte: right })
-      }
-    },
+    (gte: number | null) => onChange(alignRange({ gte, lte: right })),
     [onChange, right],
   )
   const handleLte = React.useCallback(
-    (lte: number | null) => {
-      if (lte != null && left != null && left > lte) {
-        onChange({ gte: lte, lte: left })
-      } else {
-        onChange({ gte: left, lte })
-      }
-    },
+    (lte: number | null) => onChange(alignRange({ gte: left, lte })),
     [onChange, left],
   )
   return (
