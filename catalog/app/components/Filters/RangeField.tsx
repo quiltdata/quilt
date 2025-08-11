@@ -32,7 +32,7 @@ function areEqual<Value>(
   return false
 }
 
-const useDateFieldStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   input: {
     background: t.palette.background.paper,
   },
@@ -42,9 +42,9 @@ interface RangeFieldProps<Value> {
   className?: string
   value: Value | null
   extents: { min?: Value; max?: Value }
-  fromValue: (date?: Value | null) => InputState<string, Value>
+  fromValue: (v?: Value | null) => InputState<string, Value>
   onChange: (v: Value | null) => void
-  toValue: (ymd: string) => InputState<string, Value>
+  toValue: (input: string) => InputState<string, Value>
 }
 
 export type Props<Value> = Omit<M.TextFieldProps, 'value' | 'onChange'> &
@@ -59,7 +59,7 @@ function RangeField<Value>({
   value,
   ...props
 }: Props<Value>) {
-  const classes = useDateFieldStyles()
+  const classes = useStyles()
 
   const [state, setState] = React.useState<InputState<string, Value | null>>(
     fromValue(value),

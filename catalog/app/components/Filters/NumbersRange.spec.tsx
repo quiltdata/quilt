@@ -91,7 +91,8 @@ describe('components/Filters/NumbersRange', () => {
 
     it('treats NaN as invalid', () => {
       const renderer = create(
-        <NumberField value={Number('abc')} extents={{}} onChange={onChange} />,
+        // @ts-expect-error
+        <NumberField value={'abc'} extents={{}} onChange={onChange} />,
       )
       const input = findInput(renderer)
       expect(input.props.value).toBe('')

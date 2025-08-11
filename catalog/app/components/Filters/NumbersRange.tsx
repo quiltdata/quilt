@@ -10,7 +10,7 @@ import type { Scale } from './Slider'
 
 function fromString(str: string): RangeField.InputState<string, number> {
   const num = Number(str)
-  return typeof num !== 'number' || Number.isNaN(num)
+  return Number.isNaN(num)
     ? RangeField.Err(str, new Error('Not a number'))
     : RangeField.Ok(str, num)
 }
