@@ -42,7 +42,7 @@ const useSliderStyles = M.makeStyles((t) => ({
   },
 }))
 
-type NumberLike = number | { valueOf: () => number }
+type NumberLike = number | { valueOf(): number }
 
 interface SliderProps<Value> {
   className?: string
