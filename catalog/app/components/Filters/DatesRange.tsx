@@ -10,14 +10,14 @@ import type { Scale } from './Slider'
 
 const InputLabelProps = { shrink: true }
 
-function fromYmd(ymd: string): RangeField.InputState<string, Date> {
+function fromYmd(ymd: string): RangeField.InputState<Date> {
   const date = dateFns.parseISO(ymd)
   return dateFns.isValid(date)
     ? RangeField.Ok(ymd, date)
     : RangeField.Err(ymd, new Error(date.toString()))
 }
 
-function fromDate(date?: Date | null): RangeField.InputState<string, Date> {
+function fromDate(date?: Date | null): RangeField.InputState<Date> {
   if (!date) return RangeField.Err('', new Error('Empty date'))
   try {
     return RangeField.Ok(dateFns.format(date, 'yyyy-MM-dd'), date)
@@ -27,13 +27,13 @@ function fromDate(date?: Date | null): RangeField.InputState<string, Date> {
   }
 }
 
-type DateFieldProps = Omit<RangeField.Props<Date>, 'fromValue' | 'toValue'>
+type DateFieldProps = Omit<RangeField.Props<Date>, 'parse' | 'stringify'>
 
 export const DateField = (props: DateFieldProps) => (
   <RangeField.Field
     InputLabelProps={InputLabelProps}
-    fromValue={fromDate}
-    toValue={fromYmd}
+    stringify={fromDate}
+    parse={fromYmd}
     {...props}
   />
 )

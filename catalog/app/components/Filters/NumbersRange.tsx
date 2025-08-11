@@ -8,14 +8,14 @@ import * as RangeField from './RangeField'
 import Slider from './Slider'
 import type { Scale } from './Slider'
 
-function fromString(str: string): RangeField.InputState<string, number> {
+function fromString(str: string): RangeField.InputState<number> {
   const num = Number(str)
   return Number.isNaN(num)
     ? RangeField.Err(str, new Error('Not a number'))
     : RangeField.Ok(str, num)
 }
 
-function fromNumber(num?: number | null): RangeField.InputState<string, number> {
+function fromNumber(num?: number | null): RangeField.InputState<number> {
   if (num == null) return RangeField.Err('', new Error('Enter number, please'))
   if (typeof num !== 'number' || Number.isNaN(num)) {
     const error = new Error('Not a number')
@@ -25,10 +25,10 @@ function fromNumber(num?: number | null): RangeField.InputState<string, number> 
   return RangeField.Ok(num.toString(), num)
 }
 
-type NumberFieldProps = Omit<RangeField.Props<number>, 'fromValue' | 'toValue'>
+type NumberFieldProps = Omit<RangeField.Props<number>, 'parse' | 'stringify'>
 
 export const NumberField = (props: NumberFieldProps) => (
-  <RangeField.Field fromValue={fromNumber} toValue={fromString} {...props} />
+  <RangeField.Field stringify={fromNumber} parse={fromString} {...props} />
 )
 
 const ROUNDING_THRESHOLD = 100

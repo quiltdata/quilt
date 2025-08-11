@@ -1,13 +1,13 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-type InputStateOk<V, P> = { _tag: 'ok'; value: V; parsed: P }
+type InputStateOk<Parsed> = { _tag: 'ok'; value: string; parsed: Parsed }
 
-type InputStateError<V> = { _tag: 'error'; value: V; error: Error }
+type InputStateError = { _tag: 'error'; value: string; error: Error }
 
-export type InputState<V, P> = InputStateOk<V, P> | InputStateError<V>
+export type InputState<Parsed> = InputStateOk<Parsed> | InputStateError
 
-export function Ok<V, P>(value: V, parsed: P): InputStateOk<V, P> {
+export function Ok<Parsed>(value: string, parsed: Parsed): InputStateOk<Parsed> {
   return {
     _tag: 'ok',
     value,
@@ -15,7 +15,7 @@ export function Ok<V, P>(value: V, parsed: P): InputStateOk<V, P> {
   }
 }
 
-export function Err<V>(value: V, error: unknown): InputStateError<V> {
+export function Err(value: string, error: unknown): InputStateError {
   return {
     _tag: 'error',
     value,
@@ -23,10 +23,7 @@ export function Err<V>(value: V, error: unknown): InputStateError<V> {
   }
 }
 
-function areEqual<Value>(
-  a: InputState<string, Value | null>,
-  b: InputState<string, Value | null>,
-): boolean {
+function areEqual<T>(a: InputState<T>, b: InputState<T>): boolean {
   if (a._tag === 'ok' && b._tag === 'ok') return a.parsed === b.parsed
   if (a._tag === 'error' && b._tag === 'error') return a.error.message === b.error.message
   return false
@@ -38,59 +35,57 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface RangeFieldProps<Value> {
+interface RangeFieldProps<Parsed> {
   className?: string
-  value: Value | null
-  extents: { min?: Value; max?: Value }
-  fromValue: (v?: Value | null) => InputState<string, Value>
-  onChange: (v: Value | null) => void
-  toValue: (input: string) => InputState<string, Value>
+  extents: { min?: Parsed; max?: Parsed }
+  onChange: (v: Parsed | null) => void
+  parse: (input: string) => InputState<Parsed>
+  stringify: (v?: Parsed | null) => InputState<Parsed>
+  value: Parsed | null
 }
 
-export type Props<Value> = Omit<M.TextFieldProps, 'value' | 'onChange'> &
-  RangeFieldProps<Value>
+export type Props<Parsed> = Omit<M.TextFieldProps, 'value' | 'onChange'> &
+  RangeFieldProps<Parsed>
 
-function RangeField<Value>({
+function RangeField<Parsed>({
   className,
   extents,
-  fromValue,
   onChange,
-  toValue,
+  parse,
+  stringify,
   value,
   ...props
-}: Props<Value>) {
+}: Props<Parsed>) {
   const classes = useStyles()
 
-  const [state, setState] = React.useState<InputState<string, Value | null>>(
-    fromValue(value),
-  )
+  const [state, setState] = React.useState(stringify(value))
 
   React.useEffect(
     () =>
       setState((prev) => {
-        const next = fromValue(value)
+        const next = stringify(value)
         return areEqual(prev, next) ? prev : next
       }),
-    [fromValue, value],
+    [stringify, value],
   )
 
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newState = toValue(event.target.value)
+      const newState = parse(event.target.value)
       setState(newState)
       if (newState._tag === 'ok') {
         onChange(newState.parsed)
       }
     },
-    [onChange, toValue],
+    [onChange, parse],
   )
 
   const inputProps = React.useMemo(
     () => ({
-      min: fromValue(extents.min).value || undefined,
-      max: fromValue(extents.max).value || undefined,
+      min: stringify(extents.min).value || undefined,
+      max: stringify(extents.max).value || undefined,
     }),
-    [extents, fromValue],
+    [extents, stringify],
   )
 
   const InputProps = React.useMemo(() => ({ classes }), [classes])
