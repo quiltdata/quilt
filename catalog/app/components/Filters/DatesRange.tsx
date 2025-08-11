@@ -84,8 +84,8 @@ interface DateRangeProps<Value = { gte: Date | null; lte: Date | null }> {
 export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
   const classes = useStyles()
   const { min, max } = extents
-  const left = value.gte || min || null
-  const right = value.lte || max || null
+  const left = value.gte ?? min ?? null
+  const right = value.lte ?? max ?? null
   const handleGte = React.useCallback(
     (gte: Date | null) => {
       if (gte != null && right != null && gte > right) {
