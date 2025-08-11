@@ -153,11 +153,16 @@ function DatetimeFilterWidget({
     (v: { gte: Date | null; lte: Date | null }) => onChange({ ...state, ...v }),
     [onChange, state],
   )
+  const value = React.useMemo(() => {
+    const { gte, lte } = state
+    return { gte, lte }
+  }, [state])
+  const debounced = useDebouncedState(value, handleChange, 500)
   return (
     <FiltersUI.DatesRange
       extents={extents || NO_RANGE_EXTENTS}
-      onChange={handleChange}
-      value={state}
+      onChange={debounced.set}
+      value={debounced.value}
     />
   )
 }

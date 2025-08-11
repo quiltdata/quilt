@@ -5,6 +5,8 @@ import * as M from '@material-ui/core'
 import Log from 'utils/Logging'
 
 import * as RangeField from './RangeField'
+import Slider from './Slider'
+import type { Scale } from './Slider'
 
 const InputLabelProps = { shrink: true }
 
@@ -36,13 +38,39 @@ export const DateField = (props: DateFieldProps) => (
   />
 )
 
+const ROUNDING_THRESHOLD = 100
+
+const roundAboveThreshold = (n: number) => (n > ROUNDING_THRESHOLD ? Math.round(n) : n)
+
+const createValueLabelFormat = (scale: Scale) => (number: number) => {
+  const scaled = scale(number)
+  return dateFns.intlFormat(new Date(roundAboveThreshold(scaled)))
+}
+
+const convertValuesToDomain =
+  (scale: Scale) =>
+  ({ gte, lte }: { gte: Date | null; lte: Date | null }) => [
+    gte != null ? scale.invert(gte) : 0,
+    lte != null ? scale.invert(lte) : 100,
+  ]
+
+const convertDomainToValues =
+  (scale: Scale) =>
+  ([gte, lte]: [number, number]) => ({
+    gte: new Date(roundAboveThreshold(scale(gte))),
+    lte: new Date(roundAboveThreshold(scale(lte))),
+  })
+
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
   return {
-    root: {
+    inputs: {
       display: 'grid',
       gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
       columnGap: gap,
+    },
+    slider: {
+      padding: t.spacing(0, 1),
     },
   }
 })
@@ -55,8 +83,9 @@ interface DateRangeProps<Value = { gte: Date | null; lte: Date | null }> {
 
 export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
   const classes = useStyles()
-  const left = value.gte || extents.min || null
-  const right = value.lte || extents.max || null
+  const { min, max } = extents
+  const left = value.gte || min || null
+  const right = value.lte || max || null
   const handleGte = React.useCallback(
     (gte: Date | null) => onChange({ gte, lte: right }),
     [right, onChange],
@@ -66,9 +95,35 @@ export default function DatesRange({ extents, value, onChange }: DateRangeProps)
     [left, onChange],
   )
   return (
-    <div className={classes.root}>
-      <DateField value={left} extents={extents} onChange={handleGte} label="From" />
-      <DateField value={right} extents={extents} onChange={handleLte} label="To" />
+    <div>
+      {min != null && max != null && min !== max && (
+        <Slider
+          className={classes.slider}
+          createValueLabelFormat={createValueLabelFormat}
+          fromValues={convertValuesToDomain}
+          max={max}
+          min={min}
+          onChange={onChange}
+          toValues={convertDomainToValues}
+          value={value}
+        />
+      )}
+      <div className={classes.inputs}>
+        <DateField
+          extents={extents}
+          label="From"
+          onChange={handleGte}
+          type="date"
+          value={left}
+        />
+        <DateField
+          extents={extents}
+          label="To"
+          onChange={handleLte}
+          type="date"
+          value={right}
+        />
+      </div>
     </div>
   )
 }

@@ -1,4 +1,3 @@
-import * as d3Scale from 'd3-scale'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -6,6 +5,8 @@ import Log from 'utils/Logging'
 import { formatQuantity } from 'utils/string'
 
 import * as RangeField from './RangeField'
+import Slider from './Slider'
+import type { Scale } from './Slider'
 
 function fromString(str: string): RangeField.InputState<string, number> {
   const num = Number(str)
@@ -30,40 +31,9 @@ export const NumberField = (props: NumberFieldProps) => (
   <RangeField.Field fromValue={fromNumber} toValue={fromString} {...props} />
 )
 
-const MAX_TICKS = 100
-const SCALE_CURVE = 2
 const ROUNDING_THRESHOLD = 100
 
 const roundAboveThreshold = (n: number) => (n > ROUNDING_THRESHOLD ? Math.round(n) : n)
-
-function ValueLabelComponent({ children, open, value }: M.ValueLabelProps) {
-  return (
-    <M.Tooltip open={open} enterTouchDelay={0} title={value} placement="top">
-      {children}
-    </M.Tooltip>
-  )
-}
-
-type Scale = d3Scale.ScaleContinuousNumeric<number, number>
-
-function useScale(min: number, max: number) {
-  const range = Math.min(Math.ceil(max - min), MAX_TICKS)
-
-  const scale: Scale = React.useMemo(() => {
-    let s =
-      max - min > MAX_TICKS
-        ? d3Scale.scalePow().exponent(SCALE_CURVE)
-        : d3Scale.scaleLinear()
-    return s.domain([0, range]).range([min, max]).nice()
-  }, [min, max, range])
-
-  const marks: M.Mark[] = React.useMemo(
-    () => scale.ticks(range + 1).map((value) => ({ value })),
-    [scale, range],
-  )
-
-  return { marks, scale }
-}
 
 const createValueLabelFormat = (scale: Scale) => (number: number) => {
   const scaled = scale(number)
@@ -85,54 +55,6 @@ const convertDomainToValues =
     gte: roundAboveThreshold(scale(gte)),
     lte: roundAboveThreshold(scale(lte)),
   })
-
-const useSliderStyles = M.makeStyles((t) => ({
-  mark: {
-    opacity: t.palette.action.disabledOpacity,
-  },
-}))
-
-interface SliderProps {
-  className?: string
-  min: number
-  max: number
-  onChange: (v: { gte: number; lte: number }) => void
-  value: { gte: number | null; lte: number | null }
-}
-
-function Slider({ className, min, max, onChange, value }: SliderProps) {
-  const classes = useSliderStyles()
-  const { marks, scale } = useScale(min, max)
-  const handleSlider = React.useCallback(
-    (_event, range: number | number[]) => {
-      if (!Array.isArray(range)) {
-        Log.error('Not a range of numbers')
-        return
-      }
-      const [left, right] = range
-      onChange(convertDomainToValues(scale)([left, right]))
-    },
-    [onChange, scale],
-  )
-  const sliderValue = React.useMemo(
-    () => convertValuesToDomain(scale)(value),
-    [value, scale],
-  )
-  const valueLabelFormat = React.useMemo(() => createValueLabelFormat(scale), [scale])
-  return (
-    <div className={className}>
-      <M.Slider
-        ValueLabelComponent={ValueLabelComponent}
-        classes={classes}
-        marks={marks}
-        onChange={handleSlider}
-        value={sliderValue}
-        valueLabelDisplay="auto"
-        valueLabelFormat={valueLabelFormat}
-      />
-    </div>
-  )
-}
 
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
@@ -174,9 +96,12 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
       {min != null && max != null && min !== max && (
         <Slider
           className={classes.slider}
+          createValueLabelFormat={createValueLabelFormat}
+          fromValues={convertValuesToDomain}
           max={max}
           min={min}
           onChange={onChange}
+          toValues={convertDomainToValues}
           value={value}
         />
       )}

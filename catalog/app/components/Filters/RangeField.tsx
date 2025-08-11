@@ -104,7 +104,6 @@ function RangeField<Value>({
       inputProps={inputProps}
       onChange={handleChange}
       size="small"
-      type="date"
       value={state.value}
       variant="outlined"
       {...props}
