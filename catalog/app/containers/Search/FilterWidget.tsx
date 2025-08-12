@@ -149,19 +149,13 @@ function NumberFilterWidget({
   )
 }
 
+const NO_RANGE_EXTENTS = { min: undefined, max: undefined }
+
 function DatetimeFilterWidget({
   state,
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Datetime']>) {
-  const fixedExtents = React.useMemo(
-    () => ({
-      min: extents?.min ?? new Date(),
-      max: extents?.max ?? new Date(),
-    }),
-    [extents?.min, extents?.max],
-  )
-
   const fixedValue = React.useMemo(
     () => ({ min: state.gte, max: state.lte }),
     [state.gte, state.lte],
@@ -176,7 +170,7 @@ function DatetimeFilterWidget({
 
   return (
     <FiltersUI.DatesRange
-      extents={fixedExtents}
+      extents={extents || NO_RANGE_EXTENTS}
       onChange={handleChange}
       value={fixedValue}
     />
