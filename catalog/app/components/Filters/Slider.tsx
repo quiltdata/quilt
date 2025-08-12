@@ -85,7 +85,9 @@ export default function Slider<Value extends NumberLike>({
   const handleSlider = React.useCallback(
     (_event, range: number | number[]) => {
       if (!Array.isArray(range)) {
-        Log.error('Not a range of numbers')
+        Log.error(
+          `Expected an array of numbers for range, but received: ${JSON.stringify(range)} (type: ${typeof range})`,
+        )
         return
       }
       const [left, right] = range
