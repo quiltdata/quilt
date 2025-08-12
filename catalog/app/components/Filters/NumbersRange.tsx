@@ -8,6 +8,8 @@ import { formatQuantity } from 'utils/string'
 import * as RangeField from './RangeField'
 import Slider from './Slider'
 
+type Parsed = number
+
 function parse(str: string): RangeField.InputState<number> {
   const num = Number(str)
   return Number.isNaN(num)
@@ -48,25 +50,21 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
-type Range<Parsed> = { gte: Parsed | null; lte: Parsed | null }
+type Range = { gte: Parsed | null; lte: Parsed | null }
 
-type Extents<Parsed> = { min?: Parsed; max?: Parsed }
+type Extents = { min?: Parsed; max?: Parsed }
 
-function alignRange<T>({ gte, lte }: Range<T>): Range<T> {
+function alignRange({ gte, lte }: Range): Range {
   return gte != null && lte != null && gte > lte ? { gte: lte, lte: gte } : { gte, lte }
 }
 
-interface NumbersRangeProps<Parsed> {
-  extents: Extents<Parsed>
-  onChange: (v: Range<Parsed>) => void
-  value: Range<Parsed>
+interface NumbersRangeProps {
+  extents: Extents
+  onChange: (v: Range) => void
+  value: Range
 }
 
-export default function NumbersRange({
-  extents,
-  value,
-  onChange,
-}: NumbersRangeProps<number>) {
+export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
   const classes = useStyles()
 
   const { min, max } = extents

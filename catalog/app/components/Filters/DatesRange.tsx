@@ -7,6 +7,8 @@ import Log from 'utils/Logging'
 import * as RangeField from './RangeField'
 import Slider from './Slider'
 
+type Parsed = Date
+
 const InputLabelProps = { shrink: true }
 
 function parse(ymd: string): RangeField.InputState<Date> {
@@ -53,21 +55,21 @@ const useStyles = M.makeStyles((t) => {
   }
 })
 
-type Range<Parsed> = { gte: Parsed | null; lte: Parsed | null }
+type Range = { gte: Parsed | null; lte: Parsed | null }
 
-type Extents<Parsed> = { min?: Parsed; max?: Parsed }
+type Extents = { min?: Parsed; max?: Parsed }
 
-function alignRange<T>({ gte, lte }: Range<T>): Range<T> {
+function alignRange({ gte, lte }: Range): Range {
   return gte != null && lte != null && gte > lte ? { gte: lte, lte: gte } : { gte, lte }
 }
 
-interface DateRangeProps<Parsed> {
-  extents: Extents<Parsed>
-  onChange: (v: Range<Parsed>) => void
-  value: Range<Parsed>
+interface DateRangeProps {
+  extents: Extents
+  onChange: (v: Range) => void
+  value: Range
 }
 
-export default function DatesRange({ extents, value, onChange }: DateRangeProps<Date>) {
+export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
   const classes = useStyles()
 
   const { min, max } = extents
