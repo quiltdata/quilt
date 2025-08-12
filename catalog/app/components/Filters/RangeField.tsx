@@ -39,7 +39,7 @@ interface RangeFieldProps<Parsed> {
   className?: string
   extents: { min?: Parsed; max?: Parsed }
   onChange: (v: Parsed | null) => void
-  parse: (input: string) => InputState<Parsed>
+  parseString: (input: string) => InputState<Parsed>
   stringify: (v?: Parsed | null) => InputState<Parsed>
   value: Parsed | null
 }
@@ -51,7 +51,7 @@ function RangeField<Parsed>({
   className,
   extents,
   onChange,
-  parse,
+  parseString,
   stringify,
   value,
   ...props
@@ -71,13 +71,13 @@ function RangeField<Parsed>({
 
   const handleChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newState = parse(event.target.value)
+      const newState = parseString(event.target.value)
       setState(newState)
       if (newState._tag === 'ok') {
         onChange(newState.parsed)
       }
     },
-    [onChange, parse],
+    [onChange, parseString],
   )
 
   const inputProps = React.useMemo(

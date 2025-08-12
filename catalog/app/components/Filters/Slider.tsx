@@ -37,12 +37,12 @@ function useScale(min: number, max: number) {
   return { marks, scale }
 }
 
-type NumberLike = number | { valueOf(): number }
+export type NumberLike = number | { valueOf(): number }
 
-function convertDomainToValues<V>(scale: Scale, convert: (v: number) => V) {
+function convertDomainToValues<V>(scale: Scale, parseNumber: (v: number) => V) {
   return ([gte, lte]: [number, number]) => ({
-    gte: convert(roundAboveThreshold(scale(gte))),
-    lte: convert(roundAboveThreshold(scale(lte))),
+    gte: parseNumber(roundAboveThreshold(scale(gte))),
+    lte: parseNumber(roundAboveThreshold(scale(lte))),
   })
 }
 
@@ -61,24 +61,24 @@ const useSliderStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface SliderProps<Value extends NumberLike> {
+export interface SliderProps<Value extends NumberLike> {
   className?: string
-  convert: (v: number) => Value
   formatLabel: (number: number) => React.ReactNode
   max: Value
   min: Value
   onChange: (v: { gte: Value; lte: Value }) => void
+  parseNumber: (v: number) => Value
   value: { gte: Value | null; lte: Value | null }
 }
 
 export default function Slider<Value extends NumberLike>({
   className,
-  convert,
-  min,
-  max,
-  onChange,
-  value,
   formatLabel,
+  max,
+  min,
+  onChange,
+  parseNumber,
+  value,
 }: SliderProps<Value>) {
   const classes = useSliderStyles()
   const { marks, scale } = useScale(min.valueOf(), max.valueOf())
@@ -91,9 +91,9 @@ export default function Slider<Value extends NumberLike>({
         return
       }
       const [left, right] = range
-      onChange(convertDomainToValues(scale, convert)([left, right]))
+      onChange(convertDomainToValues(scale, parseNumber)([left, right]))
     },
-    [convert, onChange, scale],
+    [parseNumber, onChange, scale],
   )
   const sliderValue = React.useMemo(
     () => convertValuesToDomain(scale)(value),
