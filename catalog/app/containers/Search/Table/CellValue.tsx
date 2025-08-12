@@ -58,6 +58,22 @@ export const Match = React.forwardRef<HTMLSpanElement, MatchProps>(function Matc
   )
 })
 
+const useOverflowTextTooltipStyles = M.makeStyles((t) => ({
+  arrow: {
+    // `left` is set by inline styles, so we need `!important`
+    left: `${t.spacing(2)}px !important`,
+  },
+}))
+
+function OverflowTextTooltip({ title, children, ...props }: M.TooltipProps) {
+  const classes = useOverflowTextTooltipStyles()
+  return (
+    <M.Tooltip arrow classes={classes} placement="bottom-start" title={title} {...props}>
+      {children}
+    </M.Tooltip>
+  )
+}
+
 const useUserMetaValueStyles = M.makeStyles((t) => ({
   root: {
     verticalAlign: 'middle',
@@ -75,12 +91,9 @@ interface UserMetaValueProps {
 function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   const classes = useUserMetaValueStyles()
   const value = React.useMemo(() => {
-    if (hit.meta instanceof Error || !hit.meta) return hit.meta
-    try {
-      return JSONPointer.getValue(hit.meta || {}, pointer)
-    } catch (err) {
-      return err instanceof Error ? err : new Error(`${err}`)
-    }
+    if (hit.meta instanceof Error) return hit.meta
+    if (!hit.meta) return undefined
+    return JSONPointer.getValue(hit.meta, pointer)
   }, [hit.meta, pointer])
 
   if (value instanceof Error) {
@@ -94,9 +107,13 @@ function UserMetaValue({ hit, pointer }: UserMetaValueProps) {
   }
 
   return (
-    <span className={cx(typeof value === 'number' && classes.number)}>
-      <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
-    </span>
+    <OverflowTextTooltip
+      title={typeof value === 'string' && value.length > 50 ? value : ''}
+    >
+      <span className={cx(typeof value === 'number' && classes.number)}>
+        <PreviewValue value={value} fallback={<NoValue />} strQuot="" />
+      </span>
+    </OverflowTextTooltip>
   )
 }
 
@@ -130,9 +147,9 @@ function SystemMetaValue({ hit, filter }: SystemMetaValueProps) {
       )
     case 'comment':
       return hit.comment ? (
-        <M.Tooltip arrow title={hit.comment} placement="bottom-start">
+        <OverflowTextTooltip title={hit.comment}>
           <Match on={hit.matchLocations.comment}>{hit.comment}</Match>
-        </M.Tooltip>
+        </OverflowTextTooltip>
       ) : (
         <NoValue />
       )

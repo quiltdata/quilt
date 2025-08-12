@@ -99,14 +99,15 @@ function useMetadataSchema(
       throw workflow
     }
     if (
-      workflow === null ||
-      workflow.slug === notAvailable ||
-      workflow.slug === notSelected
+      workflow === null || // no workflows or no default workflow
+      workflow.slug === notAvailable || // UI placeholder: no config, single dummy workflow
+      workflow.slug === notSelected || // UI placeholder: dummy workflow, user can select to choose "no workflow"
+      !workflow.schema // workflow is not required to have `metadata_schema`
     ) {
       return noKeys
     }
 
-    const schemaUrl = workflow?.schema?.url
+    const schemaUrl = workflow.schema.url
     if (!schemaUrl) {
       throw new Error('No Schema URL found')
     }

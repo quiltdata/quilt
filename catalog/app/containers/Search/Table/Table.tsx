@@ -182,9 +182,13 @@ function AvailableUserMetaColumn({ column, ...props }: AvailableUserMetaColumnPr
     showColumn()
     open(column)
   }, [column, open, showColumn])
+
   return (
     <M.MenuItem onClick={handleClick}>
-      <M.ListItemText {...props} />
+      <M.ListItemText
+        secondary={column?.state?.filtered && 'Filters applied'}
+        {...props}
+      />
       <M.ListItemSecondaryAction>
         <M.Checkbox edge="end" onChange={handleChange} checked={column.state.visible} />
       </M.ListItemSecondaryAction>
@@ -577,7 +581,7 @@ function Filter({ filter, onChange, value }: FilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const initialValue = model.state.filter.predicates[filter]
   invariant(initialValue, 'Filter not active')
-  const extents = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
+  const { extents } = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
 
   return (
     <FilterWidget state={value || initialValue} extents={extents} onChange={onChange} />
