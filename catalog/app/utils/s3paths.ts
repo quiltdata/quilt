@@ -3,7 +3,6 @@ import { parse as parseUrl } from 'url'
 
 import * as R from 'ramda'
 
-import cfg from 'constants/config'
 import type { S3ObjectLocation } from 'model/S3'
 import { mkSearch } from 'utils/NamedRoutes'
 
@@ -106,7 +105,7 @@ export const resolveKey = (from: string, to: string) =>
   resolve(`/${getPrefix(from)}`, to).substring(1)
 
 interface UriOptions {
-  proxy?: boolean
+  proxy?: string | null | undefined | false
   region?: string
 }
 
@@ -118,7 +117,7 @@ export const handleToHttpsUri = (
   { bucket, key, version }: S3ObjectLocation,
   opts: UriOptions = {},
 ) => {
-  const prefix = opts.proxy ? `${cfg.s3Proxy}/` : 'https://'
+  const prefix = opts.proxy ? `${opts.proxy}/` : 'https://'
   const region = opts.region ? `.${opts.region}` : ''
   return `${prefix}${bucket}.s3${region}.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
 }

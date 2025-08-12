@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import { handleToHttpsUri } from 'utils/s3paths'
 import { useGetCachedBucketRegion } from 'utils/BucketCache'
 
@@ -34,7 +35,7 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
         : // TODO: handle ResponseContentDisposition for unsigned case
           handleToHttpsUri(
             { bucket, key, version },
-            { proxy: forceProxy, region: getRegion(bucket) },
+            { proxy: forceProxy && cfg.s3Proxy, region: getRegion(bucket) },
           ),
     [shouldSign, s3, urlExpiration, forceProxy, getRegion],
   )
