@@ -22,6 +22,12 @@ const FORCE_PROXY = Symbol('forceProxy')
 
 const Ctx = React.createContext()
 
+/**
+ * A React hook that returns a function with a stable identity, but which calls the
+ * latest version of the function passed as an argument. This is useful to avoid
+ * breaking memoization when a function is passed down as a prop, while still
+ * being able to call the latest version of that function.
+ */
 function usePassThruFn(fn) {
   const fnRef = React.useRef()
   fnRef.current = fn
@@ -29,6 +35,9 @@ function usePassThruFn(fn) {
 }
 
 function useSmartS3() {
+  // The SmartS3 class is created only once, so we need a stable reference to the
+  // shouldSign function. usePassThruFn gives us a stable function that calls the
+  // latest version of useShouldSign(), so we don't have a stale closure.
   const shouldSign = usePassThruFn(useShouldSign())
 
   return useConstant(() => {
