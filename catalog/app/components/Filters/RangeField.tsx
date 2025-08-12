@@ -58,7 +58,7 @@ function RangeField<Parsed>({
 }: Props<Parsed>) {
   const classes = useStyles()
 
-  const [state, setState] = React.useState(stringify(value))
+  const [state, setState] = React.useState(() => stringify(value))
 
   React.useEffect(
     () =>
