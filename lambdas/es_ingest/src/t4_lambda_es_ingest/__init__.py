@@ -78,7 +78,7 @@ def handler(event, context):
 
     bucket = event["detail"]["bucket"]["name"]
     key = event["detail"]["object"]["key"]
-    version_id = event["detail"]["object"].get("versionId")
+    version_id = event["detail"]["object"].get("version-id")
     params = {"Bucket": bucket, "Key": key}
     if version_id:
         params["VersionId"] = version_id
