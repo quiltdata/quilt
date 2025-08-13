@@ -83,6 +83,7 @@ const I18_COUNT_RESULTS = {
 
 const I18_COUNT_PACKAGES = {
   one: '1 package',
+  // `-1` == secure search
   other: (n: number) => (n > 0 ? `${n} packages` : 'Packages'),
 }
 
