@@ -311,6 +311,7 @@ function useStats(bucket: string, overviewUrl?: string | null) {
         data: ({ searchPackages: r }) => {
           switch (r.__typename) {
             case 'EmptySearchResultSet':
+              return formatQuantity(0)
             case 'InvalidInput':
               return '?'
             case 'PackagesSearchResultSet':
