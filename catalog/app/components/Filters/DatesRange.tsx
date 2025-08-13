@@ -1,41 +1,45 @@
+import * as dateFns from 'date-fns'
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
-import DateField from './DateField'
+import Log from 'utils/Logging'
 
-const useStyles = M.makeStyles((t) => {
-  const gap = t.spacing(1)
-  return {
-    root: {
-      display: 'grid',
-      gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
-      columnGap: gap,
-    },
-  }
-})
+import * as Range from './Range'
+import * as RangeField from './RangeField'
 
-interface DateRangeProps {
-  extents: { min?: Date; max?: Date }
-  onChange: (v: { min: Date | null; max: Date | null }) => void
-  value: { min: Date | null; max: Date | null }
+const InputLabelProps = { shrink: true }
+
+function parseString(ymd: string): RangeField.InputState<Date> {
+  const date = dateFns.parseISO(ymd)
+  return dateFns.isValid(date)
+    ? RangeField.Ok(ymd, date)
+    : RangeField.Err(ymd, new Error(date.toString()))
 }
 
+function stringify(date?: Date | null): RangeField.InputState<Date> {
+  if (!date) return RangeField.Err('', new Error('Empty date'))
+  try {
+    return RangeField.Ok(dateFns.format(date, 'yyyy-MM-dd'), date)
+  } catch (e) {
+    Log.error(e)
+    return RangeField.Err('', e)
+  }
+}
+
+const formatLabel = (number: number) => dateFns.intlFormat(new Date(number))
+
+type DateRangeProps = Pick<Range.FormControlProps<Date>, 'extents' | 'onChange' | 'value'>
+
 export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
-  const classes = useStyles()
-  const gte = value.min || extents.min || null
-  const lte = value.max || extents.max || null
-  const handleGte = React.useCallback(
-    (min) => onChange({ min, max: lte }),
-    [lte, onChange],
-  )
-  const handleLte = React.useCallback(
-    (max) => onChange({ min: gte, max }),
-    [gte, onChange],
-  )
   return (
-    <div className={classes.root}>
-      <DateField date={gte} extents={extents} onChange={handleGte} label="From" />
-      <DateField date={lte} extents={extents} onChange={handleLte} label="To" />
-    </div>
+    <Range.FormControl
+      InputLabelProps={InputLabelProps}
+      extents={extents}
+      formatLabel={formatLabel}
+      onChange={onChange}
+      parseNumber={dateFns.toDate}
+      parseString={parseString}
+      stringify={stringify}
+      value={value}
+    />
   )
 }

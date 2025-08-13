@@ -117,62 +117,52 @@ interface FilterWidgetProps<
   onChange: (state: SearchUIModel.PredicateState<P>) => void
 }
 
+const NO_RANGE_EXTENTS = { min: undefined, max: undefined }
+
 function NumberFilterWidget({
   state,
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
   const handleChange = React.useCallback(
-    (value: { min: number | null; max: number | null }) => {
-      onChange({ ...state, gte: value.min, lte: value.max })
-    },
+    (v: { gte: number | null; lte: number | null }) => onChange({ ...state, ...v }),
     [onChange, state],
   )
-
-  // XXX: revisit this logic
-  const extentsComputed = React.useMemo(
-    () => ({
-      min: extents?.min ?? state.gte ?? 0,
-      max: extents?.max ?? state.lte ?? 0,
-    }),
-    [extents?.min, extents?.max, state.gte, state.lte],
-  )
-
+  const value = React.useMemo(() => {
+    const { gte, lte } = state
+    return { gte, lte }
+  }, [state])
+  const debounced = useDebouncedState(value, handleChange, 500)
   return (
     <FiltersUI.NumbersRange
-      extents={extentsComputed}
-      onChange={handleChange}
-      // XXX: add units for known filters
+      extents={extents || NO_RANGE_EXTENTS}
+      onChange={debounced.set}
+      // TODO: add units for known filters
       // unit={unit}
-      value={{ min: state.gte, max: state.lte }}
+      value={debounced.value}
     />
   )
 }
 
-const NO_RANGE_EXTENTS = { min: undefined, max: undefined }
-
 function DatetimeFilterWidget({
-  state,
   extents,
   onChange,
+  state,
 }: FilterWidgetProps<SearchUIModel.Predicates['Datetime']>) {
-  const fixedValue = React.useMemo(
-    () => ({ min: state.gte, max: state.lte }),
-    [state.gte, state.lte],
-  )
-
   const handleChange = React.useCallback(
-    (v: { min: Date | null; max: Date | null }) => {
-      onChange({ ...state, gte: v.min, lte: v.max })
-    },
+    (v: { gte: Date | null; lte: Date | null }) => onChange({ ...state, ...v }),
     [onChange, state],
   )
-
+  const value = React.useMemo(() => {
+    const { gte, lte } = state
+    return { gte, lte }
+  }, [state])
+  const debounced = useDebouncedState(value, handleChange, 500)
   return (
     <FiltersUI.DatesRange
       extents={extents || NO_RANGE_EXTENTS}
-      onChange={handleChange}
-      value={fixedValue}
+      onChange={debounced.set}
+      value={debounced.value}
     />
   )
 }

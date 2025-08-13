@@ -252,7 +252,7 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}
               onRefine={onRefine}
-              determinate={r.data.total > -1}
+              determinate={r.data.total > -1 /* `-1` == secure search */}
             />
           )
         default:
