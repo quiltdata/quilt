@@ -1,10 +1,12 @@
 """
 Helper functions.
 """
+import contextlib
 import gzip
 import json
 import logging
 import os
+import resource
 from base64 import b64decode
 from typing import Iterable
 
@@ -98,3 +100,21 @@ def sql_escape(s):
     """
     escaped = s or ""
     return escaped.replace("'", "''")
+
+
+@contextlib.contextmanager
+def set_soft_mem_limit(context):
+    """
+    Set a soft memory limit so we get nice MemoryError exceptions
+    instead of OOM kills.
+
+    This can cause MemoryError exceptions in cases where without this context manager
+    it would work fine, because it prevents memory overallocation which is fine
+    until you really try to use it.
+    """
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (int(context.memory_limit_in_mb) * 2 ** 20, hard))
+        yield
+    finally:
+        resource.setrlimit(resource.RLIMIT_AS, (soft, hard))

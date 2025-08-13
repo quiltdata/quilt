@@ -96,6 +96,7 @@ from t4_lambda_shared.utils import (
     get_available_memory,
     get_quilt_logger,
     separated_env_to_iter,
+    set_soft_mem_limit,
 )
 
 # translate events to S3 native names
@@ -733,16 +734,17 @@ def handler(event, context):
                 etag = head.get("etag") or etag
                 version_id = head.get("VersionId") or version_id
                 try:
-                    text = maybe_get_contents(
-                        bucket,
-                        key,
-                        infer_extensions(key, (ext_next_last, ext_last), compression),
-                        etag=etag,
-                        version_id=version_id,
-                        s3_client=s3_client,
-                        size=size,
-                        compression=compression
-                    )
+                    with set_soft_mem_limit(context):
+                        text = maybe_get_contents(
+                            bucket,
+                            key,
+                            infer_extensions(key, (ext_next_last, ext_last), compression),
+                            etag=etag,
+                            version_id=version_id,
+                            s3_client=s3_client,
+                            size=size,
+                            compression=compression
+                        )
                 # we still want an entry for this document in elastic so that, e.g.,
                 # the file counts from elastic are correct
                 # these exceptions can happen for a variety of reasons (e.g. glacier
@@ -750,7 +752,7 @@ def handler(event, context):
                 # given how common they are, we shouldn't fail the batch for this
                 except Exception as exc:  # pylint: disable=broad-except
                     text = ""
-                    logger_.warning("Content extraction failed %s %s %s", bucket, key, exc)
+                    logger_.exception("Content extraction failed %s %s", bucket, key)
 
                 # XXX: we could replace head_object() call above with get_object(Range='bytes=0-0')
                 #      which returns TagsCount, so we could optimize out get_object_tagging() call

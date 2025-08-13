@@ -412,6 +412,12 @@ class MockContext():
 
 
 class TestIndex(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        set_soft_mem_limit_patcher = patch.object(index, "set_soft_mem_limit")
+        set_soft_mem_limit_patcher.start()
+        cls.addClassCleanup(set_soft_mem_limit_patcher.stop)
+
     def setUp(self):
         # total number of times we expect the ES _bulk API is called
         # we do not use `len(responses.calls)` because it always evaluates to 0
