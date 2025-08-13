@@ -297,6 +297,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
+
 function File() {
   const location = RRDom.useLocation()
   const { bucket, path: encodedPath } = RRDom.useParams()
@@ -439,24 +441,83 @@ function File() {
           )}
         </div>
 
-        {/* FIXME
-         * one Buttons.WithPopover button for
-         * * bookmark,
-         * * add,
-         * * edit (including sublist of types)
-         * * view (including sublist of types)?
-         * */}
         <div className={classes.actions}>
           <FileProperties className={classes.fileProperties} data={versionExistsData} />
-          {!!viewModes.modes.length && (
+
+          <Buttons.WithPopover label="Modify" icon="settings">
+            <M.List dense>
+              <M.ListItem button>
+                <M.ListItemIcon>
+                  <M.Icon>turned_in_not</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText
+                  primary="Add to bookmarks"
+                  primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
+                />
+              </M.ListItem>
+            </M.List>
+
+            <M.Divider />
+
+            <M.List dense>
+              <M.ListItem button>
+                <M.ListItemIcon>
+                  <M.Icon>edit</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText
+                  primary="Edit text content"
+                  primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
+                />
+              </M.ListItem>
+            </M.List>
+
+            <M.Divider />
+
+            <M.List dense>
+              <M.ListSubheader inset>View as</M.ListSubheader>
+              {viewModes.modes.map((mode) => (
+                <M.ListItem button>
+                  {mode === viewModes.mode && (
+                    <M.ListItemIcon>
+                      <M.Icon>check</M.Icon>
+                    </M.ListItemIcon>
+                  )}
+                  <M.ListItemText
+                    inset={mode !== viewModes.mode}
+                    primary={mode}
+                    primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
+                  />
+                </M.ListItem>
+              ))}
+            </M.List>
+
+            <M.Divider />
+
+            <M.List dense>
+              <M.ListItem button>
+                <M.ListItemIcon>
+                  <M.Icon color="error">delete</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText
+                  primary="Delete"
+                  primaryTypographyProps={{
+                    ...LIST_ITEM_TYPOGRAPHY_PROPS,
+                    color: 'error',
+                  }}
+                />
+              </M.ListItem>
+            </M.List>
+          </Buttons.WithPopover>
+
+          {/* !!viewModes.modes.length && (
             <FileView.ViewModeSelector
               className={classes.button}
               options={viewModes.modes.map(viewModeToSelectOption)}
               value={viewModeToSelectOption(viewModes.mode)}
               onChange={onViewModeChange}
             />
-          )}
-          {BucketPreferences.Result.match(
+          ) */}
+          {/*BucketPreferences.Result.match(
             {
               Ok: ({ ui: { actions } }) =>
                 actions.writeFile &&
@@ -470,15 +531,15 @@ function File() {
               _: () => null,
             },
             prefs,
-          )}
-          {bookmarks && (
+          )*/}
+          {/* bookmarks && (
             <Buttons.Iconized
               className={classes.button}
               icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
               label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
               onClick={() => bookmarks.toggle('main', handle)}
             />
-          )}
+          )*/}
           {downloadable &&
             BucketPreferences.Result.match(
               {
