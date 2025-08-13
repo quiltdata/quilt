@@ -315,6 +315,7 @@ function useStats(bucket: string, overviewUrl?: string | null) {
             case 'InvalidInput':
               return '?'
             case 'PackagesSearchResultSet':
+              // `-1` == secure search
               return r.total >= 0 ? formatQuantity(r.total) : '?'
             default:
               assertNever(r)
