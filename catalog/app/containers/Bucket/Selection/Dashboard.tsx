@@ -255,6 +255,17 @@ export default function Dashboard({ onClose, packageHandle }: DashboardProps) {
         >
           Clear selection
         </M.Button>
+        <M.Button
+          className={classes.button}
+          style={{ marginLeft: 'auto' }}
+          color="secondary"
+          disabled={slt.isEmpty}
+          onClick={() => alert('Not implemented!')}
+          size="small"
+          variant="outlined"
+        >
+          Delete selected items
+        </M.Button>
       </div>
       <M.Divider className={classes.divider} />
       {!slt.isEmpty ? (

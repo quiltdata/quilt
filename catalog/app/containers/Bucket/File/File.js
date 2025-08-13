@@ -439,6 +439,13 @@ function File() {
           )}
         </div>
 
+        {/* FIXME
+         * one Buttons.WithPopover button for
+         * * bookmark,
+         * * add,
+         * * edit (including sublist of types)
+         * * view (including sublist of types)?
+         * */}
         <div className={classes.actions}>
           <FileProperties className={classes.fileProperties} data={versionExistsData} />
           {!!viewModes.modes.length && (

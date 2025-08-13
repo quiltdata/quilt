@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import * as Dialogs from 'utils/Dialogs'
 
 import Dashboard from './Dashboard'
@@ -71,35 +72,73 @@ interface ButtonProps {
   onClick: () => void
 }
 
+const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
+
 export function Button({ className, onClick }: ButtonProps) {
   const slt = useSelection()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const badgeClasses = useBadgeClasses()
   return (
     <M.Badge
       badgeContent={slt.totalCount}
-      classes={badgeClasses}
       className={className}
+      classes={badgeClasses}
       color="primary"
       max={999}
-      showZero
     >
-      {sm ? (
-        <M.IconButton
-          className={className}
-          edge="end"
-          size="small"
-          title={'Selected items'}
-          onClick={onClick}
-        >
-          <M.Icon>playlist_add_check</M.Icon>
-        </M.IconButton>
-      ) : (
-        <M.Button onClick={onClick} size="small">
-          Selected items
-        </M.Button>
-      )}
+      <Buttons.WithPopover
+        disabled={!slt.totalCount}
+        icon="playlist_add_check"
+        label="Selected items"
+      >
+        <M.List dense>
+          <M.ListItem button>
+            <M.ListItemIcon>
+              <M.Icon>turned_in_not</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText
+              primary="Add to bookmarks"
+              primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
+            />
+          </M.ListItem>
+        </M.List>
+
+        <M.Divider />
+
+        <M.List dense>
+          <M.ListItem onClick={onClick} button>
+            <M.ListItemIcon>
+              <M.Icon>edit</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText
+              primary="Manage selection"
+              primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
+            />
+          </M.ListItem>
+          <M.ListItem button onClick={slt.clear}>
+            <M.ListItemIcon>
+              <M.Icon>clear</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText
+              primary="Clear selection"
+              primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
+            />
+          </M.ListItem>
+        </M.List>
+
+        <M.Divider />
+
+        <M.List dense>
+          <M.ListItem button>
+            <M.ListItemIcon>
+              <M.Icon color="error">delete</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText
+              primary="Delete selected items"
+              primaryTypographyProps={{ ...LIST_ITEM_TYPOGRAPHY_PROPS, color: 'error' }}
+            />
+          </M.ListItem>
+        </M.List>
+      </Buttons.WithPopover>
     </M.Badge>
   )
 }

@@ -46,7 +46,8 @@ export default function WithPopover({
   className,
   icon,
   label,
-}: WithPopoverProps) {
+  ...props
+}: WithPopoverProps & Parameters<typeof Iconized>[0]) {
   const classes = useStyles()
   const [opened, setOpened] = React.useState(false)
   const handleClick = React.useCallback(() => setOpened((o) => !o), [])
@@ -61,6 +62,7 @@ export default function WithPopover({
         onClick={handleClick}
         size="small"
         variant="outlined"
+        {...props}
       />
 
       <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
