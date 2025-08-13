@@ -76,6 +76,7 @@ function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
+            // `-1` == secure search
             return r.total >= 0 ? r.total : null
           default:
             return null

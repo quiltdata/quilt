@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Show "0 packages" when no packages ([#4473](https://github.com/quiltdata/quilt/pull/4473))
 - [Changed] Search: handle invalid numbers gracefully ([#4468](https://github.com/quiltdata/quilt/pull/4468))
 - [Added] Search: add dates slider ([#4468](https://github.com/quiltdata/quilt/pull/4468))
 - [Fixed] Search: handle invalid dates ([#4466](https://github.com/quiltdata/quilt/pull/4466))
