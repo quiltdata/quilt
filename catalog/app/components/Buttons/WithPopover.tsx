@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Iconized from './Iconized'
+import type { StrIcon, SvgIcon } from './Iconized'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -37,7 +38,7 @@ const useStyles = M.makeStyles((t) => ({
 interface WithPopoverProps {
   children: NonNullable<React.ReactNode>
   className?: string
-  icon: string // TODO: use string Union
+  icon: StrIcon | SvgIcon
   label: string
 }
 

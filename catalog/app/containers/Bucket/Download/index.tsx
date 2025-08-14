@@ -1,4 +1,6 @@
 import * as React from 'react'
+import { GetAppOutlined as IconGetAppOutlined } from '@material-ui/icons'
+
 import * as Buttons from 'components/Buttons'
 
 export { default as PackageOptions } from './PackageOptions'
@@ -11,5 +13,5 @@ interface ButtonProps {
 }
 
 export const Button = ({ label = 'Get files', ...props }: ButtonProps) => (
-  <Buttons.WithPopover icon="download" label={label} {...props} />
+  <Buttons.WithPopover icon={IconGetAppOutlined} label={label} {...props} />
 )

@@ -224,7 +224,7 @@ export function Dropdown({
 
 interface ButtonProps extends Omit<M.IconButtonProps, 'onChange' | 'variant'> {
   bucket: string
-  icon?: string
+  icon?: Buttons.StrIcon
   className: string
   children: string
   onChange: (s: workflows.Successor) => void

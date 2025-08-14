@@ -1,17 +1,22 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import {
+  ArrowDownwardOutlined as IconArrowDownwardOutlined,
+  ArchiveOutlined as IconArchiveOutlined,
+} from '@material-ui/icons'
 
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 
 import { ZipDownloadForm } from '../FileView'
 
-const useDownloadButtonStyles = M.makeStyles(() => ({
+const useDownloadButtonStyles = M.makeStyles({
   root: {
     justifyContent: 'flex-start',
+    lineHeight: '1.25rem',
     width: '100%',
   },
-}))
+})
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
@@ -25,7 +30,7 @@ export function DownloadFile({ fileHandle }: DownloadFileProps) {
       className={classes.root}
       download
       href={url}
-      startIcon={<M.Icon>arrow_downward</M.Icon>}
+      startIcon={<IconArrowDownwardOutlined />}
     >
       Download file
     </M.Button>
@@ -49,10 +54,10 @@ export function DownloadDir({ children, fileHandles, ...props }: DownloadDirProp
     <ZipDownloadForm files={files} {...props}>
       <M.Button
         className={classes.root}
-        startIcon={<M.Icon>archive</M.Icon>}
+        startIcon={<IconArchiveOutlined />}
         type="submit"
       >
-        {children}
+        <span>{children}</span>
       </M.Button>
     </ZipDownloadForm>
   )
