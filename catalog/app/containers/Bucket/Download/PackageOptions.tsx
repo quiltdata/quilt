@@ -5,29 +5,15 @@ import { Tabs } from 'components/Dialog'
 import * as urls from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
-import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
-import * as FileView from '../FileView'
 import * as Selection from '../Selection'
 
+import * as Buttons from './Buttons'
 import PackageCodeSamples from './PackageCodeSamples'
-
-interface DownloadFileProps {
-  fileHandle: Model.S3.S3ObjectLocation
-}
-
-function DownloadFile({ fileHandle }: DownloadFileProps) {
-  const url = AWS.Signer.useDownloadUrl(fileHandle)
-  return (
-    <M.Button startIcon={<M.Icon>arrow_downward</M.Icon>} href={url} download>
-      Download file
-    </M.Button>
-  )
-}
 
 interface DownloadDirProps {
   selection?: Selection.ListingSelection
@@ -45,21 +31,23 @@ function DownloadDir({ selection, uri }: DownloadDirProps) {
     uri.path && isSelectionEmpty
       ? `package/${uri.bucket}/${uri.name}/${uri.hash}/${uri.path}`
       : `package/${uri.bucket}/${uri.name}/${uri.hash}`
+  const fileHandles = React.useMemo(
+    () => selection && Selection.toHandlesList(selection),
+    [selection],
+  )
   return (
-    <FileView.ZipDownloadForm
-      files={selection && Selection.toHandlesList(selection).map(({ key }) => key)}
-      suffix={downloadPath}
-    >
-      <M.Button startIcon={<M.Icon>archive</M.Icon>} type="submit">
-        {downloadLabel}
-      </M.Button>
-    </FileView.ZipDownloadForm>
+    <Buttons.DownloadDir suffix={downloadPath} fileHandles={fileHandles}>
+      {downloadLabel}
+    </Buttons.DownloadDir>
   )
 }
 
 const useQuiltSyncStyles = M.makeStyles((t) => ({
   link: {
-    marginBottom: t.spacing(0.5),
+    marginBottom: t.spacing(1),
+  },
+  open: {
+    justifyContent: 'flex-start',
   },
   copy: {
     width: 'auto',
@@ -84,14 +72,18 @@ function QuiltSync({ className, uri }: QuiltSyncProps) {
   return (
     <div className={className}>
       <M.ButtonGroup variant="outlined" fullWidth className={classes.link}>
-        <M.Button startIcon={<M.Icon>download</M.Icon>} href={uriString}>
+        <M.Button
+          startIcon={<M.Icon>download</M.Icon>}
+          href={uriString}
+          className={classes.open}
+        >
           Open in QuiltSync
         </M.Button>
         <M.Button className={classes.copy} onClick={handleCopy}>
           <M.Icon fontSize="inherit">file_copy_outlined</M.Icon>
         </M.Button>
       </M.ButtonGroup>
-      <M.Typography variant="caption">
+      <M.Typography variant="caption" component="p">
         Don't have QuiltSync?{' '}
         <StyledLink href={urls.quiltSync} target="_blank">
           Download it here
@@ -131,7 +123,7 @@ function DownloadPanel({ fileHandle, selection, uri }: DownloadPanelProps) {
         prefs,
       )}
       {fileHandle ? (
-        <DownloadFile fileHandle={fileHandle} />
+        <Buttons.DownloadFile fileHandle={fileHandle} />
       ) : (
         <DownloadDir selection={selection} uri={uri} />
       )}

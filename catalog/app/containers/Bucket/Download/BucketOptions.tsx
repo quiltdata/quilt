@@ -3,11 +3,9 @@ import * as M from '@material-ui/core'
 
 import { Tabs } from 'components/Dialog'
 import type * as Model from 'model'
-import * as AWS from 'utils/AWS'
-
-import * as FileView from '../FileView'
 
 import { DirCodeSamples, FileCodeSamples } from './BucketCodeSamples'
+import * as Buttons from './Buttons'
 
 type FileHandle = Model.S3.S3ObjectLocation
 type DirHandle = { bucket: string; path: string }
@@ -17,30 +15,15 @@ function isFile(handle: Handle): handle is FileHandle {
   return 'key' in handle && !!handle.key
 }
 
-interface DownloadFileProps {
-  fileHandle: FileHandle
-}
-
-function DownloadFile({ fileHandle }: DownloadFileProps) {
-  const url = AWS.Signer.useDownloadUrl(fileHandle)
-  return (
-    <M.Button startIcon={<M.Icon>arrow_downward</M.Icon>} href={url} download>
-      Download file
-    </M.Button>
-  )
-}
-
 interface DownloadDirProps {
   dirHandle: DirHandle
 }
 
 function DownloadDir({ dirHandle }: DownloadDirProps) {
   return (
-    <FileView.ZipDownloadForm suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}>
-      <M.Button startIcon={<M.Icon>archive</M.Icon>} type="submit">
-        Download ZIP (directory)
-      </M.Button>
-    </FileView.ZipDownloadForm>
+    <Buttons.DownloadDir suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}>
+      Download ZIP (directory)
+    </Buttons.DownloadDir>
   )
 }
 
@@ -50,7 +33,7 @@ interface DownloadPanelProps {
 
 function DownloadPanel({ handle }: DownloadPanelProps) {
   return isFile(handle) ? (
-    <DownloadFile fileHandle={handle} />
+    <Buttons.DownloadFile fileHandle={handle} />
   ) : (
     <DownloadDir dirHandle={handle} />
   )
