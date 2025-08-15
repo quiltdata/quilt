@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
+import * as Dialog from 'components/Dialog'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
@@ -22,13 +23,28 @@ import type * as workflows from 'utils/workflows'
 import * as Download from './Download'
 import * as AssistantContext from './DirAssistantContext'
 import * as Listing from './Listing'
-import Menu from './Menu'
 import * as PD from './PackageDialog'
 import * as Selection from './Selection'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
+
+const useDirectoryMenuStyles = M.makeStyles((t) => ({
+  upload: {
+    width: t.spacing(80),
+  },
+  drop: {
+    alignItems: 'center',
+    border: `2px dashed ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    display: 'flex',
+    flexDirection: 'column',
+    height: t.spacing(40),
+    justifyContent: 'center',
+    marginBottom: t.spacing(1),
+  },
+}))
 
 interface DirectoryMenuProps {
   bucket: string
@@ -37,34 +53,36 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const { prefs } = BucketPreferences.use()
+  const classes = useDirectoryMenuStyles()
   const prompt = FileEditor.useCreateFileInBucket(bucket, path)
-  const menuItems = React.useMemo(
-    () =>
-      BucketPreferences.Result.match(
-        {
-          Ok: ({ ui: { actions } }) => {
-            const menu = []
-            if (actions.writeFile) {
-              menu.push({
-                onClick: prompt.open,
-                title: 'Create file',
-              })
-            }
-            return menu
-          },
-          _: () => [],
-        },
-        prefs,
+  const create = React.useCallback(
+    () => ({
+      label: 'Create',
+      panel: (
+        <M.Button startIcon={<M.Icon>create</M.Icon>} type="submit" onClick={prompt.open}>
+          Create file
+        </M.Button>
       ),
-    [prefs, prompt.open],
+    }),
+    [prompt],
   )
-  if (!menuItems.length) return null
+  const upload = React.useCallback(
+    () => ({
+      className: classes.upload,
+      label: 'Upload',
+      panel: (
+        <div className={classes.drop}>
+          <M.Typography gutterBottom>Click or drag'n'drop files here</M.Typography>
+          <M.Icon>publish</M.Icon>
+        </div>
+      ),
+    }),
+    [classes],
+  )
   return (
-    <>
-      {prompt.render()}
-      <Menu className={className} items={menuItems} />
-    </>
+    <Buttons.WithPopover className={className} icon="add" label="Add files">
+      <Dialog.Tabs>{[create(), upload()]}</Dialog.Tabs>
+    </Buttons.WithPopover>
   )
 }
 
@@ -309,10 +327,18 @@ export default function Dir() {
                       />
                     </Download.Button>
                   )}
+                  {actions.writeFile && (
+                    <DirectoryMenu
+                      className={classes.button}
+                      bucket={bucket}
+                      path={path}
+                    />
+                  )}
                 </>
               ),
               Pending: () => (
                 <>
+                  <Buttons.Skeleton className={classes.button} size="small" />
                   <Buttons.Skeleton className={classes.button} size="small" />
                   <Buttons.Skeleton className={classes.button} size="small" />
                 </>
@@ -321,7 +347,6 @@ export default function Dir() {
             },
             prefs,
           )}
-          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>
       </div>
 
