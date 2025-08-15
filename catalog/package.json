@@ -54,6 +54,7 @@
     "@finos/perspective-viewer-datagrid": "^1.9.4",
     "@material-ui/core": "^4.11.4",
     "@material-ui/data-grid": "^4.0.0-alpha.27",
+    "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.58",
     "@rehooks/component-size": "^1.0.3",
     "@sentry/react": "^7.119.2",
@@ -230,6 +231,6 @@
     "util": "^0.12.5",
     "webpack": "^5.90.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.2"
+    "webpack-dev-server": "^5.2.1"
   }
 }

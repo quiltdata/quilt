@@ -10,6 +10,15 @@ jest.mock(
     Button: jest.fn(({ children }: { children: React.ReactNode }) => (
       <div id="button">{children}</div>
     )),
+    Tooltip: jest.fn(
+      ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
+        <div>
+          {title}
+          <hr />
+          {children}
+        </div>
+      ),
+    ),
   })),
 )
 
@@ -61,18 +70,6 @@ jest.mock('react-router-dom', () => ({
     <a href={to}>{children}</a>
   )),
 }))
-
-jest.mock(
-  'utils/StyledTooltip',
-  () =>
-    ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
-      <div>
-        {title}
-        <hr />
-        {children}
-      </div>
-    ),
-)
 
 describe('containers/Buckets/Summarize', () => {
   describe('ConfigureAppearance', () => {

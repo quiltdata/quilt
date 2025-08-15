@@ -18,6 +18,16 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Correctly sign and proxy S3 requests and URIs in OPEN mode ([#4470](https://github.com/quiltdata/quilt/pull/4470))
+- [Fixed] Show "0 packages" when no packages ([#4473](https://github.com/quiltdata/quilt/pull/4473))
+- [Changed] Search: handle invalid numbers gracefully ([#4468](https://github.com/quiltdata/quilt/pull/4468))
+- [Added] Search: add dates slider ([#4468](https://github.com/quiltdata/quilt/pull/4468))
+- [Fixed] Search: handle invalid dates ([#4466](https://github.com/quiltdata/quilt/pull/4466))
+- [Added] A page for redirecting Quilt+ URIs to QuiltSync ([#4446](https://github.com/quiltdata/quilt/pull/4446))
+- [Added] Search: Table view for package search results (including matching entries) ([#4413](https://github.com/quiltdata/quilt/pull/4413), [#4451](https://github.com/quiltdata/quilt/pull/4451), [#4452](https://github.com/quiltdata/quilt/pull/4452), [#4460](https://github.com/quiltdata/quilt/pull/4460), [#4461](https://github.com/quiltdata/quilt/pull/4461), [#4462](https://github.com/quiltdata/quilt/pull/4462))
+- [Changed] Packages tab: Use search view to navigate packages ([#4413](https://github.com/quiltdata/quilt/pull/4413))
+- [Fixed] Freeform search: pass 'size' set to 0 to backend, properly handle 'from' ([#4432](https://github.com/quiltdata/quilt/pull/4432))
+- [Changed] Increase font size in tooltips and make them uniform ([#4425](https://github.com/quiltdata/quilt/pull/4425))
 - [Added] Detect directories and redirect to trailing-slash URLs (e.g., `catalog-host/dir` → `catalog-host/dir/`). ([#4398](https://github.com/quiltdata/quilt/pull/4398))
 - [Fixed] Respect `packageRoot` config property when creating text files using Catalog UI ([#4397](https://github.com/quiltdata/quilt/pull/4397))
 - [Changed] Qurator: Switch to Claude 3.7 Sonnet ([#4343](https://github.com/quiltdata/quilt/pull/4343))

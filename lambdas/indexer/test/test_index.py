@@ -27,12 +27,13 @@ from botocore.stub import Stubber
 from dateutil.tz import tzutc
 from document_queue import EVENT_PREFIX, RetryError
 
-from t4_lambda_shared.utils import (
-    MANIFEST_PREFIX_V1,
+from quilt_shared.const import MANIFESTS_PREFIX, NAMED_PACKAGES_PREFIX
+from quilt_shared.es import (
     PACKAGE_INDEX_SUFFIX,
-    POINTER_PREFIX_V1,
-    separated_env_to_iter,
+    get_manifest_doc_id,
+    get_ptr_doc_id,
 )
+from t4_lambda_shared.utils import separated_env_to_iter
 
 from .. import document_queue, index
 
@@ -49,7 +50,7 @@ DELETE_EVENT_TYPES = {
     "ObjectRemoved:DeleteMarkerCreated"
 }
 ES_ENVIRONMENT = {
-    'ES_HOST': 'example.com',
+    'ES_ENDPOINT': 'https://example.com',
     'AWS_ACCESS_KEY_ID': 'test_key',
     'AWS_SECRET_ACCESS_KEY': 'test_secret',
     'AWS_DEFAULT_REGION': 'ng-north-1',
@@ -626,7 +627,7 @@ class TestIndex(TestCase):
     @patch.object(index.DocumentQueue, 'send_all')
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
-    @patch.object(index, 'index_if_package')
+    @patch.object(index, 'index_if_pointer')
     def test_40X(self, index_if_mock, contents_mock, append_mock, send_mock):
         """
         test fatal head 40Xs that will cause us to skip objects
@@ -879,10 +880,11 @@ class TestIndex(TestCase):
             }
         )
 
-    @patch.object(index.DocumentQueue, 'append_document')
-    def test_index_if_package_pointer_not_exists(self, append_mock):
+    @patch.object(index, "es")
+    @patch.object(index.DocumentQueue, "append_document")
+    def test_index_if_pointer_not_exists(self, append_mock, es_mock):
         bucket = "quilt-example"
-        key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
+        key = f"{NAMED_PACKAGES_PREFIX}author/semantic/1610412903"
 
         self.s3_stubber.add_client_error(
             method="get_object",
@@ -890,115 +892,37 @@ class TestIndex(TestCase):
                 "Bucket": bucket,
                 "Key": key,
             },
+            service_error_code="NoSuchKey",
         )
 
-        index.index_if_package(
+        index.index_if_pointer(
             self.s3_client,
             index.DocumentQueue(None),
             bucket=bucket,
             key=key,
-            etag="123",
-            last_modified="faketimestamp",
-            version_id="random.version.id",
         )
 
-        append_mock.assert_called_once_with({
-            "_index": bucket + PACKAGE_INDEX_SUFFIX,
-            "_id": key,
-            "_op_type": "delete",
-        })
+        es_mock.delete_by_query.assert_called_once_with(
+            index=bucket + PACKAGE_INDEX_SUFFIX,
+            body={
+                "query": {
+                    "bool": {
+                        "filter": [{"term": {"_id": get_ptr_doc_id("author/semantic", "1610412903")}}],
+                    }
+                }
+            },
+        )
+        append_mock.assert_not_called()
 
-    @patch.object(index, "select_manifest_meta", return_value=None)
+    @patch.object(index, "es")
     @patch.object(index.DocumentQueue, 'append_document')
-    def test_index_if_package_select_meta_fail(self, append_mock, select_meta_mock):
-        bucket = "quilt-example"
-        key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
-        pkg_hash = "a" * 64
-        manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
-
-        self.s3_stubber.add_response(
-            method="get_object",
-            expected_params={
-                "Bucket": bucket,
-                "Key": key,
-            },
-            service_response={
-                "Body": BytesIO(pkg_hash.encode())
-            },
-        )
-
-        index.index_if_package(
-            self.s3_client,
-            index.DocumentQueue(None),
-            bucket=bucket,
-            key=key,
-            etag="123",
-            last_modified="faketimestamp",
-            version_id="random.version.id",
-        )
-
-        select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
-        append_mock.assert_called_once_with({
-            "_index": bucket + PACKAGE_INDEX_SUFFIX,
-            "_id": key,
-            "_op_type": "delete",
-        })
-
-    @patch.object(index, "select_package_stats", return_value=None)
-    @patch.object(index, "select_manifest_meta")
-    @patch.object(index.DocumentQueue, 'append_document')
-    def test_index_if_package_select_stats_fail(self, append_mock, select_meta_mock, select_stats_mock):
-        bucket = "quilt-example"
-        key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
-        pkg_hash = "a" * 64
-        manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
-        message = "test"
-        meta = {"foo": "bar"}
-        select_meta_mock.return_value = {"message": message, "user_meta": meta}
-
-        self.s3_stubber.add_response(
-            method="get_object",
-            expected_params={
-                "Bucket": bucket,
-                "Key": key,
-            },
-            service_response={
-                "Body": BytesIO(pkg_hash.encode())
-            },
-        )
-
-        index.index_if_package(
-            self.s3_client,
-            index.DocumentQueue(None),
-            bucket=bucket,
-            key=key,
-            etag="123",
-            last_modified="faketimestamp",
-            version_id="random.version.id",
-        )
-
-        select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
-        select_stats_mock.assert_called_once_with(bucket, manifest_key)
-        append_mock.assert_called_once_with({
-            "_index": bucket + PACKAGE_INDEX_SUFFIX,
-            "_id": key,
-            "_op_type": "delete",
-        })
-
-    @patch.object(index, "select_package_stats")
-    @patch.object(index, "select_manifest_meta")
-    @patch.object(index.DocumentQueue, 'append_document')
-    def test_index_if_package(self, append_mock, select_meta_mock, select_stats_mock):
+    def test_index_if_pointer(self, append_mock, es_mock):
         bucket = "quilt-example"
         handle = "author/semantic"
         pointer_file = "1610412903"
-        key = f"{POINTER_PREFIX_V1}{handle}/{pointer_file}"
+        key = f"{NAMED_PACKAGES_PREFIX}{handle}/{pointer_file}"
         pkg_hash = "a" * 64
-        manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
-        message = "test"
-        meta = {"foo": "bar"}
-        select_meta_mock.return_value = {"message": message, "user_meta": meta}
-        select_stats_mock.return_value = {"total_bytes": 42, "total_files": 42}
+        last_modified = datetime.datetime(2021, 1, 1, 0, 0, tzinfo=tzutc())
 
         self.s3_stubber.add_response(
             method="get_object",
@@ -1007,61 +931,53 @@ class TestIndex(TestCase):
                 "Key": key,
             },
             service_response={
-                "Body": BytesIO(pkg_hash.encode())
+                "Body": BytesIO(pkg_hash.encode()),
+                "LastModified": last_modified,
             },
         )
 
-        index.index_if_package(
+        index.index_if_pointer(
             self.s3_client,
             index.DocumentQueue(None),
             bucket=bucket,
             key=key,
-            etag="123",
-            last_modified="faketimestamp",
-            version_id="random.version.id",
         )
 
-        select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
-        select_stats_mock.assert_called_once_with(bucket, manifest_key)
+        es_mock.delete_by_query.assert_called_once_with(
+            index=bucket + PACKAGE_INDEX_SUFFIX,
+            body={
+                "query": {
+                    "bool": {
+                        "filter": [{"term": {"_id": get_ptr_doc_id("author/semantic", "1610412903")}}],
+                        "must_not": [{"term": {"join_field#mnfst": get_manifest_doc_id("a" * 64)}}],
+                    }
+                }
+            },
+        )
         append_mock.assert_called_once_with({
             "_index": bucket + PACKAGE_INDEX_SUFFIX,
-            "_id": key,
             "_op_type": "index",
-            "key": key,
-            "etag": "123",
-            "version_id": "random.version.id",
-            "last_modified": "faketimestamp",
-            "delete_marker": False,  # TODO: remove
-            "handle": handle,
-            "pointer_file": pointer_file,
-            "hash": pkg_hash,
-            "package_stats": select_stats_mock.return_value,
-            "metadata": json.dumps(meta),
-            "metadata_fields": [
-                {
-                    "json_pointer": "/foo",
-                    "type": "keyword",
-                    "keyword": "bar",
-                    "text": '"bar"',
-                },
-            ],
-            "comment": message,
-            "workflow": None,
+            "_id": get_ptr_doc_id(handle, pointer_file),
+            "join_field": {
+                "name": "ptr",
+                "parent": get_manifest_doc_id(pkg_hash),
+            },
+            "routing": get_manifest_doc_id(pkg_hash),
+            "ptr_name": handle,
+            "ptr_tag": pointer_file,
+            "ptr_last_modified": last_modified,
         })
 
-    def test_index_if_package_skip(self):
-        """test cases where index_if_package ignores input for different reasons"""
+    def test_index_if_pointer_skip(self):
+        """test cases where index_if_pointer ignores input for different reasons"""
         # none of these should index due to out-of-range timestamp or non-integer name
         for file_name in [1451631500, 1767250801]:
             key = f".quilt/named_packages/foo/bar/{file_name}"
-            assert not index.index_if_package(
+            assert not index.index_if_pointer(
                 self.s3_client,
                 index.DocumentQueue(None),
                 bucket="quilt-example",
-                etag="123",
                 key=key,
-                last_modified="faketimestamp",
-                version_id="random.version.id",
             )
         # none of these should index due to bad file path
         good_timestamp = floor(time())
@@ -1074,22 +990,18 @@ class TestIndex(TestCase):
                 ".quilt/named_packages/",
                 f"somewhere/else/foo/bar/{floor(time())}",
         ]:
-            assert not index.index_if_package(
+            assert not index.index_if_pointer(
                 self.s3_client,
                 index.DocumentQueue(None),
                 bucket="quilt-example",
-                etag="123",
-                # emulate a recent unix stamp from quilt3
                 key=key,
-                last_modified="faketimestamp",
-                version_id="random.version.id",
             )
 
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
-    @patch.object(index, 'index_if_package')
-    def test_index_if_package_negative(self, index_mock, get_mock, append_mock):
-        """test non-manifest file (still calls index_if_package)"""
+    @patch.object(index, 'index_if_pointer')
+    def test_index_if_pointer_negative(self, index_mock, get_mock, append_mock):
+        """test non-manifest file (still calls index_if_pointer)"""
         json_data = json.dumps({"version": 1})
         get_mock.return_value = json_data
 
@@ -1121,6 +1033,22 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65',
             s3_tags={"key": "value"},
         )
+
+    @patch.object(index.sqs, "send_message")
+    def test_manifest_event(self, send_message_mock):
+        """test indexing a manifest file"""
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            expected_es_calls=1,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": MANIFESTS_PREFIX + "a" * 64,
+                },
+                "mock_object": False,
+            }
+        )
+
+        send_message_mock.assert_called_once()
 
     def test_multiple_index_events(self):
         """
@@ -1790,174 +1718,3 @@ def test_extract_pptx():
     result = index.extract_pptx(buf, len(lorem) * 4 - 1)
 
     assert result == "\n".join([lorem] * 3)
-
-
-TEXT_VALUE = (index.MAX_KEYWORD_LEN + 1) * "a"
-KEYWORD_VALUE = "a"
-
-
-@pytest.mark.parametrize(
-    "src_value, expected_field",
-    [
-        (
-            TEXT_VALUE,
-            {
-                "type": "text",
-                "text": TEXT_VALUE,
-            },
-        ),
-        (
-            [TEXT_VALUE, TEXT_VALUE],
-            {
-                "type": "text",
-                "text": [TEXT_VALUE, TEXT_VALUE],
-            },
-        ),
-        (
-            [KEYWORD_VALUE, KEYWORD_VALUE],
-            {
-                "type": "keyword",
-                "keyword": [KEYWORD_VALUE, KEYWORD_VALUE],
-                "text": json.dumps([KEYWORD_VALUE, KEYWORD_VALUE]),
-            },
-        ),
-        (
-            [KEYWORD_VALUE, TEXT_VALUE],
-            {
-                "type": "text",
-                "text": [KEYWORD_VALUE, TEXT_VALUE],
-            },
-        ),
-        (
-            1,
-            {
-                "type": "double",
-                "text": json.dumps(1),
-                "double": 1,
-            },
-        ),
-        (
-            1.2,
-            {
-                "type": "double",
-                "text": json.dumps(1.2),
-                "double": 1.2,
-            },
-        ),
-        (
-            "2023-10-13T09:10:23.873434",
-            {
-                "type": "date",
-                "text": json.dumps("2023-10-13T09:10:23.873434"),
-                "date": datetime.datetime(2023, 10, 13, 9, 10, 23, 873434),
-            },
-        ),
-        (
-            "2023-10-13T09:10:23.873434Z",
-            {
-                "type": "date",
-                "text": json.dumps("2023-10-13T09:10:23.873434Z"),
-                "date": datetime.datetime(2023, 10, 13, 9, 10, 23, 873434),
-            },
-        ),
-        (
-            True,
-            {
-                "type": "boolean",
-                "text": json.dumps(True),
-                "boolean": True,
-            },
-        ),
-    ],
-)
-def test_get_metadata_fields_values(src_value, expected_field):
-    field_name = "a"
-
-    assert index.get_metadata_fields(
-        {
-            field_name: src_value,
-        }
-    ) == [
-        {
-            "json_pointer": f"/{field_name}",
-            **expected_field,
-        }
-    ]
-
-
-@pytest.mark.parametrize(
-    "src_value",
-    [
-        None,
-        [1, TEXT_VALUE],
-    ],
-)
-def test_get_metadata_fields_values_ignored(src_value):
-    field_name = "a"
-
-    assert index.get_metadata_fields(
-        {
-            field_name: src_value,
-        }
-    ) == []
-
-
-@pytest.mark.parametrize(
-    "metadata, expected_json_pointer",
-    [
-        (
-            {
-                "a": TEXT_VALUE,
-            },
-            "/a",
-        ),
-        (
-
-            {
-                "a": {
-                    "a": TEXT_VALUE,
-                },
-            },
-            "/a/a",
-        ),
-        (
-
-            {
-                "a.a": TEXT_VALUE,
-            },
-            "/a.a",
-        ),
-        (
-
-            {
-                "a/a": TEXT_VALUE,
-            },
-            "/a~1a",
-        ),
-    ],
-)
-def test_get_metadata_fields_json_pointer(metadata, expected_json_pointer):
-    field, = index.get_metadata_fields(metadata)
-    assert field["json_pointer"] == expected_json_pointer
-
-
-def test_prepare_workflow_for_es():
-    assert index._prepare_workflow_for_es(
-        {
-            "config": "s3://BUCKET/.quilt/workflows/config.yml?versionId=asdf",
-            "id": "workflow-id",
-            "schemas": {
-                "schema-id": "schema-url",
-            },
-        },
-        "BUCKET",
-    ) == {
-        "config_version_id": "asdf",
-        "id": "workflow-id",
-        "schemas": [
-            {
-                "id": "schema-id",
-                "url": "schema-url",
-            }
-        ],
-    }

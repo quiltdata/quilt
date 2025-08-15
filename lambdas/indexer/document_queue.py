@@ -6,11 +6,13 @@ import os
 from datetime import datetime
 from math import floor
 
-import boto3
-from aws_requests_auth.aws_auth import AWSRequestsAuth
-from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
+from quilt_shared.es import (
+    get_object_doc_id,
+    make_elastic,
+    normalize_object_version_id,
+)
 from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
 
 # number of bytes we take from each document before sending to elastic-search
@@ -57,18 +59,6 @@ def get_content_index_bytes(*, bucket_name: str):
     return ELASTIC_LIMIT_BYTES if content_index_bytes is None else content_index_bytes
 
 
-def get_id(key, version_id):
-    """
-    Generate unique value for every object in the bucket to be used as
-    document `_id`. This value must not exceed 512 bytes in size:
-    https://www.elastic.co/guide/en/elasticsearch/reference/7.10/mapping-id-field.html.
-    # TODO: both object key and version ID are up to 1024 bytes long, so
-    # we need to use something like `_hash(key) + _hash(version_id)` to
-    # overcome the mentioned size restriction.
-    """
-    return f"{key}:{version_id}"
-
-
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
     """Fatal and final error if docs fail after multiple retries"""
@@ -84,6 +74,7 @@ class DocumentQueue:
         self.size = 0
         self.context = context
 
+    # TODO: move this to index.py to make this class dumber
     def append(
         self,
         *,
@@ -104,7 +95,9 @@ class DocumentQueue:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
         is_delete_marker = False
         if event_type.startswith(EVENT_PREFIX["Created"]):
-            _op_type = "index"
+            # We need to use update to avoid overwriting existing documents
+            # with "was_packaged" flag.
+            _op_type = "update"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
             _op_type = "delete"
             if event_type.endswith("DeleteMarkerCreated"):
@@ -119,28 +112,33 @@ class DocumentQueue:
         # Set common properties on the document
         # BE CAREFUL changing these values, as type changes or missing fields
         # can cause exceptions from ES
-        # ensure the same versionId and primary keys (_id) as given by
-        #  list-object-versions in the enterprise bulk_scanner
-        version_id = version_id or "null"
         # core properties for all document types;
         # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
-        body = {
-            "_index": bucket,
-            "_op_type": _op_type,  # determines if action is upsert (index) or delete
-            "_id": get_id(key, version_id),
+        data = {
             "etag": etag,
             "key": key,
             "last_modified": last_modified,
             "size": size,
             "delete_marker": is_delete_marker,
-            "version_id": version_id,
+            "version_id": normalize_object_version_id(version_id),
             "content": text,  # field for full-text search
             "event": event_type,
             "ext": ext,
             "updated": datetime.utcnow().isoformat(),
             "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
         }
-
+        body = {
+            "_index": bucket,
+            "_op_type": _op_type,  # determines if action is upsert (index) or delete
+            "_id": get_object_doc_id(key, version_id),
+        }
+        if _op_type == "update":
+            body.update(
+                doc=data,
+                doc_as_upsert=True,
+            )
+        else:
+            body.update(data)
         self.append_document(body)
 
     def append_document(self, doc):
@@ -159,29 +157,12 @@ class DocumentQueue:
             self.send_all()
 
     def _make_elastic(self):
-        """create elasticsearch client"""
-        elastic_host = os.environ["ES_HOST"]
-        session = boto3.session.Session()
-        credentials = session.get_credentials().get_frozen_credentials()
-        awsauth = AWSRequestsAuth(
-            # These environment variables are automatically set by Lambda
-            aws_access_key=credentials.access_key,
-            aws_secret_access_key=credentials.secret_key,
-            aws_token=credentials.token,
-            aws_host=elastic_host,
-            aws_region=session.region_name,
-            aws_service="es"
-        )
-
-        return Elasticsearch(
-            hosts=[{"host": elastic_host, "port": 443}],
-            http_auth=awsauth,
-            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
-            # Give ES time to respond when under load
+        # TODO: cache globally
+        # TODO: use max_backoff on bulk() call
+        return make_elastic(
+            os.environ["ES_ENDPOINT"],
             timeout=ELASTIC_TIMEOUT,
-            use_ssl=True,
-            verify_certs=True,
-            connection_class=RequestsHttpConnection
+            max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
         )
 
     def send_all(self):
@@ -237,9 +218,7 @@ def get_time_remaining(context):
     logger_ = get_quilt_logger()
     time_remaining = floor(context.get_remaining_time_in_millis()/1000)
     if time_remaining < 30:
-        logger_.warning(
-            "Lambda function has {time_remaining} sec remaining. Reduce batch size?"
-        )
+        logger_.warning("Lambda function has %s sec remaining. Reduce batch size?", time_remaining)
 
     return time_remaining
 
