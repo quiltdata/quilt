@@ -270,9 +270,6 @@ of your stack.
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
-#### Terraform
-
-Refer to the [`quilt` module](https://github.com/quiltdata/iac) for guidance.
 
 ### Routine Maintenance and Upgrades
 
