@@ -387,9 +387,10 @@ const useStyles = M.makeStyles((t) => ({
 interface ChatProps {
   state: Model.Assistant.API['state']
   dispatch: Model.Assistant.API['dispatch']
+  devTools: Model.Assistant.API['devTools']
 }
 
-export default function Chat({ state, dispatch }: ChatProps) {
+export default function Chat({ state, dispatch, devTools }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
@@ -431,7 +432,7 @@ export default function Chat({ state, dispatch }: ChatProps) {
       />
       <M.Slide direction="down" mountOnEnter unmountOnExit in={devToolsOpen}>
         <M.Paper square className={classes.devTools}>
-          <DevTools state={state} />
+          <DevTools state={state} {...devTools} />
         </M.Paper>
       </M.Slide>
       <div className={classes.historyContainer}>
