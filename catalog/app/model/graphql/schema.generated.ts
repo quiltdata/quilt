@@ -2715,6 +2715,10 @@ export default {
             kind: 'OBJECT',
             name: 'InvalidInput',
           },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
         ],
       },
       {
@@ -2732,6 +2736,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
           },
         ],
       },
@@ -3745,6 +3753,10 @@ export default {
             kind: 'OBJECT',
             name: 'InvalidInput',
           },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
         ],
       },
       {
@@ -3762,6 +3774,10 @@ export default {
           {
             kind: 'OBJECT',
             name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
           },
         ],
       },

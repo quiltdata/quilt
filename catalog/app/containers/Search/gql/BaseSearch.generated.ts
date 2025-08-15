@@ -76,6 +76,10 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
           >
         >
       })
+    | ({ readonly __typename: 'OperationError' } & Pick<
+        Types.OperationError,
+        'name' | 'message' | 'context'
+      >)
   readonly searchObjects:
     | ({ readonly __typename: 'ObjectsSearchResultSet' } & Pick<
         Types.ObjectsSearchResultSet,
@@ -105,6 +109,10 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
           >
         >
       })
+    | ({ readonly __typename: 'OperationError' } & Pick<
+        Types.OperationError,
+        'name' | 'message' | 'context'
+      >)
 }
 
 export const containers_Search_gql_BaseSearchDocument = {
@@ -384,6 +392,21 @@ export const containers_Search_gql_BaseSearchDocument = {
                     ],
                   },
                 },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
+                    ],
+                  },
+                },
               ],
             },
           },
@@ -488,6 +511,21 @@ export const containers_Search_gql_BaseSearchDocument = {
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                     ],
                   },
                 },

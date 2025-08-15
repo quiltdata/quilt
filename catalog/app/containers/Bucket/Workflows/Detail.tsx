@@ -150,6 +150,8 @@ function Packages({ bucket, workflow }: PackagesProps) {
           )
         case 'InvalidInput':
           return <M.Typography>Error: Invalid input</M.Typography>
+        case 'OperationError':
+          return <M.Typography>{d.searchPackages.message}</M.Typography>
         default:
           return Eff.absurd<never>(d.searchPackages)
       }

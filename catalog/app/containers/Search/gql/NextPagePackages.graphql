@@ -45,5 +45,10 @@ query ($after: String!) {
         context
       }
     }
+    ... on OperationError {
+      name
+      message
+      context
+    }
   }
 }

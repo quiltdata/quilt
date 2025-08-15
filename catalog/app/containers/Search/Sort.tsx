@@ -78,6 +78,7 @@ export default function Sort({ className }: SortProps) {
       switch (r.__typename) {
         case 'EmptySearchResultSet':
         case 'InvalidInput':
+        case 'OperationError':
           return false
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':

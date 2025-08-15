@@ -313,6 +313,7 @@ function useStats(bucket: string, overviewUrl?: string | null) {
             case 'EmptySearchResultSet':
               return formatQuantity(0)
             case 'InvalidInput':
+            case 'OperationError':
               return '?'
             case 'PackagesSearchResultSet':
               // `-1` == secure search

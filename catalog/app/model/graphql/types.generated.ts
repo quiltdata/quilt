@@ -578,12 +578,16 @@ export interface ObjectsSearchFilter {
   readonly deleted: Maybe<BooleanSearchPredicate>
 }
 
-export type ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
+export type ObjectsSearchMoreResult =
+  | ObjectsSearchResultSetPage
+  | InvalidInput
+  | OperationError
 
 export type ObjectsSearchResult =
   | ObjectsSearchResultSet
   | EmptySearchResultSet
   | InvalidInput
+  | OperationError
 
 export interface ObjectsSearchResultSet {
   readonly __typename: 'ObjectsSearchResultSet'
@@ -839,12 +843,16 @@ export interface PackagesSearchFilter {
   readonly workflow: Maybe<KeywordSearchPredicate>
 }
 
-export type PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput
+export type PackagesSearchMoreResult =
+  | PackagesSearchResultSetPage
+  | InvalidInput
+  | OperationError
 
 export type PackagesSearchResult =
   | PackagesSearchResultSet
   | EmptySearchResultSet
   | InvalidInput
+  | OperationError
 
 export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'

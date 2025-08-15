@@ -12,6 +12,11 @@ query ($buckets: [String!]) {
         context
       }
     }
+    ... on OperationError {
+      name
+      message
+      context
+    }
   }
   searchObjects(buckets: $buckets) {
     __typename
@@ -25,6 +30,11 @@ query ($buckets: [String!]) {
         name
         context
       }
+    }
+    ... on OperationError {
+      name
+      message
+      context
     }
   }
 }

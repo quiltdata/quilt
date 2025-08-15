@@ -57,7 +57,7 @@ interface ResultsErrorPage {
 
 interface ResultsErrorData {
   _tag: 'data'
-  error: Model.GQLTypes.InputError
+  error: Model.GQLTypes.InputError | Model.GQLTypes.OperationError
 }
 
 interface ResultsErrorGeneral {
@@ -99,6 +99,8 @@ function parseNextResults(
         case 'InvalidInput':
           const [error] = query.data.errors
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
+        case 'OperationError':
+          return { _tag: 'fail' as const, error: { _tag: 'data', error: query.data } }
         case 'PackagesSearchResultSetPage':
           const { hits, ...data } = query.data
           return {
@@ -127,6 +129,8 @@ function parseFirstResults(
         case 'InvalidInput':
           const [error] = query.data.errors
           return { _tag: 'fail' as const, error: { _tag: 'data', error } }
+        case 'OperationError':
+          return { _tag: 'fail' as const, error: { _tag: 'data', error: query.data } }
         case 'PackagesSearchResultSet':
           const { hits, ...data } = query.data.firstPage
           return {
