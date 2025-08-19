@@ -37,14 +37,12 @@ const useStyles = M.makeStyles((t) => ({
 
 interface WithPopoverProps {
   children: NonNullable<React.ReactNode>
-  className?: string
-  icon: StrIcon | SvgIcon
+  icon: StrIcon | SvgIcon // FIXME: make it optional
   label: string
 }
 
 export default function WithPopover({
   children,
-  className,
   icon,
   label,
   ...props
@@ -56,7 +54,6 @@ export default function WithPopover({
   return (
     <div className={classes.root}>
       <Iconized
-        className={className}
         endIcon={<M.Icon>arrow_drop_down</M.Icon>}
         icon={icon}
         label={label}

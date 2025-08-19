@@ -79,7 +79,7 @@ export default function BucketDir({ className, handle }: BucketDirProps) {
 
       {features.organize && (
         <Organize.Button>
-          <Organize.BucketDirOptions handle={handle} />
+          <Organize.BucketDirOptions />
         </Organize.Button>
       )}
 

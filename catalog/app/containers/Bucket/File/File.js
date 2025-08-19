@@ -417,7 +417,11 @@ function File() {
           )}
         </div>
 
-        <Toolbar.BucketFile className={classes.actions} handle={handle} />
+        <Toolbar.BucketFile
+          className={classes.actions}
+          handle={handle}
+          viewModes={viewModes}
+        />
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
