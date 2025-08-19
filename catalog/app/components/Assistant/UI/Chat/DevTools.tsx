@@ -4,10 +4,12 @@ import * as M from '@material-ui/core'
 import ClearIcon from '@material-ui/icons/Clear'
 import DeleteIcon from '@material-ui/icons/Delete'
 import GetAppIcon from '@material-ui/icons/GetApp'
+import SearchIcon from '@material-ui/icons/Search'
 
 import JsonDisplay from 'components/JsonDisplay'
 
 import * as Model from '../../Model'
+import { discoverTextModels, ModelCheckResult } from './ListModels'
 
 const useModelIdOverrideStyles = M.makeStyles((t) => ({
   root: {
@@ -18,8 +20,146 @@ const useModelIdOverrideStyles = M.makeStyles((t) => ({
 
 type ModelIdOverrideProps = Model.Assistant.API['devTools']['modelIdOverride']
 
+function ModelSelectorDialog({
+  open,
+  onClose,
+  onSelect,
+  region,
+}: {
+  open: boolean
+  onClose: () => void
+  onSelect: (modelId: string) => void
+  region: string
+}) {
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [rows, setRows] = React.useState<ModelCheckResult[]>([])
+  const [filter, setFilter] = React.useState('')
+
+  React.useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    discoverTextModels(region)
+      .then((r) => {
+        if (!cancelled) setRows(r)
+      })
+      .catch((e) => {
+        if (!cancelled) setError(String(e))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, region])
+
+  const filtered = React.useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          r.modelId.toLowerCase().includes(filter.toLowerCase()) ||
+          r.name.toLowerCase().includes(filter.toLowerCase()) ||
+          r.provider.toLowerCase().includes(filter.toLowerCase()),
+      ),
+    [rows, filter],
+  )
+
+  return (
+    <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+      <M.DialogTitle>Select Bedrock Model</M.DialogTitle>
+      <M.DialogContent dividers>
+        <M.Box display="flex" alignItems="center" mb={2} gap={1} justifyContent="space-between">
+          <M.TextField
+            label="Filter"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            size="small"
+            variant="outlined"
+          />
+          <M.Typography variant="caption" color="textSecondary">
+            Region: {region}
+          </M.Typography>
+        </M.Box>
+        {loading && <M.LinearProgress />}
+        {error && (
+          <M.Box mb={1}>
+            <M.Typography color="error" variant="body2">
+              {error}
+            </M.Typography>
+          </M.Box>
+        )}
+        <M.Table size="small" stickyHeader>
+          <M.TableHead>
+            <M.TableRow>
+              <M.TableCell>Status</M.TableCell>
+              <M.TableCell>Model ID</M.TableCell>
+              <M.TableCell>Name</M.TableCell>
+              <M.TableCell>Provider</M.TableCell>
+              <M.TableCell>Detail</M.TableCell>
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {filtered.map((r) => {
+              const selectable = r.status === 'ENABLED'
+              return (
+                <M.TableRow
+                  hover
+                  key={r.modelId}
+                  onClick={() => {
+                    if (selectable) {
+                      onSelect(r.modelId)
+                      onClose()
+                    }
+                  }}
+                  style={{ cursor: selectable ? 'pointer' : 'default', opacity: selectable ? 1 : 0.5 }}
+                >
+                  <M.TableCell>
+                    <M.Chip
+                      size="small"
+                      label={r.status}
+                      color={
+                        r.status === 'ENABLED'
+                          ? 'primary'
+                          : r.status === 'NO_ACCESS'
+                          ? 'secondary'
+                          : 'default'
+                      }
+                      variant={r.status === 'ENABLED' ? 'default' : 'outlined'}
+                    />
+                  </M.TableCell>
+                  <M.TableCell style={{ fontFamily: 'monospace' }}>{r.modelId}</M.TableCell>
+                  <M.TableCell>{r.name}</M.TableCell>
+                  <M.TableCell>{r.provider}</M.TableCell>
+                  <M.TableCell>{r.detail}</M.TableCell>
+                </M.TableRow>
+              )
+            })}
+            {!loading && filtered.length === 0 && (
+              <M.TableRow>
+                <M.TableCell colSpan={5}>
+                  <M.Typography align="center" variant="body2">
+                    No models
+                  </M.Typography>
+                </M.TableCell>
+              </M.TableRow>
+            )}
+          </M.TableBody>
+        </M.Table>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose}>Close</M.Button>
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
 function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
   const classes = useModelIdOverrideStyles()
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [region, setRegion] = React.useState<string>(process.env.AWS_REGION || 'us-east-1')
 
   const handleModelIdChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,30 +172,53 @@ function ModelIdOverride({ value, setValue }: ModelIdOverrideProps) {
 
   return (
     <div className={classes.root}>
-      <M.TextField
-        label="Bedrock Model ID"
-        placeholder={Model.Assistant.DEFAULT_MODEL_ID}
-        value={value}
-        onChange={handleModelIdChange}
-        fullWidth
-        helperText="Leave empty to use default"
-        InputLabelProps={{ shrink: true }}
-        InputProps={{
-          endAdornment: value ? (
-            <M.InputAdornment position="end">
-              <M.IconButton
-                aria-label="Clear model ID override"
-                onClick={handleClear}
-                edge="end"
-                size="small"
-              >
-                <M.Tooltip arrow title="Clear model ID override">
-                  <ClearIcon />
-                </M.Tooltip>
-              </M.IconButton>
-            </M.InputAdornment>
-          ) : null,
-        }}
+      <M.Box display="flex" gap={1}>
+        <M.TextField
+          label="Bedrock Model ID"
+          placeholder={Model.Assistant.DEFAULT_MODEL_ID}
+          value={value}
+          onChange={handleModelIdChange}
+          fullWidth
+          helperText="Leave empty to use default"
+          InputLabelProps={{ shrink: true }}
+          InputProps={{
+            endAdornment: value ? (
+              <M.InputAdornment position="end">
+                <M.IconButton
+                  aria-label="Clear model ID override"
+                  onClick={handleClear}
+                  edge="end"
+                  size="small"
+                >
+                  <M.Tooltip arrow title="Clear model ID override">
+                    <ClearIcon />
+                  </M.Tooltip>
+                </M.IconButton>
+              </M.InputAdornment>
+            ) : null,
+          }}
+        />
+        <M.TextField
+          label="Region"
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+          style={{ width: 140 }}
+          size="small"
+          InputLabelProps={{ shrink: true }}
+        />
+        <M.Button
+          variant="outlined"
+          startIcon={<SearchIcon />}
+          onClick={() => setDialogOpen(true)}
+        >
+          Browse
+        </M.Button>
+      </M.Box>
+      <ModelSelectorDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSelect={(id) => setValue(id)}
+        region={region}
       />
     </div>
   )
