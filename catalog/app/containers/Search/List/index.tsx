@@ -87,6 +87,21 @@ function NextPage({
             )
           case 'data':
             switch (r.data.__typename) {
+              case 'OperationError':
+                if (r.data.name === 'Timeout') {
+                  return (
+                    <NoResults.Error
+                      className={className}
+                      kind="timeout"
+                      onRefine={onRefine}
+                    />
+                  )
+                }
+                return (
+                  <NoResults.Error className={className} onRefine={onRefine}>
+                    Operation error: {r.data.message}
+                  </NoResults.Error>
+                )
               case 'InvalidInput':
                 // should not happen
                 const [err] = r.data.errors
@@ -233,6 +248,17 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
               Invalid input at <code>{err.path}</code>: {err.name}
               <br />
               {err.message}
+            </NoResults.Error>
+          )
+        case 'OperationError':
+          if (r.data.name === 'Timeout') {
+            return (
+              <NoResults.Error className={className} kind="timeout" onRefine={onRefine} />
+            )
+          }
+          return (
+            <NoResults.Error className={className} onRefine={onRefine}>
+              Operation error: {r.data.message}
             </NoResults.Error>
           )
         case 'ObjectsSearchResultSet':
