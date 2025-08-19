@@ -18,6 +18,13 @@ TEST_YAML = """
 
 
 # Code
+def test_fix_url():
+    with pytest.raises(TypeError):
+        util.fix_url(object())
+    with pytest.raises(ValueError):
+        util.fix_url(None)
+
+
 def test_write_yaml(tmpdir):
     fname = tmpdir / 'some_file.yml'
 
