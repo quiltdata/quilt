@@ -75,12 +75,12 @@ def extract_excel(file_, as_html=True):
     return first_sheet.to_string(index=False), {}
 
 
-def extract_fcs(file_, as_html=True):
+def extract_fcs(chunk_iterator, as_html=True):
     """
     parse and extract key metadata from parquet files
 
     Args:
-        file_ - file-like object opened in binary mode (+b)
+        chunk_iterator - bytes iterator
 
     Returns:
         dict
@@ -95,11 +95,8 @@ def extract_fcs(file_, as_html=True):
     # FCS files typically < 500MB (Lambda disk)
     # per Lambda docs we can use tmp/*, OK to overwrite
     with tempfile.NamedTemporaryFile() as tmp:
-
-        chunk = file_.read(READ_CHUNK)
-        while chunk:
+        for chunk in chunk_iterator:
             tmp.write(chunk)
-            chunk = file_.read(READ_CHUNK)
         tmp.flush()
 
         try:
