@@ -1,90 +1,25 @@
 import invariant from 'invariant'
-import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
-import * as Dialog from 'components/Dialog'
-import * as FileEditor from 'components/FileEditor'
-import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import type * as workflows from 'utils/workflows'
 
-import * as Download from './Download'
 import * as AssistantContext from './DirAssistantContext'
 import * as Listing from './Listing'
-import * as PD from './PackageDialog'
 import * as Selection from './Selection'
-import * as Successors from './Successors'
 import Summary from './Summary'
+import * as Toolbar from './Toolbar'
 import { displayError } from './errors'
 import * as requests from './requests'
-
-const useDirectoryMenuStyles = M.makeStyles((t) => ({
-  upload: {
-    width: t.spacing(80),
-  },
-  drop: {
-    alignItems: 'center',
-    border: `2px dashed ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
-    display: 'flex',
-    flexDirection: 'column',
-    height: t.spacing(40),
-    justifyContent: 'center',
-    marginBottom: t.spacing(1),
-  },
-}))
-
-interface DirectoryMenuProps {
-  bucket: string
-  className?: string
-  path: string
-}
-
-function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const classes = useDirectoryMenuStyles()
-  const prompt = FileEditor.useCreateFileInBucket(bucket, path)
-  const create = React.useCallback(
-    () => ({
-      label: 'Create',
-      panel: (
-        <M.Button startIcon={<M.Icon>create</M.Icon>} type="submit" onClick={prompt.open}>
-          Create file
-        </M.Button>
-      ),
-    }),
-    [prompt],
-  )
-  const upload = React.useCallback(
-    () => ({
-      className: classes.upload,
-      label: 'Upload',
-      panel: (
-        <div className={classes.drop}>
-          <M.Typography gutterBottom>Click or drag'n'drop files here</M.Typography>
-          <M.Icon>publish</M.Icon>
-        </div>
-      ),
-    }),
-    [classes],
-  )
-  return (
-    <Buttons.WithPopover className={className} icon="add" label="Add files">
-      <Dialog.Tabs>{[create(), upload()]}</Dialog.Tabs>
-    </Buttons.WithPopover>
-  )
-}
 
 interface RouteMap {
   bucketDir: Routes.BucketDirArgs
@@ -165,9 +100,6 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: '100%',
     overflowWrap: 'break-word',
   },
-  button: {
-    marginLeft: t.spacing(1),
-  },
   topbar: {
     display: 'flex',
     alignItems: 'flex-start',
@@ -201,7 +133,6 @@ export default function Dir() {
 
   const classes = useStyles()
   const s3 = AWS.S3.use()
-  const { prefs } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search, true)
   const path = s3paths.decode(encodedPath)
 
@@ -240,24 +171,6 @@ export default function Dir() {
     [bucket, path, prefix, slt],
   )
 
-  const packageDirectoryDialog = PD.usePackageCreationDialog({
-    s3Path: path,
-    bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
-
-  const openPackageCreationDialog = React.useCallback(
-    (successor: workflows.Successor) => {
-      packageDirectoryDialog.open({
-        path,
-        successor,
-        selection: slt.selection,
-      })
-    },
-    [packageDirectoryDialog, path, slt.selection],
-  )
-
   const { paths, urls } = NamedRoutes.use<RouteMap>()
   const getSegmentRoute = React.useCallback(
     (segPath: string) => urls.bucketDir(bucket, segPath),
@@ -280,7 +193,10 @@ export default function Dir() {
     [paths],
   )
 
-  const dirHandle = React.useMemo(() => ({ bucket, path }), [bucket, path])
+  const dirHandle = React.useMemo(
+    () => Toolbar.DirHandleCreate(bucket, path),
+    [bucket, path],
+  )
 
   return (
     <M.Box pt={2} pb={4}>
@@ -290,64 +206,11 @@ export default function Dir() {
 
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
 
-      {packageDirectoryDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
-
       <div className={classes.topbar}>
         <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
           {BreadCrumbs.render(crumbs)}
         </div>
-        <div className={classes.actions}>
-          <Selection.Control className={cx(classes.button)} />
-          {BucketPreferences.Result.match(
-            {
-              Ok: ({ ui: { actions, blocks } }) => (
-                <>
-                  {actions.createPackage && (
-                    <Successors.Button
-                      bucket={bucket}
-                      className={classes.button}
-                      onChange={openPackageCreationDialog}
-                      variant={slt.isEmpty ? 'outlined' : 'contained'}
-                      color={slt.isEmpty ? 'default' : 'primary'}
-                    >
-                      Create package
-                    </Successors.Button>
-                  )}
-                  {!cfg.noDownload && actions.downloadObject && (
-                    <Download.Button className={classes.button}>
-                      <Download.BucketOptions
-                        handle={dirHandle}
-                        hideCode={!blocks.code}
-                      />
-                    </Download.Button>
-                  )}
-                  {actions.writeFile && (
-                    <DirectoryMenu
-                      className={classes.button}
-                      bucket={bucket}
-                      path={path}
-                    />
-                  )}
-                </>
-              ),
-              Pending: () => (
-                <>
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                </>
-              ),
-              Init: () => null,
-            },
-            prefs,
-          )}
-        </div>
+        <Toolbar.BucketDir className={classes.actions} handle={dirHandle} />
       </div>
 
       {data.case({

@@ -6,12 +6,10 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
-import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -26,15 +24,13 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
-import AssistButton from '../AssistButton'
-import * as Download from '../Download'
-import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import FallbackToDir from '../FallbackToDir'
 import Section from '../Section'
+import * as Toolbar from '../Toolbar'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
-import { useViewModes, viewModeToSelectOption } from '../viewModes'
+import { useViewModes } from '../viewModes'
 
 import Analytics from './Analytics'
 import * as AssistantContext from './AssistantContext'
@@ -297,8 +293,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
-
 function File() {
   const location = RRDom.useLocation()
   const { bucket, path: encodedPath } = RRDom.useParams()
@@ -306,13 +300,12 @@ function File() {
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
   const s3 = AWS.S3.use()
   const { prefs } = BucketPreferences.use()
 
   const path = s3paths.decode(encodedPath)
 
-  const [resetKey, setResetKey] = React.useState(0)
+  const [resetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
@@ -335,7 +328,7 @@ function File() {
     }),
   })
 
-  const { downloadable, fileVersionId } = versionExistsData.case({
+  const { fileVersionId } = versionExistsData.case({
     _: () => ({
       downloadable: false,
     }),
@@ -362,24 +355,12 @@ function File() {
 
   const viewModes = useViewModes(mode)
 
-  const onViewModeChange = React.useCallback(
-    (m) => {
-      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
-    },
-    [history, urls, bucket, encodedPath, version],
-  )
-
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version: fileVersionId }),
+    () => Toolbar.FileHandleCreate(bucket, path, fileVersionId),
     [bucket, path, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
-  const onSave = editorState.onSave
-  const handleEditorSave = React.useCallback(async () => {
-    await onSave()
-    setResetKey(R.inc)
-  }, [onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -400,11 +381,6 @@ function File() {
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
-  const bookmarks = Bookmarks.use()
-  const isBookmarked = React.useMemo(
-    () => bookmarks?.isBookmarked('main', handle),
-    [bookmarks, handle],
-  )
 
   const getSegmentRoute = React.useCallback(
     (segPath) => urls.bucketDir(bucket, segPath),
@@ -441,129 +417,7 @@ function File() {
           )}
         </div>
 
-        <div className={classes.actions}>
-          <FileProperties className={classes.fileProperties} data={versionExistsData} />
-
-          <Buttons.WithPopover label="Modify" icon="settings">
-            <M.List dense>
-              <M.ListItem button>
-                <M.ListItemIcon>
-                  <M.Icon>turned_in_not</M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText
-                  primary="Add to bookmarks"
-                  primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
-                />
-              </M.ListItem>
-            </M.List>
-
-            <M.Divider />
-
-            <M.List dense>
-              <M.ListItem button>
-                <M.ListItemIcon>
-                  <M.Icon>edit</M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText
-                  primary="Edit text content"
-                  primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
-                />
-              </M.ListItem>
-            </M.List>
-
-            <M.Divider />
-
-            <M.List dense>
-              <M.ListSubheader inset>View as</M.ListSubheader>
-              {viewModes.modes.map((mode) => (
-                <M.ListItem button>
-                  {mode === viewModes.mode && (
-                    <M.ListItemIcon>
-                      <M.Icon>check</M.Icon>
-                    </M.ListItemIcon>
-                  )}
-                  <M.ListItemText
-                    inset={mode !== viewModes.mode}
-                    primary={mode}
-                    primaryTypographyProps={LIST_ITEM_TYPOGRAPHY_PROPS}
-                  />
-                </M.ListItem>
-              ))}
-            </M.List>
-
-            <M.Divider />
-
-            <M.List dense>
-              <M.ListItem button>
-                <M.ListItemIcon>
-                  <M.Icon color="error">delete</M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText
-                  primary="Delete"
-                  primaryTypographyProps={{
-                    ...LIST_ITEM_TYPOGRAPHY_PROPS,
-                    color: 'error',
-                  }}
-                />
-              </M.ListItem>
-            </M.List>
-          </Buttons.WithPopover>
-
-          {/* !!viewModes.modes.length && (
-            <FileView.ViewModeSelector
-              className={classes.button}
-              options={viewModes.modes.map(viewModeToSelectOption)}
-              value={viewModeToSelectOption(viewModes.mode)}
-              onChange={onViewModeChange}
-            />
-          ) */}
-          {/*BucketPreferences.Result.match(
-            {
-              Ok: ({ ui: { actions } }) =>
-                actions.writeFile &&
-                FileEditor.isSupportedFileType(handle.key) && (
-                  <FileEditor.Controls
-                    {...editorState}
-                    className={classes.button}
-                    onSave={handleEditorSave}
-                  />
-                ),
-              _: () => null,
-            },
-            prefs,
-          )*/}
-          {/* bookmarks && (
-            <Buttons.Iconized
-              className={classes.button}
-              icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
-              label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
-              onClick={() => bookmarks.toggle('main', handle)}
-            />
-          )*/}
-          {downloadable &&
-            BucketPreferences.Result.match(
-              {
-                Ok: ({ ui: { blocks } }) => (
-                  <Download.Button className={classes.button} label="Get file">
-                    <Download.BucketOptions handle={handle} hideCode={!blocks.code} />
-                  </Download.Button>
-                ),
-                Pending: () => (
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                ),
-                Init: () => null,
-              },
-              prefs,
-            )}
-          {BucketPreferences.Result.match(
-            {
-              // XXX: only show this when the object exists?
-              Ok: ({ ui }) => ui.blocks.qurator && <AssistButton edge="end" />,
-              _: () => null,
-            },
-            prefs,
-          )}
-        </div>
+        <Toolbar.BucketFile className={classes.actions} handle={handle} />
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
