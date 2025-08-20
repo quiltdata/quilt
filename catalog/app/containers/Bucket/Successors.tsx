@@ -14,7 +14,7 @@ import * as workflows from 'utils/workflows'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 
-function EmptySlot() {
+export function EmptySlot() {
   return (
     <M.Box px={2} py={1}>
       <M.Typography gutterBottom>
@@ -38,7 +38,7 @@ interface ErrorSlotProps {
   error: Error
 }
 
-function ErrorSlot({ error }: ErrorSlotProps) {
+export function ErrorSlot({ error }: ErrorSlotProps) {
   return (
     <M.Box px={2} py={1}>
       <M.Typography gutterBottom>

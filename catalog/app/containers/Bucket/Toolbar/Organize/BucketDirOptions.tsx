@@ -15,7 +15,7 @@ import * as Format from 'utils/format'
 
 import * as Selection from '../../Selection'
 
-const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true } as const
+const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
 
 interface MenuItemProps {
   className?: string

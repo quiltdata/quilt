@@ -37,7 +37,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface WithPopoverProps {
   children: NonNullable<React.ReactNode>
-  icon: StrIcon | SvgIcon // FIXME: make it optional
+  icon?: StrIcon | SvgIcon
   label: string
 }
 
@@ -46,7 +46,7 @@ export default function WithPopover({
   icon,
   label,
   ...props
-}: WithPopoverProps & Parameters<typeof Iconized>[0]) {
+}: WithPopoverProps & Omit<Parameters<typeof Iconized>[0], 'icon'>) {
   // TODO: close on location change
   const classes = useStyles()
   const [opened, setOpened] = React.useState(false)
@@ -54,15 +54,27 @@ export default function WithPopover({
   const handleClose = React.useCallback(() => setOpened(false), [])
   return (
     <div className={classes.root}>
-      <Iconized
-        endIcon={<M.Icon>arrow_drop_down</M.Icon>}
-        icon={icon}
-        label={label}
-        onClick={handleClick}
-        size="small"
-        variant="outlined"
-        {...props}
-      />
+      {icon ? (
+        <Iconized
+          endIcon={<M.Icon>arrow_drop_down</M.Icon>}
+          icon={icon}
+          label={label}
+          onClick={handleClick}
+          size="small"
+          variant="outlined"
+          {...props}
+        />
+      ) : (
+        <M.Button
+          endIcon={<M.Icon>arrow_drop_down</M.Icon>}
+          onClick={handleClick}
+          size="small"
+          variant="outlined"
+          {...props}
+        >
+          {label}
+        </M.Button>
+      )}
 
       <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
       {opened && (

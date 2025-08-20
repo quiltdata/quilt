@@ -6,6 +6,9 @@ import * as Buttons from 'components/Buttons'
 import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
+import * as PD from '../PackageDialog'
+import * as Selection from '../Selection'
+
 import * as Add from './Add'
 import * as CreatePackage from './CreatePackage'
 import * as Get from './Get'
@@ -52,6 +55,29 @@ interface BucketDirProps {
 export default function BucketDir({ className, handle }: BucketDirProps) {
   const classes = useStyles()
   const features = useFeatures()
+  const slt = Selection.use()
+
+  const { path, bucket } = handle
+
+  const packageDirectoryDialog = PD.usePackageCreationDialog({
+    s3Path: path,
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+
+  const openPackageCreationDialog = React.useCallback(
+    (successor) => {
+      packageDirectoryDialog.open({
+        path,
+        selection: slt.selection,
+        successor,
+      })
+    },
+    [packageDirectoryDialog, path, slt.selection],
+  )
+
+  const successors = CreatePackage.useSuccessors(bucket)
 
   if (!features)
     return (
@@ -65,6 +91,14 @@ export default function BucketDir({ className, handle }: BucketDirProps) {
 
   return (
     <div className={cx(classes.root, className)}>
+      {packageDirectoryDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+
       {features.add && (
         <Add.Button>
           <Add.BucketDirOptions handle={handle} />
@@ -85,7 +119,10 @@ export default function BucketDir({ className, handle }: BucketDirProps) {
 
       {features.createPackage && (
         <CreatePackage.Button handle={handle}>
-          <CreatePackage.BucketDirOptions handle={handle} />
+          <CreatePackage.BucketDirOptions
+            onChange={openPackageCreationDialog}
+            successors={successors}
+          />
         </CreatePackage.Button>
       )}
     </div>
