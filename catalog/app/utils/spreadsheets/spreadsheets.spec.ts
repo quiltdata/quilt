@@ -1,15 +1,25 @@
 import path from 'path'
-
+import { Readable } from 'stream'
 import dedent from 'dedent'
-import xlsx from 'xlsx'
-
+import * as ExcelJS from 'exceljs'
 import * as spreadsheets from './spreadsheets'
 
-function readXlsx(filename: string): xlsx.WorkSheet {
-  const workbook = xlsx.readFile(path.resolve(__dirname, filename), {
-    cellDates: true,
-  })
-  return workbook.Sheets[workbook.SheetNames[0]]
+async function readXlsx(filename: string): Promise<ExcelJS.Worksheet> {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(path.resolve(__dirname, filename))
+  const worksheet = workbook.getWorksheet(1)
+  if (!worksheet) throw new Error('Worksheet not found')
+  return worksheet
+}
+
+async function readCSVString(csv: string): Promise<ExcelJS.Worksheet> {
+  const workbook = new ExcelJS.Workbook()
+  const csvStream = new Readable()
+  csvStream.push(csv)
+  csvStream.push(null)
+  const sheet = await workbook.csv.read(csvStream).then(() => workbook.getWorksheet(1))
+  if (!sheet) throw new Error('Worksheet not found')
+  return sheet
 }
 
 describe('utils/spreadsheets', () => {
@@ -31,12 +41,15 @@ describe('utils/spreadsheets', () => {
 
   describe('parseSpreadsheet', () => {
     const csv = dedent`
-        a,b,c
-        d,"e,i,j,k",f
-        g,h
-      `
-    const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+                a,b,c
+                d,"e,i,j,k",f
+                g,h
+            `
+    let sheet: ExcelJS.Worksheet
+
+    beforeAll(async () => {
+      sheet = await readCSVString(csv)
+    })
 
     it('converts CSV to dictionary object, array of cells', () => {
       expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
@@ -48,7 +61,7 @@ describe('utils/spreadsheets', () => {
   })
 
   describe('scoreObjectDiff', () => {
-    it('object with more keys in commont has bigger score', () => {
+    it('object with more keys in common has bigger score', () => {
       const testA = { a: 1, b: 2, c: 3 }
       const testB = { c: 4, d: 5, e: 6 }
       const control = { b: 123, c: 456 }
@@ -69,66 +82,61 @@ describe('utils/spreadsheets', () => {
       },
     }
 
-    it('parse vertical spreadsheet, single value', () => {
+    it('parse vertical spreadsheet, single value', async () => {
       const csv = dedent`
-        b,c
-        1,2
-      `
-      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+                b,c
+                1,2
+            `
+      const sheet = await readCSVString(csv)
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         b: 1,
         c: 2,
       })
     })
 
-    it('parse vertical spreadsheet, multiple values', () => {
+    it('parse vertical spreadsheet, multiple values', async () => {
       const csv = dedent`
-        b,c
-        1,2
-        3,4
-      `
-      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+                b,c
+                1,2
+                3,4
+            `
+      const sheet = await readCSVString(csv)
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         b: [1, 3],
         c: [2, 4],
       })
     })
 
-    it('parse horizontal spreadsheet, single value', () => {
+    it('parse horizontal spreadsheet, single value', async () => {
       const csv = dedent`
-        b,1
-        c,2
-      `
-      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+                b,1
+                c,2
+            `
+      const sheet = await readCSVString(csv)
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         b: 1,
         c: 2,
       })
     })
 
-    it('parse horizontal spreadsheet, multiple values', () => {
+    it('parse horizontal spreadsheet, multiple values', async () => {
       const csv = dedent`
-        b,1,3
-        c,2,4
-      `
-      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+                b,1,3
+                c,2,4
+            `
+      const sheet = await readCSVString(csv)
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         b: [1, 3],
         c: [2, 4],
       })
     })
 
-    it('parse as vertical when no keys in common, single value', () => {
+    it('parse as vertical when no keys in common, single value', async () => {
       const csv = dedent`
-        d,e,f
-        1,2,3
-      `
-      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+                d,e,f
+                1,2,3
+            `
+      const sheet = await readCSVString(csv)
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         d: 1,
         e: 2,
@@ -136,14 +144,13 @@ describe('utils/spreadsheets', () => {
       })
     })
 
-    it('parse as vertical when no keys in common, multiple values', () => {
+    it('parse as vertical when no keys in common, multiple values', async () => {
       const csv = dedent`
-        d,e,f
-        1,2,3
-        4,5,6
-      `
-      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+                d,e,f
+                1,2,3
+                4,5,6
+            `
+      const sheet = await readCSVString(csv)
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         d: [1, 4],
         e: [2, 5],
@@ -152,7 +159,7 @@ describe('utils/spreadsheets', () => {
     })
 
     it('parse invalid data with no error', () => {
-      const sheet = ['123']
+      const sheet = ['123'] // rejected by compiler
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({})
     })
 
@@ -163,7 +170,7 @@ describe('utils/spreadsheets', () => {
           Age: { type: 'array', items: { type: 'number' } },
           Date: { type: 'array', items: { type: 'date' } },
           Fingers: { type: 'array', items: { type: 'array' } },
-          Male: { type: 'array', tems: { type: 'boolean' } },
+          Male: { type: 'array', items: { type: 'boolean' } },
           Name: { type: 'array', items: { type: 'string' } },
           Parts: { type: 'array', items: { type: 'array' } },
         },
@@ -185,8 +192,8 @@ describe('utils/spreadsheets', () => {
         Parts: [['head', 'legs', 'arms']],
       }
 
-      const testParsing = (filename: string) => {
-        const sheet = readXlsx(filename)
+      const testParsing = async (filename: string) => {
+        const sheet = await readXlsx(filename)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
           outputSchemed,
@@ -270,16 +277,16 @@ describe('utils/spreadsheets', () => {
         null: ['break it', null, null, null, null, null],
       }
 
-      const testParsing = (filename: string) => {
-        const sheet = readXlsx(filename)
+      const testParsing = async (filename: string) => {
+        const sheet = await readXlsx(filename)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
           outputSchemed,
         )
       }
 
-      const testParsingTransposed = (filename: string) => {
-        const sheet = readXlsx(filename)
+      const testParsingTransposed = async (filename: string) => {
+        const sheet = await readXlsx(filename)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
           outputSchemed,
         )
@@ -362,16 +369,16 @@ describe('utils/spreadsheets', () => {
         null: ['break it', null, null, null, null, null],
       }
 
-      const testParsing = (filename: string) => {
-        const sheet = readXlsx(filename)
+      const testParsing = async (filename: string) => {
+        const sheet = await readXlsx(filename)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
           outputSchemed,
         )
       }
 
-      const testParsingTransposed = (filename: string) => {
-        const sheet = readXlsx(filename)
+      const testParsingTransposed = async (filename: string) => {
+        const sheet = await readXlsx(filename)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
           outputSchemed,
         )

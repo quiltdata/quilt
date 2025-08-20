@@ -337,7 +337,9 @@ function PackageRow({ columnsList, hit, skeletons }: PackageRowProps) {
             <CellValue hit={hit} column={column} />
           </M.TableCell>
         ))}
-        {skeletons?.map(({ key, width }) => <Skeleton.Cell key={key} width={width} />)}
+        {skeletons?.map(({ key, width }) => (
+          <Skeleton.Cell key={key} width={width} />
+        ))}
         {/* TODO: use second table for placeholder  */}
         <M.TableCell className={classes.placeholder} />
       </M.TableRow>

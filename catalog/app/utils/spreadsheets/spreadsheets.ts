@@ -1,13 +1,13 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
-import * as xlsx from 'xlsx'
+import * as ExcelJS from 'exceljs'
 
 import * as jsonSchema from 'utils/JSONSchema'
 import pipeThru from 'utils/pipeThru'
 
-type MetadataValue = $TSFixMe
+type MetadataValue = any
 
-type JsonSchema = $TSFixMe
+type JsonSchema = any
 
 export function rowsToJson(rows: MetadataValue[][]) {
   return pipeThru(rows)(
@@ -28,11 +28,19 @@ export function rowsToJson(rows: MetadataValue[][]) {
 }
 
 export function parseSpreadsheet(
-  sheet: xlsx.WorkSheet,
+  sheet: ExcelJS.Worksheet | any,
   transpose: boolean,
 ): Record<string, MetadataValue> {
-  const rows = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
-    header: 1,
+  // Handle invalid input gracefully
+  if (!sheet || typeof sheet !== 'object' || !sheet.eachRow) {
+    return {}
+  }
+
+  const rows: MetadataValue[][] = []
+  sheet.eachRow((row: any) => {
+    if (Array.isArray(row.values)) {
+      rows.push(row.values.slice(1))
+    }
   })
   const maxSize = rows.reduce((memo, row) => R.max(memo, row.length), 0)
   return pipeThru(rows)(
@@ -46,7 +54,7 @@ export function parseSpreadsheet(
   )
 }
 
-export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
+export function readSpreadsheet(file: File): Promise<ExcelJS.Worksheet> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -55,9 +63,14 @@ export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
     reader.onerror = () => {
       reject(reader.error)
     }
-    reader.onload = () => {
-      const workbook = xlsx.read(reader.result, { type: 'array', cellDates: true })
-      resolve(workbook.Sheets[workbook.SheetNames[0]])
+    reader.onload = async () => {
+      try {
+        const workbook = new ExcelJS.Workbook()
+        await workbook.xlsx.load(reader.result as ArrayBuffer)
+        resolve(workbook.worksheets[0])
+      } catch (error) {
+        reject(error)
+      }
     }
     reader.readAsArrayBuffer(file)
   })
@@ -104,10 +117,13 @@ export function postProcessValue(
   value: MetadataValue,
   schema?: JsonSchema,
 ): MetadataValue {
-  if (Array.isArray(value) && value.length === 1)
+  if (Array.isArray(value) && value.length === 1) {
     return postProcessValue(value[0], schema)
+  }
 
-  if (isDate(value, schema)) return dateFns.formatISO(value, { representation: 'date' })
+  if (isDate(value, schema)) {
+    return dateFns.formatISO(value, { representation: 'date' })
+  }
 
   if (isArray(value, schema)) return value.split(',').map(parseJSON)
 
@@ -122,8 +138,9 @@ export function postProcessArrayValue(
   value: MetadataValue,
   schema?: JsonSchema,
 ): MetadataValue {
-  if (isArrayOfDates(value, schema))
+  if (isArrayOfDates(value, schema)) {
     return dateFns.formatISO(value, { representation: 'date' })
+  }
 
   if (isArrayOfArrays(value, schema)) return value.split(',').map(parseJSON)
 
@@ -143,7 +160,9 @@ export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
-  if (Array.isArray(obj)) return obj.map((v) => postProcess(v, schema?.items))
+  if (Array.isArray(obj)) {
+    return obj.map((v) => postProcess(v, schema?.items))
+  }
   return R.mapObjIndexed(
     (value: MetadataValue, key: string) =>
       isArrayValue(value, getSchemaItem(key, schema))
@@ -154,9 +173,14 @@ export function postProcess(
 }
 
 export function parseSpreadsheetAgainstSchema(
-  sheet: xlsx.WorkSheet,
+  sheet: ExcelJS.Worksheet | any,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
+  // Handle invalid input gracefully
+  if (!sheet || typeof sheet !== 'object' || !sheet.eachRow) {
+    return {}
+  }
+
   const verticalObj = parseSpreadsheet(sheet, true)
   const schemaRoot =
     schema?.type === 'array' ? schema?.items?.properties : schema?.properties
