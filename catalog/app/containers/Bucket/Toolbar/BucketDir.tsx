@@ -100,8 +100,8 @@ export default function BucketDir({ className, handle }: BucketDirProps) {
       })}
 
       {features.add && (
-        <Add.Button>
-          <Add.BucketDirOptions handle={handle} />
+        <Add.Button handle={handle}>
+          <Add.BucketDirOptions />
         </Add.Button>
       )}
 
