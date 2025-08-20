@@ -1,11 +1,11 @@
 import functools
 import typing as T
 
-import pydantic
+import pydantic.v1
 import typing_extensions as TX
 
 
-class NonEmptyStr(pydantic.ConstrainedStr):
+class NonEmptyStr(pydantic.v1.ConstrainedStr):
     min_length = 1
     strip_whitespace = True
 

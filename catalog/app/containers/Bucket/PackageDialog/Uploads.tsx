@@ -68,12 +68,12 @@ export function useUploads() {
     async ({
       files,
       bucket,
-      prefix,
+      getCanonicalKey,
       getMeta,
     }: {
       files: { path: string; file: LocalFile }[]
       bucket: string
-      prefix: string
+      getCanonicalKey: (path: string) => string
       getMeta?: (path: string) => Model.EntryMeta | undefined
     }) => {
       const limit = pLimit(2)
@@ -89,7 +89,7 @@ export function useUploads() {
         const upload: S3.ManagedUpload = s3.upload(
           {
             Bucket: bucket,
-            Key: `${prefix}/${path}`,
+            Key: getCanonicalKey(path),
             Body: file,
           },
           {

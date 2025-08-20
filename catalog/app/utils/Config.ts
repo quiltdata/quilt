@@ -15,6 +15,7 @@ export interface ConfigJson {
 
   mode: Mode
   alwaysRequiresAuth: boolean
+  /** @deprecated */
   desktop?: boolean
 
   analyticsBucket?: string
@@ -48,6 +49,7 @@ export interface ConfigJson {
 
   build_version?: string // not sure where this comes from
   stackVersion: string
+  packageRoot?: string
 }
 
 const ajv = new Ajv({ allErrors: true, removeAdditional: true })
@@ -90,6 +92,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
   noDownload: !!cfg.noDownload,
   noOverviewImages: !!cfg.noOverviewImages,
+  /** @deprecated */
   desktop: !!cfg.desktop,
   chunkedChecksums: !!cfg.chunkedChecksums,
   qurator: !!cfg.qurator,

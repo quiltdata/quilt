@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import typing as T
 
-import pydantic
+import pydantic.v1
 
 from .types import NonEmptyStr
 
@@ -11,7 +11,7 @@ if T.TYPE_CHECKING:
     from mypy_boto3_sts.type_defs import CredentialsTypeDef
 
 
-class AWSCredentials(pydantic.BaseModel, frozen=True):
+class AWSCredentials(pydantic.v1.BaseModel, frozen=True):
     key: NonEmptyStr
     secret: NonEmptyStr
     token: NonEmptyStr

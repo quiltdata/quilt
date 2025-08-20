@@ -1,3 +1,4 @@
+<!-- markdownlint-disable line-length -->
 # Changelog
 
 Changes are listed in reverse chronological order (newer entries at the top).
@@ -16,6 +17,10 @@ where verb is one of
 
 ## Changes
 
+- [Added] Respect new `dest_prefix` parameter for setting prefix to copy data to when promoting packages with `copy_data: true` ([#4383](https://github.com/quiltdata/quilt/pull/4383))
+- [Changed] Remove limits on number of files and bytes to be hashed from QPE lambda ([#4355](https://github.com/quiltdata/quilt/pull/4355))
+- [Changed] Improve packaging performance when many small (< 8 MiB) objects have to be hashed ([#4355](https://github.com/quiltdata/quilt/pull/4355))
+- [Changed] Bump pydantic to v2 ([#4355](https://github.com/quiltdata/quilt/pull/4355))
 - [Added] Entrypoint for Quilt Packaging Engine ([#4304](https://github.com/quiltdata/quilt/pull/4304))
 - [Fixed] Fix promotion with data copy to unversioned buckets ([#4300](https://github.com/quiltdata/quilt/pull/4300))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))

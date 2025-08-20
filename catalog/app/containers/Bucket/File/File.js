@@ -2,7 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useHistory, useLocation, useParams } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -23,13 +23,14 @@ import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
-import { up, decode, handleToHttpsUri } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import AssistButton from '../AssistButton'
-import FileCodeSamples from '../CodeSamples/File'
+import * as Download from '../Download'
 import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
+import FallbackToDir from '../FallbackToDir'
 import Section from '../Section'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
@@ -66,7 +67,8 @@ function VersionInfo({ bucket, path, version }) {
 
   const classes = useVersionInfoStyles()
 
-  const getHttpsUri = (v) => handleToHttpsUri({ bucket, key: path, version: v.id })
+  const getHttpsUri = (v) =>
+    s3paths.handleToHttpsUri({ bucket, key: path, version: v.id })
   const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
@@ -111,7 +113,7 @@ function VersionInfo({ bucket, path, version }) {
                   button
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
-                  component={Link}
+                  component={RRDom.Link}
                   to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
@@ -287,23 +289,26 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
     flexWrap: 'wrap',
   },
+  tooltip: {
+    padding: t.spacing(0, 1),
+  },
   preview: {
     width: '100%',
   },
 }))
 
-export default function File() {
-  const location = useLocation()
-  const { bucket, path: encodedPath } = useParams()
+function File() {
+  const location = RRDom.useLocation()
+  const { bucket, path: encodedPath } = RRDom.useParams()
 
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const history = RRDom.useHistory()
   const s3 = AWS.S3.use()
   const { prefs } = BucketPreferences.use()
 
-  const path = decode(encodedPath)
+  const path = s3paths.decode(encodedPath)
 
   const [resetKey, setResetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
@@ -403,7 +408,7 @@ export default function File() {
     (segPath) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(up(path), getSegmentRoute, bucket, {
+  const crumbs = BreadCrumbs.use(s3paths.up(path), getSegmentRoute, bucket, {
     tailLink: true,
     tailSeparator: true,
   })
@@ -467,9 +472,21 @@ export default function File() {
               onClick={() => bookmarks.toggle('main', handle)}
             />
           )}
-          {downloadable && (
-            <FileView.DownloadButton className={classes.button} handle={handle} />
-          )}
+          {downloadable &&
+            BucketPreferences.Result.match(
+              {
+                Ok: ({ ui: { blocks } }) => (
+                  <Download.Button className={classes.button} label="Get file">
+                    <Download.BucketOptions handle={handle} hideCode={!blocks.code} />
+                  </Download.Button>
+                ),
+                Pending: () => (
+                  <Buttons.Skeleton className={classes.button} size="small" />
+                ),
+                Init: () => null,
+              },
+              prefs,
+            )}
           {BucketPreferences.Result.match(
             {
               // XXX: only show this when the object exists?
@@ -500,7 +517,6 @@ export default function File() {
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
@@ -574,5 +590,17 @@ export default function File() {
         }),
       })}
     </FileView.Root>
+  )
+}
+
+export default function FileWrapper() {
+  const { bucket, path: key } = RRDom.useParams()
+  const location = RRDom.useLocation()
+  const { version } = parseSearch(location.search)
+  const handle = React.useMemo(() => ({ bucket, key, version }), [bucket, key, version])
+  return (
+    <FallbackToDir handle={handle}>
+      <File />
+    </FallbackToDir>
   )
 }

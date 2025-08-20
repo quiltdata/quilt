@@ -8,7 +8,7 @@ share data-intensive, highly scalable, workflows on any infrastructure.
 - `nf-quilt` is a [Nextflow
 plugin](https://www.nextflow.io/docs/latest/plugins.html) developed by Quilt
 Data that enables you read and write directly to [Quilt data
-packages](https://docs.quiltdata.com) instead of just S3 locations.
+packages](https://docs.quilt.bio) instead of just S3 locations.
 
 ## Quick Start
 

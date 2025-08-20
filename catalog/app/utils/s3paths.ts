@@ -1,10 +1,12 @@
-import { dirname, basename, resolve } from 'path'
+import { dirname, basename, join, resolve } from 'path'
 import { parse as parseUrl } from 'url'
 
 import * as R from 'ramda'
 
-import type * as Model from 'model'
+import type { S3ObjectLocation } from 'model/S3'
 import { mkSearch } from 'utils/NamedRoutes'
+
+export type { S3ObjectLocation }
 
 /**
  * Ensure the string has no trailing slash.
@@ -81,7 +83,7 @@ export const isS3Url = (url: string) => url.startsWith('s3://')
 /**
  * Parse an S3 URL and create an S3Handle out of it.
  */
-export const parseS3Url = (url: string): Model.S3.S3ObjectLocation => {
+export const parseS3Url = (url: string): S3ObjectLocation => {
   const u = parseUrl(url, true)
   if (Array.isArray(u.query.versionId)) {
     throw new Error('versionId specified multiple times')
@@ -102,18 +104,25 @@ export const parseS3Url = (url: string): Model.S3.S3ObjectLocation => {
 export const resolveKey = (from: string, to: string) =>
   resolve(`/${getPrefix(from)}`, to).substring(1)
 
+interface UriOptions {
+  proxy?: string | null | undefined | false
+  region?: string
+}
+
 // AWS docs (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) state that
 // "buckets created in Regions launched after March 20, 2019 are not reachable via the
 // `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
 // `https://bucket.s3.aws-region.amazonaws.com` scheme as well.
-export const handleToHttpsUri = ({ bucket, key, version }: Model.S3.S3ObjectLocation) =>
-  `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
+export const handleToHttpsUri = (
+  { bucket, key, version }: S3ObjectLocation,
+  opts: UriOptions = {},
+) => {
+  const prefix = opts.proxy ? `${opts.proxy}/` : 'https://'
+  const region = opts.region ? `.${opts.region}` : ''
+  return `${prefix}${bucket}.s3${region}.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
+}
 
-export const handleToS3Url = ({
-  bucket,
-  key,
-  version = undefined,
-}: Model.S3.S3ObjectLocation) =>
+export const handleToS3Url = ({ bucket, key, version = undefined }: S3ObjectLocation) =>
   `s3://${bucket}/${encode(key)}${mkSearch({ versionId: version })}`
 
 /**
@@ -130,3 +139,21 @@ export const getBreadCrumbs = (path: string): { label: string; path: string }[] 
 export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'))
 
 export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'))
+
+/**
+ * Files in the package are backed by real files in the S3 bucket.
+ * We store them at this location in a bucket by default.
+ */
+export function canonicalKey(
+  packageName: string,
+  logicalKey: string,
+  optPackageRoot: string = '',
+) {
+  if (!packageName) {
+    throw new Error('Package name cannot be empty')
+  }
+  if (!logicalKey) {
+    throw new Error('logicalKey name cannot be empty')
+  }
+  return withoutPrefix('/', join(optPackageRoot, packageName, logicalKey))
+}

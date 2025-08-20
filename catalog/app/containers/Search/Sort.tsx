@@ -11,30 +11,29 @@ import * as SearchUIModel from './model'
 const sortOptions = [
   {
     toString: () => 'Best match',
-    valueOf() {
-      return Model.GQLTypes.SearchResultOrder.BEST_MATCH
-    },
+    valueOf: () => Model.GQLTypes.SearchResultOrder.BEST_MATCH,
   },
   {
     toString: () => 'Most recent first',
-    valueOf() {
-      return Model.GQLTypes.SearchResultOrder.NEWEST
-    },
+    valueOf: () => Model.GQLTypes.SearchResultOrder.NEWEST,
   },
   {
     toString: () => 'Least recent first',
-    valueOf() {
-      return Model.GQLTypes.SearchResultOrder.OLDEST
-    },
+    valueOf: () => Model.GQLTypes.SearchResultOrder.OLDEST,
+  },
+  {
+    toString: () => 'A → Z',
+    valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_ASC,
+  },
+  {
+    toString: () => 'Z → A',
+    valueOf: () => Model.GQLTypes.SearchResultOrder.LEX_DESC,
   },
 ]
 
 const useButtonStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
-    '&:hover': {
-      background: t.palette.background.paper,
-    },
   },
 }))
 
@@ -56,14 +55,6 @@ export default function Sort({ className }: SortProps) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const model = SearchUIModel.use()
   const { setOrder } = model.actions
-  const ButtonProps = React.useMemo(
-    () => ({
-      classes: buttonClasses,
-      variant: 'contained' as const,
-      size: 'medium' as const,
-    }),
-    [buttonClasses],
-  )
   const value = React.useMemo(
     () =>
       sortOptions.find(({ valueOf }) => valueOf() === model.state.order) ||
@@ -108,7 +99,8 @@ export default function Sort({ className }: SortProps) {
       options={sortOptions}
       value={value}
       onChange={handleChange}
-      ButtonProps={ButtonProps}
+      ButtonProps={{ classes: buttonClasses, size: 'medium' }}
+      shrink={sm}
     >
       {sm ? <M.Icon>sort</M.Icon> : 'Sort by:'}
     </SelectDropdown>

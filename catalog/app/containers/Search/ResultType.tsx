@@ -40,6 +40,7 @@ function Icon({ resultType }: IconProps) {
 
 const useResultTypeStyles = M.makeStyles((t) => ({
   root: {
+    background: t.palette.background.paper,
     border: `1px solid ${M.fade(t.palette.text.primary, 0.23)}`,
     borderRadius: t.shape.borderRadius,
   },
@@ -72,7 +73,7 @@ export default function ResultType() {
     switch (d.__typename) {
       case 'ObjectsSearchResultSet':
       case 'PackagesSearchResultSet':
-        return d.stats.total
+        return d.total
       case 'EmptySearchResultSet':
         return 0
       default:
@@ -92,7 +93,7 @@ export default function ResultType() {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return r.stats.total
+            return r.total
           default:
             return null
         }
@@ -119,7 +120,7 @@ export default function ResultType() {
               <Icon resultType={v} />
             </M.ListItemIcon>
             <M.ListItemText primary={getLabel(v)} />
-            {total != null && total >= 0 && (
+            {total != null && total >= 0 /* `-1` == secure search */ && (
               <M.ListItemSecondaryAction>
                 <M.Chip className={classes.chip} size="small" label={total} />
               </M.ListItemSecondaryAction>

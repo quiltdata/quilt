@@ -7,7 +7,6 @@ import * as quiltConfigs from 'constants/quiltConfigs'
 import { FileNotFound, VersionNotFound } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
-import * as CatalogSettings from 'utils/CatalogSettings'
 import { useData } from 'utils/Data'
 
 import {
@@ -15,7 +14,6 @@ import {
   BucketPreferencesInput,
   Result,
   merge,
-  openInDesktop,
   parse,
   validate,
 } from './BucketPreferences'
@@ -96,7 +94,6 @@ type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
 function CatalogProvider({ bucket, children }: ProviderProps) {
   const s3 = AWS.S3.use()
-  const settings = CatalogSettings.use()
   const [counter, setCounter] = React.useState(0)
   const data = useData(fetchBucketPreferences, { s3, bucket, counter })
 
@@ -112,8 +109,10 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
   const prefs = data.case({
     Ok: ({ body }: FetchBucketPreferencesOutput) => {
       try {
-        const input = settings?.beta ? merge(body, openInDesktop()) : body
-        return Result.Ok(parse(input))
+        // You can adjust input here to add beta features if `settings?.beta`
+        // For example,
+        // const input = CatalogSettings.use()?.beta ? merge(body, {ui: { some: true }}) : body
+        return Result.Ok(parse(body))
       } catch (e) {
         // eslint-disable-next-line no-console
         console.log('Unable to parse bucket preferences')

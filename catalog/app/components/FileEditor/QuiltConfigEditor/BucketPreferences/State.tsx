@@ -59,6 +59,7 @@ function parseUser(config: string) {
     'ui.blocks.qurator': json?.ui?.blocks?.qurator,
 
     'ui.nav.files': childOfBool(json?.ui?.nav, 'files'),
+    'ui.nav.workflows': childOfBool(json?.ui?.nav, 'workflows'),
     'ui.nav.packages': childOfBool(json?.ui?.nav, 'packages'),
     'ui.nav.queries': childOfBool(json?.ui?.nav, 'queries'),
 
@@ -80,7 +81,7 @@ const sys: Defaults = {
   'ui.actions.deleteRevision': false,
   'ui.actions.downloadObject': true,
   'ui.actions.downloadPackage': true,
-  'ui.actions.openInDesktop': false,
+  'ui.actions.openInDesktop': true,
   'ui.actions.revisePackage': true,
   'ui.actions.writeFile': true,
 
@@ -102,6 +103,7 @@ const sys: Defaults = {
   'ui.blocks.qurator': true,
 
   'ui.nav.files': true,
+  'ui.nav.workflows': true,
   'ui.nav.packages': true,
   'ui.nav.queries': true,
 
@@ -166,6 +168,7 @@ export function parse(config: string, ext: Partial<Defaults>) {
     'ui.blocks.qurator': val('ui.blocks.qurator', user, ext),
 
     'ui.nav.files': val('ui.nav.files', user, ext),
+    'ui.nav.workflows': val('ui.nav.workflows', user, ext),
     'ui.nav.packages': val('ui.nav.packages', user, ext),
     'ui.nav.queries': val('ui.nav.queries', user, ext),
 

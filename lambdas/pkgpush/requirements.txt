@@ -4,6 +4,8 @@
 #
 #    pip-compile
 #
+annotated-types==0.7.0
+    # via pydantic
 attrs==24.2.0
     # via
     #   jsonschema
@@ -47,15 +49,17 @@ mypy-boto3-sts==1.35.61
     # via boto3-stubs
 platformdirs==4.3.6
     # via quilt3
-pydantic==1.10.19
+pydantic==2.10.6
     # via
     #   quilt-shared
     #   t4_lambda_pkgpush (setup.py)
+pydantic-core==2.27.2
+    # via pydantic
 python-dateutil==2.9.0.post0
     # via botocore
 pyyaml==6.0.2
     # via quilt3
-quilt-shared[boto,pydantic,quilt] @ https://github.com/quiltdata/quilt/archive/438b031534d5c9f92734d8120e69088ae32d8fdb.zip#subdirectory=py-shared
+quilt-shared[boto,pydantic,quilt] @ https://github.com/quiltdata/quilt/archive/3c8e5472b78c7293c07eecbf27d1df31eb64fb9f.zip#subdirectory=py-shared
     # via t4_lambda_pkgpush (setup.py)
 quilt3 @ https://github.com/quiltdata/quilt/archive/5c2b79128fe4d5d1e6093ff6a7d11d09d3315843.zip#subdirectory=api/python
     # via
@@ -102,6 +106,7 @@ typing-extensions==4.12.2
     #   mypy-boto3-s3
     #   mypy-boto3-sts
     #   pydantic
+    #   pydantic-core
     #   quilt-shared
     #   types-aiobotocore
     #   types-aiobotocore-s3

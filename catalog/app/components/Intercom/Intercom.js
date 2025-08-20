@@ -87,7 +87,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
 
 export function IntercomProvider({ children, ...props }) {
   const { intercomAppId: appId } = cfg
-  if (!canUseDOM || !appId) {
+  if (!canUseDOM || !appId || cfg.mode === 'OPEN') {
     return children
   }
   return (

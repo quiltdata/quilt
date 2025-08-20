@@ -27,7 +27,6 @@ import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
-import * as Download from '../Download'
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import * as Upload from '../Upload'
@@ -338,7 +337,7 @@ function PackageCreationForm({
       uploadedEntries = await uploads.upload({
         files: toUpload,
         bucket: successor.slug,
-        prefix: name,
+        getCanonicalKey: (path) => s3paths.canonicalKey(name, path, cfg.packageRoot),
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {
@@ -468,9 +467,6 @@ function PackageCreationForm({
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
 
-  // TODO: move useLocalFolder to its own component shared by Download and Upload
-  const [defaultLocalFolder] = Download.useLocalFolder()
-
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -588,52 +584,36 @@ function PackageCreationForm({
                 </Layout.LeftColumn>
 
                 <Layout.RightColumn>
-                  {cfg.desktop ? (
-                    <RF.Field
-                      className={cx(classes.files, {
-                        [classes.filesWithError]: submitFailed && !!entriesError,
-                      })}
-                      component={Upload.LocalFolderInput}
-                      initialValue={defaultLocalFolder}
-                      name="localFolder"
-                      title="Local directory"
-                      errors={{
-                        required: 'Add directory to create a package',
-                      }}
-                      validate={validators.required as FF.FieldValidator<string>}
-                    />
-                  ) : (
-                    <RF.Field
-                      className={cx(classes.files, {
-                        [classes.filesWithError]: submitFailed && !!entriesError,
-                      })}
-                      // @ts-expect-error
-                      component={FI.FilesInput}
-                      name="files"
-                      validate={validateFiles as FF.FieldValidator<$TSFixMe>}
-                      validateFields={['files']}
-                      errors={{
-                        schema: 'Files should match schema',
-                        [FI.HASHING]: 'Please wait while we hash the files',
-                        [FI.HASHING_ERROR]:
-                          'Error hashing files, probably some of them are too large. Please try again or contact support.',
-                      }}
-                      totalProgress={uploads.progress}
-                      title="Files"
-                      onFilesAction={onFilesAction}
-                      isEqual={R.equals}
-                      initialValue={initialFiles}
-                      bucket={selectedBucket}
-                      buckets={sourceBuckets.list}
-                      selectBucket={selectBucket}
-                      delayHashing={delayHashing}
-                      disableStateDisplay={disableStateDisplay}
-                      ui={{ reset: ui.resetFiles }}
-                      validationErrors={
-                        submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
-                      }
-                    />
-                  )}
+                  <RF.Field
+                    className={cx(classes.files, {
+                      [classes.filesWithError]: submitFailed && !!entriesError,
+                    })}
+                    // @ts-expect-error
+                    component={FI.FilesInput}
+                    name="files"
+                    validate={validateFiles as FF.FieldValidator<$TSFixMe>}
+                    validateFields={['files']}
+                    errors={{
+                      schema: 'Files should match schema',
+                      [FI.HASHING]: 'Please wait while we hash the files',
+                      [FI.HASHING_ERROR]:
+                        'Error hashing files, probably some of them are too large. Please try again or contact support.',
+                    }}
+                    totalProgress={uploads.progress}
+                    title="Files"
+                    onFilesAction={onFilesAction}
+                    isEqual={R.equals}
+                    initialValue={initialFiles}
+                    bucket={selectedBucket}
+                    buckets={sourceBuckets.list}
+                    selectBucket={selectBucket}
+                    delayHashing={delayHashing}
+                    disableStateDisplay={disableStateDisplay}
+                    ui={{ reset: ui.resetFiles }}
+                    validationErrors={
+                      submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
+                    }
+                  />
 
                   <JsonValidationErrors
                     className={classes.filesError}

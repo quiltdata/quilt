@@ -15,14 +15,19 @@ import aiobotocore.config
 import aiobotocore.response
 import aiobotocore.session
 import botocore.exceptions
-import pydantic
+import pydantic.v1
 
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.const import MAX_PARTS, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import Checksum as ChecksumBase
-from quilt_shared.pkgpush import ChecksumResult, ChecksumType, CopyResult
+from quilt_shared.pkgpush import ChecksumResult, CopyResult
 from quilt_shared.pkgpush import MPURef as MPURefBase
-from quilt_shared.pkgpush import S3ObjectDestination, S3ObjectSource
+from quilt_shared.pkgpush import (
+    S3ObjectDestination,
+    S3ObjectSource,
+    make_scratch_key,
+)
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
@@ -34,8 +39,6 @@ logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
 MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
 CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
-
-SCRATCH_KEY = "user-requests/checksum-upload-tmp"
 
 # How much seconds before lambda is supposed to timeout we give up.
 SECONDS_TO_CLEANUP = 1
@@ -65,29 +68,8 @@ async def aio_context(credentials: AWSCredentials):
 
 class Checksum(ChecksumBase):
     @classmethod
-    def sha256(cls, value: bytes):
-        return cls(value=value.hex(), type=ChecksumType.SHA256)
-
-    @classmethod
-    def sha256_chunked(cls, value: bytes):
-        return cls(value=base64.b64encode(value).decode(), type=ChecksumType.SHA256_CHUNKED)
-
-    @classmethod
-    def for_parts(cls, checksums: T.Sequence[bytes]):
-        return cls.sha256_chunked(hash_parts(checksums))
-
-    _EMPTY_HASH = hashlib.sha256().digest()
-
-    @classmethod
     def empty(cls):
         return cls.sha256_chunked(cls._EMPTY_HASH) if CHUNKED_CHECKSUMS else cls.sha256(cls._EMPTY_HASH)
-
-
-# 8 MiB -- boto3 default:
-# https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
-MIN_PART_SIZE = 8 * 2**20  # 8 MiB
-MAX_PART_SIZE = 5 * 2**30  # 5 GiB
-MAX_PARTS = 10000  # Maximum number of parts per upload supported by S3
 
 
 # XXX: import this logic from quilt3 when it's available
@@ -132,7 +114,7 @@ async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.
             {"region": region, "bucket": location.bucket, "scratch_buckets": scratch_buckets},
         )
 
-    return S3ObjectDestination(bucket=scratch_bucket, key=SCRATCH_KEY)
+    return S3ObjectDestination(bucket=scratch_bucket, key=make_scratch_key())
 
 
 async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAttributesOutputTypeDef]:
@@ -184,11 +166,7 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
     return None
 
 
-def hash_parts(parts: T.Sequence[bytes]) -> bytes:
-    return hashlib.sha256(b"".join(parts)).digest()
-
-
-class PartDef(pydantic.BaseModel):
+class PartDef(pydantic.v1.BaseModel):
     part_number: int
     range: T.Optional[T.Tuple[int, int]]
 
@@ -287,7 +265,7 @@ async def compute_part_checksums(
     return checksums
 
 
-class PartUploadResult(pydantic.BaseModel):
+class PartUploadResult(pydantic.v1.BaseModel):
     etag: str
     sha256: str  # base64-encoded
 
@@ -300,7 +278,7 @@ class PartUploadResult(pydantic.BaseModel):
 
 
 class MPURef(MPURefBase):
-    _completed: bool = pydantic.PrivateAttr(default=False)
+    _completed: bool = pydantic.v1.PrivateAttr(default=False)
 
     @property
     def completed(self):
@@ -370,7 +348,7 @@ def lambda_wrapper(f) -> T.Callable[[AnyDict, LambdaContext], AnyDict]:
                 )
             except asyncio.TimeoutError:
                 raise LambdaError("Timeout")
-            except pydantic.ValidationError as e:
+            except pydantic.v1.ValidationError as e:
                 # XXX: make it .info()?
                 logger.exception("ValidationError")
                 # TODO: expose advanced pydantic error reporting capabilities
@@ -430,7 +408,7 @@ async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str
 
 # XXX: move decorators to shared?
 @lambda_wrapper
-@pydantic.validate_arguments
+@pydantic.v1.validate_arguments
 async def lambda_handler(
     *,
     credentials: AWSCredentials,
@@ -463,7 +441,7 @@ async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyRes
 
 # XXX: move decorators to shared?
 @lambda_wrapper
-@pydantic.validate_arguments
+@pydantic.v1.validate_arguments
 async def lambda_handler_copy(
     *,
     credentials: AWSCredentials,

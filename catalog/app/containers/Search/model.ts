@@ -29,9 +29,30 @@ export enum ResultType {
   S3Object = 'o',
 }
 
+export enum View {
+  Table = 't',
+  List = 'l',
+}
+
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
-export const DEFAULT_ORDER = Model.GQLTypes.SearchResultOrder.BEST_MATCH
+export const DEFAULT_VIEW = View.List
+
+type Defaults = Omit<SearchUrlState, 'filter' | 'userMetaFilters'>
+
+const createFallbacks = (defaults?: Partial<Defaults>): Defaults => ({
+  searchString: defaults?.searchString || null,
+  resultType: defaults?.resultType || DEFAULT_RESULT_TYPE,
+  view: defaults?.view || DEFAULT_VIEW,
+  buckets: defaults?.buckets || [],
+  order: defaults?.order || DEFAULT_ORDER,
+})
+
+export const ResultOrder = Model.GQLTypes.SearchResultOrder
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type ResultOrder = Model.GQLTypes.SearchResultOrder
+
+export const DEFAULT_ORDER = ResultOrder.BEST_MATCH
 
 const FACETS_VISIBLE = 5
 // don't show facet filter if under this threshold
@@ -61,7 +82,8 @@ export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 interface SearchUrlStateBase {
   searchString: string | null
   buckets: readonly string[]
-  order: Model.GQLTypes.SearchResultOrder
+  order: ResultOrder
+  view: View
 }
 
 interface ObjectsSearchUrlState extends SearchUrlStateBase {
@@ -78,14 +100,10 @@ interface PackagesSearchUrlState extends SearchUrlStateBase {
 
 export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
 
-function parseOrder(input: string | null): Model.GQLTypes.SearchResultOrder {
-  return Object.values(Model.GQLTypes.SearchResultOrder).includes(input as any)
-    ? (input as Model.GQLTypes.SearchResultOrder)
-    : DEFAULT_ORDER
-}
-
-function serializeOrder(order: Model.GQLTypes.SearchResultOrder): string | null {
-  return order === DEFAULT_ORDER ? null : order
+function parseOrder(input: string | null, fallback: ResultOrder): ResultOrder {
+  return Object.values(ResultOrder).includes(input as any)
+    ? (input as ResultOrder)
+    : fallback
 }
 
 type Tagged<Tag extends string, T> = T & { _tag: Tag }
@@ -125,6 +143,8 @@ function Predicate<Tag extends string, State, GQLType>(input: {
     toGQL: input.toGQL,
   }
 }
+
+const STRICT_MARKER = '$s$:'
 
 export const Predicates = {
   Datetime: Predicate({
@@ -173,7 +193,7 @@ export const Predicates = {
     fromString: (input: string) => ({ queryString: input }),
     toString: ({ _tag, ...state }) => state.queryString.trim(),
     toGQL: ({ _tag, ...state }) => {
-      const queryString = state.queryString.trim()
+      const queryString = addMagicWildcardsQS(state.queryString.trim())
       return queryString ? ({ queryString } as Model.GQLTypes.TextSearchPredicate) : null
     },
   }),
@@ -193,12 +213,20 @@ export const Predicates = {
     tag: 'KeywordWildcard',
     init: {
       wildcard: '' as string,
+      strict: false,
     },
-    fromString: (wildcard: string) => ({ wildcard }),
-    toString: ({ wildcard }) => wildcard,
-    toGQL: ({ wildcard }) =>
+    fromString: (wildcard: string) => {
+      const strict = wildcard.startsWith(STRICT_MARKER)
+      if (strict) wildcard = wildcard.slice(STRICT_MARKER.length)
+      return { wildcard, strict }
+    },
+    toString: ({ wildcard, strict }) => (strict ? STRICT_MARKER : '') + (wildcard ?? ''),
+    toGQL: ({ wildcard, strict }) =>
       wildcard
-        ? ({ wildcard, terms: null } as Model.GQLTypes.KeywordSearchPredicate)
+        ? ({
+            wildcard: strict ? wildcard : addMagicWildcardsKW(wildcard),
+            terms: null,
+          } as Model.GQLTypes.KeywordSearchPredicate)
         : null,
   }),
 
@@ -511,7 +539,11 @@ export class UserMetaFilters {
   }
 }
 
-function parseResultType(t: string | null, legacy: string | null): ResultType {
+function parseResultType(
+  t: string | null,
+  legacy: string | null,
+  fallback: ResultType,
+): ResultType {
   switch (legacy) {
     case 'packages':
       return ResultType.QuiltPackage
@@ -524,24 +556,45 @@ function parseResultType(t: string | null, legacy: string | null): ResultType {
     case ResultType.S3Object:
       return ResultType.S3Object
   }
-  return DEFAULT_RESULT_TYPE
+  return fallback
+}
+
+function parseView(view: string | null, fallback: View): View {
+  switch (view) {
+    case View.List:
+      return View.List
+    case View.Table:
+      return View.Table
+  }
+  return fallback
 }
 
 export const META_PREFIX = 'meta.'
 
 // XXX: use @effect/schema for morphisms between url (querystring) and search state
-export function parseSearchParams(qs: string): SearchUrlState {
+export function parseSearchParams(
+  qs: string,
+  defaults?: Partial<Defaults>,
+): SearchUrlState {
+  const fallbacks = createFallbacks(defaults)
   const params = new URLSearchParams(qs)
-  const searchString = params.get('q')
 
-  const resultType = parseResultType(params.get('t'), params.get('mode'))
+  const searchString = params.get('q') || fallbacks.searchString
+
+  const resultType = parseResultType(
+    params.get('t'),
+    params.get('mode'),
+    fallbacks.resultType,
+  )
+
+  const view = parseView(params.get('v'), fallbacks.view)
 
   const bucketsInput = params.get('buckets') || params.get('b')
-  const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
+  const buckets = bucketsInput ? bucketsInput.split(',').sort() : fallbacks.buckets
 
-  const order = parseOrder(params.get('o'))
+  const order = parseOrder(params.get('o'), fallbacks.order)
 
-  const base = { searchString, buckets, order }
+  const base = { searchString, buckets, order, view }
   switch (resultType) {
     case ResultType.S3Object:
       return {
@@ -562,18 +615,37 @@ export function parseSearchParams(qs: string): SearchUrlState {
   }
 }
 
+function areBucketsEqual(left: readonly string[], right: readonly string[]) {
+  if (!left.length && !right.length) return true
+  if (left.length !== right.length) return false
+  const leftCache: Record<(typeof left)[number], null> = left.reduce(
+    (memo, l) => ({ ...memo, [l]: true }),
+    {},
+  )
+  return right.every((r) => leftCache[r])
+}
+
 // XXX: return string?
-function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
+function serializeSearchUrlState(
+  state: SearchUrlState,
+  defaults?: Partial<Defaults>,
+): URLSearchParams {
+  const fallbacks = createFallbacks(defaults)
   const params = new URLSearchParams()
 
-  if (state.searchString) params.set('q', state.searchString)
+  if (state.searchString && state.searchString !== fallbacks.searchString) {
+    params.set('q', state.searchString)
+  }
 
-  if (state.resultType !== DEFAULT_RESULT_TYPE) params.set('t', state.resultType)
+  if (state.resultType !== fallbacks.resultType) params.set('t', state.resultType)
 
-  if (state.buckets.length) params.set('b', state.buckets.join(','))
+  if (state.view !== fallbacks.view) params.set('v', state.view)
 
-  const order = serializeOrder(state.order)
-  if (order) params.set('o', order)
+  if (!areBucketsEqual(state.buckets, fallbacks.buckets)) {
+    params.set('b', state.buckets.join(','))
+  }
+
+  if (state.order !== fallbacks.order) params.set('o', state.order)
 
   function appendParams(pairs: [string, string][]) {
     pairs.forEach(([k, v]) => params.append(k, v))
@@ -595,36 +667,66 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
   return params
 }
 
-function useUrlState(): SearchUrlState {
+function useUrlState(defaults?: Partial<Defaults>): SearchUrlState {
   const l = RR.useLocation()
-  return React.useMemo(() => parseSearchParams(l.search), [l.search])
+  return React.useMemo(() => parseSearchParams(l.search, defaults), [l.search, defaults])
 }
 
-export function useMakeUrl() {
+export function useMakeUrl(optBase?: string, defaults?: Partial<Defaults>) {
   const { urls } = NamedRoutes.use()
-  const base = urls.search({})
+  const base = optBase || urls.search({})
   return React.useCallback(
     (state: SearchUrlState) => {
       const parts = [base]
-      const qs = serializeSearchUrlState(state).toString()
+      const qs = serializeSearchUrlState(state, defaults).toString()
       if (qs) parts.push(qs)
       return parts.join('?')
     },
-    [base],
+    [base, defaults],
   )
 }
 
-function useBaseSearchQuery({ searchString, buckets }: SearchUrlState) {
+function addMagicWildcardsKW(s: string): string {
+  if (!s) return s
+  // Check if the string already contains special Elasticsearch syntax:
+  // - wildcards: * ?
+  if (/\*|\?/.test(s)) return s
+  // Append trailing wildcard for substring matching
+  return `${s}*`
+}
+
+function addMagicWildcardsQS(s: string | null): string | null {
+  if (!s) return s
+  // Check if the string already contains special Elasticsearch syntax:
+  // - field selector: ":" (colon)
+  // - wildcards: * ?
+  // - quotes: " '
+  // - logic: AND OR + |
+  // - grouping: ( ) [ ] { }
+  // - fuzzy search: ~
+  // - negaion: -
+  if (/:|\*|\?|"|'|\bAND\b|\bOR\b|\+|\||\(|\)|\[|\]|\{|\}|\~|-/.test(s)) return s
+  // Append trailing wildcard for substring matching
+  return `${s}*`
+}
+
+export function useMagicWildcardsQS(s: string | null) {
+  return React.useMemo(() => addMagicWildcardsQS(s), [s])
+}
+
+function useBaseSearchQuery({ searchString: s, buckets }: SearchUrlState) {
+  const searchString = useMagicWildcardsQS(s)
   return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, buckets })
 }
 
 function useFirstPageObjectsQuery({
-  searchString,
+  searchString: s,
   buckets,
   order,
   resultType,
   filter,
 }: SearchUrlState) {
+  const searchString = useMagicWildcardsQS(s)
   const gqlFilter = ObjectsSearchFilterIO.toGQL(
     resultType === ResultType.S3Object ? filter : ObjectsSearchFilterIO.initialState,
   )
@@ -637,10 +739,11 @@ function useFirstPageObjectsQuery({
 }
 
 function useFirstPagePackagesQuery(state: SearchUrlState) {
+  const searchString = useMagicWildcardsQS(state.searchString)
   return GQL.useQuery(
     FIRST_PAGE_PACKAGES_QUERY,
     {
-      searchString: state.searchString,
+      searchString,
       buckets: state.buckets,
       order: state.order,
       filter: PackagesSearchFilterIO.toGQL(
@@ -684,20 +787,22 @@ function useFirstPageQuery(state: SearchUrlState) {
   }
 }
 
-function useNextPageObjectsQuery(after: string) {
-  const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after })
+export function useNextPageObjectsQuery(after: string, pause?: boolean) {
+  const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after }, { pause })
   const folded = GQL.fold(result, {
-    data: ({ searchMoreObjects: data }) => addTag('data', { data }),
+    data: ({ searchMoreObjects: data }, { fetching }) =>
+      fetching ? addTag('fetching', {}) : addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
     error: (error) => addTag('error', { error }),
   })
   return folded
 }
 
-function useNextPagePackagesQuery(after: string) {
-  const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after })
+export function useNextPagePackagesQuery(after: string, pause?: boolean) {
+  const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after }, { pause })
   const folded = GQL.fold(result, {
-    data: ({ searchMorePackages: data }) => addTag('data', { data }),
+    data: ({ searchMorePackages: data }, { fetching }) =>
+      fetching ? addTag('fetching', {}) : addTag('data', { data }),
     fetching: () => addTag('fetching', {}),
     error: (error) => addTag('error', { error }),
   })
@@ -772,8 +877,10 @@ export function AvailablePackagesMetaFilters({
 
   const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
 
+  const searchString = useMagicWildcardsQS(model.state.searchString)
+
   const query = GQL.useQuery(META_FACETS_QUERY, {
-    searchString: model.state.searchString,
+    searchString,
     buckets: model.state.buckets,
     filter,
     latestOnly: model.state.latestOnly,
@@ -906,8 +1013,10 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
 
   const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
 
+  const searchString = useMagicWildcardsQS(model.state.searchString)
+
   const query = GQL.useQuery(META_FACETS_FIND_QUERY, {
-    searchString: model.state.searchString,
+    searchString,
     buckets: model.state.buckets,
     filter,
     path,
@@ -1030,17 +1139,17 @@ function AvailablePackagesMetaFiltersGroup({
   return children(stateOut)
 }
 
-export type SearhHitObject = Extract<
+export type SearchHitObject = Extract<
   GQL.DataForDoc<typeof FIRST_PAGE_OBJECTS_QUERY>['searchObjects'],
   { __typename: 'ObjectsSearchResultSet' }
 >['firstPage']['hits'][number]
 
-export type SearhHitPackage = Extract<
+export type SearchHitPackage = Extract<
   GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
 >['firstPage']['hits'][number]
 
-export type SearchHit = SearhHitObject | SearhHitPackage
+export type SearchHit = SearchHitObject | SearchHitPackage
 
 type PackageUserMetaFacetFull = Extract<
   GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
@@ -1154,6 +1263,39 @@ export const PackageUserMetaFacetTypeInfo = {
   },
 }
 
+function oneOf<T extends string, L extends T[]>(
+  comparisonList: L,
+  subject: T,
+): subject is L[number] {
+  return comparisonList.some((compare) => compare === subject)
+}
+
+export function usePackageSystemMetaFacetExtents(field: keyof PackagesSearchFilter): {
+  fetching: boolean
+  extents: Extents | undefined
+} {
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+  return GQL.fold(model.baseSearchQuery, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return { fetching: false, extents: undefined }
+        case 'InvalidInput':
+          return { fetching: false, extents: undefined }
+        case 'PackagesSearchResultSet':
+          if (oneOf(['workflow', 'modified', 'size', 'entries'], field)) {
+            return { fetching: false, extents: r.stats[field] }
+          }
+          return { fetching: false, extents: undefined }
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => ({ fetching: true, extents: undefined }),
+    error: () => ({ fetching: false, extents: undefined }),
+  })
+}
+
 export function usePackageUserMetaFacetExtents(path: string): {
   fetching: boolean
   extents: Extents | undefined
@@ -1164,10 +1306,12 @@ export function usePackageUserMetaFacetExtents(path: string): {
 
   const typeInfo = PackageUserMetaFacetTypeInfo[activated._tag]
 
+  const searchString = useMagicWildcardsQS(model.state.searchString)
+
   const query = GQL.useQuery(
     META_FACET_QUERY,
     {
-      searchString: model.state.searchString,
+      searchString,
       buckets: model.state.buckets,
       filter: PackagesSearchFilterIO.toGQL(model.state.filter),
       latestOnly: model.state.latestOnly,
@@ -1212,13 +1356,13 @@ export function usePackageUserMetaFacetExtents(path: string): {
   })
 }
 
-function useSearchUIModel() {
-  const urlState = useUrlState()
+function useSearchUIModel(optBase?: string, defaults?: Partial<Defaults>) {
+  const urlState = useUrlState(defaults)
 
   const baseSearchQuery = useBaseSearchQuery(urlState)
   const firstPageQuery = useFirstPageQuery(urlState)
 
-  const makeUrl = useMakeUrl()
+  const makeUrl = useMakeUrl(optBase, defaults)
 
   const history = RR.useHistory()
 
@@ -1240,7 +1384,7 @@ function useSearchUIModel() {
   )
 
   const setOrder = React.useCallback(
-    (order: Model.GQLTypes.SearchResultOrder) => {
+    (order: ResultOrder) => {
       updateUrlState((s) => ({ ...s, order }))
     },
     [updateUrlState],
@@ -1264,11 +1408,19 @@ function useSearchUIModel() {
               ...s,
               resultType,
               filter: ObjectsSearchFilterIO.initialState,
+              view: View.List,
             }
           default:
             return assertNever(resultType)
         }
       })
+    },
+    [updateUrlState],
+  )
+
+  const setView = React.useCallback(
+    (view: View) => {
+      updateUrlState((s) => ({ ...s, view }))
     },
     [updateUrlState],
   )
@@ -1407,11 +1559,12 @@ function useSearchUIModel() {
   }, [updateUrlState])
 
   const reset = React.useCallback(() => {
-    updateUrlState(({ resultType, order }) => {
+    updateUrlState(({ resultType, order, view }) => {
       const base = {
         searchString: null,
         buckets: [],
         order,
+        view,
       }
       switch (resultType) {
         case ResultType.QuiltPackage:
@@ -1444,6 +1597,7 @@ function useSearchUIModel() {
         setOrder,
         setResultType,
         setBuckets,
+        setView,
 
         activateObjectsFilter,
         deactivateObjectsFilter,
@@ -1475,8 +1629,12 @@ export type SearchUIModel = ReturnType<typeof useSearchUIModel>
 
 export const Context = React.createContext<SearchUIModel | null>(null)
 
-export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>) {
-  const state = useSearchUIModel()
+export function SearchUIModelProvider({
+  base,
+  children,
+  defaults,
+}: React.PropsWithChildren<{ defaults?: Partial<Defaults>; base?: string }>) {
+  const state = useSearchUIModel(base, defaults)
   return React.createElement(Context.Provider, { value: state }, children)
 }
 
@@ -1497,4 +1655,12 @@ export function useSearchUIModelContext(type?: ResultType) {
   return model
 }
 
-export { SearchUIModelProvider as Provider, useSearchUIModelContext as use }
+export function useSearchUIModelContextUnsafe(): SearchUIModel | null {
+  return React.useContext(Context)
+}
+
+export {
+  SearchUIModelProvider as Provider,
+  useSearchUIModelContext as use,
+  useSearchUIModelContextUnsafe as useUnsafe,
+}

@@ -12,7 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pydantic = [
-  "pydantic ~= 1.10",
+  "pydantic ~= 2.10",
   "typing-extensions ~= 4.9",
 ]
 boto = [
@@ -25,6 +25,11 @@ quilt = [
 ]
 dev = [
   "black ~= 24.1",
+]
+es = [
+  "aws-requests-auth ~= 0.4.2",
+  "elasticsearch ~= 6.8",
+  "orjson ~= 3.10",
 ]
 
 [tool.black]

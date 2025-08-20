@@ -6,7 +6,6 @@ import { useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
 import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -15,8 +14,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
-import DirCodeSamples from 'containers/Bucket/CodeSamples/Dir'
-import * as FileView from 'containers/Bucket/FileView'
+import * as Download from 'containers/Bucket/Download'
 import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
@@ -116,6 +114,8 @@ export default function Dir() {
     scoped ? basename(ecfg.scope) : 'ROOT',
   )
 
+  const dirHandle = React.useMemo(() => ({ bucket, path }), [bucket, path])
+
   return (
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
@@ -124,13 +124,11 @@ export default function Dir() {
         </div>
         <M.Box flexGrow={1} />
         {!cfg.noDownload && (
-          <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`} newTab>
-            <Buttons.Iconized label="Download directory" icon="archive" type="submit" />
-          </FileView.ZipDownloadForm>
+          <Download.Button>
+            <Download.BucketOptions handle={dirHandle} hideCode={!ecfg.hideCode} />
+          </Download.Button>
         )}
       </M.Box>
-
-      {!ecfg.hideCode && <DirCodeSamples bucket={bucket} path={path} gutterBottom />}
 
       {data.case({
         Err: displayError(),

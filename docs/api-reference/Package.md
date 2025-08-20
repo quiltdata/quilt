@@ -205,7 +205,7 @@ __Arguments__
 * __message__:  the commit message of the package
 * __workflow__:  workflow ID or `None` to skip workflow validation.
     If not specified, the default workflow will be used.
-* __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
+* __For details see__:  https://docs.quilt.bio/advanced-usage/workflows
 
 
 __Returns__
@@ -314,7 +314,7 @@ __Arguments__
     push the local file to s3 (instead of pushing all data to the destination bucket).
 * __workflow__:  workflow ID or `None` to skip workflow validation.
     If not specified, the default workflow will be used.
-* __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
+* __For details see__:  https://docs.quilt.bio/advanced-usage/workflows
 
 * __force__:  skip the top hash check and overwrite any existing package
 * __dedupe__:  don't push if the top hash matches the existing package top hash; return the current package

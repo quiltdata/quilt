@@ -335,7 +335,7 @@ const TASK_CONTEXT = XML.tag(
 const TASK_DESCRIPTION = XML.tag(
   'task-description',
   {},
-  'When asked a question about Quilt or Quilt Data, refer to the documentation at https://docs.quiltdata.com.',
+  'When asked a question about Quilt or Quilt Data, refer to the documentation at https://docs.quilt.bio.',
 ).toString()
 
 const CONVERSATION_START = `

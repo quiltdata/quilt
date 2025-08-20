@@ -36,13 +36,13 @@ const defaultAction = ({ label, ...rest }) => (
 
 export default function PreviewDisplay({
   data,
-  noDownload,
+  noDownload = undefined,
   renderContents = R.identity,
   renderProgress = defaultProgress,
   renderMessage = defaultMessage,
   renderAction = defaultAction,
-  onData,
-  props,
+  onData = undefined,
+  props = undefined,
 }) {
   const noDl = noDownload != null ? noDownload : cfg.noDownload
 
@@ -103,7 +103,8 @@ export default function PreviewDisplay({
           }),
         Unsupported: ({ handle }) =>
           renderMessage({
-            heading: 'Preview Not Available',
+            heading: 'Preview Not Supported',
+            body: 'Previewing this data type is not supported',
             action:
               !noDl &&
               AWS.Signer.withDownloadUrl(handle, (href) =>

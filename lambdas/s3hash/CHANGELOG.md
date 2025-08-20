@@ -17,6 +17,9 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Use `make_scratch_key()` function from py-shared to avoid S3 Slow Down errors ([#4358](https://github.com/quiltdata/quilt/pull/4358))
+- [Changed] Move some constants and `Checksum` methods to py-shared ([#4358](https://github.com/quiltdata/quilt/pull/4358))
+- [Changed] Bump pydantic to v2 ([#4355](https://github.com/quiltdata/quilt/pull/4355))
 - [Fixed] Fix copy to unversioned buckets ([#4300](https://github.com/quiltdata/quilt/pull/4300))
 - [Changed] Upgrade to Python 3.11 ([#4241](https://github.com/quiltdata/quilt/pull/4241))
 - [Fixed] Fix invalid checksum for some non-canonical objects with existing checksum ([#4062](https://github.com/quiltdata/quilt/pull/4062))

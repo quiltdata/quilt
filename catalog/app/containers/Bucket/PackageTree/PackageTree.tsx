@@ -15,7 +15,6 @@ import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
-import * as OpenInDesktop from 'containers/OpenInDesktop'
 import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -33,7 +32,6 @@ import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
 import AssistButton from '../AssistButton'
-import PackageCodeSamples from '../CodeSamples/Package'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
@@ -175,18 +173,9 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: BreadCrumbs.Crumb[]
-  size?: number
 }
 
-function DirDisplay({
-  bucket,
-  name,
-  hash,
-  hashOrTag,
-  path,
-  crumbs,
-  size,
-}: DirDisplayProps) {
+function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayProps) {
   const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -278,8 +267,6 @@ function DirDisplay({
     [bucket, name, hash],
   )
 
-  const openInDesktopState = OpenInDesktop.use(packageHandle, size)
-
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const slt = Selection.use()
   invariant(slt.inited, 'Selection must be used within a Selection.Provider')
@@ -287,16 +274,19 @@ function DirDisplay({
     (ids) => slt.merge(ids, bucket, path),
     [bucket, path, slt],
   )
+  const packageUri = React.useMemo(
+    () => ({
+      bucket,
+      name,
+      hash,
+      path,
+      catalog: window.location.hostname,
+    }),
+    [bucket, name, hash, path],
+  )
 
   return (
     <>
-      <OpenInDesktop.Dialog
-        open={openInDesktopState.confirming}
-        onClose={openInDesktopState.unconfirm}
-        onConfirm={openInDesktopState.openInDesktop}
-        size={size}
-      />
-
       <PackageCopyDialog
         bucket={bucket}
         hash={hash}
@@ -388,23 +378,13 @@ function DirDisplay({
             )
             .filter(Boolean)
 
-          const downloadLabel = !slt.isEmpty // eslint-disable-line no-nested-ternary
-            ? 'Download selected'
-            : path
-              ? 'Download sub-package'
-              : 'Download package'
-          const downloadPath =
-            path && slt.isEmpty
-              ? `package/${bucket}/${name}/${hash}/${path}`
-              : `package/${bucket}/${name}/${hash}`
-
           return (
             <>
               {prompt.render()}
               <TopBar crumbs={crumbs}>
                 {BucketPreferences.Result.match(
                   {
-                    Ok: ({ ui: { actions } }) => (
+                    Ok: ({ ui: { actions, blocks } }) => (
                       <>
                         {actions.downloadPackage && (
                           <Selection.Control
@@ -435,18 +415,23 @@ function DirDisplay({
                           </Successors.Button>
                         )}
                         {actions.downloadPackage && (
-                          <Download.DownloadButton
+                          <Download.Button
                             className={classes.button}
-                            label={downloadLabel}
-                            onClick={openInDesktopState.confirm}
-                            path={downloadPath}
-                            selection={slt.selection}
-                          />
+                            label={
+                              !packageUri.path && slt.isEmpty ? 'Get package' : undefined
+                            }
+                          >
+                            <Download.PackageOptions
+                              hashOrTag={hashOrTag}
+                              hideCode={!blocks.code}
+                              selection={slt.isEmpty ? undefined : slt.selection}
+                              uri={packageUri}
+                            />
+                          </Download.Button>
                         )}
                         <RevisionMenu
                           className={classes.button}
                           onDelete={confirmDelete}
-                          onDesktop={openInDesktopState.confirm}
                           onCreateFile={prompt.open}
                         />
                       </>
@@ -468,16 +453,6 @@ function DirDisplay({
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && (
-                        <PackageCodeSamples
-                          {...{
-                            ...packageHandle,
-                            hashOrTag,
-                            path,
-                            catalog: window.location.hostname,
-                          }}
-                        />
-                      )}
                       {blocks.meta && (
                         <FileView.PackageMetaSection
                           meta={dir.metadata}
@@ -600,6 +575,7 @@ function FileDisplayQuery({
   crumbs,
   ...props
 }: FileDisplayQueryProps) {
+  const { urls } = NamedRoutes.use()
   const fileQuery = GQL.useQuery(FILE_QUERY, { bucket, name, hash, path })
   return GQL.fold(fileQuery, {
     fetching: () => <FileDisplaySkeleton crumbs={crumbs} />,
@@ -607,6 +583,18 @@ function FileDisplayQuery({
       const file = d.package?.revision?.file
 
       if (!file) {
+        if (d.package?.revision?.dir) {
+          return (
+            <RRDom.Redirect
+              to={urls.bucketPackageTree(
+                bucket,
+                name,
+                props.hashOrTag,
+                s3paths.ensureSlash(path),
+              )}
+            />
+          )
+        }
         // eslint-disable-next-line no-console
         if (fileQuery.error) console.error(fileQuery.error)
         return (
@@ -722,8 +710,19 @@ function FileDisplay({
     [file, packageHandle],
   )
 
-  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle, path)
-  const handleEdit = React.useCallback(() => history.push(editUrl), [editUrl, history])
+  const editUrl = FileEditor.useEditFileInPackage(packageHandle, handle)
+  const handleEdit = React.useCallback(
+    () => history.push(editUrl(path)),
+    [editUrl, history, path],
+  )
+  const packageUri = React.useMemo(
+    () => ({
+      ...packageHandle,
+      path: file.path,
+      catalog: window.location.hostname,
+    }),
+    [packageHandle, file.path],
+  )
 
   return (
     // @ts-expect-error
@@ -792,18 +791,22 @@ function FileDisplay({
                 )}
                 {BucketPreferences.Result.match(
                   {
-                    Ok: ({ ui }) => (
+                    Ok: ({ ui: { actions, blocks } }) => (
                       <>
                         {!cfg.noDownload &&
                           !deleted &&
                           !archived &&
-                          ui.actions.downloadPackage && (
-                            <FileView.DownloadButton
-                              className={classes.button}
-                              handle={handle}
-                            />
+                          actions.downloadPackage && (
+                            <Download.Button className={classes.button} label="Get file">
+                              <Download.PackageOptions
+                                fileHandle={handle}
+                                hashOrTag={hashOrTag}
+                                uri={packageUri}
+                                hideCode={!blocks.code}
+                              />
+                            </Download.Button>
                           )}
-                        {ui.blocks.qurator && !deleted && !archived && (
+                        {blocks.qurator && !deleted && !archived && (
                           <AssistButton edge="end" />
                         )}
                       </>
@@ -818,26 +821,13 @@ function FileDisplay({
               </TopBar>
               {BucketPreferences.Result.match(
                 {
-                  Ok: ({ ui: { blocks } }) => (
-                    <>
-                      {blocks.code && (
-                        <PackageCodeSamples
-                          {...{
-                            ...packageHandle,
-                            hashOrTag,
-                            path,
-                            catalog: window.location.hostname,
-                          }}
-                        />
-                      )}
-                      {blocks.meta && (
-                        <>
-                          <FileView.ObjectMetaSection meta={file.metadata} />
-                          <FileView.ObjectTags handle={handle} />
-                        </>
-                      )}
-                    </>
-                  ),
+                  Ok: ({ ui: { blocks } }) =>
+                    blocks.meta && (
+                      <>
+                        <FileView.ObjectMetaSection meta={file.metadata} />
+                        <FileView.ObjectTags handle={handle} />
+                      </>
+                    ),
                   _: () => null,
                 },
                 prefs,
@@ -918,7 +908,6 @@ interface PackageTreeProps {
   mode?: string
   resolvedFrom?: string
   revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
-  size?: number
 }
 
 function PackageTree({
@@ -930,7 +919,6 @@ function PackageTree({
   mode,
   resolvedFrom,
   revisionListQuery,
-  size,
 }: PackageTreeProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use<PackageRoutes>()
@@ -1022,7 +1010,6 @@ function PackageTree({
                 path,
                 hashOrTag,
                 crumbs,
-                size,
               }}
             />
           ) : (
@@ -1095,7 +1082,6 @@ function PackageTreeQueries({
               name,
               hashOrTag,
               hash: d.package.revision?.hash,
-              size: d.package.revision?.totalBytes ?? undefined,
               path,
               mode,
               resolvedFrom,

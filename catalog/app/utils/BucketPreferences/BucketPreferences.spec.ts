@@ -10,7 +10,7 @@ const expectedDefaults = {
       deleteRevision: false,
       downloadObject: true,
       downloadPackage: true,
-      openInDesktop: false,
+      openInDesktop: true,
       revisePackage: true,
       writeFile: true,
     },
@@ -37,6 +37,7 @@ const expectedDefaults = {
     },
     nav: {
       files: true,
+      workflows: true,
       packages: true,
       queries: true,
     },

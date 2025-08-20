@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
-import StyledTooltip from 'utils/StyledTooltip'
 import logout from 'utils/logout'
 import mkStorage from 'utils/storage'
 
@@ -101,7 +100,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
           Reload page
         </M.Button>
         {reloadDidntHelp && (
-          <StyledTooltip
+          <M.Tooltip
             title={
               <>
                 <M.Typography>
@@ -123,7 +122,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
             >
               Restart session
             </M.Button>
-          </StyledTooltip>
+          </M.Tooltip>
         )}
       </div>
     </M.Container>

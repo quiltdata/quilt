@@ -3,7 +3,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
-import StyledTooltip from 'utils/StyledTooltip'
 import {
   JsonSchema,
   doesTypeMatchSchema,
@@ -131,7 +130,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
   if (!typeHelps.length) return null
 
   return (
-    <StyledTooltip title={<TypeHelp typeHelps={typeHelps} />}>
+    <M.Tooltip title={<TypeHelp typeHelps={typeHelps} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
@@ -139,7 +138,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
       >
         {<M.Icon>info_outlined</M.Icon>}
       </span>
-    </StyledTooltip>
+    </M.Tooltip>
   )
 }
 

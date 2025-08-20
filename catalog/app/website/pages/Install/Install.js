@@ -11,7 +11,7 @@ import mp from './mp.png'
 const MP_LINK =
   'https://aws.amazon.com/marketplace/pp/Quilt-Data-Quilt-Business/B07QF1VXFQ'
 const PREREQ_LINK =
-  'https://docs.quiltdata.com/references/technical-reference#before-you-install-quilt'
+  'https://docs.quilt.bio/references/technical-reference#before-you-install-quilt'
 const MAILTO = 'mailto:contact@quiltdata.com'
 
 const useStyles = M.makeStyles((t) => ({

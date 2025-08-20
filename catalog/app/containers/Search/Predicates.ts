@@ -1,6 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as Eff from 'effect'
-import * as S from '@effect/schema/Schema'
+import { Schema as S } from 'effect'
 
 import { JsonRecord, Json } from 'utils/types'
 
@@ -110,16 +110,23 @@ export const KeywordEnum = make({
   },
 })
 
+const STRICT_MARKER = '$s$:'
+
 export const KeywordWildcard = make({
   tag: 'KeywordWildcard',
   state: S.Struct({
     wildcard: S.optional(S.String),
+    strict: S.optional(S.Boolean),
   }),
   empty: (schema) => S.decodeSync(schema)({}),
   str: (schema) =>
     S.transform(S.String, schema, {
-      encode: ({ wildcard }) => wildcard ?? '',
-      decode: (wildcard) => ({ wildcard }),
+      encode: ({ wildcard, strict }) => (strict ? STRICT_MARKER : '') + (wildcard ?? ''),
+      decode: (wildcard) => {
+        const strict = wildcard.startsWith(STRICT_MARKER)
+        if (strict) wildcard = wildcard.slice(STRICT_MARKER.length)
+        return { wildcard, strict }
+      },
     }),
 })
 

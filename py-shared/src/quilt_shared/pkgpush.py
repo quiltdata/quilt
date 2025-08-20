@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import base64
 import enum
+import functools
+import hashlib
+import random
 import typing as T
 
-import pydantic
+import pydantic.v1
 
 from .aws import AWSCredentials
 from .types import NonEmptyStr
@@ -14,7 +18,7 @@ if T.TYPE_CHECKING:
     from quilt3.util import PhysicalKey
 
 
-class TopHash(pydantic.ConstrainedStr):
+class TopHash(pydantic.v1.ConstrainedStr):
     min_length = 64
     max_length = 64
     regex = r"^[0-9a-f]+$"
@@ -22,7 +26,7 @@ class TopHash(pydantic.ConstrainedStr):
     to_lower = True
 
 
-class S3ObjectSource(pydantic.BaseModel):
+class S3ObjectSource(pydantic.v1.BaseModel):
     bucket: str
     key: str
     version: T.Optional[str]
@@ -42,7 +46,7 @@ class S3ObjectSource(pydantic.BaseModel):
         return boto_args
 
 
-class S3ObjectDestination(pydantic.BaseModel):
+class S3ObjectDestination(pydantic.v1.BaseModel):
     bucket: str
     key: str
 
@@ -60,13 +64,13 @@ class S3ObjectDestination(pydantic.BaseModel):
         }
 
 
-class S3HashLambdaParams(pydantic.BaseModel):
+class S3HashLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     scratch_buckets: T.Dict[str, str]
     location: S3ObjectSource
 
 
-class S3CopyLambdaParams(pydantic.BaseModel):
+class S3CopyLambdaParams(pydantic.v1.BaseModel):
     credentials: AWSCredentials
     location: S3ObjectSource
     target: S3ObjectDestination
@@ -77,7 +81,7 @@ class ChecksumType(str, enum.Enum):
     SHA256_CHUNKED = "sha2-256-chunked"
 
 
-class Checksum(pydantic.BaseModel):
+class Checksum(pydantic.v1.BaseModel):
     type: ChecksumType
     value: str
 
@@ -87,9 +91,37 @@ class Checksum(pydantic.BaseModel):
     def __repr__(self):
         return f"{self.__class__.__name__}({self!s})"
 
+    @staticmethod
+    def hash_parts(parts: T.Sequence[bytes]) -> bytes:
+        return hashlib.sha256(b"".join(parts)).digest()
+
+    @classmethod
+    def sha256(cls, value: bytes):
+        return cls(value=value.hex(), type=ChecksumType.SHA256)
+
+    @classmethod
+    def sha256_chunked(cls, value: bytes):
+        return cls(value=base64.b64encode(value).decode(), type=ChecksumType.SHA256_CHUNKED)
+
+    @classmethod
+    def for_parts(cls, checksums: T.Sequence[bytes]):
+        return cls.sha256_chunked(cls.hash_parts(checksums))
+
+    _EMPTY_HASH = hashlib.sha256().digest()
+
+    @classmethod
+    @functools.cache
+    def empty_sha256(cls):
+        return cls.sha256(cls._EMPTY_HASH)
+
+    @classmethod
+    @functools.cache
+    def empty_sha256_chunked(cls):
+        return cls.sha256_chunked(cls._EMPTY_HASH)
+
 
 # XXX: maybe it doesn't make sense outside of s3hash lambda
-class MPURef(pydantic.BaseModel):
+class MPURef(pydantic.v1.BaseModel):
     bucket: str
     key: str
     id: str
@@ -103,15 +135,15 @@ class MPURef(pydantic.BaseModel):
         }
 
 
-class ChecksumResult(pydantic.BaseModel):
+class ChecksumResult(pydantic.v1.BaseModel):
     checksum: Checksum
 
 
-class CopyResult(pydantic.BaseModel):
+class CopyResult(pydantic.v1.BaseModel):
     version: T.Optional[str]
 
 
-class PackagePushParams(pydantic.BaseModel):
+class PackagePushParams(pydantic.v1.BaseModel):
     bucket: NonEmptyStr
     # XXX: validate package name?
     # e.g. quilt3.util.validate_package_name(name)
@@ -133,17 +165,19 @@ class PackagePushParams(pydantic.BaseModel):
         return self.workflow
 
 
-class PackagePushResult(pydantic.BaseModel):
+class PackagePushResult(pydantic.v1.BaseModel):
     top_hash: TopHash
 
 
-class PackagePromoteSource(pydantic.BaseModel):
+class PackagePromoteSource(pydantic.v1.BaseModel):
     bucket: NonEmptyStr
     name: NonEmptyStr
     hash: TopHash
 
 
 class PackagePromoteParams(PackagePushParams):
+    # Used to rewrite the folder prefix for uploaded files when `copy_data: true`
+    dest_prefix: T.Optional[NonEmptyStr] = None
     src: PackagePromoteSource
 
 
@@ -151,7 +185,7 @@ class PackageConstructParams(PackagePushParams):
     scratch_buckets: T.Dict[str, str]
 
 
-class PackageConstructEntry(pydantic.BaseModel):
+class PackageConstructEntry(pydantic.v1.BaseModel):
     logical_key: NonEmptyStr
     physical_key: NonEmptyStr
     size: T.Optional[int] = None
@@ -160,3 +194,8 @@ class PackageConstructEntry(pydantic.BaseModel):
     # optional `user_meta` property,
     # see PackageEntry._meta vs PackageEntry.meta.
     meta: T.Optional[T.Dict[str, T.Any]] = None
+
+
+def make_scratch_key() -> str:
+    # randomize key to avoid S3 throttling
+    return f"user-requests/checksum-upload-tmp/{random.randbytes(4).hex()}/object"

@@ -11,7 +11,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
      
     <a
       className="root"
-      href="https://docs.quiltdata.com/quilt-platform-administrator/preferences"
+      href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
       target="_blank"
     >
       Learn more
@@ -444,6 +444,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             "BUCKET"
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "WORKFLOWS"
           </span>
         </label>
       </div>
@@ -694,7 +712,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
      
     <a
       className="root"
-      href="https://docs.quiltdata.com/quilt-platform-administrator/preferences"
+      href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
       target="_blank"
     >
       Learn more
@@ -1127,6 +1145,24 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
             className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
             "BUCKET"
+          </span>
+        </label>
+      </div>
+      <div
+        className="MuiFormControl-root"
+      >
+        <label
+          className="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            className="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "WORKFLOWS"
           </span>
         </label>
       </div>

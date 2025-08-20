@@ -35,6 +35,7 @@ module.exports = {
       '<rootDir>/internals/mocks/image.js',
     '^p-limit$': '<rootDir>/internals/mocks/p-limit.js', // XXX: use ESM
     '^exceljs$': 'exceljs/dist/exceljs.min.js',
+    '^msgpackr$': require.resolve('msgpackr'), // ESM issue
   },
   setupFiles: ['jest-localstorage-mock', './setup-jest.ts'],
   testRegex: '.*\\.(test|spec)\\.[jt]sx?$',
