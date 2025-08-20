@@ -231,6 +231,8 @@ at the bottom of the page:
 
 This parameter accepts a comma-separated list of policy ARNs.
 
+**Note:** This parameter is specifically needed for managed user roles because they have permission boundaries that would otherwise block additional permissions. For custom roles (Source=Custom), you can attach policies directly in IAM without needing this CloudFormation parameter.
+
 ### S3 buckets with Service-Side Encryption using Key Management Service (SSE-KMS)
 
 In order for Quilt to access and index buckets encrypted with SSE-KMS, you must do three things:
