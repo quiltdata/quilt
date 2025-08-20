@@ -1,4 +1,3 @@
-import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import {
@@ -8,12 +7,9 @@ import {
   ClearOutlined as IconClearOutlined,
 } from '@material-ui/icons'
 
-import { useConfirm } from 'components/Dialog'
-import * as Bookmarks from 'containers/Bookmarks'
-import * as Dialogs from 'utils/Dialogs'
 import * as Format from 'utils/format'
 
-import * as Selection from '../../Selection'
+import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
 
@@ -44,53 +40,19 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function BucketDirOptions() {
   const classes = useStyles()
-
-  const slt = Selection.use()
-  invariant(
-    slt.inited && !slt.isEmpty,
-    'Selection must be used within a Selection.Provider, and something must be selected',
-  )
-  const bookmarks = Bookmarks.use()
-  const dialogs = Dialogs.use()
-
-  const confirm = useConfirm({
-    title: 'Delete selected items',
-    submitTitle: 'Delete',
-    onSubmit: () => {
-      // TODO: Implement delete logic
-      // console.log('Delete selected items:', Selection.toHandlesList(slt.selection))
-    },
-  })
-
-  const handleAddToBookmarks = React.useCallback(() => {
-    if (!bookmarks) return
-    const handles = Selection.toHandlesList(slt.selection)
-    handles.forEach((handle) => {
-      bookmarks.append('main', handle)
-    })
-  }, [bookmarks, slt])
-
-  const handleManageSelection = React.useCallback(
-    () => dialogs.open(({ close }) => <Selection.Popup close={close} />),
-    [dialogs],
-  )
-
-  const handleClearSelection = React.useCallback(() => {
-    slt.clear()
-  }, [slt])
-
-  const handleDeleteSelected = React.useCallback(() => {
-    if (slt.isEmpty) return
-    confirm.open()
-  }, [confirm, slt])
+  const {
+    addSelectedToBookmarks,
+    openSelectionPopup,
+    clearSelection,
+    confirmDeleteSelected,
+    selectionCount,
+  } = Context.use()
 
   return (
     <>
-      {confirm.render(<></>)}
-
       <M.ListSubheader inset component="div" disableSticky>
         <Format.Plural
-          value={slt.totalCount}
+          value={selectionCount}
           one="One selected item"
           other={(n) => `${n} selected items`}
         />
@@ -98,28 +60,25 @@ export default function BucketDirOptions() {
 
       <M.Divider />
 
-      {bookmarks && (
-        <>
-          <M.List dense>
-            <MenuItem
-              icon={<IconTurnedInNotOutlined />}
-              onClick={handleAddToBookmarks}
-              primary="Add to bookmarks"
-            />
-          </M.List>
-          <M.Divider />
-        </>
-      )}
+      <M.List dense>
+        <MenuItem
+          icon={<IconTurnedInNotOutlined />}
+          onClick={addSelectedToBookmarks}
+          primary="Add to bookmarks"
+        />
+      </M.List>
+
+      <M.Divider />
 
       <M.List dense>
         <MenuItem
           icon={<IconEditOutlined />}
-          onClick={handleManageSelection}
+          onClick={openSelectionPopup}
           primary="Manage selection"
         />
         <MenuItem
           icon={<IconClearOutlined />}
-          onClick={handleClearSelection}
+          onClick={clearSelection}
           primary="Clear selection"
         />
       </M.List>
@@ -130,7 +89,7 @@ export default function BucketDirOptions() {
         <MenuItem
           className={classes.error}
           icon={<IconDeleteOutlined color="error" />}
-          onClick={handleDeleteSelected}
+          onClick={confirmDeleteSelected}
           primary="Delete selected items"
         />
       </M.List>

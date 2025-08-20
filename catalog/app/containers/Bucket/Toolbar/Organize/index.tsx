@@ -7,6 +7,8 @@ import * as Buttons from 'components/Buttons'
 
 import { useSelection } from '../../Selection/Provider'
 
+import * as Context from './Context'
+
 export { default as BucketDirOptions } from './BucketDirOptions'
 export { default as BucketFileOptions } from './BucketFileOptions'
 
@@ -26,13 +28,15 @@ export function Button(props: ButtonProps) {
   const slt = useSelection()
   const classes = useBadgeClasses()
   return (
-    <M.Badge badgeContent={slt.totalCount} classes={classes} color="primary" max={999}>
-      <Buttons.WithPopover
-        icon={IconPlaylistAddCheckOutlined}
-        label="Organize"
-        disabled={slt.inited && !slt.totalCount}
-        {...props}
-      />
-    </M.Badge>
+    <Context.Provider>
+      <M.Badge badgeContent={slt.totalCount} classes={classes} color="primary" max={999}>
+        <Buttons.WithPopover
+          icon={IconPlaylistAddCheckOutlined}
+          label="Organize"
+          disabled={slt.inited && !slt.totalCount}
+          {...props}
+        />
+      </M.Badge>
+    </Context.Provider>
   )
 }
