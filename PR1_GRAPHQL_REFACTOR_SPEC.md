@@ -157,8 +157,23 @@ api/python/quilt3-admin/queries.graphql           # Moved
 api/python/quilt3/admin/_graphql_client/          # Moved
 ```
 
+## Resolved Design Decisions
+
+### Authentication & Configuration ✅
+**Decision**: Reuse existing patterns (no changes needed)
+- Shared GraphQL client will use same auth as admin
+- Same registry endpoint discovery
+- No new configuration required
+
+### Dependencies ✅
+**Decision**: Move to shared location with minimal impact
+- `ariadne-codegen` is build-time only (not shipped to users)
+- Runtime dependencies already exist in quilt3
+- No package size concerns
+
 ## Dependencies
 
+- PR 0 (GraphQL Mock) merged - comprehensive test coverage protects refactoring
 - Existing `ariadne-codegen` setup
 - GraphQL schema at `/shared/graphql/schema.graphql`
 - Existing admin test suite for validation

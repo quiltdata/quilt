@@ -161,15 +161,11 @@ def search_packages(
     filter: Optional[Dict[str, Any]] = None,
     user_meta_filters: Optional[List[Dict[str, Any]]] = None,
     latest_only: bool = False,
-    size: int = 30,
+    limit: int = 30,
     order: str = "RELEVANCE"
 ) -> SearchResult:
     """Search for packages across accessible buckets."""
     return _search_packages(...)
-
-def search_more_packages(after: str, size: int = 30) -> SearchResult:
-    """Get the next page of search results."""
-    return _search_more_packages(...)
 ```
 
 ## Implementation Details
@@ -242,8 +238,33 @@ docs/api-reference/                               # Updated API docs
 5. **Documentation**: Complete API documentation and examples
 6. **Integration**: Seamless authentication with existing quilt3 setup
 
+## Resolved Design Decisions
+
+### Authentication & Configuration ✅
+**Decision**: Reuse existing catalog config and authentication, same as admin module
+- No new configuration needed
+- Consistent with existing patterns
+
+### Error Handling ✅  
+**Decision**: Use `PackageException` (existing main package pattern)
+- Current search uses simple exceptions, follow that pattern
+- Consistent with main quilt3 package exception hierarchy
+
+### Pagination UX ✅
+**Decision**: Use `limit` parameter like existing search APIs
+- Current pattern: `search_api(query, index, limit=10)`
+- Start simple, can add pagination later if needed
+- Consistent with existing `quilt3.search()` and `Bucket.search()`
+
+### Dependencies ✅
+**Decision**: Minimal runtime dependencies
+- `ariadne-codegen` is build-time only (not shipped)
+- Runtime: just HTTP client (already in quilt3)
+- No package size concerns
+
 ## Dependencies
 
+- PR 0 (GraphQL Mock) merged - testing infrastructure in place
 - PR 1 (GraphQL Infrastructure Refactoring) merged
 - Shared GraphQL infrastructure at `/api/python/quilt3/_graphql_client/`
 - GraphQL schema at `/shared/graphql/schema.graphql`

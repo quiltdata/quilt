@@ -323,6 +323,21 @@ api/python/quilt3/admin/                         # Unchanged
 - pytest and mock libraries
 - Current GraphQL schema for response validation
 
+## Resolved Design Decisions
+
+All open questions have been resolved through codebase research:
+
+### Error Handling ✅
+**Decision**: Follow existing patterns
+- Admin uses `Quilt3AdminError` hierarchy (keep unchanged)
+- Main package will use `PackageException` for search (consistent with existing)
+
+### Testing Infrastructure ✅
+**Decision**: Mock server approach (this PR)
+- Establishes comprehensive GraphQL testing patterns
+- No dependency on external services
+- Fast, reliable, deterministic tests
+
 ## Next Steps
 
 After PR0 is merged:
