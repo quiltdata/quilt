@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Buttons from 'components/Buttons'
+import type { EditorState } from 'components/FileEditor'
 import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
@@ -19,7 +20,7 @@ interface Features {
   qurator: boolean | null
 }
 
-function useFeatures(deleted: boolean): Features | null {
+function useFeatures(deleted?: boolean): Features | null {
   const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
@@ -49,19 +50,21 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface BucketFileProps {
-  className?: string
-  handle: FileHandle
-  viewModes?: ViewModes
-  deleted?: boolean
   children?: React.ReactNode
+  className?: string
+  deleted?: boolean
+  editorState: EditorState
+  handle: FileHandle
+  viewModes: ViewModes
 }
 
 export default function BucketFile({
+  children,
   className,
+  deleted,
+  editorState,
   handle,
   viewModes,
-  deleted = false,
-  children,
 }: BucketFileProps) {
   const classes = useStyles()
   const features = useFeatures(deleted)
@@ -87,7 +90,11 @@ export default function BucketFile({
 
       {features.organize && (
         <Organize.Button>
-          <Organize.BucketFileOptions handle={handle} viewModes={viewModes} />
+          <Organize.BucketFileOptions
+            editorState={editorState}
+            handle={handle}
+            viewModes={viewModes}
+          />
         </Organize.Button>
       )}
 

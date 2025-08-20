@@ -47,6 +47,7 @@ export default function WithPopover({
   label,
   ...props
 }: WithPopoverProps & Parameters<typeof Iconized>[0]) {
+  // TODO: close on location change
   const classes = useStyles()
   const [opened, setOpened] = React.useState(false)
   const handleClick = React.useCallback(() => setOpened((o) => !o), [])
@@ -65,7 +66,7 @@ export default function WithPopover({
 
       <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
       {opened && (
-        <M.Paper className={classes.popup} elevation={4}>
+        <M.Paper className={classes.popup} elevation={4} onClick={handleClose}>
           {children}
         </M.Paper>
       )}

@@ -24,6 +24,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
+import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import FallbackToDir from '../FallbackToDir'
 import Section from '../Section'
@@ -305,7 +306,7 @@ function File() {
 
   const path = s3paths.decode(encodedPath)
 
-  const [resetKey] = React.useState(0)
+  const [resetKey, setResetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
@@ -328,26 +329,12 @@ function File() {
     }),
   })
 
-  const { fileVersionId } = versionExistsData.case({
-    _: () => ({
-      downloadable: false,
-    }),
+  const existing = versionExistsData.case({
+    _: () => null,
     Ok: requests.ObjectExistence.case({
-      _: () => ({
-        downloadable: false,
-      }),
+      _: () => null,
       Exists: ({ deleted, archived, version: versionId }) => ({
-        downloadable:
-          !cfg.noDownload &&
-          !deleted &&
-          !archived &&
-          BucketPreferences.Result.match(
-            {
-              Ok: ({ ui }) => ui.actions.downloadObject,
-              _: R.F,
-            },
-            prefs,
-          ),
+        deleted: deleted || archived,
         fileVersionId: versionId,
       }),
     }),
@@ -356,11 +343,16 @@ function File() {
   const viewModes = useViewModes(mode)
 
   const handle = React.useMemo(
-    () => Toolbar.FileHandleCreate(bucket, path, fileVersionId),
-    [bucket, path, fileVersionId],
+    () => Toolbar.FileHandleCreate(bucket, path, existing?.fileVersionId),
+    [bucket, path, existing?.fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
+  const onSave = editorState.onSave
+  const handleEditorSave = React.useCallback(async () => {
+    await onSave()
+    setResetKey(R.inc)
+  }, [onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -419,9 +411,16 @@ function File() {
 
         <Toolbar.BucketFile
           className={classes.actions}
+          deleted={existing?.deleted}
+          editorState={editorState}
           handle={handle}
           viewModes={viewModes}
-        />
+        >
+          <FileProperties className={classes.fileProperties} data={versionExistsData} />
+          {editorState.editing && (
+            <FileEditor.Controls {...editorState} onSave={handleEditorSave} />
+          )}
+        </Toolbar.BucketFile>
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,

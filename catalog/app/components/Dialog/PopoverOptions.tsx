@@ -37,10 +37,17 @@ interface TabProps {
 
 function Tab({ active, onClick, className, children }: TabProps) {
   const classes = useTabStyles()
+  const handleClick = React.useCallback(
+    (event) => {
+      event.stopPropagation()
+      onClick()
+    },
+    [onClick],
+  )
   return (
     <M.Button
       className={cx(classes.root, active && classes.active, className)}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {children}
     </M.Button>
