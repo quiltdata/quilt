@@ -28,11 +28,16 @@ export function rowsToJson(rows: MetadataValue[][]) {
 }
 
 export function parseSpreadsheet(
-  sheet: ExcelJS.Worksheet,
+  sheet: ExcelJS.Worksheet | any,
   transpose: boolean,
 ): Record<string, MetadataValue> {
+  // Handle invalid input gracefully
+  if (!sheet || typeof sheet !== 'object' || !sheet.eachRow) {
+    return {}
+  }
+
   const rows: MetadataValue[][] = []
-  sheet.eachRow((row) => {
+  sheet.eachRow((row: any) => {
     if (Array.isArray(row.values)) {
       rows.push(row.values.slice(1))
     }
@@ -168,9 +173,14 @@ export function postProcess(
 }
 
 export function parseSpreadsheetAgainstSchema(
-  sheet: ExcelJS.Worksheet,
+  sheet: ExcelJS.Worksheet | any,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
+  // Handle invalid input gracefully
+  if (!sheet || typeof sheet !== 'object' || !sheet.eachRow) {
+    return {}
+  }
+
   const verticalObj = parseSpreadsheet(sheet, true)
   const schemaRoot =
     schema?.type === 'array' ? schema?.items?.properties : schema?.properties

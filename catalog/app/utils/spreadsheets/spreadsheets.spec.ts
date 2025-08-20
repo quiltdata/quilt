@@ -45,7 +45,11 @@ describe('utils/spreadsheets', () => {
                 d,"e,i,j,k",f
                 g,h
             `
-    const sheet = await readCSVString(csv)
+    let sheet: ExcelJS.Worksheet
+
+    beforeAll(async () => {
+      sheet = await readCSVString(csv)
+    })
 
     it('converts CSV to dictionary object, array of cells', () => {
       expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
