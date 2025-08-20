@@ -9,10 +9,6 @@ from base64 import b64decode
 from typing import Iterable
 
 LOGGER_NAME = "quilt-lambda"
-MANIFEST_PREFIX_V1 = ".quilt/packages/"
-POINTER_PREFIX_V1 = ".quilt/named_packages/"
-
-PACKAGE_INDEX_SUFFIX = "_packages"
 
 LAMBDA_TMP_SPACE = 512 * 2 ** 20
 

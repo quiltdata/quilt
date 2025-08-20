@@ -85,8 +85,10 @@ python-dateutil==2.9.0.post0
     # via botocore
 pyyaml==6.0.2
     # via quilt3
-quilt-shared[boto,pydantic,quilt] @ https://github.com/quiltdata/quilt/archive/2818a8f869a6596f7f0833d3259fcb35797afa30.zip#subdirectory=py-shared
-    # via t4_lambda_s3hash (setup.py)
+quilt-shared[boto,pydantic,quilt] @ https://github.com/quiltdata/quilt/archive/7698788139c8ea0b425b9932c1db6c8903526c28.zip#subdirectory=py-shared
+    # via
+    #   quilt-shared
+    #   t4_lambda_s3hash (setup.py)
 quilt3==5.4.0
     # via quilt-shared
 referencing==0.35.1
@@ -134,7 +136,7 @@ typing-extensions==4.12.2
     #   quilt-shared
     #   types-aiobotocore
     #   types-aiobotocore-s3
-urllib3==2.2.3
+urllib3==2.5.0
     # via
     #   botocore
     #   requests

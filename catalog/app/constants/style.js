@@ -87,6 +87,14 @@ const websiteTypography = {
   },
 }
 
+const tooltipOverrides = {
+  MuiTooltip: {
+    tooltip: {
+      ...defaultTheme.typography.body2,
+    },
+  },
+}
+
 const websiteOverrides = {
   MuiAppBar: {
     colorPrimary: {
@@ -129,13 +137,14 @@ export const appTheme = createMuiTheme({
   palette: appPalette,
   typography: appTypography,
   mixins,
+  overrides: tooltipOverrides,
 })
 
 // theme used for navbar and footer
 export const navTheme = createMuiTheme({
   palette: websitePalette,
   typography: appTypography,
-  overrides: websiteOverrides,
+  overrides: { ...tooltipOverrides, ...websiteOverrides },
   mixins,
 })
 
@@ -143,7 +152,7 @@ export const navTheme = createMuiTheme({
 export const websiteTheme = createMuiTheme({
   palette: websitePalette,
   typography: websiteTypography,
-  overrides: websiteOverrides,
+  overrides: { ...tooltipOverrides, ...websiteOverrides },
   mixins,
 })
 

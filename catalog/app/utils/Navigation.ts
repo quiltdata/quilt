@@ -1,7 +1,7 @@
 import * as Eff from 'effect'
+import { Schema as S } from 'effect'
 import * as PathToRe from 'path-to-regexp'
 import { UrlParams } from '@effect/platform'
-import { Schema as S, ParseResult } from '@effect/schema'
 
 import { JsonRecord } from 'utils/types'
 
@@ -52,7 +52,7 @@ export const fromPathParams = <T extends typeof PathParams.Type>(schema: S.Schem
       Eff.pipe(
         fromA,
         S.decodeUnknown(schema),
-        Eff.Effect.mapError((e) => new ParseResult.Type(ast, fromA, e.message)),
+        Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, fromA, e.message)),
       ),
   })
 
@@ -64,16 +64,20 @@ const makePathSchema = (path: string, exact: boolean, strict: boolean) => {
   return S.transformOrFail(S.String, PathParams, {
     decode: (input, _options, ast) => {
       const m = matchPath(input)
-      if (m) return ParseResult.succeed(m.params as PathParams)
-      return ParseResult.fail(
-        new ParseResult.Type(ast, input, `Path does not match path pattern '${path}'`),
+      if (m) return Eff.ParseResult.succeed(m.params as PathParams)
+      return Eff.ParseResult.fail(
+        new Eff.ParseResult.Type(
+          ast,
+          input,
+          `Path does not match path pattern '${path}'`,
+        ),
       )
     },
     encode: (input, _options, ast) =>
-      ParseResult.try({
+      Eff.ParseResult.try({
         try: () => generatePath(input),
         catch: (e) =>
-          new ParseResult.Type(
+          new Eff.ParseResult.Type(
             ast,
             input,
             `Params do not match path pattern '${path}': ${e}`,
@@ -105,7 +109,7 @@ function makeParsedLocation(path: string, exact: boolean, strict: boolean) {
         const pathParams = yield* Eff.pipe(
           input.pathname,
           S.decode(pathParamsSchema, options),
-          Eff.Effect.mapError((e) => new ParseResult.Type(ast, input, e.toString())),
+          Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, input, e.toString())),
         )
         const searchParams = S.decodeSync(SearchParamsFromString, options)(input.search)
         return { pathParams, searchParams }
@@ -115,7 +119,7 @@ function makeParsedLocation(path: string, exact: boolean, strict: boolean) {
         const pathname = yield* Eff.pipe(
           input.pathParams,
           S.encode(pathParamsSchema, options),
-          Eff.Effect.mapError((e) => new ParseResult.Type(ast, input, e.toString())),
+          Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, input, e.toString())),
         )
         const search = S.encodeSync(SearchParamsFromString, options)(input.searchParams)
         return { pathname, search, hash: '' }
@@ -138,12 +142,12 @@ function makeParsedParams<
         const pathParams = yield* Eff.pipe(
           input.pathParams,
           S.decode(PPS, options),
-          Eff.Effect.mapError((e) => new ParseResult.Type(ast, input, `${e}`)),
+          Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, input, `${e}`)),
         )
         const searchParams = yield* Eff.pipe(
           input.searchParams,
           S.decode(SPS, options),
-          Eff.Effect.mapError((e) => new ParseResult.Type(ast, input, `${e}`)),
+          Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, input, `${e}`)),
         )
         return { ...searchParams, ...pathParams }
       }),
@@ -153,12 +157,12 @@ function makeParsedParams<
         const pathParams = yield* Eff.pipe(
           input,
           S.encode(PPS, options),
-          Eff.Effect.mapError((e) => new ParseResult.Type(ast, input, e.toString())),
+          Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, input, e.toString())),
         )
         const searchParams = yield* Eff.pipe(
           input,
           S.encode(SPS, options),
-          Eff.Effect.mapError((e) => new ParseResult.Type(ast, input, e.toString())),
+          Eff.Effect.mapError((e) => new Eff.ParseResult.Type(ast, input, e.toString())),
         )
         return { searchParams, pathParams }
       }),

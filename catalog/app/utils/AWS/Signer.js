@@ -1,14 +1,12 @@
 import * as React from 'react'
-import * as redux from 'react-redux'
 
 import cfg from 'constants/config'
-import * as authSelectors from 'containers/Auth/selectors'
-import * as BucketConfig from 'utils/BucketConfig'
-import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import { handleToHttpsUri } from 'utils/s3paths'
+import { useGetCachedBucketRegion } from 'utils/BucketCache'
 
 import * as Credentials from './Credentials'
 import * as S3 from './S3'
+import useShouldSign from './useShouldSign'
 
 const DEFAULT_URL_EXPIRATION = 5 * 60 // in seconds
 const POLL_INTERVAL = 10 // in seconds
@@ -20,18 +18,12 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const ctx = React.useContext(Ctx)
   const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
-  const authenticated = redux.useSelector(authSelectors.authenticated)
-  const isInStack = BucketConfig.useIsInStack()
-  const statusReportsBucket = useStatusReportsBucket()
   const s3 = S3.use()
-  const inStackOrSpecial = React.useCallback(
-    (b) => isInStack(b) || statusReportsBucket === b,
-    [isInStack, statusReportsBucket],
-  )
+  const shouldSign = useShouldSign()
+  const getRegion = useGetCachedBucketRegion()
   return React.useCallback(
     ({ bucket, key, version }, opts) =>
-      cfg.mode !== 'OPEN' &&
-      (cfg.mode === 'LOCAL' || (inStackOrSpecial(bucket) && authenticated))
+      shouldSign(bucket)
         ? s3.getSignedUrl('getObject', {
             Bucket: bucket,
             Key: key,
@@ -40,8 +32,12 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
             forceProxy,
             ...opts,
           })
-        : handleToHttpsUri({ bucket, key, version }), // TODO: handle ResponseContentDisposition for unsigned case
-    [inStackOrSpecial, authenticated, s3, urlExpiration, forceProxy],
+        : // TODO: handle ResponseContentDisposition for unsigned case
+          handleToHttpsUri(
+            { bucket, key, version },
+            { proxy: forceProxy && cfg.s3Proxy, region: getRegion(bucket) },
+          ),
+    [shouldSign, s3, urlExpiration, forceProxy, getRegion],
   )
 }
 

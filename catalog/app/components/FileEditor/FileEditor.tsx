@@ -71,7 +71,6 @@ function EditorSuspended({
       err: $TSFixMe, // PreviewError
     ) => (
       <div>
-        {/* @ts-expect-error */}
         <PreviewDisplay data={AsyncResult.Err(err)} />
       </div>
     ),

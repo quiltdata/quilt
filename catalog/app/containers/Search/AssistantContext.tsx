@@ -12,23 +12,23 @@ const resultTypeDisplay = (resultType: SearchUIModel.ResultType) =>
 
 type BaseData = NonNullable<SearchUIModel.SearchUIModel['baseSearchQuery']['data']>
 
-type ObjectsStats = Extract<
+type Objects = Extract<
   BaseData['searchObjects'],
   { __typename: 'ObjectsSearchResultSet' }
->['stats']
+>
 
-type ObjectsFacets = Omit<ObjectsStats, 'total' | '__typename'>
+type ObjectsFacets = Omit<Objects['stats'], '__typename'>
 
-type PackagesStats = Extract<
+type Packages = Extract<
   BaseData['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
->['stats']
+>
 
-type PackageFacets = Omit<PackagesStats, 'total' | '__typename'>
+type PackageFacets = Omit<Packages['stats'], '__typename'>
 
-type BaseStats = {
+type Base = {
   [s in 'these' | 'other']: Eff.Either.Either<
-    Eff.Option.Option<ObjectsStats | PackagesStats>,
+    Eff.Option.Option<Objects | Packages>,
     string
   >
 }
@@ -59,10 +59,10 @@ type MaybeEither<A, E> = Eff.Option.Option<Eff.Either.Either<A, E>>
 
 type MaybeEitherSearchContext = MaybeEither<SearchContext, string>
 
-function getBaseStats(
+function getBase(
   baseSearchQuery: SearchUIModel.SearchUIModel['baseSearchQuery'],
   resultType: SearchUIModel.ResultType,
-): MaybeEither<BaseStats, string> {
+): MaybeEither<Base, string> {
   return GQL.fold(baseSearchQuery, {
     data: (d) => {
       const objects = Eff.pipe(d.searchObjects, (r) => {
@@ -72,7 +72,7 @@ function getBaseStats(
           case 'EmptySearchResultSet':
             return Eff.Either.right(Eff.Option.none())
           case 'ObjectsSearchResultSet':
-            return Eff.Either.right(Eff.Option.some(r.stats))
+            return Eff.Either.right(Eff.Option.some(r))
         }
       })
       const packages = Eff.pipe(d.searchPackages, (r) => {
@@ -82,7 +82,7 @@ function getBaseStats(
           case 'EmptySearchResultSet':
             return Eff.Either.right(Eff.Option.none())
           case 'PackagesSearchResultSet':
-            return Eff.Either.right(Eff.Option.some(r.stats))
+            return Eff.Either.right(Eff.Option.some(r))
           default:
             return Eff.absurd<never>(r)
         }
@@ -116,7 +116,7 @@ function getFirstPage(
             return Eff.Either.right({ hits: [], total: 0 })
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
-            return Eff.Either.right({ hits: d.firstPage.hits, total: d.stats.total })
+            return Eff.Either.right({ hits: d.firstPage.hits, total: d.total })
           default:
             return Eff.absurd<never>(d)
         }
@@ -139,27 +139,30 @@ function useSearchContextModel(): MaybeEitherSearchContext {
     () =>
       Eff.pipe(
         Eff.Option.all([
-          getBaseStats(model.baseSearchQuery, resultType),
+          getBase(model.baseSearchQuery, resultType),
           getFirstPage(model.firstPageQuery),
         ]),
-        Eff.Option.map(([baseStatsE, firstPageE]) =>
+        Eff.Option.map(([baseE, firstPageE]) =>
           Eff.Either.gen(function* () {
-            const baseStats = yield* baseStatsE
-            const { these, other } = yield* Eff.Either.all(baseStats)
+            const base = yield* baseE
+            const { these, other } = yield* Eff.Either.all(base)
             const firstPage = yield* firstPageE
             return {
               resultType,
               otherType,
               totalBeforeFilters: Eff.Option.match(these, {
                 onNone: () => 0,
-                onSome: (stats) => stats.total,
+                onSome: ({ total }) => total,
               }),
               totalAfterFilters: firstPage.total,
               totalOther: Eff.Option.match(other, {
                 onNone: () => 0,
-                onSome: (stats) => stats.total,
+                onSome: ({ total }) => total,
               }),
-              facets: Eff.Option.map(these, ({ __typename, total, ...facets }) => facets),
+              facets: Eff.Option.map(
+                these,
+                ({ stats: { __typename, ...facets } }) => facets,
+              ),
               firstPage: firstPage.hits,
             }
           }),

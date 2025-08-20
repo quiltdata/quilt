@@ -25,6 +25,9 @@ export type containers_Bucket_PackageTree_gql_FileQuery = {
                   'path' | 'metadata' | 'size' | 'physicalKey'
                 >
               >
+              readonly dir: Types.Maybe<
+                { readonly __typename: 'PackageDir' } & Pick<Types.PackageDir, 'path'>
+              >
             }
         >
       }
@@ -132,6 +135,26 @@ export const containers_Bucket_PackageTree_gql_FileDocument = {
                               kind: 'Field',
                               name: { kind: 'Name', value: 'physicalKey' },
                             },
+                          ],
+                        },
+                      },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'dir' },
+                        arguments: [
+                          {
+                            kind: 'Argument',
+                            name: { kind: 'Name', value: 'path' },
+                            value: {
+                              kind: 'Variable',
+                              name: { kind: 'Name', value: 'path' },
+                            },
+                          },
+                        ],
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'path' } },
                           ],
                         },
                       },

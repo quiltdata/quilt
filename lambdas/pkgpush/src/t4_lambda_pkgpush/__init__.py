@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import concurrent.futures
 import contextlib
 import functools
@@ -9,6 +10,7 @@ import os
 import re
 import tempfile
 import typing as T
+import warnings
 
 import boto3
 import botocore.client
@@ -28,7 +30,7 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
-from quilt_shared.const import LAMBDA_READ_TIMEOUT
+from quilt_shared.const import LAMBDA_READ_TIMEOUT, MIN_PART_SIZE
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
@@ -47,6 +49,7 @@ from quilt_shared.pkgpush import (
     S3ObjectDestination,
     S3ObjectSource,
     TopHash,
+    make_scratch_key,
 )
 
 # XXX: use pydantic to manage settings
@@ -62,8 +65,12 @@ S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
 S3_COPY_LAMBDA_CONCURRENCY = int(os.environ["S3_COPY_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
+CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
+
+MAX_LAMBDA_FILE_DESCRIPTORS = 1_000
+LOCAL_HASH_CONCURRENCY = MAX_LAMBDA_FILE_DESCRIPTORS - S3_HASH_LAMBDA_CONCURRENCY
 
 logger = logging.getLogger("quilt-lambda-pkgpush")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
@@ -138,7 +145,44 @@ def calculate_pkg_entry_hash(
     pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
 
 
+def calculate_pkg_entry_hash_local(
+    pkg_entry: quilt3.packages.PackageEntry,
+    s3_client,
+    scratch_buckets: dict[str, str],
+):
+    region = get_bucket_region(pkg_entry.physical_key.bucket)
+    resp = s3_client.copy_object(
+        CopySource=S3ObjectSource.from_pk(pkg_entry.physical_key).boto_args,
+        Bucket=scratch_buckets[region],
+        Key=make_scratch_key(),
+        ChecksumAlgorithm="SHA256",
+        # TODO: make sure we hash the correct object in the case of an unversioned object
+        # CopySourceIfMatch=etag,
+    )
+    checksum_bytes = base64.b64decode(resp["CopyObjectResult"]["ChecksumSHA256"])
+    pkg_entry.hash = (
+        Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)
+    ).dict()
+
+
+@functools.cache
+def get_bucket_region(bucket: str) -> str:
+    """
+    Lookup the region for a given bucket.
+    """
+    try:
+        resp = s3.head_bucket(Bucket=bucket)
+    except botocore.exceptions.ClientError as e:
+        resp = e.response
+        if resp.get("Error", {}).get("Code") == "404":
+            raise
+
+    assert "ResponseMetadata" in resp
+    return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
+
+
 def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
+    entries_local = []
     entries = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
@@ -154,17 +198,33 @@ def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str])
                 },
             )
 
-        entries.append(entry)
+        if not entry.size:
+            entry.hash = (Checksum.empty_sha256_chunked() if CHUNKED_CHECKSUMS else Checksum.empty_sha256()).dict()
+        elif entry.size < MIN_PART_SIZE:
+            entries_local.append(entry)
+        else:
+            entries.append(entry)
 
     # Schedule longer tasks first so we don't end up waiting for a single long task.
+    entries_local.sort(key=lambda entry: entry.size, reverse=True)
     entries.sort(key=lambda entry: entry.size, reverse=True)
+    assert user_boto_session is not None
+    credentials = AWSCredentials.from_boto_session(user_boto_session)
+    user_s3_client = user_boto_session.client(
+        "s3",
+        config=botocore.client.Config(max_pool_connections=LOCAL_HASH_CONCURRENCY),
+    )
+
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
-    ) as pool:
-        credentials = AWSCredentials.from_boto_session(user_boto_session)
+    ) as pool, concurrent.futures.ThreadPoolExecutor(max_workers=LOCAL_HASH_CONCURRENCY) as local_pool:
         fs = [
             pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
             for entry in entries
+        ]
+        fs += [
+            local_pool.submit(calculate_pkg_entry_hash_local, entry, user_s3_client, scratch_buckets)
+            for entry in entries_local
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
@@ -363,6 +423,10 @@ def _push_pkg_to_successor(
         else:
             pkg.set_meta(params.user_meta)
 
+        dest = None
+        if copy_data and params.dest_prefix is not None:
+            dest = f"{dst_registry_url}/{params.dest_prefix}/{params.name}"
+
         # We use _push() instead of push() for print_info=False
         # to prevent unneeded ListObjects calls during generation of
         # shortened revision hash.
@@ -374,6 +438,7 @@ def _push_pkg_to_successor(
             selector_fn=None if copy_data else lambda *_: False,
             print_info=False,
             dedupe=False,
+            dest=dest,
             # TODO: we use force=True to keep the existing behavior,
             #       but it should be re-considered.
             force=True,
@@ -615,6 +680,20 @@ def package_prefix_sqs(event, context):
         package_prefix(record["body"], context)
 
 
+def list_prefix_latest_versions(bucket: str, prefix: str):
+    paginator = s3.get_paginator("list_object_versions")
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for obj in page.get("Versions", []):
+            if not obj["IsLatest"]:
+                continue
+            key = obj["Key"]
+            if key.endswith("/"):
+                if obj["Size"] != 0:
+                    warnings.warn(f'Logical keys cannot end in "/", skipping: {key}')
+                continue
+            yield obj
+
+
 def package_prefix(event, context):
     params = PackagerEvent.parse_raw(event)
 
@@ -635,28 +714,29 @@ def package_prefix(event, context):
     setup_user_boto_session_from_default()
 
     pkg = quilt3.Package()
-    pkg.set_dir(".", str(prefix_pk), meta=metadata)
-    # TODO: check while listing objects
-    size_to_hash = 0
-    for i, (_, pkg_entry) in enumerate(pkg.walk()):
-        if i > MAX_FILES_TO_HASH:
-            raise PkgpushException(
-                "TooManyFilesToHash",
-                {
-                    "num_files": i,
-                    "max_files": MAX_FILES_TO_HASH,
-                },
-            )
-        assert isinstance(pkg_entry.size, int)
-        size_to_hash += pkg_entry.size
-        if size_to_hash > MAX_BYTES_TO_HASH:
-            raise PkgpushException(
-                "PackageTooLargeToHash",
-                {
-                    "size": size_to_hash,
-                    "max_size": MAX_BYTES_TO_HASH,
-                },
-            )
+
+    prefix_len = len(prefix_pk.path)
+
+    for obj in list_prefix_latest_versions(prefix_pk.bucket, prefix_pk.path):
+        key = obj["Key"]
+        size = obj["Size"]
+        entry = quilt3.packages.PackageEntry(
+            PhysicalKey(prefix_pk.bucket, key, obj.get("VersionId")),
+            size,
+            None,
+            None,
+        )
+        pkg.set(key[prefix_len:], entry)
+        # XXX: We know checksum algorithm here, so if it's sha256,
+        #      we can be sure there's compliant checksum in S3 for single-part objects.
+        #      We could replace copy_object with head_object in calculate_pkg_entry_hash_local.
+        #      * head_object call takes 70 msec
+        #      * copy_object time depends on file size:
+        #        * 8 MB - 350 msec
+        #        * 1 B - 35 msec
+        #        * it looks like copy_object is slower than head_object for objects >= 16 KiB
+
+    pkg.set_meta(metadata)
     pkg._validate_with_workflow(
         registry=package_registry,
         workflow=params.workflow_normalized,

@@ -2,9 +2,7 @@ query ($buckets: [String!]!, $filter: PackagesSearchFilter!) {
   searchPackages(buckets: $buckets, filter: $filter, latestOnly: true) {
     __typename
     ... on PackagesSearchResultSet {
-      stats {
-        total
-      }
+      total
     }
     ... on InvalidInput {
       errors {

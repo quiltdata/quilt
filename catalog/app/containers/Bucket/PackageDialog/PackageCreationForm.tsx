@@ -337,7 +337,7 @@ function PackageCreationForm({
       uploadedEntries = await uploads.upload({
         files: toUpload,
         bucket: successor.slug,
-        prefix: name,
+        getCanonicalKey: (path) => s3paths.canonicalKey(name, path, cfg.packageRoot),
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {

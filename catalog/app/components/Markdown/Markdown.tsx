@@ -127,44 +127,37 @@ const checkboxHandler = (md: Remarkable.Remarkable) => {
 
 type AttributeProcessor = (attr: string) => string
 
-function handleImage(process: AttributeProcessor, element: Element): Element {
+function handleImage(process: AttributeProcessor, element: Element) {
   const attributeValue = element.getAttribute('src')
-  if (!attributeValue) return element
-  const result = process(attributeValue)
-  element.setAttribute('src', result)
+  if (!attributeValue) return
+
+  element.setAttribute('src', process(attributeValue))
 
   const alt = element.getAttribute('alt')
   if (alt) {
     element.setAttribute('alt', unescapeMd(alt))
   }
-
-  return element
 }
 
-function handleLink(process: AttributeProcessor, element: HTMLElement): Element {
+function handleLink(process: AttributeProcessor, element: HTMLElement) {
   const attributeValue = element.getAttribute('href')
-  if (typeof attributeValue !== 'string') return element
-  const result = process(attributeValue)
-  element.setAttribute('href', result)
+  if (typeof attributeValue !== 'string') return
+
+  element.setAttribute('href', process(attributeValue))
 
   const rel = element.getAttribute('rel')
   element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
-
-  return element
 }
 
-function htmlHandler(
-  processLink?: AttributeProcessor,
-  processImage?: AttributeProcessor,
-) {
-  return (currentNode: Element): Element => {
+const htmlHandler =
+  (processLink?: AttributeProcessor, processImage?: AttributeProcessor) =>
+  (currentNode: Element) => {
     const element = currentNode as HTMLElement
     const tagName = currentNode.tagName?.toUpperCase()
-    if (processLink && tagName === 'A') return handleLink(processLink, element)
-    if (processImage && tagName === 'IMG') return handleImage(processImage, element)
-    return currentNode
+
+    if (processLink && tagName === 'A') handleLink(processLink, element)
+    else if (processImage && tagName === 'IMG') handleImage(processImage, element)
   }
-}
 
 interface RendererArgs {
   processImg?: AttributeProcessor
@@ -180,8 +173,11 @@ export const getRenderer = memoize(
       typographer: true,
     }).use(linkify)
     md.use(checkboxHandler)
-    const purify = createDOMPurify(win)
-    purify.addHook('uponSanitizeElement', htmlHandler(processLink, processImg))
+    const purify = createDOMPurify(win as $TSFixMe)
+    purify.addHook(
+      'uponSanitizeElement',
+      htmlHandler(processLink, processImg) as $TSFixMe,
+    )
     return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
   },
 )

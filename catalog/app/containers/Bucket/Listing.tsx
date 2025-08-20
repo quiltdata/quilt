@@ -938,6 +938,7 @@ const useStyles = M.makeStyles((t) => ({
     border: 'none',
 
     '& .MuiDataGrid-overlay': {
+      alignSelf: 'stretch',
       background: fade(t.palette.background.paper, 0.5),
       zIndex: 1,
     },
