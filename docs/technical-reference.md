@@ -208,24 +208,28 @@ Note the comma after the object. Your trust relationship should now look somethi
 }
 ```
 
-You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
+You can now configure a Quilt Role with this role (using the Catalog's Admin panel, or `quilt3.admin.create_role`).
 
 ### ManagedUserRoleExtraPolicies
 
 The `ManagedUserRoleExtraPolicies` parameter allows you to add additional IAM
 policies to the managed user role. This is useful for granting additional
 permissions to users in your Quilt instance, which otherwise would be blocked by
-the permission boundary. Note that you will have to create and add the
-appropriate IAM policy first, then copy it here so it isn't blocked by the
-permission boundary.
+the permission boundary. 
 
-Go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
+This parameter works in conjunction with Quilt role configuration in the Admin panel.
+You need to:
+1. Create the appropriate IAM policy
+2. Add it to `ManagedUserRoleExtraPolicies` (this step)
+3. Create a Quilt role in the Admin panel that uses the managed user role (Source=Quilt)
+
+In the AWS Console, go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
 and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
 at the bottom of the page:
 
 ![](imgs/ManagedUserRoleExtraPolicies.png)
 
-If there is more than one policy, separate the ARNs with commas.
+This parameter accepts a comma-separated list of policy ARNs.
 
 ### S3 buckets with Service-Side Encryption using Key Management Service (SSE-KMS)
 
@@ -316,7 +320,7 @@ that gives a Quilt role access to the keys for specific buckets, e.g:
 }
 ```
 
-You can now create a Quilt Policy from this policy using the Catalog's admin panel.
+You can now create a Quilt Policy from this policy using the Catalog's Admin panel.
 Afterwards, you can attach that Policy to a user-defined Quilt Role
 (which has Source=Quilt in the Roles panel, 
 as opposed to system-defined Source=Custom Roles).
