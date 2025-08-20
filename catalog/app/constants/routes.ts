@@ -75,9 +75,18 @@ export const uriResolver = route(
   (uri: string) => `/uri/${uri ? encodeURIComponent(uri) : ''}`,
 )
 
+export const redir = route(
+  '/redir/:uri(.*)',
+  (uri: string) => `/redir/${uri ? encodeURIComponent(uri) : ''}`,
+)
+
+export type RedirArgs = Parameters<typeof redir.url>
+
 // Bucket
 export const bucketRoot = route('/b/:bucket', (bucket: string) => `/b/${bucket}`)
 export const bucketOverview = bucketRoot
+
+export type BucketOverviewArgs = Parameters<typeof bucketOverview.url>
 
 // redirects to global search
 export const bucketSearch = route(
@@ -156,15 +165,21 @@ export const bucketPackageRevisions = route(
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
 )
 
+export type BucketPackageRevisionsArgs = Parameters<typeof bucketPackageRevisions.url>
+
 export const bucketQueries = route(
   '/b/:bucket/queries',
   (bucket: string) => `/b/${bucket}/queries`,
 )
 
+export type BucketQueriesArgs = Parameters<typeof bucketQueries.url>
+
 export const bucketESQueries = route(
   '/b/:bucket/queries/es',
   (bucket: string) => `/b/${bucket}/queries/es`,
 )
+
+export type BucketESQueriesArgs = Parameters<typeof bucketESQueries.url>
 
 export const bucketAthena = route(
   '/b/:bucket/queries/athena',
@@ -187,10 +202,14 @@ export const bucketWorkflowList = route(
   (bucket: string) => `/b/${bucket}/workflows/`,
 )
 
+export type BucketWorkflowListArgs = Parameters<typeof bucketWorkflowList.url>
+
 export const bucketWorkflowDetail = route(
   '/b/:bucket/workflows/:slug',
   (bucket: string, workflow: string) => `/b/${bucket}/workflows/${workflow}`,
 )
+
+export type BucketWorkflowDetailArgs = Parameters<typeof bucketWorkflowDetail.url>
 
 // Legacy stuff
 export const legacyPackages = route(

@@ -22,6 +22,7 @@ interface DrainObjectListParams {
   delimiter?: string
   continuationToken?: string
   maxRequests: number
+  maxKeys?: number
 }
 
 const drainObjectList = async ({
@@ -31,6 +32,7 @@ const drainObjectList = async ({
   delimiter,
   continuationToken,
   maxRequests,
+  maxKeys,
 }: DrainObjectListParams) => {
   let reqNo = 0
   let Contents: S3.Object[] = []
@@ -46,6 +48,7 @@ const drainObjectList = async ({
         Prefix: prefix,
         ContinuationToken: ContinuationToken || continuationToken,
         EncodingType: 'url',
+        MaxKeys: maxKeys,
       })
       .promise()
     Contents = Contents.concat(r.Contents || [])
@@ -86,6 +89,7 @@ interface BucketListingParams {
   prev?: BucketListingResult
   delimiter?: string | false
   drain?: true | number
+  maxKeys?: number
 }
 
 export const bucketListing = async ({
@@ -96,6 +100,7 @@ export const bucketListing = async ({
   prev,
   delimiter = '/',
   drain = 0,
+  maxKeys = undefined,
 }: BucketListingParams & BucketListingDependencies): Promise<BucketListingResult> =>
   drainObjectList({
     s3,
@@ -104,6 +109,7 @@ export const bucketListing = async ({
     delimiter: delimiter === false ? undefined : delimiter,
     continuationToken: prev ? prev.continuationToken : undefined,
     maxRequests: drain === true ? DEFAULT_DRAIN_REQUESTS : drain,
+    maxKeys,
   })
     .then((res) => {
       let dirs = (res.CommonPrefixes || [])

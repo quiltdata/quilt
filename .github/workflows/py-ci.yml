@@ -10,7 +10,7 @@ jobs:
   linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -28,7 +28,7 @@ jobs:
   isort:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -45,7 +45,7 @@ jobs:
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           # on newer versions it crashes with
@@ -70,7 +70,7 @@ jobs:
       run:
         working-directory: testdocs
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -92,7 +92,7 @@ jobs:
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -135,7 +135,7 @@ jobs:
       run:
         working-directory: api/python
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -161,7 +161,9 @@ jobs:
       matrix:
         path:
           - access_counts
+          - es_ingest
           - indexer
+          - manifest_indexer
           - pkgevents
           - pkgpush
           - preview
@@ -177,10 +179,16 @@ jobs:
       PYTHONPATH: deps
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version-file: lambdas/${{ matrix.path }}/.python-version
+      - uses: astral-sh/setup-uv@v6
+      - name: Export requirements.txt from uv.lock
+        if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
+        run: |
+          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} -o requirements.txt
+          uv export --locked --no-emit-project --no-hashes --directory lambdas/${{ matrix.path }} --only-group test -o test-requirements.txt
       - name: Install dependencies
         run: |
           if [ ${{ matrix.path }} == "thumbnail" ]
@@ -203,7 +211,7 @@ jobs:
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
       - name: Pytest
         run: |
-          pytest --cov=lambdas lambdas/${{ matrix.path }}
+          python -m pytest --cov=lambdas lambdas/${{ matrix.path }}
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

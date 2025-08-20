@@ -1,4 +1,4 @@
-import * as S from '@effect/schema/Schema'
+import { Schema as S } from 'effect'
 
 import SearchRoute from 'containers/Search/Route'
 import * as SearchModel from 'containers/Search/model'

@@ -1,5 +1,4 @@
 // XXX: remove once embed is converted to use GQL search
-import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -11,8 +10,6 @@ import mkSearch from 'utils/mkSearch'
 export class SearchError extends BaseError {}
 
 const parseDate = (d) => d && new Date(d)
-
-const PACKAGES_SUFFIX = '_packages'
 
 /*
 File: {
@@ -32,29 +29,15 @@ File: {
     },
   ],
 }
-
-Package: {
-  key: str,
-  type: 'package',
-  score: num,
-  bucket: str,
-  handle: str,
-  hash: str,
-  lastModified: ?Date,
-  meta: str, // should it be parsed?
-}
 */
 
-const getTypeAndBucketFromIndex = (idx) => {
+const getBucketFromIndex = (idx) => {
   const i = idx.lastIndexOf('-reindex-')
-  const idxNormalized = i === -1 ? idx : idx.slice(0, i)
-  const suffixIdx = idxNormalized.lastIndexOf(PACKAGES_SUFFIX)
-  return suffixIdx === -1
-    ? { type: 'object', bucket: idxNormalized }
-    : { type: 'package', bucket: idxNormalized.slice(0, suffixIdx) }
+  return i === -1 ? idx : idx.slice(0, i)
 }
 
-const extractObjData = ({ bucket, score, src }) => {
+const extractData = ({ _score: score, _source: src, _index: idx }) => {
+  const bucket = getBucketFromIndex(idx)
   const key = `object:${bucket}/${src.key}`
   return {
     [key]: {
@@ -76,39 +59,6 @@ const extractObjData = ({ bucket, score, src }) => {
       ],
     },
   }
-}
-
-const parseJSON = (s) => {
-  try {
-    return JSON.parse(s)
-  } catch (e) {
-    return s
-  }
-}
-
-const extractPkgData = ({ bucket, score, src }) => {
-  if (src.delete_marker || !src.hash) return {}
-  const key = `package:${bucket}/${src.handle}:${src.hash}`
-  return {
-    [key]: {
-      key,
-      type: 'package',
-      bucket,
-      score,
-      handle: src.handle,
-      hash: src.hash,
-      lastModified: parseDate(src.last_modified),
-      meta: parseJSON(src.metadata),
-      // tags: src.tags, // TODO: currently not provided
-      comment: src.comment,
-    },
-  }
-}
-
-const extractData = ({ _score: score, _source: src, _index: idx }) => {
-  const { type, bucket } = getTypeAndBucketFromIndex(idx)
-  const extract = type === 'object' ? extractObjData : extractPkgData
-  return extract({ bucket, score, src })
 }
 
 const takeR = (_l, r) => r
@@ -142,26 +92,8 @@ export default function useSearch() {
   )
 
   return React.useCallback(
-    async ({
-      query,
-      buckets = [],
-      mode = 'all', // all | objects | packages
-      retry,
-    }) => {
-      const index = FP.function.pipe(
-        buckets.length ? buckets : allBuckets,
-        R.chain((b) => {
-          const idxs = []
-          if (mode === 'objects' || mode === 'all') {
-            idxs.push(b)
-          }
-          if (mode === 'packages' || mode === 'all') {
-            idxs.push(`${b}${PACKAGES_SUFFIX}`)
-          }
-          return idxs
-        }),
-        R.join(','),
-      )
+    async ({ query, buckets = [], retry }) => {
+      const index = (buckets.length ? buckets : allBuckets).join(',')
       try {
         const qs = mkSearch({ index, action: 'search', query, retry })
         const result = await req(`/search${qs}`)

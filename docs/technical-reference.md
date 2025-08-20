@@ -1,115 +1,13 @@
 <!-- markdownlint-disable -->
-# Run Quilt in Your AWS Account
-Quilt is a data mesh that verifies the integrity of your data so that teams can
-find, understand, and file discoveries based on data of any size or in any format.
+# Enterprise Administration
 
-A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
+This document covers advanced configuration and administration for Quilt Enterprise installations.
 
-## Help and Advice
+> For installation instructions, see [Installation](Installation.md).
+> For architecture details, see [Architecture](Architecture.md).
 
-We encourage users to contact us before deploying Quilt.
-We will make sure that you have the latest version of Quilt,
-and walk you through the CloudFormation deployment.
+## Health and Monitoring
 
-We recommend that all users do one or more of the following:
-* [Schedule a Quilt engineer](https://calendly.com/d/g6f-vnd-qf3/engineering-team)
-to guide you through the installation
-
-* [Join Quilt on Slack](https://slack.quiltdata.com/) to ask questions and
-connect with other users
-
-* [Email Quilt](mailto:contact@quiltdata.io)
-
-## Architecture
-
-Each instance consists of a CloudFormation stack that is privately hosted in your 
-AWS account. The stack includes backend services for the web catalog, single sign-on,
-user identification and access, an ElasticSearch cluster, and more.
-
-Quilt uses subnets and security groups to isolate network services and runs key
-services within the VPC.
-
-A private stack with an inward load balancer is shown below.
-
-![Architecture (private ELBv2)](imgs/network_private.png)
-
-For an internet-facing load balancer the data plane remains the same, as shown below.
-
-![Architecture (public ELBv2)](imgs/network_public.png)
-
-### Network
-
-You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
-create its own network.
-
-> If you provide the subnets you may choose to reuse subnets across parameters.
-> For example you can use the same subnets for the Private and User subnet parameters.
-
-You may optionally provide your own VPC CIDR block
-if the default block of 10.0.0.0/16 conflicts with shared or
-peered VPC services. We recommend a CIDR block no smaller than /24 (256 addresses)
-for production, multi-AZ deployments. Larger CIDR blocks are easier to upgrade to
-new Quilt versions with expanded services.
-
-> For cost-sensitive deployments, Quilt ECS services can be configured to use
-> a single AZ.
-
-> You may use a combination of interface endpoints and gateway endpoints to
-> restrict the data plane traffic shown above to your VPC.
-> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
-
-#### Production, multi-AZ subnet division for private ELBv2 (you provide the network)
-
-| Type       | AZ | Description            | Services | IPs needed† |
-|------------|----|------------------------|----------|--------------|
-| Private    | a  | Routes to Internet     | ECS, Lambda | 32 |
-| Private    | b  | " | " | 32 |
-| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 32 |
-| Intra      | b  | " | " | 32 |
-| User       | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 16 |
-| User       | b  | " | " | 16 |
-
-> \* One IP per master node, one IP per data node
-
-> †  Includes 5 IPs for AWS (network, routing, DNS, reserved, broadcast) plus room
-> for new services in future updates.
-
-Below are the subnet configurations and sizes for Quilt version 2.0 networks,
-new as of June 2023. The configuration is similar to the
-[AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
-
-#### Subnet division when Quilt creates the VPC
-
-- 2 public subnets for NAT gateways and an internet-facing application load balancer
-(1/4 the VPC CIDR)
-- 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
-application load balancer
-(1/2 of the VPC CIDR)
-- 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
-OpenSearch domain
-(1/8 of the VPC CIDR)
-- Unused (1/8 of the VPC CIDR)
-
-### Sizing
-The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
-
-### Elasticsearch Service Configuration
-By default, Quilt configures an Elasticsearch cluster with 3 master nodes and 2 data nodes. Please contact the Quilt support team before adjusting the size and configuration of your cluster to avoid disruption.
-
-### Cost
-The infrastructure costs of running a Quilt stack vary with usage. Baseline infrastructure costs start at $620 and go up from there. See below for a breakdown of baseline costs for `us-east-1` at 744 hours per month.
-
-| Service  | Cost |
-| ------------- | ------------- |
-| Elasticsearch Service | $516.83 |
-| RDS  | $75.56 |
-| ECS (Fargate) | $26.64 |
-| Lambda | Variable |
-| CloudTrail | Variable |
-| Athena | Variable |
-| **Total** | **$619.03 + Variable Costs** |
-
-### Health and Monitoring
 To check the status of your Quilt stack after bring-up or update, check the stack health in the CloudFormation console.
 
 ### Elasticsearch Cluster
@@ -125,242 +23,6 @@ This deployment does not require an increase in limits for your AWS Account.
 ### External Dependencies
 In addition to containers running in Fargate, Quilt includes a set of AWS Lambda functions. These lambda functions are not scanned by AWS Marketplace. The [code for the lambda functions](https://github.com/quiltdata/quilt/tree/master/lambdas) is open-source and has been verified through an independent security audit.
 
-## Requirements and Prerequisites
-
-### Knowledge Requirements
-Running Quilt requires working knowledge of [AWS CloudFormation](https://aws.amazon.com/cloudformation/), [AWS S3](https://aws.amazon.com/s3/) and [Elasticsearch Service](https://aws.amazon.com/elasticsearch-service/).
-
-### Before you install Quilt
-
-You will need the following:
-
-1. **An AWS account**.
-    1. **The service-linked role for Elasticsearch**
-    > This role is not created automatically when you use Cloudformation or other
-    > APIs.
-
-    You can create the role as follows:
-        ```
-        aws iam create-service-linked-role --aws-service-name es.amazonaws.com
-        ```
-1. **IAM Permissions** to create the CloudFormation stack (or Add products in
-Service Catalog).
-    1. You may choose to use a
-    [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
-    for stack creation and updates.
-    1. Refer to this [example service role](./cfn-service-role.yaml)
-    and modify as needed to fit your use case.
-
-    > Ensure that your service role is up-to-date with the example before every stack
-    update so as to prevent installation failures.
-
-1. The **ability to create DNS entries**, such as CNAME records,
-for your company's domain.
-1. **An SSL certificate in the same region as your Quilt instance** to secure the domain where your users will access your Quilt instance.
-    1. For example, to make your Quilt catalog available at `https://quilt.mycompany.com`,
-    you require a certificate for either `*.mycompany.com` *or* for the following 3 domains:
-    `quilt.mycompany.com`, `quilt-registry.mycompany.com` and `quilt-s3-proxy.mycompany.com`
-    in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/). 
-    1. You may either [create a new certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html), or
-    [import an existing certificate](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
-    1. The ARN for this certificate or set of certificates is required for use as the `CertificateArnELB` CloudFormation parameter.
-1. For maximum security, Quilt requires **a region that supports
-[AWS
-Fargate](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)**.
-As of this writing, all U.S. regions support Fargate.
-1. **An S3 Bucket** for your team data. This may be a new or existing
-bucket. The bucket should not have any notifications attached to
-it (`S3 Console > Bucket > Properties > Events`). Quilt will need
-to install its own notifications. Installing Quilt will modify the
-following Bucket characteristics:
-    1. Permissions > CORS configuration (will be modified for secure web access).
-    1. Properties > Object-level logging (will be enabled).
-    1. Properties > Events (will add one notification).
-
-    > Buckets in Quilt may choose to enable versioning or disable versioning.
-    **It is strongly recommended that you keep versioning either on or off during the entire lifetime
-    of the bucket**. Toggling versioning on and off incurs edge cases that may cause
-    bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
-    of `ObjectRemoved:DeleteMarkerCreated`.
-
-1. Available **CloudTrail Trails** in the region where you wish to host your stack
-([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
-1. A license key or an active subscription to Quilt Business on AWS Marketplace. 
-    1. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to
-    subscribe then return to this page for installation instructions.
-    1. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
-
-### AWS Marketplace
-
-You can install Quilt via AWS Marketplace. As indicated above, we
-recommend that you [contact us first](#installation-instructions).
-
-### AWS Service Catalog
-
-1. Email [contact@quiltdata.io](mailto:contact@quiltdata.io)
-with your AWS account ID to request access to Quilt through the 
-AWS Service Catalog and to obtain a license key.
-1. Click the service catalog link that you received from Quilt. Arrive at the Service Catalog.
-Click IMPORT, lower right.
-
-    ![](./imgs/import.png)
-
-1. Navigate to Admin > Portfolios list > Imported Portfolios. Click Quilt Enterprise.
-
-    ![](./imgs/portfolio.png)
-
-1. On the Portfolio details page, click ADD USER, GROUP OR ROLE. Add any users,
-**including yourself**, whom you would like to be able to install Quilt.
-
-    ![](./imgs/portfolio-users.png)
-
-1. Click Products list, upper left. Click the menu to the left of Quilt CloudFormation
-Template. Click Launch product. (In the future, use the same menu to upgrade
-Quilt when a new version is released.)
-
-    ![](./imgs/products-list.png)
-
-1. Continue to the [CloudFormation](#CloudFormation) section.
-Note: the following screenshots may differ slightly fromm what
-you see in Service Catalog.
-
-### CloudFormation
-
-You can perform stack update and creation with the AWS Console, AWS CLI,
-Terraform, or other means.
-
-In all cases it is **highly recommended** that you set the `--on-failure` policy
-to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
-In the AWS Console this option appears under the phrase "Stack failure options."
-
-1. Specify stack details in the form of a stack _name_ and CloudFormation
-_parameters_. Refer to the descriptions displayed above each
-text box for further details. Service Catalog users require a license key. See
-[Before you install Quilt](#before-you-install-quilt) for how to obtain a license key.
-
-    ![](./imgs/stack-details.png)
-
-1. If you wish to use a service role, specify it as follows:
-
-    ![](./imgs/service-role.png)
-
-1. Service Catalog users, skip this step. Under Stack creation
-options, enable termination protection. This protects the stack
-from accidental deletion. Click Next.
-
-    ![](./imgs/term_protect.png)
-
-1. Service Catalog users, skip this step. Check the box asking you
-to acknowledge that CloudFormation may create IAM roles, then click
-Create.
-
-    ![](./imgs/finish.png)
-
-1. CloudFormation may take between 30 and 90 minutes to create your stack.
-You can monitor progress under Events. On completion you will see `CREATE_COMPLETE`.
-
-    ![](./imgs/events.png)
-
-1. To finish the installation, you will want to view the stack Outputs.
-
-    ![](./imgs/outputs.png)
-
-### CNAMEs
-
-In order for your users to reach the Quilt catalog you must set three CNAMEs
-that point to the `LoadBalancerDNSName` as shown below and in the Outputs
-of your stack.
-
-| CNAME | Value |
-| ------ | ------- |
-| `<QuiltWebHost>` Key  | `LoadBalancerDNSName` | 
-| `<RegistryHostName>` Key  | `LoadBalancerDNSName` |
-| `<S3ProxyHost>` Key  | `LoadBalancerDNSName` | 
-
-Quilt is now up and running. You can click on the _QuiltWebHost_ value
-in Outputs and log in with your administrator password to invite users.
-
-### Terraform
-
-Refer to the [`quilt` module](https://github.com/quiltdata/iac) for guidance.
-
-## Routine Maintenance and Upgrades
-
-Releases are sent to customers over email. We recommend that you apply new releases
-as soon as possible to benefit from the latest security updates and features.
-
-### CloudFormation updates
-
-To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console as follows.
-
-> By default, previous parameter values carry over.
-
-1. Navigate to AWS Console > CloudFormation > Stacks
-1. Select your Quilt stack
-1. Click Update (upper right)
-1. Choose Replace current template
-1. Enter the Amazon S3 URL for your template
-1. Click Next (several times) and proceed to apply the update
-
-### Terraform updates
-
-> See above.
-
-## Upgrading from network 1.0 to network 2.0
-
-Upgrading to the Quilt 2.0 network configuration provides improved security by means
-of isolated subnets and a preference for private routing.
-
-An upgrade the 2.0 network, unlike routine Quilt upgrades, requires you to create
-a new stack with a new load balancer. You must therefore also update your
-[CNAMEs](#cnames) to point to the new load balancer.
-
-## Create a new stack with an existing configuration
-
-Terraform users can create a new Quilt stack with the same configuration as an existing
-stack. This is typically useful when upgrading to the 2.0 network.
-
-> _Configuration_ refers to the Quilt stack buckets, roles, policies,
-> and other administrative settings, all of which are stored in RDS.
-
-Perform the following steps:
-
-1. Contact your Quilt account manager for a template that supports Terraform.
-
-1. Take a manual snapshot of the current Quilt database instance. For an existing
-Quilt stack this resource has the logical ID "DB". Note the snapshot identifier
-("Snapshot name" in the AWS Console, `DBSnapshotIdentifier` in the following
-AWS CLI command):
-
-    <!--pytest.mark.skip-->
-    ```sh
-    aws rds describe-db-snapshots
-    ```
-
-    > Be sure to take a _manual_ snapshot. Do not rely on automatic snapshots,
-    > which are deleted when the parent stack is deleted.
-
-1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac)
-to your new template and provide the snapshot identifier to the
-`db_snapshot_identifier=` argument.
-
-    > You must use a Quilt CloudFormation template that supports an existing database,
-    > existing search domain, and existing vpc in order for the terraform modules to
-    > function properly.
-
-1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
-Verify that the new stack is working as desired. Delete the old stack.
-
-## Security
-
-All customer data and metadata in Quilt is stored in S3. It may also be cached in Elasticsearch Service (show in red in the diagram below). No other services in the Quilt stack store customer data.
-
-![](imgs/aws-diagram-customer-data.png)
-
-We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) and [Elasticsearch Service encryption at rest](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html) to provide maximum protection.
-
-User email addresses are stored by the Identity Service in RDS Postgres (part of the Quilt stack). User email addresses are also sent through an encrypted channel to the customer support messaging system ([Intercom](https://www.intercom.com/)).
-
 ## Advanced configuration
 
 The default Quilt settings are adequate for most use cases. The following section
@@ -372,7 +34,6 @@ covers advanced customization options.
 users to be able to sign up.
 
 ![](imgs/default-role.png)
-
 
 ## Single sign-on (SSO)
 
@@ -418,7 +79,6 @@ for further details.
 1. Copy the `Application (client) ID`, `Client secret Value`, and
 `AzureBaseUrl` to a safe place.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
-
 
 ### Okta
 
@@ -709,7 +369,7 @@ Quilt guarantees response to support issues according to the following SLAs for 
 inoperable;
 *	*Priority 2* means a problem with the Software in which the Software is
 severely limited or degraded, major functions are not performing properly, and
-the situation is causing a significant impact to Customer’s operations or
+the situation is causing a significant impact to Customer's operations or
 productivity;
 *	*Priority 3* means a minor or cosmetic problem with the Software in which any of the following occur: the problem is an irritant, affects nonessential
 functions, or has minimal impact to business operations; the problem is
