@@ -251,5 +251,6 @@ enforces limits on number of files and their total size when calling the
 Packaging Engine directly. The updated engine accepts arbitrarily large
 requests, though some may still fail due to timeouts.
 
-If a packaging operation fails, please review the
-PackagerLambdaLogGroup logs in CloudWatch to determine whether a timeout occurred.
+If a packaging operation fails, please review the logs for the packaging Lambda
+function in CloudWatch (log group name follows the pattern
+`/quilt/<stack-name>/PackagerLambda`) to determine whether a timeout occurred.
