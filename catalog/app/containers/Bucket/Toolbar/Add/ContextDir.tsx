@@ -14,10 +14,7 @@ import * as FI from '../../PackageDialog/FilesInput'
 import type { DirHandle } from '../types'
 
 interface AddDirActions {
-  // File creation
   createFile: () => void
-
-  // Upload files
   openUploadDialog: () => void
 }
 
@@ -29,21 +26,9 @@ export function useAddDirActions(): AddDirActions {
   return context
 }
 
-const totalProgress = {
-  total: 0,
-  loaded: 0,
-  percent: 0,
-}
-
-const INITIAL = {
-  added: {},
-  deleted: {},
-  existing: {},
-}
-
 interface LocalEntry {
-  path: string
   file: FI.LocalFile
+  path: string
 }
 
 const useUploadDialogStyles = M.makeStyles((t) => ({
@@ -55,23 +40,24 @@ const useUploadDialogStyles = M.makeStyles((t) => ({
 
 interface UploadDialogProps {
   handle: DirHandle
-  initial: FI.FilesState
+  initial?: FI.FilesState['added']
   onClose: () => void
 }
 
-function UploadDialog({ handle, initial, onClose }: UploadDialogProps) {
-  // TODO: use value.added only
-  //       alwayse keep {existing: {}, removing: {}} empty
-  //       input = useMemo({value: {added, existing:{}, removed: {}}, onChange})
-  const [value, onChange] = React.useState<FI.FilesState>(initial)
+export function UploadDialog({ handle, initial = {}, onClose }: UploadDialogProps) {
+  const [value, setValue] = React.useState<FI.FilesState['added']>(initial)
   const classes = useUploadDialogStyles()
 
-  const [meta, setMeta] = React.useState(() => ({ initial, submitting: false }))
-  React.useEffect(() => {
-    setMeta((m) => ({ ...m, initial }))
-  }, [initial])
+  const [submitting, setSubmitting] = React.useState(false)
+  const meta = React.useMemo(
+    () => ({
+      initial: { added: initial, existing: {}, deleted: {} },
+      submitting,
+    }),
+    [initial, submitting],
+  )
 
-  const { remove, removeByPrefix, reset, upload } = useUploads()
+  const { progress, remove, removeByPrefix, reset, upload } = useUploads()
   const onFilesAction = React.useMemo(
     () =>
       FI.FilesAction.match({
@@ -84,9 +70,9 @@ function UploadDialog({ handle, initial, onClose }: UploadDialogProps) {
   )
 
   const onUpload = React.useCallback(async () => {
-    setMeta((m) => ({ ...m, submitting: true }))
+    setSubmitting(true)
 
-    const files = Object.entries(value.added).map(
+    const files = Object.entries(value).map(
       ([path, file]) => ({ path, file }) as LocalEntry,
     )
     try {
@@ -103,20 +89,28 @@ function UploadDialog({ handle, initial, onClose }: UploadDialogProps) {
       Log.error(e)
     }
 
-    setMeta((m) => ({ ...m, submitting: false }))
+    setSubmitting(false)
     onClose()
   }, [onClose, value, handle, upload])
+
+  const input = React.useMemo(
+    () => ({
+      value: { added: initial, existing: {}, deleted: {} },
+      onChange: ({ added }: FI.FilesState) => setValue(added),
+    }),
+    [initial, setValue],
+  )
 
   return (
     <>
       <M.DialogContent>
         <FI.FilesInput
           className={classes.drop}
-          input={{ value, onChange }}
+          input={input}
           meta={meta}
           onFilesAction={onFilesAction}
           title="Upload files"
-          totalProgress={totalProgress}
+          totalProgress={progress}
           validationErrors={null}
         />
       </M.DialogContent>
@@ -151,9 +145,7 @@ export function AddDirProvider({ children, handle }: AddDirProviderProps) {
   }, [prompt])
 
   const openUploadDialog = React.useCallback(() => {
-    dialogs.open(({ close }) => (
-      <UploadDialog handle={handle} initial={INITIAL} onClose={close} />
-    ))
+    dialogs.open(({ close }) => <UploadDialog handle={handle} onClose={close} />)
   }, [dialogs, handle])
 
   const actions = React.useMemo(

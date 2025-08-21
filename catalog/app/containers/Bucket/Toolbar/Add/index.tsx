@@ -9,6 +9,7 @@ import type { DirHandle } from '../types'
 import * as Context from './ContextDir'
 
 export { default as BucketDirOptions } from './BucketDirOptions'
+export { UploadDialog } from './ContextDir'
 
 interface ButtonProps {
   children: NonNullable<React.ReactNode>

@@ -8,13 +8,16 @@ import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
+import * as Dialogs from 'utils/Dialogs'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
 import * as AssistantContext from './DirAssistantContext'
+import DndWrapper from './DndWrapper'
 import * as Listing from './Listing'
+import * as FI from './PackageDialog/FilesInput'
 import * as Selection from './Selection'
 import Summary from './Summary'
 import * as Toolbar from './Toolbar'
@@ -66,28 +69,51 @@ function DirContents({
 
   const items = useFormattedListing(response)
 
+  const dialogs = Dialogs.use()
+  const dirHandle = React.useMemo(
+    () => Toolbar.DirHandleCreate(bucket, path),
+    [bucket, path],
+  )
+
+  const handleDrop = React.useCallback(
+    (files: FI.LocalFile[]) => {
+      const added = files.reduce(
+        (memo, file) => ({
+          ...memo,
+          [file.path || file.name]: file,
+        }),
+        {},
+      )
+      dialogs.open(({ close }) => (
+        <Toolbar.Add.UploadDialog handle={dirHandle} initial={added} onClose={close} />
+      ))
+    },
+    [dialogs, dirHandle],
+  )
+
   // TODO: should prefix filtering affect summary?
   return (
     <>
-      <Listing.Listing
-        items={items}
-        locked={locked}
-        loadMore={loadMore}
-        truncated={response.truncated}
-        prefixFilter={response.prefix}
-        onSelectionChange={onSelection}
-        selection={selection}
-        toolbarContents={
-          <>
+      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
+
+      <DndWrapper handle={dirHandle} disabled={locked} onDrop={handleDrop}>
+        <Listing.Listing
+          items={items}
+          locked={locked}
+          loadMore={loadMore}
+          truncated={response.truncated}
+          prefixFilter={response.prefix}
+          onSelectionChange={onSelection}
+          selection={selection}
+          toolbarContents={
             <Listing.PrefixFilter
               key={`${response.bucket}/${response.path}`}
               prefix={response.prefix}
               setPrefix={setPrefix}
             />
-          </>
-        }
-      />
-      {/* Remove TS workaround when Summary will be converted to .tsx */}
+          }
+        />
+      </DndWrapper>
       {/* @ts-expect-error */}
       <Summary files={response.files} mkUrl={null} path={path} />
     </>
