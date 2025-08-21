@@ -42,16 +42,16 @@ class GraphQLOperationRouter:
         if variables is None:
             variables = {}
             
+        # Extract operation name from query if not provided
+        if not operation_name:
+            operation_name = self._extract_operation_name(query)
+        
         # Record the call for history tracking
         self.call_history.append({
             "query": query,
             "operation_name": operation_name,
             "variables": variables
         })
-        
-        # Extract operation name from query if not provided
-        if not operation_name:
-            operation_name = self._extract_operation_name(query)
         
         if operation_name not in self.responses:
             raise KeyError(f"No mock response configured for operation: {operation_name}")

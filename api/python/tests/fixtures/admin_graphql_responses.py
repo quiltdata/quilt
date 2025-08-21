@@ -320,25 +320,6 @@ def user_mutation_operation_error_response(mutation_name: str) -> dict:
         }
     }
 
-def user_mutation_success_response(mutation_name: str) -> dict:
-    """Generate a success response for a user mutation.
-    
-    Args:
-        mutation_name: The mutation name (e.g., "setEmail", "setAdmin")
-    
-    Returns:
-        Success response dict
-    """
-    return {
-        "admin": {
-            "user": {
-                "mutate": {
-                    mutation_name: USER
-                }
-            }
-        }
-    }
-
 # Comprehensive response collections for easy access
 ALL_USER_OPERATIONS = [
     "usersList", "usersGet", "usersCreate", "usersDelete",
