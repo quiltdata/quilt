@@ -33,4 +33,13 @@ lint-all: lint-deps
 	python -m pylint . || true
 	@echo "Lint complete!"
 
-.PHONY: test install-local lint-deps lint lint-all
+# GraphQL code generation
+graphql-deps:
+	@echo "Installing GraphQL dependencies..."
+	cd quilt3-graphql && pip install -r requirements.txt
+
+graphql-codegen: graphql-deps
+	@echo "Generating GraphQL client code..."
+	cd quilt3-graphql && ariadne-codegen
+
+.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen
