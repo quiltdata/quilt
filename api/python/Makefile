@@ -48,4 +48,14 @@ lint-docs:
 	@cd ../.. && npx --package=markdownlint-cli markdownlint .
 	@echo "Documentation lint complete!"
 
-.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs
+# Documentation generation that mirrors CI test-gendocs job
+gendocs-deps:
+	@echo "Installing documentation generation dependencies..."
+	pip install nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@v2.0.5+quilt3.2
+
+gendocs: gendocs-deps
+	@echo "Generating documentation..."
+	cd ../../gendocs && python build.py
+	@echo "Documentation generation complete!"
+
+.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-deps gendocs
