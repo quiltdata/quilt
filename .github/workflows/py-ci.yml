@@ -20,10 +20,10 @@ jobs:
           python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1'
       - name: Run pylint
         run: |
-          pylint .
+          pylint . --ignore-paths=api/python/quilt3/_graphql_client
       - name: Run pycodestyle
         run: |
-          pycodestyle $(find -name '*.py' -not -path './venv/*')
+          pycodestyle $(find -name '*.py' -not -path './venv/*' -not -path './api/python/quilt3/_graphql_client/*')
 
   isort:
     runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
           python -m pip install isort
       - name: Run isort
         run: |
-          isort --check --diff .
+          isort --check --diff . --skip-glob='api/python/quilt3/_graphql_client/*'
 
   test-gendocs:
     runs-on: ubuntu-latest

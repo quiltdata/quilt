@@ -1,3 +1,6 @@
+[MASTER]
+ignore-paths=quilt3/_graphql_client
+
 [TYPECHECK]
 generated-members=requests.codes.*,responses.*
 
