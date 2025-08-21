@@ -49,5 +49,5 @@ The generated code is placed in `quilt3/_graphql_client/` and includes:
 The admin package imports the generated client:
 
 ```python
-from .._graphql_client import Client, UserInput, etc.
+from .._graphql_client import Client, UserInput, ...
 ```

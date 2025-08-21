@@ -7,6 +7,9 @@ import pytest
 
 from quilt3 import _graphql_client, admin
 
+# Import GraphQL fixtures
+from .graphql_fixtures import graphql_router, mock_admin_client  # noqa: F401
+
 from .fixtures.admin_graphql_responses import (
     INVALID_INPUT_ERROR,
     MANAGED_ROLE,
