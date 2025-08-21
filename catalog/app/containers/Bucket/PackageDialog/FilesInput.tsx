@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import * as Dialog from 'components/Dialog'
 import { MissingSourceBucket } from 'components/FileEditor/HelpLinks'
 import type * as Model from 'model'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import assertNever from 'utils/assertNever'
 import computeFileChecksum from 'utils/checksums'
 import useDragging from 'utils/dragging'
@@ -34,6 +35,297 @@ import * as S3FilePicker from './S3FilePicker'
 
 export { EMPTY_DIR_MARKER, FilesAction } from './FilesState'
 export type { LocalFile, FilesState } from './FilesState'
+
+interface Progress {
+  total: number
+  loaded: number
+  percent: number
+}
+
+interface StatsWarning {
+  upload: boolean
+  s3: boolean
+  count: boolean
+}
+
+interface Stats {
+  upload: { count: number; size: number }
+  s3: { count: number; size: number }
+  hashing: boolean
+  warn: StatsWarning | null
+}
+
+const useStats = ({ added, existing }: FilesState): Stats =>
+  React.useMemo(() => {
+    const upload = Object.entries(added).reduce(
+      (acc, [path, f]) => {
+        if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
+        const e = existing[path]
+        if (e && (!f.hash.ready || R.equals(f.hash.value, e.hash))) return acc
+        return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+      },
+      { count: 0, size: 0 },
+    )
+    const s3 = Object.entries(added).reduce(
+      (acc, [, f]) =>
+        S3FilePicker.isS3File(f)
+          ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+          : acc,
+      { count: 0, size: 0 },
+    )
+    const hashing = Object.values(added).reduce(
+      (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
+      false,
+    )
+    const warn = {
+      upload: upload.size > PD.MAX_UPLOAD_SIZE,
+      s3: s3.size > PD.MAX_S3_SIZE,
+      count: upload.count + s3.count > PD.MAX_FILE_COUNT,
+    }
+    const hasWarning = warn.upload || warn.s3 || warn.count
+    return {
+      upload,
+      s3,
+      hashing,
+      warn: hasWarning ? warn : null,
+    }
+  }, [added, existing])
+
+const useHeaderStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    height: 24,
+    alignItems: 'center',
+  },
+  title: {
+    ...t.typography.body1,
+    display: 'flex',
+    alignItems: 'center',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    flexGrow: 1,
+    color: t.palette.text.primary,
+  },
+  disabled: {
+    color: t.palette.text.secondary,
+  },
+  error: {
+    color: t.palette.error.main,
+  },
+  warn: {
+    color: t.palette.warning.dark,
+  },
+  stats: {
+    marginLeft: t.spacing(1),
+    fontSize: 'inherit',
+    color: t.palette.text.secondary,
+  },
+  uploadStats: {
+    fontSize: 'inherit',
+  },
+  s3Stats: {
+    fontSize: 'inherit',
+  },
+  separator: {
+    fontSize: 'inherit',
+  },
+  warningIcon: {
+    marginLeft: 6,
+    fontSize: 'small',
+  },
+  hashing: {
+    marginLeft: t.spacing(1),
+  },
+  buttons: {
+    display: 'flex',
+    marginLeft: 'auto',
+    alignItems: 'flex-start',
+  },
+  btnDivider: {
+    margin: t.spacing(0, 1),
+  },
+}))
+
+interface HeaderProps {
+  delayHashing: boolean
+  dirty: boolean
+  disabled: boolean
+  error: boolean
+  onAddFolder: (name: string) => void
+  onReset: () => void
+  resetTitle: React.ReactNode
+  title: React.ReactNode
+  stats: Stats
+}
+
+function Header({
+  delayHashing,
+  dirty,
+  disabled,
+  error,
+  onAddFolder,
+  onReset,
+  resetTitle,
+  title,
+  stats,
+}: HeaderProps) {
+  const classes = useHeaderStyles()
+
+  const hasStats = stats.upload.count > 0 || stats.s3.count > 0
+
+  const promptOpts = React.useMemo(
+    () => ({
+      onSubmit: (name: string) => onAddFolder(name),
+      title: 'Enter new directory path',
+      validate: (p: string) => (!p ? new Error("Path can't be empty") : undefined),
+    }),
+    [onAddFolder],
+  )
+  const prompt = Dialog.usePrompt(promptOpts)
+
+  return (
+    <div className={classes.root}>
+      <div
+        className={cx(classes.title, {
+          [classes.disabled]: disabled,
+          [classes.error]: error,
+          [classes.warn]: !!stats.warn,
+        })}
+      >
+        {title}
+
+        {hasStats && (
+          <span className={cx(classes.stats, { [classes.warn]: !!stats.warn })}>
+            (
+            <span className={classes.uploadStats}>
+              {stats.upload.count > 0 && (
+                <>{readableBytes(stats.upload.size)} to upload</>
+              )}
+            </span>
+            {stats.upload.count > 0 && stats.s3.count > 0 && (
+              <span className={classes.separator}>, </span>
+            )}
+            <span className={classes.s3Stats}>
+              {stats.s3.count > 0 && <>{readableBytes(stats.s3.size)} from S3</>}
+            </span>
+            )
+          </span>
+        )}
+
+        {stats.warn && (
+          <M.Icon className={classes.warningIcon} fontSize="inherit">
+            error_outline
+          </M.Icon>
+        )}
+
+        {!delayHashing && stats.hashing && (
+          <M.CircularProgress
+            className={classes.hashing}
+            size={16}
+            title="Hashing files"
+          />
+        )}
+      </div>
+
+      <div className={classes.buttons}>
+        {dirty && (
+          <>
+            <M.Button
+              onClick={onReset}
+              disabled={disabled}
+              size="small"
+              endIcon={<M.Icon fontSize="small">undo</M.Icon>}
+            >
+              {resetTitle}
+            </M.Button>
+            <M.Divider className={classes.btnDivider} orientation="vertical" flexItem />
+          </>
+        )}
+
+        <M.IconButton
+          disabled={disabled}
+          onClick={prompt.open}
+          size="small"
+          title="Add empty folder"
+        >
+          <M.Icon fontSize="small">create_new_folder</M.Icon>
+        </M.IconButton>
+      </div>
+
+      {/* Render prompt dialog */}
+      {prompt.render(
+        <M.Typography variant="body2">
+          You can add new directories and drag-and-drop files and folders into them.
+          Please note that directories that remain empty will be excluded during the
+          package creation process.
+        </M.Typography>,
+      )}
+    </div>
+  )
+}
+
+interface S3FilesButtonProps {
+  className?: string
+  disabled?: boolean
+  onSubmit: (filesMap: Record<string, Model.S3File>) => void
+  sourceBuckets: BucketPreferences.SourceBuckets
+}
+
+export default function S3FilesButton({
+  className,
+  disabled = false,
+  onSubmit,
+  sourceBuckets,
+}: S3FilesButtonProps) {
+  const [open, setOpen] = React.useState(false)
+  const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
+
+  const handleClose = React.useCallback(
+    (reason: S3FilePicker.CloseReason) => {
+      if (reason && typeof reason === 'object') {
+        onSubmit(reason.filesMap)
+      }
+      setOpen(false)
+    },
+    [onSubmit],
+  )
+
+  const handleS3Btn = React.useCallback(() => setOpen(true), [])
+
+  if (!sourceBuckets.list.length) {
+    return (
+      <MissingSourceBucket>
+        <M.Button disabled className={className} variant="outlined" size="small">
+          Add files from bucket
+        </M.Button>
+      </MissingSourceBucket>
+    )
+  }
+
+  return (
+    <>
+      <Selection.Provider>
+        <S3FilePicker.Dialog
+          bucket={selectedBucket}
+          buckets={sourceBuckets.list}
+          selectBucket={selectBucket}
+          open={open}
+          onClose={handleClose}
+        />
+      </Selection.Provider>
+
+      <M.Button
+        onClick={handleS3Btn}
+        disabled={disabled}
+        className={className}
+        variant="outlined"
+        size="small"
+      >
+        Add files from bucket
+      </M.Button>
+    </>
+  )
+}
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -688,19 +980,15 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 interface DropzoneMessageProps {
   label?: React.ReactNode
   error: React.ReactNode
-  warn: { upload: boolean; s3: boolean; count: boolean }
+  warn: StatsWarning | null
 }
 
-export function DropzoneMessage({
-  label: defaultLabel,
-  error,
-  warn,
-}: DropzoneMessageProps) {
+function DropzoneMessage({ label: defaultLabel, error, warn }: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
   const label = React.useMemo(() => {
     if (error) return <span>{error}</span>
-    if (!warn.s3 && !warn.count && !warn.upload) {
+    if (!warn) {
       return <span>{defaultLabel || 'Drop files here or click to browse'}</span>
     }
     return (
@@ -722,13 +1010,13 @@ export function DropzoneMessage({
         )}
       </div>
     )
-  }, [defaultLabel, error, warn.upload, warn.s3, warn.count])
+  }, [defaultLabel, error, warn])
 
   return (
     <div
       className={cx(classes.root, {
         [classes.error]: error,
-        [classes.warning]: !error && (warn.upload || warn.s3 || warn.count),
+        [classes.warning]: !error && !!warn,
       })}
     >
       {label}
@@ -743,58 +1031,13 @@ const useRootStyles = M.makeStyles({
   },
 })
 
-export function Root({
-  className,
-  ...props
-}: React.PropsWithChildren<{ className?: string }>) {
+function Root({ className, ...props }: React.PropsWithChildren<{ className?: string }>) {
   const classes = useRootStyles()
   return (
     <DndProvider>
       <div className={cx(classes.root, className)} {...props} />
     </DndProvider>
   )
-}
-
-const useHeaderStyles = M.makeStyles({
-  root: {
-    display: 'flex',
-    height: 24,
-  },
-})
-
-export function Header(props: React.PropsWithChildren<{}>) {
-  const classes = useHeaderStyles()
-  return <div className={classes.root} {...props} />
-}
-
-const useHeaderTitleStyles = M.makeStyles((t) => ({
-  root: {
-    ...t.typography.body1,
-    alignItems: 'center',
-    display: 'flex',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-  },
-  regular: {},
-  disabled: {
-    color: t.palette.text.secondary,
-  },
-  error: {
-    color: t.palette.error.main,
-  },
-  warn: {
-    color: t.palette.warning.dark,
-  },
-}))
-
-type HeaderTitleState = 'disabled' | 'error' | 'warn' | 'regular'
-
-export function HeaderTitle({
-  state = 'regular',
-  ...props
-}: React.PropsWithChildren<{ state?: HeaderTitleState }>) {
-  const classes = useHeaderTitleStyles()
-  return <div className={cx(classes.root, classes[state])} {...props} />
 }
 
 const useLockStyles = M.makeStyles((t) => ({
@@ -835,15 +1078,7 @@ const useLockStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Lock({
-  progress,
-}: {
-  progress?: {
-    total: number
-    loaded: number
-    percent: number
-  }
-}) {
+function Lock({ progress }: { progress?: Progress }) {
   const classes = useLockStyles()
   return (
     <div className={classes.root}>
@@ -877,8 +1112,6 @@ const useFilesContainerStyles = M.makeStyles((t) => ({
     direction: 'rtl', // show the scrollbar on the left
     overflowX: 'hidden',
     overflowY: 'auto',
-  },
-  border: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
   },
   err: {
@@ -895,19 +1128,13 @@ const useFilesContainerStyles = M.makeStyles((t) => ({
 type FilesContainerProps = React.PropsWithChildren<{
   error?: boolean
   warn?: boolean
-  noBorder?: boolean
 }>
 
-export function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
+function FilesContainer({ error, warn, children }: FilesContainerProps) {
   const classes = useFilesContainerStyles()
   return (
     <div
-      className={cx(
-        classes.root,
-        !noBorder && classes.border,
-        error && classes.err,
-        !error && warn && classes.warn,
-      )}
+      className={cx(classes.root, error && classes.err, !error && warn && classes.warn)}
     >
       <div className={classes.inner}>{children}</div>
     </div>
@@ -933,11 +1160,7 @@ type ContentsContainerProps = {
   outlined?: boolean
 } & React.HTMLAttributes<HTMLDivElement>
 
-export function ContentsContainer({
-  outlined,
-  className,
-  ...props
-}: ContentsContainerProps) {
+function ContentsContainer({ outlined, className, ...props }: ContentsContainerProps) {
   const classes = useContentsContainerStyles()
   return (
     <div
@@ -1386,13 +1609,11 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     alignItems: 'flex-start',
     display: 'flex',
     marginTop: t.spacing(1),
+    gap: t.spacing(1),
   },
   action: {
     flexGrow: 1,
     flexShrink: 0,
-    '& + &': {
-      marginLeft: t.spacing(1),
-    },
   },
   iconAction: {
     marginRight: t.spacing(1),
@@ -1430,14 +1651,8 @@ interface FilesInputProps {
     newValue: FilesState,
   ) => void
   title: React.ReactNode
-  totalProgress: {
-    total: number
-    loaded: number
-    percent: number
-  }
-  bucket: string // It is the bucket __selected__ in __S3FilePicker__, not the bucket for the current page
-  buckets?: string[]
-  selectBucket?: (bucket: string) => void
+  totalProgress: Progress
+  sourceBuckets?: BucketPreferences.SourceBuckets
   delayHashing?: boolean
   disableStateDisplay?: boolean
   ui?: {
@@ -1454,9 +1669,7 @@ export function FilesInput({
   onFilesAction,
   title,
   totalProgress,
-  bucket,
-  buckets,
-  selectBucket,
+  sourceBuckets,
   delayHashing = false,
   disableStateDisplay = false,
   ui = {},
@@ -1513,25 +1726,18 @@ export function FilesInput({
   })
 
   const onDrop = React.useCallback(
-    (files) => {
-      dispatch(FilesAction.Add({ files: files.map(computeHash) }))
-    },
+    (files) => dispatch(FilesAction.Add({ files: files.map(computeHash) })),
     [dispatch],
   )
-
-  const promptOpts = React.useMemo(
-    () => ({
-      onSubmit: (name: string) => dispatch(FilesAction.AddFolder(name)),
-      title: 'Enter new directory path',
-      validate: (p: string) => (!p ? new Error("Path can't be empty") : undefined),
-    }),
+  const onReset = React.useCallback(() => dispatch(FilesAction.Reset()), [dispatch])
+  const onAddFolder = React.useCallback(
+    (name: string) => dispatch(FilesAction.AddFolder(name)),
     [dispatch],
   )
-  const prompt = Dialog.usePrompt(promptOpts)
-
-  const resetFiles = React.useCallback(() => {
-    dispatch(FilesAction.Reset())
-  }, [dispatch])
+  const onS3FilePicker = React.useCallback(
+    (filesMap: Record<string, Model.S3File>) => dispatch(FilesAction.AddFromS3(filesMap)),
+    [dispatch],
+  )
 
   const isDragging = useDragging()
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -1545,157 +1751,21 @@ export function FilesInput({
   )
   const computedEntries = useMemoEq(valueWithErrors, computeEntries)
 
-  const stats = useMemoEq(value, ({ added, existing }) => ({
-    upload: Object.entries(added).reduce(
-      (acc, [path, f]) => {
-        if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
-        const e = existing[path]
-        if (e && (!f.hash.ready || R.equals(f.hash.value, e.hash))) return acc
-        return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
-      },
-      { count: 0, size: 0 },
-    ),
-    s3: Object.entries(added).reduce(
-      (acc, [, f]) =>
-        S3FilePicker.isS3File(f)
-          ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
-          : acc,
-      { count: 0, size: 0 },
-    ),
-    hashing: Object.values(added).reduce(
-      (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
-      false,
-    ),
-  }))
-
-  const warn = {
-    upload: stats.upload.size > PD.MAX_UPLOAD_SIZE,
-    s3: stats.s3.size > PD.MAX_S3_SIZE,
-    count: stats.upload.count + stats.s3.count > PD.MAX_FILE_COUNT,
-  }
-
-  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
-
-  const closeS3FilePicker = React.useCallback(
-    (reason: S3FilePicker.CloseReason) => {
-      if (!!reason && typeof reason === 'object') {
-        dispatch(FilesAction.AddFromS3(reason.filesMap))
-      }
-      setS3FilePickerOpen(false)
-    },
-    [dispatch, setS3FilePickerOpen],
-  )
-
-  const handleS3Btn = React.useCallback(() => {
-    setS3FilePickerOpen(true)
-  }, [])
-
-  const isS3FilePickerEnabled = !!buckets?.length
+  const stats = useStats(value)
 
   return (
     <Root className={className}>
-      {isS3FilePickerEnabled && (
-        <Selection.Provider>
-          <S3FilePicker.Dialog
-            bucket={bucket}
-            buckets={buckets}
-            selectBucket={selectBucket}
-            open={s3FilePickerOpen}
-            onClose={closeS3FilePicker}
-          />
-        </Selection.Provider>
-      )}
-      {prompt.render(
-        <M.Typography variant="body2">
-          You can add new directories and drag-and-drop files and folders into them.
-          Please note that directories that remain empty will be excluded during the
-          package creation process.
-        </M.Typography>,
-      )}
-      <Header>
-        <HeaderTitle
-          state={
-            disabled // eslint-disable-line no-nested-ternary
-              ? 'disabled'
-              : error // eslint-disable-line no-nested-ternary
-                ? 'error'
-                : warn.upload || warn.s3 || warn.count
-                  ? 'warn'
-                  : undefined
-          }
-        >
-          {title}
-          {(!!stats.upload.count || !!stats.s3.count) && (
-            <M.Box
-              ml={1}
-              color={warn.upload || warn.s3 ? 'warning.dark' : 'text.secondary'}
-              component="span"
-            >
-              (
-              {!!stats.upload.count && (
-                <M.Box
-                  color={warn.upload ? 'warning.dark' : 'text.secondary'}
-                  component="span"
-                >
-                  {readableBytes(stats.upload.size)} to upload
-                </M.Box>
-              )}
-              {!!stats.upload.count && !!stats.s3.count && (
-                <M.Box
-                  color={!warn.upload || !warn.s3 ? 'text.secondary' : undefined}
-                  component="span"
-                >
-                  {', '}
-                </M.Box>
-              )}
-              {!!stats.s3.count && (
-                <M.Box
-                  color={warn.s3 ? 'warning.dark' : 'text.secondary'}
-                  component="span"
-                >
-                  {readableBytes(stats.s3.size)} from S3
-                </M.Box>
-              )}
-              )
-            </M.Box>
-          )}
-          {(warn.upload || warn.s3 || warn.count) && (
-            <M.Icon style={{ marginLeft: 6 }} fontSize="small">
-              error_outline
-            </M.Icon>
-          )}
-          {!delayHashing && stats.hashing && (
-            <M.CircularProgress
-              className={classes.hashing}
-              size={16}
-              title="Hashing files"
-            />
-          )}
-        </HeaderTitle>
-        <div className={classes.buttons}>
-          {meta.dirty && (
-            <>
-              <M.Button
-                onClick={resetFiles}
-                disabled={ref.current.disabled}
-                size="small"
-                endIcon={<M.Icon fontSize="small">undo</M.Icon>}
-              >
-                {ui.reset || 'Clear files'}
-              </M.Button>
-              <M.Divider className={classes.btnDivider} orientation="vertical" flexItem />
-            </>
-          )}
-          <M.IconButton
-            disabled={ref.current.disabled}
-            onClick={prompt.open}
-            size="small"
-            title="Add empty folder"
-          >
-            <M.Icon fontSize="small">create_new_folder</M.Icon>
-          </M.IconButton>
-        </div>
-      </Header>
+      <Header
+        delayHashing={delayHashing}
+        dirty={!!meta.dirty}
+        disabled={!!disabled}
+        error={error}
+        onAddFolder={onAddFolder}
+        onReset={onReset}
+        resetTitle={ui.reset || 'Clear files'}
+        stats={stats}
+        title={title}
+      />
 
       <ContentsContainer outlined={isDragging && !ref.current.disabled}>
         <Contents
@@ -1703,12 +1773,12 @@ export function FilesInput({
           interactive
           active={isDragActive && !ref.current.disabled}
           error={!!error}
-          warn={warn.upload || warn.s3 || warn.count}
+          warn={!!stats.warn}
         >
           <input {...getInputProps()} />
 
           {!!computedEntries.length && (
-            <FilesContainer error={!!error} warn={warn.upload || warn.s3 || warn.count}>
+            <FilesContainer error={!!error} warn={!!stats.warn}>
               {computedEntries.map(
                 FilesEntry.match({
                   Dir: (ps) => (
@@ -1733,7 +1803,7 @@ export function FilesInput({
             </FilesContainer>
           )}
 
-          <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
+          <DropzoneMessage error={error && (errors[error] || error)} warn={stats.warn} />
         </Contents>
         {disabled && <Lock progress={totalProgress} />}
       </ContentsContainer>
@@ -1747,22 +1817,13 @@ export function FilesInput({
         >
           Add local files
         </M.Button>
-        {isS3FilePickerEnabled ? (
-          <M.Button
-            onClick={handleS3Btn}
+        {sourceBuckets && (
+          <S3FilesButton
+            onSubmit={onS3FilePicker}
             disabled={disabled}
             className={classes.action}
-            variant="outlined"
-            size="small"
-          >
-            Add files from bucket
-          </M.Button>
-        ) : (
-          <MissingSourceBucket className={classes.warning}>
-            <M.Button disabled className={classes.action} variant="outlined" size="small">
-              Add files from bucket
-            </M.Button>
-          </MissingSourceBucket>
+            sourceBuckets={sourceBuckets}
+          />
         )}
       </div>
     </Root>

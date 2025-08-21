@@ -50,7 +50,7 @@ interface UploadDialogProps {
   onClose: () => void
 }
 
-function UploadDialog({ initial, bucket, onClose }: UploadDialogProps) {
+function UploadDialog({ initial, onClose }: UploadDialogProps) {
   const [uploads, setUploads] = React.useState<FI.FilesState>(initial)
   const classes = useUploadDialogStyles()
 
@@ -72,7 +72,6 @@ function UploadDialog({ initial, bucket, onClose }: UploadDialogProps) {
     <>
       <M.DialogContent>
         <FI.FilesInput
-          noActions
           className={classes.drop}
           meta={meta}
           input={{
@@ -81,7 +80,6 @@ function UploadDialog({ initial, bucket, onClose }: UploadDialogProps) {
           }}
           title="Upload files"
           totalProgress={totalProgress}
-          bucket={bucket}
           validationErrors={null}
         />
       </M.DialogContent>

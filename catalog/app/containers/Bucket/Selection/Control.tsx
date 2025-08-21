@@ -26,7 +26,7 @@ interface PopupProps extends Omit<DashboardProps, 'onClose'> {
   close: () => void
 }
 
-function Popup({ close, ...props }: PopupProps) {
+export function Popup({ close, ...props }: PopupProps) {
   const slt = useSelection()
   const classes = usePopupStyles()
 
