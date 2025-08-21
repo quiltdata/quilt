@@ -15,7 +15,7 @@ positional arguments:
                         or pass in a package name in the form
                         'BUCKET:USER/PKG' to go to the package viewer.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --detailed-help, --detailed_help
                         Display detailed information about this command and
@@ -50,7 +50,7 @@ positional arguments:
   catalog_url           URL of catalog to config with, or empty string to
                         reset the config
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --set KEY=VALUE [KEY=VALUE ...]
                         Set a number of key-value pairs for config_values(do
@@ -69,7 +69,7 @@ positional arguments:
   default_remote_registry
                         The default remote registry to use, e.g. s3://quilt-ml
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 ```
 ## `disable-telemetry`
@@ -78,7 +78,7 @@ usage: quilt3 disable-telemetry [-h]
 
 Disable anonymous usage metrics
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `install`
@@ -93,7 +93,7 @@ Install a package
 positional arguments:
   name                  Name of package, in the USER/PKG format
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --registry REGISTRY   Registry where package is located, usually s3://MY-
                         BUCKET. Defaults to the default remote registry.
@@ -113,7 +113,7 @@ List all packages in a registry
 positional arguments:
   registry    Registry for packages, e.g. s3://quilt-example
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `login`
@@ -122,7 +122,7 @@ usage: quilt3 login [-h]
 
 Log in to configured Quilt server
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `logout`
@@ -131,7 +131,7 @@ usage: quilt3 logout [-h]
 
 Log out of current Quilt server
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `push`
@@ -179,7 +179,7 @@ Verify that package contents matches a given directory
 positional arguments:
   name                 Name of package, in the USER/PKG format
 
-optional arguments:
+options:
   -h, --help           show this help message and exit
   --registry REGISTRY  Registry where package is located, usually s3://MY-
                        BUCKET
