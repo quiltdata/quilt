@@ -8,31 +8,16 @@ from quilt3 import admin
 from quilt3.admin import _graphql_client
 
 from .fixtures.admin_graphql_responses import (
-    INVALID_INPUT_ERROR,
-    OPERATION_ERROR,
     ROLES_LIST_RESPONSE,
     SSO_CONFIG_GET_NOT_FOUND_RESPONSE,
-    SSO_CONFIG_GET_RESPONSE,
-    SSO_CONFIG_SET_OPERATION_ERROR_RESPONSE,
     SSO_CONFIG_SET_SUCCESS_RESPONSE,
     SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE,
-    TABULATOR_GET_OPEN_QUERY_RESPONSE,
-    TABULATOR_SET_OPEN_QUERY_RESPONSE,
-    TABULATOR_TABLE_RENAME_SUCCESS_RESPONSE,
-    TABULATOR_TABLE_SET_SUCCESS_RESPONSE,
     TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE,
-    TABULATOR_TABLES_LIST_RESPONSE,
-    USER_DELETE_OPERATION_ERROR_RESPONSE,
-    USER_DELETE_VALIDATION_ERROR_RESPONSE,
     USER_MUTATION_NOT_FOUND_RESPONSE,
     USERS_CREATE_OPERATION_ERROR_RESPONSE,
-    USERS_CREATE_SUCCESS_RESPONSE,
     USERS_CREATE_VALIDATION_ERROR_RESPONSE,
     USERS_GET_NOT_FOUND_RESPONSE,
-    USERS_GET_RESPONSE,
     USERS_LIST_RESPONSE,
-    user_mutation_operation_error_response,
-    user_mutation_validation_error_response,
 )
 from .fixtures.graphql_schema_fragments import (
     validate_graphql_response_structure,
@@ -648,17 +633,15 @@ class TestTabulatorWithMockServer:
 
     def test_tabulator_set_table_success(self, mock_admin_client, graphql_router):
         """Test setting tabulator table configuration."""
-        result = admin.tabulator.set_table("test-bucket", "test-table", "config")
+        admin.tabulator.set_table("test-bucket", "test-table", "config")
 
         assert graphql_router.get_call_count("bucketTabulatorTableSet") == 1
-        assert result is None  # Successful mutation returns None
 
     def test_tabulator_rename_table_success(self, mock_admin_client, graphql_router):
         """Test renaming tabulator table."""
-        result = admin.tabulator.rename_table("test-bucket", "old-table", "new-table")
+        admin.tabulator.rename_table("test-bucket", "old-table", "new-table")
 
         assert graphql_router.get_call_count("bucketTabulatorTableRename") == 1
-        assert result is None  # Successful mutation returns None
 
     def test_tabulator_get_open_query(self, mock_admin_client, graphql_router):
         """Test getting tabulator open query setting."""
@@ -669,10 +652,9 @@ class TestTabulatorWithMockServer:
 
     def test_tabulator_set_open_query(self, mock_admin_client, graphql_router):
         """Test setting tabulator open query setting."""
-        result = admin.tabulator.set_open_query(False)
+        admin.tabulator.set_open_query(False)
 
         assert graphql_router.get_call_count("tabulatorSetOpenQuery") == 1
-        assert result is None
 
 
 class TestErrorHandlingWithMockServer:
