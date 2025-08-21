@@ -49,13 +49,32 @@ lint-docs:
 	@echo "Documentation lint complete!"
 
 # Documentation generation that mirrors CI test-gendocs job
-gendocs-deps:
-	@echo "Installing documentation generation dependencies..."
-	pip install nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@v2.0.5+quilt3.2
+gendocs-setup-python:
+	@echo "Setting up Python 3.9 for documentation generation (to match CI)..."
+	@if ! command -v pyenv >/dev/null 2>&1; then \
+		echo "ERROR: pyenv is required for documentation generation to match CI behavior."; \
+		echo "Please install pyenv: https://github.com/pyenv/pyenv"; \
+		exit 1; \
+	fi
+	@if ! pyenv versions | grep -q "3.9"; then \
+		echo "Installing Python 3.9 via pyenv..."; \
+		pyenv install 3.9.23; \
+	else \
+		echo "Python 3.9 already available via pyenv."; \
+	fi
+
+gendocs-deps: gendocs-setup-python
+	@echo "Installing documentation generation dependencies with Python 3.9..."
+	@PYENV_VERSION=3.9.23 pip install --upgrade pip setuptools
+	@PYENV_VERSION=3.9.23 pip install nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@v2.0.5+quilt3.2
+	@echo "Installing current quilt3 package for CLI documentation generation..."
+	@PYENV_VERSION=3.9.23 pip install -e .
 
 gendocs: gendocs-deps
-	@echo "Generating documentation..."
-	cd ../../gendocs && python build.py
+	@echo "Generating documentation with Python 3.9 to match CI environment..."
+	@cd ../../gendocs && PYENV_VERSION=3.9.23 python build.py
 	@echo "Documentation generation complete!"
+	@echo "Cleaning up any .python-version files that may have been created..."
+	@rm -f .python-version ../../gendocs/.python-version
 
-.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-deps gendocs
+.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs
