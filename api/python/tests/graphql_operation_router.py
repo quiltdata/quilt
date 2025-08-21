@@ -25,7 +25,9 @@ class GraphQLOperationRouter:
         """
         self.responses[operation_name] = response
 
-    def route_operation(self, query: str, operation_name: str = None, variables: Dict[str, Any] = None) -> Any:
+    def route_operation(
+        self, query: str, operation_name: str = None, variables: Dict[str, Any] = None
+    ) -> Any:
         """Route a GraphQL operation to the appropriate mock response.
 
         Args:

@@ -111,7 +111,8 @@ __Arguments__
 * __name__:  Username of user to update.
 * __role__:  Role to be set as the active role.
 * __extra_roles__:  Additional roles to assign to the user.
-* __append__:  If True, append the extra roles to the existing roles. If False, replace the existing roles.
+* __append__:  If True, append the extra roles to the existing roles.
+    If False, replace the existing roles.
 
 
 ## add\_roles(name: str, roles: List[str]) -> quilt3.admin.types.User  {#add\_roles}
