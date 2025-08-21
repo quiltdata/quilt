@@ -7,9 +7,9 @@ install-local:
 
 # Linting targets that mimic CI for our changed files only
 lint-deps:
-	@python -c "import isort" 2>/dev/null || pip install isort
-	@python -c "import pycodestyle" 2>/dev/null || pip install pycodestyle
-	@python -c "import pylint" 2>/dev/null || pip install 'pylint==3.2.7'
+	@python -m pip install --upgrade isort
+	@python -m pip install --upgrade pycodestyle
+	@python -m pip install --upgrade pylint
 
 # Automatically detect changed Python files vs master (relative to api/python)
 # Exclude GraphQL codegen files from linting
