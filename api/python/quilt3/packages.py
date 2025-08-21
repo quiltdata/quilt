@@ -1494,14 +1494,12 @@ class Package:
                     f"'build' instead."
                 )
 
+        assert not registry_parsed.is_local()
+
         if selector_fn is None:
-            # When pushing to S3, do not copy files if they are in the same
-            # bucket as the destination registry.
+            # Do not copy files if they are in the same bucket as the destination registry.
             def selector_fn(logical_key, entry):
-                if not registry_parsed.is_local():
-                    if entry.physical_key.bucket == registry_parsed.bucket:
-                        return False
-                return True
+                return entry.physical_key.bucket != registry_parsed.bucket
 
         if callable(dest):
             def dest_fn(*args, **kwargs):
