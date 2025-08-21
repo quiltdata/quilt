@@ -55,7 +55,7 @@ interface Stats {
   warn: StatsWarning | null
 }
 
-const useStats = ({ added, existing }: FilesState): Stats =>
+const useStats = ({ added, existing, counter }: FilesState): Stats =>
   React.useMemo(() => {
     const upload = Object.entries(added).reduce(
       (acc, [path, f]) => {
@@ -89,7 +89,9 @@ const useStats = ({ added, existing }: FilesState): Stats =>
       hashing,
       warn: hasWarning ? warn : null,
     }
-  }, [added, existing])
+    // We update counter when hashing is finished
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [added, existing, counter])
 
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {

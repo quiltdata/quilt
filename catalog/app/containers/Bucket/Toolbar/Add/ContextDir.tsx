@@ -1,10 +1,15 @@
+import { join } from 'path'
+
 import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Dialogs from 'utils/Dialogs'
 import * as FileEditor from 'components/FileEditor'
+import * as Dialogs from 'utils/Dialogs'
+import Log from 'utils/Logging'
+import * as s3paths from 'utils/s3paths'
 
+import { useUploads } from '../../PackageDialog/Uploads'
 import * as FI from '../../PackageDialog/FilesInput'
 import type { DirHandle } from '../types'
 
@@ -36,6 +41,11 @@ const INITIAL = {
   existing: {},
 }
 
+interface LocalEntry {
+  path: string
+  file: FI.LocalFile
+}
+
 const useUploadDialogStyles = M.makeStyles((t) => ({
   drop: {
     height: t.spacing(60),
@@ -44,14 +54,16 @@ const useUploadDialogStyles = M.makeStyles((t) => ({
 }))
 
 interface UploadDialogProps {
-  bucket: string
-  path: string
+  handle: DirHandle
   initial: FI.FilesState
   onClose: () => void
 }
 
-function UploadDialog({ initial, onClose }: UploadDialogProps) {
-  const [uploads, setUploads] = React.useState<FI.FilesState>(initial)
+function UploadDialog({ handle, initial, onClose }: UploadDialogProps) {
+  // TODO: use value.added only
+  //       alwayse keep {existing: {}, removing: {}} empty
+  //       input = useMemo({value: {added, existing:{}, removed: {}}, onChange})
+  const [value, onChange] = React.useState<FI.FilesState>(initial)
   const classes = useUploadDialogStyles()
 
   const [meta, setMeta] = React.useState(() => ({ initial, submitting: false }))
@@ -59,25 +71,50 @@ function UploadDialog({ initial, onClose }: UploadDialogProps) {
     setMeta((m) => ({ ...m, initial }))
   }, [initial])
 
-  const onUpload = React.useCallback(() => {
+  const { remove, removeByPrefix, reset, upload } = useUploads()
+  const onFilesAction = React.useMemo(
+    () =>
+      FI.FilesAction.match({
+        _: () => {},
+        Revert: remove,
+        RevertDir: removeByPrefix,
+        Reset: reset,
+      }),
+    [remove, removeByPrefix, reset],
+  )
+
+  const onUpload = React.useCallback(async () => {
     setMeta((m) => ({ ...m, submitting: true }))
-    // FIXME: Implement actual upload logic
-    setTimeout(() => {
-      setMeta((m) => ({ ...m, submitting: false }))
-      onClose()
-    }, 3000)
-  }, [onClose])
+
+    const files = Object.entries(value.added).map(
+      ([path, file]) => ({ path, file }) as LocalEntry,
+    )
+    try {
+      const uploadedEntries = await upload({
+        files,
+        bucket: handle.bucket,
+        getCanonicalKey: (key) => s3paths.withoutPrefix('/', join(handle.path, key)),
+        getMeta: () => null,
+      })
+      Log.log(uploadedEntries)
+      // FIXME: show success
+    } catch (e) {
+      // FIXME: show error
+      Log.error(e)
+    }
+
+    setMeta((m) => ({ ...m, submitting: false }))
+    onClose()
+  }, [onClose, value, handle, upload])
 
   return (
     <>
       <M.DialogContent>
         <FI.FilesInput
           className={classes.drop}
+          input={{ value, onChange }}
           meta={meta}
-          input={{
-            value: uploads,
-            onChange: setUploads,
-          }}
+          onFilesAction={onFilesAction}
           title="Upload files"
           totalProgress={totalProgress}
           validationErrors={null}
@@ -90,7 +127,7 @@ function UploadDialog({ initial, onClose }: UploadDialogProps) {
         <M.Button
           color="primary"
           variant="contained"
-          disabled={!Object.keys(uploads.added).length || meta.submitting}
+          disabled={!Object.keys(value.added).length || meta.submitting}
           onClick={onUpload}
         >
           Upload
@@ -115,7 +152,7 @@ export function AddDirProvider({ children, handle }: AddDirProviderProps) {
 
   const openUploadDialog = React.useCallback(() => {
     dialogs.open(({ close }) => (
-      <UploadDialog {...handle} initial={INITIAL} onClose={close} />
+      <UploadDialog handle={handle} initial={INITIAL} onClose={close} />
     ))
   }, [dialogs, handle])
 
