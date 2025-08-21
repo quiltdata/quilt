@@ -7,7 +7,6 @@ including success cases, validation errors, and other error scenarios.
 
 import datetime
 
-
 # Base fixture data
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
@@ -87,12 +86,13 @@ USERS_CREATE_SUCCESS_RESPONSE = {
     }
 }
 
+
 def user_mutation_success_response(mutation_name: str) -> dict:
     """Generate a success response for a user mutation.
-    
+
     Args:
         mutation_name: The mutation name (e.g., "setEmail", "setAdmin")
-    
+
     Returns:
         Success response dict
     """
@@ -106,9 +106,10 @@ def user_mutation_success_response(mutation_name: str) -> dict:
         }
     }
 
+
 # Individual mutation responses
 USERS_SET_EMAIL_SUCCESS_RESPONSE = user_mutation_success_response("setEmail")
-USERS_SET_ADMIN_SUCCESS_RESPONSE = user_mutation_success_response("setAdmin") 
+USERS_SET_ADMIN_SUCCESS_RESPONSE = user_mutation_success_response("setAdmin")
 USERS_SET_ACTIVE_SUCCESS_RESPONSE = user_mutation_success_response("setActive")
 USERS_SET_ROLE_SUCCESS_RESPONSE = user_mutation_success_response("setRole")
 USERS_ADD_ROLES_SUCCESS_RESPONSE = user_mutation_success_response("addRoles")
@@ -282,12 +283,14 @@ TABULATOR_RENAME_OPERATION_ERROR_RESPONSE = {
 }
 
 # Helper functions for generating user mutation error responses
+
+
 def user_mutation_validation_error_response(mutation_name: str) -> dict:
     """Generate a validation error response for a user mutation.
-    
+
     Args:
         mutation_name: The mutation name (e.g., "setEmail", "setAdmin")
-    
+
     Returns:
         Error response dict
     """
@@ -301,12 +304,13 @@ def user_mutation_validation_error_response(mutation_name: str) -> dict:
         }
     }
 
+
 def user_mutation_operation_error_response(mutation_name: str) -> dict:
     """Generate an operation error response for a user mutation.
-    
+
     Args:
         mutation_name: The mutation name (e.g., "setEmail", "setAdmin")
-    
+
     Returns:
         Error response dict
     """
@@ -319,6 +323,7 @@ def user_mutation_operation_error_response(mutation_name: str) -> dict:
             }
         }
     }
+
 
 # Comprehensive response collections for easy access
 ALL_USER_OPERATIONS = [
@@ -336,11 +341,11 @@ ALL_SSO_OPERATIONS = [
 ]
 
 ALL_TABULATOR_OPERATIONS = [
-    "bucketTabulatorTablesList", "bucketTabulatorTableSet", 
+    "bucketTabulatorTablesList", "bucketTabulatorTableSet",
     "bucketTabulatorTableRename", "tabulatorGetOpenQuery", "tabulatorSetOpenQuery"
 ]
 
 ALL_ADMIN_OPERATIONS = (
-    ALL_USER_OPERATIONS + ALL_ROLE_OPERATIONS + 
+    ALL_USER_OPERATIONS + ALL_ROLE_OPERATIONS +
     ALL_SSO_OPERATIONS + ALL_TABULATOR_OPERATIONS
 )
