@@ -1,7 +1,7 @@
 [tool.ariadne-codegen]
 schema_path = "../../../shared/graphql/schema.graphql"
 queries_path = "queries.graphql"
-target_package_path = "../quilt3/admin/"
+target_package_path = "../quilt3/"
 target_package_name = "_graphql_client"
 files_to_include = [
     "exceptions.py",
@@ -12,6 +12,8 @@ base_client_name = "BaseClient"
 include_all_inputs = false
 include_all_enums = false
 plugins = [
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
     "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
 ]
 

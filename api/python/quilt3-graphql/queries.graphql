@@ -1,3 +1,60 @@
+fragment UnmanagedRoleSelection on UnmanagedRole {
+  id
+  name
+  arn
+}
+fragment ManagedRoleSelection on ManagedRole {
+  id
+  name
+  arn
+}
+fragment RoleSelection on Role {
+  __typename
+  ...UnmanagedRoleSelection
+  ...ManagedRoleSelection
+}
+fragment UserSelection on User {
+  name
+  email
+  dateJoined
+  lastLogin
+  isActive
+  isAdmin
+  isSsoOnly
+  isService
+  role {
+    ...RoleSelection
+  }
+  extraRoles {
+    ...RoleSelection
+  }
+}
+fragment UserMutationSelection on UserResult {
+  ...UserSelection
+  ...InvalidInputSelection
+  ...OperationErrorSelection
+}
+fragment InvalidInputSelection on InvalidInput {
+  errors {
+    path
+    message
+    name
+    context
+  }
+}
+fragment OperationErrorSelection on OperationError {
+  message
+  name
+  context
+}
+fragment SsoConfigSelection on SsoConfig {
+  text
+  timestamp
+  uploader {
+    ...UserSelection
+  }
+}
+
 query rolesList {
   roles {
     ...RoleSelection
@@ -28,7 +85,6 @@ mutation usersCreate($input: UserInput!) {
   admin {
     user {
       create(input: $input) {
-        __typename
         ...UserMutationSelection
       }
     }
@@ -40,7 +96,6 @@ mutation usersDelete($name: String!) {
     user {
       mutate(name: $name) {
         delete {
-          __typename
           ...InvalidInputSelection
           ...OperationErrorSelection
         }
@@ -54,7 +109,6 @@ mutation usersSetEmail($email: String!, $name: String!) {
     user {
       mutate(name: $name) {
         setEmail(email: $email) {
-          __typename
           ...UserMutationSelection
         }
       }
@@ -67,7 +121,6 @@ mutation usersSetAdmin($name: String!, $admin: Boolean!) {
     user {
       mutate(name: $name) {
         setAdmin(admin: $admin) {
-          __typename
           ...UserMutationSelection
         }
       }
@@ -80,7 +133,6 @@ mutation usersSetActive($active: Boolean!, $name: String!) {
     user {
       mutate(name: $name) {
         setActive(active: $active) {
-          __typename
           ...UserMutationSelection
         }
       }
@@ -93,7 +145,6 @@ mutation usersResetPassword($name: String!) {
     user {
       mutate(name: $name) {
         resetPassword {
-          __typename
           ...InvalidInputSelection
           ...OperationErrorSelection
         }
@@ -107,7 +158,6 @@ mutation usersSetRole($name: String!, $role: String!, $extraRoles: [String!], $a
     user {
       mutate(name: $name) {
         setRole(role: $role, extraRoles: $extraRoles, append: $append) {
-          __typename
           ...UserSelection
           ...InvalidInputSelection
           ...OperationErrorSelection
@@ -122,7 +172,6 @@ mutation usersAddRoles($name: String!, $roles: [String!]!) {
     user {
       mutate(name: $name) {
         addRoles(roles: $roles) {
-          __typename
           ...UserSelection
           ...InvalidInputSelection
           ...OperationErrorSelection
@@ -137,7 +186,6 @@ mutation usersRemoveRoles($name: String!, $roles: [String!]!, $fallback: String)
     user {
       mutate(name: $name) {
         removeRoles(roles: $roles, fallback: $fallback) {
-          __typename
           ...UserSelection
           ...InvalidInputSelection
           ...OperationErrorSelection
@@ -158,7 +206,6 @@ query ssoConfigGet {
 mutation ssoConfigSet($config: String) {
   admin {
     setSsoConfig(config: $config) {
-      __typename
       ...SsoConfigSelection
       ...InvalidInputSelection
       ...OperationErrorSelection
@@ -177,11 +224,7 @@ query bucketTabulatorTablesList($name: String!) {
 
 mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $config: String) {
   admin {
-    bucketSetTabulatorTable(
-      bucketName: $bucketName
-      tableName: $tableName
-      config: $config
-    ) {
+    bucketSetTabulatorTable(bucketName: $bucketName, tableName: $tableName, config: $config) {
       __typename
       ...InvalidInputSelection
       ...OperationErrorSelection
@@ -189,13 +232,9 @@ mutation bucketTabulatorTableSet($bucketName: String!, $tableName: String!, $con
   }
 }
 
-mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $newTableName: String!) {
+mutation bucketTabulatorTableRename($bucketName: String!, $tableName: String!, $newTableName: String!)  {
   admin {
-    bucketRenameTabulatorTable(
-      bucketName: $bucketName
-      tableName: $tableName
-      newTableName: $newTableName
-    ) {
+    bucketRenameTabulatorTable(bucketName: $bucketName, tableName: $tableName, newTableName: $newTableName) {
       __typename
       ...InvalidInputSelection
       ...OperationErrorSelection
@@ -214,69 +253,5 @@ mutation tabulatorSetOpenQuery($enabled: Boolean!) {
     setTabulatorOpenQuery(enabled: $enabled) {
       tabulatorOpenQuery
     }
-  }
-}
-
-fragment ManagedRoleSelection on ManagedRole {
-  id
-  name
-  arn
-}
-
-fragment RoleSelection on Role {
-  __typename
-  ...UnmanagedRoleSelection
-  ...ManagedRoleSelection
-}
-
-fragment UnmanagedRoleSelection on UnmanagedRole {
-  id
-  name
-  arn
-}
-
-fragment UserSelection on User {
-  name
-  email
-  dateJoined
-  lastLogin
-  isActive
-  isAdmin
-  isSsoOnly
-  isService
-  role {
-    ...RoleSelection
-  }
-  extraRoles {
-    ...RoleSelection
-  }
-}
-
-fragment InvalidInputSelection on InvalidInput {
-  errors {
-    path
-    message
-    name
-    context
-  }
-}
-
-fragment OperationErrorSelection on OperationError {
-  message
-  name
-  context
-}
-
-fragment UserMutationSelection on UserResult {
-  ...UserSelection
-  ...InvalidInputSelection
-  ...OperationErrorSelection
-}
-
-fragment SsoConfigSelection on SsoConfig {
-  text
-  timestamp
-  uploader {
-    ...UserSelection
   }
 }
