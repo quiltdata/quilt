@@ -17,7 +17,7 @@ make graphql-codegen
 
 This will:
 1. Install the required dependencies (`ariadne-codegen` and related packages)
-2. Generate GraphQL client code in `../quilt3/_graphql_client/`
+2. Generate GraphQL client code in `quilt3/_graphql_client/`
 
 ## Files
 

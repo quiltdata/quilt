@@ -349,3 +349,9 @@ ALL_ADMIN_OPERATIONS = (
     ALL_USER_OPERATIONS + ALL_ROLE_OPERATIONS +
     ALL_SSO_OPERATIONS + ALL_TABULATOR_OPERATIONS
 )
+
+# Error tuples for parametrized tests
+MUTATION_ERRORS = (
+    (INVALID_INPUT_ERROR, ValueError),  # Using ValueError as placeholder for admin.Quilt3AdminError
+    (OPERATION_ERROR, ValueError),      # Using ValueError as placeholder for admin.Quilt3AdminError
+)

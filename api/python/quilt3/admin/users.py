@@ -1,4 +1,6 @@
 
+"""User management operations for Quilt admin API."""
+
 from typing import List, Optional
 
 from .. import _graphql_client
@@ -18,7 +20,7 @@ def get(name: str) -> Optional[types.User]:
     return types.User(**result.model_dump())
 
 
-def list() -> List[types.User]:
+def list_users() -> List[types.User]:
     """
     Get a list of all users in the registry.
     """
@@ -127,7 +129,8 @@ def set_role(
         name: Username of user to update.
         role: Role to be set as the active role.
         extra_roles: Additional roles to assign to the user.
-        append: If True, append the extra roles to the existing roles. If False, replace the existing roles.
+        append: If True, append the extra roles to the existing roles.
+            If False, replace the existing roles.
     """
     result = util.get_client().users_set_role(
         name=name, role=role, extra_roles=extra_roles, append=append

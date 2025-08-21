@@ -1,5 +1,6 @@
+"""Tests for Quilt3 admin API functionality."""
+
 import contextlib
-import datetime
 from unittest import mock
 
 import pytest
@@ -7,11 +8,18 @@ import pytest
 from quilt3 import _graphql_client, admin
 
 from .fixtures.admin_graphql_responses import (
+    INVALID_INPUT_ERROR,
+    MANAGED_ROLE,
+    OPERATION_ERROR,
     ROLES_LIST_RESPONSE,
+    SSO_CONFIG,
     SSO_CONFIG_GET_NOT_FOUND_RESPONSE,
     SSO_CONFIG_SET_SUCCESS_RESPONSE,
     SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE,
+    TABULATOR_TABLE,
     TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE,
+    UNMANAGED_ROLE,
+    USER,
     USER_MUTATION_NOT_FOUND_RESPONSE,
     USERS_CREATE_OPERATION_ERROR_RESPONSE,
     USERS_CREATE_VALIDATION_ERROR_RESPONSE,
@@ -26,68 +34,9 @@ from .fixtures.graphql_schema_fragments import (
     validate_user_response,
 )
 
-UNMANAGED_ROLE = {
-    "__typename": "UnmanagedRole",
-    "id": "d7d15bef-c482-4086-ae6b-d0372b6145d2",
-    "name": "UnmanagedRole",
-    "arn": "arn:aws:iam::000000000000:role/UnmanagedRole",
-}
-MANAGED_ROLE = {
-    "__typename": "ManagedRole",
-    "id": "b1bab604-98fd-4b46-a20b-958cf2541c91",
-    "name": "ManagedRole",
-    "arn": "arn:aws:iam::000000000000:role/ManagedRole",
-}
-USER = {
-    "__typename": "User",
-    "name": "test",
-    "email": "test@example.com",
-    "dateJoined": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
-    "lastLogin": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
-    "isActive": True,
-    "isAdmin": False,
-    "isSsoOnly": False,
-    "isService": False,
-    "role": UNMANAGED_ROLE,
-    "extraRoles": [MANAGED_ROLE],
-}
-SSO_CONFIG = {
-    "__typename": "SsoConfig",
-    "text": "",
-    "timestamp": datetime.datetime(2024, 6, 14, 11, 42, 27, 857128, tzinfo=datetime.timezone.utc),
-    "uploader": USER,
-}
-TABULATOR_TABLE = {
-    "name": "table",
-    "config": "config",
-}
-MUTATION_ERRORS = (
-    (
-        {
-            "__typename": "InvalidInput",
-            "errors": [
-                {
-                    "path": "error path",
-                    "message": "error message",
-                    "name": "error name",
-                    "context": {},
-                }
-            ],
-        },
-        admin.Quilt3AdminError,
-    ),
-    (
-        {
-            "__typename": "OperationError",
-            "message": "error message",
-            "name": "error name",
-            "context": {},
-        },
-        admin.Quilt3AdminError,
-    ),
-)
 USER_MUTATION_ERRORS = (
-    *MUTATION_ERRORS,
+    (INVALID_INPUT_ERROR, admin.Quilt3AdminError),
+    (OPERATION_ERROR, admin.Quilt3AdminError),
     (None, admin.UserNotFoundError),
 )
 
@@ -120,10 +69,14 @@ def mock_client(data, operation_name, variables=None):
         with mock.patch(
             "quilt3._graphql_client.Client.execute", return_value=mock.sentinel.RESPONSE
         ) as execute_mock:
-            with mock.patch("quilt3._graphql_client.Client.get_data", return_value=data) as get_data_mock:
+            with mock.patch(
+                "quilt3._graphql_client.Client.get_data", return_value=data
+            ) as get_data_mock:
                 yield
 
-    execute_mock.assert_called_once_with(query=mock.ANY, operation_name=operation_name, variables=variables or {})
+    execute_mock.assert_called_once_with(
+        query=mock.ANY, operation_name=operation_name, variables=variables or {}
+    )
     get_data_mock.assert_called_once_with(mock.sentinel.RESPONSE)
 
 
@@ -143,13 +96,15 @@ def test_get_roles():
     ],
 )
 def test_get_user(data, result):
-    with mock_client(_make_nested_dict("admin.user.get", data), "usersGet", variables={"name": "test"}):
+    with mock_client(
+        _make_nested_dict("admin.user.get", data), "usersGet", variables={"name": "test"}
+    ):
         assert admin.users.get("test") == result
 
 
 def test_get_users():
     with mock_client(_make_nested_dict("admin.user.list", [USER]), "usersList"):
-        assert admin.users.list() == [admin.User(**_as_dataclass_kwargs(USER))]
+        assert admin.users.list_users() == [admin.User(**_as_dataclass_kwargs(USER))]
 
 
 @pytest.mark.parametrize(
@@ -352,7 +307,9 @@ def test_remove_roles(data, result):
             with pytest.raises(result):
                 admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole")
         else:
-            assert admin.users.remove_roles("test", ["ManagedRole"], fallback="UnamanagedRole") == result
+            assert admin.users.remove_roles(
+                "test", ["ManagedRole"], fallback="UnamanagedRole"
+            ) == result
 
 
 @pytest.mark.parametrize(
@@ -376,7 +333,9 @@ def test_sso_config_get(data, result):
     ],
 )
 def test_sso_config_set(data, result):
-    with mock_client(_make_nested_dict("admin.set_sso_config", data), "ssoConfigSet", variables={"config": ""}):
+    with mock_client(
+        _make_nested_dict("admin.set_sso_config", data), "ssoConfigSet", variables={"config": ""}
+    ):
         if isinstance(result, type) and issubclass(result, Exception):
             with pytest.raises(result):
                 admin.sso_config.set("")
@@ -470,7 +429,7 @@ class TestUserOperationsWithMockServer:
 
     def test_users_list_with_mock_server(self, mock_admin_client, graphql_router):
         """Test listing users with the new mock infrastructure."""
-        users = admin.users.list()
+        users = admin.users.list_users()
 
         # Verify the call was made
         assert graphql_router.get_call_count("usersList") == 1
@@ -625,7 +584,9 @@ class TestTabulatorWithMockServer:
 
     def test_tabulator_list_tables_bucket_not_found(self, mock_admin_client, graphql_router):
         """Test listing tables for non-existent bucket."""
-        graphql_router.add_response("bucketTabulatorTablesList", TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE)
+        graphql_router.add_response(
+            "bucketTabulatorTablesList", TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE
+        )
 
         with pytest.raises(admin.BucketNotFoundError):
             admin.tabulator.list_tables("nonexistent-bucket")
@@ -665,7 +626,7 @@ class TestErrorHandlingWithMockServer:
         graphql_router.responses.clear()
 
         with pytest.raises(KeyError):  # No mock response configured
-            admin.users.list()
+            admin.users.list_users()
 
     def test_invalid_graphql_response_structure(self, mock_admin_client, graphql_router):
         """Test handling of malformed GraphQL responses."""
@@ -673,7 +634,7 @@ class TestErrorHandlingWithMockServer:
         graphql_router.add_response("usersList", {"invalid": "structure"})
 
         with pytest.raises(Exception):  # Should fail to parse
-            admin.users.list()
+            admin.users.list_users()
 
     def test_response_validation(self, graphql_router):
         """Test that our mock responses are valid."""

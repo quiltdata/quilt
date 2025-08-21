@@ -5,7 +5,7 @@ Provides utilities to validate that GraphQL responses match expected schema stru
 and contain required fields for proper operation.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict
 
 
 def validate_user_response(response_data: Dict[str, Any]) -> bool:
@@ -144,7 +144,8 @@ def validate_sso_config_response(response_data: Dict[str, Any]) -> bool:
     """Validate SSO config response matches expected schema.
 
     Args:
-        response_data: SSO config response data to validate (can be either raw GraphQL or dataclass dict)
+        response_data: SSO config response data to validate
+            (can be either raw GraphQL or dataclass dict)
 
     Returns:
         True if valid, False otherwise

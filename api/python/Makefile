@@ -11,8 +11,8 @@ lint-deps:
 	@python -c "import pycodestyle" 2>/dev/null || pip install pycodestyle
 	@python -c "import pylint" 2>/dev/null || pip install 'pylint==3.2.7'
 
-# Automatically detect changed Python files vs origin/master (relative to api/python)
-CHANGED_FILES = $(shell git diff --name-only HEAD origin/master | grep '^api/python.*\.py$$' | sed 's|^api/python/||' || echo "")
+# Automatically detect changed Python files vs master (relative to api/python)
+CHANGED_FILES = $(shell git diff --name-only HEAD master | grep '^api/python.*\.py$$' | sed 's|^api/python/||' || echo "")
 
 lint: lint-deps
 	@echo "Running lint on changed Python files..."
@@ -42,4 +42,10 @@ graphql-codegen: graphql-deps
 	@echo "Generating GraphQL client code..."
 	cd quilt3-graphql && ariadne-codegen
 
-.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen
+# Documentation linting that mirrors CI lint-docs job
+lint-docs:
+	@echo "Running markdownlint on documentation..."
+	@cd ../.. && npx --package=markdownlint-cli markdownlint .
+	@echo "Documentation lint complete!"
+
+.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs

@@ -1,3 +1,5 @@
+"""Test configuration and fixtures for Quilt3 admin API tests."""
+
 import os
 import pathlib
 import shutil
@@ -31,6 +33,7 @@ from .graphql_operation_router import GraphQLOperationRouter
 
 # Module Vars / Constants
 class Vars:
+    """Module-level variables for test configuration."""
     tmpdir_factory = None
     tmpdir_home = None
     tmpdir_data = None
@@ -87,6 +90,7 @@ def pytest_sessionfinish(session, exitstatus):
 # autouse: boolean.  Apply to all instances of the given scope.
 @pytest.fixture(scope='session', autouse=True)
 def each_session(request):
+    """Session-level test setup and teardown."""
     print("\nSetup session..")
 
     def teardown():  # can be named whatever
@@ -97,7 +101,8 @@ def each_session(request):
 
 @pytest.fixture(scope='function', autouse=True)
 def set_temporary_working_dir(request, tmpdir):
-    print("Setting tempdir to {}".format(tmpdir))
+    """Set up temporary working directory for each test."""
+    print(f"Setting tempdir to {tmpdir}")
     orig_dir = os.getcwd()
     os.chdir(tmpdir)
 

@@ -1,6 +1,9 @@
-# This is
-# https://github.com/mirumee/ariadne-codegen/blob/5bfd63c5e7e3a8cc5293eb94deee638b7adab98d/ariadne_codegen/client_generators/dependencies/base_client.py
-# modified to use our requests session instead of httpx.
+"""GraphQL base client implementation.
+
+This is based on
+https://github.com/mirumee/ariadne-codegen/blob/5bfd63c5e7e3a8cc5293eb94deee638b7adab98d/ariadne_codegen/client_generators/dependencies/base_client.py
+modified to use our requests session instead of httpx.
+"""
 # pylint: disable=relative-beyond-top-level
 import json
 from typing import IO, Any, Dict, List, Optional, Tuple, TypeVar, cast
@@ -22,6 +25,7 @@ Self = TypeVar("Self", bound="BaseClient")
 
 
 class BaseClient:
+    """Base GraphQL client for executing queries and mutations."""
     def __init__(
         self,
     ) -> None:
@@ -47,6 +51,7 @@ class BaseClient:
         variables: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> requests.Response:
+        """Execute a GraphQL query or mutation."""
         processed_variables, files, files_map = self._process_variables(variables)
 
         if files and files_map:
@@ -67,6 +72,7 @@ class BaseClient:
         )
 
     def get_data(self, response: requests.Response) -> Dict[str, Any]:
+        """Extract data from GraphQL response and handle errors."""
         if not 200 <= response.status_code < 300:
             raise GraphQLClientHttpError(
                 status_code=response.status_code, response=response
@@ -170,6 +176,7 @@ class BaseClient:
         files_map: Dict[str, List[str]],
         **kwargs: Any,
     ) -> requests.Response:
+        """Execute GraphQL request with file uploads."""
         data = {
             "operations": json.dumps(
                 {

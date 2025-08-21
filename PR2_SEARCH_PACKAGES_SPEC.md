@@ -100,7 +100,8 @@ query searchPackages(
     searchString: $searchString,
     filter: $filter,
     userMetaFilters: $userMetaFilters,
-    latestOnly: $latestOnly
+    latestOnly: $latestOnly,
+    size: $size
   ) {
     __typename
     ...PackagesSearchResultSetSelection
