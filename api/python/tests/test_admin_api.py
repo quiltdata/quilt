@@ -10,6 +10,7 @@ from quilt3 import _graphql_client, admin
 from .fixtures.admin_graphql_responses import (
     INVALID_INPUT_ERROR,
     MANAGED_ROLE,
+    MUTATION_ERRORS,
     OPERATION_ERROR,
     ROLES_LIST_RESPONSE,
     SSO_CONFIG,
