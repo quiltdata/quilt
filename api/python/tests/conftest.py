@@ -164,9 +164,9 @@ def graphql_router():
 def mock_admin_client(graphql_router):
     """Provide admin client with mocked GraphQL calls using the operation router."""
     with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.example.com"):
-        with mock.patch("quilt3.admin._graphql_client.Client.execute",
+        with mock.patch("quilt3._graphql_client.Client.execute",
                         return_value=mock.sentinel.RESPONSE) as execute_mock:
-            with mock.patch("quilt3.admin._graphql_client.Client.get_data") as get_data_mock:
+            with mock.patch("quilt3._graphql_client.Client.get_data") as get_data_mock:
                 # Configure get_data to route through our operation router
                 def mock_get_data(response):
                     # Extract operation details from the last execute call
