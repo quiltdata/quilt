@@ -2,7 +2,8 @@
 
 ## Overview
 
-Extract GraphQL code generation infrastructure from `quilt3-admin` to parent level, making it shared infrastructure for both admin and main quilt3 APIs.
+Extract GraphQL code generation infrastructure from `quilt3-admin` to parent
+level, making it shared infrastructure for both admin and main quilt3 APIs.
 
 ## Goals
 
@@ -13,7 +14,7 @@ Extract GraphQL code generation infrastructure from `quilt3-admin` to parent lev
 
 ## Current State
 
-```
+```text
 api/python/quilt3-admin/
 ├── pyproject.toml              # ariadne-codegen config
 ├── queries.graphql             # Admin GraphQL queries
@@ -26,7 +27,7 @@ api/python/quilt3/admin/_graphql_client/
 
 ## Target State
 
-```
+```text
 api/python/quilt3-graphql/
 ├── pyproject.toml              # Moved ariadne-codegen config
 ├── queries.graphql             # Admin queries (unchanged)
@@ -46,6 +47,7 @@ api/python/quilt3/admin/
 ### 1. Create Shared GraphQL Package
 
 **File**: `/api/python/quilt3-graphql/pyproject.toml`
+
 ```toml
 [tool.ariadne-codegen]
 schema_path = "../../../shared/graphql/schema.graphql"
@@ -56,14 +58,17 @@ target_package_name = "_graphql_client"
 ```
 
 **File**: `/api/python/quilt3-graphql/queries.graphql`
+
 - Copy existing admin queries unchanged
 
 **File**: `/api/python/quilt3-graphql/requirements.txt`
+
 - Move GraphQL dependencies from admin package
 
 ### 2. Update Code Generation
 
 **Command**:
+
 ```bash
 cd api/python/quilt3-graphql
 ariadne-codegen
@@ -76,6 +81,7 @@ ariadne-codegen
 **Files**: `/api/python/quilt3/admin/*.py`
 
 Update all imports:
+
 ```python
 # Before
 from ._graphql_client import Client, UsersList, etc.
@@ -96,6 +102,7 @@ from .._graphql_client import Client, UsersList, etc.
 **File**: `.github/workflows/test-quilt3-admin-codegen.yaml`
 
 Update working directory and paths:
+
 ```yaml
 defaults:
   run:
@@ -105,16 +112,19 @@ defaults:
 ## Testing Strategy
 
 ### 1. Admin Functionality Tests
+
 - Run existing admin test suite
 - Verify all admin operations work unchanged
 - Test code generation pipeline
 
 ### 2. Import Verification
+
 - Verify all admin imports resolve correctly
 - Check no circular import issues
 - Validate generated client exports
 
 ### 3. CI/CD Validation
+
 - Ensure code generation workflow passes
 - Verify admin package tests pass
 - Check no regression in functionality
@@ -139,7 +149,7 @@ defaults:
 
 ## Files Changed
 
-```
+```text
 # New files
 api/python/quilt3-graphql/pyproject.toml          # New
 api/python/quilt3-graphql/queries.graphql         # Moved
@@ -160,13 +170,17 @@ api/python/quilt3/admin/_graphql_client/          # Moved
 ## Resolved Design Decisions
 
 ### Authentication & Configuration ✅
+
 **Decision**: Reuse existing patterns (no changes needed)
+
 - Shared GraphQL client will use same auth as admin
 - Same registry endpoint discovery
 - No new configuration required
 
 ### Dependencies ✅
+
 **Decision**: Move to shared location with minimal impact
+
 - `ariadne-codegen` is build-time only (not shipped to users)
 - Runtime dependencies already exist in quilt3
 - No package size concerns

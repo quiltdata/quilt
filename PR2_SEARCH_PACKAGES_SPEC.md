@@ -2,7 +2,8 @@
 
 ## Overview
 
-Add `quilt3.search_packages()` functionality to the main quilt3 Python client using the shared GraphQL infrastructure established in PR 1.
+Add `quilt3.search_packages()` functionality to the main quilt3 Python client using
+the shared GraphQL infrastructure established in PR 1.
 
 ## Prerequisites
 
@@ -54,6 +55,7 @@ more_results = quilt3.search_more_packages(
 **File**: `/api/python/tests/test_search_packages.py`
 
 Create comprehensive test suite:
+
 - Basic search scenarios with mocked GraphQL responses
 - Filter combinations and parameter validation
 - Pagination behavior and cursor handling
@@ -69,6 +71,7 @@ Mock GraphQL response fixtures for testing
 **File**: `/api/python/quilt3-graphql/queries.graphql`
 
 Add search queries to existing admin queries:
+
 ```graphql
 # Package search fragments
 fragment SearchHitPackageSelection on SearchHitPackage {
@@ -119,6 +122,7 @@ query searchMorePackages($after: String!, $size: Int = 30) {
 ```
 
 **Regenerate GraphQL Client**:
+
 ```bash
 cd api/python/quilt3-graphql
 ariadne-codegen
@@ -129,6 +133,7 @@ ariadne-codegen
 **File**: `/api/python/quilt3/_search.py`
 
 Internal search implementation using generated GraphQL client:
+
 ```python
 from typing import List, Optional, Dict, Any, Union
 from ._graphql_client import Client, SearchPackages, SearchMorePackages
@@ -152,6 +157,7 @@ def _search_more_packages(...) -> SearchResult:
 **File**: `/api/python/quilt3/__init__.py`
 
 Public API functions:
+
 ```python
 from ._search import _search_packages, _search_more_packages
 
@@ -171,21 +177,25 @@ def search_packages(
 ## Implementation Details
 
 ### Authentication & Configuration
+
 - Reuse existing `quilt3` registry endpoint discovery
 - Leverage existing credential management
 - Consistent with current authentication patterns
 
 ### Error Handling
+
 - Convert GraphQL errors to appropriate `QuiltException` subclasses
 - Provide clear, actionable error messages
 - Handle network failures gracefully
 
 ### Type Safety
+
 - Use generated GraphQL types for internal operations
 - Provide user-friendly types for public API
 - Comprehensive type hints throughout
 
 ### Performance Considerations
+
 - Efficient GraphQL queries with proper field selection
 - Reasonable timeout values
 - Connection pooling and reuse
@@ -193,18 +203,21 @@ def search_packages(
 ## Testing Strategy
 
 ### Unit Tests
+
 - Parameter validation and conversion
 - Error handling and exception mapping
 - Type conversions and data transformations
 - Pagination logic
 
 ### Integration Tests
+
 - Actual GraphQL endpoint communication
 - Authentication flow
 - Real search queries and responses
 - Performance and timeout handling
 
 ### Mock Tests
+
 - Simulated GraphQL responses using fixtures
 - Network failure scenarios
 - Authentication errors
@@ -212,7 +225,7 @@ def search_packages(
 
 ## Files Changed
 
-```
+```tree
 # Extended shared GraphQL
 api/python/quilt3-graphql/queries.graphql         # Add search queries
 api/python/quilt3/_graphql_client/                # Regenerated with search
@@ -241,23 +254,31 @@ docs/api-reference/                               # Updated API docs
 ## Resolved Design Decisions
 
 ### Authentication & Configuration ✅
+
 **Decision**: Reuse existing catalog config and authentication, same as admin module
+
 - No new configuration needed
 - Consistent with existing patterns
 
-### Error Handling ✅  
+### Error Handling ✅
+
 **Decision**: Use `PackageException` (existing main package pattern)
+
 - Current search uses simple exceptions, follow that pattern
 - Consistent with main quilt3 package exception hierarchy
 
 ### Pagination UX ✅
+
 **Decision**: Use `limit` parameter like existing search APIs
+
 - Current pattern: `search_api(query, index, limit=10)`
 - Start simple, can add pagination later if needed
 - Consistent with existing `quilt3.search()` and `Bucket.search()`
 
 ### Dependencies ✅
+
 **Decision**: Minimal runtime dependencies
+
 - `ariadne-codegen` is build-time only (not shipped)
 - Runtime: just HTTP client (already in quilt3)
 - No package size concerns

@@ -2,7 +2,9 @@
 
 ## Overview
 
-Add comprehensive GraphQL mock server and testing infrastructure for the existing `quilt3.admin` package. This establishes a safety net before any refactoring and creates testing patterns for future GraphQL development.
+Add comprehensive GraphQL mock server and testing infrastructure for the existing
+`quilt3.admin` package. This establishes a safety net before any refactoring and
+creates testing patterns for future GraphQL development.
 
 ## Goals
 
@@ -14,16 +16,17 @@ Add comprehensive GraphQL mock server and testing infrastructure for the existin
 
 ## Current State
 
-```
+```text
 api/python/tests/test_admin_api.py              # Basic admin tests
 api/python/quilt3/admin/_graphql_client/        # Generated GraphQL client
 ```
 
-**Current Testing**: Limited mocking, likely uses real GraphQL endpoints or simple mocks
+**Current Testing**: Limited mocking, likely uses real GraphQL endpoints or
+simple mocks
 
 ## Target State
 
-```
+```text
 api/python/tests/
 ├── test_admin_api.py                           # Enhanced with mock server
 ├── graphql_mock_server.py                      # Mock GraphQL server
@@ -42,6 +45,7 @@ api/python/quilt3/admin/                        # No changes to admin code
 **File**: `/api/python/tests/graphql_mock_server.py`
 
 Mock server that can handle GraphQL requests and return predefined responses:
+
 ```python
 import json
 from typing import Dict, Any
@@ -66,6 +70,7 @@ class GraphQLMockServer:
 **File**: `/api/python/tests/fixtures/admin_graphql_responses.py`
 
 Comprehensive fixtures for all admin operations:
+
 ```python
 # User operations
 USERS_LIST_RESPONSE = {
@@ -137,6 +142,7 @@ AUTH_ERROR = { ... }
 **File**: `/api/python/tests/conftest.py`
 
 Pytest fixtures for easy test setup:
+
 ```python
 import pytest
 from unittest.mock import patch
@@ -169,6 +175,7 @@ def mock_admin_client(graphql_mock):
 **File**: `/api/python/tests/test_admin_api.py`
 
 Comprehensive test coverage using mock server:
+
 ```python
 import pytest
 from quilt3 import admin
@@ -245,6 +252,7 @@ class TestErrorHandling:
 **File**: `/api/python/tests/fixtures/graphql_schema_fragments.py`
 
 Utilities to validate GraphQL responses match expected schema:
+
 ```python
 def validate_user_response(response_data):
     """Validate user response matches expected schema."""
@@ -303,7 +311,7 @@ def validate_role_response(response_data):
 
 ## Files Changed
 
-```
+```text
 # New test infrastructure
 api/python/tests/graphql_mock_server.py           # New
 api/python/tests/fixtures/admin_graphql_responses.py  # New
@@ -328,12 +336,16 @@ api/python/quilt3/admin/                         # Unchanged
 All open questions have been resolved through codebase research:
 
 ### Error Handling ✅
+
 **Decision**: Follow existing patterns
+
 - Admin uses `Quilt3AdminError` hierarchy (keep unchanged)
 - Main package will use `PackageException` for search (consistent with existing)
 
 ### Testing Infrastructure ✅
+
 **Decision**: Mock server approach (this PR)
+
 - Establishes comprehensive GraphQL testing patterns
 - No dependency on external services
 - Fast, reliable, deterministic tests
@@ -341,5 +353,6 @@ All open questions have been resolved through codebase research:
 ## Next Steps
 
 After PR0 is merged:
+
 - **PR1**: Refactor GraphQL infrastructure (with safety net in place)
 - **PR2**: Implement package search (using established testing patterns)
