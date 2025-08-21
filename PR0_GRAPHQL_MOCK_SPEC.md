@@ -2,266 +2,104 @@
 
 ## Overview
 
-Add comprehensive GraphQL mock server and testing infrastructure for the existing
-`quilt3.admin` package. This establishes a safety net before any refactoring and
-creates testing patterns for future GraphQL development.
+Add comprehensive GraphQL mock testing infrastructure for the existing
+`quilt3.admin` package. This establishes a safety net before any refactoring
+and creates testing patterns for future GraphQL development.
 
 ## Goals
 
 - **Safety First**: Test existing admin functionality before any changes
-- **Zero Risk**: Only adding tests, no changes to admin code
+- **Zero Risk**: Only adding tests, no changes to admin code  
 - **Foundation**: Establish GraphQL testing patterns for future PRs
 - **Documentation**: Tests serve as specification for current behavior
 - **Confidence**: Verify baseline works before refactoring
 
 ## Current State
 
-```tree
-api/python/tests/test_admin_api.py              # Basic admin tests
-api/python/quilt3/admin/_graphql_client/        # Generated GraphQL client
-```
-
-**Current Testing**: Limited mocking,
-likely uses real GraphQL endpoints or simple mocks
+- Basic admin tests exist but with limited mocking
+- Generated GraphQL client handles all admin operations
+- Tests may use real endpoints or simple mocks
 
 ## Target State
 
-```tree
-api/python/tests/
-├── test_admin_api.py                           # Enhanced with mock server
-├── graphql_mock_server.py                      # Mock GraphQL server
-├── fixtures/
-│   ├── admin_graphql_responses.py              # Admin response fixtures
-│   └── graphql_schema_fragments.py             # Schema validation helpers
-└── conftest.py                                 # Pytest fixtures
+Create comprehensive testing infrastructure:
 
-api/python/quilt3/admin/                        # No changes to admin code
-```
+- GraphQL operation router for lightweight mocking
+- Complete response fixtures for all admin operations
+- Schema validation helpers
+- Enhanced pytest fixtures for easy test setup
+- Comprehensive test coverage for all admin functionality
+- No changes to existing admin code
 
 ## Implementation Plan
 
-### 1. Create GraphQL Mock Server
+### 1. Create GraphQL Operation Router
 
-**File**: `/api/python/tests/graphql_mock_server.py`
+**File**: `tests/graphql_operation_router.py`
 
-Mock server that can handle GraphQL requests and return predefined responses:
+Create a lightweight GraphQL operation router that:
 
-```python
-import json
-from typing import Dict, Any
-from unittest.mock import Mock
+- Routes GraphQL operations to predefined mock responses
+- Tracks call history for test assertions
+- Supports dynamic response configuration
+- Extracts operation names from GraphQL queries
+- Provides utilities for test verification
 
-class GraphQLMockServer:
-    def __init__(self):
-        self.responses = {}
-        self.call_history = []
-    
-    def add_response(self, operation_name: str, response: Dict[str, Any]):
-        """Add a mock response for a GraphQL operation."""
-        pass
-        
-    def handle_request(self, query: str, variables: Dict[str, Any] = None):
-        """Handle a GraphQL request and return mock response."""
-        pass
-```
+**Why Operation Router vs Full Mock Server:**
+
+- **Performance**: No network overhead, direct function calls
+- **Simplicity**: Easier to debug and maintain
+- **Integration**: Works seamlessly with existing pytest infrastructure
+- **Reliability**: No port conflicts or server startup issues
+- **Speed**: Tests run faster without server bootstrap time
 
 ### 2. Create Response Fixtures
 
-**File**: `/api/python/tests/fixtures/admin_graphql_responses.py`
+**File**: `tests/fixtures/admin_graphql_responses.py`
 
-Comprehensive fixtures for all admin operations:
+Build comprehensive fixtures covering:
 
-```python
-# User operations
-USERS_LIST_RESPONSE = {
-    "data": {
-        "admin": {
-            "user": {
-                "list": [
-                    {
-                        "name": "testuser",
-                        "email": "test@example.com",
-                        "dateJoined": "2024-01-01T00:00:00Z",
-                        # ... all user fields
-                    }
-                ]
-            }
-        }
-    }
-}
+- All user operations (list, get, create, delete, mutations)
+- Role operations (list)
+- SSO configuration operations (get, set)
+- Tabulator operations (list tables, set table, rename table, open query)
+- Error responses (validation errors, operation errors, not found)
+- Helper functions for dynamic response generation
 
-USER_CREATE_SUCCESS = {
-    "data": {
-        "admin": {
-            "user": {
-                "create": {
-                    "__typename": "User",
-                    "name": "newuser",
-                    # ... user fields
-                }
-            }
-        }
-    }
-}
+### 3. Create Schema Validation Helpers
 
-USER_CREATE_ERROR = {
-    "data": {
-        "admin": {
-            "user": {
-                "create": {
-                    "__typename": "InvalidInput",
-                    "errors": [
-                        {
-                            "path": ["email"],
-                            "message": "Invalid email format",
-                            "name": "ValidationError"
-                        }
-                    ]
-                }
-            }
-        }
-    }
-}
+**File**: `tests/fixtures/graphql_schema_fragments.py`
 
-# Role operations
-ROLES_LIST_RESPONSE = { ... }
+Implement validation utilities that:
 
-# SSO config operations  
-SSO_CONFIG_GET_RESPONSE = { ... }
+- Validate GraphQL response structures
+- Handle both GraphQL camelCase and dataclass snake_case formats
+- Support nested object validation (roles, users)
+- Provide clear validation error messages
 
-# Tabulator operations
-TABULATOR_TABLES_LIST_RESPONSE = { ... }
+### 4. Enhanced Pytest Fixtures
 
-# Error responses
-NETWORK_ERROR = { ... }
-AUTH_ERROR = { ... }
-```
+**File**: `tests/conftest.py`
 
-### 3. Create Test Utilities
+Add pytest fixtures that:
 
-**File**: `/api/python/tests/conftest.py`
+- Configure GraphQL operation router with common responses
+- Mock admin client GraphQL calls seamlessly
+- Integrate with existing test infrastructure
+- Support easy test setup and teardown
 
-Pytest fixtures for easy test setup:
+### 5. Comprehensive Test Coverage
 
-```python
-import pytest
-from unittest.mock import patch
-from .graphql_mock_server import GraphQLMockServer
-from .fixtures.admin_graphql_responses import *
+**File**: `tests/test_admin_api.py`
 
-@pytest.fixture
-def graphql_mock():
-    """Provide a configured GraphQL mock server."""
-    mock = GraphQLMockServer()
-    
-    # Pre-configure common responses
-    mock.add_response("usersList", USERS_LIST_RESPONSE)
-    mock.add_response("rolesList", ROLES_LIST_RESPONSE)
-    # ... add all admin operations
-    
-    return mock
+Implement comprehensive test classes covering:
 
-@pytest.fixture
-def mock_admin_client(graphql_mock):
-    """Provide admin client with mocked GraphQL calls."""
-    with patch('quilt3.admin._graphql_client.Client') as mock_client:
-        # Configure mock client to use our GraphQL mock
-        mock_client.return_value.execute.side_effect = graphql_mock.handle_request
-        yield mock_client
-```
-
-### 4. Enhanced Admin Tests
-
-**File**: `/api/python/tests/test_admin_api.py`
-
-Comprehensive test coverage using mock server:
-
-```python
-import pytest
-from quilt3 import admin
-from .fixtures.admin_graphql_responses import *
-
-class TestUserOperations:
-    """Test all user-related admin operations."""
-    
-    def test_users_list(self, mock_admin_client, graphql_mock):
-        """Test listing users."""
-        graphql_mock.add_response("usersList", USERS_LIST_RESPONSE)
-        
-        users = admin.users.list()
-        
-        assert len(users) == 1
-        assert users[0].name == "testuser"
-        assert users[0].email == "test@example.com"
-    
-    def test_user_create_success(self, mock_admin_client, graphql_mock):
-        """Test successful user creation."""
-        graphql_mock.add_response("usersCreate", USER_CREATE_SUCCESS)
-        
-        user = admin.users.create(
-            name="newuser",
-            email="new@example.com", 
-            role="basic"
-        )
-        
-        assert user.name == "newuser"
-    
-    def test_user_create_validation_error(self, mock_admin_client, graphql_mock):
-        """Test user creation with validation errors."""
-        graphql_mock.add_response("usersCreate", USER_CREATE_ERROR)
-        
-        with pytest.raises(admin.exceptions.QuiltAdminError) as exc_info:
-            admin.users.create(
-                name="newuser",
-                email="invalid-email",
-                role="basic"
-            )
-        
-        assert "Invalid email format" in str(exc_info.value)
-
-class TestRoleOperations:
-    """Test role-related admin operations."""
-    # ... comprehensive role tests
-
-class TestSSOConfig:
-    """Test SSO configuration operations.""" 
-    # ... SSO tests
-
-class TestTabulatorOperations:
-    """Test tabulator-related operations."""
-    # ... tabulator tests
-
-class TestErrorHandling:
-    """Test error scenarios and edge cases."""
-    
-    def test_network_error(self, mock_admin_client, graphql_mock):
-        """Test handling of network errors."""
-        pass
-        
-    def test_authentication_error(self, mock_admin_client, graphql_mock):
-        """Test handling of auth errors."""
-        pass
-        
-    def test_invalid_graphql_response(self, mock_admin_client, graphql_mock):
-        """Test handling of malformed responses."""
-        pass
-```
-
-### 5. Schema Validation Helpers
-
-**File**: `/api/python/tests/fixtures/graphql_schema_fragments.py`
-
-Utilities to validate GraphQL responses match expected schema:
-
-```python
-def validate_user_response(response_data):
-    """Validate user response matches expected schema."""
-    pass
-
-def validate_role_response(response_data):
-    """Validate role response matches expected schema."""
-    pass
-```
+- All user operations with success and error scenarios
+- Role operations testing
+- SSO configuration testing
+- Tabulator operations testing
+- Error handling and edge cases
+- Mock infrastructure verification
 
 ## Testing Strategy
 
@@ -275,23 +113,21 @@ def validate_role_response(response_data):
 
 2. **Error Scenarios**:
    - Invalid input validation
-   - Network failures
-   - Authentication errors
+   - Operation failures
+   - Not found errors
    - Malformed GraphQL responses
-   - Server errors
 
 3. **Edge Cases**:
    - Empty responses
-   - Large datasets
-   - Unicode/special characters
-   - Concurrent operations
+   - Null values
+   - Different data formats
 
 ### Test Categories
 
 - **Unit Tests**: Individual admin functions with mocked responses
-- **Integration Tests**: Full admin workflows using mock server
+- **Integration Tests**: Full admin workflows using operation router
 - **Error Tests**: Comprehensive error handling validation
-- **Performance Tests**: Response time and memory usage with large datasets
+- **Infrastructure Tests**: Mock router functionality verification
 
 ## Benefits
 
@@ -303,56 +139,56 @@ def validate_role_response(response_data):
 
 ## Success Criteria
 
-1. **100% Admin Coverage**: All existing admin operations tested
+1. **Complete Admin Coverage**: All existing admin operations tested
 2. **Error Handling**: All error scenarios covered
-3. **Fast Tests**: Test suite runs in <30 seconds
-4. **Reliable**: No flaky tests, deterministic results
+3. **Fast Tests**: Test suite runs quickly with no external dependencies
+4. **Reliable**: Deterministic results, no flaky tests
 5. **Maintainable**: Clear test structure and good documentation
 
-## Files Changed
+## Files Created/Modified
 
-```tree
-# New test infrastructure
-api/python/tests/graphql_mock_server.py           # New
-api/python/tests/fixtures/admin_graphql_responses.py  # New
-api/python/tests/fixtures/graphql_schema_fragments.py  # New
-api/python/tests/conftest.py                     # Enhanced
+### New Files
 
-# Enhanced tests
-api/python/tests/test_admin_api.py               # Enhanced with comprehensive coverage
+- `tests/graphql_operation_router.py` - Operation router implementation
+- `tests/fixtures/admin_graphql_responses.py` - Response fixtures
+- `tests/fixtures/graphql_schema_fragments.py` - Validation helpers
 
-# No changes to admin code
-api/python/quilt3/admin/                         # Unchanged
-```
+### Modified Files
+
+- `tests/conftest.py` - Enhanced with GraphQL fixtures
+- `tests/test_admin_api.py` - Enhanced with comprehensive coverage
+
+### Unchanged
+
+- `quilt3/admin/` - No changes to admin code
 
 ## Dependencies
 
 - Existing admin package (unchanged)
-- pytest and mock libraries
+- pytest and mock libraries (already available)
 - Current GraphQL schema for response validation
 
-## Resolved Design Decisions
+## Design Decisions
 
-All open questions have been resolved through codebase research:
+### Testing Infrastructure
 
-### Error Handling ✅
+**Decision**: Operation router approach
+
+- Lightweight routing without full server overhead
+- Fast, reliable, deterministic tests
+- Easy integration with existing test infrastructure
+- No external dependencies
+
+### Error Handling
 
 **Decision**: Follow existing patterns
 
-- Admin uses `Quilt3AdminError` hierarchy (keep unchanged)
-- Main package will use `PackageException` for search (consistent with existing)
-
-### Testing Infrastructure ✅
-
-**Decision**: Mock server approach (this PR)
-
-- Establishes comprehensive GraphQL testing patterns
-- No dependency on external services
-- Fast, reliable, deterministic tests
+- Use existing `Quilt3AdminError` hierarchy
+- Maintain compatibility with current error handling
 
 ## Next Steps
 
-After PR0 is merged:
+After PR0 completion:
 
 - **PR1**: Refactor GraphQL infrastructure (with safety net in place)
 - **PR2**: Implement package search (using established testing patterns)

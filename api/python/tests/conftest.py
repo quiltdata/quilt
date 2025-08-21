@@ -8,7 +8,7 @@ from unittest import mock
 
 import pytest
 
-from .graphql_mock_server import GraphQLOperationRouter
+from .graphql_operation_router import GraphQLOperationRouter
 from .fixtures.admin_graphql_responses import (
     ROLES_LIST_RESPONSE,
     USERS_LIST_RESPONSE,
