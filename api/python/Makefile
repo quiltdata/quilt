@@ -12,7 +12,8 @@ lint-deps:
 	@python -c "import pylint" 2>/dev/null || pip install 'pylint==3.2.7'
 
 # Automatically detect changed Python files vs master (relative to api/python)
-CHANGED_FILES = $(shell git diff --name-only HEAD master | grep '^api/python.*\.py$$' | sed 's|^api/python/||' || echo "")
+# Exclude GraphQL codegen files from linting
+CHANGED_FILES = $(shell git diff --name-only HEAD master | grep '^api/python.*\.py$$' | sed 's|^api/python/||' | grep -v '^quilt3/_graphql_client/' | grep -v '^quilt3/admin/_graphql_client/' || echo "")
 
 lint: lint-deps
 	@echo "Running lint on changed Python files..."
@@ -29,8 +30,8 @@ lint: lint-deps
 lint-all: lint-deps
 	@echo "Running lint on all Python files..."
 	isort . --quiet
-	python -m pycodestyle $$(find . -name '*.py' -not -path './venv/*' -not -path './.venv/*') || true
-	python -m pylint . || true
+	python -m pycodestyle $$(find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './quilt3/_graphql_client/*') || true
+	python -m pylint . --ignore=quilt3/_graphql_client || true
 	@echo "Lint complete!"
 
 # GraphQL code generation
