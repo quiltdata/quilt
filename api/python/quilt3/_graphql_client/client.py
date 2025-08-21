@@ -21,11 +21,23 @@ from .bucket_tabulator_tables_list import (
     BucketTabulatorTablesList,
     BucketTabulatorTablesListBucketConfig,
 )
-from .input_types import UserInput
+from .enums import SearchResultOrder
+from .input_types import PackagesSearchFilter, PackageUserMetaPredicate, UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
     RolesListRolesUnmanagedRole,
+)
+from .search_more_packages import (
+    SearchMorePackages,
+    SearchMorePackagesSearchMorePackagesInvalidInput,
+    SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage,
+)
+from .search_packages import (
+    SearchPackages,
+    SearchPackagesSearchPackagesEmptySearchResultSet,
+    SearchPackagesSearchPackagesInvalidInput,
+    SearchPackagesSearchPackagesPackagesSearchResultSet,
 )
 from .sso_config_get import SsoConfigGet, SsoConfigGetAdminSsoConfig
 from .sso_config_set import (
@@ -1210,3 +1222,147 @@ class Client(BaseClient):
         return TabulatorSetOpenQuery.model_validate(
             data
         ).admin.set_tabulator_open_query.tabulator_open_query
+
+    def search_packages(
+        self,
+        buckets: Union[Optional[List[str]], UnsetType] = UNSET,
+        search_string: Union[Optional[str], UnsetType] = UNSET,
+        filter: Union[Optional[PackagesSearchFilter], UnsetType] = UNSET,
+        user_meta_filters: Union[
+            Optional[List[PackageUserMetaPredicate]], UnsetType
+        ] = UNSET,
+        latest_only: Union[Optional[bool], UnsetType] = UNSET,
+        size: Union[Optional[int], UnsetType] = UNSET,
+        order: Union[Optional[SearchResultOrder], UnsetType] = UNSET,
+        **kwargs: Any
+    ) -> Union[
+        SearchPackagesSearchPackagesPackagesSearchResultSet,
+        SearchPackagesSearchPackagesEmptySearchResultSet,
+        SearchPackagesSearchPackagesInvalidInput,
+    ]:
+        query = gql(
+            """
+            query searchPackages($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter, $userMetaFilters: [PackageUserMetaPredicate!], $latestOnly: Boolean = false, $size: Int = 30, $order: SearchResultOrder = BEST_MATCH) {
+              searchPackages(
+                buckets: $buckets
+                searchString: $searchString
+                filter: $filter
+                userMetaFilters: $userMetaFilters
+                latestOnly: $latestOnly
+              ) {
+                __typename
+                ... on PackagesSearchResultSet {
+                  ...PackagesSearchResultSetSelection
+                }
+                ... on EmptySearchResultSet {
+                  _
+                }
+                ... on InvalidInput {
+                  ...InvalidInputSelection
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment PackagesSearchResultSetSelection on PackagesSearchResultSet {
+              total
+              firstPage(size: $size, order: $order) {
+                cursor
+                hits {
+                  ...SearchHitPackageSelection
+                }
+              }
+            }
+
+            fragment SearchHitPackageSelection on SearchHitPackage {
+              id
+              score
+              bucket
+              name
+              modified
+              size
+              hash
+              comment
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "buckets": buckets,
+            "searchString": search_string,
+            "filter": filter,
+            "userMetaFilters": user_meta_filters,
+            "latestOnly": latest_only,
+            "size": size,
+            "order": order,
+        }
+        response = self.execute(
+            query=query, operation_name="searchPackages", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return SearchPackages.model_validate(data).search_packages
+
+    def search_more_packages(
+        self, after: str, size: Union[Optional[int], UnsetType] = UNSET, **kwargs: Any
+    ) -> Union[
+        SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage,
+        SearchMorePackagesSearchMorePackagesInvalidInput,
+    ]:
+        query = gql(
+            """
+            query searchMorePackages($after: String!, $size: Int = 30) {
+              searchMorePackages(after: $after, size: $size) {
+                __typename
+                ... on PackagesSearchResultSetPage {
+                  ...PackagesSearchResultSetPageSelection
+                }
+                ... on InvalidInput {
+                  ...InvalidInputSelection
+                }
+              }
+            }
+
+            fragment InvalidInputSelection on InvalidInput {
+              errors {
+                path
+                message
+                name
+                context
+              }
+            }
+
+            fragment PackagesSearchResultSetPageSelection on PackagesSearchResultSetPage {
+              cursor
+              hits {
+                ...SearchHitPackageSelection
+              }
+            }
+
+            fragment SearchHitPackageSelection on SearchHitPackage {
+              id
+              score
+              bucket
+              name
+              modified
+              size
+              hash
+              comment
+            }
+            """
+        )
+        variables: Dict[str, object] = {"after": after, "size": size}
+        response = self.execute(
+            query=query,
+            operation_name="searchMorePackages",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return SearchMorePackages.model_validate(data).search_more_packages

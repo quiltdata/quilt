@@ -9,6 +9,49 @@ from pydantic import Field, PlainSerializer
 from .base_model import BaseModel, Upload
 
 
+class DatetimeSearchPredicate(BaseModel):
+    gte: Optional[datetime] = None
+    lte: Optional[datetime] = None
+
+
+class NumberSearchPredicate(BaseModel):
+    gte: Optional[float] = None
+    lte: Optional[float] = None
+
+
+class TextSearchPredicate(BaseModel):
+    query_string: str = Field(alias="queryString")
+
+
+class KeywordSearchPredicate(BaseModel):
+    terms: Optional[List[str]] = None
+    wildcard: Optional[str] = None
+
+
+class BooleanSearchPredicate(BaseModel):
+    true: Optional[bool] = None
+    false: Optional[bool] = None
+
+
+class PackageUserMetaPredicate(BaseModel):
+    path: str
+    datetime: Optional["DatetimeSearchPredicate"] = None
+    number: Optional["NumberSearchPredicate"] = None
+    text: Optional["TextSearchPredicate"] = None
+    keyword: Optional["KeywordSearchPredicate"] = None
+    boolean: Optional["BooleanSearchPredicate"] = None
+
+
+class PackagesSearchFilter(BaseModel):
+    modified: Optional["DatetimeSearchPredicate"] = None
+    size: Optional["NumberSearchPredicate"] = None
+    name: Optional["KeywordSearchPredicate"] = None
+    hash: Optional["KeywordSearchPredicate"] = None
+    entries: Optional["NumberSearchPredicate"] = None
+    comment: Optional["TextSearchPredicate"] = None
+    workflow: Optional["KeywordSearchPredicate"] = None
+
+
 class UserInput(BaseModel):
     name: str
     email: str
