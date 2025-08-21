@@ -1,6 +1,4 @@
 
-"""User management operations for Quilt admin API."""
-
 from typing import List, Optional
 
 from .. import _graphql_client
@@ -20,7 +18,7 @@ def get(name: str) -> Optional[types.User]:
     return types.User(**result.model_dump())
 
 
-def list_users() -> List[types.User]:
+def list() -> List[types.User]:  # pylint: disable=redefined-builtin
     """
     Get a list of all users in the registry.
     """

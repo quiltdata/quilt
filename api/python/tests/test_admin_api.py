@@ -105,7 +105,7 @@ def test_get_user(data, result):
 
 def test_get_users():
     with mock_client(_make_nested_dict("admin.user.list", [USER]), "usersList"):
-        assert admin.users.list_users() == [admin.User(**_as_dataclass_kwargs(USER))]
+        assert admin.users.list() == [admin.User(**_as_dataclass_kwargs(USER))]
 
 
 @pytest.mark.parametrize(
@@ -430,7 +430,7 @@ class TestUserOperationsWithMockServer:
 
     def test_users_list_with_mock_server(self, mock_admin_client, graphql_router):
         """Test listing users with the new mock infrastructure."""
-        users = admin.users.list_users()
+        users = admin.users.list()
 
         # Verify the call was made
         assert graphql_router.get_call_count("usersList") == 1
@@ -627,7 +627,7 @@ class TestErrorHandlingWithMockServer:
         graphql_router.responses.clear()
 
         with pytest.raises(KeyError):  # No mock response configured
-            admin.users.list_users()
+            admin.users.list()
 
     def test_invalid_graphql_response_structure(self, mock_admin_client, graphql_router):
         """Test handling of malformed GraphQL responses."""
@@ -635,7 +635,7 @@ class TestErrorHandlingWithMockServer:
         graphql_router.add_response("usersList", {"invalid": "structure"})
 
         with pytest.raises(Exception):  # Should fail to parse
-            admin.users.list_users()
+            admin.users.list()
 
     def test_response_validation(self, graphql_router):
         """Test that our mock responses are valid."""
