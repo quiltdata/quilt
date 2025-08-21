@@ -185,6 +185,16 @@ api/python/quilt3/admin/_graphql_client/          # Moved
 - Runtime dependencies already exist in quilt3
 - No package size concerns
 
+## Component Changes
+
+This PR refactors GraphQL infrastructure to enable shared usage:
+
+- **Moved Component**: GraphQL client generation moved from `quilt3.admin._graphql_client` to `quilt3._graphql_client`
+- **Updated Imports**: Admin package imports updated to use shared client
+- **New Location**: GraphQL build tooling moved to `api/python/quilt3-graphql/`
+- **No Functional Changes**: Admin package functionality remains identical
+- **Shared Infrastructure**: Enables future GraphQL features (search, etc.)
+
 ## Dependencies
 
 - PR 0 (GraphQL Mock) merged - comprehensive test coverage protects refactoring

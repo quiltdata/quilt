@@ -167,7 +167,7 @@ def search_packages(
     filter: Optional[Dict[str, Any]] = None,
     user_meta_filters: Optional[List[Dict[str, Any]]] = None,
     latest_only: bool = False,
-    limit: int = 30,
+    size: int = 30,
     order: str = "RELEVANCE"
 ) -> SearchResult:
     """Search for packages across accessible buckets."""
@@ -269,11 +269,11 @@ docs/api-reference/                               # Updated API docs
 
 ### Pagination UX ✅
 
-**Decision**: Use `limit` parameter like existing search APIs
+**Decision**: Use `size` parameter consistent with GraphQL schema
 
-- Current pattern: `search_api(query, index, limit=10)`
+- GraphQL schema uses `size` parameter for consistency
+- Aligns with backend GraphQL API naming
 - Start simple, can add pagination later if needed
-- Consistent with existing `quilt3.search()` and `Bucket.search()`
 
 ### Dependencies ✅
 
@@ -282,6 +282,17 @@ docs/api-reference/                               # Updated API docs
 - `ariadne-codegen` is build-time only (not shipped)
 - Runtime: just HTTP client (already in quilt3)
 - No package size concerns
+
+## Component Changes
+
+This PR introduces a new search component to the quilt3 Python package:
+
+- **New API Surface**: `quilt3.search_packages()` function added to main package
+- **GraphQL Integration**: Leverages shared GraphQL client infrastructure from
+  PR1  
+- **Authentication**: Reuses existing quilt3 authentication mechanisms
+- **Error Handling**: Integrates with existing `QuiltException` hierarchy
+- **Dependencies**: No new runtime dependencies, builds on existing infrastructure
 
 ## Dependencies
 
