@@ -3,7 +3,9 @@ from . import exceptions, types
 
 
 def handle_errors(result: _graphql_client.BaseModel) -> _graphql_client.BaseModel:
-    if isinstance(result, (_graphql_client.InvalidInputSelection, _graphql_client.OperationErrorSelection)):
+    if isinstance(
+        result, (_graphql_client.InvalidInputSelection, _graphql_client.OperationErrorSelection)
+    ):
         raise exceptions.Quilt3AdminError(result)
     return result
 
