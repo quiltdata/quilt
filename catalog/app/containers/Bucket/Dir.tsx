@@ -169,6 +169,7 @@ export default function Dir() {
     setPrev(null)
   }, [path, prefix])
 
+  // TODO: re-request on upload success
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
