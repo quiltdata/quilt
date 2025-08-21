@@ -7,36 +7,21 @@ import pytest
 
 from quilt3 import _graphql_client, admin
 
+from .fixtures.admin_graphql_responses import (
+    INVALID_INPUT_ERROR, MANAGED_ROLE, MUTATION_ERRORS, OPERATION_ERROR,
+    ROLES_LIST_RESPONSE, SSO_CONFIG, SSO_CONFIG_GET_NOT_FOUND_RESPONSE,
+    SSO_CONFIG_SET_SUCCESS_RESPONSE, SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE,
+    TABULATOR_TABLE, TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE,
+    UNMANAGED_ROLE, USER, USER_MUTATION_NOT_FOUND_RESPONSE,
+    USERS_CREATE_OPERATION_ERROR_RESPONSE,
+    USERS_CREATE_VALIDATION_ERROR_RESPONSE, USERS_GET_NOT_FOUND_RESPONSE,
+    USERS_LIST_RESPONSE)
+from .fixtures.graphql_schema_fragments import (
+    validate_graphql_response_structure, validate_role_response,
+    validate_sso_config_response, validate_tabulator_table_response,
+    validate_user_response)
 # Import GraphQL fixtures
 from .graphql_fixtures import graphql_router, mock_admin_client  # noqa: F401
-
-from .fixtures.admin_graphql_responses import (
-    INVALID_INPUT_ERROR,
-    MANAGED_ROLE,
-    MUTATION_ERRORS,
-    OPERATION_ERROR,
-    ROLES_LIST_RESPONSE,
-    SSO_CONFIG,
-    SSO_CONFIG_GET_NOT_FOUND_RESPONSE,
-    SSO_CONFIG_SET_SUCCESS_RESPONSE,
-    SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE,
-    TABULATOR_TABLE,
-    TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE,
-    UNMANAGED_ROLE,
-    USER,
-    USER_MUTATION_NOT_FOUND_RESPONSE,
-    USERS_CREATE_OPERATION_ERROR_RESPONSE,
-    USERS_CREATE_VALIDATION_ERROR_RESPONSE,
-    USERS_GET_NOT_FOUND_RESPONSE,
-    USERS_LIST_RESPONSE,
-)
-from .fixtures.graphql_schema_fragments import (
-    validate_graphql_response_structure,
-    validate_role_response,
-    validate_sso_config_response,
-    validate_tabulator_table_response,
-    validate_user_response,
-)
 
 USER_MUTATION_ERRORS = (
     (INVALID_INPUT_ERROR, admin.Quilt3AdminError),
