@@ -82,7 +82,7 @@ function DirContents({
       const added = files.reduce(
         (memo, file) => ({
           ...memo,
-          [file.path || file.name]: file,
+          [s3paths.withoutPrefix('/', file.path || file.name)]: file,
         }),
         {},
       )
