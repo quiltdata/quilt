@@ -581,7 +581,7 @@ function Filter({ filter, onChange, value }: FilterProps) {
   const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const initialValue = model.state.filter.predicates[filter]
   invariant(initialValue, 'Filter not active')
-  const extents = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
+  const { extents } = SearchUIModel.usePackageSystemMetaFacetExtents(filter)
 
   return (
     <FilterWidget state={value || initialValue} extents={extents} onChange={onChange} />

@@ -120,7 +120,7 @@ export default function ResultType() {
               <Icon resultType={v} />
             </M.ListItemIcon>
             <M.ListItemText primary={getLabel(v)} />
-            {total != null && total >= 0 && (
+            {total != null && total >= 0 /* `-1` == secure search */ && (
               <M.ListItemSecondaryAction>
                 <M.Chip className={classes.chip} size="small" label={total} />
               </M.ListItemSecondaryAction>

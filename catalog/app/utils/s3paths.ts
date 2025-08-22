@@ -104,12 +104,23 @@ export const parseS3Url = (url: string): S3ObjectLocation => {
 export const resolveKey = (from: string, to: string) =>
   resolve(`/${getPrefix(from)}`, to).substring(1)
 
+interface UriOptions {
+  proxy?: string | null | undefined | false
+  region?: string
+}
+
 // AWS docs (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) state that
 // "buckets created in Regions launched after March 20, 2019 are not reachable via the
 // `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
 // `https://bucket.s3.aws-region.amazonaws.com` scheme as well.
-export const handleToHttpsUri = ({ bucket, key, version }: S3ObjectLocation) =>
-  `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
+export const handleToHttpsUri = (
+  { bucket, key, version }: S3ObjectLocation,
+  opts: UriOptions = {},
+) => {
+  const prefix = opts.proxy ? `${opts.proxy}/` : 'https://'
+  const region = opts.region ? `.${opts.region}` : ''
+  return `${prefix}${bucket}.s3${region}.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
+}
 
 export const handleToS3Url = ({ bucket, key, version = undefined }: S3ObjectLocation) =>
   `s3://${bucket}/${encode(key)}${mkSearch({ versionId: version })}`
