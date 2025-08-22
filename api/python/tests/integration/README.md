@@ -189,6 +189,54 @@ Performance tests establish baselines for:
 - Concurrent request handling
 - Large result set processing
 
+## Logging and Debugging
+
+### Enable Search Logging
+
+The search implementation includes comprehensive logging for debugging and monitoring:
+
+```python
+# Enable debug logging for all search operations
+import quilt3.search_logging
+quilt3.search_logging.enable_debug_logging('search_debug.log')
+
+# Run tests with detailed logging
+python -m pytest api/python/tests/integration/ -v
+```
+
+### Custom Logging Configuration
+
+```python
+import logging
+import quilt3.search_logging
+
+# Configure specific logging levels and outputs
+quilt3.search_logging.configure_search_logging(
+    level=logging.DEBUG,
+    include_console=True,
+    log_file='integration_test_logs.log'
+)
+```
+
+### Performance Monitoring
+
+```python
+# Use the performance decorator for custom search functions
+@quilt3.search_logging.log_search_performance
+def my_search_test():
+    return quilt3.search_packages("test data")
+```
+
+### Test Logging with Scripts
+
+```bash
+# Run the logging test suite
+python scripts/test_search_logging.py
+
+# Run setup validation with detailed logging
+python scripts/setup_live_search_tests.py --log-level DEBUG
+```
+
 ## Troubleshooting
 
 ### Authentication Issues
@@ -202,19 +250,41 @@ quilt3 login
 
 ### Bucket Access Issues
 ```bash
-# Verify bucket access
-python -c "import quilt3; print(quilt3.search_packages('', bucket='your-bucket', limit=1))"
+# Verify bucket access with logging
+python -c "
+import quilt3.search_logging
+quilt3.search_logging.enable_debug_logging()
+import quilt3
+print(quilt3.search_packages('', bucket='your-bucket', limit=1))
+"
 ```
 
 ### Network Issues
 - Ensure stable internet connection
-- Check firewall settings
+- Check firewall settings  
 - Verify Quilt registry URL
+- Enable debug logging to see detailed network traces
 
 ### Performance Issues
 - Tests may be slower on poor network connections
 - Adjust timeout values via environment variables
 - Consider reducing iteration counts for faster runs
+- Use performance logging to identify bottlenecks
+
+### Debug Search Issues
+```bash
+# Enable comprehensive logging and run a single test
+python -c "
+import quilt3.search_logging
+quilt3.search_logging.enable_debug_logging('search_debug.log')
+import quilt3
+results = quilt3.search_packages('your-query')
+print(f'Results: {len(results.hits)} hits')
+"
+
+# Check the debug log for detailed execution traces
+tail -f search_debug.log
+```
 
 ## Contributing
 
