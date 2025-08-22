@@ -75,12 +75,10 @@ def handler(event, context):
     assert len(event["Records"]) == 1, "Expected exactly on SQS message"
     (event,) = event["Records"]
     event = json.loads(event["body"])
-    assert len(event["Records"]) == 1, "Expected exactly one S3 event record"
-    (event,) = event["Records"]
 
-    bucket = event["s3"]["bucket"]["name"]
-    key = event["s3"]["object"]["key"]
-    version_id = event["s3"]["object"].get("versionId")
+    bucket = event["detail"]["bucket"]["name"]
+    key = event["detail"]["object"]["key"]
+    version_id = event["detail"]["object"].get("version-id")
     params = {"Bucket": bucket, "Key": key}
     if version_id:
         params["VersionId"] = version_id

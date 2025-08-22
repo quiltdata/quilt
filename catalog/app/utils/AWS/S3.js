@@ -1,17 +1,14 @@
 import S3 from 'aws-sdk/clients/s3'
 import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
-import * as redux from 'react-redux'
 
 import cfg from 'constants/config'
-import * as authSelectors from 'containers/Auth/selectors'
-import * as BucketConfig from 'utils/BucketConfig'
-import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useConstant from 'utils/useConstant'
 import useMemoEqLazy from 'utils/useMemoEqLazy'
 
 import * as Config from './Config'
 import * as Credentials from './Credentials'
+import useShouldSign from './useShouldSign'
 
 const DEFAULT_OPTS = {
   signatureVersion: 'v4',
@@ -25,41 +22,28 @@ const FORCE_PROXY = Symbol('forceProxy')
 
 const Ctx = React.createContext()
 
-function useTracking(val) {
-  const ref = React.useRef()
-  ref.current = val
-  return () => ref.current
-}
-
-function useTrackingFn(fn) {
-  const get = useTracking(fn)
-  return (...args) => get()(...args)
+/**
+ * A React hook that returns a function with a stable identity, but which calls the
+ * latest version of the function passed as an argument. This is useful to avoid
+ * breaking memoization when a function is passed down as a prop, while still
+ * being able to call the latest version of that function.
+ */
+function usePassThruFn(fn) {
+  const fnRef = React.useRef()
+  fnRef.current = fn
+  return (...args) => fnRef.current(...args)
 }
 
 function useSmartS3() {
-  const isAuthenticated = useTracking(redux.useSelector(authSelectors.authenticated))
-  const isInStack = useTrackingFn(BucketConfig.useIsInStack())
-  const statusReportsBucket = useStatusReportsBucket()
+  // The SmartS3 class is created only once, so we need a stable reference to the
+  // shouldSign function. usePassThruFn gives us a stable function that calls the
+  // latest version of useShouldSign(), so we don't have a stale closure.
+  const shouldSign = usePassThruFn(useShouldSign())
 
   return useConstant(() => {
     class SmartS3 extends S3 {
       shouldSign(req) {
-        const bucket = req.params.Bucket
-        if (cfg.mode === 'LOCAL') {
-          return true
-        }
-        if (
-          isAuthenticated() &&
-          // sign if operation is not bucket-specific
-          // (not sure if there are any such operations that can be used from the browser)
-          (!bucket ||
-            cfg.serviceBucket === bucket ||
-            statusReportsBucket === bucket ||
-            (cfg.mode !== 'OPEN' && isInStack(bucket)))
-        ) {
-          return true
-        }
-        return false
+        return shouldSign(req.params.Bucket)
       }
 
       customRequestHandler(req) {

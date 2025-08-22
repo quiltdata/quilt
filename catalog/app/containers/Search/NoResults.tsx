@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Empty from 'components/Empty'
 import { ES_REF_SYNTAX } from 'components/SearchResults'
 import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
@@ -41,28 +42,6 @@ const LABELS = {
   [SearchUIModel.ResultType.S3Object]: 'objects',
 }
 
-const useEmptyStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  body: {
-    maxWidth: '30rem',
-    marginTop: t.spacing(3),
-  },
-  list: {
-    ...t.typography.body1,
-    paddingLeft: 0,
-  },
-  create: {
-    maxWidth: '30rem',
-    borderBottom: `1px solid ${t.palette.divider}`,
-    marginTop: t.spacing(2),
-    paddingBottom: t.spacing(2),
-  },
-}))
-
 export enum Refine {
   Buckets,
   ResultType,
@@ -72,13 +51,12 @@ export enum Refine {
   Network,
 }
 
-interface EmptyProps {
+interface EmptyWrapperProps {
   className?: string
   onRefine: (action: Refine) => void
 }
 
-export function Empty({ className, onRefine }: EmptyProps) {
-  const classes = useEmptyStyles()
+function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
   const { baseSearchQuery, state } = SearchUIModel.use()
 
   const otherResultType =
@@ -98,6 +76,7 @@ export function Empty({ className, onRefine }: EmptyProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
+            // `-1` == secure search
             return r.total >= 0 ? r.total : null
           default:
             return null
@@ -115,19 +94,16 @@ export function Empty({ className, onRefine }: EmptyProps) {
   }
 
   return (
-    <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
-
-      <M.Typography variant="body1" align="center" className={classes.body}>
+    <Empty className={className} title={`No matching ${LABELS[state.resultType]}`}>
+      <p>
         Search for{' '}
         <StyledLink onClick={() => onRefine(Refine.ResultType)}>
           {LABELS[otherResultType]}
         </StyledLink>{' '}
         instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or adjust
         your search:
-      </M.Typography>
-
-      <ul className={classes.list}>
+      </p>
+      <ul>
         {state.buckets.length > 0 && (
           <li>
             Search in{' '}
@@ -150,11 +126,25 @@ export function Empty({ className, onRefine }: EmptyProps) {
           Start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
         </li>
       </ul>
-    </div>
+    </Empty>
   )
 }
 
-interface SecureSearchProps extends EmptyProps {
+export { EmptyWrapper as Empty }
+
+const useErrorStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  body: {
+    maxWidth: '30rem',
+    marginTop: t.spacing(3),
+  },
+}))
+
+interface SecureSearchProps extends EmptyWrapperProps {
   onLoadMore: () => void
 }
 
@@ -195,7 +185,7 @@ export function Error({
   children,
   onRefine,
 }: ErrorProps) {
-  const classes = useEmptyStyles()
+  const classes = useErrorStyles()
   return (
     <div className={cx(classes.root, className)}>
       <M.Typography variant="h4">

@@ -132,7 +132,7 @@ function parseFirstResults(
           return {
             _tag: 'ok' as const,
             hits: hits.length ? hits.map(parseHit) : [null],
-            determinate: query.data.total > -1,
+            determinate: query.data.total > -1, // `-1` == secure search
             ...data,
           }
         case 'ObjectsSearchResultSet':
