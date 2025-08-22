@@ -466,13 +466,13 @@ type EmptySearchResultSet {
   _: Boolean
 }
 
-union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput
+union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
 
-union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput
+union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput | OperationError
 
-union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput
+union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput | OperationError
 
-union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
+union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput | OperationError
 
 type SearchHitObject {
   id: ID!
@@ -527,6 +527,8 @@ type SearchHitPackageMatchingEntry {
   physicalKey: String!
   # 32-bit Int is too small to represent file size which quite often exceeds several GB
   size: Float!
+  # `meta` is the full metadata dict for entry that includes optional `user_meta` property,
+  # see PackageEntry._meta vs PackageEntry.meta.
   meta: String
   matchLocations: SearchHitPackageEntryMatchLocations!
 }
