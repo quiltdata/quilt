@@ -24,22 +24,39 @@ from tqdm import tqdm
 
 from . import util, workflows
 from .backends import get_package_registry
-from .data_transfer import (calculate_checksum, calculate_checksum_bytes,
-                            copy_file, copy_file_list, get_bytes,
-                            get_size_and_version, legacy_calculate_checksum,
-                            legacy_calculate_checksum_bytes,
-                            list_object_versions, list_objects, list_url,
-                            put_bytes)
+from .data_transfer import (
+    calculate_checksum,
+    calculate_checksum_bytes,
+    copy_file,
+    copy_file_list,
+    get_bytes,
+    get_size_and_version,
+    legacy_calculate_checksum,
+    legacy_calculate_checksum_bytes,
+    list_object_versions,
+    list_objects,
+    list_url,
+    put_bytes,
+)
 from .exceptions import PackageException
 from .formats import CompressionRegistry, FormatRegistry
 from .telemetry import ApiTelemetry
 from .util import CACHE_PATH, DISABLE_TQDM, PACKAGE_UPDATE_POLICY
 from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
-from .util import (PhysicalKey, QuiltConflictException, QuiltException,
-                   catalog_package_url, extract_file_extension, fix_url,
-                   get_from_config, get_install_location, quiltignore_filter,
-                   user_is_configured_to_custom_stack, validate_key,
-                   validate_package_name)
+from .util import (
+    PhysicalKey,
+    QuiltConflictException,
+    QuiltException,
+    catalog_package_url,
+    extract_file_extension,
+    fix_url,
+    get_from_config,
+    get_install_location,
+    quiltignore_filter,
+    user_is_configured_to_custom_stack,
+    validate_key,
+    validate_package_name,
+)
 
 logger = logging.getLogger(__name__)
 

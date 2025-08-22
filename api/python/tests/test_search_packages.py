@@ -11,10 +11,12 @@ import quilt3
 from quilt3 import PackageException
 
 from .fixtures.search_responses import (
-    SEARCH_HIT_PACKAGE, SEARCH_MORE_PACKAGES_EMPTY_RESPONSE,
+    SEARCH_HIT_PACKAGE,
+    SEARCH_MORE_PACKAGES_EMPTY_RESPONSE,
     SEARCH_MORE_PACKAGES_SUCCESS_RESPONSE,
     SEARCH_MORE_PACKAGES_VALIDATION_ERROR_RESPONSE,
-    SEARCH_PACKAGES_SUCCESS_RESPONSE)
+    SEARCH_PACKAGES_SUCCESS_RESPONSE,
+)
 from .utils import QuiltTestCase
 
 
@@ -87,9 +89,11 @@ class TestSearchPackages(QuiltTestCase):
         )
 
         # Assert
-        from quilt3._graphql_client import (PackagesSearchFilter,
-                                            PackageUserMetaPredicate,
-                                            SearchResultOrder)
+        from quilt3._graphql_client import (
+            PackagesSearchFilter,
+            PackageUserMetaPredicate,
+            SearchResultOrder,
+        )
 
         # The mock should be called with the converted GraphQL objects
         expected_filter = PackagesSearchFilter(**{

@@ -2,7 +2,10 @@
 
 ## Overview
 
-Create a comprehensive test suite for the search API that exercises real functionality against a live Quilt stack using authenticated `quilt3` credentials. This PR focuses on integration testing and validation of the search implementation in production-like environments.
+Create a comprehensive test suite for the search API that exercises real functionality
+against a live Quilt stack using authenticated `quilt3` credentials. This PR
+focuses on integration testing and validation of the search implementation in
+production-like environments.
 
 ## Prerequisites
 
@@ -241,12 +244,14 @@ def compare_search_results():
 ## Test Data Requirements
 
 ### Test Buckets
+
 - **Public bucket** with well-known packages for basic testing
 - **Private bucket** with controlled access for permission testing  
 - **Large bucket** with many packages for performance testing
 - **Metadata-rich bucket** with varied user metadata for filter testing
 
 ### Test Packages
+
 - Packages with various **file types** (CSV, Parquet, images, etc.)
 - Packages with **rich metadata** (descriptions, tags, user metadata)
 - Packages of different **sizes** (small, medium, large)
@@ -270,15 +275,20 @@ QUILT_REGISTRY_URL="https://your-registry.quiltdata.io"
 ## Test Execution Patterns
 
 ### 1. Quick Smoke Tests
+
 ```bash
 # Basic functionality check
-python -m pytest tests/integration/test_live_search_auth.py::TestLiveSearchAuthentication::test_search_with_valid_credentials -v
+python -m pytest \
+  tests/integration/test_live_search_auth.py::\
+    TestLiveSearchAuthentication::test_search_with_valid_credentials \
+  -v
 
 # Data validation  
 python scripts/validate_search_functionality.py --quick
 ```
 
 ### 2. Full Integration Suite
+
 ```bash  
 # Complete integration test suite
 python -m pytest tests/integration/test_live_search_*.py -v
@@ -288,6 +298,7 @@ python scripts/benchmark_live_search.py --detailed
 ```
 
 ### 3. Regression Testing
+
 ```bash
 # Automated regression checks
 python scripts/search_regression_tests.py
@@ -324,8 +335,10 @@ python scripts/interactive_search_explorer.py
 
 ```tree
 # Live integration tests
-api/python/tests/integration/test_live_search_auth.py           # Authentication tests
-api/python/tests/integration/test_live_search_data.py           # Real data tests  
+api/python/tests/integration/test_live_search_auth.py
+# Authentication tests
+api/python/tests/integration/test_live_search_data.py
+# Real data tests  
 api/python/tests/integration/test_live_search_performance.py    # Performance tests
 api/python/tests/integration/test_live_search_multi_bucket.py   # Multi-bucket tests
 
@@ -337,7 +350,8 @@ scripts/search_regression_tests.py                             # Regression test
 scripts/interactive_search_explorer.py                         # Interactive exploration
 
 # Configuration and documentation  
-tests/integration/README.md                                    # Integration test guide
+tests/integration/README.md
+# Integration test guide
 tests/integration/pytest.ini                                   # Test configuration
 .github/workflows/test-search-integration.yml                  # CI integration
 ```

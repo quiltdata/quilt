@@ -4,9 +4,9 @@ from unittest import mock
 
 import jsonschema
 import pytest
+from tests.utils import QuiltTestCase
 
 from quilt3 import Package, workflows
-from tests.utils import QuiltTestCase
 
 
 class WorkflowConfigConfigDataVersionSupportTest(unittest.TestCase):

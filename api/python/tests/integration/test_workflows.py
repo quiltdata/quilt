@@ -3,12 +3,12 @@ import textwrap
 from unittest import mock
 
 import pytest
+from tests.utils import QuiltTestCase
 
 from quilt3 import Package, workflows
 from quilt3.backends import get_package_registry
 from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
-from tests.utils import QuiltTestCase
 
 
 def get_conf_data(conf_data, *, version: str):
