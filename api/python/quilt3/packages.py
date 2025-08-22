@@ -1380,10 +1380,12 @@ class Package:
         Creates a new package, or a new revision of an existing package in a
         package registry in Amazon S3.
 
-        By default, local files are copied to the destination S3 bucket and path
-        according to logical key structure. After any local objects are copied,
-        a new package manifest is created that points to the objects in their
-        new locations.
+        By default, any files not currently in the destination bucket are copied to
+        the destination S3 bucket at a path matching logical key structure. Files
+        in the destination bucket are not copied even if they are not located in
+        in the location matching the logical key. After objects are copied, a new
+        package manifest is package manifest is created that points to the objects
+        in their new locations.
 
         The optional parameter `selector_fn` allows callers to choose which
         files are copied to the destination bucket, and which retain their
@@ -1393,7 +1395,8 @@ class Package:
 
         The Package class includes two additional built-in selector functions:
 
-        * `Package.selector_fn_copy_all` copies all files to the destination path.
+        * `Package.selector_fn_copy_all` copies all files to the destination path
+        regardless of their current location.
         * `Package.selector_fn_copy_local` copies only local files to the
           destination path. Any PackageEntry's with physical keys pointing to
           objects in other buckets will retain their existing physical keys in
@@ -1401,8 +1404,8 @@ class Package:
 
         If we have a package with entries:
 
-        * `pkg["entry_1"].physical_key = s3://bucket1/user/pkg_name/entry_1`
-        * `pkg["entry_2"].physical_key = s3://bucket2/folder1/entry_2`
+        * `pkg["entry_1"].physical_key = s3://bucket1/folder1/entry_1`
+        * `pkg["entry_2"].physical_key = s3://bucket2/folder2/entry_2`
 
         And, we call `pkg.push("user/pkg_name", registry="s3://bucket2")`, the
         file referenced by `entry_1` will be copied, while the file referenced by
