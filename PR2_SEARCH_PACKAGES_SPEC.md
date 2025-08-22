@@ -38,7 +38,7 @@ results = quilt3.search_packages(
     },
     latest_only=True,
     size=50,
-    order="MODIFIED_DESC"
+    order="NEWEST"
 )
 
 # Pagination
