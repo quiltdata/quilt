@@ -52,8 +52,10 @@ class TestSearchPackages(QuiltTestCase):
             buckets=["test-bucket"],
             search_string="machine learning"
         )
+        
 
         # Assert
+        from quilt3._graphql_client import SearchResultOrder
         self.mock_graphql_client.search_packages.assert_called_once_with(
             buckets=["test-bucket"],
             search_string="machine learning",
@@ -61,13 +63,13 @@ class TestSearchPackages(QuiltTestCase):
             user_meta_filters=None,
             latest_only=False,
             size=30,
-            order="RELEVANCE"
+            order=SearchResultOrder.BEST_MATCH
         )
         
         # Verify result structure
         self.assertEqual(len(results.hits), 2)
-        self.assertEqual(results.hits[0].key, SEARCH_HIT_PACKAGE["key"])
-        self.assertEqual(results.hits[0].bucket_name, SEARCH_HIT_PACKAGE["bucketName"])
+        self.assertEqual(results.hits[0].key, SEARCH_HIT_PACKAGE["name"])
+        self.assertEqual(results.hits[0].bucket_name, SEARCH_HIT_PACKAGE["bucket"])
         self.assertEqual(results.hits[0].score, SEARCH_HIT_PACKAGE["score"])
         self.assertTrue(results.has_next)
         self.assertIsNotNone(results.next_cursor)
@@ -90,23 +92,27 @@ class TestSearchPackages(QuiltTestCase):
             ],
             latest_only=True,
             size=50,
-            order="MODIFIED_DESC"
+            order="NEWEST"
         )
 
         # Assert
+        from quilt3._graphql_client import SearchResultOrder, PackagesSearchFilter, PackageUserMetaPredicate
+        
+        # The mock should be called with the converted GraphQL objects
+        expected_filter = PackagesSearchFilter(**{
+            "modified": {"gte": "2023-01-01"},
+            "size": {"gte": 1000000}
+        })
+        expected_user_meta_filters = [PackageUserMetaPredicate(**{"key": "project", "value": "research"})]
+        
         self.mock_graphql_client.search_packages.assert_called_once_with(
             buckets=["bucket1", "bucket2"],
             search_string="covid data",
-            filter={
-                "modified": {"gte": "2023-01-01"},
-                "size": {"gte": 1000000}
-            },
-            user_meta_filters=[
-                {"key": "project", "value": "research"}
-            ],
+            filter=expected_filter,
+            user_meta_filters=expected_user_meta_filters,
             latest_only=True,
             size=50,
-            order="MODIFIED_DESC"
+            order=SearchResultOrder.NEWEST
         )
         
         self.assertEqual(len(results.hits), 2)
@@ -114,7 +120,12 @@ class TestSearchPackages(QuiltTestCase):
     def test_empty_search_results(self):
         """Test handling of empty search results."""
         # Arrange
-        self.mock_graphql_client.search_packages.return_value = SEARCH_PACKAGES_EMPTY_RESPONSE
+        from unittest.mock import Mock
+        empty_mock = Mock()
+        empty_mock.first_page = Mock()
+        empty_mock.first_page.hits = []
+        empty_mock.first_page.cursor = None
+        self.mock_graphql_client.search_packages.return_value = empty_mock
 
         # Act
         results = quilt3.search_packages(
@@ -130,6 +141,8 @@ class TestSearchPackages(QuiltTestCase):
     def test_search_more_packages_success(self):
         """Test pagination with search_more_packages."""
         # Arrange
+        # SEARCH_MORE_PACKAGES_SUCCESS_RESPONSE is actually a first_page mock
+        # but search_more_packages returns the page directly, not wrapped
         self.mock_graphql_client.search_more_packages.return_value = SEARCH_MORE_PACKAGES_SUCCESS_RESPONSE
 
         # Act
@@ -270,6 +283,7 @@ class TestSearchPackages(QuiltTestCase):
         results = quilt3.search_packages()
 
         # Assert default values are used
+        from quilt3._graphql_client import SearchResultOrder
         self.mock_graphql_client.search_packages.assert_called_once_with(
             buckets=None,
             search_string=None,
@@ -277,7 +291,7 @@ class TestSearchPackages(QuiltTestCase):
             user_meta_filters=None,
             latest_only=False,
             size=30,
-            order="RELEVANCE"
+            order=SearchResultOrder.BEST_MATCH
         )
 
 
