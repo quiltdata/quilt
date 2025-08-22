@@ -14,10 +14,8 @@ from pydantic import BaseModel
 from quilt3._graphql_client.base_client import BaseClient
 from quilt3._graphql_client.base_model import UNSET, UnsetType, Upload
 from quilt3._graphql_client.exceptions import (
-    GraphQLClientGraphQLMultiError,
-    GraphQLClientHttpError,
-    GraphQLClientInvalidResponseError,
-)
+    GraphQLClientGraphQLMultiError, GraphQLClientHttpError,
+    GraphQLClientInvalidResponseError)
 
 from .utils import QuiltTestCase
 
@@ -468,10 +466,11 @@ class TestBaseClient(QuiltTestCase):
 
     def test_base_model_configuration(self):
         """Test BaseModel configuration and behavior."""
-        from quilt3._graphql_client.base_model import BaseModel
+        from quilt3._graphql_client.base_model import \
+            BaseModel as GraphQLBaseModel
 
         # Test that we can create a BaseModel subclass
-        class TestModel(BaseModel):
+        class TestModel(GraphQLBaseModel):
             name: str
             optional_field: str = None
 
@@ -493,9 +492,10 @@ class TestBaseClient(QuiltTestCase):
 
     def test_unset_in_model_fields(self):
         """Test UNSET behavior in model fields."""
-        from quilt3._graphql_client.base_model import BaseModel
+        from quilt3._graphql_client.base_model import \
+            BaseModel as GraphQLBaseModel
 
-        class TestModel(BaseModel):
+        class TestModel(GraphQLBaseModel):
             required_field: str
             optional_field: str = UNSET
 
