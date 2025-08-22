@@ -4,9 +4,11 @@ import * as M from '@material-ui/core'
 import { PlaylistAddCheckOutlined as IconPlaylistAddCheckOutlined } from '@material-ui/icons'
 
 import * as Buttons from 'components/Buttons'
+import type * as FileEditor from 'components/FileEditor'
 
 import { useSelection } from '../../Selection/Provider'
 
+import type { Handle } from '../types'
 import * as Context from './Context'
 
 export { default as BucketDirOptions } from './BucketDirOptions'
@@ -21,15 +23,16 @@ const useBadgeClasses = M.makeStyles({
 interface ButtonProps {
   children: NonNullable<React.ReactNode>
   className?: string
-  label?: string
+  handle: Handle
   onReload: () => void
+  editorState?: FileEditor.EditorState
 }
 
-export function Button({ onReload, ...props }: ButtonProps) {
+export function Button({ onReload, handle, editorState, ...props }: ButtonProps) {
   const slt = useSelection()
   const classes = useBadgeClasses()
   return (
-    <Context.Provider onReload={onReload}>
+    <Context.Provider onReload={onReload} handle={handle} editorState={editorState}>
       <M.Badge badgeContent={slt.totalCount} classes={classes} color="primary" max={999}>
         <Buttons.WithPopover
           icon={IconPlaylistAddCheckOutlined}

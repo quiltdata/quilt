@@ -9,17 +9,13 @@ import {
   CheckOutlined as IconCheckOutlined,
 } from '@material-ui/icons'
 
-import { useConfirm } from 'components/Dialog'
-import * as Bookmarks from 'containers/Bookmarks'
-import * as FileEditor from 'components/FileEditor'
-import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import { deleteObject } from '../../requests'
 import { viewModeToSelectOption } from '../../viewModes'
 import type { ViewModes, FileType } from '../../viewModes'
-
 import type { FileHandle } from '../types'
+
+import * as Context from './ContextFile'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true } as const
 
@@ -59,37 +55,25 @@ function LinkItem({ icon, children, ...props }: LinkItemProps) {
   )
 }
 
-interface BookmarksItemProps {
-  bookmarks: NonNullable<ReturnType<typeof Bookmarks.use>>
-  handle: FileHandle
-}
+function BookmarksItem() {
+  const { toggleBookmark, isBookmarked } = Context.use()
 
-function BookmarksItem({ bookmarks, handle }: BookmarksItemProps) {
-  const toggle = React.useCallback(
-    () => bookmarks.toggle('main', handle),
-    [bookmarks, handle],
-  )
-  return bookmarks.isBookmarked('main', handle) ? (
-    <MenuItem icon={<IconTurnedInOutlined />} onClick={toggle}>
+  return isBookmarked ? (
+    <MenuItem icon={<IconTurnedInOutlined />} onClick={toggleBookmark}>
       Remove from bookmarks
     </MenuItem>
   ) : (
-    <MenuItem icon={<IconTurnedInNotOutlined />} onClick={toggle}>
+    <MenuItem icon={<IconTurnedInNotOutlined />} onClick={toggleBookmark}>
       Add to bookmarks
     </MenuItem>
   )
 }
 
-interface EditorItemProps {
-  editorState: FileEditor.EditorState
-}
+function EditorItem() {
+  const { editFile } = Context.use()
 
-function EditorItem({ editorState }: EditorItemProps) {
-  const handleEditFile = React.useCallback(() => {
-    editorState.onEdit(editorState.types[0])
-  }, [editorState])
   return (
-    <MenuItem icon={<IconEditOutlined />} onClick={handleEditFile}>
+    <MenuItem icon={<IconEditOutlined />} onClick={editFile}>
       Edit text content
     </MenuItem>
   )
@@ -105,6 +89,7 @@ function ViewItem({ handle, mode, selected }: ViewItemProps) {
   const { urls } = NamedRoutes.use()
   const { bucket, key, version } = handle
   const label = viewModeToSelectOption(mode).toString()
+
   return selected ? (
     <MenuItem icon={<IconCheckOutlined />} disabled>
       {label}
@@ -120,37 +105,18 @@ const useDeleteItemStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DeleteItemProps {
-  handle: FileHandle
-}
-
-function DeleteItem({ handle }: DeleteItemProps) {
-  const s3 = AWS.S3.use()
+function DeleteItem() {
   const classes = useDeleteItemStyles()
-  const onSubmit = React.useCallback(() => deleteObject({ s3, handle }), [s3, handle])
-  const confirm = useConfirm({
-    title: `Delete "${handle.key}"`,
-    submitTitle: 'Delete',
-    onSubmit,
-  })
-  const handleClick = React.useCallback(
-    (event) => {
-      event.stopPropagation()
-      confirm.open()
-    },
-    [confirm],
-  )
+  const { confirmDelete } = Context.use()
+
   return (
-    <>
-      {confirm.render(<></>)}
-      <MenuItem
-        className={classes.root}
-        icon={<IconDeleteOutlined color="error" />}
-        onClick={handleClick}
-      >
-        Delete
-      </MenuItem>
-    </>
+    <MenuItem
+      className={classes.root}
+      icon={<IconDeleteOutlined color="error" />}
+      onClick={confirmDelete}
+    >
+      Delete
+    </MenuItem>
   )
 }
 
@@ -166,30 +132,25 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface BucketFileOptionsProps {
-  editorState: FileEditor.EditorState
-  handle: FileHandle
   viewModes?: ViewModes
 }
 
-export default function BucketFileOptions({
-  editorState,
-  handle,
-  viewModes,
-}: BucketFileOptionsProps) {
+export default function BucketFileOptions({ viewModes }: BucketFileOptionsProps) {
   const classes = useStyles()
-  const bookmarks = Bookmarks.use()
+  const { handle, canEdit } = Context.use()
+  const bookmarks = Context.use()
 
   return (
     <>
       {bookmarks && (
         <M.List dense className={classes.subList}>
-          <BookmarksItem bookmarks={bookmarks} handle={handle} />
+          <BookmarksItem />
         </M.List>
       )}
 
-      {FileEditor.isSupportedFileType(handle.key) && (
+      {canEdit && (
         <M.List dense className={classes.subList}>
-          <EditorItem editorState={editorState} />
+          <EditorItem />
         </M.List>
       )}
 
@@ -211,7 +172,7 @@ export default function BucketFileOptions({
       )}
 
       <M.List dense className={classes.subList}>
-        <DeleteItem handle={handle} />
+        <DeleteItem />
       </M.List>
     </>
   )

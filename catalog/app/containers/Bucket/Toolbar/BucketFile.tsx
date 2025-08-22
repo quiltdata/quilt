@@ -91,12 +91,8 @@ export default function BucketFile({
       )}
 
       {features.organize && (
-        <Organize.Button onReload={onReload}>
-          <Organize.BucketFileOptions
-            editorState={editorState}
-            handle={handle}
-            viewModes={viewModes}
-          />
+        <Organize.Button onReload={onReload} handle={handle} editorState={editorState}>
+          <Organize.BucketFileOptions viewModes={viewModes} />
         </Organize.Button>
       )}
 

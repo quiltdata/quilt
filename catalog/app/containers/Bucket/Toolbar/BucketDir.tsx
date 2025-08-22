@@ -113,7 +113,7 @@ export default function BucketDir({ className, handle, onReload }: BucketDirProp
       )}
 
       {features.organize && (
-        <Organize.Button onReload={onReload}>
+        <Organize.Button onReload={onReload} handle={handle}>
           <Organize.BucketDirOptions />
         </Organize.Button>
       )}
