@@ -1,11 +1,12 @@
-# PR 3: Live Stack Search API Testing
+<!-- markdownlint-disable line-length -->
+# PR 3: Live Search API Demonstration & Validation
 
 ## Overview
 
-Create a comprehensive test suite for the search API that exercises real functionality
-against a live Quilt stack using authenticated `quilt3` credentials. This PR
-focuses on integration testing and validation of the search implementation in
-production-like environments.
+This PR is to demonstrate HOW the new `search_packages` API works in practice and proves
+its functionality through comprehensive live testing. The goal is to showcase the
+API's capabilities against real Quilt infrastructure and validate that it delivers
+the expected search experience.
 
 ## Prerequisites
 
@@ -14,361 +15,341 @@ production-like environments.
 - Live Quilt stack with searchable content
 - Valid `quilt3` login credentials for test environments
 
-## Goals
+## Key Demonstrations Required
 
-- **Live Integration Testing**: Test search API against real Quilt infrastructure
-- **Authentication Validation**: Verify search works with real authentication flows
-- **Performance Benchmarking**: Measure search performance under realistic conditions
-- **End-to-End Validation**: Ensure search functionality works across different scenarios
-- **Regression Prevention**: Establish baseline for future search improvements
+The live tests, implemented as scripts in the `uat` folder,
+must **accomplish** and **prove** the following core Python API capabilities. It should do this via:
 
-## Test Categories
+- a shell script that runs the tests, and can display both the actual results of each test, as well as their success or failure.
+- helper Python script(s) to simplify the shell script
+- a config file that provides environment-specific buckets, packages, search terms, and expectations
 
-### 1. Authentication & Access Tests
+The shell script should have an option to "debug" a specific test, by enabling logging of the search_packages API and running just that one test.
 
-**File**: `/api/python/tests/integration/test_live_search_auth.py`
+### 1. **Parameter Coverage - All API Functionality**
 
-```python
-"""
-Live authentication and access control tests for search API.
-Requires valid quilt3 login credentials.
-"""
+**Bucket Selection:**
 
-class TestLiveSearchAuthentication:
-    """Test search with real authentication."""
-    
-    def test_search_with_valid_credentials(self):
-        """Test search succeeds with valid login."""
-        # Assumes user is logged in via `quilt3 login`
-        
-    def test_search_bucket_access_control(self):
-        """Test search respects bucket access permissions."""
-        
-    def test_search_without_credentials(self):
-        """Test search fails gracefully without login."""
-        
-    def test_search_with_expired_credentials(self):
-        """Test search handles expired tokens."""
-```
+- `buckets=None` - Search across all accessible buckets  
+- `buckets=["single-bucket"]` - Search within specific bucket
+- `buckets=["bucket1", "bucket2"]` - Multi-bucket search
 
-### 2. Real Data Search Tests
+**Search Query Variations:**
 
-**File**: `/api/python/tests/integration/test_live_search_data.py`
+- `search_string=None` - Return all packages (no text filter)
+- `search_string=""` - Empty string behavior  
+- `search_string="keyword"` - Basic text search
+- `search_string="complex query with spaces"` - Multi-word queries
 
-```python
-"""
-Search tests against real data in live buckets.
-"""
+**Filter Parameter Usage:**
 
-class TestLiveSearchData:
-    """Test search against real package data."""
-    
-    def test_basic_text_search(self):
-        """Test basic text search across known packages."""
-        
-    def test_metadata_filter_search(self):
-        """Test filtering by package metadata."""
-        
-    def test_size_and_date_filters(self):
-        """Test numeric and date range filters."""
-        
-    def test_user_metadata_search(self):
-        """Test searching within user-defined metadata."""
-        
-    def test_empty_result_handling(self):
-        """Test search with queries that return no results."""
-        
-    def test_large_result_set_handling(self):
-        """Test search with queries returning many results."""
-```
+- `filter=None` - No additional filters
+- `filter={"modified": {"gte": "2023-01-01"}}` - Date filtering
+- `filter={"size": {"lt": 1000000}}` - Size filtering
+- Complex filter combinations
 
-### 3. Pagination & Performance Tests
+**User Metadata Filtering:**
 
-**File**: `/api/python/tests/integration/test_live_search_performance.py`
+- `user_meta_filters=None` - No metadata filters
+- `user_meta_filters=[{"key": "department", "value": "engineering"}]` - Single metadata filter
+- `user_meta_filters=[multiple filters]` - Combined metadata filtering
 
-```python
-"""
-Performance and pagination tests against live data.
-"""
+**Version Control:**
 
-class TestLiveSearchPerformance:
-    """Test search performance characteristics."""
-    
-    def test_pagination_across_multiple_pages(self):
-        """Test paginating through large result sets."""
-        
-    def test_search_response_times(self):
-        """Benchmark search response times."""
-        
-    def test_concurrent_search_requests(self):
-        """Test multiple simultaneous search operations."""
-        
-    def test_search_timeout_handling(self):
-        """Test search behavior with network timeouts."""
-```
+- `latest_only=False` - All package versions
+- `latest_only=True` - Only latest versions
 
-### 4. Cross-Bucket Search Tests
+**Result Sizing:**
 
-**File**: `/api/python/tests/integration/test_live_search_multi_bucket.py`
+- `size=30` - Default pagination size
+- `size=1` - Minimal results for testing
+- `size=100` - Large result sets
 
-```python
-"""
-Multi-bucket search scenarios.
-"""
+**Sort Order Options:**
 
-class TestLiveMultiBucketSearch:
-    """Test search across multiple buckets."""
-    
-    def test_search_multiple_accessible_buckets(self):
-        """Test search across multiple buckets user has access to."""
-        
-    def test_search_mixed_access_buckets(self):
-        """Test search with mix of accessible and restricted buckets."""
-        
-    def test_global_search_without_bucket_filter(self):
-        """Test global search across all accessible buckets."""
-```
+- `order="BEST_MATCH"` - Relevance-based sorting (default)
+- `order="NEWEST"` - Most recent first
+- `order="OLDEST"` - Oldest first  
+- `order="LEX_ASC"` - Alphabetical ascending
+- `order="LEX_DESC"` - Alphabetical descending
 
-## Suggested Test Scripts
+**Pagination Functionality:**
 
-### Environment Setup Script
+- Initial `search_packages()` call returns `SearchResult` with pagination info
+- `search_more_packages(after=cursor, size=30)` - Continuation pagination
+- `has_next` and `next_cursor` properties for pagination control
 
-**File**: `/scripts/setup_live_search_tests.py`
+### 2. **Python API Integration**
 
-```python
-#!/usr/bin/env python3
-"""
-Setup script for live search testing.
-Validates environment and prepares test data.
-"""
+- Works immediately after `quilt3.login()` without additional setup
+- Returns proper Python objects (`SearchResult` with `.hits` array)
+- Handles Python exceptions appropriately (authentication, validation, network)
+- Integrates with existing `quilt3` session management
 
-def validate_quilt_login():
-    """Check if user is logged into quilt3."""
-    
-def discover_test_buckets():
-    """Find accessible buckets with searchable content."""
-    
-def validate_search_api_availability():
-    """Check if search API is accessible."""
-    
-def setup_test_data_if_needed():
-    """Create test packages if none exist."""
-```
+### 3. **Edge Case Handling**
 
-### Performance Benchmarking Script
+- Empty result sets return valid `SearchResult` objects
+- Invalid parameter types raise appropriate Python exceptions
+- Network/authentication failures propagate meaningful error messages
+- Graceful handling of permission boundaries
 
-**File**: `/scripts/benchmark_live_search.py`
+### 4. **Result Structure Validation**
 
-```python
-#!/usr/bin/env python3
-"""
-Benchmark search API performance against live stack.
-"""
+- `SearchResult` object structure and properties
+- Individual hit objects with proper attributes (`bucket`, `key`, `score`)
+- Pagination metadata (`has_next`, `next_cursor`)
+- Result ranking and scoring behavior
 
-def benchmark_basic_search():
-    """Measure basic search operation performance."""
-    
-def benchmark_filtered_search():
-    """Measure performance with various filters applied."""
-    
-def benchmark_pagination():
-    """Measure pagination performance."""
-    
-def generate_performance_report():
-    """Create performance report with metrics."""
-```
+## What the Tests Must Accomplish
 
-### Search Validation Script
+### 1. **Comprehensive Parameter Testing**
 
-**File**: `/scripts/validate_search_functionality.py`
+The tests must demonstrate every parameter combination works:
 
-```python
-#!/usr/bin/env python3
-"""
-Validate search functionality against known data.
-"""
+- **All bucket selection patterns:** None, single bucket, multiple buckets
+- **All search_string variations:** None, empty, simple, complex queries
+- **All filter types:** None, date filters, size filters, combined filters  
+- **All user_meta_filters:** None, single filter, multiple filters
+- **Both latest_only values:** True and False behavior
+- **Various size values:** Small (1), default (30), large (100+)
+- **All order options:** Each of the 5 sort orders with real data
+- **Pagination flow:** Initial search → `search_more_packages()` → completion
 
-def validate_search_accuracy():
-    """Test search returns expected results for known queries."""
-    
-def validate_filter_functionality():
-    """Test all filter types work correctly."""
-    
-def validate_sorting_options():
-    """Test all sort orders work correctly."""
-    
-def validate_metadata_search():
-    """Test user metadata search functionality."""
-```
+### 2. **Python Integration Validation**
 
-### Regression Testing Script
+The tests must confirm Python-specific functionality:
 
-**File**: `/scripts/search_regression_tests.py`
+- **Import and call pattern:** `import quilt3; quilt3.search_packages()`
+- **Session integration:** Works with existing `quilt3.login()` session
+- **Return type validation:** `SearchResult` objects with proper structure
+- **Exception handling:** Python exceptions for invalid inputs and auth failures
+- **Object properties:** Access to `.hits`, `.has_next`, `.next_cursor` attributes
 
-```python
-#!/usr/bin/env python3
-"""
-Regression test suite for search API.
-"""
+### 3. **Result Structure Verification**
 
-def test_search_result_consistency():
-    """Ensure search results are consistent across runs."""
-    
-def test_backwards_compatibility():
-    """Ensure search API maintains compatibility."""
-    
-def test_error_handling_consistency():
-    """Ensure error cases are handled consistently."""
-```
+The tests must validate the complete result structure:
 
-### Interactive Search Explorer
+- **SearchResult properties:** All expected attributes present and typed correctly
+- **Hit object structure:** Each result contains proper `bucket`, `key`, `score` fields
+- **Pagination metadata:** `has_next` and `next_cursor` work for continuation
+- **Empty results handling:** Valid objects returned even with zero hits
+- **Result ordering:** Verify sort orders actually change result sequence
 
-**File**: `/scripts/interactive_search_explorer.py`
+### 4. **Error Condition Coverage**
 
-```python
-#!/usr/bin/env python3
-"""
-Interactive tool for exploring search capabilities.
-"""
+The tests must prove error handling works correctly:
 
-def interactive_search_session():
-    """Interactive CLI for testing search queries."""
-    
-def save_search_results():
-    """Save interesting search results for analysis."""
-    
-def compare_search_results():
-    """Compare results across different query variations."""
-```
+- **Parameter validation:** Invalid types raise appropriate Python exceptions
+- **Authentication errors:** Meaningful messages when auth fails
+- **Permission boundaries:** Graceful handling of inaccessible buckets
+- **Network issues:** Proper exception propagation for connectivity problems
+- **Invalid filter syntax:** Clear errors for malformed filter dictionaries
 
-## Test Data Requirements
+### 5. **Real Usage Pattern Validation**
 
-### Test Buckets
+The tests must show common developer workflows function:
 
-- **Public bucket** with well-known packages for basic testing
-- **Private bucket** with controlled access for permission testing  
-- **Large bucket** with many packages for performance testing
-- **Metadata-rich bucket** with varied user metadata for filter testing
+- **Progressive filtering:** Start broad, add filters, refine results
+- **Multi-step pagination:** Navigate through large result sets completely  
+- **Parameter experimentation:** Change sort orders, sizes, filters dynamically
+- **Integration workflows:** Search → select → access package pattern
 
-### Test Packages
+## Test Approach
 
-- Packages with various **file types** (CSV, Parquet, images, etc.)
-- Packages with **rich metadata** (descriptions, tags, user metadata)
-- Packages of different **sizes** (small, medium, large)
-- Packages with different **modification dates** for temporal filtering
-- Packages with **special characters** in names/metadata for edge case testing
+Rather than traditional unit tests, these tests will focus on **demonstrating real usage patterns**:
 
-## Environment Variables for Testing
-
-```bash
-# Test configuration
-QUILT_LIVE_TEST_BUCKET_PUBLIC="quilt-example"
-QUILT_LIVE_TEST_BUCKET_PRIVATE="private-test-bucket"  
-QUILT_LIVE_TEST_BUCKET_LARGE="large-dataset-bucket"
-QUILT_LIVE_TEST_PERFORMANCE_ITERATIONS=10
-QUILT_LIVE_TEST_TIMEOUT=30
-
-# Authentication
-QUILT_REGISTRY_URL="https://your-registry.quiltdata.io"
-```
-
-## Test Execution Patterns
-
-### 1. Quick Smoke Tests
-
-```bash
-# Basic functionality check
-python -m pytest \
-  tests/integration/test_live_search_auth.py::\
-    TestLiveSearchAuthentication::test_search_with_valid_credentials \
-  -v
-
-# Data validation  
-python scripts/validate_search_functionality.py --quick
-```
-
-### 2. Full Integration Suite
-
-```bash  
-# Complete integration test suite
-python -m pytest tests/integration/test_live_search_*.py -v
-
-# Performance benchmarking
-python scripts/benchmark_live_search.py --detailed
-```
-
-### 3. Regression Testing
-
-```bash
-# Automated regression checks
-python scripts/search_regression_tests.py
-
-# Interactive exploration
-python scripts/interactive_search_explorer.py
-```
+- **User Story Tests**: "As a data scientist, I want to find all CSV files in my team's buckets from the last month"
+- **Workflow Validation**: Complete end-to-end scenarios from login to search to package access
+- **Performance Benchmarks**: Measure real response times against representative data
+- **Usability Validation**: Confirm the API behaves as developers would expect
 
 ## Success Criteria
 
-1. **Authentication Integration**: Search works seamlessly with `quilt3 login` flow
-2. **Real Data Accuracy**: Search returns accurate results against live data
-3. **Performance Standards**: Search responds within acceptable time limits
-4. **Error Handling**: Graceful handling of network issues, auth failures, etc.
-5. **Cross-Bucket Functionality**: Search works across multiple accessible buckets
-6. **Pagination Reliability**: Pagination works correctly with large result sets
-7. **Filter Accuracy**: All filter types work correctly with real data
+The tests succeed when they prove:
 
-## Risk Mitigation
+1. **Complete API Coverage**: Every parameter and parameter combination works as documented
+2. **Python Integration**: Seamless integration with existing `quilt3` session and import patterns
+3. **Proper Return Types**: All methods return correctly structured Python objects with expected attributes
+4. **Error Handling**: Appropriate Python exceptions for invalid inputs, auth failures, and permission issues  
+5. **Pagination Functionality**: The ability to efficiently and elegantly page through multi-page results.
 
-**Risk**: Tests depend on external live stack availability  
-**Mitigation**: Include offline fallback tests and clear environment validation
+## Test Data Requirements
 
-**Risk**: Tests may expose sensitive data or credentials  
-**Mitigation**: Use test-specific buckets and validate credential handling
+To accomplish these demonstrations, tests need access to:
 
-**Risk**: Performance tests may be inconsistent due to network conditions  
-**Mitigation**: Include multiple test runs and statistical analysis
+- **Public test bucket** with well-known, searchable packages
+- **Private test bucket** to validate access control behavior  
+- **Large test dataset** to verify performance with realistic data volumes
+- **Diverse package types** to show search works across different content formats
+- **Rich metadata** to demonstrate filtering and search capabilities
 
-**Risk**: Tests may fail due to data changes in live buckets  
-**Mitigation**: Use well-established public datasets and version pinning where possible
+## Example Test Scenarios
 
-## Files Created
+The tests will validate comprehensive API parameter usage:
 
-```tree
-# Live integration tests
-api/python/tests/integration/test_live_search_auth.py
-# Authentication tests
-api/python/tests/integration/test_live_search_data.py
-# Real data tests  
-api/python/tests/integration/test_live_search_performance.py    # Performance tests
-api/python/tests/integration/test_live_search_multi_bucket.py   # Multi-bucket tests
+### **Scenario 1: Complete Parameter Matrix**
 
-# Test utilities and scripts
-scripts/setup_live_search_tests.py                             # Environment setup
-scripts/benchmark_live_search.py                               # Performance benchmarking
-scripts/validate_search_functionality.py                       # Functional validation
-scripts/search_regression_tests.py                             # Regression testing
-scripts/interactive_search_explorer.py                         # Interactive exploration
+"Demonstrate every parameter combination works correctly"
 
-# Configuration and documentation  
-tests/integration/README.md
-# Integration test guide
-tests/integration/pytest.ini                                   # Test configuration
+```python
+# Bucket variations
+results_all = search_packages()  # buckets=None
+results_single = search_packages(buckets=["my-bucket"])
+results_multi = search_packages(buckets=["bucket1", "bucket2"])
+
+# Search string variations  
+results_no_query = search_packages(search_string=None)
+results_empty = search_packages(search_string="")
+results_simple = search_packages(search_string="data")
+results_complex = search_packages(search_string="machine learning model")
+
+# All sort orders
+for order in ["BEST_MATCH", "NEWEST", "OLDEST", "LEX_ASC", "LEX_DESC"]:
+    results = search_packages(search_string="test", order=order, size=5)
+    # Validate: Order actually affects result sequence
+
+# Filter combinations
+results_date = search_packages(filter={"modified": {"gte": "2023-01-01"}})
+results_size = search_packages(filter={"size": {"lt": 1000000}})
+results_combined = search_packages(filter={
+    "modified": {"gte": "2023-01-01"},
+    "size": {"lt": 1000000}
+})
+
+# Version control
+results_all_versions = search_packages(latest_only=False, size=10)
+results_latest_only = search_packages(latest_only=True, size=10)
+
+# User metadata filtering
+results_meta = search_packages(user_meta_filters=[
+    {"key": "department", "value": "engineering"}
+])
 ```
 
+### **Scenario 2: Pagination Flow Validation**
 
-## Component Integration
+"Complete pagination workflow from start to finish"
 
-This PR extends the search functionality with real-world validation:
+```python
+# Initial search
+initial = search_packages(search_string="", size=5)
+all_results = list(initial.hits)
 
-- **Authentication**: Validates search works with existing `quilt3.login()` flow
-- **Live Data**: Tests against real packages and buckets  
-- **Performance**: Establishes baseline performance characteristics
-- **Reliability**: Ensures robust error handling and edge case coverage
-- **Documentation**: Provides examples and validation of search capabilities
+# Paginate through all results
+current = initial
+while current.has_next:
+    current = search_more_packages(after=current.next_cursor, size=5)
+    all_results.extend(current.hits)
+    
+# Validate: Complete result set retrieved, no duplicates
+```
 
-## Dependencies
+### **Scenario 3: Python Integration Verification**
 
-- PR 2 (Package Search Implementation) merged and functional
-- Access to live Quilt stack with test data
-- Valid authentication credentials for testing
-- Performance benchmarking infrastructure
+"Confirm Python-specific functionality works"
+
+```python
+import quilt3
+
+# After login, search works immediately
+quilt3.login()
+results = quilt3.search_packages(buckets=["test-bucket"])
+
+# Result objects have proper structure
+assert hasattr(results, 'hits')
+assert hasattr(results, 'has_next') 
+assert hasattr(results, 'next_cursor')
+
+# Individual hits have required properties
+for hit in results.hits:
+    assert hasattr(hit, 'bucket')
+    assert hasattr(hit, 'key')
+    assert hasattr(hit, 'score')
+```
+
+### **Scenario 4: Error Handling Coverage**
+
+"Validate exception handling for all error conditions"
+
+```python
+# Parameter validation errors
+try:
+    search_packages(buckets="not-a-list")  # Should raise TypeError
+except TypeError:
+    pass
+
+try:
+    search_packages(size=-1)  # Should raise ValueError
+except ValueError:
+    pass
+
+try:
+    search_packages(order="INVALID")  # Should raise ValueError  
+except ValueError:
+    pass
+
+# Authentication/permission errors
+try:
+    search_packages(buckets=["inaccessible-bucket"])
+except Exception as e:
+    # Should provide meaningful error message
+    assert "permission" in str(e).lower() or "access" in str(e).lower()
+```
+
+### **Scenario 5: Result Structure Validation**
+
+"Verify all return values meet API contract"
+
+```python
+# Empty results still return valid objects
+empty_results = search_packages(search_string="nonexistent-query-12345")
+assert isinstance(empty_results.hits, list)
+assert len(empty_results.hits) == 0
+assert isinstance(empty_results.has_next, bool)
+
+# Non-empty results have proper structure
+results = search_packages(size=3)
+assert len(results.hits) <= 3
+for hit in results.hits:
+    assert isinstance(hit.bucket, str)
+    assert isinstance(hit.key, str)
+    assert isinstance(hit.score, (int, float))
+```
+
+## Testing Environment Requirements
+
+To accomplish these demonstrations, the test environment must include:
+
+- **Live Quilt registry** with real authentication
+- **Test buckets** with known, searchable content
+- **Performance baselines** for response time validation  
+- **Access control scenarios** to test permission boundaries
+- **Diverse data types** to validate search across different content
+
+## Measuring Success
+
+The tests prove the Python API wrapper works when they demonstrate:
+
+1. **Parameter Completeness**: Every documented parameter works correctly with real data
+2. **Python Object Structure**: Return types match API contract with proper attributes and methods
+3. **Exception Handling**: Python-appropriate errors for all failure modes  
+4. **Integration Simplicity**: Works immediately after `quilt3.login()` without additional configuration
+5. **Pagination Workflow**: Complete multi-step pagination using `search_more_packages()` functions correctly
+
+## Risk Considerations
+
+**Live Testing Dependencies**: Tests require external infrastructure and data
+
+- *Mitigation*: Clear environment validation and graceful failure handling
+
+**Data Consistency**: Live data may change, affecting test repeatability  
+
+- *Mitigation*: Focus on capability validation rather than exact result matching
+
+**Performance Variability**: Network conditions affect response times
+
+- *Mitigation*: Statistical analysis across multiple test runs
+
+**Access Control Complexity**: Permission scenarios may be difficult to reproduce
+
+- *Mitigation*: Use dedicated test accounts with known permission boundaries
