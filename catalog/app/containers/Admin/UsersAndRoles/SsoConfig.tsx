@@ -98,7 +98,7 @@ function Form({
   const confirm = useConfirm({
     title: 'You are about to delete SSO mapping config',
     submitTitle: 'Delete',
-    onSubmit: (confirmed) => confirmed && onDelete(),
+    onSubmit: (confirmed) => (confirmed ? onDelete() : Promise.resolve()),
   })
   return (
     <>

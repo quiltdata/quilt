@@ -307,6 +307,7 @@ function File() {
   const path = s3paths.decode(encodedPath)
 
   const [resetKey, setResetKey] = React.useState(0)
+  const handleReload = React.useCallback(() => setResetKey(R.inc), [])
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
@@ -351,8 +352,8 @@ function File() {
   const onSave = editorState.onSave
   const handleEditorSave = React.useCallback(async () => {
     await onSave()
-    setResetKey(R.inc)
-  }, [onSave])
+    handleReload()
+  }, [handleReload, onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -415,6 +416,7 @@ function File() {
           editorState={editorState}
           handle={handle}
           viewModes={viewModes}
+          onReload={handleReload}
         >
           <FileProperties className={classes.fileProperties} data={versionExistsData} />
           {editorState.editing && (

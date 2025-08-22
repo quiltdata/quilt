@@ -50,9 +50,10 @@ function useFeatures(): Features | null {
 interface BucketDirProps {
   className?: string
   handle: DirHandle
+  onReload: () => void
 }
 
-export default function BucketDir({ className, handle }: BucketDirProps) {
+export default function BucketDir({ className, handle, onReload }: BucketDirProps) {
   const classes = useStyles()
   const features = useFeatures()
   const slt = Selection.use()
@@ -112,7 +113,7 @@ export default function BucketDir({ className, handle }: BucketDirProps) {
       )}
 
       {features.organize && (
-        <Organize.Button>
+        <Organize.Button onReload={onReload}>
           <Organize.BucketDirOptions />
         </Organize.Button>
       )}

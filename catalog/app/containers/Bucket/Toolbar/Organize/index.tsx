@@ -22,13 +22,14 @@ interface ButtonProps {
   children: NonNullable<React.ReactNode>
   className?: string
   label?: string
+  onReload: () => void
 }
 
-export function Button(props: ButtonProps) {
+export function Button({ onReload, ...props }: ButtonProps) {
   const slt = useSelection()
   const classes = useBadgeClasses()
   return (
-    <Context.Provider>
+    <Context.Provider onReload={onReload}>
       <M.Badge badgeContent={slt.totalCount} classes={classes} color="primary" max={999}>
         <Buttons.WithPopover
           icon={IconPlaylistAddCheckOutlined}

@@ -56,6 +56,7 @@ interface BucketFileProps {
   editorState: EditorState
   handle: FileHandle
   viewModes: ViewModes
+  onReload: () => void
 }
 
 export default function BucketFile({
@@ -65,6 +66,7 @@ export default function BucketFile({
   editorState,
   handle,
   viewModes,
+  onReload,
 }: BucketFileProps) {
   const classes = useStyles()
   const features = useFeatures(deleted)
@@ -89,7 +91,7 @@ export default function BucketFile({
       )}
 
       {features.organize && (
-        <Organize.Button>
+        <Organize.Button onReload={onReload}>
           <Organize.BucketFileOptions
             editorState={editorState}
             handle={handle}

@@ -12,11 +12,14 @@ import {
 import { useConfirm } from 'components/Dialog'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as FileEditor from 'components/FileEditor'
+import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import type { FileHandle } from '../types'
+import { deleteObject } from '../../requests'
 import { viewModeToSelectOption } from '../../viewModes'
 import type { ViewModes, FileType } from '../../viewModes'
+
+import type { FileHandle } from '../types'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true } as const
 
@@ -122,14 +125,13 @@ interface DeleteItemProps {
 }
 
 function DeleteItem({ handle }: DeleteItemProps) {
+  const s3 = AWS.S3.use()
   const classes = useDeleteItemStyles()
+  const onSubmit = React.useCallback(() => deleteObject({ s3, handle }), [s3, handle])
   const confirm = useConfirm({
     title: `Delete "${handle.key}"`,
     submitTitle: 'Delete',
-    onSubmit: () => {
-      // FIXME: Implement delete logic
-      // console.log('Delete file:', handle)
-    },
+    onSubmit,
   })
   const handleClick = React.useCallback(
     (event) => {

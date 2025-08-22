@@ -251,7 +251,11 @@ export default function Dir() {
         <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
           {BreadCrumbs.render(crumbs)}
         </div>
-        <Toolbar.BucketDir className={classes.actions} handle={dirHandle} />
+        <Toolbar.BucketDir
+          className={classes.actions}
+          handle={dirHandle}
+          onReload={handleReload}
+        />
       </div>
 
       {data.case({
