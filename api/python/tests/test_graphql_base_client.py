@@ -6,8 +6,7 @@ Comprehensive test coverage for the GraphQL base client and base model classes.
 
 import io
 import json
-from unittest import mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from pydantic import BaseModel
 
@@ -466,8 +465,7 @@ class TestBaseClient(QuiltTestCase):
 
     def test_base_model_configuration(self):
         """Test BaseModel configuration and behavior."""
-        from quilt3._graphql_client.base_model import \
-            BaseModel as GraphQLBaseModel
+        from quilt3._graphql_client.base_model import BaseModel as GraphQLBaseModel
 
         # Test that we can create a BaseModel subclass
         class TestModel(GraphQLBaseModel):
@@ -492,8 +490,7 @@ class TestBaseClient(QuiltTestCase):
 
     def test_unset_in_model_fields(self):
         """Test UNSET behavior in model fields."""
-        from quilt3._graphql_client.base_model import \
-            BaseModel as GraphQLBaseModel
+        from quilt3._graphql_client.base_model import BaseModel as GraphQLBaseModel
 
         class TestModel(GraphQLBaseModel):
             required_field: str

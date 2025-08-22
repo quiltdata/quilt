@@ -21,7 +21,7 @@ from .fixtures.graphql_schema_fragments import (
     validate_sso_config_response, validate_tabulator_table_response,
     validate_user_response)
 # Import GraphQL fixtures
-from .graphql_fixtures import graphql_router, mock_admin_client
+from .graphql_fixtures import graphql_router
 
 USER_MUTATION_ERRORS = (
     (INVALID_INPUT_ERROR, admin.Quilt3AdminError),
