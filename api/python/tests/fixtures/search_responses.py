@@ -134,11 +134,21 @@ OPERATION_ERROR = {
 
 SEARCH_PACKAGES_VALIDATION_ERROR_RESPONSE = create_mock_invalid_input()
 
-SEARCH_PACKAGES_OPERATION_ERROR_RESPONSE = create_mock_invalid_input()
+def create_mock_operation_error():
+    """Create mock operation error."""
+    from unittest.mock import Mock
+    mock_error = Mock()
+    mock_error.errors = [Mock()]
+    mock_error.errors[0].message = "Search service unavailable"
+    # Make the mock look like it can be iterated for error handling
+    mock_error.__iter__ = lambda self: iter([mock_error.errors[0]])
+    return mock_error
+
+SEARCH_PACKAGES_OPERATION_ERROR_RESPONSE = create_mock_operation_error()
 
 SEARCH_MORE_PACKAGES_VALIDATION_ERROR_RESPONSE = create_mock_invalid_input()
 
-SEARCH_MORE_PACKAGES_OPERATION_ERROR_RESPONSE = create_mock_invalid_input()
+SEARCH_MORE_PACKAGES_OPERATION_ERROR_RESPONSE = create_mock_operation_error()
 
 # Network error simulation
 NETWORK_ERROR_RESPONSE = {
