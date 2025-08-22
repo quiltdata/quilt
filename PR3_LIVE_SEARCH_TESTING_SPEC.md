@@ -353,61 +353,8 @@ scripts/interactive_search_explorer.py                         # Interactive exp
 tests/integration/README.md
 # Integration test guide
 tests/integration/pytest.ini                                   # Test configuration
-.github/workflows/test-search-integration.yml                  # CI integration
 ```
 
-## CI/CD Integration
-
-**File**: `.github/workflows/test-search-integration.yml`
-
-```yaml
-name: Search API Integration Tests
-
-on:
-  push:
-    branches: [master]
-  pull_request:
-    paths: 
-      - 'api/python/quilt3/_search.py'
-      - 'api/python/tests/integration/test_live_search_*.py'
-
-jobs:
-  integration-tests:
-    runs-on: ubuntu-latest
-    environment: integration-testing
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        
-    - name: Install dependencies
-      run: |
-        cd api/python
-        pip install -e .
-        pip install pytest
-        
-    - name: Setup Quilt credentials
-      env:
-        QUILT_AUTH_TOKEN: ${{ secrets.QUILT_TEST_TOKEN }}
-        QUILT_REGISTRY_URL: ${{ secrets.QUILT_TEST_REGISTRY }}
-      run: |
-        quilt3 login --token $QUILT_AUTH_TOKEN $QUILT_REGISTRY_URL
-        
-    - name: Run integration tests
-      run: |
-        cd api/python
-        python scripts/setup_live_search_tests.py
-        pytest tests/integration/test_live_search_*.py -v
-        
-    - name: Performance benchmarking
-      run: |
-        cd api/python  
-        python scripts/benchmark_live_search.py --ci-mode
-```
 
 ## Component Integration
 
@@ -424,5 +371,4 @@ This PR extends the search functionality with real-world validation:
 - PR 2 (Package Search Implementation) merged and functional
 - Access to live Quilt stack with test data
 - Valid authentication credentials for testing
-- CI/CD environment configured with test secrets
 - Performance benchmarking infrastructure

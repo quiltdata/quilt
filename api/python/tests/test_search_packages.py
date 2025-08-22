@@ -46,7 +46,6 @@ class TestSearchPackages(QuiltTestCase):
             search_string="machine learning"
         )
 
-
         # Assert
         from quilt3._graphql_client import SearchResultOrder
         self.mock_graphql_client.search_packages.assert_called_once_with(
@@ -100,7 +99,9 @@ class TestSearchPackages(QuiltTestCase):
             "modified": {"gte": "2023-01-01"},
             "size": {"gte": 1000000}
         })
-        expected_user_meta_filters = [PackageUserMetaPredicate(**{"path": "project", "keyword": {"terms": ["research"]}})]
+        expected_user_meta_filters = [
+            PackageUserMetaPredicate(**{"path": "project", "keyword": {"terms": ["research"]}})
+        ]
 
         self.mock_graphql_client.search_packages.assert_called_once_with(
             buckets=["bucket1", "bucket2"],
@@ -144,13 +145,17 @@ class TestSearchPackages(QuiltTestCase):
 
         # Act
         results = quilt3.search_more_packages(
-            after="eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0",
+            after=(
+                "eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0"
+            ),
             size=50
         )
 
         # Assert
         self.mock_graphql_client.search_more_packages.assert_called_once_with(
-            after="eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0",
+            after=(
+                "eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0"
+            ),
             size=50
         )
 
@@ -177,12 +182,17 @@ class TestSearchPackages(QuiltTestCase):
         # Arrange
         from unittest.mock import Mock
         invalid_input_mock = Mock()
-        invalid_input_mock.__class__.__name__ = 'SearchPackagesSearchPackagesInvalidInput'
+        invalid_input_mock.__class__.__name__ = (
+            'SearchPackagesSearchPackagesInvalidInput'
+        )
         invalid_input_mock.errors = [Mock()]
         invalid_input_mock.errors[0].message = "Search failed: validation error"
 
         # Mock the isinstance check by setting the actual class
-        with mock.patch('quilt3._search._graphql_client.SearchPackagesSearchPackagesInvalidInput', invalid_input_mock.__class__):
+        with mock.patch(
+            'quilt3._search._graphql_client.SearchPackagesSearchPackagesInvalidInput',
+            invalid_input_mock.__class__
+        ):
             self.mock_graphql_client.search_packages.return_value = invalid_input_mock
 
             # Act & Assert
@@ -201,7 +211,10 @@ class TestSearchPackages(QuiltTestCase):
         mock_error.errors[0].message = "Search service unavailable"
 
         # Mock the isinstance check
-        with mock.patch('quilt3._search._graphql_client.SearchPackagesSearchPackagesInvalidInput', mock_error.__class__):
+        with mock.patch(
+            'quilt3._search._graphql_client.SearchPackagesSearchPackagesInvalidInput',
+            mock_error.__class__
+        ):
             self.mock_graphql_client.search_packages.return_value = mock_error
 
             # Act & Assert
@@ -226,12 +239,17 @@ class TestSearchPackages(QuiltTestCase):
         # Arrange - create a mock that will pass the isinstance check for InvalidInput
         from unittest.mock import Mock
         mock_error = Mock()
-        mock_error.__class__.__name__ = 'SearchMorePackagesSearchMorePackagesInvalidInput'
+        mock_error.__class__.__name__ = (
+            'SearchMorePackagesSearchMorePackagesInvalidInput'
+        )
         mock_error.errors = [Mock()]
         mock_error.errors[0].message = "Search service unavailable"
 
         # Mock the isinstance check
-        with mock.patch('quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesInvalidInput', mock_error.__class__):
+        with mock.patch(
+            'quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesInvalidInput',
+            mock_error.__class__
+        ):
             self.mock_graphql_client.search_more_packages.return_value = mock_error
 
             # Act & Assert
@@ -315,7 +333,6 @@ class TestSearchPackages(QuiltTestCase):
             order=SearchResultOrder.BEST_MATCH
         )
 
-
     def test_graphql_filter_conversion_error(self):
         """Test handling of GraphQL filter conversion errors."""
         # Mock the PackagesSearchFilter constructor to raise an exception
@@ -346,7 +363,10 @@ class TestSearchPackages(QuiltTestCase):
         empty_result_mock = Mock()
         empty_result_mock.__class__.__name__ = 'SearchPackagesSearchPackagesEmptySearchResultSet'
 
-        with mock.patch('quilt3._search._graphql_client.SearchPackagesSearchPackagesEmptySearchResultSet', empty_result_mock.__class__):
+        with mock.patch(
+            'quilt3._search._graphql_client.SearchPackagesSearchPackagesEmptySearchResultSet',
+            empty_result_mock.__class__
+        ):
             self.mock_graphql_client.search_packages.return_value = empty_result_mock
 
             # Act
@@ -367,7 +387,10 @@ class TestSearchPackages(QuiltTestCase):
         result_set_mock.first_page.hits = [Mock(), Mock()]
         result_set_mock.first_page.cursor = "test-cursor"
 
-        with mock.patch('quilt3._search._graphql_client.SearchPackagesSearchPackagesPackagesSearchResultSet', result_set_mock.__class__):
+        with mock.patch(
+            'quilt3._search._graphql_client.SearchPackagesSearchPackagesPackagesSearchResultSet',
+            result_set_mock.__class__
+        ):
             self.mock_graphql_client.search_packages.return_value = result_set_mock
 
             # Act
@@ -387,7 +410,10 @@ class TestSearchPackages(QuiltTestCase):
         page_mock.hits = [Mock()]
         page_mock.cursor = None
 
-        with mock.patch('quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage', page_mock.__class__):
+        with mock.patch(
+            'quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage',
+            page_mock.__class__
+        ):
             self.mock_graphql_client.search_more_packages.return_value = page_mock
 
             # Act
@@ -404,7 +430,10 @@ class TestSearchPackages(QuiltTestCase):
         invalid_input_mock = Mock()
         invalid_input_mock.__class__.__name__ = 'SearchMorePackagesSearchMorePackagesInvalidInput'
 
-        with mock.patch('quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesInvalidInput', invalid_input_mock.__class__):
+        with mock.patch(
+            'quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesInvalidInput',
+            invalid_input_mock.__class__
+        ):
             self.mock_graphql_client.search_more_packages.return_value = invalid_input_mock
 
             # Act & Assert

@@ -40,7 +40,6 @@ def search_packages(
 ):
     """
     Search for packages across accessible buckets.
-    
     Args:
         buckets: List of bucket names to search within. If None, searches all accessible buckets.
         search_string: Search query string. If None, returns all packages (subject to filters).
@@ -49,10 +48,8 @@ def search_packages(
         latest_only: If True, only return the latest version of each package.
         size: Maximum number of results to return per page (default: 30).
         order: Sort order for results. One of "BEST_MATCH", "NEWEST", "OLDEST", "LEX_ASC", "LEX_DESC".
-        
     Returns:
         SearchResult: Object containing search hits and pagination information.
-        
     Example:
         >>> import quilt3
         >>> results = quilt3.search_packages(
@@ -81,10 +78,8 @@ def search_more_packages(after, size=30):
     Args:
         after: Cursor string from previous search results indicating where to continue.
         size: Maximum number of results to return (default: 30).
-        
     Returns:
         SearchResult: Object containing additional search hits and pagination information.
-        
     Example:
         >>> import quilt3
         >>> initial_results = quilt3.search_packages(buckets=["my-bucket"])

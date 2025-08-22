@@ -22,7 +22,7 @@ SEARCH_HIT_PACKAGE = {
 
 SEARCH_HIT_PACKAGE_2 = {
     "__typename": "SearchHitPackage",
-    "id": "2", 
+    "id": "2",
     "name": "another/package",
     "bucket": "test-bucket-2",
     "score": 0.8,
@@ -36,7 +36,9 @@ SEARCH_HIT_PACKAGE_2 = {
 PACKAGES_SEARCH_RESULT_SET = {
     "__typename": "PackagesSearchResultSet",
     "hasNext": True,
-    "nextCursor": "eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0",
+    "nextCursor": (
+        "eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0"
+    ),
     "hits": [SEARCH_HIT_PACKAGE, SEARCH_HIT_PACKAGE_2],
 }
 
@@ -48,13 +50,15 @@ PACKAGES_SEARCH_RESULT_SET_EMPTY = {
 }
 
 PACKAGES_SEARCH_RESULT_SET_LAST_PAGE = {
-    "__typename": "PackagesSearchResultSet", 
+    "__typename": "PackagesSearchResultSet",
     "hasNext": False,
     "nextCursor": None,
     "hits": [SEARCH_HIT_PACKAGE],
 }
 
 # Mock objects that match the GraphQL client structure
+
+
 def create_mock_search_hit(hit_data):
     """Create mock search hit object."""
     from unittest.mock import Mock
@@ -63,6 +67,7 @@ def create_mock_search_hit(hit_data):
         setattr(mock_hit, key, value)
     return mock_hit
 
+
 def create_mock_first_page(hits, cursor):
     """Create mock first page object."""
     from unittest.mock import Mock
@@ -70,6 +75,7 @@ def create_mock_first_page(hits, cursor):
     mock_page.hits = [create_mock_search_hit(hit) for hit in hits]
     mock_page.cursor = cursor
     return mock_page
+
 
 def create_mock_search_result_set(has_next=True, cursor=None, hits=None):
     """Create mock search result set."""
@@ -80,10 +86,12 @@ def create_mock_search_result_set(has_next=True, cursor=None, hits=None):
     mock_result.first_page = create_mock_first_page(hits, cursor)
     return mock_result
 
+
 def create_mock_empty_result():
     """Create mock empty search result."""
     from unittest.mock import Mock
     return Mock()
+
 
 def create_mock_invalid_input():
     """Create mock invalid input error."""
@@ -96,8 +104,12 @@ def create_mock_invalid_input():
     return mock_error
 
 # Main search operation responses
+
+
 SEARCH_PACKAGES_SUCCESS_RESPONSE = create_mock_search_result_set(
-    cursor="eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0"
+    cursor=(
+        "eyJzb3J0IjpbeyJtb2RpZmllZCI6eyJvcmRlciI6ImRlc2MifX1dLCJzZWFyY2hfYWZ0ZXIiOlsxNjE4NDEzNzQ3ODU3LCJhYmMxMjNkZWY0NTYiXX0"
+    )
 )
 
 SEARCH_PACKAGES_EMPTY_RESPONSE = create_mock_empty_result()
@@ -128,11 +140,12 @@ INVALID_INPUT_ERROR = {
 OPERATION_ERROR = {
     "__typename": "OperationError",
     "message": "Search service unavailable",
-    "name": "SearchError", 
+    "name": "SearchError",
     "context": {},
 }
 
 SEARCH_PACKAGES_VALIDATION_ERROR_RESPONSE = create_mock_invalid_input()
+
 
 def create_mock_operation_error():
     """Create mock operation error."""
@@ -151,6 +164,8 @@ SEARCH_MORE_PACKAGES_VALIDATION_ERROR_RESPONSE = create_mock_invalid_input()
 SEARCH_MORE_PACKAGES_OPERATION_ERROR_RESPONSE = create_mock_operation_error()
 
 # Network error simulation
+
+
 NETWORK_ERROR_RESPONSE = {
     "errors": [
         {
