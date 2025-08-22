@@ -15,11 +15,8 @@ from importlib import metadata
 import boto3
 import botocore.session
 import requests
-from botocore.credentials import (
-    CredentialProvider,
-    CredentialResolver,
-    RefreshableCredentials,
-)
+from botocore.credentials import (CredentialProvider, CredentialResolver,
+                                  RefreshableCredentials)
 
 from .util import BASE_PATH, QuiltException, get_from_config
 

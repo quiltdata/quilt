@@ -4,21 +4,10 @@ from .backends import get_package_registry
 from .data_transfer import copy_file
 from .search_util import search_api
 from .telemetry import ApiTelemetry
-from .util import (
-    CONFIG_PATH,
-    CONFIG_TEMPLATE,
-    PhysicalKey,
-    QuiltConfig,
-    QuiltException,
-    config_exists,
-    configure_from_default,
-    configure_from_url,
-    fix_url,
-    load_config,
-    read_yaml,
-    validate_package_name,
-    write_yaml,
-)
+from .util import (CONFIG_PATH, CONFIG_TEMPLATE, PhysicalKey, QuiltConfig,
+                   QuiltException, config_exists, configure_from_default,
+                   configure_from_url, fix_url, load_config, read_yaml,
+                   validate_package_name, write_yaml)
 
 
 def copy(src, dest):

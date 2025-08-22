@@ -16,12 +16,8 @@ from . import __version__ as quilt3_version
 from . import api, session, util
 from .backends import get_package_registry
 from .session import open_url
-from .util import (
-    QuiltException,
-    catalog_package_url,
-    catalog_s3_url,
-    get_from_config,
-)
+from .util import (QuiltException, catalog_package_url, catalog_s3_url,
+                   get_from_config)
 
 
 def parse_arg_json(value):
@@ -109,7 +105,6 @@ cloud services aside of S3.
 def _launch_local_catalog(*, host: str, port: int):
     try:
         import uvicorn
-
         from quilt3_local.main import app
     except ModuleNotFoundError as e:
         if e.name in (

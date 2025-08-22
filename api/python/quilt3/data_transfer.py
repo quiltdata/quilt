@@ -25,20 +25,11 @@ import jsonlines
 from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
 from botocore.client import Config
-from botocore.exceptions import (
-    ClientError,
-    ConnectionError,
-    HTTPClientError,
-    ReadTimeoutError,
-)
+from botocore.exceptions import (ClientError, ConnectionError, HTTPClientError,
+                                 ReadTimeoutError)
 from s3transfer.utils import ReadFileChunk
-from tenacity import (
-    retry,
-    retry_if_not_result,
-    retry_if_result,
-    stop_after_attempt,
-    wait_exponential,
-)
+from tenacity import (retry, retry_if_not_result, retry_if_result,
+                      stop_after_attempt, wait_exponential)
 from tqdm import tqdm
 
 from . import hooks, util

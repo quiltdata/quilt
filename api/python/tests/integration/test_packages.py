@@ -21,20 +21,13 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.backends.local import (
-    LocalPackageRegistryV1,
-    LocalPackageRegistryV2,
-)
+from quilt3.backends.local import (LocalPackageRegistryV1,
+                                   LocalPackageRegistryV2)
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
 from quilt3.exceptions import PackageException
 from quilt3.packages import PackageEntry
-from quilt3.util import (
-    PhysicalKey,
-    QuiltConflictException,
-    QuiltException,
-    URLParseError,
-    validate_package_name,
-)
+from quilt3.util import (PhysicalKey, QuiltConflictException, QuiltException,
+                         URLParseError, validate_package_name)
 
 from ..utils import QuiltTestCase
 

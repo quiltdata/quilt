@@ -5,14 +5,8 @@ import pathlib
 import re
 import warnings
 from collections import OrderedDict
-from urllib.parse import (
-    parse_qs,
-    quote,
-    unquote,
-    urlencode,
-    urlparse,
-    urlunparse,
-)
+from urllib.parse import (parse_qs, quote, unquote, urlencode, urlparse,
+                          urlunparse)
 from urllib.request import url2pathname
 
 import requests

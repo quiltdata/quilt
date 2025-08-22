@@ -2,13 +2,8 @@ import abc
 import operator
 import time
 
-from quilt3.data_transfer import (
-    copy_file,
-    delete_url,
-    get_bytes,
-    list_url,
-    put_bytes,
-)
+from quilt3.data_transfer import (copy_file, delete_url, get_bytes, list_url,
+                                  put_bytes)
 from quilt3.util import PhysicalKey, QuiltException
 
 
