@@ -6,13 +6,26 @@ Validate search functionality against known data.
 import sys
 import argparse
 import json
+import logging
 from datetime import datetime
 import quilt3
 from quilt3.exceptions import QuiltException
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('validate_search_functionality.log', mode='a')
+    ]
+)
+logger = logging.getLogger(__name__)
+
 
 def validate_search_accuracy():
     """Test search returns expected results for known queries."""
+    logger.info("Starting search accuracy validation")
     print("Validating search accuracy...")
     
     test_cases = [
@@ -36,24 +49,32 @@ def validate_search_accuracy():
         }
     ]
     
+    logger.info(f"Running {len(test_cases)} accuracy test cases")
     results = {}
     
     for test_case in test_cases:
+        test_name = test_case["name"]
+        logger.info(f"Running accuracy test: {test_name}")
         print(f"  Testing: {test_case['description']}")
         
         try:
+            logger.debug(f"Executing search with query: '{test_case['query']}'")
             search_results = quilt3.search_packages(test_case["query"], limit=10)
             has_results = len(search_results) > 0
+            
+            logger.debug(f"Search returned {len(search_results)} results, has_results={has_results}")
             
             # Check if results match expectations
             if test_case["expect_results"] == has_results:
                 status = "PASS"
                 print(f"    ✓ {status}: Found {len(search_results)} results")
+                logger.info(f"Accuracy test '{test_name}' PASSED: expected={test_case['expect_results']}, actual={has_results}")
             else:
                 status = "FAIL"
                 expected = "results" if test_case["expect_results"] else "no results"
                 actual = f"{len(search_results)} results"
                 print(f"    ✗ {status}: Expected {expected}, got {actual}")
+                logger.warning(f"Accuracy test '{test_name}' FAILED: expected={test_case['expect_results']}, actual={has_results}")
             
             results[test_case["name"]] = {
                 "status": status,
@@ -65,6 +86,7 @@ def validate_search_accuracy():
             
         except QuiltException as e:
             print(f"    ✗ ERROR: {e}")
+            logger.error(f"Accuracy test '{test_name}' failed with QuiltException: {e}")
             results[test_case["name"]] = {
                 "status": "ERROR",
                 "error": str(e),
@@ -72,11 +94,13 @@ def validate_search_accuracy():
                 "description": test_case["description"]
             }
     
+    logger.info(f"Accuracy validation completed with {len(results)} results")
     return results
 
 
 def validate_filter_functionality():
     """Test all filter types work correctly."""
+    logger.info("Starting filter functionality validation")
     print("Validating filter functionality...")
     
     filter_tests = [
@@ -102,19 +126,26 @@ def validate_filter_functionality():
         }
     ]
     
+    logger.info(f"Running {len(filter_tests)} filter tests")
     results = {}
     
     for test in filter_tests:
+        test_name = test["name"]
+        logger.info(f"Running filter test: {test_name} with params: {test['params']}")
         print(f"  Testing: {test['description']}")
         
         try:
+            logger.debug(f"Executing search with params: {test['params']}")
             search_results = quilt3.search_packages(**test["params"])
+            
+            logger.debug(f"Filter test '{test_name}' returned {len(search_results)} results")
             
             # Validate results
             is_valid = test["validation"](search_results, test["params"])
             status = "PASS" if is_valid else "FAIL"
             
             print(f"    {status}: Found {len(search_results)} results")
+            logger.info(f"Filter test '{test_name}' {status}: validation={is_valid}, results={len(search_results)}")
             
             results[test["name"]] = {
                 "status": status,
@@ -125,6 +156,7 @@ def validate_filter_functionality():
             
         except QuiltException as e:
             print(f"    ✗ ERROR: {e}")
+            logger.error(f"Filter test '{test_name}' failed with QuiltException: {e}")
             results[test["name"]] = {
                 "status": "ERROR",
                 "error": str(e),
@@ -132,6 +164,7 @@ def validate_filter_functionality():
                 "description": test["description"]
             }
     
+    logger.info(f"Filter validation completed with {len(results)} results")
     return results
 
 
@@ -291,49 +324,74 @@ def main():
     parser = argparse.ArgumentParser(description='Validate Quilt search functionality')
     parser.add_argument('--quick', action='store_true', help='Run quick validation only')
     parser.add_argument('--output', type=str, help='Output JSON report to file')
+    parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], 
+                        default='INFO', help='Set logging level')
     args = parser.parse_args()
     
+    # Set log level based on argument
+    logger.setLevel(getattr(logging, args.log_level))
+    
+    logger.info("Starting search functionality validation session")
     print("Quilt3 Search Functionality Validation")
     print("=" * 50)
     
     # Check if user is logged in
+    logger.info("Checking authentication status")
     try:
         from quilt3.api import get_user
         user = get_user()
         if not user:
             print("Error: Not logged in to quilt3. Please run 'quilt3 login' first.")
+            logger.error("User not logged in")
             return 1
         print(f"Logged in as: {user}")
+        logger.info(f"Authentication verified for user: {user}")
     except Exception as e:
         print(f"Error checking login status: {e}")
+        logger.error(f"Authentication check failed: {e}", exc_info=True)
         return 1
     
     # Run validation tests
+    logger.info("Starting validation tests")
     accuracy_results = validate_search_accuracy()
     
     if not args.quick:
+        logger.info("Running comprehensive validation (filter, sort, metadata tests)")
         filter_results = validate_filter_functionality()
         sort_results = validate_sorting_options()
         metadata_results = validate_metadata_search()
     else:
+        logger.info("Running quick validation only (accuracy tests)")
         filter_results = {}
         sort_results = {}
         metadata_results = {}
     
     # Generate and print report
+    logger.info("Generating validation report")
     report = generate_validation_report(accuracy_results, filter_results, sort_results, metadata_results)
     print_summary(report)
     
     # Save report if requested
     if args.output:
-        with open(args.output, 'w') as f:
-            json.dump(report, f, indent=2)
-        print(f"\nDetailed report saved to: {args.output}")
+        logger.info(f"Saving detailed report to: {args.output}")
+        try:
+            with open(args.output, 'w') as f:
+                json.dump(report, f, indent=2)
+            print(f"\nDetailed report saved to: {args.output}")
+            logger.info(f"Report successfully saved to: {args.output}")
+        except Exception as e:
+            logger.error(f"Failed to save report to {args.output}: {e}")
+            print(f"Error saving report: {e}")
     
     # Return non-zero exit code if there were failures
-    if report["summary"]["failed"] > 0 or report["summary"]["errors"] > 0:
+    failed_count = report["summary"]["failed"]
+    error_count = report["summary"]["errors"]
+    
+    if failed_count > 0 or error_count > 0:
+        logger.warning(f"Validation completed with failures: {failed_count} failed, {error_count} errors")
         return 1
     
+    logger.info("Validation completed successfully with no failures")
     return 0
 
 

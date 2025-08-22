@@ -6,20 +6,33 @@ Interactive tool for exploring search capabilities.
 import sys
 import json
 import os
+import logging
 from datetime import datetime
 import quilt3
 from quilt3.exceptions import QuiltException
+
+# Configure logging for interactive use - less verbose by default
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('interactive_search_explorer.log', mode='a')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 class SearchExplorer:
     """Interactive search explorer."""
     
     def __init__(self):
+        logger.info("Initializing SearchExplorer")
         self.search_history = []
         self.saved_results = {}
         
     def interactive_search_session(self):
         """Interactive CLI for testing search queries."""
+        logger.info("Starting interactive search session")
         print("Quilt3 Interactive Search Explorer")
         print("=" * 40)
         print("Type 'help' for commands, 'quit' to exit")
@@ -32,10 +45,13 @@ class SearchExplorer:
             if not user:
                 print("Warning: Not logged in to quilt3. Some features may not work.")
                 print("Run 'quilt3 login' to authenticate.\n")
+                logger.warning("User not logged in to quilt3")
             else:
                 print(f"Logged in as: {user}\n")
+                logger.info(f"User authenticated as: {user}")
         except Exception as e:
             print(f"Warning: Could not check login status: {e}\n")
+            logger.error(f"Authentication check failed: {e}")
         
         while True:
             try:
@@ -43,8 +59,11 @@ class SearchExplorer:
                 
                 if not user_input:
                     continue
+                
+                logger.debug(f"User input: '{user_input}'")
                     
                 if user_input.lower() in ['quit', 'exit', 'q']:
+                    logger.info("User requested exit")
                     break
                 elif user_input.lower() == 'help':
                     self.show_help()
@@ -66,20 +85,25 @@ class SearchExplorer:
                         try:
                             limit = int(parts[0])
                             query = parts[1]
+                            logger.info(f"Performing limited search: query='{query}', limit={limit}")
                             self.perform_search(query, limit=limit)
                         except ValueError:
                             print("Invalid limit value. Use: limit <number> <query>")
+                            logger.warning(f"Invalid limit value in command: {user_input}")
                     else:
                         print("Usage: limit <number> <query>")
                 else:
                     # Default search
+                    logger.info(f"Performing default search: '{user_input}'")
                     self.perform_search(user_input)
                     
             except KeyboardInterrupt:
                 print("\nExiting...")
+                logger.info("User interrupted with Ctrl+C")
                 break
             except Exception as e:
                 print(f"Error: {e}")
+                logger.error(f"Unexpected error in interactive session: {e}", exc_info=True)
         
         print("Thank you for using Search Explorer!")
     
@@ -114,6 +138,7 @@ Examples:
     
     def perform_search(self, query, **kwargs):
         """Perform a search and display results."""
+        logger.info(f"Performing search: query='{query}', params={kwargs}")
         try:
             print(f"Searching for: '{query}' {kwargs}")
             
@@ -122,6 +147,7 @@ Examples:
             end_time = datetime.now()
             
             duration = (end_time - start_time).total_seconds()
+            logger.info(f"Search completed in {duration:.2f}s with {len(results)} results")
             
             # Store in history
             search_record = {
@@ -144,8 +170,10 @@ Examples:
                 
         except QuiltException as e:
             print(f"Search failed: {e}")
+            logger.error(f"Search failed with QuiltException: {e}")
         except Exception as e:
             print(f"Unexpected error: {e}")
+            logger.error(f"Search failed with unexpected error: {e}", exc_info=True)
     
     def display_results(self, results, max_display=10):
         """Display search results in a readable format."""
@@ -203,13 +231,16 @@ Examples:
     
     def save_last_results(self, name):
         """Save last search results with a name."""
+        logger.info(f"Attempting to save last results as '{name}'")
         if not self.search_history:
             print("No search results to save.")
+            logger.warning("No search history available to save")
             return
         
         last_search = self.search_history[-1]
         self.saved_results[name] = last_search
         print(f"Saved {last_search['result_count']} results as '{name}'")
+        logger.info(f"Saved {last_search['result_count']} results as '{name}'")
     
     def show_saved_results(self):
         """Show saved result sets."""
@@ -301,6 +332,8 @@ Examples:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"search_results_{timestamp}.json"
         
+        logger.info(f"Saving search session to: {filename}")
+        
         export_data = {
             "timestamp": datetime.now().isoformat(),
             "search_history": self.search_history,
@@ -311,26 +344,44 @@ Examples:
             with open(filename, 'w') as f:
                 json.dump(export_data, f, indent=2)
             print(f"Search session saved to: {filename}")
+            logger.info(f"Successfully saved {len(self.search_history)} searches and {len(self.saved_results)} saved results to {filename}")
         except Exception as e:
             print(f"Error saving results: {e}")
+            logger.error(f"Failed to save search session to {filename}: {e}")
 
 
 def main():
     """Main function."""
     if len(sys.argv) > 1 and sys.argv[1] == '--help':
         print("Interactive Search Explorer for Quilt3")
-        print("Usage: python interactive_search_explorer.py")
+        print("Usage: python interactive_search_explorer.py [--debug]")
         print("\nThis tool provides an interactive CLI for exploring search capabilities.")
+        print("Options:")
+        print("  --debug    Enable debug logging")
         return 0
     
+    # Enable debug logging if requested
+    if len(sys.argv) > 1 and sys.argv[1] == '--debug':
+        logger.setLevel(logging.DEBUG)
+        # Add console handler for debug mode
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.DEBUG)
+        logger.addHandler(console_handler)
+        logger.debug("Debug logging enabled")
+    
+    logger.info("Starting interactive search explorer")
     explorer = SearchExplorer()
     explorer.interactive_search_session()
     
     # Optionally save session on exit
     save_session = input("\nSave this search session? (y/N): ").strip().lower()
     if save_session in ['y', 'yes']:
+        logger.info("User chose to save search session")
         explorer.save_search_results()
+    else:
+        logger.info("User chose not to save search session")
     
+    logger.info("Interactive search explorer session ended")
     return 0
 
 

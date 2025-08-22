@@ -7,14 +7,27 @@ import sys
 import json
 import os
 import hashlib
+import logging
 from datetime import datetime
 import argparse
 import quilt3
 from quilt3.exceptions import QuiltException
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('search_regression_tests.log', mode='a')
+    ]
+)
+logger = logging.getLogger(__name__)
+
 
 def test_search_result_consistency():
     """Ensure search results are consistent across runs."""
+    logger.info("Starting search result consistency tests")
     print("Testing search result consistency...")
     
     test_queries = [
@@ -23,24 +36,30 @@ def test_search_result_consistency():
         {"query": "example", "limit": 3}
     ]
     
+    logger.info(f"Running consistency tests for {len(test_queries)} queries")
     results = {}
     
     for i, test_query in enumerate(test_queries):
         query_name = f"query_{i}_{test_query['query'] or 'empty'}"
+        logger.info(f"Testing consistency for query: {query_name} with params: {test_query}")
         print(f"  Testing query: {test_query}")
         
         try:
             # Run the same query multiple times
             runs = []
+            logger.debug(f"Running 3 iterations for consistency test: {query_name}")
             for run in range(3):
+                logger.debug(f"Consistency test '{query_name}' iteration {run+1}/3")
                 search_results = quilt3.search_packages(**test_query)
                 
                 # Create a deterministic representation of results
                 result_signature = create_result_signature(search_results)
                 runs.append(result_signature)
+                logger.debug(f"Iteration {run+1} signature: {result_signature[:16]}...")
             
             # Check if all runs produced the same results
             all_same = all(sig == runs[0] for sig in runs)
+            logger.info(f"Consistency test '{query_name}': all_same={all_same}, signatures={len(set(runs))} unique")
             
             results[query_name] = {
                 "status": "PASS" if all_same else "FAIL",
@@ -55,6 +74,7 @@ def test_search_result_consistency():
             
         except QuiltException as e:
             print(f"    ✗ ERROR: {e}")
+            logger.error(f"Consistency test '{query_name}' failed with QuiltException: {e}")
             results[query_name] = {
                 "status": "ERROR",
                 "error": str(e),
@@ -227,37 +247,53 @@ def create_result_signature(results):
 
 def load_baseline_results(baseline_file):
     """Load baseline results from previous run."""
+    logger.info(f"Attempting to load baseline from: {baseline_file}")
     if os.path.exists(baseline_file):
         try:
             with open(baseline_file, 'r') as f:
-                return json.load(f)
+                baseline_data = json.load(f)
+            logger.info(f"Successfully loaded baseline with {len(baseline_data.get('test_results', {}))} test results")
+            return baseline_data
         except Exception as e:
             print(f"Warning: Could not load baseline from {baseline_file}: {e}")
+            logger.warning(f"Failed to load baseline from {baseline_file}: {e}")
+    else:
+        logger.info(f"Baseline file {baseline_file} does not exist")
     return None
 
 
 def save_baseline_results(results, baseline_file):
     """Save current results as baseline."""
+    logger.info(f"Saving baseline results to: {baseline_file}")
     try:
         with open(baseline_file, 'w') as f:
             json.dump(results, f, indent=2)
         print(f"Baseline results saved to {baseline_file}")
+        logger.info(f"Successfully saved baseline with {len(results.get('test_results', {}))} test results")
     except Exception as e:
         print(f"Warning: Could not save baseline to {baseline_file}: {e}")
+        logger.error(f"Failed to save baseline to {baseline_file}: {e}")
 
 
 def compare_with_baseline(current_results, baseline_results):
     """Compare current results with baseline."""
+    logger.info("Starting baseline comparison")
+    
     if not baseline_results:
+        logger.warning("No baseline available for comparison")
         return {"status": "NO_BASELINE", "message": "No baseline available for comparison"}
     
     # Compare test counts and results
     current_tests = set(current_results.keys())
     baseline_tests = set(baseline_results.get("test_results", {}).keys())
     
+    logger.info(f"Comparing tests: current={len(current_tests)}, baseline={len(baseline_tests)}")
+    
     added_tests = current_tests - baseline_tests
     removed_tests = baseline_tests - current_tests
     common_tests = current_tests & baseline_tests
+    
+    logger.debug(f"Test changes: added={len(added_tests)}, removed={len(removed_tests)}, common={len(common_tests)}")
     
     regressions = []
     improvements = []
@@ -266,18 +302,25 @@ def compare_with_baseline(current_results, baseline_results):
         current_status = current_results[test_name].get("status")
         baseline_status = baseline_results["test_results"][test_name].get("status")
         
+        logger.debug(f"Test '{test_name}': baseline={baseline_status}, current={current_status}")
+        
         if baseline_status == "PASS" and current_status != "PASS":
             regressions.append(test_name)
+            logger.warning(f"Regression detected in test '{test_name}': {baseline_status} -> {current_status}")
         elif baseline_status != "PASS" and current_status == "PASS":
             improvements.append(test_name)
+            logger.info(f"Improvement detected in test '{test_name}': {baseline_status} -> {current_status}")
     
-    return {
+    comparison_result = {
         "status": "COMPARED",
         "added_tests": list(added_tests),
         "removed_tests": list(removed_tests),
         "regressions": regressions,
         "improvements": improvements
     }
+    
+    logger.info(f"Baseline comparison completed: {len(regressions)} regressions, {len(improvements)} improvements")
+    return comparison_result
 
 
 def generate_regression_report(consistency_results, compatibility_results, error_results, baseline_comparison):
@@ -344,27 +387,38 @@ def main():
     parser.add_argument('--save-baseline', action='store_true',
                         help='Save current results as new baseline')
     parser.add_argument('--output', type=str, help='Output detailed report to file')
+    parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], 
+                        default='INFO', help='Set logging level')
     args = parser.parse_args()
     
+    # Set log level based on argument
+    logger.setLevel(getattr(logging, args.log_level))
+    
+    logger.info("Starting regression testing session")
     print("Quilt3 Search API Regression Tests")
     print("=" * 50)
     
     # Check if user is logged in
+    logger.info("Checking authentication status")
     try:
         from quilt3.api import get_user
         user = get_user()
         if not user:
             print("Error: Not logged in to quilt3. Please run 'quilt3 login' first.")
+            logger.error("User not logged in")
             return 1
         print(f"Logged in as: {user}")
+        logger.info(f"Authentication verified for user: {user}")
     except Exception as e:
         print(f"Error checking login status: {e}")
+        logger.error(f"Authentication check failed: {e}", exc_info=True)
         return 1
     
     # Load baseline if available
     baseline_results = load_baseline_results(args.baseline)
     
     # Run regression tests
+    logger.info("Running regression test suite")
     consistency_results = test_search_result_consistency()
     compatibility_results = test_backwards_compatibility()
     error_results = test_error_handling_consistency()
@@ -375,9 +429,11 @@ def main():
     all_current_results.update(compatibility_results)
     all_current_results.update(error_results)
     
+    logger.info(f"Collected {len(all_current_results)} test results for baseline comparison")
     baseline_comparison = compare_with_baseline(all_current_results, baseline_results)
     
     # Generate report
+    logger.info("Generating regression test report")
     report = generate_regression_report(consistency_results, compatibility_results, error_results, baseline_comparison)
     
     # Print summary
@@ -385,21 +441,32 @@ def main():
     
     # Save as new baseline if requested
     if args.save_baseline:
+        logger.info("Saving current results as new baseline")
         save_baseline_results(report, args.baseline)
     
     # Save detailed report if requested
     if args.output:
-        with open(args.output, 'w') as f:
-            json.dump(report, f, indent=2)
-        print(f"\nDetailed report saved to: {args.output}")
+        logger.info(f"Saving detailed report to: {args.output}")
+        try:
+            with open(args.output, 'w') as f:
+                json.dump(report, f, indent=2)
+            print(f"\nDetailed report saved to: {args.output}")
+            logger.info(f"Report successfully saved to: {args.output}")
+        except Exception as e:
+            logger.error(f"Failed to save report to {args.output}: {e}")
+            print(f"Error saving report: {e}")
     
     # Return non-zero exit code if there were failures or regressions
     has_failures = report["summary"]["failed"] > 0 or report["summary"]["errors"] > 0
     has_regressions = len(baseline_comparison.get("regressions", [])) > 0
     
+    logger.info(f"Regression testing completed: failures={has_failures}, regressions={has_regressions}")
+    
     if has_failures or has_regressions:
+        logger.warning("Regression testing failed - returning non-zero exit code")
         return 1
     
+    logger.info("Regression testing completed successfully")
     return 0
 
 
