@@ -1,6 +1,7 @@
 import invariant from 'invariant'
 import * as React from 'react'
 
+import Code from 'components/Code'
 import { useConfirm } from 'components/Dialog'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as FileEditor from 'components/FileEditor'
@@ -80,12 +81,12 @@ export function OrganizeFileProvider({
       onReload()
     } catch (error) {
       Log.error('Failed to delete file:', error)
-      push(`Failed to delete ${s3paths.handleToS3Url(handle)}`)
+      push(`Failed deleting ${s3paths.handleToS3Url(handle)}`)
     }
   }, [s3, handle, push, onReload])
 
   const deleteConfirm = useConfirm({
-    title: `Delete "${handle.key}"`,
+    title: 'Delete object?',
     submitTitle: 'Delete',
     onSubmit: handleDelete,
   })
@@ -109,7 +110,7 @@ export function OrganizeFileProvider({
   return (
     <Context.Provider value={actions}>
       {children}
-      {deleteConfirm.render(<></>)}
+      {deleteConfirm.render(<Code>{s3paths.handleToS3Url(handle)}</Code>)}
     </Context.Provider>
   )
 }

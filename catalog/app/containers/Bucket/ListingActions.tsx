@@ -58,13 +58,11 @@ function Delete({
   onDelete,
 }: BucketButtonProps & { onDelete: () => void }) {
   const classes = useButtonStyles()
-  const [deleting, setDeleting] = React.useState(false)
 
   const s3 = AWS.S3.use()
   const { push } = Notifications.use()
 
   const onSubmit = React.useCallback(async () => {
-    setDeleting(true)
     try {
       await deleteObject({ s3, handle: location })
       push(`${s3paths.handleToS3Url(location)} deleted successfully`)
@@ -76,7 +74,7 @@ function Delete({
   }, [location, onDelete, push, s3])
 
   const confirm = useConfirm({
-    title: 'Confirm file deletion',
+    title: 'Delete object?',
     submitTitle: 'Delete',
     onSubmit,
   })
@@ -90,11 +88,7 @@ function Delete({
         title="Delete"
         onClick={confirm.open}
       >
-        {deleting ? (
-          <M.CircularProgress size={20} />
-        ) : (
-          <IconDeleteOutlined color="error" />
-        )}
+        <IconDeleteOutlined color="error" />
       </M.IconButton>
     </>
   )

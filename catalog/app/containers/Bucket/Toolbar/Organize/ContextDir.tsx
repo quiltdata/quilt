@@ -104,7 +104,7 @@ function DeleteDialog({ close, onReload }: DeleteDialogProps) {
 
   return (
     <>
-      <M.DialogTitle>Delete selected items</M.DialogTitle>
+      <M.DialogTitle>Delete selected objects?</M.DialogTitle>
       <M.DialogContent>
         {selectionHandles ? (
           <M.List dense disablePadding>

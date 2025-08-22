@@ -1,8 +1,10 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Bookmarks from 'containers/Bookmarks/Provider'
+
+import type * as Model from 'model'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
+import * as Bookmarks from 'containers/Bookmarks/Provider'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import RowActions from './ListingActions'
 
@@ -24,6 +26,34 @@ const defaultPrefs = {
   revisePackage: true,
   writeFile: true,
 }
+
+jest.mock('@material-ui/core', () => ({
+  ...jest.requireActual('@material-ui/core'),
+  IconButton: ({ onClick, ...props }: any) =>
+    props.href ? <a {...props} /> : <button {...props} />,
+}))
+
+jest.mock('@material-ui/icons', () => ({
+  ArrowDownwardOutlined: () => <span>arrow_downward</span>,
+  DeleteOutlined: () => <span>delete</span>,
+  TurnedInOutlined: () => <span>turned_in</span>,
+  TurnedInNotOutlined: () => <span>turned_in_not</span>,
+}))
+
+jest.mock('containers/Notifications', () => ({
+  use: () => ({
+    push: jest.fn(() => {}),
+  }),
+}))
+
+jest.mock('utils/AWS', () => ({
+  S3: {
+    use: () => null,
+  },
+  Signer: {
+    useDownloadUrl: (h: Model.S3.S3ObjectLocation) => `s3://${h.bucket}/${h.key}`,
+  },
+}))
 
 const noop = () => {}
 
@@ -89,7 +119,6 @@ describe('components/ListingActions', () => {
     })
 
     it('should render Bucket file', () => {
-      jest.mock('utils/AWS')
       const tree = renderer
         .create(
           <TestBucket>
@@ -132,7 +161,6 @@ describe('components/ListingActions', () => {
     })
 
     it('should render Bucket file without download button', () => {
-      jest.mock('utils/AWS')
       const tree = renderer
         .create(
           <TestBucket>
