@@ -10,21 +10,14 @@ from pathlib import Path
 __version__ = Path(Path(__file__).parent, "VERSION").read_text().strip()
 
 from . import admin, hooks
-from .api import (
-    config,
-    copy,
-    delete_package,
-    disable_telemetry,
-    list_package_versions,
-    list_packages,
-    search,
-)
+from ._search import _search_more_packages, _search_packages
+from .api import (config, copy, delete_package, disable_telemetry,
+                  list_package_versions, list_packages, search)
 from .bucket import Bucket
 from .exceptions import PackageException
 from .imports import start_data_package_loader
 from .packages import Package
 from .session import get_boto3_session, logged_in, login, logout
-from ._search import _search_packages, _search_more_packages
 
 start_data_package_loader()
 

@@ -5,25 +5,22 @@ Test-driven development approach for the new GraphQL-based package search API.
 """
 
 import datetime
-import pytest
 from unittest import mock
+
+import pytest
 
 import quilt3
 from quilt3 import PackageException
+
 from .fixtures.search_responses import (
-    SEARCH_PACKAGES_SUCCESS_RESPONSE,
-    SEARCH_PACKAGES_EMPTY_RESPONSE,
-    SEARCH_MORE_PACKAGES_SUCCESS_RESPONSE,
-    SEARCH_MORE_PACKAGES_EMPTY_RESPONSE,
-    SEARCH_PACKAGES_VALIDATION_ERROR_RESPONSE,
-    SEARCH_PACKAGES_OPERATION_ERROR_RESPONSE,
-    SEARCH_MORE_PACKAGES_VALIDATION_ERROR_RESPONSE,
+    AUTHENTICATION_ERROR_RESPONSE, NETWORK_ERROR_RESPONSE, SEARCH_HIT_PACKAGE,
+    SEARCH_HIT_PACKAGE_2, SEARCH_MORE_PACKAGES_EMPTY_RESPONSE,
     SEARCH_MORE_PACKAGES_OPERATION_ERROR_RESPONSE,
-    NETWORK_ERROR_RESPONSE,
-    AUTHENTICATION_ERROR_RESPONSE,
-    SEARCH_HIT_PACKAGE,
-    SEARCH_HIT_PACKAGE_2,
-)
+    SEARCH_MORE_PACKAGES_SUCCESS_RESPONSE,
+    SEARCH_MORE_PACKAGES_VALIDATION_ERROR_RESPONSE,
+    SEARCH_PACKAGES_EMPTY_RESPONSE, SEARCH_PACKAGES_OPERATION_ERROR_RESPONSE,
+    SEARCH_PACKAGES_SUCCESS_RESPONSE,
+    SEARCH_PACKAGES_VALIDATION_ERROR_RESPONSE)
 from .utils import QuiltTestCase
 
 
@@ -96,8 +93,10 @@ class TestSearchPackages(QuiltTestCase):
         )
 
         # Assert
-        from quilt3._graphql_client import SearchResultOrder, PackagesSearchFilter, PackageUserMetaPredicate
-        
+        from quilt3._graphql_client import (PackagesSearchFilter,
+                                            PackageUserMetaPredicate,
+                                            SearchResultOrder)
+
         # The mock should be called with the converted GraphQL objects
         expected_filter = PackagesSearchFilter(**{
             "modified": {"gte": "2023-01-01"},
@@ -397,8 +396,9 @@ class TestSearchPackages(QuiltTestCase):
     def test_search_hit_attribute_setting(self):
         """Test SearchHit constructor with missing attributes to cover setattr fallback."""
         from unittest.mock import Mock
+
         from quilt3._search import SearchHit
-        
+
         # Create a mock hit with missing bucket_name and key attributes
         mock_hit = Mock()
         mock_hit.id = "test-id"
@@ -419,8 +419,9 @@ class TestSearchPackages(QuiltTestCase):
     def test_error_handling_with_malformed_errors(self):
         """Test error handling when errors object is malformed."""
         from unittest.mock import Mock
+
         from quilt3._search import _handle_search_errors
-        
+
         # Create a mock result with malformed errors (not iterable)
         mock_result = Mock()
         mock_result.errors = "not_iterable"

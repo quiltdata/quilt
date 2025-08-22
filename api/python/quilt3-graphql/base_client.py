@@ -15,11 +15,9 @@ from pydantic_core import to_jsonable_python
 from quilt3 import session
 
 from .base_model import UNSET, Upload
-from .exceptions import (
-    GraphQLClientGraphQLMultiError,
-    GraphQLClientHttpError,
-    GraphQLClientInvalidResponseError,
-)
+from .exceptions import (GraphQLClientGraphQLMultiError,
+                         GraphQLClientHttpError,
+                         GraphQLClientInvalidResponseError)
 
 Self = TypeVar("Self", bound="BaseClient")
 

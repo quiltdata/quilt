@@ -5,8 +5,8 @@ This module provides the core search functionality for the quilt3.search_package
 It leverages the generated GraphQL client infrastructure for communication with the backend.
 """
 
-from typing import List, Optional, Dict, Any, Union
 import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from . import _graphql_client
 from .exceptions import PackageException
