@@ -40,15 +40,15 @@ The following are all valid search parameters:
 
 #### Object-specific Fields
 
-| Syntax | Description | Example |
-|- | - | - |
-| `content`| Object content | `content:Hello` |
-| `ext`| Object extension | `ext:*.fastq.gz` |
-| `key`| Object key | `key:phase*` |
-| `key_text`| Analyzed object key | `key:"phase"` |
-| `last_modified`| Last modified date | `last_modified:[2022-02-04 TO 2022-02-20]`|
-| `size` | Object size in bytes | `size:>=4096` |
-| `version_id` | Object version id | `version_id:t.LVVCx*` |
+| Name | Type | Description | Example |
+| - | - | - | - |
+| `content` | `text` | Object content | `content:Hello` |
+| `ext` | `keyword` | Object extension | `ext:*.fastq.gz` |
+| `key` | `keyword` | Object key | `key:phase*` |
+| `key_text` | `text` | Analyzed object key | `key:"phase"` |
+| `last_modified` | `date` | Last modified date | `last_modified:[2022-02-04 TO 2022-02-20]`|
+| `size` | `long` | Object size in bytes | `size:>=4096` |
+| `version_id` | `keyword` | Object version id | `version_id:t.LVVCx*` |
 
 #### Package-specific Fields
 
@@ -63,32 +63,33 @@ All the package metadata is indexed in ES as three different types of documents:
 Top-level hits displayed by the search page are always Pointers, merged with the
 corresponding Manifest and matching Entries.
 A Pointer is considered a hit if it matches the search query, or if any of its
-associated documents, i.e. Manifest or Entries, match the search query.
+associated documents, i.e. Manifest or Entries (either metadata or contents),
+match the search query.
 
-| Syntax | Description | Example |
-| - | - | - |
-| `ptr_name` | Package name | `ptr_name:examples\/metadata` |
-| `ptr_name.text` | Analyzed version of the above | `ptr_name.text:examples` |
-| `ptr_tag` | Package revision tag in S3; either "latest" or a timestamp (e.g. "1741661321") | `ptr_tag:latest` |
-| `ptr_last_modified` | Package revision last modified date | `ptr_last_modified:[2022-02-04 TO 2022-02-20]` |
-| `mnfst_hash` | Package manifest hash | `mnfst_hash:3192ac1*` |
-| `mnfst_stats.total_bytes` | Package total bytes | `mnfst_stats.total_bytes:>1000000` |
-| `mnfst_stats.total_files` | Package total files | `mnfst_stats.total_files:<100` |
-| `mnfst_metadata` | Package metadata | `mnfst_metadata:dapi` |
-| `mnfst_message` | Commit message / comment | `mnfst_message:TODO` |
-| `mnfst_workflow.id` | Package workflow ID | `mnfst_workflow.id:verify-metadata` |
-| `entry_lk` | Entry logical key | `entry_lk:examples\/metadata\/example.csv` |
-| `entry_lk.text` | Analyzed version of the above | `entry_lk.text:example` |
-| `entry_pk` | Entry physical key | `entry_pk:*example.csv` |
-| `entry_pk.text` | Analyzed version of the above | `entry_pk.text:example` |
-| `entry_pk_parsed.s3.bucket` | S3 bucket of the entry | `entry_pk_parsed.s3.bucket:my-bucket` |
-| `entry_pk_parsed.s3.key` | S3 key of the entry | `entry_pk_parsed.s3.key:example.csv` |
-| `entry_pk_parsed.s3.key.text` | Analyzed version of the above | `entry_pk_parsed.s3.key.text:example` |
-| `entry_pk_parsed.s3.version_id` | S3 version ID of the entry | `entry_pk_parsed.s3.version_id:abc123*` |
-| `entry_size` | Entry size in bytes | `entry_size:>1000000` |
-| `entry_hash.type` | Entry hash type | `entry_hash.type:sha2-256-chunked` |
-| `entry_hash.value` | Entry hash value | `entry_hash.value:T12mNNNsyfzayKFQQEXI6Ichf8AtuMbhw5c0oPg7fTo=` |
-| `entry_metadata` | Entry metadata | `entry_metadata:example` |
+| Name | Type | Description | Example |
+| - | - | - | - |
+| `ptr_name` | `keyword` | Package name | `ptr_name:examples\/metadata` |
+| `ptr_name.text` | `text` | Analyzed version of the above | `ptr_name.text:examples` |
+| `ptr_tag` | `keyword` | Package revision tag in S3; either "latest" or a timestamp (e.g. "1741661321") | `ptr_tag:latest` |
+| `ptr_last_modified` | `date` | Package revision last modified date | `ptr_last_modified:[2022-02-04 TO 2022-02-20]` |
+| `mnfst_hash` | `keyword` | Package manifest hash | `mnfst_hash:3192ac1*` |
+| `mnfst_stats.total_bytes` | `long` | Package total bytes | `mnfst_stats.total_bytes:>1000000` |
+| `mnfst_stats.total_files` | `long` | Package total files | `mnfst_stats.total_files:<100` |
+| `mnfst_metadata` | `text` | Package metadata | `mnfst_metadata:dapi` |
+| `mnfst_message` | `text` | Commit message / comment | `mnfst_message:TODO` |
+| `mnfst_workflow.id` | `keyword` | Package workflow ID | `mnfst_workflow.id:verify-metadata` |
+| `entry_lk` | `keyword` | Entry logical key | `entry_lk:examples\/metadata\/example.csv` |
+| `entry_lk.text` | `text` | Analyzed version of the above | `entry_lk.text:example` |
+| `entry_pk` | `keyword` | Entry physical key | `entry_pk:*example.csv` |
+| `entry_pk.text` | `text` | Analyzed version of the above | `entry_pk.text:example` |
+| `entry_pk_parsed.s3.bucket` | `keyword` | S3 bucket of the entry | `entry_pk_parsed.s3.bucket:my-bucket` |
+| `entry_pk_parsed.s3.key` | `keyword` | S3 key of the entry | `entry_pk_parsed.s3.key:example.csv` |
+| `entry_pk_parsed.s3.key.text` | `text` | Analyzed version of the above | `entry_pk_parsed.s3.key.text:example` |
+| `entry_pk_parsed.s3.version_id` | `keyword` | S3 version ID of the entry | `entry_pk_parsed.s3.version_id:abc123*` |
+| `entry_size` | `long` | Entry size in bytes | `entry_size:>1000000` |
+| `entry_hash.type` | `keyword` | Entry hash type | `entry_hash.type:sha2-256-chunked` |
+| `entry_hash.value` | `keyword` | Entry hash value | `entry_hash.value:T12mNNNsyfzayKFQQEXI6Ichf8AtuMbhw5c0oPg7fTo=` |
+| `entry_metadata` | `text` | Entry metadata | `entry_metadata:example` |
 
 #### Logical operators and grouping
 
