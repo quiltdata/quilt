@@ -55,43 +55,40 @@ interface Stats {
   warn: StatsWarning | null
 }
 
-const useStats = ({ added, existing, counter }: FilesState): Stats =>
-  React.useMemo(() => {
-    const upload = Object.entries(added).reduce(
-      (acc, [path, f]) => {
-        if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
-        const e = existing[path]
-        if (e && (!f.hash.ready || R.equals(f.hash.value, e.hash))) return acc
-        return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
-      },
-      { count: 0, size: 0 },
-    )
-    const s3 = Object.entries(added).reduce(
-      (acc, [, f]) =>
-        S3FilePicker.isS3File(f)
-          ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
-          : acc,
-      { count: 0, size: 0 },
-    )
-    const hashing = Object.values(added).reduce(
-      (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
-      false,
-    )
-    const warn = {
-      upload: upload.size > PD.MAX_UPLOAD_SIZE,
-      s3: s3.size > PD.MAX_S3_SIZE,
-      count: upload.count + s3.count > PD.MAX_FILE_COUNT,
-    }
-    const hasWarning = warn.upload || warn.s3 || warn.count
-    return {
-      upload,
-      s3,
-      hashing,
-      warn: hasWarning ? warn : null,
-    }
-    // We update counter when hashing is finished
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [added, existing, counter])
+const calcStats = ({ added, existing }: FilesState): Stats => {
+  const upload = Object.entries(added).reduce(
+    (acc, [path, f]) => {
+      if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
+      const e = existing[path]
+      if (e && (!f.hash.ready || R.equals(f.hash.value, e.hash))) return acc
+      return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+    },
+    { count: 0, size: 0 },
+  )
+  const s3 = Object.entries(added).reduce(
+    (acc, [, f]) =>
+      S3FilePicker.isS3File(f)
+        ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+        : acc,
+    { count: 0, size: 0 },
+  )
+  const hashing = Object.values(added).reduce(
+    (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
+    false,
+  )
+  const warn = {
+    upload: upload.size > PD.MAX_UPLOAD_SIZE,
+    s3: s3.size > PD.MAX_S3_SIZE,
+    count: upload.count + s3.count > PD.MAX_FILE_COUNT,
+  }
+  const hasWarning = warn.upload || warn.s3 || warn.count
+  return {
+    upload,
+    s3,
+    hashing,
+    warn: hasWarning ? warn : null,
+  }
+}
 
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {
@@ -1753,7 +1750,7 @@ export function FilesInput({
   )
   const computedEntries = useMemoEq(valueWithErrors, computeEntries)
 
-  const stats = useStats(value)
+  const stats = React.useMemo(() => calcStats(value), [value])
 
   return (
     <Root className={className}>

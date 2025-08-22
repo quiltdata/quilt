@@ -109,7 +109,8 @@ export default function UploadDialog({
   const input = React.useMemo(
     () => ({
       value: toFilesState(value),
-      onChange: (s: FI.FilesState) => setValue(s.added),
+      // Trigger value update, because hashing finishes on the same objects
+      onChange: (s: FI.FilesState) => setValue({ ...s.added }),
     }),
     [value],
   )
