@@ -91,6 +91,8 @@ def create_mock_invalid_input():
     mock_error = Mock()
     mock_error.errors = [Mock()]
     mock_error.errors[0].message = "At least one bucket must be specified"
+    # Make the mock look like it can be iterated for error handling
+    mock_error.__iter__ = lambda self: iter([mock_error.errors[0]])
     return mock_error
 
 # Main search operation responses

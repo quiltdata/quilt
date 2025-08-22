@@ -60,9 +60,13 @@ def _handle_search_errors(result: Union[
     """Handle GraphQL errors in search responses."""
     if hasattr(result, 'errors') and result.errors:
         error_messages = []
-        for error in result.errors:
-            if hasattr(error, 'message'):
-                error_messages.append(error.message)
+        try:
+            for error in result.errors:
+                if hasattr(error, 'message'):
+                    error_messages.append(error.message)
+        except (TypeError, AttributeError):
+            # Handle case where errors is not iterable or lacks expected structure
+            error_messages = ["Search operation failed"]
         error_msg = "; ".join(error_messages) if error_messages else "Search operation failed"
         raise PackageException(error_msg)
 

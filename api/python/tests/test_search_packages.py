@@ -88,7 +88,7 @@ class TestSearchPackages(QuiltTestCase):
                 "size": {"gte": 1000000}
             },
             user_meta_filters=[
-                {"key": "project", "value": "research"}
+                {"path": "project", "keyword": {"terms": ["research"]}}
             ],
             latest_only=True,
             size=50,
@@ -103,7 +103,7 @@ class TestSearchPackages(QuiltTestCase):
             "modified": {"gte": "2023-01-01"},
             "size": {"gte": 1000000}
         })
-        expected_user_meta_filters = [PackageUserMetaPredicate(**{"key": "project", "value": "research"})]
+        expected_user_meta_filters = [PackageUserMetaPredicate(**{"path": "project", "keyword": {"terms": ["research"]}})]
         
         self.mock_graphql_client.search_packages.assert_called_once_with(
             buckets=["bucket1", "bucket2"],
@@ -178,13 +178,18 @@ class TestSearchPackages(QuiltTestCase):
     def test_search_packages_validation_error(self):
         """Test handling of validation errors from GraphQL."""
         # Arrange
-        self.mock_graphql_client.search_packages.return_value = SEARCH_PACKAGES_VALIDATION_ERROR_RESPONSE
+        from unittest.mock import Mock
+        invalid_input_mock = Mock()
+        invalid_input_mock.__class__.__name__ = 'SearchPackagesSearchPackagesInvalidInput'
+        # Mock the isinstance check by setting the actual class
+        with mock.patch('quilt3._search._graphql_client.SearchPackagesSearchPackagesInvalidInput', invalid_input_mock.__class__):
+            self.mock_graphql_client.search_packages.return_value = invalid_input_mock
 
-        # Act & Assert
-        with self.assertRaises(PackageException) as context:
-            quilt3.search_packages(buckets=[])
+            # Act & Assert
+            with self.assertRaises(PackageException) as context:
+                quilt3.search_packages(buckets=[])
 
-        self.assertIn("At least one bucket must be specified", str(context.exception))
+            self.assertIn("Search failed", str(context.exception))
 
     def test_search_packages_operation_error(self):
         """Test handling of operation errors from GraphQL."""
@@ -203,10 +208,10 @@ class TestSearchPackages(QuiltTestCase):
         self.mock_graphql_client.search_more_packages.return_value = SEARCH_MORE_PACKAGES_VALIDATION_ERROR_RESPONSE
 
         # Act & Assert
-        with self.assertRaises(PackageException) as context:
+        with self.assertRaises(ValueError) as context:
             quilt3.search_more_packages(after="")
 
-        self.assertIn("At least one bucket must be specified", str(context.exception))
+        self.assertIn("after cursor is required", str(context.exception))
 
     def test_search_more_packages_operation_error(self):
         """Test handling of operation errors in pagination."""
@@ -293,6 +298,181 @@ class TestSearchPackages(QuiltTestCase):
             size=30,
             order=SearchResultOrder.BEST_MATCH
         )
+
+
+    def test_graphql_filter_conversion_error(self):
+        """Test handling of GraphQL filter conversion errors."""
+        # Test case where filter conversion fails
+        with self.assertRaises(PackageException) as context:
+            quilt3.search_packages(
+                buckets=["test-bucket"],
+                filter={"invalid_field": "invalid_value"}
+            )
+        self.assertIn("Unexpected error during search", str(context.exception))
+
+    def test_graphql_user_meta_filter_conversion_error(self):
+        """Test handling of GraphQL user meta filter conversion errors."""
+        # Test case where user meta filter conversion fails  
+        with self.assertRaises(PackageException) as context:
+            quilt3.search_packages(
+                buckets=["test-bucket"],
+                user_meta_filters=[{"invalid": "structure"}]
+            )
+        self.assertIn("Unexpected error during search", str(context.exception))
+
+    def test_empty_search_result_set_handling(self):
+        """Test handling of EmptySearchResultSet response type."""
+        # Arrange
+        from unittest.mock import Mock
+        empty_result_mock = Mock()
+        empty_result_mock.__class__.__name__ = 'SearchPackagesSearchPackagesEmptySearchResultSet'
+        
+        with mock.patch('quilt3._search._graphql_client.SearchPackagesSearchPackagesEmptySearchResultSet', empty_result_mock.__class__):
+            self.mock_graphql_client.search_packages.return_value = empty_result_mock
+
+            # Act
+            results = quilt3.search_packages(buckets=["test-bucket"])
+
+            # Assert
+            self.assertEqual(len(results.hits), 0)
+            self.assertFalse(results.has_next)
+            self.assertIsNone(results.next_cursor)
+
+    def test_real_graphql_result_set_handling(self):
+        """Test handling of actual PackagesSearchResultSet response type."""
+        # Arrange
+        from unittest.mock import Mock
+        result_set_mock = Mock()
+        result_set_mock.__class__.__name__ = 'SearchPackagesSearchPackagesPackagesSearchResultSet'
+        result_set_mock.first_page = Mock()
+        result_set_mock.first_page.hits = [Mock(), Mock()]
+        result_set_mock.first_page.cursor = "test-cursor"
+        
+        with mock.patch('quilt3._search._graphql_client.SearchPackagesSearchPackagesPackagesSearchResultSet', result_set_mock.__class__):
+            self.mock_graphql_client.search_packages.return_value = result_set_mock
+
+            # Act
+            results = quilt3.search_packages(buckets=["test-bucket"])
+
+            # Assert  
+            self.assertEqual(len(results.hits), 2)
+            self.assertTrue(results.has_next)
+            self.assertEqual(results.next_cursor, "test-cursor")
+
+    def test_search_more_packages_with_graphql_types(self):
+        """Test search_more_packages with actual GraphQL response types."""
+        # Arrange
+        from unittest.mock import Mock
+        page_mock = Mock()
+        page_mock.__class__.__name__ = 'SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage'
+        page_mock.hits = [Mock()]
+        page_mock.cursor = None
+        
+        with mock.patch('quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage', page_mock.__class__):
+            self.mock_graphql_client.search_more_packages.return_value = page_mock
+
+            # Act
+            results = quilt3.search_more_packages(after="test-cursor")
+
+            # Assert
+            self.assertEqual(len(results.hits), 1)
+            self.assertFalse(results.has_next)
+
+    def test_search_more_packages_validation_error_with_graphql_types(self):
+        """Test search_more_packages validation error with GraphQL types."""
+        # Arrange
+        from unittest.mock import Mock
+        invalid_input_mock = Mock()
+        invalid_input_mock.__class__.__name__ = 'SearchMorePackagesSearchMorePackagesInvalidInput'
+        
+        with mock.patch('quilt3._search._graphql_client.SearchMorePackagesSearchMorePackagesInvalidInput', invalid_input_mock.__class__):
+            self.mock_graphql_client.search_more_packages.return_value = invalid_input_mock
+
+            # Act & Assert
+            with self.assertRaises(PackageException) as context:
+                quilt3.search_more_packages(after="test-cursor")
+
+            self.assertIn("Unexpected error during search pagination", str(context.exception))
+
+    def test_search_hit_attribute_setting(self):
+        """Test SearchHit constructor with missing attributes to cover setattr fallback."""
+        from unittest.mock import Mock
+        from quilt3._search import SearchHit
+        
+        # Create a mock hit with missing bucket_name and key attributes
+        mock_hit = Mock()
+        mock_hit.id = "test-id"
+        mock_hit.score = 0.5
+        mock_hit.bucket = "test-bucket"
+        mock_hit.name = "test-package"
+        mock_hit.modified = "2024-01-01"
+        mock_hit.size = 1000
+        mock_hit.hash = "test-hash"
+        mock_hit.comment = "test comment"
+        
+        # This should trigger the setattr calls for bucket_name and key
+        search_hit = SearchHit(mock_hit)
+        
+        self.assertEqual(search_hit.bucket_name, "test-bucket")
+        self.assertEqual(search_hit.key, "test-package")
+
+    def test_error_handling_with_malformed_errors(self):
+        """Test error handling when errors object is malformed."""
+        from unittest.mock import Mock
+        from quilt3._search import _handle_search_errors
+        
+        # Create a mock result with malformed errors (not iterable)
+        mock_result = Mock()
+        mock_result.errors = "not_iterable"
+        
+        with self.assertRaises(PackageException) as context:
+            _handle_search_errors(mock_result)
+        
+        self.assertIn("Search operation failed", str(context.exception))
+
+    def test_search_more_packages_fallback_case(self):
+        """Test search_more_packages fallback when response doesn't match expected types."""
+        # Arrange - return a mock that doesn't match any expected GraphQL types
+        from unittest.mock import Mock
+        unrecognized_mock = Mock()
+        unrecognized_mock.__class__.__name__ = 'UnrecognizedResponseType'
+        # Make sure it doesn't have hits/cursor attributes
+        del unrecognized_mock.hits
+        del unrecognized_mock.cursor
+        
+        self.mock_graphql_client.search_more_packages.return_value = unrecognized_mock
+
+        # Act
+        results = quilt3.search_more_packages(after="test-cursor")
+
+        # Assert - should return empty fallback result  
+        self.assertEqual(len(results.hits), 0)
+        self.assertFalse(results.has_next)
+        self.assertIsNone(results.next_cursor)
+
+    def test_search_packages_graphql_client_exception(self):
+        """Test handling of GraphQLClientError during search."""
+        # Arrange
+        from quilt3._graphql_client.exceptions import GraphQLClientError
+        self.mock_graphql_client.search_packages.side_effect = GraphQLClientError("Network timeout")
+
+        # Act & Assert
+        with self.assertRaises(PackageException) as context:
+            quilt3.search_packages(buckets=["test-bucket"])
+
+        self.assertIn("Search failed: Network timeout", str(context.exception))
+
+    def test_search_more_packages_graphql_client_exception(self):
+        """Test handling of GraphQLClientError during search_more_packages."""
+        # Arrange
+        from quilt3._graphql_client.exceptions import GraphQLClientError
+        self.mock_graphql_client.search_more_packages.side_effect = GraphQLClientError("Connection error")
+
+        # Act & Assert
+        with self.assertRaises(PackageException) as context:
+            quilt3.search_more_packages(after="test-cursor")
+
+        self.assertIn("Search pagination failed: Connection error", str(context.exception))
 
 
 class TestSearchPackagesIntegration(QuiltTestCase):

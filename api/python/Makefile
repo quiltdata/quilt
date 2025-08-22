@@ -2,6 +2,9 @@
 test: install-local
 	pytest --disable-warnings
 
+coverage: install-local
+	pytest --cov=quilt3 --cov-report=html --cov-report=term --disable-warnings
+
 install-local:
 	pip install -e .[tests]
 
@@ -78,4 +81,4 @@ gendocs: gendocs-deps
 	@echo "Cleaning up any .python-version files that may have been created..."
 	@rm -f .python-version ../../gendocs/.python-version
 
-.PHONY: test install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs
+.PHONY: test coverage install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs
