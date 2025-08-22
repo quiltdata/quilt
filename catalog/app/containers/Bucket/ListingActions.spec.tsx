@@ -4,7 +4,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
 import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
 
-import { RowActions } from './ListingActions'
+import RowActions from './ListingActions'
 
 jest.mock(
   'constants/config',
@@ -25,6 +25,8 @@ const defaultPrefs = {
   writeFile: true,
 }
 
+const noop = () => {}
+
 function TestBucket({ children }: React.PropsWithChildren<{}>) {
   return (
     <Bookmarks.Provider>
@@ -41,7 +43,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions archived to="" prefs={defaultPrefs} />
+            <RowActions archived to="" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -52,7 +54,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="" prefs={defaultPrefs} />
+            <RowActions to="" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -63,7 +65,11 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/BRANCH/fileB" prefs={defaultPrefs} />
+            <RowActions
+              to="/b/bucketA/BRANCH/fileB"
+              prefs={defaultPrefs}
+              onReload={noop}
+            />
           </TestBucket>,
         )
         .toJSON()
@@ -75,7 +81,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} />
+            <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -87,7 +93,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} />
+            <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -101,6 +107,7 @@ describe('components/ListingActions', () => {
             <RowActions
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
               prefs={defaultPrefs}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -116,6 +123,7 @@ describe('components/ListingActions', () => {
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
               physicalKey="s3://bucketA/pathB/fileB"
               prefs={defaultPrefs}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -131,6 +139,7 @@ describe('components/ListingActions', () => {
             <RowActions
               to="/b/bucketA/tree/fileB"
               prefs={{ ...defaultPrefs, downloadObject: false }}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -145,6 +154,7 @@ describe('components/ListingActions', () => {
             <RowActions
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
               prefs={{ ...defaultPrefs, downloadPackage: false }}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -160,6 +170,7 @@ describe('components/ListingActions', () => {
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
               physicalKey="s3://bucketA/pathB/fileB"
               prefs={{ ...defaultPrefs, downloadPackage: false }}
+              onReload={noop}
             />
           </TestBucket>,
         )

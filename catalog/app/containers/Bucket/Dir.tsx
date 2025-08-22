@@ -46,6 +46,7 @@ interface DirContentsProps {
   loadMore?: () => void
   selection: Selection.SelectionItem[]
   onSelection: (ids: Selection.SelectionItem[]) => void
+  onReload: () => void
 }
 
 function DirContents({
@@ -56,6 +57,7 @@ function DirContents({
   loadMore,
   selection,
   onSelection,
+  onReload,
 }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -85,10 +87,19 @@ function DirContents({
         {},
       )
       dialogs.open(({ close }) => (
-        <Toolbar.Add.UploadDialog handle={dirHandle} initial={added} onClose={close} />
+        <Toolbar.Add.UploadDialog
+          handle={dirHandle}
+          initial={added}
+          onClose={(reason) => {
+            close()
+            if (reason === 'upload-success') {
+              onReload()
+            }
+          }}
+        />
       ))
     },
-    [dialogs, dirHandle],
+    [dialogs, dirHandle, onReload],
   )
 
   // TODO: should prefix filtering affect summary?
@@ -105,6 +116,7 @@ function DirContents({
           prefixFilter={response.prefix}
           onSelectionChange={onSelection}
           selection={selection}
+          onReload={onReload}
           toolbarContents={
             <Listing.PrefixFilter
               key={`${response.bucket}/${response.path}`}
@@ -169,13 +181,15 @@ export default function Dir() {
     setPrev(null)
   }, [path, prefix])
 
-  // TODO: re-request on upload success
+  const [key, setKey] = React.useState(0)
+  const handleReload = React.useCallback(() => setKey((c) => c + 1), [])
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
     path,
     prefix,
     prev,
+    key,
   })
 
   const loadMore = React.useCallback(() => {
@@ -258,6 +272,7 @@ export default function Dir() {
                 res.path,
               )}
               onSelection={handleSelection}
+              onReload={handleReload}
             />
           ) : (
             <M.CircularProgress />

@@ -470,6 +470,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             )}
                             items={items}
                             key={hash}
+                            onReload={dirQuery.run}
                           />
                         )}
                         <Summary
