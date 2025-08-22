@@ -113,6 +113,7 @@ function ResultsCount({ className }: ResultsCountProps) {
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
         case 'InvalidInput':
+        case 'OperationError':
           return null
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
