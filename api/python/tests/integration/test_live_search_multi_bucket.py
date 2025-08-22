@@ -2,11 +2,13 @@
 Multi-bucket search scenarios.
 """
 
-import pytest
 import logging
+import os
+
+import pytest
+
 import quilt3
 from quilt3.exceptions import QuiltException
-import os
 
 # Configure logging for tests
 logger = logging.getLogger(__name__)

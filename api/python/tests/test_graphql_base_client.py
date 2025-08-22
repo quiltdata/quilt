@@ -13,10 +13,8 @@ from pydantic import BaseModel
 from quilt3._graphql_client.base_client import BaseClient
 from quilt3._graphql_client.base_model import UNSET, UnsetType, Upload
 from quilt3._graphql_client.exceptions import (
-    GraphQLClientGraphQLMultiError,
-    GraphQLClientHttpError,
-    GraphQLClientInvalidResponseError,
-)
+    GraphQLClientGraphQLMultiError, GraphQLClientHttpError,
+    GraphQLClientInvalidResponseError)
 
 from .utils import QuiltTestCase
 

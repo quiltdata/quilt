@@ -2,8 +2,10 @@
 Search tests against real data in live buckets.
 """
 
-import pytest
 import logging
+
+import pytest
+
 import quilt3
 from quilt3.exceptions import QuiltException
 

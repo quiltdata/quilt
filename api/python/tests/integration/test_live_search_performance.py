@@ -2,13 +2,15 @@
 Performance and pagination tests against live data.
 """
 
-import time
-import pytest
+import concurrent.futures
 import logging
+import os
+import time
+
+import pytest
+
 import quilt3
 from quilt3.exceptions import QuiltException
-import concurrent.futures
-import os
 
 # Configure logging for tests
 logger = logging.getLogger(__name__)

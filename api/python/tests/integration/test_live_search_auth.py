@@ -3,8 +3,10 @@ Live authentication and access control tests for search API.
 Requires valid quilt3 login credentials.
 """
 
-import pytest
 import logging
+
+import pytest
+
 import quilt3
 from quilt3.exceptions import QuiltException
 

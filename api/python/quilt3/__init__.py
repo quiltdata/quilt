@@ -11,15 +11,8 @@ __version__ = Path(Path(__file__).parent, "VERSION").read_text().strip()
 
 from . import admin, hooks
 from ._search import _search_more_packages, _search_packages
-from .api import (
-    config,
-    copy,
-    delete_package,
-    disable_telemetry,
-    list_package_versions,
-    list_packages,
-    search,
-)
+from .api import (config, copy, delete_package, disable_telemetry,
+                  list_package_versions, list_packages, search)
 from .bucket import Bucket
 from .exceptions import PackageException
 from .imports import start_data_package_loader
@@ -60,15 +53,30 @@ def search_packages(
         >>> for hit in results.hits:
         ...     print(f"{hit.bucket}/{hit.key} (score: {hit.score})")
     """
-    return _search_packages(
-        buckets=buckets,
-        search_string=search_string,
-        filter=filter,
-        user_meta_filters=user_meta_filters,
-        latest_only=latest_only,
-        size=size,
-        order=order
-    )
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Public API search_packages called with parameters: buckets={buckets}, "
+                f"search_string='{search_string}', filter={filter}, user_meta_filters={user_meta_filters}, "
+                f"latest_only={latest_only}, size={size}, order={order}")
+    
+    try:
+        result = _search_packages(
+            buckets=buckets,
+            search_string=search_string,
+            filter=filter,
+            user_meta_filters=user_meta_filters,
+            latest_only=latest_only,
+            size=size,
+            order=order
+        )
+        
+        logger.info(f"Public API search_packages completed successfully with {len(result.hits)} hits")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Public API search_packages failed: {e}")
+        raise
 
 
 def search_more_packages(after, size=30):
@@ -88,4 +96,17 @@ def search_more_packages(after, size=30):
         ...         after=initial_results.next_cursor
         ...     )
     """
-    return _search_more_packages(after=after, size=size)
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Public API search_more_packages called with parameters: after='{after[:16] if after else None}...', size={size}")
+    
+    try:
+        result = _search_more_packages(after=after, size=size)
+        
+        logger.info(f"Public API search_more_packages completed successfully with {len(result.hits)} hits")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Public API search_more_packages failed: {e}")
+        raise
