@@ -33,6 +33,7 @@ def search_packages(
 ):
     """
     Search for packages across accessible buckets.
+
     Args:
         buckets: List of bucket names to search within. If None, searches all accessible buckets.
         search_string: Search query string. If None, returns all packages (subject to filters).
@@ -41,8 +42,14 @@ def search_packages(
         latest_only: If True, only return the latest version of each package.
         size: Maximum number of results to return per page (default: 30).
         order: Sort order for results. One of "BEST_MATCH", "NEWEST", "OLDEST", "LEX_ASC", "LEX_DESC".
+
     Returns:
         SearchResult: Object containing search hits and pagination information.
+
+    Raises:
+        ValueError: If parameters are invalid (e.g., negative size, invalid order).
+        PackageException: If search operation fails due to network, authentication, or server errors.
+
     Example:
         >>> import quilt3
         >>> results = quilt3.search_packages(
@@ -51,43 +58,57 @@ def search_packages(
         ...     size=50
         ... )
         >>> for hit in results.hits:
-        ...     print(f"{hit.bucket}/{hit.key} (score: {hit.score})")
+        ...     print(f"{hit.bucket_name}/{hit.key} (score: {hit.score})")
+
+        >>> # Search with filters
+        >>> results = quilt3.search_packages(
+        ...     filter={"modified": {"gte": "2023-01-01"}},
+        ...     latest_only=True
+        ... )
+
+        >>> # Pagination
+        >>> if results.has_next:
+        ...     more_results = quilt3.search_more_packages(
+        ...         after=results.next_cursor
+        ...     )
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"Public API search_packages called with parameters: buckets={buckets}, "
-                f"search_string='{search_string}', filter={filter}, user_meta_filters={user_meta_filters}, "
-                f"latest_only={latest_only}, size={size}, order={order}")
-    
-    try:
-        result = _search_packages(
-            buckets=buckets,
-            search_string=search_string,
-            filter=filter,
-            user_meta_filters=user_meta_filters,
-            latest_only=latest_only,
-            size=size,
-            order=order
-        )
-        
-        logger.info(f"Public API search_packages completed successfully with {len(result.hits)} hits")
-        return result
-        
-    except Exception as e:
-        logger.error(f"Public API search_packages failed: {e}")
-        raise
+    # Input validation
+    if buckets is not None and not isinstance(buckets, list):
+        raise ValueError("buckets must be a list or None")
+
+    if size is not None and (not isinstance(size, int) or size < 0):
+        raise ValueError("size must be a non-negative integer")
+
+    valid_orders = ["BEST_MATCH", "NEWEST", "OLDEST", "LEX_ASC", "LEX_DESC"]
+    if order not in valid_orders:
+        raise ValueError(f"order must be one of {valid_orders}")
+
+    return _search_packages(
+        buckets=buckets,
+        search_string=search_string,
+        filter=filter,
+        user_meta_filters=user_meta_filters,
+        latest_only=latest_only,
+        size=size,
+        order=order
+    )
 
 
 def search_more_packages(after, size=30):
     """
     Get more search results using pagination.
-    
+
     Args:
         after: Cursor string from previous search results indicating where to continue.
         size: Maximum number of results to return (default: 30).
+
     Returns:
         SearchResult: Object containing additional search hits and pagination information.
+
+    Raises:
+        ValueError: If parameters are invalid (e.g., empty after cursor, negative size).
+        PackageException: If pagination operation fails due to network, authentication, or server errors.
+
     Example:
         >>> import quilt3
         >>> initial_results = quilt3.search_packages(buckets=["my-bucket"])
@@ -96,17 +117,11 @@ def search_more_packages(after, size=30):
         ...         after=initial_results.next_cursor
         ...     )
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"Public API search_more_packages called with parameters: after='{after[:16] if after else None}...', size={size}")
-    
-    try:
-        result = _search_more_packages(after=after, size=size)
-        
-        logger.info(f"Public API search_more_packages completed successfully with {len(result.hits)} hits")
-        return result
-        
-    except Exception as e:
-        logger.error(f"Public API search_more_packages failed: {e}")
-        raise
+    # Input validation
+    if not after or not isinstance(after, str):
+        raise ValueError("after cursor is required and must be a non-empty string")
+
+    if size is not None and (not isinstance(size, int) or size < 0):
+        raise ValueError("size must be a non-negative integer")
+
+    return _search_more_packages(after=after, size=size)

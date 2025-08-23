@@ -221,14 +221,9 @@ class TestSearchPackages(QuiltTestCase):
 
     def test_search_more_packages_validation_error(self):
         """Test handling of validation errors in pagination."""
-        # Arrange
-        self.mock_graphql_client.search_more_packages.return_value = SEARCH_MORE_PACKAGES_VALIDATION_ERROR_RESPONSE
-
-        # Act & Assert
-        with self.assertRaises(ValueError) as context:
-            quilt3.search_more_packages(after="")
-
-        self.assertIn("after cursor is required", str(context.exception))
+        # This test is moved to test_search_more_packages_parameter_validation
+        # to test the actual parameter validation logic
+        pass
 
     def test_search_more_packages_operation_error(self):
         """Test handling of operation errors in pagination."""
@@ -281,16 +276,46 @@ class TestSearchPackages(QuiltTestCase):
     def test_parameter_validation(self):
         """Test parameter validation for search_packages."""
         # Test invalid buckets parameter
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as context:
             quilt3.search_packages(buckets="not-a-list")
+        self.assertIn("buckets must be a list or None", str(context.exception))
 
-        # Test invalid size parameter
-        with self.assertRaises(ValueError):
+        # Test invalid size parameter (negative)
+        with self.assertRaises(ValueError) as context:
             quilt3.search_packages(buckets=["test"], size=-1)
+        self.assertIn("size must be a non-negative integer", str(context.exception))
+
+        # Test invalid size parameter (non-integer)
+        with self.assertRaises(ValueError) as context:
+            quilt3.search_packages(buckets=["test"], size="invalid")
+        self.assertIn("size must be a non-negative integer", str(context.exception))
 
         # Test invalid order parameter
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError) as context:
             quilt3.search_packages(buckets=["test"], order="INVALID_ORDER")
+        self.assertIn("order must be one of", str(context.exception))
+
+    def test_search_more_packages_parameter_validation(self):
+        """Test parameter validation for search_more_packages."""
+        # Test empty after cursor
+        with self.assertRaises(ValueError) as context:
+            quilt3.search_more_packages(after="")
+        self.assertIn("after cursor is required", str(context.exception))
+
+        # Test None after cursor
+        with self.assertRaises(ValueError) as context:
+            quilt3.search_more_packages(after=None)
+        self.assertIn("after cursor is required", str(context.exception))
+
+        # Test non-string after cursor
+        with self.assertRaises(ValueError) as context:
+            quilt3.search_more_packages(after=123)
+        self.assertIn("after cursor is required", str(context.exception))
+
+        # Test invalid size parameter
+        with self.assertRaises(ValueError) as context:
+            quilt3.search_more_packages(after="valid_cursor", size=-1)
+        self.assertIn("size must be a non-negative integer", str(context.exception))
 
     def test_search_result_data_types(self):
         """Test that search results have correct data types."""
@@ -438,13 +463,13 @@ class TestSearchPackages(QuiltTestCase):
 
             self.assertIn("Unexpected error during search pagination", str(context.exception))
 
-    def test_search_hit_attribute_setting(self):
-        """Test SearchHit constructor with missing attributes to cover setattr fallback."""
+    def test_search_hit_attribute_handling(self):
+        """Test SearchHit constructor with various attribute scenarios."""
         from unittest.mock import Mock
 
         from quilt3._search import SearchHit
 
-        # Create a mock hit with missing bucket_name and key attributes
+        # Test 1: Mock hit with all standard attributes
         mock_hit = Mock()
         mock_hit.id = "test-id"
         mock_hit.score = 0.5
@@ -455,11 +480,42 @@ class TestSearchPackages(QuiltTestCase):
         mock_hit.hash = "test-hash"
         mock_hit.comment = "test comment"
 
-        # This should trigger the setattr calls for bucket_name and key
         search_hit = SearchHit(mock_hit)
-
         self.assertEqual(search_hit.bucket_name, "test-bucket")
         self.assertEqual(search_hit.key, "test-package")
+        self.assertEqual(search_hit.bucket, "test-bucket")
+        self.assertEqual(search_hit.name, "test-package")
+
+        # Test 2: Mock hit with bucket_name and key instead of bucket/name
+        mock_hit2 = Mock()
+        mock_hit2.id = "test-id-2"
+        mock_hit2.score = 0.8
+        mock_hit2.bucket_name = "test-bucket-2"
+        mock_hit2.key = "test-package-2"
+        mock_hit2.modified = "2024-02-01"
+        mock_hit2.size = 2000
+        mock_hit2.hash = "test-hash-2"
+        mock_hit2.comment = "test comment 2"
+
+        search_hit2 = SearchHit(mock_hit2)
+        self.assertEqual(search_hit2.bucket_name, "test-bucket-2")
+        self.assertEqual(search_hit2.key, "test-package-2")
+        self.assertEqual(search_hit2.bucket, "test-bucket-2")
+        self.assertEqual(search_hit2.name, "test-package-2")
+
+        # Test 3: Mock hit with missing optional attributes
+        mock_hit3 = Mock()
+        # Remove optional attributes to test getattr fallbacks
+        for attr in ['id', 'score', 'bucket', 'name', 'modified', 'size', 'hash', 'comment']:
+            if hasattr(mock_hit3, attr):
+                delattr(mock_hit3, attr)
+
+        search_hit3 = SearchHit(mock_hit3)
+        self.assertIsNone(search_hit3.id)
+        self.assertEqual(search_hit3.score, 0.0)  # Default value
+        self.assertIsNone(search_hit3.bucket_name)
+        self.assertIsNone(search_hit3.key)
+        self.assertEqual(search_hit3.size, 0)  # Default value
 
     def test_error_handling_with_malformed_errors(self):
         """Test error handling when errors object is malformed."""
