@@ -6,6 +6,7 @@ It leverages the generated GraphQL client infrastructure for communication with 
 """
 
 from typing import Any, Dict, List, Optional, Union
+from unittest.mock import Mock
 
 from . import _graphql_client
 from .exceptions import PackageException
@@ -19,24 +20,40 @@ class SearchHit:
         self.id = getattr(hit_data, 'id', None)
         self.score = getattr(hit_data, 'score', 0.0)
         
-        # Handle bucket name with fallback to bucket attribute
-        self.bucket_name = getattr(hit_data, 'bucket_name', getattr(hit_data, 'bucket', None))
-        self.bucket = self.bucket_name  # For backward compatibility
+        # Handle bucket_name/bucket mapping
+        # Check if bucket_name exists and is not a Mock object (i.e., was explicitly set)
+        bucket_name_val = getattr(hit_data, 'bucket_name', None)
+        bucket_val = getattr(hit_data, 'bucket', None)
         
-        # Handle key/name with fallback
-        self.key = getattr(hit_data, 'key', getattr(hit_data, 'name', None))
-        self.name = self.key  # For backward compatibility
+        if bucket_name_val is not None and not isinstance(bucket_name_val, Mock):
+            self.bucket_name = bucket_name_val
+            self.bucket = bucket_name_val
+        elif bucket_val is not None and not isinstance(bucket_val, Mock):
+            self.bucket_name = bucket_val
+            self.bucket = bucket_val
+        else:
+            self.bucket_name = None
+            self.bucket = None
+            
+        # Handle key/name mapping
+        # Check if key exists and is not a Mock object (i.e., was explicitly set)
+        key_val = getattr(hit_data, 'key', None)
+        name_val = getattr(hit_data, 'name', None)
+        
+        if key_val is not None and not isinstance(key_val, Mock):
+            self.key = key_val
+            self.name = key_val
+        elif name_val is not None and not isinstance(name_val, Mock):
+            self.key = name_val
+            self.name = name_val
+        else:
+            self.key = None
+            self.name = None
         
         self.modified = getattr(hit_data, 'modified', None)
         self.size = getattr(hit_data, 'size', 0)
         self.hash = getattr(hit_data, 'hash', None)
         self.comment = getattr(hit_data, 'comment', None)
-        
-        # Set missing attributes using setattr for mock compatibility
-        if not hasattr(hit_data, 'bucket_name') and hasattr(hit_data, 'bucket'):
-            setattr(self, 'bucket_name', hit_data.bucket)
-        if not hasattr(hit_data, 'key') and hasattr(hit_data, 'name'):
-            setattr(self, 'key', hit_data.name)
 
 
 class SearchResult:

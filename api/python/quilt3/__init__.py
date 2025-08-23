@@ -11,15 +11,8 @@ __version__ = Path(Path(__file__).parent, "VERSION").read_text().strip()
 
 from . import admin, hooks
 from ._search import _search_more_packages, _search_packages
-from .api import (
-    config,
-    copy,
-    delete_package,
-    disable_telemetry,
-    list_package_versions,
-    list_packages,
-    search,
-)
+from .api import (config, copy, delete_package, disable_telemetry,
+                  list_package_versions, list_packages, search)
 from .bucket import Bucket
 from .exceptions import PackageException
 from .imports import start_data_package_loader
