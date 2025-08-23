@@ -255,3 +255,75 @@ mutation tabulatorSetOpenQuery($enabled: Boolean!) {
     }
   }
 }
+
+# Package search fragments
+fragment SearchHitPackageSelection on SearchHitPackage {
+  id
+  score
+  bucket
+  name
+  modified
+  size
+  hash
+  comment
+}
+
+fragment PackagesSearchResultSetSelection on PackagesSearchResultSet {
+  total
+  firstPage(size: $size, order: $order) {
+    cursor
+    hits {
+      ...SearchHitPackageSelection
+    }
+  }
+}
+
+fragment PackagesSearchResultSetPageSelection on PackagesSearchResultSetPage {
+  cursor
+  hits {
+    ...SearchHitPackageSelection
+  }
+}
+
+# Main package search query
+query searchPackages(
+  $buckets: [String!], 
+  $searchString: String, 
+  $filter: PackagesSearchFilter, 
+  $userMetaFilters: [PackageUserMetaPredicate!], 
+  $latestOnly: Boolean = false,
+  $size: Int = 30,
+  $order: SearchResultOrder = BEST_MATCH
+) {
+  searchPackages(
+    buckets: $buckets,
+    searchString: $searchString,
+    filter: $filter,
+    userMetaFilters: $userMetaFilters,
+    latestOnly: $latestOnly
+  ) {
+    __typename
+    ... on PackagesSearchResultSet {
+      ...PackagesSearchResultSetSelection
+    }
+    ... on EmptySearchResultSet {
+      _
+    }
+    ... on InvalidInput {
+      ...InvalidInputSelection
+    }
+  }
+}
+
+# Pagination query
+query searchMorePackages($after: String!, $size: Int = 30) {
+  searchMorePackages(after: $after, size: $size) {
+    __typename
+    ... on PackagesSearchResultSetPage {
+      ...PackagesSearchResultSetPageSelection
+    }
+    ... on InvalidInput {
+      ...InvalidInputSelection
+    }
+  }
+}

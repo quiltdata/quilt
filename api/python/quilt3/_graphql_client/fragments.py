@@ -32,6 +32,40 @@ class OperationErrorSelection(BaseModel):
     context: Optional[Any]
 
 
+class SearchHitPackageSelection(BaseModel):
+    id: str
+    score: float
+    bucket: str
+    name: str
+    modified: datetime
+    size: float
+    hash: str
+    comment: Optional[str]
+
+
+class PackagesSearchResultSetPageSelection(BaseModel):
+    cursor: Optional[str]
+    hits: List["PackagesSearchResultSetPageSelectionHits"]
+
+
+class PackagesSearchResultSetPageSelectionHits(SearchHitPackageSelection):
+    pass
+
+
+class PackagesSearchResultSetSelection(BaseModel):
+    total: int
+    first_page: "PackagesSearchResultSetSelectionFirstPage" = Field(alias="firstPage")
+
+
+class PackagesSearchResultSetSelectionFirstPage(BaseModel):
+    cursor: Optional[str]
+    hits: List["PackagesSearchResultSetSelectionFirstPageHits"]
+
+
+class PackagesSearchResultSetSelectionFirstPageHits(SearchHitPackageSelection):
+    pass
+
+
 class UnmanagedRoleSelection(BaseModel):
     id: str
     name: str
@@ -93,6 +127,9 @@ class SsoConfigSelectionUploader(UserSelection):
 InvalidInputSelection.model_rebuild()
 ManagedRoleSelection.model_rebuild()
 OperationErrorSelection.model_rebuild()
+SearchHitPackageSelection.model_rebuild()
+PackagesSearchResultSetPageSelection.model_rebuild()
+PackagesSearchResultSetSelection.model_rebuild()
 UnmanagedRoleSelection.model_rebuild()
 UserSelection.model_rebuild()
 SsoConfigSelection.model_rebuild()
