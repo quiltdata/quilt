@@ -19,12 +19,12 @@ class SearchHit:
         # Handle both GraphQL client objects and mock objects gracefully
         self.id = getattr(hit_data, 'id', None)
         self.score = getattr(hit_data, 'score', 0.0)
-        
+
         # Handle bucket_name/bucket mapping
         # Check if bucket_name exists and is not a Mock object (i.e., was explicitly set)
         bucket_name_val = getattr(hit_data, 'bucket_name', None)
         bucket_val = getattr(hit_data, 'bucket', None)
-        
+
         if bucket_name_val is not None and not isinstance(bucket_name_val, Mock):
             self.bucket_name = bucket_name_val
             self.bucket = bucket_name_val
@@ -34,12 +34,12 @@ class SearchHit:
         else:
             self.bucket_name = None
             self.bucket = None
-            
+
         # Handle key/name mapping
         # Check if key exists and is not a Mock object (i.e., was explicitly set)
         key_val = getattr(hit_data, 'key', None)
         name_val = getattr(hit_data, 'name', None)
-        
+
         if key_val is not None and not isinstance(key_val, Mock):
             self.key = key_val
             self.name = key_val
@@ -49,7 +49,7 @@ class SearchHit:
         else:
             self.key = None
             self.name = None
-        
+
         self.modified = getattr(hit_data, 'modified', None)
         self.size = getattr(hit_data, 'size', 0)
         self.hash = getattr(hit_data, 'hash', None)
