@@ -5,18 +5,20 @@ Utility functions for UAT tests.
 
 import os
 import sys
+import time
+from typing import Dict, Any, Optional
 import yaml
 import logging
 
 # Global test state tracking
-_test_state = {
+_test_state: Dict[str, int] = {
     'total_tests': 0,
     'passed_tests': 0,
     'failed_tests': 0,
     'warnings': 0
 }
 
-def reset_test_state():
+def reset_test_state() -> None:
     """Reset global test state."""
     global _test_state
     _test_state = {
@@ -26,11 +28,11 @@ def reset_test_state():
         'warnings': 0
     }
 
-def get_test_state():
+def get_test_state() -> Dict[str, int]:
     """Get current test state."""
     return _test_state.copy()
 
-def setup_logging():
+def setup_logging() -> None:
     """Set up logging based on environment variables."""
     enable_logging = os.getenv('UAT_ENABLE_LOGGING', 'false').lower() == 'true'
     debug_mode = os.getenv('UAT_DEBUG_MODE', 'false').lower() == 'true' 
@@ -50,7 +52,7 @@ def setup_logging():
         if debug_mode:
             print("🐛 Debug mode enabled")
 
-def load_config():
+def load_config() -> Dict[str, Any]:
     """Load test configuration from YAML file."""
     config_file = os.getenv('UAT_CONFIG_FILE', 'test_config.yaml')
     
@@ -71,7 +73,7 @@ def load_config():
         print(f"❌ Invalid YAML in config file: {e}")
         sys.exit(1)
 
-def format_result(result):
+def format_result(result: Any) -> str:
     """Format a search result for display."""
     if hasattr(result, 'hits'):
         hit_count = len(result.hits)
@@ -95,20 +97,20 @@ def test_passed(message):
     _test_state['passed_tests'] += 1
     _test_state['total_tests'] += 1
 
-def test_failed(message):
+def test_failed(message: str) -> None:
     """Print a test failed message and track the result."""
     global _test_state
     print(f"   ❌ {message}")
     _test_state['failed_tests'] += 1
     _test_state['total_tests'] += 1
 
-def test_warning(message):
+def test_warning(message: str) -> None:
     """Print a test warning message and track the result."""
     global _test_state
     print(f"   ⚠️  {message}")
     _test_state['warnings'] += 1
 
-def validate_result_structure(result, test_name=""):
+def validate_result_structure(result: Any, test_name: str = "") -> bool:
     """Validate that a search result has the expected structure."""
     errors = []
     
