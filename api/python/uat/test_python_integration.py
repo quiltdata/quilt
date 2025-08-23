@@ -8,7 +8,7 @@ import sys
 import importlib
 import types
 import quilt3
-from test_utils import setup_logging, load_config, test_passed, test_failed, validate_result_structure
+from test_utils import setup_logging, load_config, test_passed, test_failed, validate_result_structure, reset_test_state, exit_with_test_results
 
 def test_import_patterns(config):
     """Test various import patterns for the API."""
@@ -291,6 +291,7 @@ def test_thread_safety_basic(config):
 
 def main():
     """Run Python integration tests."""
+    reset_test_state()
     setup_logging()
     config = load_config()
     
@@ -308,10 +309,11 @@ def main():
         
         print("\n" + "="*60)
         print("✅ Python integration tests completed")
+        exit_with_test_results()
         
     except Exception as e:
         print(f"\n✗ Python integration tests failed: {e}")
-        sys.exit(1)
+        exit_with_test_results()
 
 if __name__ == "__main__":
     main()

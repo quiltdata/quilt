@@ -6,7 +6,7 @@ Tests the complete pagination workflow.
 
 import sys
 import quilt3
-from test_utils import setup_logging, load_config, format_result, test_passed, test_failed, validate_result_structure
+from test_utils import setup_logging, load_config, format_result, test_passed, test_failed, validate_result_structure, reset_test_state, exit_with_test_results
 
 def test_pagination_workflow(config):
     """Test complete pagination workflow from start to finish."""
@@ -243,6 +243,7 @@ def test_warning(message):
 
 def main():
     """Run pagination functionality tests."""
+    reset_test_state()
     setup_logging()
     config = load_config()
     
@@ -262,11 +263,11 @@ def main():
             print("✅ Pagination tests completed successfully")
         else:
             print("❌ Some pagination tests had issues")
-            sys.exit(1)
+        exit_with_test_results()
         
     except Exception as e:
         print(f"\n✗ Pagination tests failed: {e}")
-        sys.exit(1)
+        exit_with_test_results()
 
 if __name__ == "__main__":
     main()

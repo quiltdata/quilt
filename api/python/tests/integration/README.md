@@ -5,6 +5,7 @@ This directory contains comprehensive integration tests for the Quilt3 search fu
 ## Overview
 
 The integration tests validate:
+
 - Authentication and access control
 - Real data search accuracy
 - Performance characteristics
@@ -16,6 +17,7 @@ The integration tests validate:
 Before running these tests, ensure:
 
 1. **Authentication**: You must be logged in to Quilt3
+
    ```bash
    quilt3 login
    ```
@@ -25,6 +27,7 @@ Before running these tests, ensure:
 3. **Test Data**: Access to buckets with searchable content
 
 4. **Environment Setup**: Run the setup script to validate your environment
+
    ```bash
    python scripts/setup_live_search_tests.py
    ```
@@ -32,12 +35,14 @@ Before running these tests, ensure:
 ## Test Categories
 
 ### Authentication Tests (`test_live_search_auth.py`)
+
 - Valid credential verification
 - Bucket access control
 - Authentication failure handling
 - Expired credential scenarios
 
 ### Data Search Tests (`test_live_search_data.py`)
+
 - Basic text search
 - Metadata filtering
 - Size and date filters
@@ -46,12 +51,14 @@ Before running these tests, ensure:
 - Large result set pagination
 
 ### Performance Tests (`test_live_search_performance.py`)
+
 - Response time benchmarking
 - Pagination performance
 - Concurrent request handling
 - Timeout behavior
 
 ### Multi-Bucket Tests (`test_live_search_multi_bucket.py`)
+
 - Cross-bucket search
 - Access permission validation
 - Global vs bucket-specific search
@@ -74,7 +81,9 @@ export QUILT_REGISTRY_URL="https://your-registry.quiltdata.io"
 ```
 
 ### Default Values
+
 If environment variables are not set, tests will use sensible defaults:
+
 - Public bucket: `quilt-example`
 - Performance iterations: `10`
 - Timeout: `30` seconds
@@ -82,12 +91,14 @@ If environment variables are not set, tests will use sensible defaults:
 ## Running Tests
 
 ### Quick Smoke Test
+
 ```bash
 # Basic functionality check
 python -m pytest api/python/tests/integration/test_live_search_auth.py::TestLiveSearchAuthentication::test_search_with_valid_credentials -v
 ```
 
 ### Full Integration Suite
+
 ```bash
 # All integration tests
 python -m pytest api/python/tests/integration/test_live_search_*.py -v
@@ -97,6 +108,7 @@ python -m pytest api/python/tests/integration/test_live_search_data.py -v
 ```
 
 ### Performance-focused Testing
+
 ```bash
 # Run performance tests with detailed output
 python -m pytest api/python/tests/integration/test_live_search_performance.py -v -s
@@ -107,6 +119,7 @@ python -m pytest api/python/tests/integration/test_live_search_performance.py -v
 In addition to pytest tests, several standalone scripts are available:
 
 ### Setup and Validation
+
 ```bash
 # Validate environment setup
 python scripts/setup_live_search_tests.py
@@ -116,6 +129,7 @@ python scripts/validate_search_functionality.py --quick
 ```
 
 ### Performance Analysis
+
 ```bash
 # Basic performance benchmark
 python scripts/benchmark_live_search.py
@@ -125,6 +139,7 @@ python scripts/benchmark_live_search.py --detailed --output performance_report.j
 ```
 
 ### Regression Testing
+
 ```bash
 # Run regression tests
 python scripts/search_regression_tests.py
@@ -137,6 +152,7 @@ python scripts/search_regression_tests.py --output regression_report.json
 ```
 
 ### Interactive Exploration
+
 ```bash
 # Interactive search explorer
 python scripts/interactive_search_explorer.py
@@ -161,6 +177,7 @@ python scripts/interactive_search_explorer.py
 ### Test Package Characteristics
 
 Test packages should include:
+
 - Various file types (CSV, Parquet, images, etc.)
 - Rich metadata (descriptions, tags, user metadata)
 - Different sizes (small, medium, large)
@@ -170,20 +187,25 @@ Test packages should include:
 ## Interpreting Results
 
 ### Test Status
+
 - **PASS**: Test completed successfully
 - **FAIL**: Test failed - indicates potential issues
 - **SKIP**: Test was skipped (usually due to missing prerequisites)
 - **ERROR**: Test encountered an unexpected error
 
 ### Common Skip Reasons
+
 Tests may be skipped due to:
+
 - Missing authentication credentials
 - Inaccessible test buckets
 - Network connectivity issues
 - Missing test data
 
 ### Performance Benchmarks
+
 Performance tests establish baselines for:
+
 - Search response times (typically < 5 seconds)
 - Pagination performance
 - Concurrent request handling
@@ -240,6 +262,7 @@ python scripts/setup_live_search_tests.py --log-level DEBUG
 ## Troubleshooting
 
 ### Authentication Issues
+
 ```bash
 # Check login status
 quilt3 config
@@ -249,6 +272,7 @@ quilt3 login
 ```
 
 ### Bucket Access Issues
+
 ```bash
 # Verify bucket access with logging
 python -c "
@@ -260,18 +284,21 @@ print(quilt3.search_packages('', bucket='your-bucket', limit=1))
 ```
 
 ### Network Issues
+
 - Ensure stable internet connection
 - Check firewall settings  
 - Verify Quilt registry URL
 - Enable debug logging to see detailed network traces
 
 ### Performance Issues
+
 - Tests may be slower on poor network connections
 - Adjust timeout values via environment variables
 - Consider reducing iteration counts for faster runs
 - Use performance logging to identify bottlenecks
 
 ### Debug Search Issues
+
 ```bash
 # Enable comprehensive logging and run a single test
 python -c "
@@ -299,6 +326,7 @@ When adding new integration tests:
 ## Test Isolation
 
 These integration tests are designed to:
+
 - Not modify existing data (read-only operations)
 - Handle missing or changing data gracefully
 - Work across different Quilt environments

@@ -6,7 +6,7 @@ Tests return object structure and properties.
 
 import sys
 import quilt3
-from test_utils import setup_logging, load_config, test_passed, test_failed, validate_result_structure, validate_hit_structure
+from test_utils import setup_logging, load_config, test_passed, test_failed, validate_result_structure, validate_hit_structure, reset_test_state, exit_with_test_results
 
 def test_search_result_structure(config):
     """Test SearchResult object structure."""
@@ -309,6 +309,7 @@ def test_score_values(config):
 
 def main():
     """Run result structure validation tests."""
+    reset_test_state()
     setup_logging()
     config = load_config()
     
@@ -325,10 +326,11 @@ def main():
         
         print("\n" + "="*60)
         print("✅ Result structure validation tests completed")
+        exit_with_test_results()
         
     except Exception as e:
         print(f"\n✗ Result structure validation tests failed: {e}")
-        sys.exit(1)
+        exit_with_test_results()
 
 if __name__ == "__main__":
     main()
