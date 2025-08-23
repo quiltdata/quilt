@@ -1,0 +1,186 @@
+# UAT Test Configuration for quilt3.search_packages()
+# Environment-specific buckets, packages, search terms, and expectations
+
+# Test Environment Configuration
+environment:
+  name: "live"
+  description: "Live Quilt infrastructure testing"
+  
+# Known test buckets and their expected content
+buckets:
+  # Public buckets with known searchable content
+  public:
+    - name: "quilt-example"
+      description: "Public example bucket with demo packages"
+      expected_packages: ["examples", "hurdat"]
+      
+    - name: "ai2-semanticscholar-cord-19" 
+      description: "COVID-19 research papers dataset"
+      expected_packages: ["CORD-19"]
+      
+  # Private buckets for access control testing (if available)
+  private:
+    - name: "quilt-ernest-staging"
+      description: "Private staging bucket"
+      expected_packages: ["test", "raw"]
+      access_required: true
+
+# Search test cases with expected behaviors
+search_terms:
+  # Basic text searches
+  common:
+    - query: "data"
+      description: "Common term that should return multiple results"
+      min_results: 5
+      
+    - query: "example" 
+      description: "Specific term for testing relevance ranking"
+      min_results: 3
+      
+    - query: "covid"
+      description: "Domain-specific term"
+      min_results: 1
+      
+  # Multi-word queries
+  complex:
+    - query: "machine learning"
+      description: "Multi-word query"
+      min_results: 0  # May not find results, testing behavior
+      
+    - query: "research data"
+      description: "Generic research term"
+      min_results: 1
+
+  # Edge cases
+  edge_cases:
+    - query: ""
+      description: "Empty search string"
+      behavior: "returns_all_packages"
+      
+    - query: "nonexistent-query-12345"
+      description: "Query that should return no results" 
+      expected_results: 0
+      
+    - query: "special-chars@#$%"
+      description: "Query with special characters"
+      behavior: "handles_gracefully"
+
+# Filter test configurations
+filters:
+  date_filters:
+    - filter: {"modified": {"gte": "2023-01-01"}}
+      description: "Packages modified since 2023"
+      
+    - filter: {"modified": {"lte": "2022-12-31"}}
+      description: "Packages modified before 2023"
+      
+  size_filters:
+    - filter: {"size": {"lt": 1000000}}
+      description: "Packages smaller than 1MB"
+      
+    - filter: {"size": {"gte": 10000000}}
+      description: "Packages larger than 10MB"
+      
+  combined_filters:
+    - filter: 
+        modified: {"gte": "2023-01-01"}
+        size: {"lt": 5000000}
+      description: "Recent packages under 5MB"
+
+# User metadata filter examples (environment-specific)
+user_meta_filters:
+  # Examples - actual availability depends on environment
+  - filters: [{"key": "department", "value": "engineering"}]
+    description: "Engineering department packages"
+    expected_behavior: "may_return_zero_results"
+    
+  - filters: [{"key": "project", "value": "demo"}]
+    description: "Demo project packages"  
+    expected_behavior: "may_return_zero_results"
+
+# Sort order testing expectations
+sort_orders:
+  - order: "BEST_MATCH"
+    description: "Default relevance-based sorting"
+    test_query: "data"
+    
+  - order: "NEWEST" 
+    description: "Most recent first"
+    validation: "first_result_newer_than_last"
+    
+  - order: "OLDEST"
+    description: "Oldest first" 
+    validation: "first_result_older_than_last"
+    
+  - order: "LEX_ASC"
+    description: "Alphabetical ascending"
+    validation: "alphabetical_order_ascending"
+    
+  - order: "LEX_DESC"
+    description: "Alphabetical descending"
+    validation: "alphabetical_order_descending"
+
+# Pagination testing configuration
+pagination:
+  small_page_size: 1
+  default_page_size: 30
+  large_page_size: 50
+  test_query: ""  # Empty query to get all results for pagination
+  min_total_results: 10  # Minimum results needed for pagination testing
+
+# Result size expectations for different scenarios
+result_expectations:
+  all_packages_query:
+    min_results: 10
+    description: "Empty search should return substantial results"
+    
+  bucket_specific_query:
+    bucket: "quilt-example"
+    min_results: 2
+    description: "Example bucket should have multiple packages"
+    
+  no_results_query:
+    query: "nonexistent-query-12345"
+    expected_results: 0
+    description: "Nonsense query should return zero results"
+
+# Error conditions to test
+error_conditions:
+  invalid_parameters:
+    - parameter: "buckets"
+      invalid_value: "not-a-list"
+      expected_exception: "TypeError"
+      
+    - parameter: "size" 
+      invalid_value: -1
+      expected_exception: "ValueError"
+      
+    - parameter: "order"
+      invalid_value: "INVALID_ORDER"
+      expected_exception: "ValueError"
+      
+  # Access control (if private buckets available)
+  access_control:
+    - bucket: "nonexistent-bucket-12345"
+      description: "Nonexistent bucket"
+      expected_behavior: "graceful_handling"
+
+# Expected result object structure
+result_structure:
+  search_result_attributes:
+    - "hits"
+    - "has_next" 
+    - "next_cursor"
+    
+  hit_attributes:
+    - "bucket"
+    - "key" 
+    - "name"
+    - "score"
+    - "modified"
+    
+# Performance benchmarks (not strict requirements)
+performance_guidelines:
+  typical_search_time_ms: 3000  # 3 seconds max for typical queries
+  pagination_time_ms: 2000      # 2 seconds max for pagination calls
+  large_result_time_ms: 5000    # 5 seconds max for large result sets
