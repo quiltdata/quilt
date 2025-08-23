@@ -8,6 +8,28 @@ import sys
 import yaml
 import logging
 
+# Global test state tracking
+_test_state = {
+    'total_tests': 0,
+    'passed_tests': 0,
+    'failed_tests': 0,
+    'warnings': 0
+}
+
+def reset_test_state():
+    """Reset global test state."""
+    global _test_state
+    _test_state = {
+        'total_tests': 0,
+        'passed_tests': 0,
+        'failed_tests': 0,
+        'warnings': 0
+    }
+
+def get_test_state():
+    """Get current test state."""
+    return _test_state.copy()
+
 def setup_logging():
     """Set up logging based on environment variables."""
     enable_logging = os.getenv('UAT_ENABLE_LOGGING', 'false').lower() == 'true'
@@ -67,16 +89,24 @@ def format_result(result):
         return str(result)
 
 def test_passed(message):
-    """Print a test passed message."""
+    """Print a test passed message and track the result."""
+    global _test_state
     print(f"   ✅ {message}")
+    _test_state['passed_tests'] += 1
+    _test_state['total_tests'] += 1
 
 def test_failed(message):
-    """Print a test failed message."""
+    """Print a test failed message and track the result."""
+    global _test_state
     print(f"   ❌ {message}")
+    _test_state['failed_tests'] += 1
+    _test_state['total_tests'] += 1
 
 def test_warning(message):
-    """Print a test warning message."""
+    """Print a test warning message and track the result."""
+    global _test_state
     print(f"   ⚠️  {message}")
+    _test_state['warnings'] += 1
 
 def validate_result_structure(result, test_name=""):
     """Validate that a search result has the expected structure."""
@@ -179,16 +209,41 @@ def compare_result_ordering(results1, results2, comparison_type):
     
     return False, f"Unknown comparison type: {comparison_type}"
 
-def print_summary(test_name, passed_count, failed_count, total_count):
-    """Print a test summary."""
-    print(f"\n--- {test_name} Summary ---")
-    print(f"Total tests: {total_count}")
-    print(f"Passed: {passed_count}")
-    print(f"Failed: {failed_count}")
+def print_summary(test_name, passed_count=None, failed_count=None, total_count=None):
+    """Print a test summary using global state or provided counts."""
+    global _test_state
+    
+    # Use global state if no specific counts provided
+    if passed_count is None:
+        passed_count = _test_state['passed_tests']
+    if failed_count is None:
+        failed_count = _test_state['failed_tests']
+    if total_count is None:
+        total_count = _test_state['total_tests']
+    
+    print(f"\n============================================================")
+    if failed_count == 0:
+        print(f"✅ {test_name} tests completed successfully")
+    else:
+        print(f"❌ {test_name} tests completed with {failed_count} failures")
+    
+    # Return True if all tests passed, False otherwise
+    return failed_count == 0
+
+def exit_with_test_results():
+    """Exit the script with appropriate code based on test results."""
+    global _test_state
+    
+    failed_count = _test_state['failed_tests']
+    total_count = _test_state['total_tests']
+    
+    if total_count == 0:
+        print("⚠️  No tests were executed")
+        sys.exit(1)
     
     if failed_count == 0:
-        print("✅ All tests passed!")
-        return True
+        print(f"✅ All {total_count} tests passed")
+        sys.exit(0)
     else:
-        print("❌ Some tests failed!")
-        return False
+        print(f"❌ {failed_count} out of {total_count} tests failed")
+        sys.exit(1)

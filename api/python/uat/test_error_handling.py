@@ -6,7 +6,10 @@ Tests parameter validation and error conditions.
 
 import sys
 import quilt3
-from test_utils import setup_logging, load_config, test_passed, test_failed
+from test_utils import (
+    setup_logging, load_config, test_passed, test_failed, test_warning,
+    print_summary, exit_with_test_results, reset_test_state
+)
 
 def test_parameter_validation_errors(config):
     """Test parameter validation and type checking."""
@@ -90,7 +93,7 @@ def test_boundary_value_errors(config):
         try:
             results = quilt3.search_packages(buckets=[invalid_bucket], size=1)
             # This might succeed if the bucket name is valid but nonexistent
-            print(f"   ⚠️  Bucket '{invalid_bucket}' was accepted (may return no results)")
+            test_warning(f"Bucket '{invalid_bucket}' was accepted (may return no results)")
         except Exception as e:
             test_passed(f"Correctly rejected invalid bucket '{invalid_bucket}': {type(e).__name__}")
 
@@ -177,7 +180,7 @@ def test_authentication_errors(config):
     long_bucket_name = 'a' * 1000
     try:
         results = quilt3.search_packages(buckets=[long_bucket_name], size=1)
-        print("   ⚠️  Very long bucket name was accepted")
+        test_warning("Very long bucket name was accepted")
     except Exception as e:
         test_passed(f"Correctly rejected very long bucket name: {type(e).__name__}")
 
@@ -206,7 +209,7 @@ def test_search_string_edge_cases(config):
             test_passed(f"Edge case query handled: {len(results.hits)} results")
         except Exception as e:
             # Depending on implementation, this might be acceptable
-            print(f"   ⚠️  Edge case query failed: {type(e).__name__}: {str(e)[:50]}...")
+            test_warning(f"Edge case query failed: {type(e).__name__}: {str(e)[:50]}...")
 
 def test_network_timeout_simulation(config):
     """Test behavior with potential network issues."""
@@ -225,12 +228,13 @@ def test_network_timeout_simulation(config):
         if error_type in ['TimeoutError', 'ConnectionError', 'HTTPError']:
             test_passed(f"Network error handled appropriately: {error_type}")
         else:
-            print(f"   ⚠️  Unexpected error with many buckets: {error_type}")
+            test_warning(f"Unexpected error with many buckets: {error_type}")
 
 def main():
     """Run error handling tests."""
     setup_logging()
     config = load_config()
+    reset_test_state()
     
     print("=== ERROR HANDLING AND VALIDATION TESTS ===")
     print("Testing exception handling and parameter validation\n")
@@ -244,12 +248,13 @@ def main():
         test_search_string_edge_cases(config)
         test_network_timeout_simulation(config)
         
-        print("\n" + "="*60)
-        print("✅ Error handling tests completed")
+        print_summary("Error handling")
+        exit_with_test_results()
         
     except Exception as e:
+        test_failed(f"Unexpected error during tests: {e}")
         print(f"\n✗ Error handling tests failed: {e}")
-        sys.exit(1)
+        exit_with_test_results()
 
 if __name__ == "__main__":
     main()
