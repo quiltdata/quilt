@@ -224,7 +224,8 @@ def test_search_string_edge_cases(config):
             )
             test_passed(f"Edge case query handled: {len(results.hits)} results")
         except Exception as e:
-            # Depending on implementation, this might be acceptable
+            # Some edge cases might cause server-side parsing errors, but they should be rare now
+            # that we have proper quote escaping
             test_warning(f"Edge case query failed: {type(e).__name__}: {str(e)[:50]}...")
 
 def test_network_timeout_simulation(config):
