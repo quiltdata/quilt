@@ -4,12 +4,17 @@ Comprehensive testing suite for `quilt3.search_packages()` API functionality dem
 
 ## Quick Start
 
-Run all tests:
+First, generate configuration from your environment:
+```bash
+./gen_config.sh
+```
+
+Then run all tests:
 ```bash
 ./run_tests.sh
 ```
 
-Run specific test with debug logging:
+Or run specific test with debug logging:
 ```bash
 ./run_tests.sh --debug --test parameter_coverage
 ```
@@ -75,9 +80,15 @@ def search_more_packages(
 
 ## Configuration
 
-Tests use `test_config.yaml` for environment-specific settings:
+Tests use `test_config.yaml` for environment-specific settings. Generate it automatically:
 
-- **Test buckets**: Public/private buckets with known content
+```bash
+./gen_config.sh
+```
+
+This discovers:
+- **Available buckets**: From live Quilt infrastructure
+- **Test packages**: Real packages for validation
 - **Search terms**: Queries with expected result counts
 - **Filter examples**: Date ranges, size limits, metadata filters
 - **Sort validation**: Expected ordering behaviors
@@ -85,8 +96,12 @@ Tests use `test_config.yaml` for environment-specific settings:
 
 ## Usage Examples
 
-### Run All Tests
+### First Time Setup
 ```bash
+# Generate config from your live environment
+./gen_config.sh
+
+# Run all comprehensive tests
 ./run_tests.sh
 ```
 
@@ -95,14 +110,32 @@ Tests use `test_config.yaml` for environment-specific settings:
 ./run_tests.sh --debug --test parameter_coverage
 ```
 
-### Use Different Environment
+### Different Environments
 ```bash
+# Generate staging config
+./gen_config.sh  # (while connected to staging)
+
+# Or use existing config
 ./run_tests.sh --config staging_config.yaml
 ```
 
 ### Enable Detailed Logging
 ```bash
 ./run_tests.sh --logging --verbose
+```
+
+### List Available Tests
+```bash
+./run_tests.sh --list
+```
+
+### Run Specific Test Categories
+```bash
+./run_tests.sh --test parameter_coverage  # All API parameters
+./run_tests.sh --test pagination         # search_more_packages()
+./run_tests.sh --test error_handling     # Exception validation
+./run_tests.sh --test python_integration # Import patterns, types
+./run_tests.sh --test result_structure   # Return object validation
 ```
 
 ## Test Results
@@ -115,16 +148,22 @@ Each test validates:
 4. **Pagination**: Full workflow from initial search through completion
 5. **Error Handling**: Appropriate exceptions for all error conditions
 
-## Legacy Tests
-
-Original test files remain for compatibility:
-- `test_basic_search.py` - Basic functionality examples
-- `test_filters_params.py` - Parameter variations 
-- `test_performance.py` - Performance characteristics
 
 ## Prerequisites
 
-- Python environment with `quilt3` installed
-- Valid Quilt credentials (via `quilt3.login()` or environment)
-- Network access to Quilt registries
-- Configuration file with environment-specific test data
+- Python environment with `quilt3` installed and `pyyaml` for config generation
+- Valid Quilt credentials (run `quilt3.login()` first or set environment variables)
+- Network access to Quilt registries for live testing
+- Executable permissions on shell scripts (`chmod +x *.sh`)
+
+## What This Tests
+
+This UAT suite proves the Python API wrapper works correctly by testing:
+
+1. **Every API parameter** - All combinations of buckets, search_string, filters, etc.
+2. **Complete pagination** - Full search_packages() → search_more_packages() workflow
+3. **Python integration** - Import patterns, return types, exception handling
+4. **Real data validation** - Uses live Quilt infrastructure, not mocked responses
+5. **Error conditions** - Parameter validation, authentication, edge cases
+
+The tests demonstrate **HOW** the API works in practice, not just that it works.

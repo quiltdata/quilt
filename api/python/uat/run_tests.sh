@@ -17,6 +17,25 @@ SPECIFIC_TEST=""
 CONFIG_FILE="test_config.yaml"
 ENABLE_LOGGING=false
 
+# Available tests
+AVAILABLE_TESTS=(
+    "parameter_coverage:Test all search_packages parameters and combinations"
+    "pagination:Test search_more_packages functionality and workflow"
+    "error_handling:Test exception handling and parameter validation"
+    "python_integration:Test Python-specific functionality and imports"
+    "result_structure:Test return object structure and properties"
+)
+
+# Show available tests
+show_tests() {
+    echo "Available tests:"
+    for test_info in "${AVAILABLE_TESTS[@]}"; do
+        test_name="${test_info%%:*}"
+        test_desc="${test_info#*:}"
+        printf "  %-18s - %s\n" "$test_name" "$test_desc"
+    done
+}
+
 # Help function
 show_help() {
     cat << EOF
@@ -27,21 +46,24 @@ Run comprehensive UAT tests for quilt3.search_packages() API
 OPTIONS:
     -h, --help          Show this help message
     -d, --debug         Enable debug mode (enables API logging)
-    -t, --test TEST     Run specific test only (e.g., 'parameter_coverage', 'pagination', 'error_handling')
+    -t, --test TEST     Run specific test only
     -c, --config FILE   Use specific config file (default: test_config.yaml)
     -l, --logging       Enable search_packages API logging
+    --list              List available tests
     -v, --verbose       Enable verbose output
 
-AVAILABLE TESTS:
-    parameter_coverage  - Test all search_packages parameters
-    pagination         - Test search_more_packages functionality  
-    error_handling     - Test exception handling
-    python_integration - Test Python-specific functionality
-    result_structure   - Test return object structure
-    all               - Run all tests (default)
+EOF
+
+    show_tests
+
+    cat << EOF
+
+Special test names:
+    all                 - Run all tests (default)
 
 EXAMPLES:
     $0                                    # Run all tests
+    $0 --list                            # Show available tests
     $0 --debug --test parameter_coverage  # Debug specific test with logging
     $0 --config staging_config.yaml      # Use staging environment config
 EOF
@@ -52,6 +74,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -h|--help)
             show_help
+            exit 0
+            ;;
+        --list)
+            show_tests
             exit 0
             ;;
         -d|--debug)
