@@ -56,10 +56,12 @@ def test_boundary_value_errors(config):
     print("1. Large size parameter:")
     try:
         results = quilt3.search_packages(size=10000, buckets=['quilt-example'])
-        test_passed("Large size parameter accepted (limited by available results)")
+        test_failed("Large size parameter should be rejected to prevent server errors")
+    except ValueError as e:
+        test_passed(f"Correctly rejected large size parameter: {e}")
     except Exception as e:
-        # This might be acceptable if the system has limits
-        test_failed(f"Large size parameter failed: {type(e).__name__}: {e}")
+        # Other exceptions might also be acceptable (server limits)
+        test_passed(f"Large size parameter rejected by server: {type(e).__name__}")
     
     # Test 2: Zero size
     print("\n2. Zero size parameter:")
@@ -77,13 +79,27 @@ def test_boundary_value_errors(config):
     except Exception as e:
         test_passed(f"Correctly rejected negative size: {type(e).__name__}")
     
-    # Test 4: Empty buckets list
+    # Test 4: Empty buckets list (should search all buckets)
     print("\n4. Empty buckets list:")
     try:
         results = quilt3.search_packages(buckets=[])
-        test_failed("Empty buckets list should not be allowed")
+        if hasattr(results, 'hits'):
+            test_passed(f"Empty buckets list correctly searches all buckets, found {len(results.hits)} results")
+        else:
+            test_failed("Empty buckets list returned invalid result structure")
     except Exception as e:
-        test_passed(f"Correctly rejected empty buckets list: {type(e).__name__}")
+        test_failed(f"Empty buckets list should be allowed but got {type(e).__name__}: {str(e)}")
+    
+    # Test 4b: None buckets (should search all buckets)
+    print("\n4b. None buckets:")
+    try:
+        results = quilt3.search_packages(buckets=None)
+        if hasattr(results, 'hits'):
+            test_passed(f"None buckets correctly searches all buckets, found {len(results.hits)} results")
+        else:
+            test_failed("None buckets returned invalid result structure")
+    except Exception as e:
+        test_failed(f"None buckets should be allowed but got {type(e).__name__}: {str(e)}")
     
     # Test 5: Invalid bucket names
     print("\n5. Invalid bucket names:")

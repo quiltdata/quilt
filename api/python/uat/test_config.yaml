@@ -149,7 +149,7 @@ error_conditions:
   invalid_parameters:
     - parameter: "buckets"
       invalid_value: "not-a-list"
-      expected_exception: "TypeError"
+      expected_exception: "ValueError"
       
     - parameter: "size" 
       invalid_value: -1

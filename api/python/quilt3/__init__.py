@@ -76,12 +76,34 @@ def search_packages(
     if buckets is not None and not isinstance(buckets, list):
         raise ValueError("buckets must be a list or None")
 
-    if size is not None and (not isinstance(size, int) or size < 0):
-        raise ValueError("size must be a non-negative integer")
+    if size is not None and (not isinstance(size, int) or size < 0 or size > 1000):
+        raise ValueError("size must be a non-negative integer between 0 and 1000")
 
     valid_orders = ["BEST_MATCH", "NEWEST", "OLDEST", "LEX_ASC", "LEX_DESC"]
     if order not in valid_orders:
         raise ValueError(f"order must be one of {valid_orders}")
+
+    # Basic filter validation
+    if filter is not None and not isinstance(filter, dict):
+        raise ValueError("filter must be a dictionary or None")
+
+    # Basic validation for filter structure
+    if filter is not None:
+        valid_filter_keys = ["modified", "size", "hash"]
+        for key in filter.keys():
+            if key not in valid_filter_keys:
+                raise ValueError(f"Invalid filter key '{key}'. Valid keys are: {valid_filter_keys}")
+            
+            # Validate filter operations for each key
+            if isinstance(filter[key], dict):
+                valid_ops = ["eq", "ne", "lt", "lte", "gt", "gte"]
+                for op in filter[key].keys():
+                    if op not in valid_ops:
+                        raise ValueError(f"Invalid filter operation '{op}' for key '{key}'. Valid operations are: {valid_ops}")
+
+    # Basic search string validation
+    if search_string is not None and not isinstance(search_string, str):
+        raise ValueError("search_string must be a string or None")
 
     return _search_packages(
         buckets=buckets,
