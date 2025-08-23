@@ -237,7 +237,17 @@ def exit_with_test_results():
     global _test_state
     
     failed_count = _test_state['failed_tests']
+    passed_count = _test_state['passed_tests']
     total_count = _test_state['total_tests']
+    warnings_count = _test_state['warnings']
+    
+    # Output structured data for shell script parsing
+    print(f"\n========== TEST_CASE_SUMMARY ==========")
+    print(f"PASSED_TEST_CASES={passed_count}")
+    print(f"FAILED_TEST_CASES={failed_count}")
+    print(f"TOTAL_TEST_CASES={total_count}")
+    print(f"TOTAL_WARNINGS={warnings_count}")
+    print(f"========== END_TEST_CASE_SUMMARY ==========")
     
     if total_count == 0:
         print("⚠️  No tests were executed")

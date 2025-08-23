@@ -8,7 +8,10 @@ import os
 import sys
 import yaml
 import quilt3
-from test_utils import setup_logging, load_config, format_result, test_passed, test_failed
+from test_utils import (
+    setup_logging, load_config, format_result, test_passed, test_failed,
+    reset_test_state, exit_with_test_results
+)
 
 def test_bucket_parameters(config):
     """Test all bucket parameter variations."""
@@ -244,9 +247,10 @@ def test_order_parameters(config):
             test_failed(f"order='{order}' failed: {e}")
 
 def main():
-    """Run comprehensive parameter coverage tests."""
+    """Run comprehensive parameter coverage tests.""" 
     setup_logging()
     config = load_config()
+    reset_test_state()
     
     print("=== COMPREHENSIVE PARAMETER COVERAGE TESTS ===")
     print("Testing ALL search_packages() parameters and combinations\n")
@@ -263,8 +267,11 @@ def main():
         print("✓ Parameter coverage tests completed")
         
     except Exception as e:
+        test_failed(f"Unexpected error during tests: {e}")
         print(f"\n✗ Parameter coverage tests failed: {e}")
-        sys.exit(1)
+    
+    exit_with_test_results()
+
 
 if __name__ == "__main__":
     main()

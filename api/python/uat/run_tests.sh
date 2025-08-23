@@ -135,27 +135,64 @@ run_test() {
     local description="$3"
     
     if [[ -n "$SPECIFIC_TEST" && "$SPECIFIC_TEST" != "$test_name" ]]; then
-        return 0
+        return 0  # Skip this test, don't count it
     fi
     
     echo -e "${YELLOW}Running $test_name: $description${NC}"
     echo "----------------------------------------"
     
-    if python3 "$test_script"; then
+    # Capture output to parse test case statistics
+    local test_output
+    test_output=$(python3 "$test_script" 2>&1)
+    local exit_code=$?
+    
+    # Display the output
+    echo "$test_output"
+    
+    # Parse test case statistics from structured output
+    if echo "$test_output" | grep -q "========== TEST_CASE_SUMMARY =========="; then
+        local test_summary
+        test_summary=$(echo "$test_output" | sed -n '/========== TEST_CASE_SUMMARY ==========/,/========== END_TEST_CASE_SUMMARY ==========/p')
+        
+        local passed_cases=$(echo "$test_summary" | grep "PASSED_TEST_CASES=" | cut -d'=' -f2)
+        local failed_cases=$(echo "$test_summary" | grep "FAILED_TEST_CASES=" | cut -d'=' -f2)
+        local total_cases=$(echo "$test_summary" | grep "TOTAL_TEST_CASES=" | cut -d'=' -f2)
+        local warnings=$(echo "$test_summary" | grep "TOTAL_WARNINGS=" | cut -d'=' -f2)
+        
+        # Aggregate test case counts
+        ((PASSED_TEST_CASES += passed_cases))
+        ((FAILED_TEST_CASES += failed_cases))
+        ((TOTAL_TEST_CASES += total_cases))
+        ((TOTAL_WARNINGS += warnings))
+    fi
+    
+    # Count this test suite
+    ((TOTAL_TESTS++))
+    
+    if [[ $exit_code -eq 0 ]]; then
         echo -e "${GREEN}✓ $test_name PASSED${NC}"
         echo ""
+        ((PASSED_TESTS++))
         return 0
     else
         echo -e "${RED}✗ $test_name FAILED${NC}"
         echo ""
+        ((FAILED_TESTS++))
         return 1
     fi
 }
 
 # Initialize test results
+# Test suites counters
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
+
+# Individual test cases counters (aggregated from all suites)
+TOTAL_TEST_CASES=0
+PASSED_TEST_CASES=0
+FAILED_TEST_CASES=0
+TOTAL_WARNINGS=0
 
 # Run tests based on selection
 if [[ -z "$SPECIFIC_TEST" || "$SPECIFIC_TEST" == "all" ]]; then
@@ -164,51 +201,35 @@ if [[ -z "$SPECIFIC_TEST" || "$SPECIFIC_TEST" == "all" ]]; then
 fi
 
 # Test 1: Parameter Coverage
-if run_test "parameter_coverage" "test_parameter_coverage.py" "All API parameters and combinations"; then
-    ((PASSED_TESTS++))
-else
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
+run_test "parameter_coverage" "test_parameter_coverage.py" "All API parameters and combinations"
 
 # Test 2: Pagination  
-if run_test "pagination" "test_pagination.py" "search_more_packages() functionality"; then
-    ((PASSED_TESTS++))
-else
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
+run_test "pagination" "test_pagination.py" "search_more_packages() functionality"
 
 # Test 3: Error Handling
-if run_test "error_handling" "test_error_handling.py" "Exception handling and validation"; then
-    ((PASSED_TESTS++))
-else
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
+run_test "error_handling" "test_error_handling.py" "Exception handling and validation"
 
 # Test 4: Python Integration
-if run_test "python_integration" "test_python_integration.py" "Python-specific functionality"; then
-    ((PASSED_TESTS++))
-else
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
+run_test "python_integration" "test_python_integration.py" "Python-specific functionality"
 
 # Test 5: Result Structure
-if run_test "result_structure" "test_result_structure.py" "Return object validation"; then
-    ((PASSED_TESTS++))
-else
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
+run_test "result_structure" "test_result_structure.py" "Return object validation"
 
 # Summary
 echo "========================================"
 echo -e "${BLUE}TEST SUMMARY${NC}"
-echo "Total tests: $TOTAL_TESTS"
-echo -e "Passed: ${GREEN}$PASSED_TESTS${NC}"
-echo -e "Failed: ${RED}$FAILED_TESTS${NC}"
+echo "Test Suites:"
+echo "  Total: $TOTAL_TESTS"
+echo -e "  Passed: ${GREEN}$PASSED_TESTS${NC}"
+echo -e "  Failed: ${RED}$FAILED_TESTS${NC}"
+echo ""
+echo "Individual Test Cases:"
+echo "  Total: $TOTAL_TEST_CASES"
+echo -e "  Passed: ${GREEN}$PASSED_TEST_CASES${NC}"
+echo -e "  Failed: ${RED}$FAILED_TEST_CASES${NC}"
+if [[ $TOTAL_WARNINGS -gt 0 ]]; then
+    echo -e "  Warnings: ${YELLOW}$TOTAL_WARNINGS${NC}"
+fi
 
 if [[ $FAILED_TESTS -eq 0 ]]; then
     echo -e "${GREEN}All tests passed! ✓${NC}"
