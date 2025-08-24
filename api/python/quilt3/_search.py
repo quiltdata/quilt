@@ -5,11 +5,30 @@ This module provides the core search functionality for the quilt3.search_package
 It leverages the generated GraphQL client infrastructure for communication with the backend.
 """
 
+import re
 from typing import Any, Dict, List, Optional, Union
 from unittest.mock import Mock
 
 from . import _graphql_client
 from .exceptions import PackageException
+
+
+def _escape_search_string(search_string: Optional[str]) -> Optional[str]:
+    """
+    Escape quotes and special characters in search strings for GraphQL.
+    
+    This prevents GraphQL parsing errors when users include quotes in their search terms.
+    """
+    if search_string is None:
+        return None
+    
+    # Escape double quotes and single quotes for GraphQL string literals
+    # Replace " with \" and ' with \'
+    escaped = search_string.replace('\\', '\\\\')  # Escape backslashes first
+    escaped = escaped.replace('"', '\\"')          # Escape double quotes  
+    escaped = escaped.replace("'", "\\'")          # Escape single quotes
+    
+    return escaped
 
 
 class SearchHit:
@@ -126,9 +145,12 @@ def _search_packages(
                 _graphql_client.PackageUserMetaPredicate(**f) for f in user_meta_filters
             ]
 
+        # Escape search string to prevent GraphQL parsing errors
+        escaped_search_string = _escape_search_string(search_string)
+
         search_result = client.search_packages(
             buckets=buckets,
-            search_string=search_string,
+            search_string=escaped_search_string,
             filter=graphql_filter,
             user_meta_filters=graphql_user_meta_filters,
             latest_only=latest_only,
