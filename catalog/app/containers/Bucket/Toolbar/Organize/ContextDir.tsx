@@ -157,6 +157,10 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
     bookmarks.append('main', Selection.toHandlesList(slt.selection))
   }, [bookmarks, slt.isEmpty, slt.selection])
 
+  // const handles =  Selection.toHandlesList(slt.selection)
+  // TODO: is everything is bookmarked on the same level of directory hierarchy
+  // const isBookmarked = bookmarks.isBookmarked('main', handle)
+
   const openSelectionPopup = React.useCallback(() => {
     dialogs.open(({ close }) => <Selection.Popup close={close} />)
   }, [dialogs])
