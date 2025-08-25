@@ -41,19 +41,17 @@ def test_bulk_too_many_requests(mocker):
 def test_handler(mocker, version_id):
     mock_context = mocker.MagicMock()
     s3_record = {
-        "s3": {
-            "bucket": {"name": "test-bucket"},
-            "object": {
-                "key": "test-key",
-            },
-        }
+        "bucket": {"name": "test-bucket"},
+        "object": {
+            "key": "test-key",
+        },
     }
     if version_id:
-        s3_record["s3"]["object"]["versionId"] = version_id
+        s3_record["object"]["version-id"] = version_id
 
     mock_event = {
         "Records": [
-            {"body": json.dumps({"Records": [s3_record]})},
+            {"body": json.dumps({"detail": s3_record})},
         ]
     }
 

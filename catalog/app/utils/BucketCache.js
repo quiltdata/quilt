@@ -2,23 +2,25 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as errors from 'containers/Bucket/errors'
-import * as AWS from 'utils/AWS'
+import * as S3 from 'utils/AWS/S3'
 import * as Data from 'utils/Data'
 
 const CacheCtx = React.createContext()
 
 export function BucketCacheProvider({ children }) {
-  const ref = React.useRef({})
+  const ref = React.useRef({ head: {}, region: {} })
   return <CacheCtx.Provider value={ref.current}>{children}</CacheCtx.Provider>
 }
 
 function bucketExists({ s3, bucket, cache }) {
-  if (!cache[bucket]) {
+  if (!cache.head[bucket]) {
     // eslint-disable-next-line no-param-reassign
-    cache[bucket] = s3
+    cache.head[bucket] = s3
       .headBucket({ Bucket: bucket })
       .promise()
-      .then(() => undefined)
+      .then((r) => {
+        cache.region[bucket] = r.BucketRegion
+      })
       .catch(
         errors.catchErrors([
           [
@@ -30,13 +32,18 @@ function bucketExists({ s3, bucket, cache }) {
         ]),
       )
   }
-  return cache[bucket]
+  return cache.head[bucket]
 }
 
 export function useBucketExistence(bucket) {
   const cache = React.useContext(CacheCtx)
-  const s3 = AWS.S3.use()
+  const s3 = S3.use()
   return Data.use(bucketExists, { s3, bucket, cache })
 }
 
 export { BucketCacheProvider as Provider }
+
+export function useGetCachedBucketRegion() {
+  const cache = React.useContext(CacheCtx)
+  return React.useCallback((bucket) => cache.region[bucket], [cache.region])
+}

@@ -69,6 +69,8 @@ function getBase(
         switch (r.__typename) {
           case 'InvalidInput':
             return Eff.Either.left('InvalidInput')
+          case 'OperationError':
+            return Eff.Either.left(r.name)
           case 'EmptySearchResultSet':
             return Eff.Either.right(Eff.Option.none())
           case 'ObjectsSearchResultSet':
@@ -79,6 +81,8 @@ function getBase(
         switch (r.__typename) {
           case 'InvalidInput':
             return Eff.Either.left('InvalidInput')
+          case 'OperationError':
+            return Eff.Either.left(r.name)
           case 'EmptySearchResultSet':
             return Eff.Either.right(Eff.Option.none())
           case 'PackagesSearchResultSet':
@@ -112,6 +116,8 @@ function getFirstPage(
         switch (d.__typename) {
           case 'InvalidInput':
             return Eff.Either.left('InvalidInput')
+          case 'OperationError':
+            return Eff.Either.left(d.name)
           case 'EmptySearchResultSet':
             return Eff.Either.right({ hits: [], total: 0 })
           case 'ObjectsSearchResultSet':

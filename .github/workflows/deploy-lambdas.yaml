@@ -29,7 +29,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - name: Export requirements.txt from uv.lock
         if: ${{ hashFiles(format('lambdas/{0}/uv.lock', matrix.path)) != '' }}
@@ -78,7 +78,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
         run: docker buildx build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile .

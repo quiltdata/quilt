@@ -1,5 +1,10 @@
 import { canonicalKey } from './s3paths'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({})),
+)
+
 describe('utils/s3paths', () => {
   describe('canonicalKey', () => {
     it('produces the key prefixed by package name', () => {
