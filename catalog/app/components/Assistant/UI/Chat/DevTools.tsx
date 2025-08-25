@@ -1,7 +1,11 @@
 import * as Eff from 'effect'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { Clear as ClearIcon, Delete as DeleteIcon, GetApp as GetAppIcon } from '@material-ui/icons'
+import {
+  Clear as ClearIcon,
+  Delete as DeleteIcon,
+  GetApp as GetAppIcon,
+} from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 
