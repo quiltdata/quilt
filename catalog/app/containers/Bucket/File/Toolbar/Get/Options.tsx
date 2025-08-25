@@ -1,12 +1,38 @@
+import { basename } from 'path'
+
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { Tabs } from 'components/Dialog'
-import * as Buttons from 'containers/Bucket/Download/Buttons' // TODO: move to this dir
+import * as CodeSamples from 'containers/Bucket/CodeSamples'
+import * as Buttons from 'containers/Bucket/Download/Buttons'
 
-import type { FileHandle } from '../types'
+import type * as Toolbar from 'containers/Bucket/Toolbar'
 
-import { FileCodeSamples } from './BucketCodeSamples'
+const useFileCodeSamplesStyles = M.makeStyles((t) => ({
+  code: {
+    marginBottom: t.spacing(2),
+  },
+}))
+
+interface FileCodeSamplesProps {
+  className?: string
+  bucket: string
+  path: string
+}
+
+export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProps) {
+  const classes = useFileCodeSamplesStyles()
+  const apiDest = basename(path)
+  const cliDest = ''
+  const props = { className: classes.code, bucket, path }
+  return (
+    <div className={className}>
+      <CodeSamples.Quilt3Fetch {...props} dest={apiDest} />
+      <CodeSamples.CliFetch {...props} dest={cliDest} />
+    </div>
+  )
+}
 
 const useStyles = M.makeStyles((t) => ({
   download: {
@@ -18,7 +44,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface BucketFileOptionsProps {
-  handle: FileHandle
+  handle: Toolbar.FileHandle
   hideCode?: boolean
 }
 

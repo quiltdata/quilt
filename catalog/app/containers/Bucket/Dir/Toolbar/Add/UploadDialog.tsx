@@ -4,13 +4,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import { useUploads } from 'containers/Bucket/PackageDialog/Uploads'
+import * as FI from 'containers/Bucket/PackageDialog/FilesInput'
+import type * as Toolbar from 'containers/Bucket/Toolbar'
 import Log from 'utils/Logging'
 import * as s3paths from 'utils/s3paths'
-
-import { useUploads } from '../../PackageDialog/Uploads'
-import * as FI from '../../PackageDialog/FilesInput'
-
-import type { DirHandle } from '../types'
 
 interface LocalEntry {
   file: FI.LocalFile
@@ -40,7 +38,7 @@ type UploadState =
   | { _tag: 'error'; error: Error }
 
 interface UploadDialogProps {
-  handle: DirHandle
+  handle: Toolbar.DirHandle
   initial?: FI.FilesState['added']
   onClose: (reason?: 'upload-success') => void
 }

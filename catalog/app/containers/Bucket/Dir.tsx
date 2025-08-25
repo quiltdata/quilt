@@ -20,7 +20,7 @@ import * as Listing from './Listing'
 import * as FI from './PackageDialog/FilesInput'
 import * as Selection from './Selection'
 import Summary from './Summary'
-import * as Toolbar from './Toolbar'
+import * as DirToolbar from './Dir/Toolbar'
 import { displayError } from './errors'
 import * as requests from './requests'
 
@@ -73,7 +73,7 @@ function DirContents({
 
   const dialogs = Dialogs.use()
   const dirHandle = React.useMemo(
-    () => Toolbar.DirHandleCreate(bucket, path),
+    () => DirToolbar.CreateHandle(bucket, path),
     [bucket, path],
   )
 
@@ -87,7 +87,7 @@ function DirContents({
         {},
       )
       dialogs.open(({ close }) => (
-        <Toolbar.Add.UploadDialog
+        <DirToolbar.Add.UploadDialog
           handle={dirHandle}
           initial={added}
           onClose={(reason) => {
@@ -235,10 +235,10 @@ export default function Dir() {
   )
 
   const dirHandle = React.useMemo(
-    () => Toolbar.DirHandleCreate(bucket, path),
+    () => DirToolbar.CreateHandle(bucket, path),
     [bucket, path],
   )
-  const toolbarFeatures = Toolbar.useBucketDirFeatures()
+  const toolbarFeatures = DirToolbar.useFeatures()
 
   return (
     <M.Box pt={2} pb={4}>
@@ -252,7 +252,7 @@ export default function Dir() {
         <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
           {BreadCrumbs.render(crumbs)}
         </div>
-        <Toolbar.BucketDir
+        <DirToolbar.Toolbar
           className={classes.actions}
           features={toolbarFeatures}
           handle={dirHandle}

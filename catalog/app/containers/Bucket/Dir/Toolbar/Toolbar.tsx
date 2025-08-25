@@ -6,14 +6,17 @@ import * as Buttons from 'components/Buttons'
 import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import * as PD from '../PackageDialog'
-import * as Selection from '../Selection'
+import * as Toolbar from 'containers/Bucket/Toolbar'
+import * as PD from 'containers/Bucket/PackageDialog'
+import * as Selection from 'containers/Bucket/Selection'
 
 import * as Add from './Add'
 import * as CreatePackage from './CreatePackage'
 import * as Get from './Get'
 import * as Organize from './Organize'
-import type { DirHandle } from './types'
+
+export { DirHandleCreate as CreateHandle } from 'containers/Bucket/Toolbar'
+export { Add, CreatePackage, Get, Organize }
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -30,30 +33,35 @@ interface Features {
   createPackage: boolean | null
 }
 
-export function useBucketDirFeatures(): Features | null {
+export function useFeatures(): Features | null {
   const { prefs } = BucketPreferences.use()
-  return BucketPreferences.Result.match(
-    {
-      Ok: ({ ui: { actions, blocks } }) => ({
-        add: actions.writeFile,
-        get: !cfg.noDownload && actions.downloadObject ? { code: blocks.code } : false,
-        organize: true,
-        createPackage: actions.createPackage,
-      }),
-      _: () => null,
-    },
-    prefs,
+  return React.useMemo(
+    () =>
+      BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions, blocks } }) => ({
+            add: actions.writeFile,
+            get:
+              !cfg.noDownload && actions.downloadObject ? { code: blocks.code } : false,
+            organize: true,
+            createPackage: actions.createPackage,
+          }),
+          _: () => null,
+        },
+        prefs,
+      ),
+    [prefs],
   )
 }
 
-interface BucketDirProps {
+interface DirToolbarProps {
   className?: string
   features: Features | null
-  handle: DirHandle
+  handle: Toolbar.DirHandle
   onReload: () => void
 }
 
-export function BucketDir({ className, features, handle, onReload }: BucketDirProps) {
+function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) {
   const classes = useStyles()
   const slt = Selection.use()
 
@@ -100,35 +108,37 @@ export function BucketDir({ className, features, handle, onReload }: BucketDirPr
       })}
 
       {features.add && (
-        <Add.ContextDir.Provider handle={handle}>
-          <Add.Button>
-            <Add.BucketDirOptions />
-          </Add.Button>
-        </Add.ContextDir.Provider>
+        <Add.Context.Provider handle={handle}>
+          <Toolbar.Add>
+            <Add.Options />
+          </Toolbar.Add>
+        </Add.Context.Provider>
       )}
 
       {features.get && (
-        <Get.Button>
-          <Get.BucketDirOptions handle={handle} hideCode={!features.get.code} />
-        </Get.Button>
+        <Toolbar.Get>
+          <Get.Options handle={handle} hideCode={!features.get.code} />
+        </Toolbar.Get>
       )}
 
       {features.organize && (
-        <Organize.ContextDir.Provider onReload={onReload}>
-          <Organize.Button onReload={onReload}>
-            <Organize.BucketDirOptions />
-          </Organize.Button>
-        </Organize.ContextDir.Provider>
+        <Organize.Context.Provider onReload={onReload}>
+          <Toolbar.Organize onReload={onReload}>
+            <Organize.Options />
+          </Toolbar.Organize>
+        </Organize.Context.Provider>
       )}
 
       {features.createPackage && (
-        <CreatePackage.Button>
-          <CreatePackage.BucketDirOptions
+        <Toolbar.CreatePackage>
+          <CreatePackage.Options
             onChange={openPackageCreationDialog}
             successors={successors}
           />
-        </CreatePackage.Button>
+        </Toolbar.CreatePackage>
       )}
     </div>
   )
 }
+
+export { DirToolbar as Toolbar }

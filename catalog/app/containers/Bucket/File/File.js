@@ -28,13 +28,13 @@ import FileProperties from '../FileProperties'
 import * as FileView from '../FileView'
 import FallbackToDir from '../FallbackToDir'
 import Section from '../Section'
-import * as Toolbar from '../Toolbar'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { useViewModes } from '../viewModes'
 
 import Analytics from './Analytics'
 import * as AssistantContext from './AssistantContext'
+import * as FileToolbar from './Toolbar'
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
@@ -344,10 +344,10 @@ function File() {
   const viewModes = useViewModes(mode)
 
   const handle = React.useMemo(
-    () => Toolbar.FileHandleCreate(bucket, path, existing?.fileVersionId),
+    () => FileToolbar.CreateHandle(bucket, path, existing?.fileVersionId),
     [bucket, path, existing?.fileVersionId],
   )
-  const toolbarFeatures = Toolbar.useBucketFileFeatures(existing?.deleted)
+  const toolbarFeatures = FileToolbar.useFeatures(existing?.deleted)
 
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave
@@ -411,7 +411,7 @@ function File() {
           )}
         </div>
 
-        <Toolbar.BucketFile
+        <FileToolbar.Toolbar
           className={classes.actions}
           editorState={editorState}
           features={toolbarFeatures}
@@ -423,7 +423,7 @@ function File() {
           {editorState.editing && (
             <FileEditor.Controls {...editorState} onSave={handleEditorSave} />
           )}
-        </Toolbar.BucketFile>
+        </FileToolbar.Toolbar>
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,

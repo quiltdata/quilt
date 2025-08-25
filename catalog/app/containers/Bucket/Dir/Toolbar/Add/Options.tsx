@@ -5,7 +5,7 @@ import {
   PublishOutlined as IconPublishOutlined,
 } from '@material-ui/icons'
 
-import { useAddDirActions } from './ContextDir'
+import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true } as const
 
@@ -28,7 +28,7 @@ function MenuItem({ icon, primary, onClick }: MenuItemProps) {
 }
 
 export default function BucketDirOptions() {
-  const { createFile, openUploadDialog } = useAddDirActions()
+  const { createFile, openUploadDialog } = Context.use()
   return (
     <M.List dense>
       <MenuItem

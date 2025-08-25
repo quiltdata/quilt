@@ -4,15 +4,16 @@ import * as M from '@material-ui/core'
 
 import * as Buttons from 'components/Buttons'
 import type { EditorState } from 'components/FileEditor'
+import * as Toolbar from 'containers/Bucket/Toolbar'
+import type { ViewModes } from 'containers/Bucket/viewModes'
 import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
-import AssistButton from '../AssistButton'
-import type { ViewModes } from '../viewModes'
-
 import * as Get from './Get'
 import * as Organize from './Organize'
-import type { FileHandle } from './types'
+
+export { FileHandleCreate as CreateHandle } from 'containers/Bucket/Toolbar'
+export { Get, Organize }
 
 interface Features {
   get: false | { code: boolean } | null
@@ -20,7 +21,7 @@ interface Features {
   qurator: boolean | null
 }
 
-export function useBucketFileFeatures(deleted?: boolean): Features | null {
+export function useFeatures(deleted?: boolean): Features | null {
   const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
@@ -49,18 +50,18 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketFileProps {
+interface FileToolbarProps {
   children?: React.ReactNode
   className?: string
   deleted?: boolean
   editorState?: EditorState
   features: Features | null
-  handle: FileHandle
+  handle: Toolbar.FileHandle
   onReload: () => void
   viewModes: ViewModes
 }
 
-export function BucketFile({
+export function FileToolbar({
   children,
   className,
   editorState,
@@ -68,7 +69,7 @@ export function BucketFile({
   handle,
   onReload,
   viewModes,
-}: BucketFileProps) {
+}: FileToolbarProps) {
   const classes = useStyles()
 
   if (!features)
@@ -85,24 +86,26 @@ export function BucketFile({
       {children}
 
       {features.get && (
-        <Get.Button label="Get file">
-          <Get.BucketFileOptions handle={handle} hideCode={!features.get.code} />
-        </Get.Button>
+        <Toolbar.Get label="Get file">
+          <Get.Options handle={handle} hideCode={!features.get.code} />
+        </Toolbar.Get>
       )}
 
       {features.organize && !!editorState && (
-        <Organize.ContextFile.Provider
+        <Organize.Context.Provider
           editorState={editorState}
           handle={handle}
           onReload={onReload}
         >
-          <Organize.Button onReload={onReload}>
-            <Organize.BucketFileOptions viewModes={viewModes} />
-          </Organize.Button>
-        </Organize.ContextFile.Provider>
+          <Toolbar.Organize onReload={onReload}>
+            <Organize.Options viewModes={viewModes} />
+          </Toolbar.Organize>
+        </Organize.Context.Provider>
       )}
 
-      {features.qurator && <AssistButton className={classes.qurator} edge="end" />}
+      {features.qurator && <Toolbar.Assist className={classes.qurator} />}
     </div>
   )
 }
+
+export { FileToolbar as Toolbar }

@@ -1,10 +1,9 @@
 import * as React from 'react'
 
+import { workflowsConfig } from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
 import * as Request from 'utils/useRequest'
 import type { Successor } from 'utils/workflows'
-
-import { workflowsConfig } from '../../requests'
 
 export default function useSuccessors(bucket: string): Request.Result<Successor[]> {
   const s3 = AWS.S3.use()

@@ -4,15 +4,14 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import * as Bookmarks from 'containers/Bookmarks'
+import * as Selection from 'containers/Bucket/Selection'
+import { deleteObject, useFilesListing } from 'containers/Bucket/requests'
 import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Dialogs from 'utils/Dialogs'
 import Log from 'utils/Logging'
 import * as s3paths from 'utils/s3paths'
-
-import * as Selection from '../../Selection'
-import { deleteObject, useFilesListing } from '../../requests'
 
 export interface OrganizeDirActions {
   addSelectedToBookmarks: () => void
@@ -25,7 +24,7 @@ export interface OrganizeDirActions {
   selectionCount: number
 }
 
-export const Context = React.createContext<OrganizeDirActions | null>(null)
+const Context = React.createContext<OrganizeDirActions | null>(null)
 
 function useContext(): OrganizeDirActions {
   const context = React.useContext(Context)

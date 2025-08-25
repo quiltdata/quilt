@@ -6,7 +6,7 @@ import { FileWithPath, useDropzone } from 'react-dropzone'
 import useDragging from 'utils/dragging'
 
 import * as FI from './PackageDialog/FilesInput'
-import type { DirHandle } from './Toolbar/types'
+import type * as Toolbar from './Toolbar'
 
 const useStyles = M.makeStyles((t) => ({
   wrapper: {
@@ -63,7 +63,7 @@ const useStyles = M.makeStyles((t) => ({
 interface DndWrapperProps {
   children: React.ReactNode
   disabled?: boolean
-  handle: DirHandle
+  handle: Toolbar.DirHandle
   onDrop: (files: FI.LocalFile[]) => void
 }
 

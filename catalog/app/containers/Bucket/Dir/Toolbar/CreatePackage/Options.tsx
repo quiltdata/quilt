@@ -2,10 +2,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import * as workflows from 'utils/workflows'
-
+import { EmptySlot, ErrorSlot } from 'containers/Bucket/Successors'
 import * as Request from 'utils/useRequest'
-import { EmptySlot, ErrorSlot } from '../../Successors'
+import * as workflows from 'utils/workflows'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
 

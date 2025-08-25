@@ -9,7 +9,7 @@ import {
 
 import * as Format from 'utils/format'
 
-import * as Context from './ContextDir'
+import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
 

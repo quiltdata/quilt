@@ -1,10 +1,6 @@
-import { basename } from 'path'
-
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
-
 import Code from 'containers/Bucket/Download/Code'
 
 interface SampleProps {
@@ -14,7 +10,7 @@ interface SampleProps {
   dest?: string
 }
 
-function Quilt3List({ className, bucket, path }: SampleProps) {
+export function Quilt3List({ className, bucket, path }: SampleProps) {
   return (
     <Code
       className={className}
@@ -30,7 +26,7 @@ function Quilt3List({ className, bucket, path }: SampleProps) {
   )
 }
 
-function Quilt3Fetch({ className, bucket, path, dest }: SampleProps) {
+export function Quilt3Fetch({ className, bucket, path, dest }: SampleProps) {
   return (
     <Code
       className={className}
@@ -46,7 +42,7 @@ function Quilt3Fetch({ className, bucket, path, dest }: SampleProps) {
   )
 }
 
-function CliFetch({ className, bucket, path, dest }: SampleProps) {
+export function CliFetch({ className, bucket, path, dest }: SampleProps) {
   return (
     <Code
       className={className}
@@ -58,7 +54,7 @@ function CliFetch({ className, bucket, path, dest }: SampleProps) {
   )
 }
 
-function CliList({ className, bucket, path }: SampleProps) {
+export function CliList({ className, bucket, path }: SampleProps) {
   return (
     <Code
       className={className}
@@ -67,50 +63,5 @@ function CliList({ className, bucket, path }: SampleProps) {
       help="https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html"
       lines={[`aws s3 ls "s3://${bucket}/${path}"`]}
     />
-  )
-}
-
-const useStyles = M.makeStyles((t) => ({
-  code: {
-    marginBottom: t.spacing(2),
-  },
-}))
-
-interface FileCodeSamplesProps {
-  className?: string
-  bucket: string
-  path: string
-}
-
-export function FileCodeSamples({ className, bucket, path }: FileCodeSamplesProps) {
-  const classes = useStyles()
-  const apiDest = basename(path)
-  const cliDest = ''
-  const props = { className: classes.code, bucket, path }
-  return (
-    <div className={className}>
-      <Quilt3Fetch {...props} dest={apiDest} />
-      <CliFetch {...props} dest={cliDest} />
-    </div>
-  )
-}
-
-interface DirCodeSamplesProps {
-  className?: string
-  bucket: string
-  path: string
-}
-
-export function DirCodeSamples({ className, bucket, path }: DirCodeSamplesProps) {
-  const classes = useStyles()
-  const dest = path ? basename(path) : bucket
-  const props = { className: classes.code, bucket, path }
-  return (
-    <div className={className}>
-      <Quilt3List {...props} />
-      <Quilt3Fetch {...props} dest={dest} />
-      <CliList {...props} />
-      <CliFetch {...props} dest={dest} />
-    </div>
   )
 }

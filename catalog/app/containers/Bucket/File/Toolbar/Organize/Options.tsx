@@ -13,7 +13,7 @@ import { viewModeToSelectOption } from 'containers/Bucket/viewModes'
 import type { ViewModes } from 'containers/Bucket/viewModes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import * as Context from './ContextFile'
+import * as Context from './Context'
 
 const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true } as const
 

@@ -4,14 +4,13 @@ import * as React from 'react'
 import Code from 'components/Code'
 import { useConfirm } from 'components/Dialog'
 import * as Bookmarks from 'containers/Bookmarks'
+import type * as Toolbar from 'containers/Bucket/Toolbar'
+import { deleteObject } from 'containers/Bucket/requests'
 import * as FileEditor from 'components/FileEditor'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import Log from 'utils/Logging'
 import * as s3paths from 'utils/s3paths'
-
-import { deleteObject } from '../../requests'
-import type { FileHandle } from '../types'
 
 export interface OrganizeFileActions {
   toggleBookmark: () => void
@@ -22,7 +21,7 @@ export interface OrganizeFileActions {
 
   confirmDelete: () => void
 
-  handle: FileHandle
+  handle: Toolbar.FileHandle
 }
 
 export const Context = React.createContext<OrganizeFileActions | null>(null)
@@ -38,7 +37,7 @@ export const use = useContext
 interface OrganizeFileProviderProps {
   children: React.ReactNode
   editorState: FileEditor.EditorState
-  handle: FileHandle
+  handle: Toolbar.FileHandle
   onReload: () => void
 }
 

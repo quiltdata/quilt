@@ -4,14 +4,7 @@ import * as M from '@material-ui/core'
 import { PlaylistAddCheckOutlined as IconPlaylistAddCheckOutlined } from '@material-ui/icons'
 
 import * as Buttons from 'components/Buttons'
-
-import { useSelection } from '../../Selection/Provider'
-
-export * as ContextDir from './ContextDir'
-export * as ContextFile from './ContextFile'
-
-export { default as BucketDirOptions } from './BucketDirOptions'
-export { default as BucketFileOptions } from './BucketFileOptions'
+import { useSelection } from 'containers/Bucket/Selection/Provider'
 
 const useBadgeClasses = M.makeStyles({
   badge: {
@@ -25,7 +18,7 @@ interface ButtonProps {
   onReload: () => void
 }
 
-export function Button({ onReload, ...props }: ButtonProps) {
+export default function Button({ onReload, ...props }: ButtonProps) {
   const slt = useSelection()
   const classes = useBadgeClasses()
   return (
