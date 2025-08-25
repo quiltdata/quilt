@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 interface DialogProps {
   cancelTitle?: string
   children: React.ReactNode
-  onSubmit: (value: boolean) => void
+  onSubmit: (value: boolean) => Promise<void>
   open: boolean
   submitTitle?: string
   title: string
@@ -19,8 +19,22 @@ function Dialog({
   submitTitle = 'Submit',
   title,
 }: DialogProps) {
-  const handleCancel = React.useCallback(() => onSubmit(false), [onSubmit])
-  const handleSubmit = React.useCallback(() => onSubmit(true), [onSubmit])
+  const [submitting, setSubmitting] = React.useState(false)
+
+  const handleCancel = React.useCallback(async () => {
+    if (!submitting) {
+      await onSubmit(false)
+    }
+  }, [onSubmit, submitting])
+
+  const handleSubmit = React.useCallback(async () => {
+    setSubmitting(true)
+    try {
+      await onSubmit(true)
+    } finally {
+      setSubmitting(false)
+    }
+  }, [onSubmit])
   return (
     <M.Dialog open={open} fullWidth maxWidth="sm">
       <M.DialogTitle>{title}</M.DialogTitle>
@@ -29,8 +43,20 @@ function Dialog({
         <M.Button onClick={handleCancel} color="primary" variant="outlined">
           {cancelTitle}
         </M.Button>
-        <M.Button color="primary" onClick={handleSubmit} variant="contained">
-          {submitTitle}
+        <M.Button
+          color="primary"
+          disabled={submitting}
+          onClick={handleSubmit}
+          variant="contained"
+        >
+          {submitting ? (
+            <>
+              <M.CircularProgress size={16} style={{ marginRight: 8 }} />
+              Processing...
+            </>
+          ) : (
+            submitTitle
+          )}
         </M.Button>
       </M.DialogActions>
     </M.Dialog>
@@ -39,7 +65,7 @@ function Dialog({
 
 interface PromptProps {
   cancelTitle?: string
-  onSubmit: (value: boolean) => void
+  onSubmit: (value: boolean) => Promise<void>
   submitTitle?: string
   title: string
 }
@@ -52,10 +78,12 @@ export function useConfirm({ cancelTitle, title, onSubmit, submitTitle }: Prompt
     setKey(R.inc)
     setOpened(true)
   }, [])
-  const close = React.useCallback(() => setOpened(false), [])
+  const close = React.useCallback(() => {
+    setOpened(false)
+  }, [])
   const handleSubmit = React.useCallback(
-    (value: boolean) => {
-      onSubmit(value)
+    async (value: boolean) => {
+      await onSubmit(value)
       close()
     },
     [close, onSubmit],

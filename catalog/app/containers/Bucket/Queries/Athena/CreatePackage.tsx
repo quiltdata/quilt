@@ -38,7 +38,7 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
     disableStateDisplay: true,
   })
   const handleConfirm = React.useCallback(
-    (ok: boolean) => {
+    async (ok: boolean) => {
       if (!ok) return
       addToPackage?.merge(entries.valid)
       createDialog.open()
