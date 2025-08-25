@@ -9,11 +9,9 @@ import {
   CheckOutlined as IconCheckOutlined,
 } from '@material-ui/icons'
 
+import { viewModeToSelectOption } from 'containers/Bucket/viewModes'
+import type { ViewModes } from 'containers/Bucket/viewModes'
 import * as NamedRoutes from 'utils/NamedRoutes'
-
-import { viewModeToSelectOption } from '../../viewModes'
-import type { ViewModes, FileType } from '../../viewModes'
-import type { FileHandle } from '../types'
 
 import * as Context from './ContextFile'
 
@@ -55,72 +53,10 @@ function LinkItem({ icon, children, ...props }: LinkItemProps) {
   )
 }
 
-function BookmarksItem() {
-  const { toggleBookmark, isBookmarked } = Context.use()
-
-  return isBookmarked ? (
-    <MenuItem icon={<IconTurnedInOutlined />} onClick={toggleBookmark}>
-      Remove from bookmarks
-    </MenuItem>
-  ) : (
-    <MenuItem icon={<IconTurnedInNotOutlined />} onClick={toggleBookmark}>
-      Add to bookmarks
-    </MenuItem>
-  )
-}
-
-function EditorItem() {
-  const { editFile } = Context.use()
-
-  return (
-    <MenuItem icon={<IconEditOutlined />} onClick={editFile}>
-      Edit text content
-    </MenuItem>
-  )
-}
-
-interface ViewItemProps {
-  handle: FileHandle
-  mode: FileType
-  selected: boolean
-}
-
-function ViewItem({ handle, mode, selected }: ViewItemProps) {
-  const { urls } = NamedRoutes.use()
-  const { bucket, key, version } = handle
-  const label = viewModeToSelectOption(mode).toString()
-
-  return selected ? (
-    <MenuItem icon={<IconCheckOutlined />} disabled>
-      {label}
-    </MenuItem>
-  ) : (
-    <LinkItem to={urls.bucketFile(bucket, key, { version, mode })}>{label}</LinkItem>
-  )
-}
-
-const useDeleteItemStyles = M.makeStyles((t) => ({
-  root: {
+const useStyles = M.makeStyles((t) => ({
+  danger: {
     color: t.palette.error.main,
   },
-}))
-
-function DeleteItem() {
-  const classes = useDeleteItemStyles()
-  const { confirmDelete } = Context.use()
-
-  return (
-    <MenuItem
-      className={classes.root}
-      icon={<IconDeleteOutlined color="error" />}
-      onClick={confirmDelete}
-    >
-      Delete
-    </MenuItem>
-  )
-}
-
-const useStyles = M.makeStyles((t) => ({
   error: {
     color: t.palette.error.main,
   },
@@ -137,42 +73,74 @@ interface BucketFileOptionsProps {
 
 export default function BucketFileOptions({ viewModes }: BucketFileOptionsProps) {
   const classes = useStyles()
-  const { handle, canEdit } = Context.use()
+  const {
+    canEdit,
+    confirmDelete,
+    editFile,
+    handle: { bucket, key, version },
+    isBookmarked,
+    toggleBookmark,
+  } = Context.use()
   const bookmarks = Context.use()
+  const { urls } = NamedRoutes.use()
+
+  const viewModesOptions = React.useMemo(
+    () => viewModes?.modes.map((m) => viewModeToSelectOption(m)) || [],
+    [viewModes],
+  )
 
   return (
     <>
       {bookmarks && (
         <M.List dense className={classes.subList}>
-          <BookmarksItem />
+          <MenuItem
+            icon={isBookmarked ? <IconTurnedInOutlined /> : <IconTurnedInNotOutlined />}
+            onClick={toggleBookmark}
+          >
+            {isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+          </MenuItem>
         </M.List>
       )}
 
       {canEdit && (
         <M.List dense className={classes.subList}>
-          <EditorItem />
+          <MenuItem icon={<IconEditOutlined />} onClick={editFile}>
+            Edit text content
+          </MenuItem>
         </M.List>
       )}
 
-      {viewModes && viewModes.modes.length > 0 && (
+      {viewModesOptions.length > 0 && (
         <M.List
+          className={classes.subList}
           dense
           subheader={<M.ListSubheader inset>View as</M.ListSubheader>}
-          className={classes.subList}
         >
-          {viewModes.modes.map((mode) => (
-            <ViewItem
-              key={mode}
-              handle={handle}
-              mode={mode}
-              selected={mode === viewModes.mode}
-            />
-          ))}
+          {viewModesOptions.map(({ toString, valueOf }) =>
+            valueOf() === viewModes?.mode ? (
+              <MenuItem key={toString()} icon={<IconCheckOutlined />} disabled>
+                {toString()}
+              </MenuItem>
+            ) : (
+              <LinkItem
+                key={toString()}
+                to={urls.bucketFile(bucket, key, { version, mode: valueOf() })}
+              >
+                {toString()}
+              </LinkItem>
+            ),
+          )}
         </M.List>
       )}
 
       <M.List dense className={classes.subList}>
-        <DeleteItem />
+        <MenuItem
+          className={classes.danger}
+          icon={<IconDeleteOutlined color="error" />}
+          onClick={confirmDelete}
+        >
+          Delete
+        </MenuItem>
       </M.List>
     </>
   )
