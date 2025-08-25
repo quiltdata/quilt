@@ -3,8 +3,6 @@ import * as Buttons from 'components/Buttons'
 
 import { useSelection } from '../../Selection/Provider'
 
-import type { DirHandle } from '../types'
-
 export { default as BucketDirOptions } from './BucketDirOptions'
 export { default as useSuccessors } from './useSuccessors'
 
@@ -12,7 +10,6 @@ interface ButtonProps {
   children: NonNullable<React.ReactNode>
   className?: string
   label?: string
-  handle: DirHandle
 }
 
 export function Button(props: ButtonProps) {

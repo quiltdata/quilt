@@ -347,6 +347,7 @@ function File() {
     () => Toolbar.FileHandleCreate(bucket, path, existing?.fileVersionId),
     [bucket, path, existing?.fileVersionId],
   )
+  const toolbarFeatures = Toolbar.useBucketFileFeatures(existing?.deleted)
 
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave
@@ -412,11 +413,11 @@ function File() {
 
         <Toolbar.BucketFile
           className={classes.actions}
-          deleted={existing?.deleted}
           editorState={editorState}
+          features={toolbarFeatures}
           handle={handle}
-          viewModes={viewModes}
           onReload={handleReload}
+          viewModes={viewModes}
         >
           <FileProperties className={classes.fileProperties} data={versionExistsData} />
           {editorState.editing && (

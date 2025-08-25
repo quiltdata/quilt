@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
 
-import Code from './Code'
+import Code from 'containers/Bucket/Download/Code'
 
 interface SampleProps {
   className: string

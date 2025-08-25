@@ -20,7 +20,7 @@ interface Features {
   qurator: boolean | null
 }
 
-function useFeatures(deleted?: boolean): Features | null {
+export function useBucketFileFeatures(deleted?: boolean): Features | null {
   const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
@@ -53,23 +53,23 @@ interface BucketFileProps {
   children?: React.ReactNode
   className?: string
   deleted?: boolean
-  editorState: EditorState
+  editorState?: EditorState
+  features: Features | null
   handle: FileHandle
-  viewModes: ViewModes
   onReload: () => void
+  viewModes: ViewModes
 }
 
-export default function BucketFile({
+export function BucketFile({
   children,
   className,
-  deleted,
   editorState,
+  features,
   handle,
-  viewModes,
   onReload,
+  viewModes,
 }: BucketFileProps) {
   const classes = useStyles()
-  const features = useFeatures(deleted)
 
   if (!features)
     return (
@@ -90,10 +90,16 @@ export default function BucketFile({
         </Get.Button>
       )}
 
-      {features.organize && (
-        <Organize.Button onReload={onReload} handle={handle} editorState={editorState}>
-          <Organize.BucketFileOptions viewModes={viewModes} />
-        </Organize.Button>
+      {features.organize && !!editorState && (
+        <Organize.ContextFile.Provider
+          editorState={editorState}
+          handle={handle}
+          onReload={onReload}
+        >
+          <Organize.Button onReload={onReload}>
+            <Organize.BucketFileOptions viewModes={viewModes} />
+          </Organize.Button>
+        </Organize.ContextFile.Provider>
       )}
 
       {features.qurator && <AssistButton className={classes.qurator} edge="end" />}

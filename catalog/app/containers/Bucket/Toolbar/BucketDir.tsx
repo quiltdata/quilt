@@ -30,13 +30,12 @@ interface Features {
   createPackage: boolean | null
 }
 
-function useFeatures(): Features | null {
+export function useBucketDirFeatures(): Features | null {
   const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { actions, blocks } }) => ({
         add: actions.writeFile,
-        get_code: blocks.code,
         get: !cfg.noDownload && actions.downloadObject ? { code: blocks.code } : false,
         organize: true,
         createPackage: actions.createPackage,
@@ -49,13 +48,13 @@ function useFeatures(): Features | null {
 
 interface BucketDirProps {
   className?: string
+  features: Features | null
   handle: DirHandle
   onReload: () => void
 }
 
-export default function BucketDir({ className, handle, onReload }: BucketDirProps) {
+export function BucketDir({ className, features, handle, onReload }: BucketDirProps) {
   const classes = useStyles()
-  const features = useFeatures()
   const slt = Selection.use()
 
   const { path, bucket } = handle
@@ -101,9 +100,11 @@ export default function BucketDir({ className, handle, onReload }: BucketDirProp
       })}
 
       {features.add && (
-        <Add.Button handle={handle}>
-          <Add.BucketDirOptions />
-        </Add.Button>
+        <Add.ContextDir.Provider handle={handle}>
+          <Add.Button>
+            <Add.BucketDirOptions />
+          </Add.Button>
+        </Add.ContextDir.Provider>
       )}
 
       {features.get && (
@@ -113,13 +114,15 @@ export default function BucketDir({ className, handle, onReload }: BucketDirProp
       )}
 
       {features.organize && (
-        <Organize.Button onReload={onReload} handle={handle}>
-          <Organize.BucketDirOptions />
-        </Organize.Button>
+        <Organize.ContextDir.Provider onReload={onReload}>
+          <Organize.Button onReload={onReload}>
+            <Organize.BucketDirOptions />
+          </Organize.Button>
+        </Organize.ContextDir.Provider>
       )}
 
       {features.createPackage && (
-        <CreatePackage.Button handle={handle}>
+        <CreatePackage.Button>
           <CreatePackage.BucketDirOptions
             onChange={openPackageCreationDialog}
             successors={successors}

@@ -238,6 +238,7 @@ export default function Dir() {
     () => Toolbar.DirHandleCreate(bucket, path),
     [bucket, path],
   )
+  const toolbarFeatures = Toolbar.useBucketDirFeatures()
 
   return (
     <M.Box pt={2} pb={4}>
@@ -253,6 +254,7 @@ export default function Dir() {
         </div>
         <Toolbar.BucketDir
           className={classes.actions}
+          features={toolbarFeatures}
           handle={dirHandle}
           onReload={handleReload}
         />

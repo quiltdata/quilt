@@ -273,6 +273,7 @@ interface ListingRowActionsProps {
   physicalKey?: string
   prefs: BucketPreferences.ActionPreferences
   onReload: () => void
+  // TODO: selected
 }
 
 export default function ListingRowActions({

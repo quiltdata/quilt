@@ -1,10 +1,11 @@
+// TODO: move to Bucket/Toolbar/Get/index.tsx
+
 import * as React from 'react'
 import { GetAppOutlined as IconGetAppOutlined } from '@material-ui/icons'
 
 import * as Buttons from 'components/Buttons'
 
 export { default as PackageOptions } from './PackageOptions'
-export { default as BucketOptions } from './BucketOptions'
 
 interface ButtonProps {
   children: NonNullable<React.ReactNode>

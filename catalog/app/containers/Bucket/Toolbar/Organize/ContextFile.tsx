@@ -37,7 +37,7 @@ export const use = useContext
 
 interface OrganizeFileProviderProps {
   children: React.ReactNode
-  editorState?: FileEditor.EditorState
+  editorState: FileEditor.EditorState
   handle: FileHandle
   onReload: () => void
 }

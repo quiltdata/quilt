@@ -14,9 +14,9 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
-import * as Download from 'containers/Bucket/Download'
 import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
+import * as Toolbar from 'containers/Bucket/Toolbar'
 import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
@@ -124,9 +124,9 @@ export default function Dir() {
         </div>
         <M.Box flexGrow={1} />
         {!cfg.noDownload && (
-          <Download.Button>
-            <Download.BucketOptions handle={dirHandle} hideCode={!ecfg.hideCode} />
-          </Download.Button>
+          <Toolbar.Get.Button>
+            <Toolbar.Get.BucketDirOptions handle={dirHandle} hideCode={ecfg.hideCode} />
+          </Toolbar.Get.Button>
         )}
       </M.Box>
 

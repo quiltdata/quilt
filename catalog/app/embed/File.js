@@ -21,10 +21,10 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
 import Analytics from 'containers/Bucket/File/Analytics'
-import * as Download from 'containers/Bucket/Download'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
+import * as Toolbar from 'containers/Bucket/Toolbar'
 import renderPreview from 'containers/Bucket/renderPreview'
 import * as requests from 'containers/Bucket/requests'
 
@@ -309,7 +309,7 @@ export default function File() {
     })
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
+    () => Toolbar.FileHandleCreate(bucket, path, version),
     [bucket, path, version],
   )
 
@@ -363,9 +363,9 @@ export default function File() {
         <div className={classes.actions}>
           <FileProperties data={versionExistsData} />
           {downloadable && (
-            <Download.Button className={classes.button} label="Get file">
-              <Download.BucketOptions handle={handle} hideCode={!ecfg.hideCode} />
-            </Download.Button>
+            <Toolbar.Get.Button className={classes.button} label="Get file">
+              <Toolbar.Get.BucketFileOptions handle={handle} hideCode={ecfg.hideCode} />
+            </Toolbar.Get.Button>
           )}
         </div>
       </div>
