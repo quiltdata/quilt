@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Toolbar/Organize should render with selection items 1`] = `
+<span
+  className="MuiBadge-root"
+>
+  <div
+    className="makeStyles-root-2"
+  >
+    <button
+      className="custom-class"
+    >
+      Organize
+    </button>
+    <div
+      aria-hidden={true}
+      className="MuiBackdrop-root makeStyles-backdrop-4"
+      onClick={[Function]}
+      style={
+        {
+          "opacity": 0,
+          "visibility": "hidden",
+        }
+      }
+    />
+  </div>
+  <span
+    className="MuiBadge-badge makeStyles-badge-1 MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary"
+  >
+    5
+  </span>
+</span>
+`;

@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Toolbar/CreatePackage should render with empty selection 1`] = `
+<div
+  className="makeStyles-root-2"
+>
+  <button
+    className="makeStyles-root-1 custom-class"
+  >
+    Create package
+  </button>
+  <div
+    aria-hidden={true}
+    className="MuiBackdrop-root makeStyles-backdrop-4"
+    onClick={[Function]}
+    style={
+      {
+        "opacity": 0,
+        "visibility": "hidden",
+      }
+    }
+  />
+</div>
+`;

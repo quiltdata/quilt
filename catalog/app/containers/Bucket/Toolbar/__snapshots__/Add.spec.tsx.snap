@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Toolbar/Add should render with custom label 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <button>
+    Custom Add Label
+  </button>
+  <div
+    aria-hidden={true}
+    className="MuiBackdrop-root makeStyles-backdrop-3"
+    onClick={[Function]}
+    style={
+      {
+        "opacity": 0,
+        "visibility": "hidden",
+      }
+    }
+  />
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar/Add should render with default label 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <button
+    className="custom-class"
+  >
+    Add files
+  </button>
+  <div
+    aria-hidden={true}
+    className="MuiBackdrop-root makeStyles-backdrop-3"
+    onClick={[Function]}
+    style={
+      {
+        "opacity": 0,
+        "visibility": "hidden",
+      }
+    }
+  />
+</div>
+`;
