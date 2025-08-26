@@ -1,29 +1,88 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
-The Quilt Catalog is the second half of Quilt. It provides an interface on top
-of your S3 bucket that brings Quilt features like data packages and search to
-the web.
+# Working with the Quilt Catalog
 
-**[For a hands-on demo, check out the public demo catalog](https://open.quiltdata.com/b/quilt-example).**
+This comprehensive guide covers the Quilt Catalog's advanced features, customization options, and enterprise deployment strategies. Learn to maximize your data catalog's impact across your organization.
 
-Note that you can use the Quilt Python API without using the Quilt Catalog,
-but they are designed to work together.
+## 📋 Table of Contents
 
-## Brief tour
+- [Catalog Fundamentals](#catalog-fundamentals)
+- [Navigation and Discovery](#navigation-and-discovery)
+- [Advanced Search Features](#advanced-search-features)
+- [Package Management Interface](#package-management-interface)
+- [Visualization and Dashboards](#visualization-and-dashboards)
+- [Administration and Governance](#administration-and-governance)
+- [Customization and Branding](#customization-and-branding)
+- [Integration Patterns](#integration-patterns)
+- [Best Practices](#best-practices)
 
-The Quilt Catalog provides a homepage for your data catalog, based on a `README.md`
-file that you can optionally create at the top of your bucket.
+## 🏛️ Catalog Fundamentals
 
-### Browse
+The Quilt Catalog is the web-based interface that transforms your S3 bucket into a comprehensive data catalog. It provides enterprise-grade features for data discovery, collaboration, and governance while maintaining seamless integration with the Quilt Python API.
 
-![Homepage](../imgs/catalog_homepage.png)
+**🚀 [Explore the live demo catalog](https://open.quiltdata.com/b/quilt-example)**
 
-The Catalog lets you navigate packages in the registry using the "Packages" tab.
+### Architecture Overview
 
-![Packages tab](../imgs/catalog_packages_tab.png)
+The catalog operates as a web application that:
+- **Indexes** your S3 data using Elasticsearch
+- **Visualizes** package contents and metadata
+- **Enables** collaborative data workflows
+- **Provides** search and discovery capabilities
+- **Supports** custom branding and workflows
 
-You can also browse the underlying S3 objects using the "Bucket" tab.
+**Note**: While you can use the Quilt Python API independently, the catalog and API are designed to work together for maximum effectiveness.
 
-![Files tab](../imgs/catalog_bucket_tab.png)
+## 🧭 Navigation and Discovery
+
+### Homepage Customization
+
+Create a welcoming data catalog experience with a custom homepage:
+
+```markdown
+<!-- s3://your-bucket/README.md -->
+# Welcome to Our Data Catalog
+
+## 🎯 Quick Start
+- **New Users**: Start with our [Getting Started Guide](./docs/getting-started.md)
+- **Data Scientists**: Explore our [ML Datasets](./packages/ml-datasets/)
+- **Analysts**: Check out [Business Intelligence Data](./packages/bi-data/)
+
+## 📊 Featured Datasets
+- **Customer Analytics**: Latest customer behavior insights
+- **Sales Performance**: Q3 2024 sales data and forecasts
+- **Market Research**: Industry trends and competitive analysis
+
+## 🔗 Resources
+- [Data Dictionary](./docs/data-dictionary.md)
+- [Best Practices](./docs/best-practices.md)
+- [Support Portal](https://support.company.com/data)
+```
+
+### Multi-Tab Navigation
+
+The catalog provides three primary navigation modes:
+
+| Tab | Purpose | Best For |
+|-----|---------|----------|
+| **📦 Packages** | Curated data collections | Versioned datasets, analysis projects |
+| **📁 Bucket** | Raw S3 object browser | Individual files, ad-hoc exploration |
+| **🔍 Search** | Global content discovery | Finding specific data across all sources |
+
+### Package Discovery Patterns
+
+**Hierarchical Browsing:**
+- Navigate by namespace: `company/department/project`
+- Filter by tags: `#quarterly`, `#ml-ready`, `#confidential`
+- Sort by: creation date, size, popularity
+
+**Smart Filtering:**
+```javascript
+// Example catalog URL patterns
+https://catalog.company.com/b/data-bucket/packages?
+  namespace=marketing&
+  tags=quarterly,customer-analysis&
+  sort=created_desc&
+  size_min=1MB
+```
 
 ### Search
 
