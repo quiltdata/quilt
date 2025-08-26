@@ -1,112 +1,22 @@
 
-# Package API Reference
-
-The `Package` class is the core abstraction for working with Quilt packages. It provides an in-memory representation of a package that allows you to browse, modify, install, and push packages to registries.
-
-## Quick Start
-
-```python
-import quilt3
-
-# Browse an existing package
-pkg = quilt3.Package.browse('username/package-name')
-
-# Install a package locally
-pkg = quilt3.Package.install('username/package-name', dest='./data')
-
-# Create a new package
-pkg = quilt3.Package()
-pkg.set('data.csv', 'path/to/local/file.csv')
-pkg.set_meta({'description': 'My dataset'})
-
-# Push to registry
-pkg.push('myusername/my-package')
-```
-
 # Package()  {#Package}
-
-**In-memory representation of a package**
-
-Creates a new empty Package object that can be populated with files and metadata.
-
-**Examples:**
-
-```python
-import quilt3
-
-# Create empty package
-pkg = quilt3.Package()
-
-# Add files to package
-pkg.set('data/raw.csv', 'local_files/dataset.csv')
-pkg.set('data/processed.parquet', 'local_files/cleaned_data.parquet')
-
-# Add metadata
-pkg.set_meta({
-    'title': 'Research Dataset',
-    'version': '1.0.0',
-    'description': 'Cleaned and processed research data'
-})
-
-print(f"Package contains {len(pkg)} items")
-```
+In-memory representation of a package
 
 ## manifest
 
 Provides a generator of the dicts that make up the serialized package.
 
-**Returns:** Generator of manifest dictionaries
-
-**Examples:**
-
-```python
-import quilt3
-
-pkg = quilt3.Package.browse('username/dataset')
-
-# Iterate through manifest entries
-for entry in pkg.manifest:
-    print(f"Logical key: {entry['logical_key']}")
-    print(f"Physical key: {entry['physical_keys'][0]}")
-    print(f"Size: {entry.get('size', 'Unknown')}")
-
-# Convert to list for analysis
-manifest_list = list(pkg.manifest)
-total_size = sum(entry.get('size', 0) for entry in manifest_list)
-print(f"Total package size: {total_size:,} bytes")
-```
 
 ## top_hash
 
-Returns the top hash of the package. This is a unique identifier for the specific version of the package.
+Returns the top hash of the package.
 
-**Returns:** A string that represents the top hash of the package
+Note that physical keys are not hashed because the package has
+    the same semantics regardless of where the bytes come from.
 
-**Examples:**
+__Returns__
 
-```python
-import quilt3
-
-# Get package and examine hash
-pkg = quilt3.Package.browse('username/dataset')
-hash_value = pkg.top_hash
-
-print(f"Package hash: {hash_value}")
-
-# Use hash for version tracking
-version_info = {
-    'package_name': 'username/dataset',
-    'hash': hash_value,
-    'timestamp': '2024-01-15T10:30:00Z'
-}
-
-# Compare package versions
-pkg_v1 = quilt3.Package.browse('username/dataset', top_hash='abc123')
-pkg_v2 = quilt3.Package.browse('username/dataset', top_hash='def456')
-
-if pkg_v1.top_hash != pkg_v2.top_hash:
-    print("Packages are different versions")
-```
+A string that represents the top hash of the package
 
 
 ## Package.\_\_repr\_\_(self, max\_lines=20)  {#Package.\_\_repr\_\_}
@@ -118,55 +28,15 @@ String representation of the Package.
 
 Installs a named package to the local registry and downloads its files.
 
-**Arguments:**
-- `name(str)`: Name of package to install
-- `registry(str)`: Registry where package is located (defaults to configured registry)
-- `top_hash(str)`: Hash of package to install (defaults to latest)
-- `dest(str)`: Local path to download files to
-- `dest_registry(str)`: Registry to install package to (defaults to local registry)
-- `path(str)`: If specified, downloads only `path` or its children
+__Arguments__
 
-**Returns:** Package object
-
-**Examples:**
-
-```python
-import quilt3
-
-# Install latest version of a package
-pkg = quilt3.Package.install('username/dataset')
-
-# Install to specific directory
-pkg = quilt3.Package.install(
-    'username/dataset',
-    dest='./my_data'
-)
-
-# Install specific version
-pkg = quilt3.Package.install(
-    'username/dataset',
-    top_hash='abc123def456'
-)
-
-# Install from specific registry
-pkg = quilt3.Package.install(
-    'username/dataset',
-    registry='s3://other-bucket'
-)
-
-# Install only part of a package
-pkg = quilt3.Package.install(
-    'username/large-dataset',
-    path='data/subset',
-    dest='./subset_data'
-)
-
-# Verify installation
-print(f"Installed package with {len(pkg)} items")
-for key in pkg:
-    file_path = pkg[key].get()  # Get local path
-    print(f"{key}: {file_path}")
-```
+* __name(str)__:  Name of package to install.
+* __registry(str)__:  Registry where package is located.
+    Defaults to the default remote registry.
+* __top_hash(str)__:  Hash of package to install. Defaults to latest.
+* __dest(str)__:  Local path to download files to.
+* __dest_registry(str)__:  Registry to install package to. Defaults to local registry.
+* __path(str)__:  If specified, downloads only `path` or its children.
 
 
 ## Package.resolve\_hash(name, registry, hash\_prefix)  {#Package.resolve\_hash}
@@ -182,54 +52,14 @@ __Arguments__
 
 ## Package.browse(name, registry=None, top\_hash=None)  {#Package.browse}
 
-Load a package into memory from a registry without making a local copy of the manifest. Useful for exploring package structure and metadata without downloading files.
+Load a package into memory from a registry without making a local copy of
+the manifest.
 
-**Arguments:**
-- `name(string)`: Name of package to load
-- `registry(string)`: Location of registry to load package from
-- `top_hash(string)`: Top hash of package version to load
+__Arguments__
 
-**Returns:** Package object (files not downloaded)
-
-**Examples:**
-
-```python
-import quilt3
-
-# Browse latest version
-pkg = quilt3.Package.browse('username/dataset')
-
-# Browse specific version
-pkg = quilt3.Package.browse(
-    'username/dataset',
-    top_hash='abc123def456'
-)
-
-# Browse from specific registry
-pkg = quilt3.Package.browse(
-    'username/dataset',
-    registry='s3://other-bucket'
-)
-
-# Explore package structure without downloading
-print(f"Package contains {len(pkg)} items:")
-for key in pkg:
-    entry = pkg[key]
-    if hasattr(entry, 'size'):
-        print(f"  {key}: {entry.size:,} bytes")
-    else:
-        print(f"  {key}: directory")
-
-# Check package metadata
-meta = pkg.get_meta()
-if meta:
-    print(f"Package metadata: {meta}")
-
-# Access file without downloading (get S3 URI)
-if 'data/results.csv' in pkg:
-    s3_uri = pkg['data/results.csv'].get_uri()
-    print(f"S3 location: {s3_uri}")
-```
+* __name(string)__:  name of package to load
+* __registry(string)__:  location of registry to load package from
+* __top_hash(string)__:  top hash of package version to load
 
 
 ## Package.\_\_contains\_\_(self, logical\_key)  {#Package.\_\_contains\_\_}
