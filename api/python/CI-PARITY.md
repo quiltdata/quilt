@@ -15,22 +15,25 @@ The new CI-parity targets solve this by using Docker containers that **exactly**
 ## Quick Start
 
 ```bash
-# Build Docker images (one-time setup)
-make docker-build
+# Fast local development (auto-fix)
+make fix            # Auto-fix changed files (isort + autopep8)
+make sort           # Just fix import sorting (fastest)
+make lint           # Check changed files after fixes
 
-# Run individual CI checks
+# Full repository auto-fix
+make fix-all        # Auto-fix all files 
+make sort-all       # Fix import sorting for all files
+make lint-all       # Check all files after fixes
+
+# CI verification (exact CI reproduction)
+make docker-build   # Build Docker images (one-time setup)
 make lint-ci        # Exact CI linting (pylint==3.2.7, full repo)
 make isort-ci       # Exact CI import sorting check  
 make test-ci        # Exact CI testing with coverage
-make gendocs-ci     # Exact CI doc generation (Python 3.9)
-make lint-docs-ci   # Exact CI doc linting (with memory limit)
+make ci-all         # Run all CI checks at once
 
-# Run all CI checks at once
-make ci-all
-
-# Or use docker-compose for more control
+# Docker compose alternative
 docker-compose -f docker-compose.ci.yml run lint
-docker-compose -f docker-compose.ci.yml run test
 docker-compose -f docker-compose.ci.yml up    # Run all services
 ```
 
@@ -80,18 +83,42 @@ docker-compose -f docker-compose.ci.yml up    # Run all services
 
 ## Development Workflow
 
+### Recommended Workflow
 ```bash
-# Fast development (original targets - changed files only)
-make lint          # Quick linting of changed files
-make test          # Fast tests
+# 1. Auto-fix issues as you code
+make fix           # Fix import sorting + PEP8 on changed files
+make lint          # Check for remaining issues
 
-# Pre-commit CI verification (new targets - full repository)
-make lint-ci       # Verify your changes pass CI linting
-make test-ci       # Verify your changes pass CI tests
+# 2. Before committing
+make fix-all       # Ensure all files are properly formatted  
+make lint-all      # Check all files for issues
 
-# Before pushing (run full CI suite)
-make ci-all        # Run all CI checks locally
+# 3. Before pushing (verify CI will pass)
+make ci-all        # Run exact CI checks locally
 ```
+
+### Quick Commands
+```bash
+# Fast auto-fixes
+make sort          # Just fix imports (fastest)
+make fix           # Fix imports + PEP8 formatting
+make lint          # Check changed files
+
+# Full repository
+make sort-all      # Fix all import sorting
+make fix-all       # Fix all files (imports + PEP8)
+make lint-all      # Check all files
+
+# CI verification  
+make lint-ci       # Exact CI linting check
+make test-ci       # Exact CI testing
+```
+
+### What Each Tool Fixes
+- **`isort`**: Import statement ordering and grouping ✅ Auto-fixable
+- **`autopep8`**: PEP8 formatting (spacing, line length, etc.) ✅ Auto-fixable  
+- **`pycodestyle`**: PEP8 compliance checking (reports remaining issues)
+- **`pylint`**: Code quality, style, and potential bugs (manual fixes required)
 
 ## Docker Compose Services
 
