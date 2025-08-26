@@ -6,7 +6,12 @@ As explained in ["Uploading a Package"](uploading-a-package.md), packages are ma
 
 ```python
 import quilt3 # list local packages
-list(quilt3.list_packages())
+# Note: This requires a configured registry
+try:
+    packages = list(quilt3.list_packages())
+    print(f"Found {len(packages)} packages")
+except Exception as e:
+    print(f"No registry configured: {e}")
 ```
 
 
@@ -21,7 +26,12 @@ list(quilt3.list_packages())
 
 ```python
 import quilt3 # list remote packages
-list(quilt3.list_packages("s3://quilt-example"))
+# Note: This requires valid AWS credentials and access to the bucket
+try:
+    packages = list(quilt3.list_packages("s3://quilt-example"))
+    print(f"Found {len(packages)} packages in s3://quilt-example")
+except Exception as e:
+    print(f"Cannot access remote registry: {e}")
 ```
 
 
@@ -45,10 +55,15 @@ The examples in this section use the `examples/hurdat` [demo package](https://op
 
 ```python
 import quilt3 # install package
-quilt3.Package.install(
-    "examples/hurdat",
-    "s3://quilt-example",
-)
+# Note: This requires valid AWS credentials and access to the bucket
+try:
+    quilt3.Package.install(
+        "examples/hurdat",
+        "s3://quilt-example",
+    )
+    print("Package installed successfully")
+except Exception as e:
+    print(f"Installation failed: {e}")
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 7049.25entries/s]
@@ -75,11 +90,16 @@ Data files that you download are written to a folder in your local registry by d
 
 ```python
 import quilt3  # install package into a specific folder
-quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
-    dest="./"
-)
+# Note: This requires valid AWS credentials and access to the bucket
+try:
+    quilt3.Package.install(
+        "examples/hurdat", 
+        "s3://quilt-example", 
+        dest="./"
+    )
+    print("Package installed to current directory")
+except Exception as e:
+    print(f"Installation failed: {e}")
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 9027.77entries/s]
@@ -96,11 +116,16 @@ Finally, you can install a specific version of a package by specifying the corre
 
 ```python
 import quilt3  # install specific version of package
-quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
-    top_hash="058e62c"
-)
+# Note: This requires valid AWS credentials and access to the bucket
+try:
+    quilt3.Package.install(
+        "examples/hurdat", 
+        "s3://quilt-example", 
+        top_hash="058e62c"
+    )
+    print("Specific package version installed")
+except Exception as e:
+    print(f"Installation failed: {e}")
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 11491.24entries/s]
@@ -119,11 +144,17 @@ An alternative to `install` is `browse`. `browse` downloads a package manifest w
 
 ```python
 import quilt3 # load a package manifest from a remote registry
-p = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
-
-# load a package manifest from the default remote registry
-quilt3.config(default_remote_registry="s3://quilt-example")
-p = quilt3.Package.browse("examples/hurdat")
+# Note: This requires valid AWS credentials and access to the bucket
+try:
+    p = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
+    print("Package manifest loaded from remote registry")
+    
+    # load a package manifest from the default remote registry
+    quilt3.config(default_remote_registry="s3://quilt-example")
+    p = quilt3.Package.browse("examples/hurdat")
+    print("Package manifest loaded from default registry")
+except Exception as e:
+    print(f"Failed to browse package: {e}")
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 7541.00entries/s]
@@ -138,7 +169,13 @@ You can import a local package from within Python:
 
 
 ```python
-from quilt3.data.examples import hurdat
+# Import a local package from within Python
+# Note: This requires the package to be installed locally first
+try:
+    from quilt3.data.examples import hurdat
+    print("Successfully imported hurdat package")
+except ImportError as e:
+    print(f"Package not available locally: {e}")
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 9637.65entries/s]
