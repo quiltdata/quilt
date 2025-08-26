@@ -81,4 +81,52 @@ gendocs: gendocs-deps
 	@echo "Cleaning up any .python-version files that may have been created..."
 	@rm -f .python-version ../../gendocs/.python-version
 
-.PHONY: test coverage install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs
+# CI-identical targets using Docker (exact match to GitHub Actions)
+lint-ci:
+	@echo "Running CI-identical linting (pylint==3.2.7, full repository scan)..."
+	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
+	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
+		cd api/python && \
+		pylint . && \
+		pycodestyle \$$(find . -name '*.py' -not -path './venv/*')"
+
+isort-ci:
+	@echo "Running CI-identical isort check (--check --diff on full repository)..."
+	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
+	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
+		cd api/python && \
+		isort --check --diff ."
+
+test-ci:
+	@echo "Running CI-identical tests with coverage..."
+	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
+	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
+		cd api/python && \
+		python -m pip install -e .[tests] && \
+		pytest --cov=. ."
+
+gendocs-ci:
+	@echo "Running CI-identical documentation generation (Python 3.9)..."
+	docker build -f docker/gendocs.Dockerfile -t quilt-gendocs ../..
+	docker run --rm -v $(PWD)/../..:/workspace quilt-gendocs sh -c "\
+		python -m pip install api/python && \
+		cd gendocs && python build.py && \
+		git diff --exit-code"
+
+lint-docs-ci:
+	@echo "Running CI-identical documentation linting (with memory limit)..."
+	docker run --rm -v $(PWD)/../..:/workspace --memory=4g node:latest sh -c "\
+		export NODE_OPTIONS='--max-old-space-size=4096' && \
+		npx --package=markdownlint-cli markdownlint ."
+
+# Run all CI checks locally
+ci-all: lint-ci isort-ci test-ci gendocs-ci lint-docs-ci
+	@echo "All CI-identical checks completed!"
+
+# Build Docker images
+docker-build:
+	@echo "Building CI Docker images..."
+	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
+	docker build -f docker/gendocs.Dockerfile -t quilt-gendocs ../..
+
+.PHONY: test coverage install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs lint-ci isort-ci test-ci gendocs-ci lint-docs-ci ci-all docker-build
