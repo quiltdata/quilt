@@ -1,39 +1,126 @@
 
+# Bucket API Reference
+
+The `Bucket` class provides a high-level interface for working with S3 buckets in Quilt. It enables searching, file operations, and package management within specific buckets.
+
+## Quick Start
+
+```python
+import quilt3
+
+# Create bucket interface
+bucket = quilt3.Bucket('s3://my-bucket')
+
+# Search for files
+results = bucket.search('*.csv', limit=20)
+
+# Upload files
+bucket.put_file('data/dataset.csv', './local_file.csv')
+
+# List objects
+objects = bucket.ls()
+
+# Download files
+bucket.fetch('data/dataset.csv', './downloaded_file.csv')
+```
+
 # Bucket(bucket\_uri)  {#Bucket}
-Bucket interface for Quilt.
 
-**\_\_init\_\_**
+**Bucket interface for Quilt**
 
-Creates a Bucket object.
+Creates a Bucket object for interacting with an S3 bucket.
 
-__Arguments__
+**Arguments:**
+- `bucket_uri(str)`: URI of bucket to target. Must start with 's3://'
 
-* __bucket_uri(str)__:  URI of bucket to target. Must start with 's3://'
+**Returns:** A new Bucket object
 
-__Returns__
+**Examples:**
 
-A new Bucket
+```python
+import quilt3
+
+# Create bucket interface
+bucket = quilt3.Bucket('s3://my-data-bucket')
+
+# Create bucket with specific configuration
+bucket = quilt3.Bucket('s3://enterprise-bucket')
+
+# Verify bucket access
+try:
+    objects = bucket.ls()
+    print(f"Successfully connected to bucket with {len(objects)} objects")
+except Exception as e:
+    print(f"Bucket access failed: {e}")
+
+# Get bucket information
+print(f"Bucket URI: {bucket._uri}")
+```
 
 ## Bucket.search(self, query: Union[str, dict], limit: int = 10) -> List[dict]  {#Bucket.search}
 
-Execute a search against the configured search endpoint.
+Execute a search against the configured search endpoint using Elasticsearch.
 
-__Arguments__
+**Arguments:**
+- `query`: Query string (str) or DSL query body (dict)
+- `limit`: Maximum number of results to return (default: 10)
 
-* __query__:  query string to query if passed as `str`, DSL query body if passed as `dict`
-* __limit__:  maximum number of results to return. Defaults to 10
+**Returns:** List of search result dictionaries
 
-Query Syntax:
-    [Query String Query](
-        https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
-    [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
+**Query Syntax:**
+- [Query String Query](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
+- [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
 
-Index schemas and search examples can be found in the
-[Quilt Search documentation](https://docs.quilt.bio/quilt-platform-catalog-user/search).
+**Examples:**
 
-__Returns__
+```python
+import quilt3
 
-search results
+bucket = quilt3.Bucket('s3://my-data-bucket')
+
+# Basic text search
+results = bucket.search('machine learning', limit=20)
+for result in results:
+    print(f"File: {result['key']}")
+    print(f"Score: {result['score']}")
+
+# Search for specific file types
+csv_files = bucket.search('extension:csv', limit=50)
+print(f"Found {len(csv_files)} CSV files")
+
+# Search with wildcards
+results = bucket.search('data_*.parquet')
+
+# Complex query string
+results = bucket.search('type:dataset AND size:>1MB')
+
+# DSL query for advanced search
+dsl_query = {
+    "query": {
+        "bool": {
+            "must": [
+                {"match": {"content": "neural network"}},
+                {"range": {"size": {"gte": 1000000}}}
+            ]
+        }
+    }
+}
+results = bucket.search(dsl_query, limit=100)
+
+# Search by metadata
+results = bucket.search('metadata.department:research')
+
+# Filter by date range
+results = bucket.search('last_modified:[2024-01-01 TO 2024-12-31]')
+
+# Process search results
+for result in results:
+    print(f"Key: {result['key']}")
+    print(f"Size: {result.get('size', 'Unknown')}")
+    print(f"Last modified: {result.get('last_modified', 'Unknown')}")
+    if 'metadata' in result:
+        print(f"Metadata: {result['metadata']}")
+```
 
 
 ## Bucket.put\_file(self, key, path)  {#Bucket.put\_file}
