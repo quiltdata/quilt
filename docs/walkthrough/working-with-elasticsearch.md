@@ -1,6 +1,8 @@
 # Working with Elasticsearch in Quilt
 
-This comprehensive guide covers Elasticsearch integration, advanced querying techniques, monitoring, and optimization strategies for Quilt deployments. Learn to leverage the full power of search and analytics in your data catalog.
+This comprehensive guide covers Elasticsearch integration, advanced querying
+techniques, monitoring, and optimization strategies for Quilt deployments.
+Learn to leverage the full power of search and analytics in your data catalog.
 
 ## 📋 Table of Contents
 
@@ -16,7 +18,10 @@ This comprehensive guide covers Elasticsearch integration, advanced querying tec
 
 ## 🔍 Elasticsearch Fundamentals
 
-Each Quilt stack includes an Elasticsearch cluster that indexes objects and packages as searchable documents. The cluster is deployed using AWS OpenSearch service, providing enterprise-grade search capabilities with high availability and security.
+Each Quilt stack includes an Elasticsearch cluster that indexes objects and
+packages as searchable documents. The cluster is deployed using AWS OpenSearch
+service, providing enterprise-grade search capabilities with high availability
+and security.
 
 ## 📊 Index Structure and Schema
 
@@ -32,6 +37,7 @@ Each S3 bucket connected to Quilt creates two Elasticsearch index aliases:
 ### Document Schema Examples
 
 **Object Document Structure:**
+
 ```json
 {
   "key": "data/sales/2024/q3_sales.csv",
@@ -49,6 +55,7 @@ Each S3 bucket connected to Quilt creates two Elasticsearch index aliases:
 ```
 
 **Package Document Structure:**
+
 ```json
 {
   "name": "sales-team/q3-analysis",
@@ -95,6 +102,7 @@ queries:
 ### Query Examples
 
 **Sales Data Search Query:**
+
 ```json
 {
   "query": {
@@ -127,6 +135,7 @@ queries:
 ```
 
 **Large Files Query:**
+
 ```json
 {
   "query": {

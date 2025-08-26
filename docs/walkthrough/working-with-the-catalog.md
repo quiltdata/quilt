@@ -1,6 +1,8 @@
 # Working with the Quilt Catalog
 
-This comprehensive guide covers the Quilt Catalog's advanced features, customization options, and enterprise deployment strategies. Learn to maximize your data catalog's impact across your organization.
+This comprehensive guide covers the Quilt Catalog's advanced features,
+customization options, and enterprise deployment strategies. Learn to maximize
+your data catalog's impact across your organization.
 
 ## 📋 Table of Contents
 
@@ -16,20 +18,25 @@ This comprehensive guide covers the Quilt Catalog's advanced features, customiza
 
 ## 🏛️ Catalog Fundamentals
 
-The Quilt Catalog is the web-based interface that transforms your S3 bucket into a comprehensive data catalog. It provides enterprise-grade features for data discovery, collaboration, and governance while maintaining seamless integration with the Quilt Python API.
+The Quilt Catalog is the web-based interface that transforms your S3 bucket
+into a comprehensive data catalog. It provides enterprise-grade features for
+data discovery, collaboration, and governance while maintaining seamless
+integration with the Quilt Python API.
 
 **🚀 [Explore the live demo catalog](https://open.quiltdata.com/b/quilt-example)**
 
 ### Architecture Overview
 
 The catalog operates as a web application that:
+
 - **Indexes** your S3 data using Elasticsearch
 - **Visualizes** package contents and metadata
 - **Enables** collaborative data workflows
 - **Provides** search and discovery capabilities
 - **Supports** custom branding and workflows
 
-**Note**: While you can use the Quilt Python API independently, the catalog and API are designed to work together for maximum effectiveness.
+**Note**: While you can use the Quilt Python API independently, the catalog
+and API are designed to work together for maximum effectiveness.
 
 ## 🧭 Navigation and Discovery
 
@@ -70,11 +77,13 @@ The catalog provides three primary navigation modes:
 ### Package Discovery Patterns
 
 **Hierarchical Browsing:**
+
 - Navigate by namespace: `company/department/project`
 - Filter by tags: `#quarterly`, `#ml-ready`, `#confidential`
 - Sort by: creation date, size, popularity
 
 **Smart Filtering:**
+
 ```javascript
 // Example catalog URL patterns
 https://catalog.company.com/b/data-bucket/packages?
