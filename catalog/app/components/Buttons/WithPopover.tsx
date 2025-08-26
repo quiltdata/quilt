@@ -10,13 +10,17 @@ const useStyles = M.makeStyles((t) => ({
   },
   popup: {
     animation: t.transitions.create('$slideDown'),
-    position: 'absolute',
-    right: 0,
-    top: '100%',
     transform: `translateY(${t.spacing(0.5)}px)`,
     zIndex: t.zIndex.modal,
     [t.breakpoints.down('xs')]: {
-      width: 'calc(100vw - 16px)',
+      position: 'fixed',
+      left: t.spacing(2),
+      right: t.spacing(2),
+    },
+    [t.breakpoints.up('sm')]: {
+      position: 'absolute',
+      right: 0,
+      top: '100%',
     },
   },
   backdrop: {
