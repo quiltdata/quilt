@@ -128,7 +128,7 @@ lint-ci:
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
 		pylint . && \
-		pycodestyle \$$(find -name '*.py' -not -path './venv/*')"
+		pycodestyle \$$(find -name '*.py' -not -path './venv/*' -not -path './catalog/node_modules/*')"
 
 isort-ci:
 	@echo "Running CI-identical isort check (--check --diff from repository root like CI)..."

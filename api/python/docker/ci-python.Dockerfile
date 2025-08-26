@@ -1,17 +1,10 @@
-FROM ubuntu:latest
+# Use official Python 3.11 image (matches CI Python version)
+FROM python:3.11-slim
 
-# Install Python 3.11 (matches CI exactly)
+# Install git and other tools needed for CI
 RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-pip \
-    python3.11-dev \
-    python3.11-venv \
     git \
     && rm -rf /var/lib/apt/lists/*
-
-# Create symlinks to match CI environment
-RUN ln -sf /usr/bin/python3.11 /usr/bin/python3
-RUN ln -sf /usr/bin/python3.11 /usr/bin/python
 
 # Install exact CI versions to match py-ci.yml
 RUN python -m pip install --upgrade pip setuptools

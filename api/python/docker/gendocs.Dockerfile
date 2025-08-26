@@ -1,17 +1,10 @@
-FROM ubuntu:latest
+# Use official Python 3.9 image (matches CI gendocs job)
+FROM python:3.9-slim
 
-# Install Python 3.9 (matches CI test-gendocs job exactly)
+# Install git and other tools needed for CI
 RUN apt-get update && apt-get install -y \
-    python3.9 \
-    python3.9-pip \
-    python3.9-dev \
-    python3.9-venv \
     git \
     && rm -rf /var/lib/apt/lists/*
-
-# Create symlinks to match CI environment
-RUN ln -sf /usr/bin/python3.9 /usr/bin/python3
-RUN ln -sf /usr/bin/python3.9 /usr/bin/python
 
 # Install exact dependencies as CI test-gendocs job
 RUN python -m pip install --upgrade pip setuptools
