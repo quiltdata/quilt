@@ -16,15 +16,10 @@ To edit a preexisting package, we need to first make sure to install the package
 
 ```python
 import quilt3
-# Note: This requires valid AWS credentials and access to the bucket
-try:
-    quilt3.Package.install(
-        "examples/hurdat",
-        "s3://quilt-example",
-    )
-    print("Package installed successfully")
-except Exception as e:
-    print(f"Installation failed: {e}")
+quilt3.Package.install(
+    "examples/hurdat",
+    "s3://quilt-example",
+)
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 5902.48entries/s]
@@ -40,12 +35,7 @@ Use `browse` to edit the package:
 
 
 ```python
-# Note: This requires the package to be installed locally first
-try:
-    p = quilt3.Package.browse('examples/hurdat')
-    print("Package loaded successfully")
-except Exception as e:
-    print(f"Failed to browse package: {e}")
+p = quilt3.Package.browse('examples/hurdat')
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 9920.30entries/s]
@@ -133,12 +123,7 @@ If the physical key and the logical key are the same, you may omit the second ar
 ```python
 import quilt3
 p = quilt3.Package()
-# Note: This assumes data.csv exists in the current directory
-try:
-    p.set("data.csv")
-    print("File added to package")
-except FileNotFoundError:
-    print("data.csv not found in current directory")
+p.set("data.csv")
 ```
 
 
