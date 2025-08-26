@@ -110,7 +110,7 @@ typing-extensions==4.12.2
     #   quilt-shared
     #   types-aiobotocore
     #   types-aiobotocore-s3
-urllib3==2.2.3
+urllib3==2.5.0
     # via
     #   botocore
     #   requests
