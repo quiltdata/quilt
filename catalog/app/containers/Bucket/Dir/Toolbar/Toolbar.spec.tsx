@@ -7,56 +7,53 @@ import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
 import * as DirToolbar from './Toolbar'
 
-jest.mock(
-  'constants/config',
-  jest.fn(() => ({})),
-)
+jest.mock('constants/config', () => ({}))
 
-jest.mock(
-  './Add',
-  jest.fn(() => ({
-    Context: () => ({
-      Provider: (children: React.ReactNode) => <>{children}</>,
-    }),
-    Options: () => <>"Add" popover</>,
-  })),
-)
-jest.mock(
-  './Get',
-  jest.fn(() => ({
-    Options: () => <>"Add" popover</>,
-  })),
-)
-jest.mock(
-  './Organize',
-  jest.fn(() => ({
-    Context: () => ({
-      Provider: (children: React.ReactNode) => <>{children}</>,
-    }),
-    Options: () => <>"Organize" popover</>,
-  })),
-)
-jest.mock(
-  './CreatePackage',
-  jest.fn(() => ({
-    Options: () => <>"Create package" popover</>,
-    useSuccessors: jest.fn(() => {}),
-  })),
-)
-
-jest.mock('containers/Bucket/PackageDialog', () => ({
-  usePackageCreationDialog: jest.fn(() => ({
-    open: jest.fn(),
-    render: jest.fn(),
-  })),
+jest.mock('./Add', () => ({
+  Context: {
+    Provider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  },
+  Options: () => <>"Add" popover</>,
 }))
 
-jest.mock(
-  'components/Buttons',
-  jest.fn(() => ({
-    Skeleton: () => <i>⌛</i>,
-  })),
-)
+jest.mock('./Get', () => ({
+  Options: () => <div>"Get" popover</div>,
+}))
+jest.mock('./Organize', () => ({
+  Context: {
+    Provider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  },
+  Options: () => <>"Organize" popover</>,
+}))
+jest.mock('./CreatePackage', () => ({
+  Options: () => <>"Create package" popover</>,
+  useSuccessors: () => {},
+}))
+
+jest.mock('containers/Bucket/PackageDialog', () => ({
+  usePackageCreationDialog: () => ({
+    open: jest.fn(),
+    render: jest.fn(),
+  }),
+}))
+
+jest.mock('components/Buttons', () => ({
+  ...jest.requireActual('components/Buttons'),
+  Skeleton: () => <i>⌛</i>,
+  WithPopover: ({
+    label,
+    children,
+    disabled,
+  }: {
+    disabled: boolean
+    label: string
+    children: React.ReactNode
+  }) => (
+    <button title={label} disabled={disabled}>
+      {children}
+    </button>
+  ),
+}))
 
 const prefsHook: jest.Mock<{ prefs: BucketPreferences.Result }> = jest.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
@@ -145,6 +142,42 @@ describe('Toolbar', () => {
   it('should render skeleton buttons when features is null', () => {
     const { container } = render(
       <DirToolbar.Toolbar features={null} handle={handle} onReload={jest.fn()} />,
+    )
+
+    expect(container.firstChild).toMatchSnapshot()
+  })
+
+  it('should all buttons when all features are enabled', () => {
+    const { container } = render(
+      <DirToolbar.Toolbar
+        features={{ add: true, get: { code: true }, organize: true, createPackage: true }}
+        handle={handle}
+        onReload={jest.fn()}
+      />,
+    )
+
+    expect(container.firstChild).toMatchSnapshot()
+  })
+
+  it('should render nothing  when all features are disabled', () => {
+    const { container } = render(
+      <DirToolbar.Toolbar
+        features={{ add: false, get: false, organize: false, createPackage: false }}
+        handle={handle}
+        onReload={jest.fn()}
+      />,
+    )
+
+    expect(container.firstChild).toMatchSnapshot()
+  })
+
+  it('should render buttons for enabled features: add, organize', () => {
+    const { container } = render(
+      <DirToolbar.Toolbar
+        features={{ add: true, get: false, organize: true, createPackage: false }}
+        handle={handle}
+        onReload={jest.fn()}
+      />,
     )
 
     expect(container.firstChild).toMatchSnapshot()
