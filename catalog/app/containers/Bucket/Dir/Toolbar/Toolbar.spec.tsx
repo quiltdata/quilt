@@ -1,10 +1,11 @@
 import * as React from 'react'
+import { render } from '@testing-library/react'
 import { renderHook } from '@testing-library/react-hooks'
 
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { extendDefaults } from 'utils/BucketPreferences/BucketPreferences'
 
-import { useFeatures } from './Toolbar'
+import * as DirToolbar from './Toolbar'
 
 jest.mock(
   'constants/config',
@@ -39,6 +40,7 @@ jest.mock(
   './CreatePackage',
   jest.fn(() => ({
     Options: () => <>"Create package" popover</>,
+    useSuccessors: jest.fn(() => {}),
   })),
 )
 
@@ -48,6 +50,13 @@ jest.mock('containers/Bucket/PackageDialog', () => ({
     render: jest.fn(),
   })),
 }))
+
+jest.mock(
+  'components/Buttons',
+  jest.fn(() => ({
+    Skeleton: () => <i>⌛</i>,
+  })),
+)
 
 const prefsHook: jest.Mock<{ prefs: BucketPreferences.Result }> = jest.fn(() => ({
   prefs: BucketPreferences.Result.Init(),
@@ -68,7 +77,7 @@ describe('useFeatures', () => {
       prefs: BucketPreferences.Result.Pending(),
     }))
 
-    const { result } = renderHook(() => useFeatures())
+    const { result } = renderHook(() => DirToolbar.useFeatures())
 
     expect(result.current).toBeNull()
   })
@@ -91,7 +100,7 @@ describe('useFeatures', () => {
       ),
     }))
 
-    const { result } = renderHook(() => useFeatures())
+    const { result } = renderHook(() => DirToolbar.useFeatures())
 
     expect(result.current).toEqual({
       add: false,
@@ -119,7 +128,7 @@ describe('useFeatures', () => {
       ),
     }))
 
-    const { result } = renderHook(() => useFeatures())
+    const { result } = renderHook(() => DirToolbar.useFeatures())
 
     expect(result.current).toEqual({
       add: true,
@@ -127,5 +136,17 @@ describe('useFeatures', () => {
       organize: true,
       createPackage: true,
     })
+  })
+})
+
+const handle = DirToolbar.CreateHandle('test-bucket', 'test/path')
+
+describe('Toolbar', () => {
+  it('should render skeleton buttons when features is null', () => {
+    const { container } = render(
+      <DirToolbar.Toolbar features={null} handle={handle} onReload={jest.fn()} />,
+    )
+
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

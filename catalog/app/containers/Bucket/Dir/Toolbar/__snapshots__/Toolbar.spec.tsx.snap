@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Toolbar should render skeleton buttons when features is null 1`] = `
+<div
+  class="makeStyles-root-1"
+>
+  <i>
+    ⌛
+  </i>
+  <i>
+    ⌛
+  </i>
+  <i>
+    ⌛
+  </i>
+  <i>
+    ⌛
+  </i>
+</div>
+`;
