@@ -7,7 +7,7 @@ import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 import * as Toolbar from 'containers/Bucket/Toolbar'
-import * as PD from 'containers/Bucket/PackageDialog'
+import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog'
 import * as Selection from 'containers/Bucket/Selection'
 
 import * as Add from './Add'
@@ -67,7 +67,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
   const { path, bucket } = handle
 
-  const packageDirectoryDialog = PD.usePackageCreationDialog({
+  const packageDirectoryDialog = usePackageCreationDialog({
     s3Path: path,
     bucket,
     delayHashing: true,
