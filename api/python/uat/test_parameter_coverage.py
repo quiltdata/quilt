@@ -6,12 +6,20 @@ Tests all parameters and parameter combinations.
 
 import os
 import sys
+
 import yaml
-import quilt3
 from test_utils import (
-    setup_logging, load_config, format_result, test_passed, test_failed,
-    reset_test_state, exit_with_test_results
+    exit_with_test_results,
+    format_result,
+    load_config,
+    reset_test_state,
+    setup_logging,
+    test_failed,
+    test_passed,
 )
+
+import quilt3
+
 
 def test_bucket_parameters(config):
     """Test all bucket parameter variations."""

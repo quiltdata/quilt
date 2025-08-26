@@ -3,12 +3,13 @@
 Utility functions for UAT tests.
 """
 
+import logging
 import os
 import sys
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 import yaml
-import logging
 
 # Global test state tracking
 _test_state: Dict[str, int] = {

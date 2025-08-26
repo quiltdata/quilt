@@ -5,8 +5,20 @@ Tests the complete pagination workflow.
 """
 
 import sys
+
+from test_utils import (
+    exit_with_test_results,
+    format_result,
+    load_config,
+    reset_test_state,
+    setup_logging,
+    test_failed,
+    test_passed,
+    validate_result_structure,
+)
+
 import quilt3
-from test_utils import setup_logging, load_config, format_result, test_passed, test_failed, validate_result_structure, reset_test_state, exit_with_test_results
+
 
 def test_pagination_workflow(config):
     """Test complete pagination workflow from start to finish."""

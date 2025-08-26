@@ -4,11 +4,22 @@ Python integration tests for quilt3.search_packages()
 Tests Python-specific functionality and integration patterns.
 """
 
-import sys
 import importlib
+import sys
 import types
+
+from test_utils import (
+    exit_with_test_results,
+    load_config,
+    reset_test_state,
+    setup_logging,
+    test_failed,
+    test_passed,
+    validate_result_structure,
+)
+
 import quilt3
-from test_utils import setup_logging, load_config, test_passed, test_failed, validate_result_structure, reset_test_state, exit_with_test_results
+
 
 def test_import_patterns(config):
     """Test various import patterns for the API."""

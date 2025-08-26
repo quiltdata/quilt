@@ -69,7 +69,11 @@ from .search_packages import (
     SearchPackagesSearchPackagesInvalidInput,
     SearchPackagesSearchPackagesPackagesSearchResultSet,
 )
-from .sso_config_get import SsoConfigGet, SsoConfigGetAdmin, SsoConfigGetAdminSsoConfig
+from .sso_config_get import (
+    SsoConfigGet,
+    SsoConfigGetAdmin,
+    SsoConfigGetAdminSsoConfig,
+)
 from .sso_config_set import (
     SsoConfigSet,
     SsoConfigSetAdmin,
@@ -77,7 +81,10 @@ from .sso_config_set import (
     SsoConfigSetAdminSetSsoConfigOperationError,
     SsoConfigSetAdminSetSsoConfigSsoConfig,
 )
-from .tabulator_get_open_query import TabulatorGetOpenQuery, TabulatorGetOpenQueryAdmin
+from .tabulator_get_open_query import (
+    TabulatorGetOpenQuery,
+    TabulatorGetOpenQueryAdmin,
+)
 from .tabulator_set_open_query import (
     TabulatorSetOpenQuery,
     TabulatorSetOpenQueryAdmin,
@@ -109,7 +116,12 @@ from .users_delete import (
     UsersDeleteAdminUserMutateDeleteOk,
     UsersDeleteAdminUserMutateDeleteOperationError,
 )
-from .users_get import UsersGet, UsersGetAdmin, UsersGetAdminUser, UsersGetAdminUserGet
+from .users_get import (
+    UsersGet,
+    UsersGetAdmin,
+    UsersGetAdminUser,
+    UsersGetAdminUserGet,
+)
 from .users_list import (
     UsersList,
     UsersListAdmin,

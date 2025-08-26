@@ -5,11 +5,20 @@ Tests parameter validation and error conditions.
 """
 
 import sys
-import quilt3
+
 from test_utils import (
-    setup_logging, load_config, test_passed, test_failed, test_warning,
-    print_summary, exit_with_test_results, reset_test_state
+    exit_with_test_results,
+    load_config,
+    print_summary,
+    reset_test_state,
+    setup_logging,
+    test_failed,
+    test_passed,
+    test_warning,
 )
+
+import quilt3
+
 
 def test_parameter_validation_errors(config):
     """Test parameter validation and type checking."""

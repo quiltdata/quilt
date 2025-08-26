@@ -18,13 +18,13 @@ def configure_search_logging(
 ) -> None:
     """
     Configure logging for Quilt3 search operations.
-    
+
     Args:
         level: Logging level (e.g., 'DEBUG', 'INFO', 'WARNING', or logging constants)
         format_string: Custom log format string. If None, uses a default format.
         include_console: Whether to include console logging
         log_file: Optional file path for logging to file
-    
+
     Example:
         >>> import quilt3.search_logging
         >>> # Enable debug logging to console and file
@@ -32,7 +32,7 @@ def configure_search_logging(
         ...     level='DEBUG',
         ...     log_file='search_debug.log'
         ... )
-        >>> 
+        >>>
         >>> # Now search operations will be logged
         >>> import quilt3
         >>> results = quilt3.search_packages("machine learning")
@@ -42,18 +42,21 @@ def configure_search_logging(
         'quilt3._search',
         'quilt3.__init__',
         'quilt3.tests.integration.test_live_search_auth',
-        'quilt3.tests.integration.test_live_search_data', 
+        'quilt3.tests.integration.test_live_search_data',
         'quilt3.tests.integration.test_live_search_performance',
         'quilt3.tests.integration.test_live_search_multi_bucket'
     ]
+
     
     # Default format string
     if format_string is None:
         format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
     
     # Convert string level to logging constant
     if isinstance(level, str):
         level = getattr(logging, level.upper())
+
     
     # Configure handlers
     handlers = []
@@ -63,12 +66,14 @@ def configure_search_logging(
         console_handler.setLevel(level)
         console_handler.setFormatter(logging.Formatter(format_string))
         handlers.append(console_handler)
+
     
     if log_file:
         file_handler = logging.FileHandler(log_file, mode='a')
         file_handler.setLevel(level)
         file_handler.setFormatter(logging.Formatter(format_string))
         handlers.append(file_handler)
+
     
     # Configure each logger
     for logger_name in search_loggers:
@@ -82,6 +87,7 @@ def configure_search_logging(
         # Add new handlers
         for handler in handlers:
             logger.addHandler(handler)
+
         
         # Prevent propagation to root logger to avoid duplicate messages
         logger.propagate = False
@@ -90,13 +96,13 @@ def configure_search_logging(
 def enable_debug_logging(log_file: Optional[str] = None) -> None:
     """
     Enable debug-level logging for search operations.
-    
+
     This is a convenience function that sets up comprehensive debug logging
     with detailed information about search operations.
     
     Args:
         log_file: Optional file path for logging to file
-    
+
     Example:
         >>> import quilt3.search_logging
         >>> quilt3.search_logging.enable_debug_logging('search_debug.log')
@@ -112,7 +118,7 @@ def enable_debug_logging(log_file: Optional[str] = None) -> None:
 def disable_search_logging() -> None:
     """
     Disable all search-related logging.
-    
+
     This function removes all handlers from search loggers and sets them
     to a high level to effectively disable logging.
     
@@ -124,10 +130,11 @@ def disable_search_logging() -> None:
         'quilt3._search',
         'quilt3.__init__',
         'quilt3.tests.integration.test_live_search_auth',
-        'quilt3.tests.integration.test_live_search_data', 
+        'quilt3.tests.integration.test_live_search_data',
         'quilt3.tests.integration.test_live_search_performance',
         'quilt3.tests.integration.test_live_search_multi_bucket'
     ]
+
     
     for logger_name in search_loggers:
         logger = logging.getLogger(logger_name)
@@ -141,7 +148,7 @@ def disable_search_logging() -> None:
 def get_search_logger(name: str) -> logging.Logger:
     """
     Get a properly configured logger for search-related operations.
-    
+
     Args:
         name: Logger name (typically __name__ from the calling module)
     
@@ -180,7 +187,7 @@ def log_search_performance(func):
     
     Example:
         >>> import quilt3.search_logging
-        >>> 
+        >>>
         >>> @quilt3.search_logging.log_search_performance
         ... def my_search_function():
         ...     return quilt3.search_packages("test")
@@ -212,5 +219,5 @@ def log_search_performance(func):
             duration = time.time() - start_time
             logger.error(f"Failed {func.__name__} after {duration:.3f}s: {e}")
             raise
-    
+
     return wrapper

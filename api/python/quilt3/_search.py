@@ -16,18 +16,19 @@ from .exceptions import PackageException
 def _escape_search_string(search_string: Optional[str]) -> Optional[str]:
     """
     Escape quotes and special characters in search strings for GraphQL.
-    
+
     This prevents GraphQL parsing errors when users include quotes in their search terms.
     """
     if search_string is None:
         return None
+
     
     # Escape double quotes and single quotes for GraphQL string literals
     # Replace " with \" and ' with \'
     escaped = search_string.replace('\\', '\\\\')  # Escape backslashes first
-    escaped = escaped.replace('"', '\\"')          # Escape double quotes  
+    escaped = escaped.replace('"', '\\"')          # Escape double quotes
     escaped = escaped.replace("'", "\\'")          # Escape single quotes
-    
+
     return escaped
 
 

@@ -5,8 +5,20 @@ Tests return object structure and properties.
 """
 
 import sys
+
+from test_utils import (
+    exit_with_test_results,
+    load_config,
+    reset_test_state,
+    setup_logging,
+    test_failed,
+    test_passed,
+    validate_hit_structure,
+    validate_result_structure,
+)
+
 import quilt3
-from test_utils import setup_logging, load_config, test_passed, test_failed, validate_result_structure, validate_hit_structure, reset_test_state, exit_with_test_results
+
 
 def test_search_result_structure(config):
     """Test SearchResult object structure."""

@@ -11,8 +11,15 @@ __version__ = Path(Path(__file__).parent, "VERSION").read_text().strip()
 
 from . import admin, hooks
 from ._search import _search_more_packages, _search_packages
-from .api import (config, copy, delete_package, disable_telemetry,
-                  list_package_versions, list_packages, search)
+from .api import (
+    config,
+    copy,
+    delete_package,
+    disable_telemetry,
+    list_package_versions,
+    list_packages,
+    search,
+)
 from .bucket import Bucket
 from .exceptions import PackageException
 from .imports import start_data_package_loader
@@ -93,6 +100,7 @@ def search_packages(
         for key in filter.keys():
             if key not in valid_filter_keys:
                 raise ValueError(f"Invalid filter key '{key}'. Valid keys are: {valid_filter_keys}")
+
             
             # Validate filter operations for each key
             if isinstance(filter[key], dict):
@@ -147,3 +155,4 @@ def search_more_packages(after, size=30):
         raise ValueError("size must be a non-negative integer")
 
     return _search_more_packages(after=after, size=size)
+
