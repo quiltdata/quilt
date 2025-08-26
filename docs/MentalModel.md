@@ -50,17 +50,16 @@ Every package consists of:
 ```python
 import quilt3
 
-# Load a package
-pkg = quilt3.Package.browse("myteam/customer-data")
-
-# Access files by logical name
-customers = pkg["customers.csv"]()          # Returns pandas DataFrame
-readme = pkg["README.md"]()                 # Returns text content
-metadata = pkg.get_meta()                   # Returns package metadata
+# Load a package (using public example)
+pkg = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
 
 # Package info
 print(f"Package hash: {pkg.top_hash}")     # Unique version identifier
 print(f"Files: {len(pkg)}")                # Number of files in package
+
+# List available files
+for key in pkg:
+    print(f"File: {key}")
 ```
 
 ## 🗂️ The Manifest System
@@ -124,6 +123,8 @@ A **registry** is where Quilt stores package manifests and optionally the data i
 ### Registry Examples
 
 ```python
+import quilt3
+
 # Different registry types
 local_packages = quilt3.list_packages()                    # Local registry
 cloud_packages = quilt3.list_packages("s3://my-bucket")   # S3 registry
@@ -177,6 +178,7 @@ graph LR
 
 ### Package Promotion Workflow
 
+<!-- pytest-codeblocks:skip -->
 ```python
 # Promote a package through environments
 import quilt3
@@ -214,17 +216,17 @@ prod_pkg.push("myteam/dataset", registry="s3://company-prod")
 # Working with package versions
 import quilt3
 
-# Get latest version
-latest = quilt3.Package.browse("myteam/dataset")
+# Get latest version (using public example)
+latest = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
 print(f"Latest hash: {latest.top_hash}")
 
 # Get specific version
-specific = quilt3.Package.browse("myteam/dataset", top_hash="a1b2c3d4...")
-print(f"Specific version from last month")
+specific = quilt3.Package.browse("examples/hurdat", "s3://quilt-example", top_hash=latest.top_hash)
+print(f"Specific version")
 
 # Compare versions
-if latest.top_hash != specific.top_hash:
-    print("Package has been updated since last month")
+if latest.top_hash == specific.top_hash:
+    print("Same version")
 ```
 
 ## 🎯 Practical Mental Model

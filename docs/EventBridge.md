@@ -242,6 +242,7 @@ Perform initial bucket indexing:
 
 Test that events are flowing correctly:
 
+<!-- pytest-codeblocks:skip -->
 ```bash
 # Upload a test file
 aws s3 cp test.txt s3://your-bucket-name/test.txt
@@ -272,9 +273,10 @@ aws sns get-topic-attributes --topic-arn YOUR_SNS_TOPIC_ARN
 
 **Troubleshooting Steps:**
 1. **Check EventBridge Rule Status**
-   ```bash
-   aws events describe-rule --name quilt-s3-events-rule
-   ```
+   <!-- pytest-codeblocks:skip -->
+```bash
+aws events describe-rule --name quilt-s3-events-rule
+```
    - Ensure `State` is `ENABLED`
 
 2. **Verify CloudTrail is Logging S3 Events**
@@ -333,6 +335,7 @@ Ensure EventBridge has permission to publish to SNS:
 - **Batch Processing**: Consider batching for high-volume buckets
 
 #### Cost Optimization
+<!-- pytest-codeblocks:skip -->
 ```bash
 # Monitor EventBridge usage
 aws events describe-rule --name quilt-s3-events-rule --query 'EventPattern'
