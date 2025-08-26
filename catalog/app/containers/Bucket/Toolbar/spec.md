@@ -2,7 +2,7 @@
 
 ## Directory Structure
 
-```
+```sh
 Bucket/
 ├── {Dir, File, Package}/
 │   └── Toolbar/
@@ -28,6 +28,7 @@ Bucket/
 ## Module Structure
 
 Each toolbar module consists of:
+
 - **Button** (`Toolbar/[ModuleName].tsx`) - Shared UI component
 - **Context** (`{Dir,File}/Toolbar/[ModuleName]/Context.tsx`) - Business logic (optional)
 - **Options** (`{Dir,File}/Toolbar/[ModuleName]/Options.tsx`) - Menu content
@@ -37,13 +38,15 @@ Each toolbar module consists of:
 To add a new toolbar module (e.g., "Share"):
 
 ### 1. Create Module Structure
-```
+
+```sh
 Bucket/Dir/Toolbar/Share/
 ├── Context.tsx  # If complex logic needed
 └── Options.tsx  # Menu content
 ```
 
 ### 2. Create Shared Button
+
 ```typescript
 // Bucket/Toolbar/Share.tsx
 import * as React from 'react'
@@ -56,16 +59,15 @@ interface ButtonProps {
   label?: string
 }
 
-export default function Button({ children, label = "Share", ...props }: ButtonProps) {
+export default function Button({ label = "Share", ...props }: ButtonProps) {
   return (
-    <Buttons.WithPopover icon={IconShareOutlined} label={label} {...props}>
-      {children}
-    </Buttons.WithPopover>
+    <Buttons.WithPopover icon={IconShareOutlined} label={label} {...props} />
   )
 }
 ```
 
 ### 3. Implement Context (if needed)
+
 ```typescript
 // Share/Context.tsx
 import invariant from 'invariant'
@@ -92,14 +94,14 @@ export function Provider({ children, handle }: ProviderProps) {
   const doSome = React.useCallback(() => {
     // Logic here
   }, [])
-  
+
   const actions = React.useMemo(
     (): ShareActions => ({
       doSome,
     }),
     [doSome],
   )
-  
+
   return (
     <Context.Provider value={actions}>
       {children}
@@ -109,6 +111,7 @@ export function Provider({ children, handle }: ProviderProps) {
 ```
 
 ### 4. Implement Options
+
 ```typescript
 // Share/Options.tsx
 import * as React from 'react'
@@ -121,7 +124,7 @@ const LIST_ITEM_TYPOGRAPHY_PROPS = { noWrap: true }
 
 export default function Options() {
   const { doSome } = Context.use()
-  
+
   return (
     <M.List dense>
       <M.ListItem button onClick={doSome}>
@@ -137,6 +140,7 @@ export default function Options() {
 ```
 
 ### 5. Add to Features Type
+
 ```typescript
 // In Toolbar component
 interface Features {
@@ -144,23 +148,27 @@ interface Features {
   get: false | { code: boolean } | null
   organize: boolean | null
   createPackage: boolean | null
-  share: boolean | null  // New feature
+  share: boolean | null // New feature
 }
 
 // In useFeatures hook
 export function useFeatures(): Features | null {
   const { prefs } = BucketPreferences.use()
-  return BucketPreferences.Result.match({
-    Ok: ({ ui: { actions, blocks } }) => ({
-      // ...existing features
-      share: actions.shareObject,  // Map to permission
-    }),
-    _: () => null,
-  }, prefs)
+  return BucketPreferences.Result.match(
+    {
+      Ok: ({ ui: { actions, blocks } }) => ({
+        // ...existing features
+        share: actions.shareObject, // Map to permission
+      }),
+      _: () => null,
+    },
+    prefs,
+  )
 }
 ```
 
 ### 6. Use in Toolbar Component
+
 ```typescript
 // In Dir/Toolbar/Toolbar.tsx
 import * as Share from './Share'
@@ -176,6 +184,7 @@ import * as Share from './Share'
 ```
 
 ### 7. Export from Toolbar
+
 ```typescript
 // Bucket/Toolbar/index.ts
 export { default as Share } from './Share'
@@ -184,6 +193,7 @@ export { default as Share } from './Share'
 ## Usage Examples
 
 ### Simple Module (without Context)
+
 ```typescript
 // Get/Options.tsx - No Context needed
 export default function Options({ handle, hideCode }: OptionsProps) {
@@ -199,6 +209,7 @@ export default function Options({ handle, hideCode }: OptionsProps) {
 ```
 
 ### Complex Module (with Context)
+
 ```typescript
 // Usage
 <Organize.Context.Provider onReload={onReload}>

@@ -10,10 +10,6 @@ interface ButtonProps {
   label?: string
 }
 
-export default function Button({ children, label = 'Add files', ...props }: ButtonProps) {
-  return (
-    <Buttons.WithPopover icon={IconAddOutlined} label={label} {...props}>
-      {children}
-    </Buttons.WithPopover>
-  )
+export default function Button({ label = 'Add files', ...props }: ButtonProps) {
+  return <Buttons.WithPopover icon={IconAddOutlined} label={label} {...props} />
 }
