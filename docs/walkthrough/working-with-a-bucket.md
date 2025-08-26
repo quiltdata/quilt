@@ -1,17 +1,45 @@
 <!-- markdownlint-disable -->
-Quilt allows you to create, read, and write packages both on your local filesystem and on S3 buckets configured to work with Quilt3. For convenience, we provide a simple API for working with S3 buckets that serves as an alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
+# Working with S3 Buckets in Quilt
 
-## Connecting to a bucket
+This comprehensive guide covers advanced S3 bucket operations, security best practices, and performance optimization techniques. Learn to efficiently manage data at scale while maintaining security and compliance standards.
 
-To connect to an S3 `Bucket`:
+## 📋 Table of Contents
 
+- [Bucket Fundamentals](#bucket-fundamentals)
+- [Connection and Authentication](#connection-and-authentication)
+- [Basic Bucket Operations](#basic-bucket-operations)
+- [Advanced Data Operations](#advanced-data-operations)
+- [Security and Access Control](#security-and-access-control)
+- [Performance Optimization](#performance-optimization)
+- [Monitoring and Logging](#monitoring-and-logging)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+
+## 🪣 Bucket Fundamentals
+
+Quilt provides a simplified API for S3 bucket operations that serves as an enterprise-ready alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html). This abstraction layer adds Quilt-specific functionality while maintaining full S3 compatibility.
+
+## 🔐 Connection and Authentication
+
+### Basic Bucket Connection
+
+Connect to S3 buckets with Quilt's enhanced API:
 
 ```python
 import quilt3
-b = quilt3.Bucket("s3://quilt-example")
+
+# Connect to a public bucket
+bucket = quilt3.Bucket("s3://quilt-example")
+
+# Connect to a private bucket (requires authentication)
+private_bucket = quilt3.Bucket("s3://my-company-bucket")
+
+print(f"✅ Connected to bucket: {bucket}")
 ```
 
-This requires that the bucket is configured to work with Quilt 3. Unless this bucket is public, you will also first need to log into the catalog that controls this bucket:
+### Authentication Setup
+
+For private buckets, configure authentication first:
 
 <!--pytest.mark.skip-->
 ```python
