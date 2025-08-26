@@ -494,8 +494,8 @@ schema:
 
 source:
   type: quilt-packages
-  package_name: "(?P<dataset>.*)/data"
-  logical_key: "results/(?P<experiment>.*)\\.csv"
+  package_name: '(?P<dataset>.*)/data'
+  logical_key: 'results/(?P<experiment>.*)\\.csv'
 
 parser:
   format: csv
