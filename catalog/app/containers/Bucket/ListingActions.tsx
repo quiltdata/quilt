@@ -76,7 +76,7 @@ function Delete({
   const confirm = useConfirm({
     title: 'Delete object?',
     submitTitle: 'Delete',
-    onSubmit,
+    onSubmit: (confirmed: boolean) => (confirmed ? onSubmit() : Promise.resolve()),
   })
 
   return (

@@ -87,7 +87,7 @@ export function OrganizeFileProvider({
   const deleteConfirm = useConfirm({
     title: 'Delete object?',
     submitTitle: 'Delete',
-    onSubmit: handleDelete,
+    onSubmit: (confirmed: boolean) => (confirmed ? handleDelete() : Promise.resolve()),
   })
 
   const confirmDelete = React.useCallback(() => {
