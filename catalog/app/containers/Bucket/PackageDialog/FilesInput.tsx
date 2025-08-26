@@ -712,14 +712,16 @@ function File({
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
       <div className={classes.actions}>
-        <EditFileMeta
-          disabled={metaDisabled}
-          key={metaKey}
-          name={name}
-          onChange={onMeta}
-          state={stateDisplay}
-          value={meta}
-        />
+        {onMeta && (
+          <EditFileMeta
+            disabled={metaDisabled}
+            key={metaKey}
+            name={name}
+            onChange={onMeta}
+            state={stateDisplay}
+            value={meta}
+          />
+        )}
         {action}
       </div>
     </div>
@@ -1180,6 +1182,7 @@ type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
   prefix?: string
   disableStateDisplay?: boolean
   dispatch: DispatchFilesAction
+  noMeta: boolean
 }
 
 function FileUpload({
@@ -1191,6 +1194,7 @@ function FileUpload({
   disableStateDisplay,
   dispatch,
   meta,
+  noMeta,
 }: FileUploadProps) {
   const path = (prefix || '') + name
 
@@ -1279,7 +1283,7 @@ function FileUpload({
       size={size}
       meta={meta}
       metaDisabled={state === 'deleted'}
-      onMeta={onMeta}
+      onMeta={noMeta ? undefined : onMeta}
       action={
         <M.IconButton
           color="inherit"
@@ -1299,6 +1303,7 @@ type DirUploadProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
   dispatch: DispatchFilesAction
   delayHashing: boolean
   disableStateDisplay?: boolean
+  noMeta: boolean
 }
 
 function DirUpload({
@@ -1309,6 +1314,7 @@ function DirUpload({
   dispatch,
   delayHashing,
   disableStateDisplay,
+  noMeta,
 }: DirUploadProps) {
   const [expanded, setExpanded] = React.useState(!childEntries.length)
 
@@ -1443,6 +1449,7 @@ function DirUpload({
                 dispatch={dispatch}
                 delayHashing={delayHashing}
                 disableStateDisplay={disableStateDisplay}
+                noMeta={noMeta}
               />
             ),
             File: (ps) => (
@@ -1452,6 +1459,7 @@ function DirUpload({
                 prefix={path}
                 dispatch={dispatch}
                 disableStateDisplay={disableStateDisplay}
+                noMeta={noMeta}
               />
             ),
           }),
@@ -1611,6 +1619,7 @@ interface FilesInputProps {
     reset?: React.ReactNode
   }
   validationErrors: PD.EntriesValidationErrors | null
+  noMeta?: boolean
 }
 
 export function FilesInput({
@@ -1626,6 +1635,7 @@ export function FilesInput({
   disableStateDisplay = false,
   ui = {},
   validationErrors,
+  noMeta = false, // FIXME: handle S3 meta upload, `s3.upload` supports that
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1740,6 +1750,7 @@ export function FilesInput({
                       dispatch={dispatch}
                       delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
+                      noMeta={noMeta}
                     />
                   ),
                   File: (ps) => (
@@ -1748,6 +1759,7 @@ export function FilesInput({
                       key={`file:${ps.name}`}
                       dispatch={dispatch}
                       disableStateDisplay={disableStateDisplay}
+                      noMeta={noMeta}
                     />
                   ),
                 }),

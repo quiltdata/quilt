@@ -145,6 +145,7 @@ export default function UploadDialog({
             title="Upload files"
             totalProgress={progress}
             validationErrors={null}
+            noMeta
           />
         )}
       </M.DialogContent>
