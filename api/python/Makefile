@@ -83,27 +83,24 @@ gendocs: gendocs-deps
 
 # CI-identical targets using Docker (exact match to GitHub Actions)
 lint-ci:
-	@echo "Running CI-identical linting (pylint==3.2.7, full repository scan)..."
+	@echo "Running CI-identical linting (pylint==3.2.7, from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
-		cd api/python && \
 		pylint . && \
-		pycodestyle \$$(find . -name '*.py' -not -path './venv/*')"
+		pycodestyle \$$(find -name '*.py' -not -path './venv/*')"
 
 isort-ci:
-	@echo "Running CI-identical isort check (--check --diff on full repository)..."
+	@echo "Running CI-identical isort check (--check --diff from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
-		cd api/python && \
 		isort --check --diff ."
 
 test-ci:
-	@echo "Running CI-identical tests with coverage..."
+	@echo "Running CI-identical tests with coverage (from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
-		cd api/python && \
-		python -m pip install -e .[tests] && \
-		pytest --cov=. ."
+		python -m pip install -e api/python[tests] && \
+		pytest --cov=api/python api/python"
 
 gendocs-ci:
 	@echo "Running CI-identical documentation generation (Python 3.9)..."

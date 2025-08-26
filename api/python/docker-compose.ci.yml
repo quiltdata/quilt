@@ -1,45 +1,45 @@
 version: '3.8'
 
 services:
-  # CI-identical Python linting (matches py-ci.yml linter job)
+  # CI-identical Python linting (matches py-ci.yml linter job - runs from repo root)
   lint:
     build:
       context: ../..
       dockerfile: api/python/docker/ci-python.Dockerfile
     volumes:
       - ../..:/workspace
-    working_dir: /workspace/api/python
+    working_dir: /workspace
     environment:
       - QUILT_DISABLE_USAGE_METRICS=true
     command: >
       sh -c "pylint . &&
-             pycodestyle \$$(find . -name '*.py' -not -path './venv/*')"
+             pycodestyle \$$(find -name '*.py' -not -path './venv/*')"
 
-  # CI-identical isort checking (matches py-ci.yml isort job)  
+  # CI-identical isort checking (matches py-ci.yml isort job - runs from repo root)  
   isort:
     build:
       context: ../..  
       dockerfile: api/python/docker/ci-python.Dockerfile
     volumes:
       - ../..:/workspace
-    working_dir: /workspace/api/python
+    working_dir: /workspace
     environment:
       - QUILT_DISABLE_USAGE_METRICS=true
     command: isort --check --diff .
 
-  # CI-identical testing (matches py-ci.yml test-client job)
+  # CI-identical testing (matches py-ci.yml test-client job - runs from repo root)
   test:
     build:
       context: ../..
       dockerfile: api/python/docker/ci-python.Dockerfile
     volumes:
       - ../..:/workspace
-    working_dir: /workspace/api/python
+    working_dir: /workspace
     environment:
       - QUILT_DISABLE_USAGE_METRICS=true
     command: >
-      sh -c "python -m pip install -e .[tests] &&
-             pytest --cov=. ."
+      sh -c "python -m pip install -e api/python[tests] &&
+             pytest --cov=api/python api/python"
 
   # CI-identical documentation generation (matches py-ci.yml test-gendocs job)
   gendocs:

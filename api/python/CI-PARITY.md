@@ -64,7 +64,8 @@ docker-compose -f docker-compose.ci.yml up    # Run all services
 |--------|------------------|-------------------|
 | **Python Version** | System default | 3.11 (lint/test), 3.9 (gendocs) |
 | **Tool Versions** | Latest (`--upgrade`) | Pinned (pylint==3.2.7) |
-| **Scope** | Changed files only | Full repository |
+| **Scope** | Changed files only | Repository root (like CI) |
+| **Working Directory** | api/python | Repository root (like CI) |
 | **Environment** | Host system | Containerized with exact CI env |
 | **Memory Limits** | None | 4GB for markdownlint (matches CI) |
 | **Dependencies** | Host-installed | Container-isolated |
