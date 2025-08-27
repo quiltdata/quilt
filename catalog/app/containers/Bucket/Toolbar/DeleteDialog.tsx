@@ -96,15 +96,14 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
     setSubmitting(false)
   }, [s3, resolvedObjects])
 
+  const title = React.useMemo(() => {
+    if (!isComplete) return 'Delete objects?'
+    return hasErrors ? 'Some files could not be deleted' : 'Files deleted successfully'
+  }, [isComplete, hasErrors])
+
   return (
     <>
-      <M.DialogTitle>
-        {isComplete
-          ? hasErrors
-            ? 'Some files could not be deleted'
-            : 'Files deleted successfully'
-          : 'Delete objects?'}
-      </M.DialogTitle>
+      <M.DialogTitle>{title}</M.DialogTitle>
       <M.DialogContent>
         {resolvedObjects ? (
           <M.List dense disablePadding>
