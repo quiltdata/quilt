@@ -11,6 +11,7 @@ import type * as Toolbar from './Toolbar'
 const useStyles = M.makeStyles((t) => ({
   wrapper: {
     position: 'relative',
+    overflow: 'hidden',
   },
   overlay: {
     alignItems: 'center',
