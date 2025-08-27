@@ -59,16 +59,16 @@ lint:
 	@echo "Fixing and checking code (CI-identical environment)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
-		isort . && \
-		autopep8 --in-place --recursive . --exclude=./venv,./catalog/node_modules && \
-		pylint . && \
-		pycodestyle \$$(find -name '*.py' -not -path './venv/*' -not -path './catalog/node_modules/*')"
+		isort . --skip-glob='./lambdas/*' && \
+		autopep8 --in-place --recursive . --exclude=./venv,./catalog/node_modules,./lambdas && \
+		pylint . --ignore=lambdas && \
+		pycodestyle \$$(find -name '*.py' -not -path './venv/*' -not -path './catalog/node_modules/*' -not -path './lambdas/*')"
 
 isort:
 	@echo "Fixing import sorting (from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
-		isort ."
+		isort . --skip-glob='./lambdas/*'"
 
 test-full:
 	@echo "Running tests with coverage (from repository root like CI)..."
