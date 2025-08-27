@@ -74,6 +74,7 @@ Before starting, ensure you have:
 
 Create an SNS topic in the **same region** as your S3 bucket:
 
+<!-- pytest-codeblocks:skip -->
 ```bash
 # Using AWS CLI
 aws sns create-topic \
