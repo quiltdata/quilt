@@ -16,8 +16,8 @@ export interface OrganizeFileActions {
   toggleBookmark: () => void
   isBookmarked: boolean
 
-  editFile: () => void
-  canEdit: boolean
+  editFile: (type: FileEditor.EditorInputType) => void
+  editTypes: FileEditor.EditorInputType[]
 
   confirmDelete: () => void
 
@@ -63,15 +63,12 @@ export function OrganizeFileProvider({
     bookmarks.toggle('main', handle)
   }, [bookmarks, handle])
 
-  const canEdit = React.useMemo(
-    () => FileEditor.isSupportedFileType(handle.key),
-    [handle.key],
+  const editFile = React.useCallback(
+    (type: FileEditor.EditorInputType) => {
+      editorState.onEdit(type)
+    },
+    [editorState],
   )
-
-  const editFile = React.useCallback(() => {
-    if (!canEdit) return
-    editorState.onEdit(editorState.types[0])
-  }, [canEdit, editorState])
 
   const handleDelete = React.useCallback(async () => {
     try {
@@ -99,11 +96,11 @@ export function OrganizeFileProvider({
       toggleBookmark,
       isBookmarked,
       editFile,
-      canEdit,
+      editTypes: editorState.types,
       confirmDelete,
       handle,
     }),
-    [toggleBookmark, isBookmarked, editFile, canEdit, confirmDelete, handle],
+    [editorState.types, toggleBookmark, isBookmarked, editFile, confirmDelete, handle],
   )
 
   return (

@@ -5,8 +5,9 @@ import {
   TurnedInNotOutlined as IconTurnedInNotOutlined,
   TurnedInOutlined as IconTurnedInOutlined,
   DeleteOutlined as IconDeleteOutlined,
-  EditOutlined as IconEditOutlined,
   CheckOutlined as IconCheckOutlined,
+  AssignmentOutlined as IconAssignmentOutlined,
+  SubjectOutlined as IconSubjectOutlined,
 } from '@material-ui/icons'
 
 import { viewModeToSelectOption } from 'containers/Bucket/viewModes'
@@ -74,9 +75,9 @@ interface BucketFileOptionsProps {
 export default function BucketFileOptions({ viewModes }: BucketFileOptionsProps) {
   const classes = useStyles()
   const {
-    canEdit,
     confirmDelete,
     editFile,
+    editTypes,
     handle: { bucket, key, version },
     isBookmarked,
     toggleBookmark,
@@ -102,11 +103,17 @@ export default function BucketFileOptions({ viewModes }: BucketFileOptionsProps)
         </M.List>
       )}
 
-      {canEdit && (
+      {editTypes.length && (
         <M.List dense className={classes.subList}>
-          <MenuItem icon={<IconEditOutlined />} onClick={editFile}>
-            Edit text content
-          </MenuItem>
+          {editTypes.map((t) => (
+            <MenuItem
+              key={t.brace}
+              icon={t.title ? <IconAssignmentOutlined /> : <IconSubjectOutlined />}
+              onClick={() => editFile(t)}
+            >
+              {t.title || 'Edit text content'}
+            </MenuItem>
+          ))}
         </M.List>
       )}
 
