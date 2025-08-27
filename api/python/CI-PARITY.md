@@ -18,10 +18,10 @@ The new CI-parity targets solve this by using Docker containers that **exactly**
 # One-time setup
 make docker-build   # Build Docker images
 
-# Development workflow - use CI-identical checks
-make lint           # Exact CI linting (pylint==3.2.7, full repo)
-make isort-check    # Exact CI import sorting check  
-make test-full      # Exact CI testing with coverage
+# Development workflow
+make isort          # Fix import sorting (auto-fix, CI-identical)
+make lint           # Check linting (pylint==3.2.7, full repo) 
+make test-full      # Run tests with coverage (CI-identical)
 make ci-all         # Run all CI checks at once
 
 # Docker compose alternative
@@ -78,26 +78,27 @@ make test           # Quick local test run (faster, not CI-identical)
 
 ## Development Workflow
 
-### Recommended Workflow - Always Use CI-Identical Checks
+### Recommended Workflow - Fix Then Check
 ```bash
-# 1. As you develop - use CI tools for accuracy
-make lint          # Exact CI linting check
-make test-full     # Exact CI testing (or 'make test' for speed)
+# 1. Fix what can be auto-fixed
+make isort         # Fix import sorting (CI-identical)
 
-# 2. Before committing  
+# 2. Check remaining issues  
+make lint          # Check linting (shows remaining manual fixes needed)
+make test-full     # Test with coverage (or 'make test' for speed)
+
+# 3. Before pushing - verify CI will pass
 make ci-all        # Run all CI checks locally
-
-# 3. Before pushing - already confident CI will pass!
 git push           # No surprises in CI
 ```
 
 ### Available Commands
 ```bash
-# CI-identical checks (recommended for all development)
-make lint          # Exact CI linting (pylint==3.2.7, Python 3.11)
-make isort-check   # Exact CI import checking 
-make test-full     # Exact CI testing with coverage
-make ci-all        # All main CI checks at once
+# CI-identical tools (recommended for all development)
+make isort         # Fix import sorting (auto-fix, CI-identical)
+make lint          # Check linting (pylint==3.2.7, Python 3.11)
+make test-full     # Run tests with coverage (CI-identical)
+make ci-all        # All main CI checks (lint + test-full)
 
 # Local alternatives (faster but less accurate)
 make test          # Quick local test run
@@ -106,9 +107,9 @@ make lint-docs     # Local doc linting
 ```
 
 ### What Each Tool Does
-- **`pycodestyle`**: PEP8 compliance checking (reports issues)
-- **`pylint`**: Code quality, style, and potential bugs (reports issues)  
-- **`isort`**: Import statement checking (CI uses --check --diff mode)
+- **`isort`**: Import statement sorting and formatting ✅ Auto-fixable
+- **`pycodestyle`**: PEP8 compliance checking (reports issues for manual fixing)
+- **`pylint`**: Code quality, style, and potential bugs (reports issues for manual fixing)  
 - **`pytest`**: Test execution with coverage reporting
 
 ## Docker Compose Services

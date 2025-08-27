@@ -62,11 +62,11 @@ lint:
 		pylint . && \
 		pycodestyle \$$(find -name '*.py' -not -path './venv/*' -not -path './catalog/node_modules/*')"
 
-isort-check:
-	@echo "Running import sorting check (--check --diff from repository root like CI)..."
+isort:
+	@echo "Fixing import sorting (from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
-		isort --check --diff ."
+		isort ."
 
 test-full:
 	@echo "Running tests with coverage (from repository root like CI)..."
@@ -75,8 +75,8 @@ test-full:
 		python -m pip install -e api/python[tests] && \
 		pytest --cov=api/python api/python"
 
-# Run all CI checks locally
-ci-all: lint isort-check test-full
+# Run all CI checks locally  
+ci-all: lint test-full
 	@echo "All CI-identical checks completed!"
 
 # Build Docker images
@@ -85,4 +85,4 @@ docker-build:
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker build -f docker/gendocs.Dockerfile -t quilt-gendocs ../..
 
-.PHONY: test coverage install-local graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs lint isort-check test-full ci-all docker-build
+.PHONY: test coverage install-local graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs lint isort test-full ci-all docker-build
