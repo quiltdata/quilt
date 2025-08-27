@@ -7,7 +7,10 @@ import DeleteDialog from 'containers/Bucket/Toolbar/DeleteDialog'
 import * as Dialogs from 'utils/Dialogs'
 
 export interface OrganizeDirActions {
-  addSelectedToBookmarks: () => void
+  addToBookmarks: () => void
+  removeFromBookmarks: () => void
+  toggleBookmarks: () => void
+  bookmarkStatus: 'none' | 'partial' | 'all'
 
   openSelectionPopup: () => void
   clearSelection: () => void
@@ -37,14 +40,38 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
   const dialogs = Dialogs.use()
   const slt = Selection.use()
 
-  const addSelectedToBookmarks = React.useCallback(() => {
-    if (!bookmarks || slt.isEmpty) return
-    bookmarks.append('main', Selection.toHandlesList(slt.selection))
-  }, [bookmarks, slt.isEmpty, slt.selection])
+  const handles = React.useMemo(
+    () => Selection.toHandlesList(slt.selection),
+    [slt.selection],
+  )
 
-  // const handles =  Selection.toHandlesList(slt.selection)
-  // TODO: is everything is bookmarked on the same level of directory hierarchy
-  // const isBookmarked = bookmarks.isBookmarked('main', handle)
+  const bookmarkStatus = React.useMemo(() => {
+    if (!bookmarks || slt.isEmpty) return 'none'
+    const bookmarkedCount = handles.filter((handle) =>
+      bookmarks.isBookmarked('main', handle),
+    ).length
+    if (bookmarkedCount === 0) return 'none'
+    if (bookmarkedCount === handles.length) return 'all'
+    return 'partial'
+  }, [bookmarks, slt.isEmpty, handles])
+
+  const addToBookmarks = React.useCallback(() => {
+    if (!bookmarks || slt.isEmpty) return
+    bookmarks.append('main', handles)
+  }, [bookmarks, slt.isEmpty, handles])
+
+  const removeFromBookmarks = React.useCallback(() => {
+    if (!bookmarks || slt.isEmpty) return
+    bookmarks.remove('main', handles)
+  }, [bookmarks, slt.isEmpty, handles])
+
+  const toggleBookmarks = React.useCallback(() => {
+    if (bookmarkStatus === 'all') {
+      removeFromBookmarks()
+    } else {
+      addToBookmarks()
+    }
+  }, [bookmarkStatus, addToBookmarks, removeFromBookmarks])
 
   const openSelectionPopup = React.useCallback(() => {
     dialogs.open(({ close }) => <Selection.Popup close={close} />)
@@ -57,8 +84,6 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
   const confirmDeleteSelected = React.useCallback(async () => {
     if (slt.isEmpty) return
 
-    const handles = Selection.toHandlesList(slt.selection)
-
     dialogs.open(({ close }) => (
       <DeleteDialog
         onComplete={() => {
@@ -69,20 +94,26 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
         handles={handles}
       />
     ))
-  }, [dialogs, onReload, slt])
+  }, [dialogs, onReload, slt, handles])
 
   const selectionCount = slt.totalCount
 
   const actions = React.useMemo(
     (): OrganizeDirActions => ({
-      addSelectedToBookmarks,
+      addToBookmarks,
+      removeFromBookmarks,
+      toggleBookmarks,
+      bookmarkStatus,
       openSelectionPopup,
       clearSelection,
       confirmDeleteSelected,
       selectionCount,
     }),
     [
-      addSelectedToBookmarks,
+      addToBookmarks,
+      removeFromBookmarks,
+      toggleBookmarks,
+      bookmarkStatus,
       openSelectionPopup,
       clearSelection,
       confirmDeleteSelected,
