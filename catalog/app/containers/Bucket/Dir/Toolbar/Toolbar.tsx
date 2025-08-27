@@ -125,7 +125,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
         {features.organize && (
           <Organize.Context.Provider onReload={onReload}>
-            <Toolbar.Organize onReload={onReload}>
+            <Toolbar.Organize>
               <Organize.Options />
             </Toolbar.Organize>
           </Organize.Context.Provider>

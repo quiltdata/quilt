@@ -99,7 +99,7 @@ export function FileToolbar({
             handle={handle}
             onReload={onReload}
           >
-            <Toolbar.Organize onReload={onReload}>
+            <Toolbar.Organize>
               <Organize.Options viewModes={viewModes} />
             </Toolbar.Organize>
           </Organize.Context.Provider>

@@ -24,7 +24,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface ToolbarErrorBoundaryPlaceholderProps {
   error: Error
-  info: any
+  info: $TSFixMe
   reset: () => void
 }
 
@@ -54,7 +54,7 @@ function ToolbarErrorBoundaryPlaceholder({
 
 const ToolbarErrorBoundary = createBoundary(
   (_: unknown, { reset }: { reset: () => void }) =>
-    (error: Error, info: any) => (
+    (error: Error, info: $TSFixMe) => (
       <ToolbarErrorBoundaryPlaceholder error={error} info={info} reset={reset} />
     ),
 )

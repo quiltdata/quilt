@@ -82,7 +82,6 @@ export default function BucketFileOptions({ viewModes }: BucketFileOptionsProps)
     isBookmarked,
     toggleBookmark,
   } = Context.use()
-  const bookmarks = Context.use()
   const { urls } = NamedRoutes.use()
 
   const viewModesOptions = React.useMemo(
@@ -92,16 +91,14 @@ export default function BucketFileOptions({ viewModes }: BucketFileOptionsProps)
 
   return (
     <>
-      {bookmarks && (
-        <M.List dense className={classes.subList}>
-          <MenuItem
-            icon={isBookmarked ? <IconTurnedInOutlined /> : <IconTurnedInNotOutlined />}
-            onClick={toggleBookmark}
-          >
-            {isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
-          </MenuItem>
-        </M.List>
-      )}
+      <M.List dense className={classes.subList}>
+        <MenuItem
+          icon={isBookmarked ? <IconTurnedInOutlined /> : <IconTurnedInNotOutlined />}
+          onClick={toggleBookmark}
+        >
+          {isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+        </MenuItem>
+      </M.List>
 
       {editTypes.length && (
         <M.List dense className={classes.subList}>

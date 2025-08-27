@@ -15,10 +15,9 @@ const useBadgeClasses = M.makeStyles({
 interface ButtonProps {
   children: NonNullable<React.ReactNode>
   className?: string
-  onReload: () => void
 }
 
-export default function Button({ onReload, ...props }: ButtonProps) {
+export default function Button(props: ButtonProps) {
   const slt = useSelection()
   const classes = useBadgeClasses()
   return (
