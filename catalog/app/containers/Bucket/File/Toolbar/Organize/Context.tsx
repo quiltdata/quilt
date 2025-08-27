@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as Bookmarks from 'containers/Bookmarks'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
-import DeleteDialog from 'containers/Bucket/Toolbar/DeleteDialog'
+import DeleteDialog, { type DeleteResult } from 'containers/Bucket/Toolbar/DeleteDialog'
 import * as FileEditor from 'components/FileEditor'
 import * as Dialogs from 'utils/Dialogs'
 
@@ -65,9 +65,13 @@ export function OrganizeFileProvider({
   )
 
   const confirmDelete = React.useCallback(async () => {
-    dialogs.open(({ close }) => (
-      <DeleteDialog handles={[handle]} onComplete={onReload} close={close} />
+    const result = await dialogs.open<DeleteResult>(({ close }) => (
+      <DeleteDialog handles={[handle]} close={close} />
     ))
+
+    if (result.deleted) {
+      onReload()
+    }
   }, [dialogs, handle, onReload])
 
   const actions = React.useMemo(

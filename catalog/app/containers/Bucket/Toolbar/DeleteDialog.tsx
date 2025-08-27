@@ -22,13 +22,16 @@ interface ResolvedObject {
   error?: any
 }
 
+export type DeleteResult = {
+  deleted: boolean
+}
+
 export interface DeleteDialogProps {
-  close: () => void
-  onComplete: () => void
+  close: (result: DeleteResult) => void
   handles: Model.S3.S3ObjectLocation[]
 }
 
-export default function DeleteDialog({ close, onComplete, handles }: DeleteDialogProps) {
+export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
   const classes = useDeleteDialogStyles()
   const [submitting, setSubmitting] = React.useState(false)
   const [resolvedObjects, setResolvedObjects] = React.useState<ResolvedObject[] | null>(
@@ -42,6 +45,11 @@ export default function DeleteDialog({ close, onComplete, handles }: DeleteDialo
 
   const isComplete = React.useMemo(
     () => resolvedObjects?.every((obj) => obj.status !== 'pending') ?? false,
+    [resolvedObjects],
+  )
+
+  const hasSuccessfulDeletions = React.useMemo(
+    () => resolvedObjects?.some((obj) => obj.status === 'success') ?? false,
     [resolvedObjects],
   )
 
@@ -82,15 +90,10 @@ export default function DeleteDialog({ close, onComplete, handles }: DeleteDialo
           error: results[index].error,
         })),
       )
-
-      const hasAnySuccess = results.some((result) => result.status === 'success')
-      if (hasAnySuccess) {
-        onComplete()
-      }
     }
 
     setSubmitting(false)
-  }, [s3, onComplete, resolvedObjects])
+  }, [s3, resolvedObjects])
 
   return (
     <>
@@ -131,7 +134,11 @@ export default function DeleteDialog({ close, onComplete, handles }: DeleteDialo
         )}
       </M.DialogContent>
       <M.DialogActions>
-        <M.Button onClick={close} color="primary" variant="outlined">
+        <M.Button
+          onClick={() => close({ deleted: hasSuccessfulDeletions })}
+          color="primary"
+          variant="outlined"
+        >
           {isComplete ? 'Close' : 'Cancel'}
         </M.Button>
         {!isComplete && (

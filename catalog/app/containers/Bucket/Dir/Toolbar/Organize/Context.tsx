@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as Bookmarks from 'containers/Bookmarks'
 import * as Selection from 'containers/Bucket/Selection'
-import DeleteDialog from 'containers/Bucket/Toolbar/DeleteDialog'
+import DeleteDialog, { type DeleteResult } from 'containers/Bucket/Toolbar/DeleteDialog'
 import * as Dialogs from 'utils/Dialogs'
 
 export interface OrganizeDirActions {
@@ -84,16 +84,14 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
   const confirmDeleteSelected = React.useCallback(async () => {
     if (slt.isEmpty) return
 
-    dialogs.open(({ close }) => (
-      <DeleteDialog
-        onComplete={() => {
-          onReload()
-          slt.clear()
-        }}
-        close={close}
-        handles={handles}
-      />
+    const result = await dialogs.open<DeleteResult>(({ close }) => (
+      <DeleteDialog close={close} handles={handles} />
     ))
+
+    if (result.deleted) {
+      onReload()
+      slt.clear()
+    }
   }, [dialogs, onReload, slt, handles])
 
   const selectionCount = slt.totalCount

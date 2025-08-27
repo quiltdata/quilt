@@ -18,7 +18,7 @@ import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
-import DeleteDialog from './Toolbar/DeleteDialog'
+import DeleteDialog, { type DeleteResult } from './Toolbar/DeleteDialog'
 import * as FileView from './FileView'
 
 const useButtonStyles = M.makeStyles({
@@ -57,10 +57,14 @@ function Delete({
   const classes = useButtonStyles()
   const dialogs = Dialogs.use()
 
-  const handleDelete = React.useCallback(() => {
-    dialogs.open(({ close }) => (
-      <DeleteDialog handles={[location]} onComplete={onDelete} close={close} />
+  const handleDelete = React.useCallback(async () => {
+    const result = await dialogs.open<DeleteResult>(({ close }) => (
+      <DeleteDialog handles={[location]} close={close} />
     ))
+
+    if (result.deleted) {
+      onDelete()
+    }
   }, [dialogs, location, onDelete])
 
   return (
