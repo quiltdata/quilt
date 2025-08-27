@@ -19,64 +19,22 @@ lint-deps:
 CHANGED_FILES = $(shell git diff --name-only HEAD master | grep '^api/python.*\.py$$' | sed 's|^api/python/||' | grep -v '^quilt3/_graphql_client/' | grep -v '^quilt3/admin/_graphql_client/' || echo "")
 
 lint: lint-deps
-	@echo "Running lint on changed Python files (with auto-fix)..."
+	@echo "Running lint on changed Python files..."
 	@if [ -z "$(CHANGED_FILES)" ]; then \
 		echo "No changed Python files found."; \
 	else \
 		echo "Changed files: $(CHANGED_FILES)"; \
-		isort $(CHANGED_FILES); \
 		python -m pycodestyle $(CHANGED_FILES) || true; \
 		python -m pylint $(CHANGED_FILES) || true; \
 	fi
 	@echo "Lint complete!"
 
 lint-all: lint-deps
-	@echo "Running lint on all Python files (with auto-fix)..."
-	isort .
+	@echo "Running lint on all Python files..."
 	python -m pycodestyle $$(find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './quilt3/_graphql_client/*') || true
 	python -m pylint . --ignore=quilt3/_graphql_client || true
 	@echo "Lint complete!"
 
-# Auto-fix variants (local development)
-fix-deps:
-	@python -m pip install --upgrade isort autopep8
-
-fix: fix-deps
-	@echo "Auto-fixing changed Python files..."
-	@if [ -z "$(CHANGED_FILES)" ]; then \
-		echo "No changed Python files found."; \
-	else \
-		echo "Changed files: $(CHANGED_FILES)"; \
-		isort $(CHANGED_FILES); \
-		autopep8 --in-place $(CHANGED_FILES); \
-		echo "✓ Import sorting and PEP8 formatting fixed"; \
-		echo "Note: pylint issues may require manual fixes"; \
-	fi
-	@echo "Auto-fix complete!"
-
-fix-all: fix-deps
-	@echo "Auto-fixing all Python files..."
-	isort .
-	autopep8 --in-place --recursive . --exclude=./venv,./quilt3/_graphql_client
-	@echo "✓ Import sorting and PEP8 formatting fixed for all files"
-	@echo "Note: pylint issues may require manual fixes"
-	@echo "Auto-fix complete!"
-
-# Just isort (fastest auto-fix)
-sort: lint-deps
-	@echo "Auto-fixing import sorting on changed files..."
-	@if [ -z "$(CHANGED_FILES)" ]; then \
-		echo "No changed Python files found."; \
-	else \
-		echo "Changed files: $(CHANGED_FILES)"; \
-		isort $(CHANGED_FILES); \
-		echo "✓ Import sorting fixed"; \
-	fi
-
-sort-all: lint-deps  
-	@echo "Auto-fixing import sorting on all files..."
-	isort .
-	@echo "✓ Import sorting fixed for all files"
 
 # GraphQL code generation
 graphql-deps:
@@ -167,4 +125,4 @@ docker-build:
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker build -f docker/gendocs.Dockerfile -t quilt-gendocs ../..
 
-.PHONY: test coverage install-local lint-deps lint lint-all fix-deps fix fix-all sort sort-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs lint-ci isort-ci test-ci gendocs-ci lint-docs-ci ci-all docker-build
+.PHONY: test coverage install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs lint-ci isort-ci test-ci gendocs-ci lint-docs-ci ci-all docker-build

@@ -15,15 +15,10 @@ The new CI-parity targets solve this by using Docker containers that **exactly**
 ## Quick Start
 
 ```bash
-# Fast local development (auto-fix)
-make fix            # Auto-fix changed files (isort + autopep8)
-make sort           # Just fix import sorting (fastest)
-make lint           # Check changed files after fixes
-
-# Full repository auto-fix
-make fix-all        # Auto-fix all files 
-make sort-all       # Fix import sorting for all files
-make lint-all       # Check all files after fixes
+# Fast local development
+make lint           # Check changed files only (fast feedback)
+make lint-all       # Check all files
+make test           # Run tests locally
 
 # CI verification (exact CI reproduction)
 make docker-build   # Build Docker images (one-time setup)
@@ -85,12 +80,10 @@ docker-compose -f docker-compose.ci.yml up    # Run all services
 
 ### Recommended Workflow
 ```bash
-# 1. Auto-fix issues as you code
-make fix           # Fix import sorting + PEP8 on changed files
-make lint          # Check for remaining issues
+# 1. Check code as you develop
+make lint          # Quick check of changed files
 
-# 2. Before committing
-make fix-all       # Ensure all files are properly formatted  
+# 2. Before committing  
 make lint-all      # Check all files for issues
 
 # 3. Before pushing (verify CI will pass)
@@ -99,26 +92,22 @@ make ci-all        # Run exact CI checks locally
 
 ### Quick Commands
 ```bash
-# Fast auto-fixes
-make sort          # Just fix imports (fastest)
-make fix           # Fix imports + PEP8 formatting
-make lint          # Check changed files
-
-# Full repository
-make sort-all      # Fix all import sorting
-make fix-all       # Fix all files (imports + PEP8)
+# Fast development checks
+make lint          # Check changed files only (fast feedback)
 make lint-all      # Check all files
+make test          # Run tests locally
 
 # CI verification  
 make lint-ci       # Exact CI linting check
-make test-ci       # Exact CI testing
+make test-ci       # Exact CI testing with coverage
+make ci-all        # All CI checks
 ```
 
-### What Each Tool Fixes
-- **`isort`**: Import statement ordering and grouping ✅ Auto-fixable
-- **`autopep8`**: PEP8 formatting (spacing, line length, etc.) ✅ Auto-fixable  
-- **`pycodestyle`**: PEP8 compliance checking (reports remaining issues)
-- **`pylint`**: Code quality, style, and potential bugs (manual fixes required)
+### What Each Tool Does
+- **`pycodestyle`**: PEP8 compliance checking (reports issues)
+- **`pylint`**: Code quality, style, and potential bugs (reports issues)  
+- **`isort`**: Import statement checking (CI uses --check --diff mode)
+- **`pytest`**: Test execution with coverage reporting
 
 ## Docker Compose Services
 
