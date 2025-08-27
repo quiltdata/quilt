@@ -10,19 +10,16 @@ import {
   TurnedInNotOutlined as IconTurnedInNotOutlined,
 } from '@material-ui/icons'
 
-import Code from 'components/Code'
-import { useConfirm } from 'components/Dialog'
 import * as Bookmarks from 'containers/Bookmarks/Provider'
-import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
-import Log from 'utils/Logging'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
+import DeleteDialog from './Toolbar/DeleteDialog'
 import * as FileView from './FileView'
-import { deleteObject } from './requests'
 
 const useButtonStyles = M.makeStyles({
   root: {
@@ -58,35 +55,21 @@ function Delete({
   onDelete,
 }: BucketButtonProps & { onDelete: () => void }) {
   const classes = useButtonStyles()
+  const dialogs = Dialogs.use()
 
-  const s3 = AWS.S3.use()
-  const { push } = Notifications.use()
-
-  const onSubmit = React.useCallback(async () => {
-    try {
-      await deleteObject({ s3, handle: location })
-      push(`${s3paths.handleToS3Url(location)} deleted successfully`)
-      onDelete()
-    } catch (error) {
-      Log.error(error)
-      push(`Failed deleting ${s3paths.handleToS3Url(location)}`)
-    }
-  }, [location, onDelete, push, s3])
-
-  const confirm = useConfirm({
-    title: 'Delete object?',
-    submitTitle: 'Delete',
-    onSubmit: (confirmed: boolean) => (confirmed ? onSubmit() : Promise.resolve()),
-  })
+  const handleDelete = React.useCallback(() => {
+    dialogs.open(({ close }) => (
+      <DeleteDialog handles={[location]} onComplete={onDelete} close={close} />
+    ))
+  }, [dialogs, location, onDelete])
 
   return (
     <>
-      {confirm.render(<Code>{s3paths.handleToS3Url(location)}</Code>)}
-
+      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
       <M.IconButton
         className={cx(classes.root, className)}
         title="Delete"
-        onClick={confirm.open}
+        onClick={handleDelete}
       >
         <IconDeleteOutlined color="error" />
       </M.IconButton>
