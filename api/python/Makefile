@@ -8,32 +8,6 @@ coverage: install-local
 install-local:
 	pip install -e .[tests]
 
-# Linting targets that mimic CI for our changed files only
-lint-deps:
-	@python -m pip install --upgrade isort
-	@python -m pip install --upgrade pycodestyle
-	@python -m pip install --upgrade pylint
-
-# Automatically detect changed Python files vs master (relative to api/python)
-# Exclude GraphQL codegen files from linting
-CHANGED_FILES = $(shell git diff --name-only HEAD master | grep '^api/python.*\.py$$' | sed 's|^api/python/||' | grep -v '^quilt3/_graphql_client/' | grep -v '^quilt3/admin/_graphql_client/' || echo "")
-
-lint: lint-deps
-	@echo "Running lint on changed Python files..."
-	@if [ -z "$(CHANGED_FILES)" ]; then \
-		echo "No changed Python files found."; \
-	else \
-		echo "Changed files: $(CHANGED_FILES)"; \
-		python -m pycodestyle $(CHANGED_FILES) || true; \
-		python -m pylint $(CHANGED_FILES) || true; \
-	fi
-	@echo "Lint complete!"
-
-lint-all: lint-deps
-	@echo "Running lint on all Python files..."
-	python -m pycodestyle $$(find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './quilt3/_graphql_client/*') || true
-	python -m pylint . --ignore=quilt3/_graphql_client || true
-	@echo "Lint complete!"
 
 
 # GraphQL code generation
@@ -80,43 +54,29 @@ gendocs: gendocs-deps
 	@echo "Cleaning up any .python-version files that may have been created..."
 	@rm -f .python-version ../../gendocs/.python-version
 
-# CI-identical targets using Docker (exact match to GitHub Actions)
-lint-ci:
-	@echo "Running CI-identical linting (pylint==3.2.7, from repository root like CI)..."
+# Primary development targets (CI-identical using Docker)
+lint:
+	@echo "Running linting (pylint==3.2.7, from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
 		pylint . && \
 		pycodestyle \$$(find -name '*.py' -not -path './venv/*' -not -path './catalog/node_modules/*')"
 
-isort-ci:
-	@echo "Running CI-identical isort check (--check --diff from repository root like CI)..."
+isort-check:
+	@echo "Running import sorting check (--check --diff from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
 		isort --check --diff ."
 
-test-ci:
-	@echo "Running CI-identical tests with coverage (from repository root like CI)..."
+test-full:
+	@echo "Running tests with coverage (from repository root like CI)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
 		python -m pip install -e api/python[tests] && \
 		pytest --cov=api/python api/python"
 
-gendocs-ci:
-	@echo "Running CI-identical documentation generation (Python 3.9)..."
-	docker build -f docker/gendocs.Dockerfile -t quilt-gendocs ../..
-	docker run --rm -v $(PWD)/../..:/workspace quilt-gendocs sh -c "\
-		python -m pip install api/python && \
-		cd gendocs && python build.py && \
-		git diff --exit-code"
-
-lint-docs-ci:
-	@echo "Running CI-identical documentation linting (with memory limit)..."
-	docker run --rm -v $(PWD)/../..:/workspace --memory=4g node:latest sh -c "\
-		export NODE_OPTIONS='--max-old-space-size=4096' && \
-		npx --package=markdownlint-cli markdownlint ."
-
 # Run all CI checks locally
-ci-all: lint-ci isort-ci test-ci gendocs-ci lint-docs-ci
+ci-all: lint isort-check test-full
 	@echo "All CI-identical checks completed!"
 
 # Build Docker images
@@ -125,4 +85,4 @@ docker-build:
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker build -f docker/gendocs.Dockerfile -t quilt-gendocs ../..
 
-.PHONY: test coverage install-local lint-deps lint lint-all graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs lint-ci isort-ci test-ci gendocs-ci lint-docs-ci ci-all docker-build
+.PHONY: test coverage install-local graphql-deps graphql-codegen lint-docs gendocs-setup-python gendocs-deps gendocs lint isort-check test-full ci-all docker-build

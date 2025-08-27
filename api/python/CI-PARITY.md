@@ -15,21 +15,21 @@ The new CI-parity targets solve this by using Docker containers that **exactly**
 ## Quick Start
 
 ```bash
-# Fast local development
-make lint           # Check changed files only (fast feedback)
-make lint-all       # Check all files
-make test           # Run tests locally
+# One-time setup
+make docker-build   # Build Docker images
 
-# CI verification (exact CI reproduction)
-make docker-build   # Build Docker images (one-time setup)
-make lint-ci        # Exact CI linting (pylint==3.2.7, full repo)
-make isort-ci       # Exact CI import sorting check  
-make test-ci        # Exact CI testing with coverage
+# Development workflow - use CI-identical checks
+make lint           # Exact CI linting (pylint==3.2.7, full repo)
+make isort-check    # Exact CI import sorting check  
+make test-full      # Exact CI testing with coverage
 make ci-all         # Run all CI checks at once
 
 # Docker compose alternative
 docker-compose -f docker-compose.ci.yml run lint
 docker-compose -f docker-compose.ci.yml up    # Run all services
+
+# Still available for local testing
+make test           # Quick local test run (faster, not CI-identical)
 ```
 
 ## CI Parity Mapping
@@ -78,29 +78,31 @@ docker-compose -f docker-compose.ci.yml up    # Run all services
 
 ## Development Workflow
 
-### Recommended Workflow
+### Recommended Workflow - Always Use CI-Identical Checks
 ```bash
-# 1. Check code as you develop
-make lint          # Quick check of changed files
+# 1. As you develop - use CI tools for accuracy
+make lint          # Exact CI linting check
+make test-full     # Exact CI testing (or 'make test' for speed)
 
 # 2. Before committing  
-make lint-all      # Check all files for issues
+make ci-all        # Run all CI checks locally
 
-# 3. Before pushing (verify CI will pass)
-make ci-all        # Run exact CI checks locally
+# 3. Before pushing - already confident CI will pass!
+git push           # No surprises in CI
 ```
 
-### Quick Commands
+### Available Commands
 ```bash
-# Fast development checks
-make lint          # Check changed files only (fast feedback)
-make lint-all      # Check all files
-make test          # Run tests locally
+# CI-identical checks (recommended for all development)
+make lint          # Exact CI linting (pylint==3.2.7, Python 3.11)
+make isort-check   # Exact CI import checking 
+make test-full     # Exact CI testing with coverage
+make ci-all        # All main CI checks at once
 
-# CI verification  
-make lint-ci       # Exact CI linting check
-make test-ci       # Exact CI testing with coverage
-make ci-all        # All CI checks
+# Local alternatives (faster but less accurate)
+make test          # Quick local test run
+make gendocs       # Local doc generation (pyenv-based)
+make lint-docs     # Local doc linting
 ```
 
 ### What Each Tool Does
