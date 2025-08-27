@@ -38,7 +38,7 @@ interface TabProps {
 function Tab({ active, onClick, className, children }: TabProps) {
   const classes = useTabStyles()
   const handleClick = React.useCallback(
-    (event) => {
+    (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation()
       onClick()
     },

@@ -58,9 +58,6 @@ const useStyles = M.makeStyles((t) => ({
   danger: {
     color: t.palette.error.main,
   },
-  error: {
-    color: t.palette.error.main,
-  },
   subList: {
     '& + &': {
       borderTop: `1px solid ${t.palette.divider}`,

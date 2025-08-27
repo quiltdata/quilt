@@ -16,7 +16,7 @@ const AddDirContext = React.createContext<AddDirActions | null>(null)
 
 function useContext(): AddDirActions {
   const context = React.useContext(AddDirContext)
-  invariant(context, 'useAddDirActions must be used within AddDirProvider')
+  invariant(context, 'useContext must be used within AddDirProvider')
   return context
 }
 
