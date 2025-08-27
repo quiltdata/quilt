@@ -18,6 +18,8 @@ where verb is one of
 
 ## Changes
 
+- [Added] Qurator devtools: model override, session recording ([#4467](https://github.com/quiltdata/quilt/pull/4467))
+- [Changed] Adjust GQL schema for the upstream changes and handle search timeouts ([#4477](https://github.com/quiltdata/quilt/pull/4477))
 - [Fixed] Correctly sign and proxy S3 requests and URIs in OPEN mode ([#4470](https://github.com/quiltdata/quilt/pull/4470))
 - [Fixed] Show "0 packages" when no packages ([#4473](https://github.com/quiltdata/quilt/pull/4473))
 - [Changed] Search: handle invalid numbers gracefully ([#4468](https://github.com/quiltdata/quilt/pull/4468))

@@ -66,5 +66,10 @@ query (
         context
       }
     }
+    ... on OperationError {
+      name
+      message
+      context
+    }
   }
 }
