@@ -6,12 +6,10 @@ import Code from 'components/Code'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as Selection from 'containers/Bucket/Selection'
 import { deleteObject, useFilesListing } from 'containers/Bucket/requests'
-import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Dialogs from 'utils/Dialogs'
 import Log from 'utils/Logging'
-import * as s3paths from 'utils/s3paths'
 
 export interface OrganizeDirActions {
   addSelectedToBookmarks: () => void
@@ -34,91 +32,119 @@ function useContext(): OrganizeDirActions {
 
 export const use = useContext
 
+type FileStatus = 'pending' | 'success' | 'error'
+
+interface ResolvedObject {
+  handle: Model.S3.S3ObjectLocation
+  status: FileStatus
+  error?: any
+}
+
 interface DeleteDialogProps {
   close: () => void
   onReload: () => void
+  handles: Model.S3.S3ObjectLocation[]
 }
 
-function DeleteDialog({ close, onReload }: DeleteDialogProps) {
-  const slt = Selection.use()
+function DeleteDialog({ close, onReload, handles }: DeleteDialogProps) {
   const [submitting, setSubmitting] = React.useState(false)
+  const [resolvedObjects, setResolvedObjects] = React.useState<ResolvedObject[] | null>(
+    null,
+  )
+
+  const hasErrors = React.useMemo(
+    () => resolvedObjects?.some((obj) => obj.status === 'error') ?? false,
+    [resolvedObjects],
+  )
+
+  const isComplete = React.useMemo(
+    () => resolvedObjects?.every((obj) => obj.status !== 'pending') ?? false,
+    [resolvedObjects],
+  )
 
   const s3 = AWS.S3.use()
-  const { push } = Notifications.use()
-
   const getFiles = useFilesListing()
-  const [selectionHandles, setSelectionHandles] = React.useState<
-    Model.S3.S3ObjectLocation[] | null
-  >(null)
 
   React.useEffect(() => {
     async function resolveHandles() {
-      const handles = Selection.toHandlesList(slt.selection)
       const filesMap = await getFiles(handles)
-      setSelectionHandles(Object.values(filesMap))
+      const resolved = Object.values(filesMap)
+      setResolvedObjects(
+        resolved.map((handle) => ({ handle, status: 'pending' as FileStatus })),
+      )
     }
     resolveHandles()
-  }, [getFiles, slt.selection])
+  }, [getFiles, handles])
 
   const onSubmit = React.useCallback(async () => {
     setSubmitting(true)
-    const errors: Array<{ handle: Model.S3.S3ObjectLocation; error: any }> = []
-    let successCount = 0
 
-    if (selectionHandles) {
-      await Promise.all(
-        selectionHandles.map(async (handle) => {
+    if (resolvedObjects) {
+      const results = await Promise.all(
+        resolvedObjects.map(async ({ handle }) => {
           try {
             await deleteObject({ s3, handle })
-            successCount++
+            return { status: 'success' as FileStatus, error: undefined }
           } catch (error) {
             Log.error('Failed to delete object:', error)
-            errors.push({ handle, error })
+            return { status: 'error' as FileStatus, error }
           }
         }),
       )
-    }
 
-    if (successCount > 0) {
-      push(`Successfully deleted ${successCount} file${successCount !== 1 ? 's' : ''}`)
-    }
-
-    if (errors.length > 0) {
-      const errorDetails = errors
-        .slice(0, 3)
-        .map(({ handle }) => s3paths.handleToS3Url(handle))
-        .join(', ')
-      const moreText = errors.length > 3 ? ` and ${errors.length - 3} more` : ''
-
-      push(
-        `Failed to delete ${errors.length} file${errors.length !== 1 ? 's' : ''}: ${errorDetails}${moreText}`,
+      setResolvedObjects((prev) =>
+        prev!.map((item, index) => ({
+          ...item,
+          status: results[index].status,
+          error: results[index].error,
+        })),
       )
+
+      onReload()
     }
 
     setSubmitting(false)
-    slt.clear()
-    close()
-    onReload()
-  }, [close, s3, slt, push, onReload, selectionHandles])
+  }, [s3, onReload, resolvedObjects])
 
   return (
     <>
-      <M.DialogTitle>Delete selected objects?</M.DialogTitle>
+      <M.DialogTitle>
+        {isComplete
+          ? hasErrors
+            ? 'Some files could not be deleted'
+            : 'Files deleted successfully'
+          : 'Delete selected objects?'}
+      </M.DialogTitle>
       <M.DialogContent>
-        {selectionHandles ? (
+        {resolvedObjects ? (
           <M.List dense disablePadding>
-            {selectionHandles.map(({ bucket, key, version }) => (
-              <M.ListItem key={`${bucket}${key}${version}`} disableGutters>
-                <M.ListItemText
-                  primary={
-                    <Code>
-                      s3://{bucket}/{key}
-                    </Code>
-                  }
-                  secondary={version}
-                />
-              </M.ListItem>
-            ))}
+            {resolvedObjects.map(
+              ({ handle: { bucket, key, version }, status, error }) => (
+                <M.ListItem key={`${bucket}${key}${version}`} disableGutters>
+                  {status === 'error' && (
+                    <M.Tooltip title={error.message}>
+                      <M.ListItemIcon>
+                        <M.Icon color="error">error</M.Icon>
+                      </M.ListItemIcon>
+                    </M.Tooltip>
+                  )}
+                  <M.ListItemText
+                    primary={
+                      <Code
+                        style={
+                          status === 'success'
+                            ? { textDecoration: 'line-through' }
+                            : undefined
+                        }
+                      >
+                        s3://{bucket}/{key}
+                      </Code>
+                    }
+                    secondary={version}
+                  />
+                </M.ListItem>
+              ),
+            )}
           </M.List>
         ) : (
           <M.CircularProgress size={64} />
@@ -126,16 +152,18 @@ function DeleteDialog({ close, onReload }: DeleteDialogProps) {
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={close} color="primary" variant="outlined">
-          Cancel
+          {isComplete ? 'Close' : 'Cancel'}
         </M.Button>
-        <M.Button
-          color="primary"
-          disabled={submitting}
-          variant="contained"
-          onClick={onSubmit}
-        >
-          Submit
-        </M.Button>
+        {!isComplete && (
+          <M.Button
+            color="primary"
+            disabled={submitting}
+            variant="contained"
+            onClick={onSubmit}
+          >
+            Submit
+          </M.Button>
+        )}
       </M.DialogActions>
     </>
   )
@@ -170,7 +198,14 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
 
   const confirmDeleteSelected = React.useCallback(async () => {
     if (slt.isEmpty) return
-    dialogs.open(({ close }) => <DeleteDialog onReload={onReload} close={close} />)
+
+    const handles = Selection.toHandlesList(slt.selection)
+
+    dialogs.open(({ close }) => (
+      <DeleteDialog onReload={onReload} close={close} handles={handles} />
+    ))
+
+    slt.clear()
   }, [dialogs, onReload, slt])
 
   const selectionCount = slt.totalCount
