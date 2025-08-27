@@ -110,7 +110,7 @@ def test_push_with_meta_data(
     dir_path = 'test/dir/path'
 
     with patch_package_class as mocked_package_class, \
-         mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
+            mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
         mocked_package_class.browse.side_effect = FileNotFoundError()
 
         # '--registry' defaults to configured remote registry hence optional.
@@ -144,7 +144,7 @@ def test_push_with_meta_data_error(
     name = 'test/name'
 
     with patch_package_class as mocked_package_class, \
-         mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
+            mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
 
         mocked_package_class.browse.side_effect = FileNotFoundError()
 

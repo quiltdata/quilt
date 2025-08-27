@@ -56,9 +56,11 @@ gendocs: gendocs-deps
 
 # Primary development targets (CI-identical using Docker)
 lint:
-	@echo "Running linting (pylint==3.2.7, from repository root like CI)..."
+	@echo "Fixing and checking code (CI-identical environment)..."
 	docker build -f docker/ci-python.Dockerfile -t quilt-ci-lint ../..
 	docker run --rm -v $(PWD)/../..:/workspace quilt-ci-lint sh -c "\
+		isort . && \
+		autopep8 --in-place --recursive . --exclude=./venv,./catalog/node_modules && \
 		pylint . && \
 		pycodestyle \$$(find -name '*.py' -not -path './venv/*' -not -path './catalog/node_modules/*')"
 

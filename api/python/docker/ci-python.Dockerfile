@@ -6,9 +6,9 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install exact CI versions to match py-ci.yml
+# Install exact CI versions to match py-ci.yml + autopep8 for fixing
 RUN python -m pip install --upgrade pip setuptools
-RUN python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1' isort
+RUN python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1' isort autopep8
 
 WORKDIR /workspace
 
