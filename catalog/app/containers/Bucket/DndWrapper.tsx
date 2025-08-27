@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { FileWithPath, useDropzone } from 'react-dropzone'
+import { Publish as IconPublish } from '@material-ui/icons'
 
 import useDragging from 'utils/dragging'
 
@@ -98,7 +99,7 @@ export default function DndWrapper({
         <div className={cx(classes.overlay, isDragActive && classes.hover)}>
           <M.Paper elevation={isDragActive ? 0 : 2} className={classes.dropMessage}>
             <div className={classes.dropMessageContent}>
-              <M.Icon className={classes.dropIcon}>publish</M.Icon>
+              <IconPublish className={classes.dropIcon} />
               <M.Typography variant="h6" color="primary">
                 Drop files here to upload
               </M.Typography>

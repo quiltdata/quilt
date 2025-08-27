@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { ArrowDropDown as IconArrowDropDown } from '@material-ui/icons'
 
 import Iconized from './Iconized'
 import type { StrIcon, SvgIcon } from './Iconized'
@@ -60,7 +61,7 @@ export default function WithPopover({
     <div className={classes.root}>
       {icon ? (
         <Iconized
-          endIcon={<M.Icon>arrow_drop_down</M.Icon>}
+          endIcon={<IconArrowDropDown />}
           icon={icon}
           label={label}
           onClick={handleClick}
@@ -70,7 +71,7 @@ export default function WithPopover({
         />
       ) : (
         <M.Button
-          endIcon={<M.Icon>arrow_drop_down</M.Icon>}
+          endIcon={<IconArrowDropDown />}
           onClick={handleClick}
           size="small"
           variant="outlined"

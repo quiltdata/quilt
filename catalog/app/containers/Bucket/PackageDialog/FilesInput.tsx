@@ -4,6 +4,11 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
+import {
+  ErrorOutline as IconErrorOutline,
+  Undo as IconUndo,
+  CreateNewFolder as IconCreateNewFolder,
+} from '@material-ui/icons'
 
 import * as Dialog from 'components/Dialog'
 import { MissingSourceBucket } from 'components/FileEditor/HelpLinks'
@@ -165,9 +170,7 @@ function Header({
         )}
 
         {stats.warn && (
-          <M.Icon className={classes.warningIcon} fontSize="inherit">
-            error_outline
-          </M.Icon>
+          <IconErrorOutline className={classes.warningIcon} fontSize="inherit" />
         )}
 
         {!delayHashing && stats.hashing && (
@@ -186,7 +189,7 @@ function Header({
               onClick={onReset}
               disabled={disabled}
               size="small"
-              endIcon={<M.Icon fontSize="small">undo</M.Icon>}
+              endIcon={<IconUndo fontSize="small" />}
             >
               {resetTitle}
             </M.Button>
@@ -200,7 +203,7 @@ function Header({
           size="small"
           title="Add empty folder"
         >
-          <M.Icon fontSize="small">create_new_folder</M.Icon>
+          <IconCreateNewFolder fontSize="small" />
         </M.IconButton>
       </div>
 
