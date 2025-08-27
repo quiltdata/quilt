@@ -105,7 +105,6 @@ export function Controls({
   return (
     <M.ButtonGroup disabled={disabled} className={className} size="small">
       <Buttons.Iconized
-        className={className}
         disabled={disabled}
         icon="edit"
         label="Edit"
@@ -116,7 +115,7 @@ export function Controls({
         disabled={disabled}
         icon="delete"
         label="Delete"
-        onClick={() => alert('not implemnted!')}
+        onClick={() => alert('not implemented!')}
       />
     </M.ButtonGroup>
   )

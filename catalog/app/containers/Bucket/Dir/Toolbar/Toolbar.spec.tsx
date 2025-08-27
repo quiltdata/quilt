@@ -147,7 +147,7 @@ describe('Toolbar', () => {
     expect(container.firstChild).toMatchSnapshot()
   })
 
-  it('should all buttons when all features are enabled', () => {
+  it('should render all buttons when all features are enabled', () => {
     const { container } = render(
       <DirToolbar.Toolbar
         features={{ add: true, get: { code: true }, organize: true, createPackage: true }}
@@ -159,7 +159,7 @@ describe('Toolbar', () => {
     expect(container.firstChild).toMatchSnapshot()
   })
 
-  it('should render nothing  when all features are disabled', () => {
+  it('should render nothing when all features are disabled', () => {
     const { container } = render(
       <DirToolbar.Toolbar
         features={{ add: false, get: false, organize: false, createPackage: false }}

@@ -24,7 +24,7 @@ const Context = React.createContext<OrganizeDirActions | null>(null)
 
 function useContext(): OrganizeDirActions {
   const context = React.useContext(Context)
-  invariant(context, 'useOrganizeDirActions must be used within OrganizeDirProvider')
+  invariant(context, 'useContext must be used within OrganizeDirProvider')
   return context
 }
 
