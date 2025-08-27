@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -32,6 +33,12 @@ function useContext(): OrganizeDirActions {
 
 export const use = useContext
 
+const useDeleteDialogStyles = M.makeStyles({
+  deleted: {
+    textDecoration: 'line-through',
+  },
+})
+
 type FileStatus = 'pending' | 'success' | 'error'
 
 interface ResolvedObject {
@@ -47,6 +54,7 @@ interface DeleteDialogProps {
 }
 
 function DeleteDialog({ close, onReload, handles }: DeleteDialogProps) {
+  const classes = useDeleteDialogStyles()
   const [submitting, setSubmitting] = React.useState(false)
   const [resolvedObjects, setResolvedObjects] = React.useState<ResolvedObject[] | null>(
     null,
@@ -130,13 +138,7 @@ function DeleteDialog({ close, onReload, handles }: DeleteDialogProps) {
                   )}
                   <M.ListItemText
                     primary={
-                      <Code
-                        style={
-                          status === 'success'
-                            ? { textDecoration: 'line-through' }
-                            : undefined
-                        }
-                      >
+                      <Code className={cx(status === 'success' && classes.deleted)}>
                         s3://{bucket}/{key}
                       </Code>
                     }
