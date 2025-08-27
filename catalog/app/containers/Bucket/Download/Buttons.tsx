@@ -44,18 +44,25 @@ interface DownloadDirProps {
   children: React.ReactNode
 }
 
-export function DownloadDir({ children, fileHandles, ...props }: DownloadDirProps) {
+export function DownloadDir({
+  children,
+  fileHandles,
+  className,
+  suffix,
+  ...props
+}: DownloadDirProps & M.ButtonProps) {
   const classes = useDownloadButtonStyles()
   const files = React.useMemo(
     () => fileHandles && fileHandles.map(({ key }) => key),
     [fileHandles],
   )
   return (
-    <ZipDownloadForm files={files} {...props}>
+    <ZipDownloadForm className={className} files={files} suffix={suffix}>
       <M.Button
         className={classes.root}
         startIcon={<IconArchiveOutlined />}
         type="submit"
+        {...props}
       >
         <span>{children}</span>
       </M.Button>

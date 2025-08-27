@@ -39,8 +39,25 @@ interface DownloadDirProps {
 }
 
 function DownloadDir({ dirHandle }: DownloadDirProps) {
+  // TODO: pass selection to Buttons.DownloadDir
+  const [downloading, setDownloading] = React.useState(false)
+  React.useEffect(() => {
+    if (!downloading) return
+    setTimeout(() => setDownloading(false), 1000)
+  }, [downloading])
   return (
-    <Buttons.DownloadDir suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}>
+    <Buttons.DownloadDir
+      suffix={`dir/${dirHandle.bucket}/${dirHandle.path}`}
+      onClick={(event) => {
+        event.stopPropagation()
+        setDownloading(true)
+      }}
+      {...(downloading
+        ? {
+            startIcon: <M.CircularProgress size={20} />,
+          }
+        : {})}
+    >
       Download ZIP (directory)
     </Buttons.DownloadDir>
   )
