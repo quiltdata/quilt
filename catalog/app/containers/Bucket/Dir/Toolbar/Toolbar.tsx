@@ -9,6 +9,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Toolbar from 'containers/Bucket/Toolbar'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog'
 import * as Selection from 'containers/Bucket/Selection'
+import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
 
 import * as Add from './Add'
 import * as CreatePackage from './CreatePackage'
@@ -99,44 +100,46 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
   return (
     <div className={cx(classes.root, className)}>
-      {packageDirectoryDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
+      <ToolbarErrorBoundary>
+        {packageDirectoryDialog.render({
+          successTitle: 'Package created',
+          successRenderMessage: ({ packageLink }) => (
+            <>Package {packageLink} successfully created</>
+          ),
+          title: 'Create package',
+        })}
 
-      {features.add && (
-        <Add.Context.Provider handle={handle}>
-          <Toolbar.Add>
-            <Add.Options />
-          </Toolbar.Add>
-        </Add.Context.Provider>
-      )}
+        {features.add && (
+          <Add.Context.Provider handle={handle}>
+            <Toolbar.Add>
+              <Add.Options />
+            </Toolbar.Add>
+          </Add.Context.Provider>
+        )}
 
-      {features.get && (
-        <Toolbar.Get>
-          <Get.Options handle={handle} hideCode={!features.get.code} />
-        </Toolbar.Get>
-      )}
+        {features.get && (
+          <Toolbar.Get>
+            <Get.Options handle={handle} hideCode={!features.get.code} />
+          </Toolbar.Get>
+        )}
 
-      {features.organize && (
-        <Organize.Context.Provider onReload={onReload}>
-          <Toolbar.Organize onReload={onReload}>
-            <Organize.Options />
-          </Toolbar.Organize>
-        </Organize.Context.Provider>
-      )}
+        {features.organize && (
+          <Organize.Context.Provider onReload={onReload}>
+            <Toolbar.Organize onReload={onReload}>
+              <Organize.Options />
+            </Toolbar.Organize>
+          </Organize.Context.Provider>
+        )}
 
-      {features.createPackage && (
-        <Toolbar.CreatePackage>
-          <CreatePackage.Options
-            onChange={openPackageCreationDialog}
-            successors={successors}
-          />
-        </Toolbar.CreatePackage>
-      )}
+        {features.createPackage && (
+          <Toolbar.CreatePackage>
+            <CreatePackage.Options
+              onChange={openPackageCreationDialog}
+              successors={successors}
+            />
+          </Toolbar.CreatePackage>
+        )}
+      </ToolbarErrorBoundary>
     </div>
   )
 }

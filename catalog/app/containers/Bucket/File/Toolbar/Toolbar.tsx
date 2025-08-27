@@ -8,6 +8,7 @@ import * as Toolbar from 'containers/Bucket/Toolbar'
 import type { ViewModes } from 'containers/Bucket/viewModes'
 import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
 
 import * as Get from './Get'
 import * as Organize from './Organize'
@@ -83,27 +84,29 @@ export function FileToolbar({
 
   return (
     <div className={cx(classes.root, className)}>
-      {children}
+      <ToolbarErrorBoundary>
+        {children}
 
-      {features.get && (
-        <Toolbar.Get label="Get file">
-          <Get.Options handle={handle} hideCode={!features.get.code} />
-        </Toolbar.Get>
-      )}
+        {features.get && (
+          <Toolbar.Get label="Get file">
+            <Get.Options handle={handle} hideCode={!features.get.code} />
+          </Toolbar.Get>
+        )}
 
-      {features.organize && !!editorState && (
-        <Organize.Context.Provider
-          editorState={editorState}
-          handle={handle}
-          onReload={onReload}
-        >
-          <Toolbar.Organize onReload={onReload}>
-            <Organize.Options viewModes={viewModes} />
-          </Toolbar.Organize>
-        </Organize.Context.Provider>
-      )}
+        {features.organize && !!editorState && (
+          <Organize.Context.Provider
+            editorState={editorState}
+            handle={handle}
+            onReload={onReload}
+          >
+            <Toolbar.Organize onReload={onReload}>
+              <Organize.Options viewModes={viewModes} />
+            </Toolbar.Organize>
+          </Organize.Context.Provider>
+        )}
 
-      {features.qurator && <Toolbar.Assist className={classes.qurator} />}
+        {features.qurator && <Toolbar.Assist className={classes.qurator} />}
+      </ToolbarErrorBoundary>
     </div>
   )
 }
