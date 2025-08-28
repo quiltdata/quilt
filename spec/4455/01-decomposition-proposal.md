@@ -14,7 +14,10 @@ The current PR "Bucket toolbar: refactor UI, add files dialog, delete files opti
 
 ## Proposed Sub-PRs
 
+**Branch Naming Pattern**: `4455-toolbar-[phase]-[feature]`
+
 ### 1. Foundation: Shared Components & Types (Low Risk)
+**Branch**: `4455-toolbar-01-shared-components`
 
 **Estimated Size**: ~15 files, +500/-50 lines
 **Dependencies**: None
@@ -44,6 +47,7 @@ Core UI components and type definitions that will be used by all toolbar modules
 ---
 
 ### 2. Cleanup: Remove Unused Components (Low Risk)
+**Branch**: `4455-toolbar-01-cleanup-unused`
 
 **Estimated Size**: ~10 files, +0/-600 lines
 **Dependencies**: PR #1
@@ -71,6 +75,7 @@ Remove deprecated and unused components to reduce codebase complexity.
 ---
 
 ### 3. Core Architecture: Base Toolbar Structure (Medium Risk)
+**Branch**: `4455-toolbar-02-base-structure`
 
 **Estimated Size**: ~12 files, +400/-100 lines
 **Dependencies**: PR #1, #2
@@ -99,6 +104,7 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 ---
 
 ### 4. Get Functionality: Download & Code Samples (Low Risk)
+**Branch**: `4455-toolbar-03-get-functionality`
 
 **Estimated Size**: ~8 files, +300/-50 lines
 **Dependencies**: PR #3
@@ -125,6 +131,7 @@ Implement the "Get" functionality for downloading files and viewing code samples
 ---
 
 ### 5. Organize Functionality: Move & Delete (Medium Risk)
+**Branch**: `4455-toolbar-03-organize-functionality`
 
 **Estimated Size**: ~12 files, +600/-100 lines
 **Dependencies**: PR #3
@@ -152,6 +159,7 @@ Implement file organization features including move and delete operations. This 
 ---
 
 ### 6. Add Functionality: File Upload Dialog (High Risk)
+**Branch**: `4455-toolbar-03-add-functionality`
 
 **Estimated Size**: ~8 files, +800/-200 lines
 **Dependencies**: PR #3
@@ -179,6 +187,7 @@ Implement the new file upload dialog with drag-and-drop functionality.
 ---
 
 ### 7. Create Package Functionality (Medium Risk)
+**Branch**: `4455-toolbar-03-create-package`
 
 **Estimated Size**: ~8 files, +400/-50 lines
 **Dependencies**: PR #3
@@ -203,6 +212,7 @@ Implement package creation functionality in the new toolbar architecture.
 ---
 
 ### 8. Integration & Polish: Final Cleanup (Low Risk)
+**Branch**: `4455-toolbar-04-final-integration`
 
 **Estimated Size**: ~15 files, +200/-100 lines
 **Dependencies**: PR #4, #5, #6, #7
