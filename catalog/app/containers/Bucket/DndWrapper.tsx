@@ -12,7 +12,6 @@ import type * as Toolbar from './Toolbar'
 const useStyles = M.makeStyles((t) => ({
   wrapper: {
     position: 'relative',
-    overflow: 'hidden',
   },
   overlay: {
     alignItems: 'center',
@@ -24,8 +23,7 @@ const useStyles = M.makeStyles((t) => ({
     justifyContent: 'center',
     left: 0,
     opacity: 0.8,
-    outline: `2px dashed ${t.palette.primary.main}`,
-    outlineOffset: '-2px',
+    border: `2px dashed ${t.palette.primary.main}`,
     position: 'absolute',
     right: 0,
     top: 0,
@@ -34,13 +32,20 @@ const useStyles = M.makeStyles((t) => ({
   hover: {
     opacity: 1,
     '& $dropMessage': {
-      padding: t.spacing(12),
+      position: 'absolute',
+      top: '2px',
+      left: '2px',
+      right: '2px',
+      bottom: '2px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: t.shape.borderRadius,
     },
   },
   dropMessage: {
     textAlign: 'center',
-    padding: t.spacing(4),
-    transition: t.transitions.create(['box-shadow', 'padding']),
+    padding: t.spacing(2),
   },
   dropMessageContent: {
     display: 'flex',
