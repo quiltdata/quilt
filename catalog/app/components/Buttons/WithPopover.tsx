@@ -40,18 +40,21 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export interface WithPopoverProps {
+interface WithPopoverPropsOwn {
   children: NonNullable<React.ReactNode>
   icon?: StrIcon | SvgIcon
   label: string
 }
+
+export type WithPopoverProps = WithPopoverPropsOwn &
+  Omit<Parameters<typeof Iconized>[0], 'icon'>
 
 export default function WithPopover({
   children,
   icon,
   label,
   ...props
-}: WithPopoverProps & Omit<Parameters<typeof Iconized>[0], 'icon'>) {
+}: WithPopoverProps) {
   // TODO: close on location change
   const classes = useStyles()
   const [opened, setOpened] = React.useState(false)
