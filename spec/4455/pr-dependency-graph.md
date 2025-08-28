@@ -25,41 +25,49 @@ Phase 1 (Foundation)
 ## Detailed Dependencies
 
 ### PR #1: Shared Components & Types
+
 - **Depends on**: Nothing
 - **Blocks**: All other PRs (provides foundation)
 - **Can merge**: Immediately after review
 
 ### PR #2: Remove Unused Components  
+
 - **Depends on**: PR #1 (to avoid conflicts)
 - **Blocks**: PR #3 (clean slate for new architecture)
 - **Can merge**: After PR #1
 
 ### PR #3: Base Toolbar Structure
+
 - **Depends on**: PR #1, PR #2
 - **Blocks**: PR #4, #5, #6, #7 (provides structure)
 - **Can merge**: After PR #1 and #2
 
 ### PR #4: Get Functionality
+
 - **Depends on**: PR #3
 - **Blocks**: PR #8
 - **Can merge**: After PR #3, independently of #5, #6, #7
 
 ### PR #5: Organize Functionality
+
 - **Depends on**: PR #3  
 - **Blocks**: PR #8
 - **Can merge**: After PR #3, independently of #4, #6, #7
 
 ### PR #6: Add Functionality
+
 - **Depends on**: PR #3
 - **Blocks**: PR #8
 - **Can merge**: After PR #3, independently of #4, #5, #7
 
 ### PR #7: Create Package Functionality
+
 - **Depends on**: PR #3
 - **Blocks**: PR #8  
 - **Can merge**: After PR #3, independently of #4, #5, #6
 
 ### PR #8: Final Integration & Polish
+
 - **Depends on**: PR #4, #5, #6, #7 (all features complete)
 - **Blocks**: Nothing
 - **Can merge**: After all feature PRs are complete
@@ -67,25 +75,31 @@ Phase 1 (Foundation)
 ## Merge Strategy Options
 
 ### Option A: Sequential (Conservative)
+
 ```
 PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 → PR #7 → PR #8
 ```
+
 - **Timeline**: ~3-4 weeks
 - **Risk**: Lowest
 - **Complexity**: Lowest
 
 ### Option B: Parallel Features (Recommended)
+
 ```
 PR #1 → PR #2 → PR #3 → [PR #4, #5, #6, #7 in parallel] → PR #8
 ```
+
 - **Timeline**: ~2-3 weeks  
 - **Risk**: Low-Medium
 - **Complexity**: Medium
 
 ### Option C: Maximum Parallelism (Aggressive)
+
 ```
 [PR #1, #2 in parallel] → PR #3 → [PR #4, #5, #6, #7 in parallel] → PR #8
 ```
+
 - **Timeline**: ~2 weeks
 - **Risk**: Medium  
 - **Complexity**: Higher
@@ -93,11 +107,13 @@ PR #1 → PR #2 → PR #3 → [PR #4, #5, #6, #7 in parallel] → PR #8
 ## Conflict Resolution
 
 ### Potential Conflicts
+
 - **PR #1 & #2**: Minimal risk (different file sets)
 - **PR #4-7**: Low risk (different modules, shared foundation)
 - **All → #8**: Managed through careful integration planning
 
 ### Mitigation Strategies
+
 1. **Clear Interface Contracts**: PR #1 and #3 establish stable APIs
 2. **Regular Rebasing**: Feature PRs rebase on latest foundation changes
 3. **Integration Testing**: PR #8 includes comprehensive cross-feature testing
@@ -106,6 +122,7 @@ PR #1 → PR #2 → PR #3 → [PR #4, #5, #6, #7 in parallel] → PR #8
 ## Rollback Strategy
 
 Each PR can be independently rolled back:
+
 - **PR #1-2**: Safe rollback (foundation changes)
 - **PR #3**: Rollback to old toolbar system
 - **PR #4-7**: Individual feature rollback without affecting others

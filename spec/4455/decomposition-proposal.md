@@ -15,10 +15,12 @@ The current PR "Bucket toolbar: refactor UI, add files dialog, delete files opti
 ## Proposed Sub-PRs
 
 ### 1. Foundation: Shared Components & Types (Low Risk)
+
 **Estimated Size**: ~15 files, +500/-50 lines
 **Dependencies**: None
 
-#### Files:
+#### Files
+
 - `catalog/app/components/Buttons/WithPopover.tsx` (new)
 - `catalog/app/components/Buttons/WithPopover.spec.tsx` (new)
 - `catalog/app/components/Buttons/Iconized.tsx` (enhanced)
@@ -28,10 +30,12 @@ The current PR "Bucket toolbar: refactor UI, add files dialog, delete files opti
 - `catalog/app/containers/Bucket/Toolbar/ErrorBoundary.tsx` (new)
 - Snapshot updates
 
-#### Description:
+#### Description
+
 Core UI components and type definitions that will be used by all toolbar modules. This establishes the foundation without changing any existing functionality.
 
-#### Review Focus:
+#### Review Focus
+
 - Component API design
 - TypeScript type definitions
 - Test coverage
@@ -40,10 +44,12 @@ Core UI components and type definitions that will be used by all toolbar modules
 ---
 
 ### 2. Cleanup: Remove Unused Components (Low Risk)
+
 **Estimated Size**: ~10 files, +0/-600 lines
 **Dependencies**: PR #1
 
-#### Files:
+#### Files
+
 - Remove `catalog/app/containers/Admin/Sync.tsx`
 - Remove `catalog/app/containers/Bucket/Upload.tsx`
 - Remove old download components:
@@ -53,20 +59,24 @@ Core UI components and type definitions that will be used by all toolbar modules
   - `catalog/app/containers/Bucket/Download/OptionsTabs.tsx`
 - Update imports and references
 
-#### Description:
+#### Description
+
 Remove deprecated and unused components to reduce codebase complexity.
 
-#### Review Focus:
+#### Review Focus
+
 - Ensure no remaining references
 - Verify no breaking changes to existing functionality
 
 ---
 
 ### 3. Core Architecture: Base Toolbar Structure (Medium Risk)
+
 **Estimated Size**: ~12 files, +400/-100 lines
 **Dependencies**: PR #1, #2
 
-#### Files:
+#### Files
+
 - `catalog/app/containers/Bucket/Toolbar/Toolbar.tsx` (new)
 - `catalog/app/containers/Bucket/Toolbar/Toolbar.spec.tsx` (new)
 - `catalog/app/containers/Bucket/Dir/Toolbar/Toolbar.tsx` (new)
@@ -75,10 +85,12 @@ Remove deprecated and unused components to reduce codebase complexity.
 - `catalog/app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx` (new)
 - Basic integration into `Dir.tsx` and `File.js`
 
-#### Description:
+#### Description
+
 Establish the new toolbar architecture with empty/minimal implementations. This creates the structure without implementing specific features.
 
-#### Review Focus:
+#### Review Focus
+
 - Architecture pattern
 - Component composition approach
 - Integration points
@@ -87,10 +99,12 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 ---
 
 ### 4. Get Functionality: Download & Code Samples (Low Risk)
+
 **Estimated Size**: ~8 files, +300/-50 lines
 **Dependencies**: PR #3
 
-#### Files:
+#### Files
+
 - `catalog/app/containers/Bucket/Dir/Toolbar/Get/Options.tsx`
 - `catalog/app/containers/Bucket/File/Toolbar/Get/Options.tsx`
 - `catalog/app/containers/Bucket/Toolbar/GetOptions.tsx`
@@ -98,10 +112,12 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 - `catalog/app/containers/Bucket/Download/Buttons.tsx`
 - Updated download components
 
-#### Description:
+#### Description
+
 Implement the "Get" functionality for downloading files and viewing code samples. This is mostly moving existing functionality to the new architecture.
 
-#### Review Focus:
+#### Review Focus
+
 - Feature parity with existing download functionality
 - Code sample generation
 - Error handling
@@ -109,10 +125,12 @@ Implement the "Get" functionality for downloading files and viewing code samples
 ---
 
 ### 5. Organize Functionality: Move & Delete (Medium Risk)
+
 **Estimated Size**: ~12 files, +600/-100 lines
 **Dependencies**: PR #3
 
-#### Files:
+#### Files
+
 - `catalog/app/containers/Bucket/Dir/Toolbar/Organize/Context.tsx`
 - `catalog/app/containers/Bucket/Dir/Toolbar/Organize/Options.tsx`
 - `catalog/app/containers/Bucket/File/Toolbar/Organize/Context.tsx`
@@ -120,10 +138,12 @@ Implement the "Get" functionality for downloading files and viewing code samples
 - `catalog/app/containers/Bucket/Toolbar/DeleteDialog.tsx`
 - `catalog/app/containers/Bucket/requests/object.ts` (delete functionality)
 
-#### Description:
+#### Description
+
 Implement file organization features including move and delete operations. This introduces new delete functionality.
 
-#### Review Focus:
+#### Review Focus
+
 - Delete confirmation flow
 - Permission handling
 - Error states and recovery
@@ -132,20 +152,24 @@ Implement file organization features including move and delete operations. This 
 ---
 
 ### 6. Add Functionality: File Upload Dialog (High Risk)
+
 **Estimated Size**: ~8 files, +800/-200 lines
 **Dependencies**: PR #3
 
-#### Files:
+#### Files
+
 - `catalog/app/containers/Bucket/Dir/Toolbar/Add/Context.tsx`
 - `catalog/app/containers/Bucket/Dir/Toolbar/Add/Options.tsx`
 - `catalog/app/containers/Bucket/Dir/Toolbar/Add/UploadDialog.tsx`
 - `catalog/app/containers/Bucket/DndWrapper.tsx`
 - `catalog/app/utils/dragging.ts` (enhancements)
 
-#### Description:
+#### Description
+
 Implement the new file upload dialog with drag-and-drop functionality.
 
-#### Review Focus:
+#### Review Focus
+
 - File upload UX
 - Drag-and-drop behavior
 - Progress indicators
@@ -155,19 +179,23 @@ Implement the new file upload dialog with drag-and-drop functionality.
 ---
 
 ### 7. Create Package Functionality (Medium Risk)
+
 **Estimated Size**: ~8 files, +400/-50 lines
 **Dependencies**: PR #3
 
-#### Files:
+#### Files
+
 - `catalog/app/containers/Bucket/Dir/Toolbar/CreatePackage/Options.tsx`
 - `catalog/app/containers/Bucket/Dir/Toolbar/CreatePackage/useSuccessors.ts`
 - Enhanced package creation components
 - Integration with existing package dialog
 
-#### Description:
+#### Description
+
 Implement package creation functionality in the new toolbar architecture.
 
-#### Review Focus:
+#### Review Focus
+
 - Package creation workflow
 - Successors handling
 - Integration with existing package system
@@ -175,10 +203,12 @@ Implement package creation functionality in the new toolbar architecture.
 ---
 
 ### 8. Integration & Polish: Final Cleanup (Low Risk)
+
 **Estimated Size**: ~15 files, +200/-100 lines
 **Dependencies**: PR #4, #5, #6, #7
 
-#### Files:
+#### Files
+
 - Complete integration in `Dir.tsx` and `File.js`
 - `catalog/app/containers/Bucket/Selection/Dashboard.tsx` (enhancements)
 - `catalog/app/containers/Bucket/Listing.tsx` (updates)
@@ -187,10 +217,12 @@ Implement package creation functionality in the new toolbar architecture.
 - Final test updates and snapshots
 - Documentation updates
 
-#### Description:
+#### Description
+
 Complete the integration, update all consuming components, and add final polish.
 
-#### Review Focus:
+#### Review Focus
+
 - Complete feature integration
 - Backward compatibility
 - Performance impact
@@ -199,21 +231,25 @@ Complete the integration, update all consuming components, and add final polish.
 ## Implementation Strategy
 
 ### Phase 1: Foundation (PRs #1-2)
+
 - Can be developed and reviewed in parallel
 - Low risk, high confidence changes
 - Establishes foundation for all other work
 
 ### Phase 2: Architecture (PR #3)
+
 - Depends on Phase 1
 - Critical architecture decisions
 - Should be thoroughly reviewed before proceeding
 
 ### Phase 3: Features (PRs #4-7)
+
 - Can be developed in parallel after PR #3
 - Each implements a specific feature set
 - Independent testing and validation
 
 ### Phase 4: Integration (PR #8)
+
 - Final integration after all features complete
 - Comprehensive testing
 - Documentation and changelog updates
@@ -234,6 +270,7 @@ Complete the integration, update all consuming components, and add final polish.
 ## Testing Strategy
 
 Each PR should include:
+
 - Unit tests for new components
 - Integration tests for workflows
 - Snapshot tests for UI components
