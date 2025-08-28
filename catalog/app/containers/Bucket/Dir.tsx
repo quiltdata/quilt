@@ -142,9 +142,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     alignItems: 'flex-start',
     marginBottom: t.spacing(2),
-    [t.breakpoints.down('sm')]: {
-      flexDirection: 'column',
-    },
+    flexWrap: 'wrap',
   },
   actions: {
     display: 'flex',
