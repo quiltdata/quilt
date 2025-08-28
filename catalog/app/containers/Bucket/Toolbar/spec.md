@@ -17,19 +17,18 @@ Bucket/
 │       └── CreatePackage/
 │           └── Options.tsx
 └── Toolbar/  # Button components and shared types
-    ├── Add.tsx
-    ├── Assist.tsx
-    ├── CreatePackage.tsx
-    ├── Get.tsx
-    ├── Organize.tsx
-    └── index.ts
+    ├── Assist.tsx         # Special component (doesn't follow standard pattern)
+    ├── Toolbar.tsx        # All button components (Add, Get, Organize, CreatePackage)
+    ├── Toolbar.spec.tsx   # Tests for button components
+    ├── types.ts           # Shared type definitions (Handle, DirHandle, etc.)
+    └── index.ts           # Exports from types.ts and Toolbar.tsx
 ```
 
 ## Module Structure
 
 Each toolbar module consists of:
 
-- **Button** (`Toolbar/[ModuleName].tsx`) - Shared UI component
+- **Button** (`Toolbar/Toolbar.tsx` exports `<Toolbar.[ModuleName] />`) - Shared UI components
 - **Context** (`{Dir,File}/Toolbar/[ModuleName]/Context.tsx`) - Business logic (optional)
 - **Options** (`{Dir,File}/Toolbar/[ModuleName]/Options.tsx`) - Menu content
 
@@ -45,24 +44,14 @@ Bucket/Dir/Toolbar/Share/
 └── Options.tsx  # Menu content
 ```
 
-### 2. Create Shared Button
+### 2. Add Shared Button
 
 ```typescript
-// Bucket/Toolbar/Share.tsx
-import * as React from 'react'
+// Add to Bucket/Toolbar/Toolbar.tsx
 import { ShareOutlined as IconShareOutlined } from '@material-ui/icons'
-import * as Buttons from 'components/Buttons'
 
-interface ButtonProps {
-  children: NonNullable<React.ReactNode>
-  className?: string
-  label?: string
-}
-
-export default function Button({ label = "Share", ...props }: ButtonProps) {
-  return (
-    <Buttons.WithPopover icon={IconShareOutlined} label={label} {...props} />
-  )
+export function Share({ label = 'Share', ...props }: ButtonProps) {
+  return <Buttons.WithPopover icon={IconShareOutlined} label={label} {...props} />
 }
 ```
 
@@ -183,11 +172,16 @@ import * as Share from './Share'
 )}
 ```
 
-### 7. Export from Toolbar
+### 7. Add Tests
 
 ```typescript
-// Bucket/Toolbar/index.ts
-export { default as Share } from './Share'
+// Add to Bucket/Toolbar/Toolbar.spec.tsx
+describe('Share', () => {
+  it('should render with default label', () => {
+    const { container } = render(<Toolbar.Share>Hello, Popover!</Toolbar.Share>)
+    expect(container).toMatchSnapshot()
+  })
+})
 ```
 
 ## Usage Examples
