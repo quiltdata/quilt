@@ -40,7 +40,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface WithPopoverProps {
+export interface WithPopoverProps {
   children: NonNullable<React.ReactNode>
   icon?: StrIcon | SvgIcon
   label: string

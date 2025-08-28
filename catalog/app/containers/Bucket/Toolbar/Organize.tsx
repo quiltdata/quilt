@@ -12,10 +12,7 @@ const useBadgeClasses = M.makeStyles({
   },
 })
 
-interface ButtonProps {
-  children: NonNullable<React.ReactNode>
-  className?: string
-}
+type ButtonProps = Omit<Buttons.WithPopoverProps, 'icon'>
 
 export default function Button(props: ButtonProps) {
   const slt = useSelection()

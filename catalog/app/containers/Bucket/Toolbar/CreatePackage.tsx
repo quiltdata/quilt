@@ -11,11 +11,7 @@ const useStyles = M.makeStyles({
   },
 })
 
-interface ButtonProps {
-  children: NonNullable<React.ReactNode>
-  className?: string
-  label?: string
-}
+type ButtonProps = Omit<Buttons.WithPopoverProps, 'icon'>
 
 export default function Button({ className, ...props }: ButtonProps) {
   const classes = useStyles()
