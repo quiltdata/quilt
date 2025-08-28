@@ -41,7 +41,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function BucketDirOptions() {
+export default function OrganizeOptions() {
   const classes = useStyles()
   const {
     toggleBookmarks,

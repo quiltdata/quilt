@@ -27,7 +27,7 @@ function MenuItem({ icon, primary, onClick }: MenuItemProps) {
   )
 }
 
-export default function BucketDirOptions() {
+export default function AddOptions() {
   const { createFile, openUploadDialog } = Context.use()
   return (
     <M.List dense>

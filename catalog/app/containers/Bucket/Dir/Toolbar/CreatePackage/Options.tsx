@@ -14,12 +14,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketOptionsProps {
+interface CreatePackageOptionsProps {
   onChange: (x: workflows.Successor) => void
   successors: Request.Result<workflows.Successor[]>
 }
 
-export default function BucketDirOptions({ onChange, successors }: BucketOptionsProps) {
+export default function CreatePackageOptions({
+  onChange,
+  successors,
+}: CreatePackageOptionsProps) {
   const classes = useStyles()
   if (successors === Request.Idle) return null
 

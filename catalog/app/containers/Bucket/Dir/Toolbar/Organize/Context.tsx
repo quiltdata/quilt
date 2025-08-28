@@ -6,7 +6,7 @@ import * as Selection from 'containers/Bucket/Selection'
 import DeleteDialog, { type DeleteResult } from 'containers/Bucket/Toolbar/DeleteDialog'
 import * as Dialogs from 'utils/Dialogs'
 
-export interface OrganizeDirActions {
+interface OrganizeState {
   addToBookmarks: () => void
   removeFromBookmarks: () => void
   toggleBookmarks: () => void
@@ -20,9 +20,9 @@ export interface OrganizeDirActions {
   selectionCount: number
 }
 
-const Context = React.createContext<OrganizeDirActions | null>(null)
+const Context = React.createContext<OrganizeState | null>(null)
 
-function useContext(): OrganizeDirActions {
+function useContext(): OrganizeState {
   const context = React.useContext(Context)
   invariant(context, 'useContext must be used within OrganizeDirProvider')
   return context
@@ -30,12 +30,12 @@ function useContext(): OrganizeDirActions {
 
 export const use = useContext
 
-interface OrganizeDirProviderProps {
+interface OrganizeProviderProps {
   children: React.ReactNode
   onReload: () => void
 }
 
-export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderProps) {
+export function OrganizeProvider({ children, onReload }: OrganizeProviderProps) {
   const bookmarks = Bookmarks.use()
   const dialogs = Dialogs.use()
   const slt = Selection.use()
@@ -97,7 +97,7 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
   const selectionCount = slt.totalCount
 
   const actions = React.useMemo(
-    (): OrganizeDirActions => ({
+    (): OrganizeState => ({
       addToBookmarks,
       removeFromBookmarks,
       toggleBookmarks,
@@ -128,4 +128,4 @@ export function OrganizeDirProvider({ children, onReload }: OrganizeDirProviderP
   )
 }
 
-export { OrganizeDirProvider as Provider }
+export { OrganizeProvider as Provider }

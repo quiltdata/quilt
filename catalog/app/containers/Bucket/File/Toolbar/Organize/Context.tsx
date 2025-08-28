@@ -7,7 +7,7 @@ import DeleteDialog, { type DeleteResult } from 'containers/Bucket/Toolbar/Delet
 import * as FileEditor from 'components/FileEditor'
 import * as Dialogs from 'utils/Dialogs'
 
-export interface OrganizeFileActions {
+interface OrganizeState {
   toggleBookmark: () => void
   isBookmarked: boolean
 
@@ -19,9 +19,9 @@ export interface OrganizeFileActions {
   handle: Toolbar.FileHandle
 }
 
-export const Context = React.createContext<OrganizeFileActions | null>(null)
+const Context = React.createContext<OrganizeState | null>(null)
 
-function useContext(): OrganizeFileActions {
+function useContext(): OrganizeState {
   const context = React.useContext(Context)
   invariant(context, 'useOrganizeFileActions must be used within OrganizeFileProvider')
   return context
@@ -29,19 +29,19 @@ function useContext(): OrganizeFileActions {
 
 export const use = useContext
 
-interface OrganizeFileProviderProps {
+interface OrganizeProviderProps {
   children: React.ReactNode
   editorState: FileEditor.EditorState
   handle: Toolbar.FileHandle
   onReload: () => void
 }
 
-export function OrganizeFileProvider({
+function OrganizeProvider({
   children,
   editorState,
   handle,
   onReload,
-}: OrganizeFileProviderProps) {
+}: OrganizeProviderProps) {
   const bookmarks = Bookmarks.use()
   const dialogs = Dialogs.use()
 
@@ -75,7 +75,7 @@ export function OrganizeFileProvider({
   }, [dialogs, handle, onReload])
 
   const actions = React.useMemo(
-    (): OrganizeFileActions => ({
+    (): OrganizeState => ({
       toggleBookmark,
       isBookmarked,
       editFile,
@@ -94,4 +94,4 @@ export function OrganizeFileProvider({
   )
 }
 
-export { OrganizeFileProvider as Provider }
+export { OrganizeProvider as Provider }

@@ -7,27 +7,27 @@ import * as Dialogs from 'utils/Dialogs'
 
 import UploadDialog from './UploadDialog'
 
-interface AddDirActions {
+interface AddState {
   createFile: () => void
   openUploadDialog: () => void
 }
 
-const AddDirContext = React.createContext<AddDirActions | null>(null)
+const Context = React.createContext<AddState | null>(null)
 
-function useContext(): AddDirActions {
-  const context = React.useContext(AddDirContext)
+function useContext(): AddState {
+  const context = React.useContext(Context)
   invariant(context, 'useContext must be used within AddDirProvider')
   return context
 }
 
 export const use = useContext
 
-interface AddDirProviderProps {
+interface AddProviderProps {
   children: React.ReactNode
   handle: Toolbar.DirHandle
 }
 
-export function AddDirProvider({ children, handle }: AddDirProviderProps) {
+export function AddProvider({ children, handle }: AddProviderProps) {
   const dialogs = Dialogs.use()
   const prompt = FileEditor.useCreateFileInBucket(handle.bucket, handle.path)
 
@@ -40,7 +40,7 @@ export function AddDirProvider({ children, handle }: AddDirProviderProps) {
   }, [dialogs, handle])
 
   const actions = React.useMemo(
-    (): AddDirActions => ({
+    (): AddState => ({
       createFile,
       openUploadDialog,
     }),
@@ -48,14 +48,14 @@ export function AddDirProvider({ children, handle }: AddDirProviderProps) {
   )
 
   return (
-    <AddDirContext.Provider value={actions}>
+    <Context.Provider value={actions}>
       {children}
 
       {prompt.render()}
 
       {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
-    </AddDirContext.Provider>
+    </Context.Provider>
   )
 }
 
-export { AddDirProvider as Provider }
+export { AddProvider as Provider }

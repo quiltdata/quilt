@@ -72,12 +72,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketOptionsProps {
+interface GetOptionsProps {
   handle: Toolbar.DirHandle
   hideCode?: boolean
 }
 
-export default function BucketDirOptions({ handle, hideCode }: BucketOptionsProps) {
+export default function GetOptions({ handle, hideCode }: GetOptionsProps) {
   const classes = useStyles()
   const download = React.useCallback(
     () => ({

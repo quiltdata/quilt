@@ -65,11 +65,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketFileOptionsProps {
+interface OrganizeOptionsProps {
   viewModes?: ViewModes
 }
 
-export default function BucketFileOptions({ viewModes }: BucketFileOptionsProps) {
+export default function OrganizeOptions({ viewModes }: OrganizeOptionsProps) {
   const classes = useStyles()
   const {
     confirmDelete,
