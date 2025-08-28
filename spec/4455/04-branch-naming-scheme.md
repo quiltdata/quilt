@@ -3,7 +3,8 @@
 ## Pattern: `4455-toolbar-[phase]-[feature]`
 
 ### Specification Branch:
-- `4455-toolbar-00-decomposition-spec` (this branch - planning and documentation)
+- `4455-toolbar-00-decomposition-spec` (this branch - planning and
+  documentation)
 
 ### Implementation Branches:
 

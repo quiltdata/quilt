@@ -2,7 +2,10 @@
 
 ## Overview
 
-The current PR "Bucket toolbar: refactor UI, add files dialog, delete files option" is a large change (87 files, +4,791/-1,740 lines) that introduces significant architectural changes. This document proposes breaking it down into 8 atomic sub-PRs that can be independently reviewed and merged.
+The current PR "Bucket toolbar: refactor UI, add files dialog, delete files option"
+is a large change (87 files, +4,791/-1,740 lines) that introduces significant
+architectural changes. This document proposes breaking it down into 8 atomic
+sub-PRs that can be independently reviewed and merged.
 
 ## Benefits of Decomposition
 
@@ -17,9 +20,11 @@ The current PR "Bucket toolbar: refactor UI, add files dialog, delete files opti
 **Branch Naming Pattern**: `4455-toolbar-[phase]-[feature]`
 
 ### PR #1: Foundation: Shared Components & Types (Low Risk)
+
 **Branch**: `4455-toolbar-01-shared-components`
 
 **Estimated Size**: ~15 files, +500/-50 lines
+
 **Dependencies**: None
 
 #### Files
@@ -47,9 +52,11 @@ Core UI components and type definitions that will be used by all toolbar modules
 ---
 
 ### PR #2: Cleanup: Remove Unused Components (Low Risk)
+
 **Branch**: `4455-toolbar-02-cleanup-unused`
 
 **Estimated Size**: ~10 files, +0/-600 lines
+
 **Dependencies**: PR #1
 
 #### Files
@@ -75,9 +82,11 @@ Remove deprecated and unused components to reduce codebase complexity.
 ---
 
 ### PR #3: Core Architecture: Base Toolbar Structure (Medium Risk)
+
 **Branch**: `4455-toolbar-03-base-structure`
 
 **Estimated Size**: ~12 files, +400/-100 lines
+
 **Dependencies**: PR #1, #2
 
 #### Files
@@ -104,9 +113,11 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 ---
 
 ### PR #4: Get Functionality: Download & Code Samples (Low Risk)
+
 **Branch**: `4455-toolbar-04-get-functionality`
 
 **Estimated Size**: ~8 files, +300/-50 lines
+
 **Dependencies**: PR #3
 
 #### Files
@@ -131,9 +142,11 @@ Implement the "Get" functionality for downloading files and viewing code samples
 ---
 
 ### PR #5: Organize Functionality: Move & Delete (Medium Risk)
+
 **Branch**: `4455-toolbar-05-organize-functionality`
 
 **Estimated Size**: ~12 files, +600/-100 lines
+
 **Dependencies**: PR #3
 
 #### Files
@@ -159,9 +172,11 @@ Implement file organization features including move and delete operations. This 
 ---
 
 ### PR #6: Add Functionality: File Upload Dialog (High Risk)
+
 **Branch**: `4455-toolbar-06-add-functionality`
 
 **Estimated Size**: ~8 files, +800/-200 lines
+
 **Dependencies**: PR #3
 
 #### Files
@@ -187,9 +202,11 @@ Implement the new file upload dialog with drag-and-drop functionality.
 ---
 
 ### PR #7: Create Package Functionality (Medium Risk)
+
 **Branch**: `4455-toolbar-07-create-package`
 
 **Estimated Size**: ~8 files, +400/-50 lines
+
 **Dependencies**: PR #3
 
 #### Files
@@ -212,9 +229,11 @@ Implement package creation functionality in the new toolbar architecture.
 ---
 
 ### PR #8: Integration & Polish: Final Cleanup (Low Risk)
+
 **Branch**: `4455-toolbar-08-final-integration`
 
 **Estimated Size**: ~15 files, +200/-100 lines
+
 **Dependencies**: PR #4, #5, #6, #7
 
 #### Files
@@ -295,8 +314,9 @@ Each PR should include:
 ## Timeline Estimate
 
 - **Phase 1**: 1-2 days development, 1 day review
-- **Phase 2**: 2-3 days development, 2 days review  
+- **Phase 2**: 2-3 days development, 2 days review
 - **Phase 3**: 5-7 days development (parallel), 3-4 days review
 - **Phase 4**: 1-2 days development, 1 day review
 
-**Total**: ~2-3 weeks vs 1-2 weeks for monolithic review (but with higher quality and lower risk)
+**Total**: ~2-3 weeks vs 1-2 weeks for monolithic review (but with
+higher quality and lower risk)

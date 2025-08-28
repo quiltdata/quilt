@@ -1,6 +1,7 @@
 # Implementation Checklist
 
-This document provides detailed checklists for each proposed sub-PR to ensure complete and consistent implementation.
+This document provides detailed checklists for each proposed sub-PR to
+ensure complete and consistent implementation.
 
 ## PR #1: Shared Components & Types
 

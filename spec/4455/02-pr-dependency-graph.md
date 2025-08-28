@@ -1,6 +1,7 @@
 # PR Dependency Graph
 
-This document visualizes the dependencies between the proposed sub-PRs for the toolbar refactor.
+This document visualizes the dependencies between the proposed sub-PRs for
+the toolbar refactor.
 
 ## Visual Dependency Tree
 
