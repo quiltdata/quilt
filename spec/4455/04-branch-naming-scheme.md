@@ -9,19 +9,19 @@
 
 **Phase 1 (Foundation):**
 - `4455-toolbar-01-shared-components`
-- `4455-toolbar-01-cleanup-unused`
+- `4455-toolbar-02-cleanup-unused`
 
 **Phase 2 (Architecture):**
-- `4455-toolbar-02-base-structure`
+- `4455-toolbar-03-base-structure`
 
 **Phase 3 (Features):**
-- `4455-toolbar-03-get-functionality`
-- `4455-toolbar-03-organize-functionality`
-- `4455-toolbar-03-add-functionality`
-- `4455-toolbar-03-create-package`
+- `4455-toolbar-04-get-functionality`
+- `4455-toolbar-05-organize-functionality`
+- `4455-toolbar-06-add-functionality`
+- `4455-toolbar-07-create-package`
 
 **Phase 4 (Integration):**
-- `4455-toolbar-04-final-integration`
+- `4455-toolbar-08-final-integration`
 
 ## Benefits of This Naming Scheme:
 
@@ -39,19 +39,19 @@ git checkout -b 4455-toolbar-00-decomposition-spec
 
 # Phase 1 (can be parallel)
 git checkout -b 4455-toolbar-01-shared-components
-git checkout -b 4455-toolbar-01-cleanup-unused
+git checkout -b 4455-toolbar-02-cleanup-unused
 
 # Phase 2 (after Phase 1)
-git checkout -b 4455-toolbar-02-base-structure
+git checkout -b 4455-toolbar-03-base-structure
 
 # Phase 3 (parallel after Phase 2)
-git checkout -b 4455-toolbar-03-get-functionality
-git checkout -b 4455-toolbar-03-organize-functionality
-git checkout -b 4455-toolbar-03-add-functionality
-git checkout -b 4455-toolbar-03-create-package
+git checkout -b 4455-toolbar-04-get-functionality
+git checkout -b 4455-toolbar-05-organize-functionality
+git checkout -b 4455-toolbar-06-add-functionality
+git checkout -b 4455-toolbar-07-create-package
 
 # Phase 4 (after all Phase 3)
-git checkout -b 4455-toolbar-04-final-integration
+git checkout -b 4455-toolbar-08-final-integration
 ```
 
 ## PR Title Convention:
