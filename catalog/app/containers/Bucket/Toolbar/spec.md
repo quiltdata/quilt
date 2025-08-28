@@ -28,9 +28,15 @@ Bucket/
 
 Each toolbar module consists of:
 
-- **Button** (`Toolbar/Toolbar.tsx` exports `<Toolbar.[ModuleName] />`) - Shared UI components
-- **Context** (`{Dir,File}/Toolbar/[ModuleName]/Context.tsx`) - Business logic (optional)
-- **Options** (`{Dir,File}/Toolbar/[ModuleName]/Options.tsx`) - Menu content
+- **Button**
+  - `Toolbar/Toolbar.tsx` exports `<Toolbar.[ModuleName] />`)
+  - Shared UI components
+- **Context**
+  - `{Dir,File}/Toolbar/[ModuleName]/Context.tsx`
+  - Business logic (optional)
+- **Options**
+  - `{Dir,File}/Toolbar/[ModuleName]/Options.tsx`)
+  - Menu content
 
 ## Adding New Components
 
