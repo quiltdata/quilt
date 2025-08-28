@@ -3,9 +3,9 @@ import { basename } from 'path'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { Tabs } from 'components/Dialog'
 import * as CodeSamples from 'containers/Bucket/CodeSamples'
 import * as Buttons from 'containers/Bucket/Download/Buttons'
+import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
 
 const useCodeSamplesStyles = M.makeStyles((t) => ({
@@ -63,41 +63,16 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
-  download: {
-    width: t.spacing(40),
-  },
-  code: {
-    width: t.spacing(80),
-  },
-}))
-
-interface GetOptionsProps {
+interface OptionsProps {
   handle: Toolbar.DirHandle
   hideCode?: boolean
 }
 
-export default function GetOptions({ handle, hideCode }: GetOptionsProps) {
-  const classes = useStyles()
-  const download = React.useCallback(
-    () => ({
-      className: classes.download,
-      label: 'Download',
-      panel: <DownloadDir dirHandle={handle} />,
-    }),
-    [classes.download, handle],
+export default function Options({ handle, hideCode }: OptionsProps) {
+  const download = <DownloadDir dirHandle={handle} />
+  const code = hideCode ? undefined : (
+    <DirCodeSamples bucket={handle.bucket} path={handle.path} />
   )
-  const code = React.useCallback(
-    () => ({
-      className: classes.code,
-      label: 'Code',
-      panel: <DirCodeSamples bucket={handle.bucket} path={handle.path} />,
-    }),
-    [classes.code, handle],
-  )
-  const tabs = React.useMemo(
-    () => (hideCode ? [download()] : [download(), code()]),
-    [code, download, hideCode],
-  )
-  return <Tabs>{tabs}</Tabs>
+
+  return <GetOptions download={download} code={code} />
 }

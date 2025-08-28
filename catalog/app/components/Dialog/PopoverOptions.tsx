@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -120,22 +121,24 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface TabsProps {
-  children: {
+  tabs: {
     label: NonNullable<React.ReactNode>
     panel: NonNullable<React.ReactNode>
     className?: string
   }[]
 }
 
-export function Tabs({ children }: TabsProps) {
+export function Tabs({ tabs }: TabsProps) {
+  invariant(tabs.length > 0, 'Tabs component requires at least one tab')
+
   const classes = useStyles()
   const [activeIndex, setActiveIndex] = React.useState<number>(0)
-  const activeTab = children[activeIndex]
+  const activeTab = tabs[activeIndex]
   return (
     <div className={cx(classes.root, activeTab.className)}>
-      {children.length > 1 && (
+      {tabs.length > 1 && (
         <TabsContainer>
-          {children.map(({ label }, index) => (
+          {tabs.map(({ label }, index) => (
             <Tab
               key={index}
               active={activeIndex === index}

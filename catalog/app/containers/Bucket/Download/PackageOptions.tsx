@@ -4,9 +4,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { GetApp as IconGetApp, FileCopy as IconFileCopy } from '@material-ui/icons'
 
-import { Tabs } from 'components/Dialog'
 import * as urls from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
+import GetOptions from 'containers/Bucket/Toolbar/GetOptions'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as PackageUri from 'utils/PackageUri'
@@ -148,15 +148,6 @@ interface OptionsProps {
   uri: Required<Omit<PackageUri.PackageUri, 'tag'>>
 }
 
-const useOptionsStyles = M.makeStyles((t) => ({
-  download: {
-    width: t.spacing(40),
-  },
-  code: {
-    width: t.spacing(80),
-  },
-}))
-
 export default function Options({
   fileHandle,
   hashOrTag,
@@ -164,26 +155,10 @@ export default function Options({
   selection,
   uri,
 }: OptionsProps) {
-  const classes = useOptionsStyles()
-  const download = React.useCallback(
-    () => ({
-      className: classes.download,
-      label: 'Download',
-      panel: <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />,
-    }),
-    [classes.download, fileHandle, selection, uri],
+  const download = (
+    <DownloadPanel fileHandle={fileHandle} selection={selection} uri={uri} />
   )
-  const code = React.useCallback(
-    () => ({
-      className: classes.code,
-      label: 'Code',
-      panel: <CodePanel hashOrTag={hashOrTag} uri={uri} />,
-    }),
-    [classes.code, hashOrTag, uri],
-  )
-  const tabs = React.useMemo(
-    () => (hideCode ? [download()] : [download(), code()]),
-    [code, download, hideCode],
-  )
-  return <Tabs>{tabs}</Tabs>
+  const code = hideCode ? undefined : <CodePanel hashOrTag={hashOrTag} uri={uri} />
+
+  return <GetOptions download={download} code={code} />
 }
