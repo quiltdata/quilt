@@ -227,10 +227,10 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
-            "--version",
-            help="Show quilt3 version and exit",
-            action="version",
-            version=quilt3_version,
+        "--version",
+        help="Show quilt3 version and exit",
+        action="version",
+        version=quilt3_version,
     )
 
     subparsers = parser.add_subparsers(metavar="<command>")
@@ -256,16 +256,16 @@ def create_parser():
         nargs="?"
     )
     config_p.add_argument(
-            "--set",
-            metavar="KEY=VALUE",
-            nargs="+",
-            help="Set a number of key-value pairs for config_values"
-                 "(do not put spaces before or after the = sign). "
-                 "If a value contains spaces, you should define "
-                 "it with double quotes: "
-                 'foo="this is a sentence". Note that '
-                 "values are always treated as strings.",
-            action=ParseConfigDict,
+        "--set",
+        metavar="KEY=VALUE",
+        nargs="+",
+        help="Set a number of key-value pairs for config_values"
+        "(do not put spaces before or after the = sign). "
+        "If a value contains spaces, you should define "
+        "it with double quotes: "
+        'foo="this is a sentence". Note that '
+        "values are always treated as strings.",
+        action=ParseConfigDict,
     )
     config_p.set_defaults(func=cmd_config)
 
@@ -274,9 +274,9 @@ def create_parser():
     config_p = subparsers.add_parser("config-default-remote-registry",
                                      description=shorthelp, help=shorthelp, allow_abbrev=False)
     config_p.add_argument(
-            "default_remote_registry",
-            help="The default remote registry to use, e.g. s3://quilt-ml",
-            type=str
+        "default_remote_registry",
+        help="The default remote registry to use, e.g. s3://quilt-ml",
+        type=str
     )
     config_p.set_defaults(func=cmd_config_default_registry)
 
@@ -284,17 +284,17 @@ def create_parser():
     shorthelp = "Run Quilt catalog locally"
     catalog_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp, allow_abbrev=False)
     catalog_p.add_argument(
-            "navigation_target",
-            help="Which page in the local catalog to open. Leave blank to go to the catalog landing page, pass in an "
-                 "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
-                 "'BUCKET:USER/PKG' to go to the package viewer.",
-            type=str,
-            nargs="?"
+        "navigation_target",
+        help="Which page in the local catalog to open. Leave blank to go to the catalog landing page, pass in an "
+        "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
+        "'BUCKET:USER/PKG' to go to the package viewer.",
+        type=str,
+        nargs="?"
     )
     catalog_p.add_argument(
-            "--detailed-help", "--detailed_help",
-            help="Display detailed information about this command and then exit",
-            action="store_true",
+        "--detailed-help", "--detailed_help",
+        help="Display detailed information about this command and then exit",
+        action="store_true",
     )
     catalog_p.add_argument(
         "--host",
@@ -367,9 +367,9 @@ def create_parser():
     shorthelp = "List all packages in a registry"
     list_packages_p = subparsers.add_parser("list-packages", description=shorthelp, help=shorthelp, allow_abbrev=False)
     list_packages_p.add_argument(
-            "registry",
-            help="Registry for packages, e.g. s3://quilt-example",
-            type=str,
+        "registry",
+        help="Registry for packages, e.g. s3://quilt-example",
+        type=str,
     )
     list_packages_p.set_defaults(func=cmd_list_packages)
 
