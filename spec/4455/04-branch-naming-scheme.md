@@ -2,7 +2,10 @@
 
 ## Pattern: `4455-toolbar-[phase]-[feature]`
 
-### Proposed Branches:
+### Specification Branch:
+- `4455-toolbar-00-decomposition-spec` (this branch - planning and documentation)
+
+### Implementation Branches:
 
 **Phase 1 (Foundation):**
 - `4455-toolbar-01-shared-components`
@@ -31,6 +34,9 @@
 ## Usage Examples:
 
 ```bash
+# Specification phase (this branch)
+git checkout -b 4455-toolbar-00-decomposition-spec
+
 # Phase 1 (can be parallel)
 git checkout -b 4455-toolbar-01-shared-components
 git checkout -b 4455-toolbar-01-cleanup-unused
