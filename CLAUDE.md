@@ -277,17 +277,6 @@ Key execution guidelines:
 
 The key is to write clean, testable, functional code that evolves through small, safe increments. Every change should be driven by a test that describes the desired behavior, and the implementation should be the simplest thing that makes that test pass. When in doubt, favor simplicity and readability over cleverness.
 
-## Repository-Specific Commands
-
-For this repository's specific commands and permissions, see this CLAUDE.md file which contains:
-
-- Pre-approved Makefile targets (use those to run tests when possible)
-- Phase-specific commands (app, build, catalog, deploy)
-- Testing and validation procedures
-- AWS operations and deployment commands
-- Docker operations
-- Environment setup and dependencies
-
 ## Important Instruction Reminders
 
 **CRITICAL: Do what has been asked; nothing more, nothing less.**
@@ -310,6 +299,14 @@ The following permissions are granted for this repository:
 - You are permitted to use `uv` for Python dependency management and installation, provided its usage is documented in the repository or referenced by Makefile targets.
 
 **Note:** Only use these commands/scripts as documented or when required by the workflow. Do not introduce new scripts or commands without explicit approval.
+
+## Hooks
+
+## Markdown files
+
+- Always fix IDE diagnostics
+- Always add `<!-- markdownlint-disable line-length -->` as the first line
+- Always mark file listing code blocks as language `tree`
 
 ## Testing Gotchas & Patterns
 
