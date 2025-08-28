@@ -25,6 +25,7 @@ import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
 import * as Toolbar from 'containers/Bucket/Toolbar'
+import GetOptions from 'containers/Bucket/File/Toolbar/Get/Options'
 import renderPreview from 'containers/Bucket/renderPreview'
 import * as requests from 'containers/Bucket/requests'
 
@@ -363,9 +364,9 @@ export default function File() {
         <div className={classes.actions}>
           <FileProperties data={versionExistsData} />
           {downloadable && (
-            <Toolbar.Get.Button className={classes.button} label="Get file">
-              <Toolbar.Get.BucketFileOptions handle={handle} hideCode={ecfg.hideCode} />
-            </Toolbar.Get.Button>
+            <Toolbar.Get className={classes.button} label="Get file">
+              <GetOptions handle={handle} hideCode={ecfg.hideCode} />
+            </Toolbar.Get>
           )}
         </div>
       </div>
