@@ -12,7 +12,9 @@ generate:
     # might just want to specify "__all__" in quilt3.__init__ and use 'quilt3+' on the
     # line above this comment.  Specified explicitly for this example.
     - quilt3.config
+    - quilt3.copy
     - quilt3.delete_package
+    - quilt3.disable_telemetry
     - quilt3.get_boto3_session
     - quilt3.list_package_versions
     - quilt3.list_packages

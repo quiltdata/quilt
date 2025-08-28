@@ -32,6 +32,19 @@ __Returns__
 `QuiltConfig`: (an ordered Mapping)
 
 
+## copy(src, dest)  {#copy}
+
+Copies ``src`` object from QUILT to ``dest``.
+
+Either of ``src`` and ``dest`` may be S3 paths (starting with ``s3://``)
+or local file paths (starting with ``file:///``).
+
+__Arguments__
+
+* __src (str)__: a path to retrieve
+* __dest (str)__: a path to write to
+
+
 ## delete\_package(name, registry=None, top\_hash=None)  {#delete\_package}
 
 Delete a package. Deletes only the manifest entries and not the underlying files.
@@ -41,6 +54,11 @@ __Arguments__
 * __name (str)__:  Name of the package
 * __registry (str)__:  The registry the package will be removed from
 * __top_hash (str)__:  Optional. A package hash to delete, instead of the whole package.
+
+
+## disable\_telemetry()  {#disable\_telemetry}
+
+Permanently disable sending of anonymous usage metrics
 
 
 ## get\_boto3\_session(\*, fallback: bool = True) -> boto3.session.Session  {#get\_boto3\_session}
