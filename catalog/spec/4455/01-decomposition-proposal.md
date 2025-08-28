@@ -1,5 +1,7 @@
 # Toolbar Refactor PR Decomposition Proposal
 
+For re-factoring https://github.com/quiltdata/quilt/pull/4455
+
 ## Overview
 
 The current PR "Bucket toolbar: refactor UI, add files dialog, delete files option"
