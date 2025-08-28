@@ -1,3 +1,4 @@
+<!-- markdownlint-disable line-length -->
 # Decomposition
 
 1. review PR to see what changed

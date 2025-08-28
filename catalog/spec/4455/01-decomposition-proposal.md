@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 # Toolbar Refactor PR Decomposition Proposal
 
 For re-factoring https://github.com/quiltdata/quilt/pull/4455

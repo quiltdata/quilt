@@ -1,3 +1,4 @@
+<!-- markdownlint-disable line-length -->
 # PR Dependency Graph
 
 This document visualizes the dependencies between the proposed sub-PRs for
@@ -5,7 +6,7 @@ the toolbar refactor.
 
 ## Visual Dependency Tree
 
-```
+```tree
 Phase 1 (Foundation)
 ├── PR #1: Shared Components & Types
 └── PR #2: Remove Unused Components
@@ -77,7 +78,7 @@ Phase 1 (Foundation)
 
 ### Option A: Sequential (Conservative)
 
-```
+```tree
 PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 → PR #7 → PR #8
 ```
 
@@ -87,7 +88,7 @@ PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 → PR #7 → PR #8
 
 ### Option B: Parallel Features (Recommended)
 
-```
+```tree
 PR #1 → PR #2 → PR #3 → [PR #4, #5, #6, #7 in parallel] → PR #8
 ```
 
@@ -97,7 +98,7 @@ PR #1 → PR #2 → PR #3 → [PR #4, #5, #6, #7 in parallel] → PR #8
 
 ### Option C: Maximum Parallelism (Aggressive)
 
-```
+```tree
 [PR #1, #2 in parallel] → PR #3 → [PR #4, #5, #6, #7 in parallel] → PR #8
 ```
 

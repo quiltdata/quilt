@@ -1,3 +1,4 @@
+<!-- markdownlint-disable line-length -->
 # Development Guidelines for Claude
 
 ## Core Philosophy
