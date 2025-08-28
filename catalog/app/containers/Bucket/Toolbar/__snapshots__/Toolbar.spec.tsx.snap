@@ -1,0 +1,124 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Toolbar Add should render children when popover is opened 1`] = `
+<div>
+  <button
+    role="button"
+  >
+    Add files
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar Add should render with custom label 1`] = `
+<div>
+  <button
+    role="button"
+  >
+    Custom Add Label
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar Add should render with default label 1`] = `
+<div>
+  <button
+    class="custom-class"
+    role="button"
+  >
+    Add files
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar CreatePackage should render children when popover is opened 1`] = `
+<div>
+  <button
+    class="makeStyles-root-16"
+    role="button"
+  >
+    Create package
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar CreatePackage should render with empty selection 1`] = `
+<div>
+  <button
+    class="makeStyles-root-13 custom-class"
+    role="button"
+  >
+    Create package
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar Get should render children when popover is opened 1`] = `
+<div>
+  <button
+    role="button"
+  >
+    Get files
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar Get should render with custom label 1`] = `
+<div>
+  <button
+    role="button"
+  >
+    Custom Get Label
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar Get should render with default label 1`] = `
+<div>
+  <button
+    class="custom-class"
+    role="button"
+  >
+    Get files
+  </button>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar Organize should render children when popover is opened 1`] = `
+<div>
+  <span
+    class="MuiBadge-root"
+  >
+    <button
+      role="button"
+    >
+      Organize
+    </button>
+    <span
+      class="MuiBadge-badge makeStyles-badge-22 MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary"
+    >
+      5
+    </span>
+  </span>
+</div>
+`;
+
+exports[`containers/Bucket/Toolbar Organize should render with selection items 1`] = `
+<div>
+  <span
+    class="MuiBadge-root"
+  >
+    <button
+      class="custom-class"
+      role="button"
+    >
+      Organize
+    </button>
+    <span
+      class="MuiBadge-badge makeStyles-badge-19 MuiBadge-anchorOriginTopRightRectangle MuiBadge-colorPrimary"
+    >
+      5
+    </span>
+  </span>
+</div>
+`;
