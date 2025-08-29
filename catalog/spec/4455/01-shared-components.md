@@ -61,11 +61,11 @@ Create core UI components and type definitions that will be used by all toolbar 
 
 ### PR Comments (5 total from Greptile review)
 
-- [ ] **WithPopover.tsx:89** - Fix click propagation: Add `event.stopPropagation()` to prevent popup close on content interaction
-- [ ] **ErrorBoundary.tsx:27** - Replace `$TSFixMe` with proper TypeScript interface for info parameter
-- [ ] **PopoverOptions.tsx:131-155** - Resolve naming conflict: Tabs/TabPanel exports conflict with OptionsTabs.tsx
-- [ ] **PopoverOptions.tsx:141-149** - Fix React key issue: Use unique id field instead of array index for tabs
-- [ ] **Iconized.tsx:42** - Extract arrow function component to avoid React DevTools issues
+- [x] **WithPopover.tsx:89** - Fix click propagation: Add `event.stopPropagation()` to prevent popup close on content interaction
+- [x] **ErrorBoundary.tsx:27** - Replace `$TSFixMe` with proper TypeScript interface for info parameter
+- [x] **PopoverOptions.tsx:131-155** - Resolve naming conflict: Tabs/TabPanel exports conflict with OptionsTabs.tsx
+- [x] **PopoverOptions.tsx:141-149** - Fix React key issue: Use unique id field instead of array index for tabs
+- [x] **Iconized.tsx:42** - Extract arrow function component to avoid React DevTools issues
 
 ### CI & Review Cycle
 
