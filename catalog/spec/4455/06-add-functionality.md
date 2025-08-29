@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-06-add-functionality`  
 **Risk Level**: High  
-**Dependencies**: PR #3  
+**Dependencies**: PR #5 (merges into PR #5 branch)  
 **Estimated Size**: ~8 files, +800/-200 lines
 
 ## Objective

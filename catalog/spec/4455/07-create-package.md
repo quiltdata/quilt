@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-07-create-package`  
 **Risk Level**: Medium  
-**Dependencies**: PR #3  
+**Dependencies**: PR #6 (merges into PR #6 branch)  
 **Estimated Size**: ~8 files, +400/-50 lines
 
 ## Objective

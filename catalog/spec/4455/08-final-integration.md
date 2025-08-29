@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-08-final-integration`  
 **Risk Level**: Low  
-**Dependencies**: PR #4, #5, #6, #7  
+**Dependencies**: PR #7 (merges into PR #7 branch, final merge to master)  
 **Estimated Size**: ~15 files, +200/-100 lines
 
 ## Objective

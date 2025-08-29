@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-02-cleanup-unused`  
 **Risk Level**: Low  
-**Dependencies**: PR #1  
+**Dependencies**: PR #1 (merges into PR #1 branch)  
 **Estimated Size**: ~10 files, +0/-600 lines
 
 ## Objective

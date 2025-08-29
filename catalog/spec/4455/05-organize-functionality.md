@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-05-organize-functionality`  
 **Risk Level**: Medium  
-**Dependencies**: PR #3  
+**Dependencies**: PR #4 (merges into PR #4 branch)  
 **Estimated Size**: ~12 files, +600/-100 lines
 
 ## Objective

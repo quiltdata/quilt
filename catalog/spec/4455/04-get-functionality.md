@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-04-get-functionality`  
 **Risk Level**: Low  
-**Dependencies**: PR #3  
+**Dependencies**: PR #3 (merges into PR #3 branch)  
 **Estimated Size**: ~8 files, +300/-50 lines
 
 ## Objective

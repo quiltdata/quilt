@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-03-base-structure`  
 **Risk Level**: Medium  
-**Dependencies**: PR #1, #2  
+**Dependencies**: PR #2 (merges into PR #2 branch)  
 **Estimated Size**: ~12 files, +400/-100 lines
 
 ## Objective

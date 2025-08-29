@@ -60,7 +60,7 @@ Core UI components and type definitions that will be used by all toolbar modules
 
 **Estimated Size**: ~10 files, +0/-600 lines
 
-**Dependencies**: PR #1
+**Dependencies**: PR #1 (merges into PR #1 branch)
 
 #### Files
 
@@ -90,7 +90,7 @@ Remove deprecated and unused components to reduce codebase complexity.
 
 **Estimated Size**: ~12 files, +400/-100 lines
 
-**Dependencies**: PR #1, #2
+**Dependencies**: PR #2 (merges into PR #2 branch)
 
 #### Files
 
@@ -121,7 +121,7 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 
 **Estimated Size**: ~8 files, +300/-50 lines
 
-**Dependencies**: PR #3
+**Dependencies**: PR #3 (merges into PR #3 branch)
 
 #### Files
 
@@ -150,7 +150,7 @@ Implement the "Get" functionality for downloading files and viewing code samples
 
 **Estimated Size**: ~12 files, +600/-100 lines
 
-**Dependencies**: PR #3
+**Dependencies**: PR #4 (merges into PR #4 branch)
 
 #### Files
 
@@ -180,7 +180,7 @@ Implement file organization features including move and delete operations. This 
 
 **Estimated Size**: ~8 files, +800/-200 lines
 
-**Dependencies**: PR #3
+**Dependencies**: PR #5 (merges into PR #5 branch)
 
 #### Files
 
@@ -210,7 +210,7 @@ Implement the new file upload dialog with drag-and-drop functionality.
 
 **Estimated Size**: ~8 files, +400/-50 lines
 
-**Dependencies**: PR #3
+**Dependencies**: PR #6 (merges into PR #6 branch)
 
 #### Files
 
@@ -237,7 +237,7 @@ Implement package creation functionality in the new toolbar architecture.
 
 **Estimated Size**: ~15 files, +200/-100 lines
 
-**Dependencies**: PR #4, #5, #6, #7
+**Dependencies**: PR #7 (merges into PR #7 branch, final merge to master)
 
 #### Files
 
@@ -266,7 +266,11 @@ Complete the integration, update all consuming components, and add final polish.
 
 For each phase:
 
-  1. Create the new phase branch from master
+  1. Create the new phase branch from the appropriate base:
+     - PR #1: branch from master
+     - PR #2: branch from PR #1 (after #1 is merged)
+     - PR #3: branch from PR #2 (after #2 is merged)
+     - And so on - each PR builds on the previous PR's merged state
   1. ONLY cherry-pick the relevant files from `add-files-to-bucket`
   1. Add them all in a single commit
   1. Fix any IDE diagnostics
@@ -280,28 +284,35 @@ For each phase:
   1. Fix any failed tests
   1. Push the PR (and repeat until clean)
 
+### Sequential Implementation Chain
+
+**Chain Structure**: PR #1 → PR #2 → PR #3 → PR #4 → PR #5 → PR #6 → PR #7 → PR #8 → master
+
 ### Phase 1: Foundation (PRs #1-2)
 
-- Can be developed and reviewed in parallel
+- PR #1 merges to master
+- PR #2 branches from and merges into PR #1 branch (after PR #1 is merged)
 - Low risk, high confidence changes
 - Establishes foundation for all other work
 
 ### Phase 2: Architecture (PR #3)
 
-- Depends on Phase 1
+- Branches from and merges into PR #2 branch (after PR #2 is merged)
 - Critical architecture decisions
 - Should be thoroughly reviewed before proceeding
 
 ### Phase 3: Features (PRs #4-7)
 
-- Can be developed in parallel after PR #3
+- Each PR builds sequentially on the previous PR's merged state
+- PR #4 builds on PR #3, PR #5 builds on PR #4, etc.
 - Each implements a specific feature set
-- Independent testing and validation
+- Sequential testing and validation ensures cumulative stability
 
 ### Phase 4: Integration (PR #8)
 
-- Final integration after all features complete
-- Comprehensive testing
+- Builds on PR #7 branch
+- Final integration with comprehensive testing
+- This PR merges to master, bringing all changes together
 - Documentation and changelog updates
 
 ## Risk Assessment
