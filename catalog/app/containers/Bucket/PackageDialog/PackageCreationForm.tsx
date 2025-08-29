@@ -259,7 +259,7 @@ function PackageCreationForm({
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
-  const uploadPackage = Upload.useUploads()
+  const { upload: uploadPackage } = Upload.useUploads()
 
   interface SubmitArgs {
     name: string
