@@ -13,11 +13,14 @@ Remove deprecated and unused components to reduce codebase complexity before imp
 ## Files to Remove
 
 - [ ] `catalog/app/containers/Admin/Sync.tsx`
-- [ ] `catalog/app/containers/Bucket/Upload.tsx`
 - [ ] `catalog/app/containers/Bucket/Download/BucketCodeSamples.tsx`
 - [ ] `catalog/app/containers/Bucket/Download/BucketOptions.tsx`
 - [ ] `catalog/app/containers/Bucket/Download/Button.tsx`
 - [ ] `catalog/app/containers/Bucket/Download/OptionsTabs.tsx`
+
+## Files NOT to Remove
+
+- `catalog/app/containers/Bucket/Upload.tsx` - **REQUIRED** by `PackageCreationForm.tsx` for Electron package uploads (`useUploadPackage()` function)
 
 ## Implementation Checklist
 
@@ -91,3 +94,17 @@ Remove deprecated and unused components to reduce codebase complexity before imp
 - ✅ No broken references or imports remain
 - ✅ Existing functionality is unaffected
 - ✅ Codebase complexity is reduced
+
+## Lessons Learned
+
+**Critical Issue Discovered:** The original spec incorrectly listed `Upload.tsx` for removal. This file is **not unused** - it contains the `useUploadPackage()` function that is required by `PackageCreationForm.tsx` for Electron package creation functionality.
+
+**Root Cause:** Insufficient dependency analysis during spec creation. The file appeared unused at surface level but was actually a critical import dependency.
+
+**Resolution:**
+
+- Restored `Upload.tsx` from the 01-shared-components branch
+- Fixed import path in `PackageCreationForm.tsx` from `'./Uploads'` to `'../Upload'`
+- Updated spec to explicitly document what should NOT be removed
+
+**Prevention:** Always run dependency analysis (`grep -r "import.*Upload"`) before marking files as unused for removal.
