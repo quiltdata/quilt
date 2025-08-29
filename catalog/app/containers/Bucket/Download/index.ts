@@ -10,5 +10,5 @@ export const Button: React.FC<{
 }> = ({ children, className, label }) =>
   React.createElement('div', { className, title: label }, children)
 
-export const BucketOptions: React.FC<{ handle: any; hideCode?: boolean }> = () =>
+export const BucketOptions: React.FC<{ handle: unknown; hideCode?: boolean }> = () =>
   React.createElement('div', null, 'Download options not implemented')
