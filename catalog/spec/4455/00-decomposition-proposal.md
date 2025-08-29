@@ -28,7 +28,7 @@ sub-PRs that can be independently reviewed and merged.
 
 **Estimated Size**: ~15 files, +500/-50 lines
 
-**Dependencies**: None
+**Dependencies**: Spec branch (`4455-toolbar-00-spec`)
 
 #### Files
 
@@ -267,10 +267,11 @@ Complete the integration, update all consuming components, and add final polish.
 For each phase:
 
   1. Create the new phase branch from the appropriate base:
-     - PR #1: branch from master
-     - PR #2: branch from PR #1 (after #1 is merged)
-     - PR #3: branch from PR #2 (after #2 is merged)
+     - PR #1: branch from `4455-toolbar-00-spec` (this spec branch)
+     - PR #2: branch from merged PR #1 branch
+     - PR #3: branch from merged PR #2 branch  
      - And so on - each PR builds on the previous PR's merged state
+     - Final PR #8: merges the complete chain to master
   1. ONLY cherry-pick the relevant files from `add-files-to-bucket`
   1. Add them all in a single commit
   1. Fix any IDE diagnostics

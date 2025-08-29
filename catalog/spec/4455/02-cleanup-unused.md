@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-02-cleanup-unused`  
 **Risk Level**: Low  
-**Dependencies**: PR #1 (merges into PR #1 branch)  
+**Dependencies**: PR #1 (merges into `4455-toolbar-01-shared-components` branch)  
 **Estimated Size**: ~10 files, +0/-600 lines
 
 ## Objective
@@ -23,7 +23,7 @@ Remove deprecated and unused components to reduce codebase complexity before imp
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-02-cleanup-unused` from master
+- [ ] Create branch `4455-toolbar-02-cleanup-unused` from `4455-toolbar-01-shared-components`
 - [ ] Cherry-pick deletion commits from `add-files-to-bucket`
 - [ ] Single commit with message: "refactor: Remove unused toolbar components"
 
@@ -49,7 +49,8 @@ Remove deprecated and unused components to reduce codebase complexity before imp
 ### PR Requirements
 
 - [ ] PR title: "toolbar-02: Remove unused components for toolbar refactor"
-- [ ] PR description explains cleanup purpose
+- [ ] PR targets base branch: `4455-toolbar-01-shared-components`
+- [ ] PR description explains cleanup purpose (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 

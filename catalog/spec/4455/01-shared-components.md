@@ -3,7 +3,7 @@
 
 **Branch**: `4455-toolbar-01-shared-components`  
 **Risk Level**: Low  
-**Dependencies**: None  
+**Dependencies**: Spec branch (`4455-toolbar-00-spec`)  
 **Estimated Size**: ~15 files, +500/-50 lines
 
 ## Objective
@@ -25,7 +25,7 @@ Create core UI components and type definitions that will be used by all toolbar 
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-01-shared-components` from master
+- [ ] Create branch `4455-toolbar-01-shared-components` from `4455-toolbar-00-spec`
 - [ ] Cherry-pick only the files listed above from `add-files-to-bucket`
 - [ ] Single commit with message: "feat: Add shared toolbar components and types"
 
@@ -54,7 +54,8 @@ Create core UI components and type definitions that will be used by all toolbar 
 ### PR Requirements
 
 - [ ] PR title: "toolbar-01: Add shared components and types for toolbar refactor"
-- [ ] PR description explains foundation purpose
+- [ ] PR targets base branch: `4455-toolbar-00-spec`
+- [ ] PR description explains foundation purpose (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 - [ ] Code review completed and approved
