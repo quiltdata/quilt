@@ -17,7 +17,7 @@
        not fix)
 5. Go back and fix PRs to depend on the prior one (not all on master)
     1. make 01 depend on 00
-6. Starting with 00, go through each PR in turm to:
+6. Starting with 00, go through each PR in turn to:
     1. Update from its prior
     2. Address review comments
     3. Fix linting errors *as reported* by PR (MANUALLY: DO NOT trust
