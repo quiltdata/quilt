@@ -52,22 +52,34 @@ Implement package creation functionality in the new toolbar architecture with en
 - [ ] Error handling - clear and actionable messages?
 - [ ] Success feedback - guides user to next steps?
 
-### PR Requirements
+### PR Workflow
 
-- [ ] PR title: "toolbar-07: Add package creation functionality with enhanced UI"
+- [ ] Push branch: `git push -u origin 4455-toolbar-07-create-package`
+- [ ] Create PR with title: "toolbar-07: Add package creation functionality with enhanced UI"
 - [ ] PR targets base branch: `4455-toolbar-06-add-functionality`
-- [ ] PR description explains package creation features (copy this checklist into description)
+- [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
-- [ ] All CI checks pass
-- [ ] UX review for package creation flow
+
+### CI & Review Cycle
+
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+- [ ] Fix any failing tests reported by CI
+- [ ] Address PR review comments and resolve them using GraphQL API
+- [ ] Push fixes and repeat until all checks pass
+- [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
 
+- [ ] All CI checks pass
+- [ ] All review comments resolved
+- [ ] Code review completed and approved
+- [ ] UX review for package creation flow completed
 - [ ] Package creation works reliably
 - [ ] Form validation catches all edge cases
 - [ ] Package metadata is properly structured
 - [ ] Error messages are helpful and specific
 - [ ] Success flow guides users effectively
+- [ ] Ready for merge into next phase
 
 ## Success Criteria
 

@@ -50,22 +50,34 @@ Implement the new file upload dialog with drag-and-drop functionality.
 - [ ] Error handling - comprehensive and informative?
 - [ ] Large file handling - performance and reliability?
 
-### PR Requirements
+### PR Workflow
 
-- [ ] PR title: "toolbar-06: Add file upload functionality with drag-and-drop support"
+- [ ] Push branch: `git push -u origin 4455-toolbar-06-add-functionality`
+- [ ] Create PR with title: "toolbar-06: Add file upload functionality with drag-and-drop support"
 - [ ] PR targets base branch: `4455-toolbar-05-organize-functionality`
-- [ ] PR description explains new upload features (copy this checklist into description)
+- [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
-- [ ] All CI checks pass
-- [ ] UX review for upload experience
+
+### CI & Review Cycle
+
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+- [ ] Fix any failing tests reported by CI
+- [ ] Address PR review comments and resolve them using GraphQL API
+- [ ] Push fixes and repeat until all checks pass
+- [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
 
+- [ ] All CI checks pass
+- [ ] All review comments resolved
+- [ ] Code review completed and approved
+- [ ] UX review for upload experience completed
 - [ ] File uploads work reliably across file types
 - [ ] Drag-and-drop is smooth and responsive
 - [ ] Progress feedback is clear and accurate
 - [ ] Error messages are helpful and actionable
 - [ ] Performance is acceptable for large files
+- [ ] Ready for merge into next phase
 
 ## Success Criteria
 

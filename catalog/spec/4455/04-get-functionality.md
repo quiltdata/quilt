@@ -48,21 +48,32 @@ Implement the "Get" functionality for downloading files and viewing code samples
 - [ ] Error handling and user feedback
 - [ ] Integration with new toolbar architecture
 
-### PR Requirements
+### PR Workflow
 
-- [ ] PR title: "toolbar-04: Add Get functionality for downloads and code samples"
+- [ ] Push branch: `git push -u origin 4455-toolbar-04-get-functionality`
+- [ ] Create PR with title: "toolbar-04: Add Get functionality for downloads and code samples"
 - [ ] PR targets base branch: `4455-toolbar-03-base-structure`
-- [ ] PR description explains feature migration (copy this checklist into description)
+- [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
-- [ ] All CI checks pass
-- [ ] Feature functionality verified
+
+### CI & Review Cycle
+
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+- [ ] Fix any failing tests reported by CI
+- [ ] Address PR review comments and resolve them using GraphQL API
+- [ ] Push fixes and repeat until all checks pass
+- [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
 
+- [ ] All CI checks pass
+- [ ] All review comments resolved
+- [ ] Code review completed and approved
 - [ ] All download features work as before
 - [ ] Code samples generate correctly
 - [ ] No regression in existing functionality
 - [ ] Performance is maintained or improved
+- [ ] Ready for merge into next phase
 
 ## Success Criteria
 

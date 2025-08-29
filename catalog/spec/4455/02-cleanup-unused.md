@@ -46,19 +46,31 @@ Remove deprecated and unused components to reduce codebase complexity before imp
 - [ ] Verify no breaking changes to existing functionality
 - [ ] Confirm components being removed are truly unused
 
-### PR Requirements
+### PR Workflow
 
-- [ ] PR title: "toolbar-02: Remove unused components for toolbar refactor"
+- [ ] Push branch: `git push -u origin 4455-toolbar-02-cleanup-unused`
+- [ ] Create PR with title: "toolbar-02: Remove unused components for toolbar refactor"
 - [ ] PR targets base branch: `4455-toolbar-01-shared-components`
-- [ ] PR description explains cleanup purpose (copy this checklist into description)
+- [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
-- [ ] All CI checks pass
+
+### CI & Review Cycle
+
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+- [ ] Fix any failing tests reported by CI
+- [ ] Address PR review comments and resolve them using GraphQL API
+- [ ] Push fixes and repeat until all checks pass
+- [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
 
+- [ ] All CI checks pass
+- [ ] All review comments resolved
+- [ ] Code review completed and approved
 - [ ] No compilation errors
 - [ ] All existing functionality works as expected
 - [ ] Codebase is cleaner with reduced complexity
+- [ ] Ready for merge into next phase
 
 ## Success Criteria
 

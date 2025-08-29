@@ -51,21 +51,32 @@ Create core UI components and type definitions that will be used by all toolbar 
 - [ ] Accessibility - proper ARIA attributes and keyboard support?
 - [ ] Documentation - JSDoc comments for public APIs?
 
-### PR Requirements
+### PR Workflow
 
-- [ ] PR title: "toolbar-01: Add shared components and types for toolbar refactor"
+- [ ] Push branch: `git push -u origin 4455-toolbar-01-shared-components`
+- [ ] Create PR with title: "toolbar-01: Add shared components and types for toolbar refactor"
 - [ ] PR targets base branch: `4455-toolbar-00-spec`
-- [ ] PR description explains foundation purpose (copy this checklist into description)
+- [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
-- [ ] All CI checks pass
-- [ ] Code review completed and approved
+
+### CI & Review Cycle
+
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+- [ ] Fix any failing tests reported by CI
+- [ ] Address PR review comments and resolve them using GraphQL API
+- [ ] Push fixes and repeat until all checks pass
+- [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
 
+- [ ] All CI checks pass
+- [ ] All review comments resolved
+- [ ] Code review completed and approved
 - [ ] No breaking changes to existing functionality
 - [ ] Components are reusable and well-abstracted
 - [ ] Type definitions support planned toolbar features
 - [ ] Documentation is complete and accurate
+- [ ] Ready for merge into next phase
 
 ## Success Criteria
 
