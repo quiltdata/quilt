@@ -40,7 +40,7 @@ function ToolbarErrorBoundaryPlaceholder({
   const classes = useStyles()
 
   React.useEffect(() => {
-    Sentry.captureException(error, info)
+    Sentry.captureException(error, { extra: { info } })
   }, [error, info])
 
   return (
