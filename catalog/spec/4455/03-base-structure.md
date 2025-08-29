@@ -49,21 +49,32 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 - [ ] Integration points - minimal impact on existing code?
 - [ ] Test structure - supports future feature testing?
 
-### PR Requirements
+### PR Workflow
 
-- [ ] PR title: "toolbar-03: Add base toolbar architecture structure"
+- [ ] Push branch: `git push -u origin 4455-toolbar-03-base-structure`
+- [ ] Create PR with title: "toolbar-03: Add base toolbar architecture structure"
 - [ ] PR targets base branch: `4455-toolbar-02-cleanup-unused`
-- [ ] PR description explains architecture decisions (copy this checklist into description)
+- [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
-- [ ] All CI checks pass
-- [ ] Thorough architecture review completed
+
+### CI & Review Cycle
+
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+- [ ] Fix any failing tests reported by CI
+- [ ] Address PR review comments and resolve them using GraphQL API
+- [ ] Push fixes and repeat until all checks pass
+- [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
 
+- [ ] All CI checks pass
+- [ ] All review comments resolved
+- [ ] Code review completed and approved
 - [ ] Architecture supports all planned toolbar features
 - [ ] Integration is clean and non-invasive
 - [ ] Performance impact is minimal
 - [ ] Foundation is solid for feature implementation
+- [ ] Ready for merge into next phase
 
 ## Success Criteria
 

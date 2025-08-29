@@ -48,21 +48,33 @@ Implement file organization features including move and delete operations. This 
 - [ ] Error states and recovery - good user experience?
 - [ ] Bulk operations - performance and reliability?
 
-### PR Requirements
+### PR Workflow
 
-- [ ] PR title: "toolbar-05: Add Organize functionality with move and delete operations"
+- [ ] Push branch: `git push -u origin 4455-toolbar-05-organize-functionality`
+- [ ] Create PR with title: "toolbar-05: Add Organize functionality with move and delete operations"
 - [ ] PR targets base branch: `4455-toolbar-04-get-functionality`
-- [ ] PR description explains new delete features (copy this checklist into description)
+- [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
-- [ ] All CI checks pass
-- [ ] Security review for delete operations
+
+### CI & Review Cycle
+
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+- [ ] Fix any failing tests reported by CI
+- [ ] Address PR review comments and resolve them using GraphQL API
+- [ ] Push fixes and repeat until all checks pass
+- [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
 
+- [ ] All CI checks pass
+- [ ] All review comments resolved
+- [ ] Code review completed and approved
+- [ ] Security review for delete operations completed
 - [ ] Delete operations are safe and reversible where possible
 - [ ] Permissions are properly enforced
 - [ ] Error messages are helpful and actionable
 - [ ] Bulk operations perform well
+- [ ] Ready for merge into next phase
 
 ## Success Criteria
 
