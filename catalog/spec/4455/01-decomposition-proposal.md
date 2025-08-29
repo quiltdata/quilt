@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD013 -->
 # Toolbar Refactor PR Decomposition Proposal
 
-For re-factoring the [Toolbar PR #4455](https://github.com/quiltdata/quilt/pull/4455).
+For re-factoring the [Toolbar PR #4455](https://github.com/quiltdata/quilt/pull/4455) from the branch `add-files-to-bucket`
 
 ## Overview
 
@@ -261,6 +261,23 @@ Complete the integration, update all consuming components, and add final polish.
 - Documentation completeness
 
 ## Implementation Strategy
+
+## Process
+
+For each phase:
+
+  1. Create the new phase branch from master
+  1. ONLY cherry-pick the relevant files from `add-files-to-bucket`
+  1. Add them all in a single commit
+  1. Fix any IDE diagnostics
+  1. Create and push a PR
+    1. Use the prefix 'toolbar-phase:' in the title so they are easy to find/sort
+    1. Explain the purpose of this phase in the description
+  1. Address PR comments (and resolve them)
+  1. Address lint errors as described by the PR
+    1. manually: DO NOT run the local linter, as it does NOT match the CI
+  1. Fix any failed tests
+  1. Push the PR (and repeat until clean)
 
 ### Phase 1: Foundation (PRs #1-2)
 

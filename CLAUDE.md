@@ -216,6 +216,52 @@ Before considering refactoring complete, verify:
 - PRs should be focused on a single feature or fix
 - Include description of the behavior change, not implementation details
 
+### PR Comment Resolution
+
+When addressing PR comments:
+
+1. **Fix the issue** in the code as requested
+2. **Commit the fix** with a descriptive commit message
+3. **Push the changes** to update the PR
+4. **Reply to the comment** acknowledging the fix (optional but helpful)
+5. **Mark the comment as resolved** using GraphQL API:
+
+```bash
+# Find review threads and their IDs
+gh api graphql --field query='
+{
+  repository(owner: "quiltdata", name: "quilt") {
+    pullRequest(number: XXXX) {
+      reviewThreads(first: 10) {
+        nodes {
+          id
+          isResolved
+          comments(first: 5) {
+            nodes {
+              id
+              body
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+
+# Mark thread as resolved using the thread ID
+gh api graphql --field query='
+mutation {
+  resolveReviewThread(input: {threadId: "THREAD_ID_HERE"}) {
+    thread {
+      id
+      isResolved
+    }
+  }
+}'
+```
+
+**CRITICAL**: Always mark PR comments as resolved after addressing them. This keeps the PR clean and shows reviewers that feedback has been handled.
+
 ## Working with Claude
 
 ### Expectations
@@ -332,3 +378,4 @@ The following permissions are granted for this repository:
 - Push changes before creating PRs to ensure remote branch is up-to-date
 - **CRITICAL:** Always create specification document in `./spec/` folder before implementation (we skipped this step in issue #60)
 - **Use sub-agents** from `.claude/agents/` for complex workflow phases to prevent context loss
+- always allow fetching web content from github.com and anthropic.com
