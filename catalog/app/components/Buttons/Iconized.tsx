@@ -36,14 +36,14 @@ interface IconProps {
 
 function Icon({ icon, rotate }: IconProps) {
   const classes = useIconStyles()
-  const IconComponent = typeof icon === 'string' ? M.Icon : icon
-  return typeof icon === 'string' ? (
-    <IconComponent className={cx(classes.root, { [classes.rotated]: rotate })}>
-      {icon}
-    </IconComponent>
-  ) : (
-    <IconComponent className={cx(classes.root, { [classes.rotated]: rotate })} />
-  )
+  const className = cx(classes.root, { [classes.rotated]: rotate })
+
+  if (typeof icon === 'string') {
+    return <M.Icon className={className}>{icon}</M.Icon>
+  }
+
+  const IconComponent = icon
+  return <IconComponent className={className} />
 }
 
 interface ButtonIconizedProps extends M.IconButtonProps {
