@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Toolbar should render minimal toolbar structure 1`] = `
+<div
+  class="makeStyles-root-1"
+/>
+`;
+
+exports[`Toolbar should render with custom className 1`] = `
+<div
+  class="makeStyles-root-2 custom-class"
+/>
+`;
