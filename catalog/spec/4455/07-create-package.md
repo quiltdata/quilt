@@ -44,6 +44,14 @@ Implement package creation functionality in the new toolbar architecture with en
 - [ ] Error handling tests
 - [ ] Success flow tests
 
+### Local Testing (REQUIRED before pushing)
+
+- [ ] Run `npm test` locally and verify all tests pass
+- [ ] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [ ] Run `npm run lint` locally and fix any linting errors
+- [ ] Test affected components manually in browser if applicable
+- [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] Package creation UX - smooth and intuitive workflow?
@@ -55,17 +63,22 @@ Implement package creation functionality in the new toolbar architecture with en
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-07-create-package`
-- [ ] Create PR with title: "toolbar-07: Add package creation functionality with enhanced UI"
+- [ ] Create **DRAFT** PR with title: "toolbar-07: Add package creation functionality with enhanced UI"
 - [ ] PR targets base branch: `4455-toolbar-06-add-functionality`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 
-- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+#### CRITICAL: Complete this entire cycle - do not stop until PR is merge-ready
+
+- [ ] Monitor CI until all checks complete (wait for pending checks)
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)  
 - [ ] Fix any failing tests reported by CI
 - [ ] Address PR review comments and resolve them using GraphQL API
-- [ ] Push fixes and repeat until all checks pass
+- [ ] Push fixes and repeat until ALL checks pass
+- [ ] Verify PR is in merge-ready state (all green checkmarks)
 - [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation

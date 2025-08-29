@@ -42,6 +42,14 @@ Implement the new file upload dialog with drag-and-drop functionality.
 - [ ] Error handling tests
 - [ ] Large file upload tests
 
+### Local Testing (REQUIRED before pushing)
+
+- [ ] Run `npm test` locally and verify all tests pass
+- [ ] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [ ] Run `npm run lint` locally and fix any linting errors
+- [ ] Test affected components manually in browser if applicable
+- [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] File upload UX - intuitive and user-friendly?
@@ -53,17 +61,22 @@ Implement the new file upload dialog with drag-and-drop functionality.
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-06-add-functionality`
-- [ ] Create PR with title: "toolbar-06: Add file upload functionality with drag-and-drop support"
+- [ ] Create **DRAFT** PR with title: "toolbar-06: Add file upload functionality with drag-and-drop support"
 - [ ] PR targets base branch: `4455-toolbar-05-organize-functionality`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 
-- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+#### CRITICAL: Complete this entire cycle - do not stop until PR is merge-ready
+
+- [ ] Monitor CI until all checks complete (wait for pending checks)
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)  
 - [ ] Fix any failing tests reported by CI
 - [ ] Address PR review comments and resolve them using GraphQL API
-- [ ] Push fixes and repeat until all checks pass
+- [ ] Push fixes and repeat until ALL checks pass
+- [ ] Verify PR is in merge-ready state (all green checkmarks)
 - [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation

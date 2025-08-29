@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Buttons from 'components/Buttons'
+import type { StrIcon, SvgIcon } from 'components/Buttons/Iconized'
 import { WorkflowsConfigLink } from 'components/FileEditor/HelpLinks'
 import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
@@ -224,7 +225,7 @@ export function Dropdown({
 
 interface ButtonProps extends Omit<M.IconButtonProps, 'onChange' | 'variant'> {
   bucket: string
-  icon?: string
+  icon?: StrIcon | SvgIcon
   className: string
   children: string
   onChange: (s: workflows.Successor) => void

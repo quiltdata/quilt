@@ -41,6 +41,14 @@ Implement file organization features including move and delete operations. This 
 - [ ] Error handling and recovery tests
 - [ ] Bulk operation tests
 
+### Local Testing (REQUIRED before pushing)
+
+- [ ] Run `npm test` locally and verify all tests pass
+- [ ] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [ ] Run `npm run lint` locally and fix any linting errors
+- [ ] Test affected components manually in browser if applicable
+- [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] Delete confirmation flow - is it safe and clear?
@@ -51,17 +59,22 @@ Implement file organization features including move and delete operations. This 
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-05-organize-functionality`
-- [ ] Create PR with title: "toolbar-05: Add Organize functionality with move and delete operations"
+- [ ] Create **DRAFT** PR with title: "toolbar-05: Add Organize functionality with move and delete operations"
 - [ ] PR targets base branch: `4455-toolbar-04-get-functionality`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 
-- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+#### CRITICAL: Complete this entire cycle - do not stop until PR is merge-ready
+
+- [ ] Monitor CI until all checks complete (wait for pending checks)
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)  
 - [ ] Fix any failing tests reported by CI
 - [ ] Address PR review comments and resolve them using GraphQL API
-- [ ] Push fixes and repeat until all checks pass
+- [ ] Push fixes and repeat until ALL checks pass
+- [ ] Verify PR is in merge-ready state (all green checkmarks)
 - [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation

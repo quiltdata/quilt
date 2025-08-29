@@ -46,6 +46,14 @@ Complete the integration, update all consuming components, and add final polish 
 - [ ] Accessibility compliance tests
 - [ ] Cross-browser compatibility tests
 
+### Local Testing (REQUIRED before pushing)
+
+- [ ] Run `npm test` locally and verify all tests pass
+- [ ] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [ ] Run `npm run lint` locally and fix any linting errors
+- [ ] Test affected components manually in browser if applicable
+- [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] Integration completeness - all components properly updated?
@@ -57,17 +65,22 @@ Complete the integration, update all consuming components, and add final polish 
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-08-final-integration`
-- [ ] Create PR with title: "toolbar-08: Complete toolbar integration and add final polish"
+- [ ] Create **DRAFT** PR with title: "toolbar-08: Complete toolbar integration and add final polish"
 - [ ] PR targets base branch: `4455-toolbar-07-create-package`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 
-- [ ] Address any failing CI checks using CI feedback (NOT local linter)
+#### CRITICAL: Complete this entire cycle - do not stop until PR is merge-ready
+
+- [ ] Monitor CI until all checks complete (wait for pending checks)
+- [ ] Address any failing CI checks using CI feedback (NOT local linter)  
 - [ ] Fix any failing tests reported by CI
 - [ ] Address PR review comments and resolve them using GraphQL API
-- [ ] Push fixes and repeat until all checks pass
+- [ ] Push fixes and repeat until ALL checks pass
+- [ ] Verify PR is in merge-ready state (all green checkmarks)
 - [ ] Annotate this checklist with any issues encountered for future improvement
 
 ### Pre-Merge Validation
