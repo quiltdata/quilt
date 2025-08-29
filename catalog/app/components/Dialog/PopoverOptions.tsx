@@ -97,7 +97,7 @@ interface TabPanelProps {
   className?: string
 }
 
-function TabPanel({ children, className }: TabPanelProps) {
+function PopoverTabPanel({ children, className }: TabPanelProps) {
   const classes = useTabPanelStyles()
   return <div className={cx(classes.root, className)}>{children}</div>
 }
@@ -122,13 +122,14 @@ const useStyles = M.makeStyles((t) => ({
 
 interface TabsProps {
   tabs: {
+    id: string
     label: NonNullable<React.ReactNode>
     panel: NonNullable<React.ReactNode>
     className?: string
   }[]
 }
 
-export function Tabs({ tabs }: TabsProps) {
+export function PopoverTabs({ tabs }: TabsProps) {
   invariant(tabs.length > 0, 'Tabs component requires at least one tab')
 
   const classes = useStyles()
@@ -138,9 +139,9 @@ export function Tabs({ tabs }: TabsProps) {
     <div className={cx(classes.root, activeTab.className)}>
       {tabs.length > 1 && (
         <TabsContainer>
-          {tabs.map(({ label }, index) => (
+          {tabs.map(({ id, label }, index) => (
             <Tab
-              key={index}
+              key={id}
               active={activeIndex === index}
               onClick={() => setActiveIndex(index)}
             >
@@ -149,7 +150,7 @@ export function Tabs({ tabs }: TabsProps) {
           ))}
         </TabsContainer>
       )}
-      <TabPanel>{activeTab.panel}</TabPanel>
+      <PopoverTabPanel>{activeTab.panel}</PopoverTabPanel>
     </div>
   )
 }

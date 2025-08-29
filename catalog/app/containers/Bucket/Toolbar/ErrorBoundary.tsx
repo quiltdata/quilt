@@ -22,9 +22,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface ErrorInfo {
+  componentStack: string
+}
+
 interface ToolbarErrorBoundaryPlaceholderProps {
   error: Error
-  info: $TSFixMe
+  info: ErrorInfo
   reset: () => void
 }
 

@@ -25,39 +25,47 @@ Create core UI components and type definitions that will be used by all toolbar 
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-01-shared-components` from `4455-toolbar-00-spec`
-- [ ] Cherry-pick only the files listed above from `add-files-to-bucket`
-- [ ] Single commit with message: "feat: Add shared toolbar components and types"
+- [x] Create branch `4455-toolbar-01-shared-components` from `4455-toolbar-00-spec`
+- [x] Cherry-pick only the files listed above from `add-files-to-bucket`
+- [x] Single commit with message: "feat: Add shared toolbar components and types"
 
 ### Code Quality
 
-- [ ] Fix any IDE diagnostics
-- [ ] Verify TypeScript compilation
+- [x] Fix any IDE diagnostics (fixed TypeScript error in Successors.tsx)
+- [x] Verify TypeScript compilation
 - [ ] Check component prop interfaces are well-defined
 - [ ] Ensure accessibility attributes are present
 
 ### Testing
 
-- [ ] All new components have unit tests
-- [ ] Snapshot tests are included
+- [x] All new components have unit tests
+- [x] Snapshot tests are included
 - [ ] Test coverage for component APIs
 - [ ] No existing tests are broken
 
 ### Review Focus Areas
 
 - [ ] Component API design - are interfaces clean and extensible?
-- [ ] TypeScript type definitions - comprehensive and correct?
+- [x] TypeScript type definitions - comprehensive and correct?
 - [ ] Test coverage - adequate for new components?
 - [ ] Accessibility - proper ARIA attributes and keyboard support?
 - [ ] Documentation - JSDoc comments for public APIs?
 
 ### PR Workflow
 
-- [ ] Push branch: `git push -u origin 4455-toolbar-01-shared-components`
-- [ ] Create PR with title: "toolbar-01: Add shared components and types for toolbar refactor"
-- [ ] PR targets base branch: `4455-toolbar-00-spec`
-- [ ] Copy this checklist into PR description
-- [ ] Link to decomposition spec in description
+- [x] Push branch: `git push -u origin 4455-toolbar-01-shared-components`
+- [x] Create PR with title: "toolbar-01: Add shared components and types for toolbar refactor"
+- [x] PR targets base branch: `4455-toolbar-00-spec`
+- [x] Copy this checklist into PR description
+- [x] Link to decomposition spec in description
+
+### PR Comments (5 total from Greptile review)
+
+- [ ] **WithPopover.tsx:89** - Fix click propagation: Add `event.stopPropagation()` to prevent popup close on content interaction
+- [ ] **ErrorBoundary.tsx:27** - Replace `$TSFixMe` with proper TypeScript interface for info parameter
+- [ ] **PopoverOptions.tsx:131-155** - Resolve naming conflict: Tabs/TabPanel exports conflict with OptionsTabs.tsx
+- [ ] **PopoverOptions.tsx:141-149** - Fix React key issue: Use unique id field instead of array index for tabs
+- [ ] **Iconized.tsx:42** - Extract arrow function component to avoid React DevTools issues
 
 ### CI & Review Cycle
 

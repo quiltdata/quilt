@@ -29,6 +29,14 @@ const useIconStyles = M.makeStyles({
   },
 })
 
+interface StringIconProps extends M.IconProps {
+  children: string
+}
+
+function StringIcon({ children, ...iconProps }: StringIconProps) {
+  return <M.Icon {...iconProps}>{children}</M.Icon>
+}
+
 interface IconProps {
   icon: StrIcon | SvgIcon
   rotate?: boolean
@@ -37,13 +45,16 @@ interface IconProps {
 function Icon({ icon, rotate }: IconProps) {
   const classes = useIconStyles()
   const IconComponent = React.useMemo(
-    () =>
-      typeof icon === 'string'
-        ? (iconProps: M.IconProps) => <M.Icon {...iconProps}>{icon}</M.Icon>
-        : icon,
+    () => (typeof icon === 'string' ? StringIcon : icon),
     [icon],
   )
-  return <IconComponent className={cx(classes.root, { [classes.rotated]: rotate })} />
+  const iconProps = typeof icon === 'string' ? { children: icon } : {}
+  return (
+    <IconComponent
+      className={cx(classes.root, { [classes.rotated]: rotate })}
+      {...iconProps}
+    />
+  )
 }
 
 interface ButtonIconizedProps extends M.IconButtonProps {
