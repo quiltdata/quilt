@@ -51,6 +51,14 @@ Create core UI components and type definitions that will be used by all toolbar 
 - [ ] Accessibility - proper ARIA attributes and keyboard support?
 - [ ] Documentation - JSDoc comments for public APIs?
 
+### Local Testing (REQUIRED before pushing)
+
+- [x] Run `npm test` locally and verify all tests pass
+- [x] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [x] Run `npm run lint` locally and fix any linting errors
+- [x] Test affected components manually in browser if applicable
+- [x] Verify no console errors when running the application locally
+
 ### PR Workflow
 
 - [x] Push branch: `git push -u origin 4455-toolbar-01-shared-components`

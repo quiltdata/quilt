@@ -40,6 +40,14 @@ Remove deprecated and unused components to reduce codebase complexity before imp
 - [ ] No test files reference deleted components
 - [ ] Remove any tests that only tested deleted components
 
+### Local Testing (REQUIRED before pushing)
+
+- [ ] Run `npm test` locally and verify all tests pass
+- [ ] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [ ] Run `npm run lint` locally and fix any linting errors
+- [ ] Test affected components manually in browser if applicable
+- [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] Ensure no remaining references to deleted components

@@ -42,6 +42,14 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 - [ ] Test structure supports future feature additions
 - [ ] All existing tests continue to pass
 
+### Local Testing (REQUIRED before pushing)
+
+- [ ] Run `npm test` locally and verify all tests pass
+- [ ] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [ ] Run `npm run lint` locally and fix any linting errors
+- [ ] Test affected components manually in browser if applicable
+- [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] Architecture pattern - is it extensible and maintainable?

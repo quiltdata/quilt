@@ -42,6 +42,13 @@ Implement the new file upload dialog with drag-and-drop functionality.
 - [ ] Error handling tests
 - [ ] Large file upload tests
 
+### Local Testing (REQUIRED before pushing)
+
+- [ ] Run `npm test` locally and verify all tests pass
+- [ ] Run `npm run build` locally and verify TypeScript compilation succeeds
+- [ ] Run `npm run lint` locally and fix any linting errors
+- [ ] Test affected components manually in browser if applicable
+- [ ] Verify no console errors when running the application locally
 ### Review Focus Areas
 
 - [ ] File upload UX - intuitive and user-friendly?
