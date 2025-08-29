@@ -30,11 +30,11 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 
 ### PR Workflow
 
-- [ ] Push branch: `git push -u origin 4455-toolbar-03-base-structure`
-- [ ] Create **DRAFT** PR with title: "toolbar-03: Add base toolbar architecture structure"
-- [ ] PR targets base branch: `4455-toolbar-02-cleanup-unused`
-- [ ] Link to prior PR in description
-- [ ] Wait 5 minutes, identify errors, and add as a checklist to PR comment
+- [x] Push branch: `git push -u origin 4455-toolbar-03-base-structure`
+- [x] Create **DRAFT** PR with title: "toolbar-03: Add base toolbar architecture structure"
+- [x] PR targets base branch: `4455-toolbar-02-cleanup-unused`
+- [x] Link to prior PR in description
+- [x] Wait 5 minutes, identify errors, and add as a checklist to PR comment
 - [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### Local Testing (REQUIRED before pushing)
