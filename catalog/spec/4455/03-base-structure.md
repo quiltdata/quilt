@@ -12,35 +12,30 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 
 ## Files to Cherry-Pick
 
-- [ ] `catalog/app/containers/Bucket/Toolbar/Toolbar.tsx` (new)
-- [ ] `catalog/app/containers/Bucket/Toolbar/Toolbar.spec.tsx` (new)
-- [ ] `catalog/app/containers/Bucket/Dir/Toolbar/Toolbar.tsx` (new)
-- [ ] `catalog/app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx` (new)
-- [ ] `catalog/app/containers/Bucket/File/Toolbar/Toolbar.tsx` (new)
-- [ ] `catalog/app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx` (new)
+- [x] `catalog/app/containers/Bucket/Toolbar/Toolbar.tsx` (new)
+- [x] `catalog/app/containers/Bucket/Toolbar/Toolbar.spec.tsx` (new)
+- [x] `catalog/app/containers/Bucket/Dir/Toolbar/Toolbar.tsx` (new)
+- [x] `catalog/app/containers/Bucket/Dir/Toolbar/Toolbar.spec.tsx` (new)
+- [x] `catalog/app/containers/Bucket/File/Toolbar/Toolbar.tsx` (new)
+- [x] `catalog/app/containers/Bucket/File/Toolbar/Toolbar.spec.tsx` (new)
 - [ ] Basic integration into `Dir.tsx` and `File.js`
 
 ## Implementation Checklist
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-03-base-structure` from `4455-toolbar-02-cleanup-unused`
-- [ ] Cherry-pick architecture files from `add-files-to-bucket`
-- [ ] Single commit with message: "feat: Add base toolbar architecture structure"
+- [x] Create branch `4455-toolbar-03-base-structure` from `4455-toolbar-02-cleanup-unused`
+- [x] Cherry-pick architecture files from `add-files-to-bucket`
+- [x] Single commit with message: "feat: Add base toolbar architecture structure"
 
-### Code Quality
+### PR Workflow
 
-- [ ] Verify component composition approach is sound
-- [ ] Check integration points with existing components
-- [ ] Ensure TypeScript interfaces are well-defined
-- [ ] Confirm architecture supports planned features
-
-### Testing
-
-- [ ] Base toolbar components have unit tests
-- [ ] Integration tests for component mounting
-- [ ] Test structure supports future feature additions
-- [ ] All existing tests continue to pass
+- [ ] Push branch: `git push -u origin 4455-toolbar-03-base-structure`
+- [ ] Create **DRAFT** PR with title: "toolbar-03: Add base toolbar architecture structure"
+- [ ] PR targets base branch: `4455-toolbar-02-cleanup-unused`
+- [ ] Link to prior PR in description
+- [ ] Wait 5 minutes, identify errors, and add as a checklist to PR comment
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### Local Testing (REQUIRED before pushing)
 
@@ -49,22 +44,6 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 - [ ] Run `npm run lint` locally and fix any linting errors
 - [ ] Test affected components manually in browser if applicable
 - [ ] Verify no console errors when running the application locally
-
-### Review Focus Areas
-
-- [ ] Architecture pattern - is it extensible and maintainable?
-- [ ] Component composition approach - clean separation of concerns?
-- [ ] Integration points - minimal impact on existing code?
-- [ ] Test structure - supports future feature testing?
-
-### PR Workflow
-
-- [ ] Push branch: `git push -u origin 4455-toolbar-03-base-structure`
-- [ ] Create **DRAFT** PR with title: "toolbar-03: Add base toolbar architecture structure"
-- [ ] PR targets base branch: `4455-toolbar-02-cleanup-unused`
-- [ ] Copy this checklist into PR description
-- [ ] Link to decomposition spec in description
-- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 
