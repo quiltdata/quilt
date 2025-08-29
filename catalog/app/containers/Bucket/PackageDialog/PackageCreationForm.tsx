@@ -31,7 +31,7 @@ import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import * as requests from '../requests'
 
-import * as Upload from './Uploads'
+import * as Upload from '../Upload'
 
 import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
@@ -259,7 +259,7 @@ function PackageCreationForm({
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
-  const { upload: uploadPackage } = Upload.useUploads()
+  const uploadPackage = Upload.useUploadPackage()
 
   interface SubmitArgs {
     name: string
