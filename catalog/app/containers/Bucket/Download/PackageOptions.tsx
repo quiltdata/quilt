@@ -13,8 +13,30 @@ import copyToClipboard from 'utils/clipboard'
 import * as FileView from '../FileView'
 import * as Selection from '../Selection'
 
-import { Tabs, TabPanel } from './OptionsTabs'
 import PackageCodeSamples from './PackageCodeSamples'
+
+// Local tabs implementation since OptionsTabs was removed
+const Tabs = ({
+  download,
+  code,
+}: {
+  download: React.ReactNode
+  code: React.ReactNode
+}) => {
+  const [value, setValue] = React.useState(0)
+  return (
+    <>
+      <M.Tabs value={value} onChange={(_, v) => setValue(v)}>
+        <M.Tab label="Download" />
+        <M.Tab label="Code" />
+      </M.Tabs>
+      {value === 0 && download}
+      {value === 1 && code}
+    </>
+  )
+}
+
+const TabPanel = ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 
 interface DownloadFileProps {
   fileHandle: Model.S3.S3ObjectLocation
