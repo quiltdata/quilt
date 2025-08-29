@@ -61,7 +61,7 @@ Create core UI components and type definitions that will be used by all toolbar 
 
 ### CI & Review Cycle
 
-**CRITICAL: Complete this entire cycle - do not stop until PR is merge-ready**
+CRITICAL: Complete this entire cycle - do not stop until PR is merge-ready
 
 - [ ] Monitor CI until all checks complete (wait for pending checks)
 - [ ] Address any failing CI checks using CI feedback (NOT local linter)  

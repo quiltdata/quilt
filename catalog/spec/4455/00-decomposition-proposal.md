@@ -264,6 +264,14 @@ Complete the integration, update all consuming components, and add final polish.
 
 ## Process
 
+### CRITICAL RULE: Forward-Only Modifications
+
+Once a phase branch is created, **NEVER go back and modify previous branches**. All learnings, fixes, and improvements flow forward to subsequent phases only. This prevents merge conflicts and maintains the sequential dependency chain integrity.
+
+- ✅ Fix issues in current phase branch
+- ✅ Incorporate learnings when creating next phase branch  
+- ❌ Never modify previous phase branches after subsequent phases exist
+
 For each phase:
 
   1. Create the new phase branch from the appropriate base:

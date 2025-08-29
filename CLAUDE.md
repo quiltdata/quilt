@@ -379,3 +379,11 @@ The following permissions are granted for this repository:
 - **CRITICAL:** Always create specification document in `./spec/` folder before implementation (we skipped this step in issue #60)
 - **Use sub-agents** from `.claude/agents/` for complex workflow phases to prevent context loss
 - always allow fetching web content from github.com and anthropic.com
+
+**Sequential Branch Strategy:**
+
+- **CRITICAL: Forward-Only Modifications** - Once a phase branch is created, NEVER go back and modify previous branches
+- All learnings, fixes, and improvements flow forward to subsequent phases only
+- This prevents merge conflicts and maintains sequential dependency chain integrity
+- Example: PR #4506 conflicts occurred because spec files were modified in both spec branch and phase branch
+- Solution: All improvements belong in current/future branches, never past branches
