@@ -48,6 +48,7 @@ Implement file organization features including move and delete operations. This 
 - [ ] Run `npm run lint` locally and fix any linting errors
 - [ ] Test affected components manually in browser if applicable
 - [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] Delete confirmation flow - is it safe and clear?

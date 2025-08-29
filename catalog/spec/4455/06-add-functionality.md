@@ -49,6 +49,7 @@ Implement the new file upload dialog with drag-and-drop functionality.
 - [ ] Run `npm run lint` locally and fix any linting errors
 - [ ] Test affected components manually in browser if applicable
 - [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] File upload UX - intuitive and user-friendly?

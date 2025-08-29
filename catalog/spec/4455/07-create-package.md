@@ -51,6 +51,7 @@ Implement package creation functionality in the new toolbar architecture with en
 - [ ] Run `npm run lint` locally and fix any linting errors
 - [ ] Test affected components manually in browser if applicable
 - [ ] Verify no console errors when running the application locally
+
 ### Review Focus Areas
 
 - [ ] Package creation UX - smooth and intuitive workflow?

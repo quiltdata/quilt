@@ -387,3 +387,21 @@ The following permissions are granted for this repository:
 - This prevents merge conflicts and maintains sequential dependency chain integrity
 - Example: PR #4506 conflicts occurred because spec files were modified in both spec branch and phase branch
 - Solution: All improvements belong in current/future branches, never past branches
+
+**Local Testing Requirements:**
+
+- **ALWAYS test locally before pushing** - Run `npm test`, `npm run build`, and `npm run lint` locally
+- Local testing catches issues immediately vs waiting for CI cycles (5+ minutes each)
+- Example: PR #4506 WithPopover test failure could have been caught in 30 seconds locally vs 3 CI cycles
+- Test affected components manually in browser when applicable
+- Verify no console errors when running the application locally
+- This is now required in all phase checklists as "Local Testing (REQUIRED before pushing)" section
+
+**Draft PR Workflow:**
+
+- **ALWAYS create PRs as DRAFT initially** - Signals work in progress, prevents accidental merges
+- Only mark as "ready for review" after ALL CI checks pass and comments are resolved
+- Draft status allows safe iteration through CI & review cycles without merge pressure
+- Provides clear signal to reviewers about PR readiness status
+- Prevents premature merge when PR appears "done" but still has failing checks
+- This is now required in all phase checklists in the "PR Workflow" section
