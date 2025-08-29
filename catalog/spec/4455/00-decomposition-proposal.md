@@ -272,7 +272,8 @@ For each phase:
   1. Fix any IDE diagnostics
   1. Create and push a PR
     1. Use the prefix 'toolbar-phase:' in the title so they are easy to find/sort
-    1. Explain the purpose of this phase in the description
+    1. Copy the content from the corresponding `0N-phase-name.md` spec file into the PR description
+    1. Use the checklist format to track progress during implementation
   1. Address PR comments (and resolve them)
   1. Address lint errors as described by the PR
     1. manually: DO NOT run the local linter, as it does NOT match the CI
