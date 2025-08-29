@@ -22,13 +22,9 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ErrorInfo {
-  componentStack: string
-}
-
 interface ToolbarErrorBoundaryPlaceholderProps {
   error: Error
-  info: ErrorInfo
+  info: $TSFixMe
   reset: () => void
 }
 
@@ -40,7 +36,7 @@ function ToolbarErrorBoundaryPlaceholder({
   const classes = useStyles()
 
   React.useEffect(() => {
-    Sentry.captureException(error, { extra: { info } })
+    Sentry.captureException(error, info)
   }, [error, info])
 
   return (
