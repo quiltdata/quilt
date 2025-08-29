@@ -58,15 +58,24 @@ Use `pytest` to test your changes during normal development:
 
 ```bash
 cd api/python
-# Run all tests
-uv run pytest
+# Run all tests using poethepoet
+uv run poe test
 
-# Or use the Makefile
-make test
+# Run tests verbosely
+uv run poe test-verbose
 
-# Run specific test file
+# Run with coverage
+uv run poe test-coverage
+
+# Run specific test file directly
 uv run pytest tests/test_util.py
 ```
+
+Other available tasks:
+- `uv run poe lint` - Run linters
+- `uv run poe format-check` - Check import sorting
+- `uv run poe build` - Build packages
+- `uv run poe clean` - Clean build artifacts
 
 ## Local catalog development
 
