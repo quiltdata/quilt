@@ -86,12 +86,8 @@ export default function WithPopover({
 
       <M.Backdrop open={opened} className={classes.backdrop} onClick={handleClose} />
       {opened && (
-        <M.Paper
-          className={classes.popup}
-          elevation={4}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
+        <M.Paper className={classes.popup} elevation={4} onClick={handleClose}>
+          <div onClick={(e) => e.stopPropagation()}>{children}</div>
         </M.Paper>
       )}
     </div>
