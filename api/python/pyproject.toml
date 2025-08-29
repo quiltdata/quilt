@@ -1,0 +1,115 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quilt3"
+dynamic = ["version"]
+description = "Quilt: where data comes together"
+readme = {text = """Quilt manages data like code (with packages, repositories, browsing and
+revision history) so that teams can experiment faster in machine learning,
+biotech, and other data-driven domains.
+
+The `quilt3` PyPI package allows you to build, push, and install data packages.
+Visit the `documentation quickstart <https://docs.quilt.bio/quickstart>`_
+to learn more.""", content-type = "text/plain"}
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "quiltdata", email = "contact@quiltdata.io"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "platformdirs>=2",
+    "boto3>=1.21.7",
+    "jsonlines==1.2.0",
+    "PyYAML>=5.1",
+    "requests>=2.12.4",
+    "tenacity>=5.1.1,!=8.4.0",
+    "tqdm>=4.32",
+    "requests_futures==1.0.0",
+    "jsonschema>=3,<5",
+    "pydantic>=2.0.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+pyarrow = [
+    "numpy>=1.14.0",
+    "pandas>=0.19.2",
+    "pyarrow>=0.14.1",
+]
+anndata = [
+    "anndata>=0.8.0",
+]
+tests = [
+    "anndata!=0.9.0",
+    "quilt3[pyarrow,anndata]",
+    "pytest==6.*",
+    "pytest-cov",
+    "coverage==6.4",
+    "pytest-env",
+    "pytest-subtests",
+    "responses",
+    "git-pylint-commit-hook",
+]
+catalog = [
+    "quilt3_local>=2,<3",
+    "uvicorn>=0.15,<0.18",
+    "aiobotocore[boto3]>=2",
+]
+
+[project.urls]
+Homepage = "https://github.com/quiltdata/quilt"
+Repository = "https://github.com/quiltdata/quilt"
+
+[project.scripts]
+quilt3 = "quilt3.main:main"
+
+[tool.setuptools]
+packages = ["quilt3", "quilt3.admin", "quilt3.admin._graphql_client", "quilt3.backends", "quilt3.workflows"]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {file = "quilt3/VERSION"}
+
+[tool.setuptools.package-data]
+quilt3 = ["VERSION", "workflows/config-1.schema.json"]
+
+# UV-specific configuration
+[tool.uv]
+dev-dependencies = [
+    "pytest==6.*",
+    "pytest-cov",
+    "coverage==6.4",
+    "pytest-env",
+    "pytest-subtests",
+    "responses",
+    "git-pylint-commit-hook",
+    "anndata!=0.9.0",
+    "numpy>=1.14.0",
+    "pandas>=0.19.2",
+    "pyarrow>=0.14.1",
+    # Linting tools (will be replaced by Ruff later)
+    "pylint==3.2.7",
+    "pycodestyle>=2.6.1",
+    "isort",
+    "poethepoet>=0.37.0",
+]
+
+[tool.poe.tasks]
+test = "pytest --disable-warnings"
+test-verbose = "pytest -v"
+test-coverage = "pytest --cov=quilt3 --cov-report=term-missing"
+lint = { shell = "pylint --rcfile=../../pylintrc --ignore=_graphql_client quilt3 && pycodestyle --config=../../setup.cfg $(find quilt3 -name '*.py' -not -path 'quilt3/admin/_graphql_client/*')" }
+format-check = { shell = "isort --settings-path=../../setup.cfg --extend-skip=quilt3/admin/_graphql_client --check --diff ." }
+build = { shell = "uv build" }
+clean = { shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true" }
