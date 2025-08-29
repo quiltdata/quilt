@@ -109,7 +109,7 @@ dev-dependencies = [
 test = "pytest --disable-warnings"
 test-verbose = "pytest -v"
 test-coverage = "pytest --cov=quilt3 --cov-report=term-missing"
-lint = { shell = "pylint quilt3 && pycodestyle $(find quilt3 -name '*.py' -not -path 'quilt3/admin/_graphql_client/*')" }
-format-check = "isort --check --diff ."
+lint = { shell = "pylint --rcfile=../../pylintrc --ignore=_graphql_client quilt3 && pycodestyle --config=../../setup.cfg $(find quilt3 -name '*.py' -not -path 'quilt3/admin/_graphql_client/*')" }
+format-check = { shell = "isort --settings-path=../../setup.cfg --extend-skip=quilt3/admin/_graphql_client --check --diff ." }
 build = { shell = "uv build" }
 clean = { shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true" }
