@@ -62,10 +62,11 @@ Create core UI components and type definitions that will be used by all toolbar 
 ### PR Workflow
 
 - [x] Push branch: `git push -u origin 4455-toolbar-01-shared-components`
-- [x] Create PR with title: "toolbar-01: Add shared components and types for toolbar refactor"
+- [x] Create **DRAFT** PR with title: "toolbar-01: Add shared components and types for toolbar refactor"
 - [x] PR targets base branch: `4455-toolbar-00-spec`
 - [x] Copy this checklist into PR description
 - [x] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### PR Comments (5 total from Greptile review)
 

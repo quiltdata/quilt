@@ -59,10 +59,11 @@ Implement the "Get" functionality for downloading files and viewing code samples
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-04-get-functionality`
-- [ ] Create PR with title: "toolbar-04: Add Get functionality for downloads and code samples"
+- [ ] Create **DRAFT** PR with title: "toolbar-04: Add Get functionality for downloads and code samples"
 - [ ] PR targets base branch: `4455-toolbar-03-base-structure`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 

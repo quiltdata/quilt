@@ -65,10 +65,11 @@ Complete the integration, update all consuming components, and add final polish 
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-08-final-integration`
-- [ ] Create PR with title: "toolbar-08: Complete toolbar integration and add final polish"
+- [ ] Create **DRAFT** PR with title: "toolbar-08: Complete toolbar integration and add final polish"
 - [ ] PR targets base branch: `4455-toolbar-07-create-package`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 

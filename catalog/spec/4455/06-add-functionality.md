@@ -60,10 +60,11 @@ Implement the new file upload dialog with drag-and-drop functionality.
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-06-add-functionality`
-- [ ] Create PR with title: "toolbar-06: Add file upload functionality with drag-and-drop support"
+- [ ] Create **DRAFT** PR with title: "toolbar-06: Add file upload functionality with drag-and-drop support"
 - [ ] PR targets base branch: `4455-toolbar-05-organize-functionality`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 

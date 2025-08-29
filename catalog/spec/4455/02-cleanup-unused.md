@@ -57,10 +57,11 @@ Remove deprecated and unused components to reduce codebase complexity before imp
 ### PR Workflow
 
 - [ ] Push branch: `git push -u origin 4455-toolbar-02-cleanup-unused`
-- [ ] Create PR with title: "toolbar-02: Remove unused components for toolbar refactor"
+- [ ] Create **DRAFT** PR with title: "toolbar-02: Remove unused components for toolbar refactor"
 - [ ] PR targets base branch: `4455-toolbar-01-shared-components`
 - [ ] Copy this checklist into PR description
 - [ ] Link to decomposition spec in description
+- [ ] Mark PR as **ready for review** only after all CI checks pass and comments are resolved
 
 ### CI & Review Cycle
 
