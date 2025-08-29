@@ -232,5 +232,4 @@ export const adminBucketEdit = route(
 )
 
 export const adminSettings = route('/admin/settings')
-export const adminSync = route('/admin/sync')
 export const adminStatus = route('/admin/status')
