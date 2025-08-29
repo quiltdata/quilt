@@ -271,14 +271,13 @@ For each phase:
      - PR #2: branch from merged PR #1 branch
      - PR #3: branch from merged PR #2 branch  
      - And so on - each PR builds on the previous PR's merged state
-     - Final PR #8: merges the complete chain to master
   1. ONLY cherry-pick the relevant files from `add-files-to-bucket`
   1. Add them all in a single commit
   1. Fix any IDE diagnostics
   1. Create and push a PR
     1. Use the prefix 'toolbar-phase:' in the title so they are easy to find/sort
-    1. Copy the content from the corresponding `0N-phase-name.md` spec file into the PR description
     1. Use the checklist format to track progress during implementation
+    1. Annotate the checklist with any lessons learned
   1. Address PR comments (and resolve them)
   1. Address lint errors as described by the PR
     1. manually: DO NOT run the local linter, as it does NOT match the CI
