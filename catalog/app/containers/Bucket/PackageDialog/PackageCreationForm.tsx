@@ -29,8 +29,9 @@ import * as workflows from 'utils/workflows'
 
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
-import * as Upload from '../Upload'
 import * as requests from '../requests'
+
+import * as Upload from './Uploads'
 
 import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
