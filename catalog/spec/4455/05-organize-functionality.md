@@ -23,7 +23,7 @@ Implement file organization features including move and delete operations. This 
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-05-organize-functionality` from master
+- [ ] Create branch `4455-toolbar-05-organize-functionality` from `4455-toolbar-04-get-functionality`
 - [ ] Cherry-pick Organize functionality files from `add-files-to-bucket`
 - [ ] Single commit with message: "feat: Add Organize functionality with move and delete"
 
@@ -51,7 +51,8 @@ Implement file organization features including move and delete operations. This 
 ### PR Requirements
 
 - [ ] PR title: "toolbar-05: Add Organize functionality with move and delete operations"
-- [ ] PR description explains new delete features
+- [ ] PR targets base branch: `4455-toolbar-04-get-functionality`
+- [ ] PR description explains new delete features (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 - [ ] Security review for delete operations

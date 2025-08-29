@@ -24,7 +24,7 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-03-base-structure` from master
+- [ ] Create branch `4455-toolbar-03-base-structure` from `4455-toolbar-02-cleanup-unused`
 - [ ] Cherry-pick architecture files from `add-files-to-bucket`
 - [ ] Single commit with message: "feat: Add base toolbar architecture structure"
 
@@ -52,7 +52,8 @@ Establish the new toolbar architecture with empty/minimal implementations. This 
 ### PR Requirements
 
 - [ ] PR title: "toolbar-03: Add base toolbar architecture structure"
-- [ ] PR description explains architecture decisions
+- [ ] PR targets base branch: `4455-toolbar-02-cleanup-unused`
+- [ ] PR description explains architecture decisions (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 - [ ] Thorough architecture review completed

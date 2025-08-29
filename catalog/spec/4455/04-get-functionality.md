@@ -23,7 +23,7 @@ Implement the "Get" functionality for downloading files and viewing code samples
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-04-get-functionality` from master
+- [ ] Create branch `4455-toolbar-04-get-functionality` from `4455-toolbar-03-base-structure`
 - [ ] Cherry-pick Get functionality files from `add-files-to-bucket`
 - [ ] Single commit with message: "feat: Add Get functionality to toolbar"
 
@@ -51,7 +51,8 @@ Implement the "Get" functionality for downloading files and viewing code samples
 ### PR Requirements
 
 - [ ] PR title: "toolbar-04: Add Get functionality for downloads and code samples"
-- [ ] PR description explains feature migration
+- [ ] PR targets base branch: `4455-toolbar-03-base-structure`
+- [ ] PR description explains feature migration (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 - [ ] Feature functionality verified

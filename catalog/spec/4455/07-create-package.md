@@ -24,7 +24,7 @@ Implement package creation functionality in the new toolbar architecture with en
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-07-create-package` from master
+- [ ] Create branch `4455-toolbar-07-create-package` from `4455-toolbar-06-add-functionality`
 - [ ] Cherry-pick CreatePackage functionality files from `add-files-to-bucket`
 - [ ] Single commit with message: "feat: Add package creation functionality to toolbar"
 
@@ -55,7 +55,8 @@ Implement package creation functionality in the new toolbar architecture with en
 ### PR Requirements
 
 - [ ] PR title: "toolbar-07: Add package creation functionality with enhanced UI"
-- [ ] PR description explains package creation features
+- [ ] PR targets base branch: `4455-toolbar-06-add-functionality`
+- [ ] PR description explains package creation features (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 - [ ] UX review for package creation flow

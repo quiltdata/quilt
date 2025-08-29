@@ -22,7 +22,7 @@ Implement the new file upload dialog with drag-and-drop functionality.
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-06-add-functionality` from master
+- [ ] Create branch `4455-toolbar-06-add-functionality` from `4455-toolbar-05-organize-functionality`
 - [ ] Cherry-pick Add functionality files from `add-files-to-bucket`
 - [ ] Single commit with message: "feat: Add file upload functionality with drag-and-drop"
 
@@ -53,7 +53,8 @@ Implement the new file upload dialog with drag-and-drop functionality.
 ### PR Requirements
 
 - [ ] PR title: "toolbar-06: Add file upload functionality with drag-and-drop support"
-- [ ] PR description explains new upload features
+- [ ] PR targets base branch: `4455-toolbar-05-organize-functionality`
+- [ ] PR description explains new upload features (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 - [ ] UX review for upload experience

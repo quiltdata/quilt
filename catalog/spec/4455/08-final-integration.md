@@ -26,7 +26,7 @@ Complete the integration, update all consuming components, and add final polish 
 
 ### Setup
 
-- [ ] Create branch `4455-toolbar-08-final-integration` from master
+- [ ] Create branch `4455-toolbar-08-final-integration` from `4455-toolbar-07-create-package`
 - [ ] Cherry-pick final integration files from `add-files-to-bucket`
 - [ ] Single commit with message: "feat: Complete toolbar integration and add final polish"
 
@@ -57,7 +57,8 @@ Complete the integration, update all consuming components, and add final polish 
 ### PR Requirements
 
 - [ ] PR title: "toolbar-08: Complete toolbar integration and add final polish"
-- [ ] PR description explains integration completion
+- [ ] PR targets base branch: `4455-toolbar-07-create-package`
+- [ ] PR description explains integration completion (copy this checklist into description)
 - [ ] Link to decomposition spec in description
 - [ ] All CI checks pass
 - [ ] Full regression testing completed
