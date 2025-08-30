@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quilt3"
-dynamic = ["version"]
+dynamic = ["version", "keywords"]
 description = "Quilt: where data comes together"
 readme = {text = """Quilt manages data like code (with packages, repositories, browsing and
 revision history) so that teams can experiment faster in machine learning,
@@ -14,7 +14,7 @@ The `quilt3` PyPI package allows you to build, push, and install data packages.
 Visit the `documentation quickstart <https://docs.quilt.bio/quickstart>`_
 to learn more.""", content-type = "text/plain"}
 requires-python = ">=3.9"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 authors = [
     {name = "quiltdata", email = "contact@quiltdata.io"}
 ]
@@ -75,7 +75,7 @@ Repository = "https://github.com/quiltdata/quilt"
 quilt3 = "quilt3.main:main"
 
 [tool.setuptools]
-packages = ["quilt3", "quilt3.admin", "quilt3.admin._graphql_client", "quilt3.backends", "quilt3.workflows"]
+packages = ["quilt3", "quilt3.admin", "quilt3._graphql_client", "quilt3.backends", "quilt3.workflows"]
 include-package-data = true
 
 [tool.setuptools.dynamic]
