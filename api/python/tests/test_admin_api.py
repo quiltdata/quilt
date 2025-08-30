@@ -35,8 +35,8 @@ from .fixtures.graphql_schema_fragments import (
     validate_user_response,
 )
 # Import GraphQL fixtures
-from .graphql_fixtures import (graphql_router,  # pylint: disable=unused-import
-                               mock_admin_client)
+from .graphql_fixtures import graphql_router  # pylint: disable=unused-import
+from .graphql_fixtures import mock_admin_client
 
 USER_MUTATION_ERRORS = (
     (INVALID_INPUT_ERROR, admin.Quilt3AdminError),
