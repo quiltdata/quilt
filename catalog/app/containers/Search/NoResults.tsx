@@ -7,6 +7,7 @@ import { ES_REF_SYNTAX } from 'components/SearchResults'
 import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
+import assertNever from 'utils/assertNever'
 
 import * as Hit from './List/Hit'
 import { Table as TableSkeleton } from './Table/Skeleton'
@@ -132,18 +133,6 @@ function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
 
 export { EmptyWrapper as Empty }
 
-const useErrorStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  body: {
-    maxWidth: '30rem',
-    marginTop: t.spacing(3),
-  },
-}))
-
 interface SecureSearchProps extends EmptyWrapperProps {
   onLoadMore: () => void
 }
@@ -172,10 +161,22 @@ export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchPr
   )
 }
 
+const useErrorStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  body: {
+    maxWidth: '30rem',
+    marginTop: t.spacing(3),
+  },
+}))
+
 interface ErrorProps {
   className?: string
-  kind?: 'unexpected' | 'syntax'
-  children: React.ReactNode
+  kind?: 'unexpected' | 'syntax' | 'timeout'
+  children?: React.ReactNode
   onRefine: (action: Refine) => void
 }
 
@@ -186,14 +187,23 @@ export function Error({
   onRefine,
 }: ErrorProps) {
   const classes = useErrorStyles()
-  return (
-    <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">
-        {kind === 'syntax' ? 'Query syntax error' : 'Unexpected error'}
-      </M.Typography>
-      <M.Box mt={3} />
-      <M.Typography variant="body1" align="center" className={classes.body}>
-        {kind === 'syntax' ? (
+  const heading = React.useMemo(() => {
+    switch (kind) {
+      case 'syntax':
+        return 'Query syntax error'
+      case 'timeout':
+        return 'Search timed out'
+      case 'unexpected':
+        return 'Unexpected error'
+      default:
+        assertNever(kind)
+    }
+  }, [kind])
+
+  const body = React.useMemo(() => {
+    switch (kind) {
+      case 'syntax':
+        return (
           <>
             Oops, couldn&apos;t parse that search.
             <br />
@@ -205,7 +215,19 @@ export function Error({
             </StyledLink>
             .
           </>
-        ) : (
+        )
+      case 'timeout':
+        return (
+          <>
+            Oops, the search cluster seems stressed.
+            <br />
+            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+            start a{' '}
+            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
+          </>
+        )
+      case 'unexpected':
+        return (
           <>
             Oops, something went wrong.
             <br />
@@ -213,15 +235,28 @@ export function Error({
             start a{' '}
             <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
           </>
-        )}
+        )
+      default:
+        assertNever(kind)
+    }
+  }, [kind, onRefine])
+
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h4">{heading}</M.Typography>
+      <M.Typography variant="body1" align="center" className={classes.body}>
+        {body}
       </M.Typography>
 
-      <M.Box mt={3} />
-      <M.Typography variant="h6">Error details</M.Typography>
-      <M.Box mt={1} />
-      <M.Typography variant="body2" className={classes.body} component="div">
-        {children}
-      </M.Typography>
+      {!!children && (
+        <>
+          <M.Box mt={3} />
+          <M.Typography variant="h6">Error details</M.Typography>
+          <M.Typography variant="body2" className={classes.body} component="div">
+            {children}
+          </M.Typography>
+        </>
+      )}
     </div>
   )
 }

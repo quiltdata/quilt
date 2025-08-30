@@ -14,7 +14,8 @@ As such, services such as FSx and Quilt may clash.
 
 1. Provide Quilt with an SNS topic that receives ObjectRemoved:* and ObjectCreated:*
 from S3
-(see [Fanout S3 Event Notifications to Multiple Endpoints](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/))
+(see [Fanout S3 Event Notifications to Multiple Endpoints](
+https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/))
 1. Use EventBridge to generate synthetic S3 events
 1. Avoid using S3 notifications by spinning resources (e.g. FSx clusters) up 
 "just in time" to avoid the need for live notification from S3
@@ -31,8 +32,8 @@ You may of course script the following steps.
 1. Create an SNS topic in the same region as `Bucket` 
 1. For existing Quilt stacks, if you see a trail under CloudFormation > YourStack > Resources,
 Quilt will automatically add the bucket to the trail for you. Alternatively, if you provided an
-existing CloudTrail bucket to reuse a pre-existing trail, you will see that bucket under CloudFormation > YourStack > Parameters,
-and will need to explicitly add `Bucket` to the trail.
+existing CloudTrail bucket to reuse a pre-existing trail, you will see that bucket under
+CloudFormation > YourStack > Parameters, and will need to explicitly add `Bucket` to the trail.
 1. Create an EventBridge Rule in the same region as `Bucket`
 1. Create an Event Pattern using Pre-defined pattern by service > AWS > S3
 1. Set Event type to "Specific operation(s)" and select the following:
@@ -92,12 +93,17 @@ ARN under "Indexing and notifications".
 
     ![](./imgs/quilt-eventbridge.png)
 
-    Now Quilt will receive events directly from EventBridge and does not require S3 event notifications.
-1. Re-index the bucket using the Re-Index and Repair button, but be sure **not** to check the Repair checkbox, as this would attempt to create a new S3 event notification.
+    Now Quilt will receive events directly from EventBridge and does not
+    require S3 event notifications.
+1. Re-index the bucket using the Re-Index and Repair button, but be sure **not**
+to check the Repair checkbox, as this would attempt to create a new S3 event
+notification.
 
 ### Known issues (EventBridge)
 
-1. As of this writing, the `delete-objects` API, which is also invoked when deleting objects with AWS console, is not compatible with the EventBridge workaround.
+1. As of this writing, the `delete-objects` API, which is also invoked when
+deleting objects with AWS console, is not compatible with the EventBridge
+workaround.
 Unlike native S3 events, `delete-objects` does not generate individual
 `delete-object` notifications for each object that has been deleted.
 

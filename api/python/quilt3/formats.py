@@ -542,6 +542,7 @@ class GenericFormatHandler(BaseFormatHandler):
     This is a generic type that can be instantiated directly, passing in
     a 'serializer' and 'deserializer'.  See 'name' for the format name.
     """
+
     def __init__(self, name, handled_extensions, handled_types, serializer, deserializer):
         super().__init__(name, handled_extensions, handled_types)
 

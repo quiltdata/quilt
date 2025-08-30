@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # CI-identical Python linting (matches py-ci.yml linter job - runs from repo root)
+  lint:
+    build:
+      context: ../..
+      dockerfile: api/python/docker/ci-python.Dockerfile
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    environment:
+      - QUILT_DISABLE_USAGE_METRICS=true
+    command: >
+      sh -c "pylint . &&
+             pycodestyle \$$(find -name '*.py' -not -path './venv/*')"
+
+  # CI-identical isort checking (matches py-ci.yml isort job - runs from repo root)  
+  isort:
+    build:
+      context: ../..  
+      dockerfile: api/python/docker/ci-python.Dockerfile
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    environment:
+      - QUILT_DISABLE_USAGE_METRICS=true
+    command: isort --check --diff .
+
+  # CI-identical testing (matches py-ci.yml test-client job - runs from repo root)
+  test:
+    build:
+      context: ../..
+      dockerfile: api/python/docker/ci-python.Dockerfile
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    environment:
+      - QUILT_DISABLE_USAGE_METRICS=true
+    command: >
+      sh -c "python -m pip install -e api/python[tests] &&
+             pytest --cov=api/python api/python"
+
+  # CI-identical documentation generation (matches py-ci.yml test-gendocs job)
+  gendocs:
+    build:
+      context: ../..
+      dockerfile: api/python/docker/gendocs.Dockerfile  
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    environment:
+      - QUILT_DISABLE_USAGE_METRICS=true
+    command: >
+      sh -c "python -m pip install api/python &&
+             cd gendocs && python build.py &&
+             git diff --exit-code"
+
+  # CI-identical documentation linting (matches js-ci.yml lint-docs job)
+  lint-docs:
+    image: node:latest
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=4096
+    command: npx --package=markdownlint-cli markdownlint .
+    
+  # CI-identical testdocs (matches py-ci.yml test-testdocs job)
+  testdocs:
+    build:
+      context: ../..
+      dockerfile: api/python/docker/ci-python.Dockerfile
+    volumes:
+      - ../..:/workspace
+    working_dir: /workspace/testdocs
+    environment:
+      - QUILT_DISABLE_USAGE_METRICS=true
+    command: >
+      sh -c "python -m pip install poetry &&
+             poetry install &&
+             poetry run pip install ../api/python &&
+             poetry run pytest --codeblocks ../docs"
+
+  # Helper service to build all images
+  build-images:
+    build:
+      context: ../..
+      dockerfile: api/python/docker/ci-python.Dockerfile
+    command: echo "All images built successfully"

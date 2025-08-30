@@ -30,30 +30,55 @@ git checkout -B new-branch-name
 
 ### Python Environment
 
-Use `pip` to install `quilt` locally (including development dependencies):
+We use [UV](https://github.com/astral-sh/uv) for dependency management.
+First, install UV:
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with pip
+pip install uv
+```
+
+Then install `quilt` locally (including development dependencies):
 
 ```bash
 cd api/python
-pip install -e '.[extra]'
+uv sync
 ```
 
-This will create an [editable
-install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs)
-of `quilt`, allowing you to modify the code and test your changes
-right away.
+This will create a virtual environment in `.venv` and install all dependencies
+from the lock file, ensuring your environment matches CI exactly.
 
 ### Python Testing
 
 All new code contributions are expected to have complete unit test
 coverage, and to pass all preexisting tests.
 
-Use `pytest` to test your changes during normal development. To run
-`pytest` on the entire codebase:
+Use `pytest` to test your changes during normal development:
 
 ```bash
-cd api/python/tests
-pytest
+cd api/python
+# Run all tests using poethepoet
+uv run poe test
+
+# Run tests verbosely
+uv run poe test-verbose
+
+# Run with coverage
+uv run poe test-coverage
+
+# Run specific test file directly
+uv run pytest tests/test_util.py
 ```
+
+Other available tasks:
+
+- `uv run poe lint` - Run linters
+- `uv run poe format-check` - Check import sorting
+- `uv run poe build` - Build packages
+- `uv run poe clean` - Clean build artifacts
 
 ## Local catalog development
 

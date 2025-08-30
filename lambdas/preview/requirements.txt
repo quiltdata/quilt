@@ -119,7 +119,7 @@ traitlets==5.14.3
     #   nbformat
 tzdata==2024.2
     # via pandas
-urllib3==2.2.3
+urllib3==2.5.0
     # via requests
 webencodings==0.5.1
     # via
