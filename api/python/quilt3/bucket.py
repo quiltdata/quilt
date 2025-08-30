@@ -21,6 +21,7 @@ from .util import PhysicalKey, QuiltException, fix_url
 class Bucket:
     """Bucket interface for Quilt.
     """
+
     def __init__(self, bucket_uri):
         """
         Creates a Bucket object.

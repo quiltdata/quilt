@@ -30,7 +30,8 @@ git checkout -B new-branch-name
 
 ### Python Environment
 
-We use [UV](https://github.com/astral-sh/uv) for dependency management. First, install UV:
+We use [UV](https://github.com/astral-sh/uv) for dependency management.
+First, install UV:
 
 ```bash
 # macOS/Linux
@@ -47,7 +48,8 @@ cd api/python
 uv sync
 ```
 
-This will create a virtual environment in `.venv` and install all dependencies from the lock file, ensuring your environment matches CI exactly.
+This will create a virtual environment in `.venv` and install all dependencies
+from the lock file, ensuring your environment matches CI exactly.
 
 ### Python Testing
 
@@ -72,6 +74,7 @@ uv run pytest tests/test_util.py
 ```
 
 Other available tasks:
+
 - `uv run poe lint` - Run linters
 - `uv run poe format-check` - Check import sorting
 - `uv run poe build` - Build packages
