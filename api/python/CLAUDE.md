@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 # Quilt3 Python Client
 
 Python client library for Quilt data packages.
@@ -17,16 +18,19 @@ source .venv/bin/activate
 ## Available Commands
 
 ### Testing
+
 - `uv run poe test` - Run all tests (includes 3 failing session tests)
 - `uv run poe test-local` - Run tests excluding failing session tests (recommended for local development)
 - `uv run poe test-verbose` - Run tests with verbose output
 - `uv run poe test-coverage` - Run tests with coverage report
 
 ### Code Quality
+
 - `uv run poe lint` - Run pylint and pycodestyle linters
 - `uv run poe format-check` - Check import sorting with isort
 
 ### Build
+
 - `uv run poe build` - Build the package using uv
 - `uv run poe clean` - Clean build artifacts and cache files
 
