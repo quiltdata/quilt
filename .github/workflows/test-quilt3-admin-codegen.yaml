@@ -44,7 +44,7 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
       - name: Auto-commit GraphQL client updates
-        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push' && github.ref_name != 'dependabot'
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           echo "Auto-committing GraphQL client code updates"
           git config --local user.email "action@github.com"
