@@ -43,15 +43,30 @@ jobs:
           else
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
-      - name: Show what would be committed (auto-commit disabled for testing)
-        if: steps.verify-changed-files.outputs.changed == 'true'
+      - name: Auto-commit GraphQL client updates
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push' && github.ref_name != 'dependabot'
         run: |
-          echo "DEBUGGING: Auto-commit temporarily disabled during PR testing"
-          echo "Event: ${{ github.event_name }}, Ref: ${{ github.ref }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Changes that would be committed:"
+          echo "Auto-committing GraphQL client code updates"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Auto-update GraphQL generated client code
+
+Generated code has been updated to reflect schema changes.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+          git push
+      - name: Show changes during PR testing
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name != 'push'
+        run: |
+          echo "GraphQL client code needs to be updated (this will be auto-committed on push to branch)"
+          echo "Files that would be updated:"
           git diff --name-only
-          git diff
-          echo "This would normally auto-commit and push the changes"
-      - name: Check for changes
+          echo ""
+          echo "Summary of changes:"
+          git diff --stat
+      - name: Verify no changes remain after auto-commit
+        if: github.event_name == 'push'
         run: git diff --exit-code
