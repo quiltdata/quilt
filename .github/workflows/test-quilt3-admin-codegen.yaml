@@ -62,5 +62,5 @@ jobs:
           echo "Summary of changes:"
           git diff --stat
       - name: Verify no changes remain after auto-commit
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: git diff --exit-code
