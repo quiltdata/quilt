@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD013 -->
 # GraphQL Code Generation
 
 This package contains the GraphQL code generation infrastructure for the Quilt3 API.
@@ -16,6 +17,7 @@ make graphql-codegen
 ```
 
 This will:
+
 1. Install the required dependencies (`ariadne-codegen` and related packages)
 2. Generate GraphQL client code in `../quilt3/_graphql_client/`
 
@@ -30,6 +32,7 @@ This will:
 ## Generated Output
 
 The generated code is placed in `/api/python/quilt3/_graphql_client/` and includes:
+
 - Client classes for each GraphQL operation
 - Type definitions and enums
 - Input types for mutations
