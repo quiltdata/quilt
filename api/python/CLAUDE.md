@@ -43,4 +43,3 @@ The `test-local` command skips the `test_get_boto3_session` tests which require 
 - Always check and fix IDE diagnostics after editing files
 - Use `markdownlint-disable MD013` on all newly-created Markdown files, to avoid excessive lint warnings
 - After pushing a PR, wait ~5 minutes to check for comments/errors, then address them (resolving comments if outdated)
-
