@@ -1,5 +1,8 @@
 <!--pytest-codeblocks:skipfile-->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable MD013 -->
+
+# CONTRIBUTING
+
 Quilt is an open source project, and we welcome contributions from the community.
 
 Contributors must adhere to the [Code of Conduct](https://github.com/quiltdata/quilt/blob/master/docs/CODE_OF_CONDUCT.md).
@@ -72,6 +75,7 @@ uv run pytest tests/test_util.py
 ```
 
 Other available tasks:
+
 - `uv run poe lint` - Run linters
 - `uv run poe format-check` - Check import sorting
 - `uv run poe build` - Build packages
