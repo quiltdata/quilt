@@ -371,7 +371,7 @@ def configure_from_url(catalog_url):
     # Get the new config
     config_url = catalog_url + '/config.json'
 
-    response = requests.get(config_url)
+    response = requests.get(config_url, timeout=30)
     if not response.ok:
         message = "An HTTP Error ({code}) occurred: {reason}"
         raise QuiltException(
