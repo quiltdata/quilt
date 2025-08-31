@@ -11,7 +11,9 @@ The existing `py-ci.yml` workflow contains these jobs that can be converted to a
 
 1. **linter** - Runs `pylint` and `pycodestyle` (lines 10-26)
 2. **isort** - Checks import sorting with `isort --check --diff` (lines 28-41)
-3. Other jobs (test-gendocs, test-testdocs, test-client, test-lambda) - Keep as validation-only
+3. Other jobs (test-gendocs, test-testdocs, test-client, test-lambda)
+   1. Keep as validation-only for now
+   1. Save for follow-on work
 
 ## Autofix Implementation Plan
 
