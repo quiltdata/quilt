@@ -123,7 +123,6 @@ autofix-lint:
   runs-on: ubuntu-latest
   if: |
     github.event_name == 'pull_request' && 
-    !contains(github.event.pull_request.head.sha, '[autofix]') &&
     !contains(github.event.head_commit.message, '[autofix]')
   permissions:
     contents: write
@@ -149,7 +148,7 @@ autofix-lint:
       run: |
         # Focus on Python files, exclude virtual environments
         find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
-          xargs autopep8 --in-place --aggressive --aggressive
+          xargs -r autopep8 --in-place --aggressive --aggressive
     - name: Check for changes
       id: verify-changed-files
       run: |
@@ -183,7 +182,6 @@ autofix-isort:
   needs: autofix-lint
   if: |
     github.event_name == 'pull_request' && 
-    !contains(github.event.pull_request.head.sha, '[autofix]') &&
     !contains(github.event.head_commit.message, '[autofix]') &&
     (success() || failure())  # Run even if autofix-lint fails
   permissions:
@@ -210,7 +208,7 @@ autofix-isort:
       run: |
         # Apply isort to Python files, excluding virtual environments
         find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
-          xargs isort
+          xargs -r isort
     - name: Check for changes
       id: verify-changed-files
       run: |
@@ -326,7 +324,6 @@ permissions:
 ```yaml
 if: |
   github.event_name == 'pull_request' && 
-  !contains(github.event.pull_request.head.sha, '[autofix]') &&
   !contains(github.event.head_commit.message, '[autofix]')
 ```
 
@@ -505,7 +502,6 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'pull_request' && 
-      !contains(github.event.pull_request.head.sha, '[autofix]') &&
       !contains(github.event.head_commit.message, '[autofix]')
     permissions:
       contents: write
@@ -530,7 +526,7 @@ jobs:
       - name: Run autopep8 fixes
         run: |
           find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
-            xargs autopep8 --in-place --aggressive --aggressive
+            xargs -r autopep8 --in-place --aggressive --aggressive
       - name: Check for changes
         id: verify-changed-files
         run: |
@@ -555,7 +551,6 @@ jobs:
     needs: autofix-lint
     if: |
       github.event_name == 'pull_request' && 
-      !contains(github.event.pull_request.head.sha, '[autofix]') &&
       !contains(github.event.head_commit.message, '[autofix]') &&
       (success() || failure())
     permissions:
@@ -581,7 +576,7 @@ jobs:
       - name: Run isort autofix
         run: |
           find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
-            xargs isort
+            xargs -r isort
       - name: Check for changes
         id: verify-changed-files
         run: |

@@ -61,7 +61,7 @@ Use `pytest` to test your changes during normal development:
 
 ```bash
 cd api/python
-# Run all tests using poethepoet
+# Run all tests using poe
 uv run poe test
 
 # Run tests verbosely
