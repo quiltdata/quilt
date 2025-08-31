@@ -46,14 +46,8 @@ from .users_create import (
 from .users_delete import UsersDelete, UsersDeleteAdminUserMutate
 from .users_get import UsersGet, UsersGetAdminUserGet
 from .users_list import UsersList, UsersListAdminUserList
-from .users_remove_roles import (
-    UsersRemoveRoles,
-    UsersRemoveRolesAdminUserMutate,
-)
-from .users_reset_password import (
-    UsersResetPassword,
-    UsersResetPasswordAdminUserMutate,
-)
+from .users_remove_roles import UsersRemoveRoles, UsersRemoveRolesAdminUserMutate
+from .users_reset_password import UsersResetPassword, UsersResetPasswordAdminUserMutate
 from .users_set_active import UsersSetActive, UsersSetActiveAdminUserMutate
 from .users_set_admin import UsersSetAdmin, UsersSetAdminAdminUserMutate
 from .users_set_email import UsersSetEmail, UsersSetEmailAdminUserMutate
