@@ -107,6 +107,7 @@ dev-dependencies = [
 
 [tool.poe.tasks]
 test = "pytest --disable-warnings"
+test-local = "pytest --disable-warnings -k 'not (test_get_boto3_session)'"
 test-verbose = "pytest -v"
 test-coverage = "pytest --cov=quilt3 --cov-report=term-missing"
 lint = { shell = "pylint --rcfile=../../pylintrc --ignore=_graphql_client quilt3 && pycodestyle --config=../../setup.cfg $(find quilt3 -name '*.py' -not -path 'quilt3/admin/_graphql_client/*')" }
