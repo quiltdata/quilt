@@ -1,5 +1,5 @@
 [MASTER]
-ignore-paths=api/python/quilt3/admin/_graphql_client/.*,.*/venv/.*,catalog/.*
+ignore-paths=api/python/quilt3/admin/_graphql_client/.*,api/python/quilt3/_graphql_client/.*,.*/venv/.*,catalog/.*
 recursive=yes
 
 [MESSAGES CONTROL]
