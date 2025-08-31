@@ -62,12 +62,14 @@ def get_content_index_bytes(*, bucket_name: str):
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
     """Fatal and final error if docs fail after multiple retries"""
+
     def __init__(self, message):
         pass
 
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
+
     def __init__(self, context):
         """constructor"""
         self.queue = []
@@ -216,7 +218,7 @@ class DocumentQueue:
 def get_time_remaining(context):
     """returns time remaining in seconds before lambda context is shut down"""
     logger_ = get_quilt_logger()
-    time_remaining = floor(context.get_remaining_time_in_millis()/1000)
+    time_remaining = floor(context.get_remaining_time_in_millis() / 1000)
     if time_remaining < 30:
         logger_.warning("Lambda function has %s sec remaining. Reduce batch size?", time_remaining)
 

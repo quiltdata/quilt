@@ -28,7 +28,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
 # response.content.iter_content()
-CHUNK = 1024*8
+CHUNK = 1024 * 8
 # We can pump a max of 6MB out of Lambda
 LAMBDA_MAX_OUT = 6_000_000
 MIN_VCF_COLS = 8  # per 4.2 spec on header and data lines

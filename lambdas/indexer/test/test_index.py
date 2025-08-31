@@ -493,7 +493,7 @@ class TestIndex(TestCase):
             # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
             # for response format
             response = {
-                "took": 5*len(actions),
+                "took": 5 * len(actions),
                 "errors": errors,
                 "items": items
             }
@@ -691,7 +691,7 @@ class TestIndex(TestCase):
                 assert contents_mock.call_count == 0
                 assert append_mock.call_count == 0
 
-        assert send_mock.call_count == len(error_codes)*len(version_ids)
+        assert send_mock.call_count == len(error_codes) * len(version_ids)
 
     def test_create_event_failure(self):
         """

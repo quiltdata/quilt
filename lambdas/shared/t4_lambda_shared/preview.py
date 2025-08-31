@@ -17,7 +17,7 @@ from .utils import get_available_memory, get_quilt_logger
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
 # by pandas or by exclude_output='true'
-CATALOG_LIMIT_BYTES = 1024*1024
+CATALOG_LIMIT_BYTES = 1024 * 1024
 CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_LINES = 100_000
 READ_CHUNK = 1024

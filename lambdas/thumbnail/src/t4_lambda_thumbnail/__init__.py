@@ -101,7 +101,7 @@ def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
 
     for i in range(1, int(sqrt(x) + 1), step):
         if x % i == 0:
-            pairs.append((i, x//i))
+            pairs.append((i, x // i))
 
     return pairs
 

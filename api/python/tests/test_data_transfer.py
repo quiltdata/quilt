@@ -44,14 +44,14 @@ class DataTransferTest(QuiltTestCase):
             b'\n{"foo": 6, "bar": 4}\n',
             b'{"foo": 2, "bar": 0}',
             b'\n{"foo": 2, "bar": 0}\n',
-            ]
+        ]
         records = [{'Records': {'Payload': chunk}} for chunk in chunks]
         # noinspection PyTypeChecker
         records.append({'Stats': {
             'BytesScanned': 100,
             'BytesProcessed': 100,
             'BytesReturned': 210,
-            }})
+        }})
         records.append({'End': {}})
 
         expected_result = pd.DataFrame.from_records([
@@ -65,7 +65,7 @@ class DataTransferTest(QuiltTestCase):
             {'foo': 6, 'bar': 4},
             {'foo': 2, 'bar': 0},
             {'foo': 2, 'bar': 0},
-            ])
+        ])
 
         # test normal use from extension
         expected_args = {
@@ -76,9 +76,9 @@ class DataTransferTest(QuiltTestCase):
             'InputSerialization': {
                 'CompressionType': 'NONE',
                 'JSON': {'Type': 'DOCUMENT'}
-                },
+            },
             'OutputSerialization': {'JSON': {}},
-            }
+        }
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz.json'), 'select * from S3Object')
@@ -120,9 +120,9 @@ class DataTransferTest(QuiltTestCase):
             'InputSerialization': {
                 'CompressionType': 'GZIP',
                 'JSON': {'Type': 'DOCUMENT'}
-                },
+            },
             'OutputSerialization': {'JSON': {}},
-            }
+        }
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             # result ignored -- returned data isn't compressed, and this has already been tested.
@@ -573,7 +573,7 @@ class DataTransferTest(QuiltTestCase):
             }
         )
 
-        for part_num in range(1, chunks+1):
+        for part_num in range(1, chunks + 1):
             self.s3_stubber.add_response(
                 method='upload_part',
                 service_response={
@@ -604,7 +604,7 @@ class DataTransferTest(QuiltTestCase):
                         'ETag': 'etag%d' % i,
                         'ChecksumSHA256': 'hash%d' % i,
                         'PartNumber': i
-                    } for i in range(1, chunks+1)]
+                    } for i in range(1, chunks + 1)]
                 }
             }
         )
@@ -638,7 +638,7 @@ class DataTransferTest(QuiltTestCase):
             }
         )
 
-        for part_num in range(1, chunks+1):
+        for part_num in range(1, chunks + 1):
             self.s3_stubber.add_response(
                 method='upload_part_copy',
                 service_response={
@@ -657,7 +657,7 @@ class DataTransferTest(QuiltTestCase):
                         'Key': 'large_file1.npy'
                     },
                     'CopySourceRange': 'bytes=%d-%d' % (
-                        (part_num-1) * chunksize,
+                        (part_num - 1) * chunksize,
                         min(part_num * chunksize, size) - 1
                     )
                 }
@@ -677,7 +677,7 @@ class DataTransferTest(QuiltTestCase):
                         'ETag': 'etag%d' % i,
                         'ChecksumSHA256': 'hash%d' % i,
                         'PartNumber': i
-                    } for i in range(1, chunks+1)]
+                    } for i in range(1, chunks + 1)]
                 }
             }
         )
@@ -926,7 +926,7 @@ class S3DownloadTest(QuiltTestCase):
 
     def test_threshold_eq_size(self):
         parts = {
-            'bytes=0-4':  self.data[:5],
+            'bytes=0-4': self.data[:5],
             'bytes=5-9': self.data[5:10],
             'bytes=10-14': self.data[10:15],
             'bytes=15-15': self.data[15:],
@@ -990,8 +990,8 @@ class S3HashingTest(QuiltTestCase):
 
         ranges = {
             f'bytes=0-{chunksize-1}': data[:chunksize],
-            f'bytes={chunksize}-{chunksize*2-1}': data[chunksize:chunksize*2],
-            f'bytes={chunksize*2}-{size-1}': data[chunksize*2:],
+            f'bytes={chunksize}-{chunksize*2-1}': data[chunksize:chunksize * 2],
+            f'bytes={chunksize*2}-{size-1}': data[chunksize * 2:],
         }
 
         with self.s3_test_multi_thread_download(

@@ -388,7 +388,7 @@ def handler(event, context):
     # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
     # Moreover, we don't want the lambda to time out, so just process 100 days
     # and let the next invocation handle the rest.
-    end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
+    end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS - 1))
 
     # Delete the temporary directory where Athena query results are written to.
     delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)

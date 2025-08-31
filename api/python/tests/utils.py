@@ -25,6 +25,7 @@ class QuiltTestCase(TestCase):
     - Creates a test client
     - Mocks requests
     """
+
     def setUp(self):
         # Verify that CONFIG_PATH is in the test dir (patched by conftest.py).
         assert 'pytest' in str(CONFIG_PATH)
@@ -98,8 +99,8 @@ class QuiltTestCase(TestCase):
             }
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
-             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize), \
-             mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock:
+                mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize), \
+                mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock:
             yield
 
             if is_single_request:

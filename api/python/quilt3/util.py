@@ -377,7 +377,7 @@ def configure_from_url(catalog_url):
         raise QuiltException(
             message.format(code=response.status_code, reason=response.reason),
             response=response
-            )
+        )
 
     # QuiltConfig may perform some validation and value scrubbing.
     new_config = QuiltConfig('', response.json())

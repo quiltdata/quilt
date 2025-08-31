@@ -399,6 +399,7 @@ class ManifestJSONDecoder(json.JSONDecoder):
     a single `decode()` call.
     This class also reuses `str` between many `decode()`s.
     """
+
     def __init__(self, *args, **kwargs):
         @functools.lru_cache(maxsize=None)
         def memoize_key(s):

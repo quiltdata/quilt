@@ -203,8 +203,8 @@ def check_list_objects_v2_works_for_client(s3_client, params):
 def check_get_object_works_for_client(s3_client, params):
     try:
         head_args = dict(
-                Bucket=params["Bucket"],
-                Key=params["Key"]
+            Bucket=params["Bucket"],
+            Key=params["Key"]
         )
         if "VersionId" in params:
             head_args["VersionId"] = params["VersionId"]
@@ -346,7 +346,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
         def upload_part(i, start, end):
             nonlocal remaining
             part_id = i + 1
-            with ReadFileChunk.from_filename(src_path, start, end-start, [ctx.progress]) as fd:
+            with ReadFileChunk.from_filename(src_path, start, end - start, [ctx.progress]) as fd:
                 part = s3_client.upload_part(
                     Body=fd,
                     Bucket=dest_bucket,
@@ -638,7 +638,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
     s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
     with tqdm(desc=message, total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
-         ThreadPoolExecutor(MAX_CONCURRENCY) as executor:
+            ThreadPoolExecutor(MAX_CONCURRENCY) as executor:
 
         def progress_callback(bytes_transferred):
             if stopped:
@@ -1037,7 +1037,7 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
     stopped = False
 
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
-         ThreadPoolExecutor(MAX_CONCURRENCY) as executor:
+            ThreadPoolExecutor(MAX_CONCURRENCY) as executor:
 
         find_correct_client = with_lock(S3ClientProvider().find_correct_client)
         progress_update = with_lock(progress.update)
@@ -1079,7 +1079,7 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                 src_future_list = []
                 for start in range(0, size, chunksize):
                     end = min(start + chunksize, size)
-                    future = executor.submit(_process_url_part, src, start, end-start)
+                    future = executor.submit(_process_url_part, src, start, end - start)
                     src_future_list.append(future)
 
                 futures.append((idx, src_future_list))
@@ -1237,11 +1237,11 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]
             del generator
 
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
-         ThreadPoolExecutor() as executor, \
-         ThreadPoolExecutor(
-             MAX_CONCURRENCY,
-             thread_name_prefix='s3-executor',
-         ) as s3_executor:
+        ThreadPoolExecutor() as executor, \
+        ThreadPoolExecutor(
+        MAX_CONCURRENCY,
+        thread_name_prefix='s3-executor',
+    ) as s3_executor:
         s3_context = types.SimpleNamespace(
             find_correct_client=with_lock(S3ClientProvider().find_correct_client),
             pending_parts_semaphore=threading.BoundedSemaphore(s3_max_pending_parts),
@@ -1329,19 +1329,19 @@ def select(src, query, meta=None, raw=False, **kwargs):
         'json': 'JSON',
         'jsonl': 'JSON',
         'csv': 'CSV',
-        }
+    }
     # S3 Format Name <--> S3-Acceptable compression types
     format_compression = {
         'Parquet': ['NONE'],  # even if column-level compression has been used.
         'JSON': ['NONE', 'BZIP2', 'GZIP'],
         'CSV': ['NONE', 'BZIP2', 'GZIP'],
-        }
+    }
     # File extension <--> S3-Acceptable compression type
     # For compression type, when not specified in metadata.  Guess by extension.
     accepted_compression = {
         '.bz2': 'BZIP2',
         '.gz': 'GZIP'
-        }
+    }
     # Extension <--> Internal Format Name
     # For file type, when not specified in metadata. Guess by extension.
     ext_formats = {
@@ -1351,7 +1351,7 @@ def select(src, query, meta=None, raw=False, **kwargs):
         '.csv': 'csv',
         '.tsv': 'csv',
         '.ssv': 'csv',
-        }
+    }
     delims = {'.tsv': '\t', '.ssv': ';'}
 
     assert not src.is_local(), "src must be an S3 URL"
