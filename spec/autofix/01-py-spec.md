@@ -24,6 +24,9 @@ The existing `py-ci.yml` workflow contains these validation jobs:
 - CREATE separate `py-autofix.yml` workflow
 - VALIDATE that GITHUB_TOKEN has sufficient permissions
 - ENSURE no conflicts with existing branch protection rules
+- For testing, disable existing py-ci.yml workflow.
+- Once testing succeeds, re-enable py-ci with to validate fixes actually pass
+- Then create spec for a unified workflow with no redundancy or conflicts
 
 ## Assumptions Validation
 
@@ -241,13 +244,12 @@ autofix-isort:
 2. **pycodestyle fixes** - Test with intentionally bad formatting
 3. **isort fixes** - Test with unsorted imports
 4. **Combined fixes** - Test with both formatting and import issues
-5. **Permission errors** - Test behavior with insufficient permissions
 
 **Test Files:**
-Create test files in `spec/test-fixtures/`:
+Create test files in `spec/autofix/fixtures`:
 
 ```tree
-spec/test-fixtures/
+spec/autofix/fixtures/
 ├── bad_formatting.py      # pycodestyle violations
 ├── unsorted_imports.py    # isort violations
 ├── combined_issues.py     # both violations
@@ -268,10 +270,10 @@ spec/test-fixtures/
 
 ```bash
 # Create test branch
-git checkout -b test-autofix-$(date +%s)
+git checkout -b autofix-test-$(date +%s)
 
 # Copy test files with issues
-cp spec/test-fixtures/bad_formatting.py ./test_file.py
+cp spec/autofix/fixtures/bad_formatting.py ./test_file.py
 git add test_file.py
 git commit -m "Add test file with formatting issues"
 git push -u origin HEAD
@@ -450,7 +452,7 @@ git push
 
 ### A. Example Test Files
 
-**spec/test-fixtures/bad_formatting.py:**
+**spec/autofix/fixtures/bad_formatting.py:**
 
 ```python
 import os,sys
@@ -461,7 +463,7 @@ def bad_function( x,y ):
         return x-y
 ```
 
-**spec/test-fixtures/unsorted_imports.py:**
+**spec/autofix/fixtures/unsorted_imports.py:**
 
 ```python
 import sys
@@ -470,7 +472,7 @@ import collections
 import abc
 ```
 
-**spec/test-fixtures/clean_file.py:**
+**spec/autofix/fixtures/clean_file.py:**
 
 ```python
 import os
