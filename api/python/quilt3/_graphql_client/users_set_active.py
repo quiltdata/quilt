@@ -6,11 +6,7 @@ from typing import Literal, Optional, Union
 from pydantic import Field
 
 from .base_model import BaseModel
-from .fragments import (
-    InvalidInputSelection,
-    OperationErrorSelection,
-    UserSelection,
-)
+from .fragments import InvalidInputSelection, OperationErrorSelection, UserSelection
 
 
 class UsersSetActive(BaseModel):
