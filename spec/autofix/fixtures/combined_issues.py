@@ -1,7 +1,7 @@
-import sys
-import os
-import json
 import collections
+import json
+import os
+import sys
 
 
 def bad_function(x, y):
