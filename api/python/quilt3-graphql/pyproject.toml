@@ -13,8 +13,6 @@ include_all_inputs = false
 include_all_enums = false
 plugins = [
     "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
-    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
-    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
 ]
 
 [tool.ariadne-codegen.scalars.Datetime]

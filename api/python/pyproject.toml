@@ -75,7 +75,7 @@ Repository = "https://github.com/quiltdata/quilt"
 quilt3 = "quilt3.main:main"
 
 [tool.setuptools]
-packages = ["quilt3", "quilt3.admin", "quilt3.admin._graphql_client", "quilt3.backends", "quilt3.workflows"]
+packages = ["quilt3", "quilt3.admin", "quilt3._graphql_client", "quilt3.backends", "quilt3.workflows"]
 include-package-data = true
 
 [tool.setuptools.dynamic]
@@ -110,7 +110,7 @@ test = "pytest --disable-warnings"
 test-local = "pytest --disable-warnings -k 'not (test_get_boto3_session)'"
 test-verbose = "pytest -v"
 test-coverage = "pytest --cov=quilt3 --cov-report=term-missing"
-lint = { shell = "pylint --rcfile=../../pylintrc --ignore=_graphql_client quilt3 && pycodestyle --config=../../setup.cfg $(find quilt3 -name '*.py' -not -path 'quilt3/admin/_graphql_client/*')" }
-format-check = { shell = "isort --settings-path=../../setup.cfg --extend-skip=quilt3/admin/_graphql_client --check --diff ." }
+lint = { shell = "pylint --rcfile=../../pylintrc --ignore=_graphql_client quilt3 && pycodestyle --config=../../setup.cfg $(find quilt3 -name '*.py' -not -path 'quilt3/admin/_graphql_client/*' -not -path 'quilt3/_graphql_client/*')" }
+format-check = { shell = "isort --settings-path=../../setup.cfg --extend-skip=quilt3/admin/_graphql_client,quilt3/_graphql_client --check --diff ." }
 build = { shell = "uv build" }
 clean = { shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true" }
