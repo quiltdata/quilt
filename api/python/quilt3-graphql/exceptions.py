@@ -35,13 +35,13 @@ class GraphQLClientGraphQLError(GraphQLClientError):
         locations: Optional[List[Dict[str, int]]] = None,
         path: Optional[List[str]] = None,
         extensions: Optional[Dict[str, object]] = None,
-        orginal: Optional[Dict[str, object]] = None,
+        original: Optional[Dict[str, object]] = None,
     ):
         self.message = message
         self.locations = locations
         self.path = path
         self.extensions = extensions
-        self.orginal = orginal
+        self.original = original
 
     def __str__(self) -> str:
         return self.message
@@ -53,7 +53,7 @@ class GraphQLClientGraphQLError(GraphQLClientError):
             locations=error.get("locations"),
             path=error.get("path"),
             extensions=error.get("extensions"),
-            orginal=error,
+            original=error,
         )
 
 
