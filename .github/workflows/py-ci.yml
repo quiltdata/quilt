@@ -29,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -36,9 +38,25 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools
           python -m pip install isort
-      - name: Run isort
+      - name: Run isort and fix imports
         run: |
-          isort --check --diff .
+          isort .
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Auto-fix import ordering with isort"
+          git push
 
   test-gendocs:
     runs-on: ubuntu-latest
@@ -46,6 +64,8 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           # on newer versions it crashes with
@@ -59,6 +79,22 @@ jobs:
         run: cd gendocs && python build.py
       - name: show invisible changes via cat
         run: git diff | cat -A
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Auto-update generated documentation"
+          git push
       - name: check there are no changes
         run: git diff --exit-code
 

@@ -14,12 +14,34 @@ jobs:
         working-directory: catalog
     steps:
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version-file: 'catalog/package.json'
           cache: 'npm'
           cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
+      - name: Auto-fix linting issues
+        run: |
+          npm run prettify -- "./app"
+          npm run lint:eslint:fix -- "./app/**/*.[jt]s?(x)"
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Auto-fix linting issues with prettier and eslint"
+          git push
       - run: npm run lint
       - run: npm test
       - run: npm run build
@@ -38,7 +60,28 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version-file: 'catalog/package.json'
+      - name: Auto-fix markdown linting issues
+        run: |
+          npx --package=markdownlint-cli markdownlint --fix .
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Auto-fix markdown linting issues with markdownlint"
+          git push
       - run: npx --package=markdownlint-cli markdownlint .

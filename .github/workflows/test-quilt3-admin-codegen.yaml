@@ -24,6 +24,8 @@ jobs:
         working-directory: ./api/python/quilt3-graphql
     steps:
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -32,5 +34,21 @@ jobs:
       - run: pip install -r requirements.txt
       - run: rm -r ../quilt3/_graphql_client
       - run: ariadne-codegen
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Auto-update GraphQL generated client code"
+          git push
       - name: Check for changes
         run: git diff --exit-code
