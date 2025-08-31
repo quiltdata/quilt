@@ -3,7 +3,8 @@
 
 ## Overview
 
-Quilt packages unify data and metadata. Quilt data packages are reproducible, discoverable, and trusted data sets that live in blob storage.
+Quilt packages unify data and metadata. Quilt data packages are reproducible,
+discoverable, and trusted data sets that live in blob storage.
 
 A package manifest includes both *metadata* and physical keys to primary data.
 
@@ -85,13 +86,20 @@ OpenSearch domain
 - Unused (1/8 of the VPC CIDR)
 
 ### Sizing
-The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
+The Quilt CloudFormation template will automatically configure appropriate
+instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service.
+Some users may choose to adjust the size and configuration of their
+Elasticsearch cluster. All other services should use the default settings.
 
 ### Elasticsearch Service Configuration
-By default, Quilt configures an Elasticsearch cluster with 3 master nodes and 2 data nodes. Please contact the Quilt support team before adjusting the size and configuration of your cluster to avoid disruption.
+By default, Quilt configures an Elasticsearch cluster with 3 master nodes
+and 2 data nodes. Please contact the Quilt support team before adjusting
+the size and configuration of your cluster to avoid disruption.
 
 ### Cost
-The infrastructure costs of running a Quilt stack vary with usage. Baseline infrastructure costs start at $620 and go up from there. See below for a breakdown of baseline costs for `us-east-1` at 744 hours per month.
+The infrastructure costs of running a Quilt stack vary with usage. Baseline
+infrastructure costs start at $620 and go up from there. See below for a
+breakdown of baseline costs for `us-east-1` at 744 hours per month.
 
 | Service  | Cost |
 | ------------- | ------------- |
@@ -105,10 +113,17 @@ The infrastructure costs of running a Quilt stack vary with usage. Baseline infr
 
 ## Security Architecture
 
-All customer data and metadata in Quilt is stored in S3. It may also be cached in Elasticsearch Service (shown in red in the diagram below). No other services in the Quilt stack store customer data.
+All customer data and metadata in Quilt is stored in S3. It may also be
+cached in Elasticsearch Service (shown in red in the diagram below). No
+other services in the Quilt stack store customer data.
 
 ![](imgs/aws-diagram-customer-data.png)
 
-We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) and [Elasticsearch Service encryption at rest](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html) to provide maximum protection.
+We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html)
+and [Elasticsearch Service encryption at rest](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html)
+to provide maximum protection.
 
-User email addresses are stored by the Identity Service in RDS Postgres (part of the Quilt stack). User email addresses are also sent through an encrypted channel to the customer support messaging system ([Intercom](https://www.intercom.com/)).
+User email addresses are stored by the Identity Service in RDS Postgres 
+(part of the Quilt stack). User email addresses are also sent through an
+encrypted channel to the customer support messaging system
+([Intercom](https://www.intercom.com/)).
