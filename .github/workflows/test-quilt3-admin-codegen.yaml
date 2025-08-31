@@ -37,6 +37,7 @@ jobs:
       - name: Check for changes
         id: verify-changed-files
         run: |
+          echo "Event name: ${{ github.event_name }}"
           if [ -n "$(git status --porcelain)" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
           else
@@ -45,6 +46,7 @@ jobs:
       - name: Commit and push changes
         if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push'
         run: |
+          echo "This step should only run on push events, not during PR testing"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
