@@ -80,7 +80,7 @@ def cmd_config_default_registry(default_remote_registry):
 
 def _test_url(url):
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=30)
         if response.ok:
             return True
         return False
