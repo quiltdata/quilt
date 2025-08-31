@@ -44,9 +44,11 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
       - name: Commit and push changes
-        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push'
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push' && !github.event.pull_request
         run: |
           echo "This step should only run on push events, not during PR testing"
+          echo "Event: ${{ github.event_name }}, Ref: ${{ github.ref }}, Head ref: ${{ github.head_ref }}"
+          echo "PR context: ${{ github.event.pull_request }}"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .

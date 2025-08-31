@@ -35,7 +35,7 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
       - name: Commit and push changes
-        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push'
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push' && !github.event.pull_request
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -77,7 +77,7 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
       - name: Commit and push changes
-        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push'
+        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push' && !github.event.pull_request
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
