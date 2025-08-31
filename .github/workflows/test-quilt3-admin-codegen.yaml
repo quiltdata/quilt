@@ -43,16 +43,15 @@ jobs:
           else
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
-      - name: Commit and push changes
-        if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name == 'push' && !github.event.pull_request
+      - name: Show what would be committed (auto-commit disabled for testing)
+        if: steps.verify-changed-files.outputs.changed == 'true'
         run: |
-          echo "This step should only run on push events, not during PR testing"
-          echo "Event: ${{ github.event_name }}, Ref: ${{ github.ref }}, Head ref: ${{ github.head_ref }}"
-          echo "PR context: ${{ github.event.pull_request }}"
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .
-          git commit -m "Auto-update GraphQL generated client code"
-          git push
+          echo "DEBUGGING: Auto-commit temporarily disabled during PR testing"
+          echo "Event: ${{ github.event_name }}, Ref: ${{ github.ref }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Changes that would be committed:"
+          git diff --name-only
+          git diff
+          echo "This would normally auto-commit and push the changes"
       - name: Check for changes
         run: git diff --exit-code
