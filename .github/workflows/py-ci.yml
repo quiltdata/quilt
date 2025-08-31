@@ -43,7 +43,7 @@ jobs:
       - name: Run autopep8 fixes
         run: |
           find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
-            xargs -r autopep8 --in-place --aggressive --aggressive
+            xargs -r autopep8 --in-place
       - name: Check for changes
         id: verify-changed-files
         run: |
