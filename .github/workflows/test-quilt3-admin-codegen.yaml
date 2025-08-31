@@ -50,13 +50,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Auto-update GraphQL generated client code
-
-Generated code has been updated to reflect schema changes.
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
+          git commit -m "Auto-update GraphQL generated client code"
           git push
       - name: Show changes during PR testing
         if: steps.verify-changed-files.outputs.changed == 'true' && github.event_name != 'push'
