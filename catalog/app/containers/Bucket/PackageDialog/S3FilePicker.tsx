@@ -3,11 +3,16 @@ import invariant from 'invariant'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import Lock from 'components/Lock'
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as FileEditorRoutes from 'components/FileEditor/routes'
+import * as quiltConfigs from 'constants/quiltConfigs'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import type * as Model from 'model'
@@ -104,11 +109,25 @@ interface BucketSelectProps {
 function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
   const classes = useBucketSelectStyles()
 
+  const { handle } = BucketPreferences.use()
+  const { bucket: currentBucket } = RRDom.useParams<{ bucket: string }>()
+  invariant(currentBucket, '`currentBucket` must be defined')
+
+  const toConfig = FileEditorRoutes.useEditBucketFile(
+    handle || { bucket: currentBucket, key: quiltConfigs.bucketPreferences[0] },
+  )
+
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<{ value: unknown }>) => {
-      selectBucket(e.target.value as string)
+      const selectedValue = e.target.value as string
+      if (selectedValue === '__add_source_bucket__') {
+        // Navigate to config edit - this will be handled by the browser
+        window.location.href = toConfig
+        return
+      }
+      selectBucket(selectedValue)
     },
-    [selectBucket],
+    [selectBucket, toConfig],
   )
 
   return (
@@ -122,9 +141,20 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
     >
       {buckets.map((b) => (
         <M.MenuItem key={b} value={b}>
-          {b}
+          <M.ListItemText primary={b} />
         </M.MenuItem>
       ))}
+      <M.Divider />
+      <M.MenuItem value="__add_source_bucket__">
+        <M.ListItemText
+          primary={<i>Add bucket</i>}
+          secondary={
+            <>
+              Open config editor and change <Code>ui.sourceBuckets</Code>
+            </>
+          }
+        />
+      </M.MenuItem>
     </M.Select>
   )
 }
@@ -161,7 +191,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DialogProps {
   bucket: string
-  buckets?: string[]
+  buckets: string[]
   selectBucket?: (bucket: string) => void
   open: boolean
   onClose: (reason: CloseReason) => void
@@ -269,15 +299,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       <M.DialogTitle disableTypography>
         <M.Typography component="h2" variant="h6">
           Add files from s3://
-          {!!buckets && buckets.length > 1 && !!selectBucket ? (
-            <BucketSelect
-              bucket={bucket}
-              buckets={buckets}
-              selectBucket={handleBucketChange}
-            />
-          ) : (
-            bucket
-          )}
+          <BucketSelect
+            bucket={bucket}
+            buckets={buckets}
+            selectBucket={handleBucketChange}
+          />
           {/* TODO: Add link to the documentation: how to add buckets to `ui.sourceBuckets` */}
         </M.Typography>
       </M.DialogTitle>

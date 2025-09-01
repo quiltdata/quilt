@@ -142,46 +142,45 @@ const defaultGallery: GalleryPreferences = {
   summarize: true,
 }
 
-const defaultPreferences: BucketPreferences = {
-  ui: {
-    actions: {
-      copyPackage: true,
-      createPackage: true,
-      deleteRevision: false,
-      downloadObject: true,
-      downloadPackage: true,
-      openInDesktop: true,
-      revisePackage: true,
-      writeFile: true,
-    },
-    athena: {},
-    blocks: {
-      analytics: true,
-      browser: true,
-      code: true,
-      meta: defaultBlockMeta,
-      gallery: defaultGallery,
-      qurator: true,
-    },
-    nav: {
-      files: true,
-      workflows: true,
-      packages: true,
-      queries: true,
-    },
-    packageDescription: {
-      packages: {
-        '.*': {
-          message: true,
-        },
+function getDefaultPreferences(bucket?: string): BucketPreferences {
+  return {
+    ui: {
+      actions: {
+        copyPackage: true,
+        createPackage: true,
+        deleteRevision: false,
+        downloadObject: true,
+        downloadPackage: true,
+        openInDesktop: true,
+        revisePackage: true,
+        writeFile: true,
       },
-      userMetaMultiline: false,
+      athena: {},
+      blocks: {
+        analytics: true,
+        browser: true,
+        code: true,
+        meta: defaultBlockMeta,
+        gallery: defaultGallery,
+        qurator: true,
+      },
+      nav: {
+        files: true,
+        workflows: true,
+        packages: true,
+        queries: true,
+      },
+      packageDescription: {
+        packages: {
+          '.*': {
+            message: true,
+          },
+        },
+        userMetaMultiline: false,
+      },
+      sourceBuckets: createSourceBuckets(bucket ? [bucket] : []),
     },
-    sourceBuckets: {
-      getDefault: () => '',
-      list: [],
-    },
-  },
+  }
 }
 
 const S3_PREFIX = 's3://'
@@ -198,19 +197,25 @@ export function validate(data: unknown): asserts data is BucketPreferencesInput 
   }
 }
 
-function parseActions(actions?: Partial<ActionPreferences> | false): ActionPreferences {
+function parseActions(
+  defaultActions: ActionPreferences,
+  actions?: Partial<ActionPreferences> | false,
+): ActionPreferences {
   if (actions === false) {
-    return R.map(R.F, defaultPreferences.ui.actions)
+    return R.map(R.F, defaultActions)
   }
 
   return {
-    ...defaultPreferences.ui.actions,
+    ...defaultActions,
     ...actions,
   }
 }
 
-function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
-  const { defaultWorkflow, ...rest } = { ...defaultPreferences.ui.athena, ...athena }
+function parseAthena(
+  defaultAthena: AthenaPreferences,
+  athena?: AthenaPreferencesInput,
+): AthenaPreferences {
+  const { defaultWorkflow, ...rest } = { ...defaultAthena, ...athena }
   return {
     ...(defaultWorkflow
       ? {
@@ -245,9 +250,12 @@ function parseMetaBlock(
   }
 }
 
-function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
+function parseBlocks(
+  defaultBlocks: BlocksPreferences,
+  blocks?: BlocksPreferencesInput,
+): BlocksPreferences {
   return {
-    ...defaultPreferences.ui.blocks,
+    ...defaultBlocks,
     ...blocks,
     meta: parseMetaBlock(blocks?.meta),
     gallery: parseGalleryBlock(blocks?.gallery),
@@ -255,6 +263,7 @@ function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
 }
 
 function parsePackages(
+  defaultPackageDescription: PackagesListPreferences,
   packages?: PackagesListPreferencesInput,
   userMetaMultiline: boolean = false,
 ): PackagesListPreferences {
@@ -269,31 +278,19 @@ function parsePackages(
         memo,
       ),
     {
-      packages: defaultPreferences.ui.packageDescription.packages,
-      userMetaMultiline:
-        userMetaMultiline || defaultPreferences.ui.packageDescription.userMetaMultiline,
+      packages: defaultPackageDescription.packages,
+      userMetaMultiline: userMetaMultiline || defaultPackageDescription.userMetaMultiline,
     },
   )
 }
 
-function getSourceBucketsList(
-  sourceBuckets?: SourceBucketsInput,
-  bucket?: string,
-): string[] {
-  if (sourceBuckets) return Object.keys(sourceBuckets).map(removeS3Prefix)
-  if (bucket) return [bucket]
-  // Only in 'local' mode
-  // TODO: Consider to throw error when cfg.mode !== 'LOCAL'
-  return []
-}
-
-function parseSourceBuckets(
-  sourceBuckets?: SourceBucketsInput,
+function createSourceBuckets(
+  bucketsList: string[],
   defaultSourceBucketInput?: DefaultSourceBucketInput,
-  bucket?: string,
 ): SourceBuckets {
-  const list = getSourceBucketsList(sourceBuckets, bucket)
+  const list = bucketsList
   const defaultSourceBucket = removeS3Prefix(defaultSourceBucketInput || '')
+
   return {
     getDefault: () => {
       if (defaultSourceBucket) {
@@ -308,24 +305,39 @@ function parseSourceBuckets(
   }
 }
 
+function parseSourceBuckets(
+  defaultSourceBuckets: SourceBuckets,
+  sourceBuckets?: SourceBucketsInput,
+  defaultSourceBucketInput?: DefaultSourceBucketInput,
+): SourceBuckets {
+  if (!sourceBuckets) {
+    return defaultSourceBuckets
+  }
+
+  const list = Object.keys(sourceBuckets).map(removeS3Prefix)
+  return createSourceBuckets(list, defaultSourceBucketInput)
+}
+
 export function extendDefaults(
   data: BucketPreferencesInput,
   bucket?: string,
 ): BucketPreferences {
+  const defaults = getDefaultPreferences(bucket)
   return {
     ui: {
-      ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
-      actions: parseActions(data?.ui?.actions),
-      athena: parseAthena(data?.ui?.athena),
-      blocks: parseBlocks(data?.ui?.blocks),
+      ...R.mergeDeepRight(defaults.ui, data?.ui || {}),
+      actions: parseActions(defaults.ui.actions, data?.ui?.actions),
+      athena: parseAthena(defaults.ui.athena, data?.ui?.athena),
+      blocks: parseBlocks(defaults.ui.blocks, data?.ui?.blocks),
       packageDescription: parsePackages(
+        defaults.ui.packageDescription,
         data?.ui?.package_description,
         data?.ui?.package_description_multiline,
       ),
       sourceBuckets: parseSourceBuckets(
+        defaults.ui.sourceBuckets,
         data?.ui?.sourceBuckets,
         data?.ui?.defaultSourceBucket,
-        bucket,
       ),
     },
   }
@@ -333,7 +345,7 @@ export function extendDefaults(
 
 export function parse(bucketPreferencesYaml: string, bucket: string): BucketPreferences {
   const data = YAML.parse(bucketPreferencesYaml)
-  if (!data) return defaultPreferences
+  if (!data) return getDefaultPreferences(bucket)
 
   validate(data)
 

@@ -6,7 +6,6 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
-import { MissingSourceBucket } from 'components/FileEditor/HelpLinks'
 import type * as Model from 'model'
 import assertNever from 'utils/assertNever'
 import computeFileChecksum from 'utils/checksums'
@@ -1436,7 +1435,7 @@ interface FilesInputProps {
     percent: number
   }
   bucket: string // It is the bucket __selected__ in __S3FilePicker__, not the bucket for the current page
-  buckets?: string[]
+  buckets: string[]
   selectBucket?: (bucket: string) => void
   delayHashing?: boolean
   disableStateDisplay?: boolean
@@ -1590,21 +1589,17 @@ export function FilesInput({
     setS3FilePickerOpen(true)
   }, [])
 
-  const isS3FilePickerEnabled = !!buckets?.length
-
   return (
     <Root className={className}>
-      {isS3FilePickerEnabled && (
-        <Selection.Provider>
-          <S3FilePicker.Dialog
-            bucket={bucket}
-            buckets={buckets}
-            selectBucket={selectBucket}
-            open={s3FilePickerOpen}
-            onClose={closeS3FilePicker}
-          />
-        </Selection.Provider>
-      )}
+      <Selection.Provider>
+        <S3FilePicker.Dialog
+          bucket={bucket}
+          buckets={buckets}
+          selectBucket={selectBucket}
+          open={s3FilePickerOpen}
+          onClose={closeS3FilePicker}
+        />
+      </Selection.Provider>
       {prompt.render(
         <M.Typography variant="body2">
           You can add new directories and drag-and-drop files and folders into them.
@@ -1747,23 +1742,15 @@ export function FilesInput({
         >
           Add local files
         </M.Button>
-        {isS3FilePickerEnabled ? (
-          <M.Button
-            onClick={handleS3Btn}
-            disabled={disabled}
-            className={classes.action}
-            variant="outlined"
-            size="small"
-          >
-            Add files from bucket
-          </M.Button>
-        ) : (
-          <MissingSourceBucket className={classes.warning}>
-            <M.Button disabled className={classes.action} variant="outlined" size="small">
-              Add files from bucket
-            </M.Button>
-          </MissingSourceBucket>
-        )}
+        <M.Button
+          onClick={handleS3Btn}
+          disabled={disabled}
+          className={classes.action}
+          variant="outlined"
+          size="small"
+        >
+          Add files from bucket
+        </M.Button>
       </div>
     </Root>
   )

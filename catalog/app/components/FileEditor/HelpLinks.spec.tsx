@@ -1,7 +1,7 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
 
-import { MissingSourceBucket, WorkflowsConfigLink } from './HelpLinks'
+import { WorkflowsConfigLink } from './HelpLinks'
 
 jest.mock(
   'constants/config',
@@ -16,26 +16,6 @@ jest.mock(
     ),
 )
 
-jest.mock(
-  '@material-ui/core',
-  jest.fn(() => ({
-    ...jest.requireActual('@material-ui/core'),
-    Tooltip: jest.fn(
-      ({ title, children }: React.PropsWithChildren<{ title: React.ReactNode }>) => (
-        <div>
-          {title}
-          <hr />
-          {children}
-        </div>
-      ),
-    ),
-  })),
-)
-
-jest.mock('components/Code', () => ({ children }: React.PropsWithChildren<{}>) => (
-  <code>{children}</code>
-))
-
 jest.mock('utils/NamedRoutes', () => ({
   ...jest.requireActual('utils/NamedRoutes'),
   use: () => ({
@@ -46,10 +26,6 @@ jest.mock('utils/NamedRoutes', () => ({
       },
     },
   }),
-}))
-
-jest.mock('utils/GlobalDialogs', () => ({
-  use: jest.fn(),
 }))
 
 const useLocation = jest.fn(
@@ -78,24 +54,6 @@ describe('components/FileEditor/HelpLinks', () => {
       useParams.mockImplementationOnce(() => ({}))
       const tree = () => renderer.create(<WorkflowsConfigLink>Any</WorkflowsConfigLink>)
       expect(tree).toThrowError('`bucket` must be defined')
-    })
-  })
-
-  describe('MissingSourceBucket', () => {
-    it('should render', () => {
-      const tree = renderer
-        .create(<MissingSourceBucket>Disabled button</MissingSourceBucket>)
-        .toJSON()
-      expect(tree).toMatchSnapshot()
-    })
-
-    it('should throw outside bucket', () => {
-      jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
-      useParams.mockImplementationOnce(() => ({}))
-      const tree = renderer
-        .create(<MissingSourceBucket>Any</MissingSourceBucket>)
-        .toJSON()
-      expect(tree).toMatchSnapshot()
     })
   })
 })
