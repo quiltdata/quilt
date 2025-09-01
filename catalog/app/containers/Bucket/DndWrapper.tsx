@@ -83,7 +83,6 @@ export default function DndWrapper({
   const classes = useStyles()
 
   const handleDrop = React.useCallback(
-    (files: FileWithPath[]) =>
     (files: FileWithPath[]) => {
       if (files.length) {
         onDrop(files.map((f) => FI.computeHash(f)))
