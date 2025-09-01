@@ -42,7 +42,7 @@ jobs:
           git config --local user.name "GitHub Actions Autofix"
       - name: Run autopep8 fixes
         run: |
-          find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
+          find ./spec/autofix/fixtures -name '*.py' | \
             xargs -r autopep8 --in-place
       - name: Check for changes
         id: verify-changed-files
@@ -92,7 +92,7 @@ jobs:
           git config --local user.name "GitHub Actions Autofix"
       - name: Run isort autofix
         run: |
-          find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
+          find ./spec/autofix/fixtures -name '*.py' | \
             xargs -r isort
       - name: Check for changes
         id: verify-changed-files
@@ -131,10 +131,10 @@ jobs:
           python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1'
       - name: Run pylint
         run: |
-          pylint .
+          pylint . --ignore=spec/autofix/fixtures
       - name: Run pycodestyle
         run: |
-          pycodestyle $(find -name '*.py' -not -path './venv/*')
+          pycodestyle $(find -name '*.py' -not -path './venv/*' -not -path './spec/autofix/fixtures/*')
 
   isort:
     runs-on: ubuntu-latest
@@ -153,7 +153,7 @@ jobs:
           python -m pip install isort
       - name: Run isort
         run: |
-          isort --check --diff .
+          isort --check --diff . --skip=spec/autofix/fixtures
 
   test-gendocs:
     runs-on: ubuntu-latest
