@@ -2050,15 +2050,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pycodestyle"
-version = "2.14.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/11/e0/abfd2a0d2efe47670df87f3e3a0e2edda42f055053c85361f19c0e2c1ca8/pycodestyle-2.14.0.tar.gz", hash = "sha256:c4b5b517d278089ff9d0abdec919cd97262a3367449ea1c8b49b91529167b783", size = 39472 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/27/a58ddaf8c588a3ef080db9d0b7e0b97215cee3a45df74f3a94dbbf5c893a/pycodestyle-2.14.0-py2.py3-none-any.whl", hash = "sha256:dd6bf7cb4ee77f8e016f9c8e74a35ddd9f67e1d5fd4184d86c3b98e07099f42d", size = 31594 },
-]
-
-[[package]]
 name = "pycparser"
 version = "2.22"
 source = { registry = "https://pypi.org/simple" }
@@ -2544,14 +2535,10 @@ dev = [
     { name = "anndata", version = "0.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "anndata", version = "0.11.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "coverage" },
-    { name = "git-pylint-commit-hook" },
-    { name = "isort" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "poethepoet" },
     { name = "pyarrow" },
-    { name = "pycodestyle" },
-    { name = "pylint" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-env" },
@@ -2595,14 +2582,10 @@ provides-extras = ["pyarrow", "anndata", "tests", "catalog"]
 dev = [
     { name = "anndata", specifier = "!=0.9.0" },
     { name = "coverage", specifier = "==6.4" },
-    { name = "git-pylint-commit-hook" },
-    { name = "isort" },
     { name = "numpy", specifier = ">=1.14.0" },
     { name = "pandas", specifier = ">=0.19.2" },
     { name = "poethepoet", specifier = ">=0.37.0" },
     { name = "pyarrow", specifier = ">=0.14.1" },
-    { name = "pycodestyle", specifier = ">=2.6.1" },
-    { name = "pylint", specifier = "==3.2.7" },
     { name = "pytest", specifier = "==6.*" },
     { name = "pytest-cov" },
     { name = "pytest-env" },

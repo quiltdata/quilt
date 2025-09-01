@@ -93,15 +93,10 @@ dev-dependencies = [
     "pytest-env",
     "pytest-subtests",
     "responses",
-    "git-pylint-commit-hook",
     "anndata!=0.9.0",
     "numpy>=1.14.0",
     "pandas>=0.19.2",
     "pyarrow>=0.14.1",
-    # Linting tools (will be replaced by Ruff later)
-    "pylint==3.2.7",
-    "pycodestyle>=2.6.1",
-    "isort",
     "poethepoet>=0.37.0",
     "ruff>=0.12.11",
 ]
@@ -111,15 +106,9 @@ test = "pytest --disable-warnings"
 test-verbose = "pytest -v"
 test-coverage = "pytest --cov=quilt3 --cov-report=term-missing"
 
-# Ruff tasks (new)
 lint = "ruff check ."
 fmt = "ruff format ."
 fmt-check = "ruff format --check ."
 
-# Legacy linting tasks (for transition period)
-lint-legacy = { shell = "pylint --rcfile=../../pylintrc --ignore=_graphql_client quilt3 && pycodestyle --config=../../setup.cfg $(find quilt3 -name '*.py' -not -path 'quilt3/admin/_graphql_client/*')" }
-fmt-check-legacy = { shell = "isort --settings-path=../../setup.cfg --extend-skip=quilt3/admin/_graphql_client --check --diff ." }
-
-# Build and clean
 build = { shell = "uv build" }
 clean = { shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true" }
