@@ -23,7 +23,7 @@ const Context = React.createContext<OrganizeState | null>(null)
 
 function useContext(): OrganizeState {
   const context = React.useContext(Context)
-  invariant(context, 'useOrganizeFileActions must be used within OrganizeFileProvider')
+  invariant(context, 'use must be used within OrganizeProvider')
   return context
 }
 
