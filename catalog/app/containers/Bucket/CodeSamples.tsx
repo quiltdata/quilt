@@ -10,6 +10,10 @@ interface SampleProps {
   dest?: string
 }
 
+interface FetchSampleProps extends SampleProps {
+  dest: string
+}
+
 export function Quilt3List({ className, bucket, path }: SampleProps) {
   return (
     <Code
@@ -26,7 +30,7 @@ export function Quilt3List({ className, bucket, path }: SampleProps) {
   )
 }
 
-export function Quilt3Fetch({ className, bucket, path, dest }: SampleProps) {
+export function Quilt3Fetch({ className, bucket, path, dest }: FetchSampleProps) {
   return (
     <Code
       className={className}
@@ -42,7 +46,7 @@ export function Quilt3Fetch({ className, bucket, path, dest }: SampleProps) {
   )
 }
 
-export function CliFetch({ className, bucket, path, dest }: SampleProps) {
+export function CliFetch({ className, bucket, path, dest }: FetchSampleProps) {
   return (
     <Code
       className={className}
