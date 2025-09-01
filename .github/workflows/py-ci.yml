@@ -161,9 +161,6 @@ jobs:
         with:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v6
-      - name: Install build dependencies
-        run: |
-          uv pip install build==1.3.0 twine==6.1.0
       - name: verify git tag vs. version
         run: |
           uv run poe verify-release-tag "${{ github.ref_name }}"
@@ -171,9 +168,9 @@ jobs:
         run: uv build
       - name: upload to PyPI
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: twine upload dist/*
+          UV_PUBLISH_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          UV_PUBLISH_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: uv publish
 
   test-lambda:
     strategy:
