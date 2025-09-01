@@ -7,6 +7,20 @@ on:
   pull_request:
   merge_group:
 jobs:
+  # Lint the entire Python codebase (except catalog/ and api/python/)
+  lint-root:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v6
+      - name: Run Ruff linter on entire codebase
+        run: |
+          uvx ruff check . --exclude catalog/ --exclude api/python/
+
+  # Lint quilt3 package specifically (uses UV and poethepoet)
   lint:
     runs-on: ubuntu-latest
     defaults:

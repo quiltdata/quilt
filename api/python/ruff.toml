@@ -1,77 +1,8 @@
-# Ruff configuration for quilt3
-line-length = 119
-target-version = "py39"
+# Ruff configuration specific to quilt3 package
+# Extends from root configuration
+extend = "../../ruff.toml"
 
-# Exclude auto-generated files
+# Exclude auto-generated files specific to quilt3
 extend-exclude = [
     "quilt3/admin/_graphql_client",
 ]
-
-[lint]
-# Start with basic rule sets, can be expanded later
-select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "UP",   # pyupgrade
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "S",    # flake8-bandit (security)
-]
-
-# Ignore rules that were disabled in pylint or would cause too many changes
-ignore = [
-    "E501",  # line-too-long (already handled by line-length setting)
-    "E731",  # lambda assignment
-    "B008",  # function calls in argument defaults
-    "B904",  # raise without from
-    "S101",  # assert usage
-    "S105",  # hardcoded passwords (false positives)
-    "S106",  # hardcoded passwords (false positives)
-    "S107",  # hardcoded passwords (false positives)
-    "S110",  # try-except-pass
-    "S301",  # pickle usage
-    "S603",  # subprocess without shell=True
-    "S607",  # subprocess partial path
-    # Currently found in existing codebase, to be cleaned up later:
-    "B007",  # Loop control variable `lk` not used within loop body
-    "B011",  # Do not `assert False` (`python -O` removes these calls), raise `AssertionError()`
-    "B018",  # Found useless expression. Either assign it to a variable or remove it.
-    "B023",  # Function definition does not bind loop variable
-    "B028",  # No explicit `stacklevel` keyword argument found
-    "C400",  # Unnecessary generator (rewrite as a list comprehension)
-    "C401",  # Unnecessary generator (rewrite as a set comprehension)
-    "C405",  # Unnecessary list literal (rewrite as a set literal)
-    "C408",  # Unnecessary `dict()` call (rewrite as a literal)
-    "C413",  # Unnecessary `list()` call around `sorted()`
-    "C414",  # Unnecessary `list()` call within `set()`
-    "E402",  # Module level import not at top of file
-    "F401",  # `pyarrow` imported but unused; consider using `importlib.util.find_spec` to test for availability
-    "F841",  # Local variable `excinfo` is assigned to but never used
-    "I001",  # Import block is un-sorted or un-formatted
-    "S113",  # Probable use of `requests` call without timeout
-    "S324",  # Probable use of insecure hash functions in `hashlib`: `md5`
-    "S606",  # Starting a process without a shell
-    "UP006", # Use `list` instead of `List` for type annotation
-    "UP015", # Unnecessary mode argument
-    "UP030", # Use implicit references for positional format fields
-    "UP031", # Use format specifiers instead of percent format
-    "UP032", # Use f-string instead of `format` call
-    "UP033", # Use `@functools.cache` instead of `@functools.lru_cache(maxsize=None)`
-    "UP034", # Avoid extraneous parentheses
-    "UP035", # `typing.Tuple` is deprecated, use `tuple` instead
-]
-
-[lint.isort]
-known-first-party = ["quilt3", "t4_lambda_"]
-combine-as-imports = true
-
-[lint.per-file-ignores]
-# Test files can use assert and have more relaxed security
-"tests/**/*.py" = ["S101", "S105", "S106"]
-"test_*.py" = ["S101", "S105", "S106"]
-
-[format]
-# XXX: remove once we reformat everything to use double quotes
-quote-style = "preserve"
