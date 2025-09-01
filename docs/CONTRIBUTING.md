@@ -72,10 +72,15 @@ uv run pytest tests/test_util.py
 ```
 
 Other available tasks:
-- `uv run poe lint` - Run linters
-- `uv run poe format-check` - Check import sorting
+- `uv run poe lint` - Run Ruff linter
+- `uv run poe fmt` - Format code with Ruff
+- `uv run poe fmt-check` - Check formatting with Ruff
 - `uv run poe build` - Build packages
 - `uv run poe clean` - Clean build artifacts
+
+For the transition period, legacy linting commands are available:
+- `uv run poe lint-legacy` - Run pylint and pycodestyle
+- `uv run poe fmt-check-legacy` - Check imports with isort
 
 ## Local catalog development
 

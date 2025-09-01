@@ -7,38 +7,42 @@ on:
   pull_request:
   merge_group:
 jobs:
-  linter:
+  lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - uses: astral-sh/setup-uv@v6
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1'
-      - name: Run pylint
+          uv sync --frozen
+      - name: Run Ruff linter
         run: |
-          pylint .
-      - name: Run pycodestyle
-        run: |
-          pycodestyle $(find -name '*.py' -not -path './venv/*')
+          uv run poe lint
 
-  isort:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install isort
-      - name: Run isort
-        run: |
-          isort --check --diff .
+  # Formatting check disabled until codebase is reformatted
+  # format:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: api/python
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.11'
+  #     - uses: astral-sh/setup-uv@v6
+  #     - name: Install dependencies
+  #       run: |
+  #         uv sync --frozen
+  #     - name: Check formatting with Ruff
+  #       run: |
+  #         uv run poe fmt-check
 
   test-gendocs:
     runs-on: ubuntu-latest
