@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Enable package creation from current bucket without workflows configuration ([#4522](https://github.com/quiltdata/quilt/pull/4522))
 - [Added] Qurator devtools: model override, session recording ([#4467](https://github.com/quiltdata/quilt/pull/4467))
 - [Changed] Adjust GQL schema for the upstream changes and handle search timeouts ([#4477](https://github.com/quiltdata/quilt/pull/4477))
 - [Fixed] Correctly sign and proxy S3 requests and URIs in OPEN mode ([#4470](https://github.com/quiltdata/quilt/pull/4470))
