@@ -7,7 +7,7 @@ export default function useDragging() {
   React.useEffect(() => {
     const handleDragEnter = (event: DragEvent) => {
       event.preventDefault()
-      if (event.dataTransfer?.items && event.dataTransfer.items.length > 0) {
+      if (event.dataTransfer?.types && event.dataTransfer.types.includes('Files')) {
         setDragCounter((count) => count + 1)
       }
     }
