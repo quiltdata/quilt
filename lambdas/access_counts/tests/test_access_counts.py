@@ -10,6 +10,7 @@ from botocore.stub import Stubber
 
 class TestAccessCounts(TestCase):
     """Tests S3 Select"""
+
     def setUp(self):
         self.env_patcher = patch.dict(os.environ, {
             'AWS_ACCESS_KEY_ID': 'test_key',
@@ -184,5 +185,5 @@ class TestAccessCounts(TestCase):
             )
 
         with patch('index.now', return_value=now), \
-             patch('time.sleep', return_value=None):
+                patch('time.sleep', return_value=None):
             index.handler(None, None)

@@ -62,12 +62,14 @@ def get_content_index_bytes(*, bucket_name: str):
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
     """Fatal and final error if docs fail after multiple retries"""
+
     def __init__(self, message):
         pass
 
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
+
     def __init__(self, context):
         """constructor"""
         self.queue = []

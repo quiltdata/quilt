@@ -26,6 +26,7 @@ def test_get_available_memory():
 
 class TestUtils(TestCase):
     """Tests the helper functions"""
+
     def setUp(self):
         logical_keys = [
             "foo.csv",
