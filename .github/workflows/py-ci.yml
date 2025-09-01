@@ -1,3 +1,5 @@
+name: Python CI with Autofix
+
 on:
   push:
     branches:
@@ -6,11 +8,120 @@ on:
       - "*"
   pull_request:
   merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  linter:
+  # AUTOFIX PHASE (only on PRs, prevents recursion)
+  autofix-lint:
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' && 
+      !contains(github.event.head_commit.message, '[autofix]')
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install autopep8 'pycodestyle>=2.6.1'
+      - name: Configure git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Actions Autofix"
+      - name: Run autopep8 fixes
+        run: |
+          find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
+            xargs -r autopep8 --in-place
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git add .
+          git commit -m "[autofix] Apply pycodestyle formatting fixes
+
+          🤖 Generated with GitHub Actions autofix
+          
+          Co-Authored-By: GitHub Actions <action@github.com>"
+          git push origin ${{ github.head_ref }}
+
+  autofix-isort:
+    runs-on: ubuntu-latest
+    needs: autofix-lint
+    if: |
+      github.event_name == 'pull_request' && 
+      !contains(github.event.head_commit.message, '[autofix]') &&
+      (success() || failure())
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install isort
+      - name: Configure git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Actions Autofix"
+      - name: Run isort autofix
+        run: |
+          find . -name '*.py' -not -path './venv/*' -not -path './.venv/*' -not -path './env/*' | \
+            xargs -r isort
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git add .
+          git commit -m "[autofix] Apply isort import sorting
+
+          🤖 Generated with GitHub Actions autofix
+          
+          Co-Authored-By: GitHub Actions <action@github.com>"
+          git push origin ${{ github.head_ref }}
+
+  # VALIDATION PHASE (runs on fixed code)
+  linter:
+    runs-on: ubuntu-latest
+    needs: [autofix-lint, autofix-isort]
+    if: always()  # Run even if autofix fails/skips
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -27,8 +138,12 @@ jobs:
 
   isort:
     runs-on: ubuntu-latest
+    needs: [autofix-lint, autofix-isort]
+    if: always()  # Run even if autofix fails/skips
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -42,10 +157,14 @@ jobs:
 
   test-gendocs:
     runs-on: ubuntu-latest
+    needs: [autofix-lint, autofix-isort]
+    if: always()
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
       - uses: actions/setup-python@v5
         with:
           # on newer versions it crashes with
@@ -64,6 +183,8 @@ jobs:
 
   test-testdocs:
     runs-on: ubuntu-latest
+    needs: [autofix-lint, autofix-isort]
+    if: always()
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     defaults:
@@ -71,6 +192,8 @@ jobs:
         working-directory: testdocs
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -89,6 +212,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     runs-on: ${{ matrix.os }}
+    needs: [autofix-lint, autofix-isort]
+    if: always()
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     defaults:
@@ -96,6 +221,8 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -177,12 +304,16 @@ jobs:
           - thumbnail
           - transcode
     runs-on: ubuntu-latest
+    needs: [autofix-lint, autofix-isort]
+    if: always()
     env:
       QUILT_DISABLE_USAGE_METRICS: true
       PYTHONPATH: deps
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version-file: lambdas/${{ matrix.path }}/.python-version

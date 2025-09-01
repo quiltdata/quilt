@@ -27,6 +27,7 @@ The existing `py-ci.yml` workflow contains these validation jobs:
 - For testing, disable existing py-ci.yml workflow.
 - Once testing succeeds, re-enable py-ci with to validate fixes actually pass
 - Then create spec for a unified workflow with no redundancy or conflicts
+- **IMPLEMENTED**: Unified workflow approach selected to eliminate race conditions
 
 ## Assumptions Validation
 
@@ -427,6 +428,8 @@ git push
 - ✅ Proper commit messages and attribution
 - ✅ Fixes are actually applied and work
 - ✅ Validation jobs still catch real issues
+- ✅ **CRITICAL**: No race conditions between autofix and validation
+- ✅ **CRITICAL**: Validation always runs on fixed code, not original code
 
 **Developer Experience:**
 
@@ -434,6 +437,22 @@ git push
 - ✅ Consistent code style across PRs
 - ✅ Clear attribution of automated changes
 - ✅ No disruption to existing workflows
+
+### 9. Implementation Decision: Unified Sequential Workflow
+
+**Problem Identified**: Race condition between separate py-autofix and py-ci workflows:
+
+- py-ci checked out code before autofix completed
+- Validation ran on unfixed code, missing real issues
+- This is a critical safety issue
+
+**Solution Implemented**: Unified workflow with sequential execution:
+
+- Autofix jobs run first (only on PRs)
+- Validation jobs run after autofix completes
+- All jobs use `needs` dependencies to ensure proper sequencing
+- Concurrency controls prevent parallel execution conflicts
+- PyPI release jobs maintain existing timing requirements (tags only)
 
 ### 9. Future Enhancements
 
