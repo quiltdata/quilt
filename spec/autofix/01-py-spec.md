@@ -5,20 +5,9 @@
 
 This specification defines a SINGLE unified workflow that automatically fixes ALL and ONLY files that fail the original py-ci.yml validation tests. The workflow prevents race conditions by running autofix BEFORE validation in a sequential pipeline.
 
-## Design Principles
+## Implementation Approach
 
-**Core Requirements:**
-1. **Fix ALL and ONLY fixable violations**: Target pycodestyle and isort issues that have deterministic auto-fixes
-2. **Sequential execution**: Autofix must complete BEFORE validation to prevent race conditions  
-3. **Comprehensive scope**: Handle every file that would fail the original validation tests
-4. **Zero disruption**: Preserve all existing functionality exactly as-is
-
-**Auto-Fixable Tests (2 types):**
-- pycodestyle violations → `autopep8 --in-place` fixes
-- isort import sorting → `isort .` fixes
-
-**Validation-Only Tests (5 categories):**
-- pylint code quality, documentation generation/testing, unit/integration tests, release processes
+Replace existing py-ci.yml with a unified workflow that adds autofix capabilities while preserving all existing validation functionality.
 
 ## Implementation Strategy
 
