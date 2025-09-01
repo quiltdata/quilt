@@ -151,7 +151,7 @@ class TestSession(QuiltTestCase):
                     expiry_time=format_date(future_date),
                 )
 
-                session = quilt3.get_boto3_session()
+                session = quilt3.get_boto3_session(**kw)
                 mock_load_credentials.assert_called_once_with()
                 mock_load_config.assert_called_with()
 
