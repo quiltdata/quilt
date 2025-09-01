@@ -1,8 +1,0 @@
-# Ruff configuration specific to quilt3 package
-# Extends from root configuration
-extend = "../../ruff.toml"
-
-# Exclude auto-generated files specific to quilt3
-extend-exclude = [
-    "quilt3/admin/_graphql_client",
-]

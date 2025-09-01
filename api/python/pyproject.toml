@@ -95,6 +95,14 @@ dev = [
     "poethepoet>=0.37.0",
 ]
 
+[tool.ruff]
+# Extends from root configuration
+extend = "../../ruff.toml"
+# Exclude auto-generated files specific to quilt3
+extend-exclude = [
+    "quilt3/admin/_graphql_client",
+]
+
 [tool.poe.tasks]
 test = "pytest --disable-warnings"
 test-verbose = "pytest -v"
