@@ -21,6 +21,11 @@ import * as s3paths from 'utils/s3paths'
 import DeleteDialog, { type DeleteResult } from './Toolbar/DeleteDialog'
 import * as FileView from './FileView'
 
+// TODO: make it UI component only, and move logic to `ListingActionsContext`,
+//       similar to `Toolbar/` buttons.
+//       Use the opportunity to re-use these actions,
+//       and maybe put it somewhere like `Model`.
+
 const useButtonStyles = M.makeStyles({
   root: {
     padding: '5px',
