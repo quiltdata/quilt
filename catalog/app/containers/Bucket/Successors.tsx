@@ -113,7 +113,7 @@ interface SuccessorsSelectProps {
   successors: workflows.Successor[] | Error | undefined
 }
 
-function SuccessorsSelect({
+export function SuccessorsSelect({
   anchorEl,
   onChange,
   onClose,
