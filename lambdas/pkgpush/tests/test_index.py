@@ -171,7 +171,7 @@ class PackagePromoteTestBase(unittest.TestCase):
             return mock.DEFAULT
 
         with mock.patch.object(src_registry, 'get_workflow_config', return_value=workflow_config_mock), \
-             mock.patch('t4_lambda_pkgpush.get_package_registry', side_effect=side_effect, wraps=get_package_registry):
+                mock.patch('t4_lambda_pkgpush.get_package_registry', side_effect=side_effect, wraps=get_package_registry):
             yield
 
     def make_request_wrapper(self, params, *, credentials, **kwargs):
@@ -195,7 +195,7 @@ class PackagePromoteTestBase(unittest.TestCase):
     def make_request(self, params, **kwargs):
         self.get_user_boto_session_mock.reset_mock()
         with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock, \
-             calculate_sha256_patcher(return_value=[]) as calculate_sha256_mock:
+                calculate_sha256_patcher(return_value=[]) as calculate_sha256_mock:
             response = self.make_request_base(params, credentials=self.credentials, **kwargs)
 
         self.get_user_boto_session_mock.assert_called_once_with(
@@ -323,7 +323,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
                 self.setup_s3(expected_pkg=expected_pkg)
 
                 with self.mock_successors({self.dst_registry: config_params}), \
-                     mock.patch("t4_lambda_pkgpush.copy_file_list") as copy_file_list_mock:
+                        mock.patch("t4_lambda_pkgpush.copy_file_list") as copy_file_list_mock:
                     copy_file_list_mock.return_value = [
                         e.physical_key
                         for lk, e in expected_pkg.walk()
@@ -407,7 +407,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
         self.setup_s3(expected_pkg=expected_pkg)
 
         with self.mock_successors({self.dst_registry: {'copy_data': True}}), \
-             mock.patch(f't4_lambda_pkgpush.{self.max_files_const}', 1):
+                mock.patch(f't4_lambda_pkgpush.{self.max_files_const}', 1):
             response = self.make_request(params)
             assert response == {
                 "error": {
@@ -557,8 +557,8 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
     def make_request_base(self, data, **kwargs):
         stream = io.BytesIO(data)
         with self.make_lambda_s3_stubber() as stubber, \
-             mock.patch.object(stubber.client, 'download_fileobj') as mock_download_fileobj, \
-             mock.patch('tempfile.TemporaryFile', return_value=stream):
+                mock.patch.object(stubber.client, 'download_fileobj') as mock_download_fileobj, \
+                mock.patch('tempfile.TemporaryFile', return_value=stream):
             # Check object size.
             stubber.add_response(
                 'head_object',

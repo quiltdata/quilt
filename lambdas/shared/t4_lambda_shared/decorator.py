@@ -21,6 +21,7 @@ class Request:
     Wraps a lambda event in an object similar to a Flask Request:
     http://flask.pocoo.org/docs/1.0/api/#flask.Request
     """
+
     def __init__(self, event, context):
         self.event = event
         self.context = context

@@ -34,6 +34,7 @@ def iterate_chunks(file_obj, chunk_size=4096):
 
 class TestPreview(TestCase):
     """Tests the preview functions"""
+
     def test_extract_parquet(self):
         file = BASE_DIR / 'amazon-reviews-1000.snappy.parquet'
         cell_value = '<td>TSD Airsoft/Paintball Full-Face Mask, Goggle Lens</td>'

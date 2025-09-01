@@ -44,14 +44,14 @@ class DataTransferTest(QuiltTestCase):
             b'\n{"foo": 6, "bar": 4}\n',
             b'{"foo": 2, "bar": 0}',
             b'\n{"foo": 2, "bar": 0}\n',
-            ]
+        ]
         records = [{'Records': {'Payload': chunk}} for chunk in chunks]
         # noinspection PyTypeChecker
         records.append({'Stats': {
             'BytesScanned': 100,
             'BytesProcessed': 100,
             'BytesReturned': 210,
-            }})
+        }})
         records.append({'End': {}})
 
         expected_result = pd.DataFrame.from_records([
@@ -65,7 +65,7 @@ class DataTransferTest(QuiltTestCase):
             {'foo': 6, 'bar': 4},
             {'foo': 2, 'bar': 0},
             {'foo': 2, 'bar': 0},
-            ])
+        ])
 
         # test normal use from extension
         expected_args = {
@@ -76,9 +76,9 @@ class DataTransferTest(QuiltTestCase):
             'InputSerialization': {
                 'CompressionType': 'NONE',
                 'JSON': {'Type': 'DOCUMENT'}
-                },
+            },
             'OutputSerialization': {'JSON': {}},
-            }
+        }
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz.json'), 'select * from S3Object')
@@ -120,9 +120,9 @@ class DataTransferTest(QuiltTestCase):
             'InputSerialization': {
                 'CompressionType': 'GZIP',
                 'JSON': {'Type': 'DOCUMENT'}
-                },
+            },
             'OutputSerialization': {'JSON': {}},
-            }
+        }
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             # result ignored -- returned data isn't compressed, and this has already been tested.

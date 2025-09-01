@@ -123,14 +123,14 @@ class TestBucket(QuiltTestCase):
             b'\n{"foo": 6, "bar": 4}\n',
             b'{"foo": 2, "bar": 0}',
             b'\n{"foo": 2, "bar": 0}\n',
-            ]
+        ]
         records = [{'Records': {'Payload': chunk}} for chunk in chunks]
         # noinspection PyTypeChecker
         records.append({'Stats': {
             'BytesScanned': 100,
             'BytesProcessed': 100,
             'BytesReturned': 210,
-            }})
+        }})
         records.append({'End': {}})
 
         expected_result = pd.DataFrame.from_records([
@@ -144,7 +144,7 @@ class TestBucket(QuiltTestCase):
             {'foo': 6, 'bar': 4},
             {'foo': 2, 'bar': 0},
             {'foo': 2, 'bar': 0},
-            ])
+        ])
 
         # test normal use from extension
         expected_args = {
@@ -155,9 +155,9 @@ class TestBucket(QuiltTestCase):
             'InputSerialization': {
                 'CompressionType': 'NONE',
                 'JSON': {'Type': 'DOCUMENT'}
-                },
+            },
             'OutputSerialization': {'JSON': {}},
-            }
+        }
 
         boto_return_val = {'Payload': iter(records)}
         with patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:

@@ -67,14 +67,14 @@ class TestIndex():
         fcs_files = list(parent.glob("*.fcs"))
         extended = False
         if (
-                set(os.path.split(f)[1] for f in fcs_files)
-                != {
-                    'accuri-ao1.fcs',
-                    'bad.fcs',
-                    '3215apc 100004.fcs',
-                    'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs',
-                }
-         ):
+            set(os.path.split(f)[1] for f in fcs_files)
+            != {
+                'accuri-ao1.fcs',
+                'bad.fcs',
+                '3215apc 100004.fcs',
+                'BD - FACS Aria II - Compensation Controls_G710 Stained Control.fcs',
+            }
+        ):
             extended = True
         first = True
         for fcs in fcs_files:
