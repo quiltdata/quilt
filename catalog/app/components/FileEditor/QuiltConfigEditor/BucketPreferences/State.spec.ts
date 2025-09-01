@@ -13,7 +13,7 @@ function getValueByPath(obj: Record<string, any>, path: string[]) {
   return path.reduce((memo, key) => memo[key], obj)
 }
 
-const legacyPrefs = legacyBucketPreferences.parse('')
+const legacyPrefs = legacyBucketPreferences.parse('', 'test-bucket')
 function getLegacyValue(key: keyof Config) {
   switch (key) {
     case 'ui.athena.defaultWorkgroup':

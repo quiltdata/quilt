@@ -139,17 +139,20 @@ function MissingSourceBucketTooltip() {
     <>
       <M.Typography variant="body2" gutterBottom>
         Config property <Code>ui.sourceBuckets</Code> is empty.{' '}
-        <StyledLink href={`${docs}/catalog/preferences`} target="_blank">
+        <M.Link href={`${docs}/catalog/preferences`} target="_blank">
           Learn more
-        </StyledLink>
+        </M.Link>
         .
       </M.Typography>
       <M.Typography variant="body2">
-        <StyledLink to={toConfig}>Edit manually</StyledLink> or{' '}
-        <StyledLink onClick={showConfirmation}>
+        <M.Link component={RRDom.Link} to={toConfig}>
+          Edit manually
+        </M.Link>{' '}
+        or{' '}
+        <M.Link onClick={showConfirmation}>
           <span className={classes.nowrap}>auto-add</span> current bucket (
           <span className={classes.nowrap}>s3://{bucket}</span>)
-        </StyledLink>
+        </M.Link>
       </M.Typography>
     </>
   )

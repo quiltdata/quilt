@@ -6,6 +6,7 @@ import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import { makeSchemaValidator } from 'utils/JSONSchema'
 import { JsonInvalidAgainstSchema } from 'utils/error'
+import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import type { JsonRecord } from 'utils/types'
 import * as YAML from 'utils/yaml'
@@ -184,8 +185,7 @@ const defaultPreferences: BucketPreferences = {
 }
 
 const S3_PREFIX = 's3://'
-const normalizeBucketName = (input: string) =>
-  input.startsWith(S3_PREFIX) ? input.slice(S3_PREFIX.length) : input
+const removeS3Prefix = (input: string) => s3paths.withoutPrefix(S3_PREFIX, input)
 
 const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 
@@ -276,12 +276,24 @@ function parsePackages(
   )
 }
 
+function getSourceBucketsList(
+  sourceBuckets?: SourceBucketsInput,
+  bucket?: string,
+): string[] {
+  if (sourceBuckets) return Object.keys(sourceBuckets).map(removeS3Prefix)
+  if (bucket) return [bucket]
+  // Only in 'local' mode
+  // TODO: Consider to throw error when cfg.mode !== 'LOCAL'
+  return []
+}
+
 function parseSourceBuckets(
   sourceBuckets?: SourceBucketsInput,
   defaultSourceBucketInput?: DefaultSourceBucketInput,
+  bucket?: string,
 ): SourceBuckets {
-  const list = Object.keys(sourceBuckets || {}).map(normalizeBucketName)
-  const defaultSourceBucket = normalizeBucketName(defaultSourceBucketInput || '')
+  const list = getSourceBucketsList(sourceBuckets, bucket)
+  const defaultSourceBucket = removeS3Prefix(defaultSourceBucketInput || '')
   return {
     getDefault: () => {
       if (defaultSourceBucket) {
@@ -296,7 +308,10 @@ function parseSourceBuckets(
   }
 }
 
-export function extendDefaults(data: BucketPreferencesInput): BucketPreferences {
+export function extendDefaults(
+  data: BucketPreferencesInput,
+  bucket?: string,
+): BucketPreferences {
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
@@ -310,18 +325,19 @@ export function extendDefaults(data: BucketPreferencesInput): BucketPreferences 
       sourceBuckets: parseSourceBuckets(
         data?.ui?.sourceBuckets,
         data?.ui?.defaultSourceBucket,
+        bucket,
       ),
     },
   }
 }
 
-export function parse(bucketPreferencesYaml: string): BucketPreferences {
+export function parse(bucketPreferencesYaml: string, bucket: string): BucketPreferences {
   const data = YAML.parse(bucketPreferencesYaml)
   if (!data) return defaultPreferences
 
   validate(data)
 
-  return extendDefaults(data)
+  return extendDefaults(data, bucket)
 }
 
 export const Result = tagged.create('app/utils/BucketPreferences:Result' as const, {
