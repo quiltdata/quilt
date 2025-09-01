@@ -104,4 +104,15 @@ lint = "ruff check ."
 fmt = "ruff format ."
 fmt-check = "ruff format --check ."
 
-clean = { shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true" }
+clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true"
+
+verify-release-tag.help = "Verify git tag matches package version (for releases)"
+verify-release-tag.args = [{name = "tag", positional = true, required = true}]
+verify-release-tag.shell = """
+version=$(cat quilt3/VERSION)
+if [ "$tag" != "$version" ]; then
+  echo "Error: Git tag '$tag' does not match version '$version'"
+  exit 1
+fi
+"""
+verify-release-tag.verbosity = -1

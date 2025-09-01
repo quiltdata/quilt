@@ -165,9 +165,8 @@ jobs:
         run: |
           uv pip install build==1.3.0 twine==6.1.0
       - name: verify git tag vs. version
-        env:
-          CIRCLE_TAG: ${{ github.ref_name }}
-        run: python setup.py verify
+        run: |
+          uv run poe verify-release-tag "${{ github.ref_name }}"
       - name: build
         run: uv build
       - name: upload to PyPI
