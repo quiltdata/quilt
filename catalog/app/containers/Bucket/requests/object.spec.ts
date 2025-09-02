@@ -2,7 +2,7 @@ import type { S3 } from 'aws-sdk'
 
 import { FileNotFound } from '../errors'
 
-import { fetchFile, objectVersions } from './object'
+import { deleteObject, fetchFile, objectVersions } from './object'
 
 class AWSError extends Error {
   code: string
@@ -132,6 +132,32 @@ describe('app/containers/Bucket/requests/object', () => {
         handle: { bucket: 'b', key: 'error' },
       })
       return expect(result).rejects.toThrow(Error)
+    })
+  })
+
+  describe('deleteObject', () => {
+    it('should call S3 deleteObject with correct parameters', async () => {
+      const mockDeleteObject = jest.fn(() => ({
+        promise: () => Promise.resolve(),
+      }))
+
+      const s3 = {
+        deleteObject: mockDeleteObject,
+      } as unknown as S3
+
+      const handle = {
+        bucket: 'test-bucket',
+        key: 'test-key',
+        version: 'test-version',
+      }
+
+      await deleteObject({ s3, handle })
+
+      expect(mockDeleteObject).toHaveBeenCalledWith({
+        Bucket: 'test-bucket',
+        Key: 'test-key',
+        VersionId: 'test-version',
+      })
     })
   })
 })

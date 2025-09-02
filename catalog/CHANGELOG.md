@@ -18,6 +18,9 @@ where verb is one of
 
 ## Changes
 
+- [Added] File upload functionality to add files directly to buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
+- [Added] File deletion capability to remove files from buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
+- [Changed] Refactored buttons layout in Bucket tab for improved consistency and maintainability ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Added] Qurator devtools: model override, session recording ([#4467](https://github.com/quiltdata/quilt/pull/4467))
 - [Changed] Adjust GQL schema for the upstream changes and handle search timeouts ([#4477](https://github.com/quiltdata/quilt/pull/4477))
 - [Fixed] Correctly sign and proxy S3 requests and URIs in OPEN mode ([#4470](https://github.com/quiltdata/quilt/pull/4470))

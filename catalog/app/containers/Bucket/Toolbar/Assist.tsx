@@ -16,6 +16,7 @@ export default function AssistButton({ message, title, ...props }: AssistButtonP
       color="primary"
       onClick={() => assist(message || 'Summarize this document')}
       style={{ marginTop: '-12px', marginBottom: '-12px' }}
+      edge="end"
       {...props}
     >
       <M.Tooltip title={title || 'Summarize and chat with AI'}>
