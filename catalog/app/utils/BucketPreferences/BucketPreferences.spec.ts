@@ -50,7 +50,7 @@ const expectedDefaults = {
       userMetaMultiline: false,
     },
     sourceBuckets: {
-      list: [],
+      list: ['test-bucket'],
     },
   },
 }
@@ -130,7 +130,7 @@ describe('utils/BucketPreferences', () => {
 
   describe('extendDefaults', () => {
     it('Empty config returns default preferences', () => {
-      expect(extendDefaults({})).toMatchObject(expectedDefaults)
+      expect(extendDefaults({}, 'test-bucket')).toMatchObject(expectedDefaults)
     })
 
     it('If one action is overwritten, others should be default', () => {
