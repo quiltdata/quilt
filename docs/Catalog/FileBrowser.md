@@ -15,6 +15,8 @@ By default, this functionality is available for all files in the current bucket.
 To restrict package creation from files, administrators can configure
 an empty `successors: {}` in the bucket's [workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog).
 
+![Create package](../imgs/catalog-filesbrowser-create-package.png)
+
 ## Bookmarks
 
 To create a package that includes multiple files from different
