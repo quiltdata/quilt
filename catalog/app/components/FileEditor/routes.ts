@@ -62,6 +62,13 @@ export function useAddFileInBucket(bucket: string): (logicalKey: string) => stri
   )
 }
 
+export function useEditBucketFile(handle: Model.S3.S3ObjectLocation): string {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const { pathname, search } = RRDom.useLocation()
+  const next = pathname + search
+  return urls.bucketFile(handle.bucket, handle.key, { edit: true, next })
+}
+
 export function useParams() {
   const { bucket, path } = RRDom.useParams<{
     bucket: string

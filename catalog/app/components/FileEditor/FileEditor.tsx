@@ -59,7 +59,7 @@ function EditorSuspended({
       case '__quiltConfig':
         return <QuiltConfigEditor {...initialProps} handle={handle} />
       case '__bucketPreferences':
-        return <BucketPreferences {...initialProps} />
+        return <BucketPreferences {...initialProps} handle={handle} />
       case '__quiltSummarize':
         return <QuiltSummarize {...initialProps} />
       default:
@@ -84,7 +84,7 @@ function EditorSuspended({
         case '__quiltConfig':
           return <QuiltConfigEditor {...props} handle={handle} />
         case '__bucketPreferences':
-          return <BucketPreferences {...props} />
+          return <BucketPreferences {...props} handle={handle} />
         case '__quiltSummarize':
           return <QuiltSummarize {...props} />
         default:

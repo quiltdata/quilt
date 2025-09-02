@@ -5,6 +5,7 @@ import * as Lab from '@material-ui/lab'
 
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import { docs } from 'constants/urls'
+import type * as Model from 'model'
 import * as BucketConfig from 'utils/BucketConfig'
 import StyledLink from 'utils/StyledLink'
 import { JsonInvalidAgainstSchema } from 'utils/error'
@@ -440,10 +441,17 @@ export default function BucketPreferences({
   error,
   initialValue,
   onChange,
-}: QuiltConfigEditorProps) {
+  handle,
+}: QuiltConfigEditorProps & { handle: Model.S3.S3ObjectLocation }) {
   const [errors, setErrors] = React.useState(() => (error ? [error] : []))
 
-  const [config, setConfig] = React.useState(parse(initialValue || '', {}))
+  const [config, setConfig] = React.useState(() =>
+    parse(initialValue || '', {
+      'ui.sourceBuckets': [handle.bucket],
+      'ui.defaultSourceBucket': handle.bucket,
+    }),
+  )
+
   const classes = useStyles()
   const grouped = React.useMemo(
     () =>

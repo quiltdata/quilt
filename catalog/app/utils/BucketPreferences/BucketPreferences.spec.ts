@@ -50,7 +50,7 @@ const expectedDefaults = {
       userMetaMultiline: false,
     },
     sourceBuckets: {
-      list: [],
+      list: ['test-bucket'],
     },
   },
 }
@@ -58,7 +58,7 @@ const expectedDefaults = {
 describe('utils/BucketPreferences', () => {
   describe('parse', () => {
     it('Empty config returns default preferences', () => {
-      expect(parse('')).toMatchObject(expectedDefaults)
+      expect(parse('', 'test-bucket')).toMatchObject(expectedDefaults)
     })
 
     it('If one action is overwritten, others should be default', () => {
@@ -67,7 +67,7 @@ describe('utils/BucketPreferences', () => {
                 actions:
                     copyPackage: False
       `
-      expect(parse(config).ui.actions).toEqual({
+      expect(parse(config, 'test-bucket').ui.actions).toEqual({
         ...expectedDefaults.ui.actions,
         copyPackage: false,
       })
@@ -79,7 +79,7 @@ describe('utils/BucketPreferences', () => {
                 blocks:
                     analytics: False
       `
-      expect(parse(config).ui.blocks).toEqual({
+      expect(parse(config, 'test-bucket').ui.blocks).toEqual({
         ...expectedDefaults.ui.blocks,
         analytics: false,
       })
@@ -91,7 +91,7 @@ describe('utils/BucketPreferences', () => {
                 nav:
                     queries: False
       `
-      expect(parse(config).ui.nav).toEqual({
+      expect(parse(config, 'test-bucket').ui.nav).toEqual({
         ...expectedDefaults.ui.nav,
         queries: false,
       })
@@ -103,8 +103,8 @@ describe('utils/BucketPreferences', () => {
                 blocks:
                     queries: QUERY
       `
-      expect(parse(config)).toMatchObject(expectedDefaults)
-      expect(parse(config).ui.blocks).toEqual({
+      expect(parse(config, 'test-bucket')).toMatchObject(expectedDefaults)
+      expect(parse(config, 'test-bucket').ui.blocks).toEqual({
         ...expectedDefaults.ui.blocks,
         queries: 'QUERY',
       })
@@ -116,7 +116,7 @@ describe('utils/BucketPreferences', () => {
                 nav:
                     queries: QUERY
       `
-      expect(() => parse(config)).toThrowError()
+      expect(() => parse(config, 'test-bucket')).toThrow()
     })
 
     it('Actions = false disables all actions', () => {
@@ -124,13 +124,23 @@ describe('utils/BucketPreferences', () => {
             ui:
                 actions: False
       `
-      expect(parse(config).ui.actions).toMatchSnapshot()
+      expect(parse(config, 'test-bucket').ui.actions).toMatchSnapshot()
+    })
+
+    it('Empty sourceBuckets object returns empty list', () => {
+      const config = dedent`
+            ui:
+                sourceBuckets: {}
+      `
+      const result = parse(config, 'test-bucket')
+      expect(result.ui.sourceBuckets.list).toEqual([])
+      expect(result.ui.sourceBuckets.getDefault()).toBe('')
     })
   })
 
   describe('extendDefaults', () => {
     it('Empty config returns default preferences', () => {
-      expect(extendDefaults({})).toMatchObject(expectedDefaults)
+      expect(extendDefaults({}, 'test-bucket')).toMatchObject(expectedDefaults)
     })
 
     it('If one action is overwritten, others should be default', () => {

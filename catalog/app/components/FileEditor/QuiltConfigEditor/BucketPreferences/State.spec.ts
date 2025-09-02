@@ -13,7 +13,7 @@ function getValueByPath(obj: Record<string, any>, path: string[]) {
   return path.reduce((memo, key) => memo[key], obj)
 }
 
-const legacyPrefs = legacyBucketPreferences.parse('')
+const legacyPrefs = legacyBucketPreferences.parse('', 'test-bucket')
 function getLegacyValue(key: keyof Config) {
   switch (key) {
     case 'ui.athena.defaultWorkgroup':
@@ -170,7 +170,10 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/State', () =
 
   describe('parse', () => {
     describe('new implementation should have the same defaults as old one', () => {
-      const config = parse('', {})
+      const config = parse('', {
+        'ui.sourceBuckets': ['test-bucket'],
+        'ui.defaultSourceBucket': 'test-bucket',
+      })
 
       const configKeys = Object.keys(config)
       test.each(configKeys)(`%s`, (k) => {
