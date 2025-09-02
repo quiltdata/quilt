@@ -86,10 +86,17 @@ function ExpandMore({ className }: { className?: string }) {
   return <M.Icon className={className}>expand_more</M.Icon>
 }
 
-const useBucketSelectStyles = M.makeStyles({
+const useBucketSelectStyles = M.makeStyles((t) => ({
   root: {
     ...linkStyle,
     font: 'inherit',
+  },
+  add: {
+    color: t.palette.text.secondary,
+    fontSize: t.typography.body2.fontSize,
+  },
+  divider: {
+    marginBottom: t.spacing(1),
   },
   select: {
     paddingBottom: 0,
@@ -98,7 +105,7 @@ const useBucketSelectStyles = M.makeStyles({
   icon: {
     color: 'inherit',
   },
-})
+}))
 
 interface BucketSelectProps {
   bucket: string
@@ -119,15 +126,9 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
 
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<{ value: unknown }>) => {
-      const selectedValue = e.target.value as string
-      if (selectedValue === '__add_source_bucket__') {
-        // Navigate to config edit - this will be handled by the browser
-        window.location.href = toConfig
-        return
-      }
-      selectBucket(selectedValue)
+      selectBucket(e.target.value as string)
     },
-    [selectBucket, toConfig],
+    [selectBucket],
   )
 
   return (
@@ -141,20 +142,23 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
     >
       {buckets.map((b) => (
         <M.MenuItem key={b} value={b}>
-          <M.ListItemText primary={b} />
+          {b}
         </M.MenuItem>
       ))}
-      <M.Divider />
-      <M.MenuItem value="__add_source_bucket__">
-        <M.ListItemText
-          primary={<i>Add bucket</i>}
-          secondary={
-            <>
-              Open config editor and change <Code>ui.sourceBuckets</Code>
-            </>
-          }
-        />
-      </M.MenuItem>
+      <M.Divider className={classes.divider} />
+      <M.Tooltip
+        arrow
+        placement="bottom"
+        title={
+          <>
+            Open config editor and change <Code>ui.sourceBuckets</Code>
+          </>
+        }
+      >
+        <M.MenuItem component={RRDom.Link} to={toConfig} className={classes.add}>
+          Add bucket
+        </M.MenuItem>
+      </M.Tooltip>
     </M.Select>
   )
 }
