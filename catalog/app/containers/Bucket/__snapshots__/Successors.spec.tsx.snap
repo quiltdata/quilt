@@ -1,12 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`containers/Bucket/SuccessorsSelect should render empty state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect should render empty state 1`] = `
 <div>
   <div
-    className="MuiBox-root MuiBox-root-3"
+    class="MuiBox-root MuiBox-root-3"
   >
     <p
-      className="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"
+      class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"
     >
       Add or update a 
       <a>
@@ -15,10 +15,9 @@ exports[`containers/Bucket/SuccessorsSelect should render empty state 1`] = `
        file to populate this menu.
     </p>
     <p
-      className="MuiTypography-root MuiTypography-body1"
+      class="MuiTypography-root MuiTypography-body1"
     >
       <a
-        className="makeStyles-root-4"
         href="https://docs.quilt.bio/workflows#cross-bucket-package-push-quilt-catalog"
         target="_blank"
       >
@@ -30,13 +29,13 @@ exports[`containers/Bucket/SuccessorsSelect should render empty state 1`] = `
 </div>
 `;
 
-exports[`containers/Bucket/SuccessorsSelect should render error state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect should render error state 1`] = `
 <div>
   <div
-    className="MuiBox-root MuiBox-root-2"
+    class="MuiBox-root MuiBox-root-2"
   >
     <p
-      className="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"
+      class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"
     >
       Error: 
       <code>
@@ -47,7 +46,7 @@ exports[`containers/Bucket/SuccessorsSelect should render error state 1`] = `
 </div>
 `;
 
-exports[`containers/Bucket/SuccessorsSelect should render loading state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect should render loading state 1`] = `
 <ul
   data-testid="menu"
 >
@@ -69,7 +68,7 @@ exports[`containers/Bucket/SuccessorsSelect should render loading state 1`] = `
 </ul>
 `;
 
-exports[`containers/Bucket/SuccessorsSelect should render populated state 1`] = `
+exports[`containers/Bucket/Successors/SuccessorsSelect should render populated state 1`] = `
 <ul
   data-testid="menu"
 >

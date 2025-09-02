@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import type { Successor } from 'utils/workflows'
 
@@ -37,6 +37,12 @@ jest.mock('components/FileEditor/HelpLinks', () => ({
   )),
 }))
 
+jest.mock('utils/StyledLink', () =>
+  jest.fn(({ children, ...props }: React.PropsWithChildren<any>) => (
+    <a {...props}>{children}</a>
+  )),
+)
+
 const props = {
   anchorEl: document.createElement('div'),
   onChange: jest.fn(),
@@ -45,22 +51,20 @@ const props = {
 
 describe('containers/Bucket/Successors/SuccessorsSelect', () => {
   it('should render loading state', () => {
-    const tree = renderer
-      .create(<SuccessorsSelect {...props} successors={undefined} />)
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<SuccessorsSelect {...props} successors={undefined} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render error state', () => {
-    const tree = renderer
-      .create(<SuccessorsSelect {...props} successors={new Error('Test error')} />)
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(
+      <SuccessorsSelect {...props} successors={new Error('Test error')} />,
+    )
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render empty state', () => {
-    const tree = renderer.create(<SuccessorsSelect {...props} successors={[]} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<SuccessorsSelect {...props} successors={[]} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render populated state', () => {
@@ -69,9 +73,7 @@ describe('containers/Bucket/Successors/SuccessorsSelect', () => {
       { slug: 'bucket2', name: 'bucket2', url: 's3://bucket2', copyData: false },
     ]
 
-    const tree = renderer
-      .create(<SuccessorsSelect {...props} successors={successors} />)
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<SuccessorsSelect {...props} successors={successors} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 })
