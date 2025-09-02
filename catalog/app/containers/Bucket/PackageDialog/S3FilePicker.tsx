@@ -94,16 +94,26 @@ const useBucketSelectStyles = M.makeStyles((t) => ({
   add: {
     color: t.palette.text.secondary,
     fontSize: t.typography.body2.fontSize,
+    minWidth: t.spacing(30),
   },
   divider: {
     marginBottom: t.spacing(1),
   },
+}))
+
+const useSelectStyles = M.makeStyles({
   select: {
     paddingBottom: 0,
     paddingTop: 0,
   },
   icon: {
     color: 'inherit',
+  },
+})
+
+const useTooltipStyles = M.makeStyles((t) => ({
+  tooltip: {
+    maxWidth: t.spacing(32),
   },
 }))
 
@@ -131,13 +141,16 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
     [selectBucket],
   )
 
+  const selectClasses = useSelectStyles()
+  const tooltipClasses = useTooltipStyles()
+
   return (
     <M.Select
       value={bucket}
       onChange={handleChange}
       input={<M.InputBase />}
       className={classes.root}
-      classes={{ select: classes.select, icon: classes.icon }}
+      classes={selectClasses}
       IconComponent={ExpandMore}
     >
       {buckets.map((b) => (
@@ -147,8 +160,8 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
       ))}
       <M.Divider className={classes.divider} />
       <M.Tooltip
-        arrow
         placement="bottom"
+        classes={tooltipClasses}
         title={
           <>
             Open config editor and change <Code>ui.sourceBuckets</Code>
