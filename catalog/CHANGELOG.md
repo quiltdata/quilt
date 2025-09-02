@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Always provide source buckets for S3FilePicker and use current bucket as default when no sourceBuckets configured ([#4525](https://github.com/quiltdata/quilt/pull/4525))
 - [Added] Qurator devtools: model override, session recording ([#4467](https://github.com/quiltdata/quilt/pull/4467))
 - [Changed] Adjust GQL schema for the upstream changes and handle search timeouts ([#4477](https://github.com/quiltdata/quilt/pull/4477))
 - [Fixed] Correctly sign and proxy S3 requests and URIs in OPEN mode ([#4470](https://github.com/quiltdata/quilt/pull/4470))
