@@ -6,6 +6,15 @@ that displays all files in the bucket.
 
 > If desired, [this tab can be hidden](./Preferences.md).
 
+## Creating packages from bucket files
+
+You can create packages directly from files already stored in S3 buckets
+without downloading and re-uploading them.
+
+By default, this functionality is available for all files in the current bucket.
+To restrict package creation from files, administrators can configure
+an empty `successors: {}` in the bucket's [workflow configuration](../advanced-features/workflows.md#cross-bucket-package-push-quilt-catalog).
+
 ## Bookmarks
 
 To create a package that includes multiple files from different
