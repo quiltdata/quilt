@@ -71,7 +71,7 @@ include-package-data = true
 version = {file = "quilt3/VERSION"}
 
 [tool.setuptools.package-data]
-quilt3 = ["VERSION", "workflows/config-1.schema.json"]
+quilt3 = ["VERSION", "workflows/*.schema.json"]
 
 [dependency-groups]
 dev = [
