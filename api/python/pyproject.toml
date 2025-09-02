@@ -108,6 +108,20 @@ fmt-check = "ruff format --check ."
 
 clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true"
 
+_gql-clean.shell = "rm -rf quilt3/admin/_graphql_client"
+
+gql-gen.help = "Generate GraphQL client code for quilt3.admin"
+gql-gen.sequence = [
+    "_gql-clean",
+    {cmd = "uv run ariadne-codegen client", cwd = "quilt3-admin"},
+]
+
+gql-check.help = "Check if GraphQL client code is up-to-date"
+gql-check.sequence = [
+    "gql-gen",
+    {shell = "git diff --exit-code quilt3/admin/_graphql_client"},
+]
+
 verify-release-tag.help = "Verify git tag matches package version (for releases)"
 verify-release-tag.args = [{name = "tag", positional = true, required = true}]
 verify-release-tag.shell = """
