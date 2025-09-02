@@ -43,7 +43,7 @@ const props = {
   onClose: jest.fn(),
 }
 
-describe('containers/Bucket/SuccessorsSelect', () => {
+describe('containers/Bucket/Successors/SuccessorsSelect', () => {
   it('should render loading state', () => {
     const tree = renderer
       .create(<SuccessorsSelect {...props} successors={undefined} />)
