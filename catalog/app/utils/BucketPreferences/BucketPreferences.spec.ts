@@ -126,6 +126,16 @@ describe('utils/BucketPreferences', () => {
       `
       expect(parse(config, 'test-bucket').ui.actions).toMatchSnapshot()
     })
+
+    it('Empty sourceBuckets object returns empty list', () => {
+      const config = dedent`
+            ui:
+                sourceBuckets: {}
+      `
+      const result = parse(config, 'test-bucket')
+      expect(result.ui.sourceBuckets.list).toEqual([])
+      expect(result.ui.sourceBuckets.getDefault()).toBe('')
+    })
   })
 
   describe('extendDefaults', () => {
