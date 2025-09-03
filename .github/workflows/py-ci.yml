@@ -77,20 +77,12 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     defaults:
       run:
-        working-directory: testdocs
+        working-directory: ./api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: install poetry
-        run: python -m pip install poetry
-      - name: install deps
-        run: poetry install
-      - name: install current version of quilt
-        run: poetry run pip install ../api/python
+      - uses: astral-sh/setup-uv@v6
       - name: test codeblocks
-        run: poetry run pytest --codeblocks ../docs
+        run: uv run poe testdocs
 
   test-client:
     strategy:

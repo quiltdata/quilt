@@ -142,3 +142,7 @@ gendocs-check.sequence = [
     "gendocs",
     {shell = "git diff --exit-code"},
 ]
+
+testdocs.help = "Test documentation code blocks"
+testdocs.cmd = "uv run pytest --codeblocks ../docs"
+testdocs.cwd = "../../testdocs"
