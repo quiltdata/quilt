@@ -1246,6 +1246,19 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         throw new Error('No data')
       }
     })
+
+    it('returns execution when execution is not ready', () => {
+      const queries = {
+        list: [
+          { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
+          { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
+        ],
+      }
+      const execution = Model.Loading as Model.Value<requests.QueryExecution>
+      const { result } = renderHook(() => useWrapper([queries, execution]))
+
+      expect(result.current.value).toBe(execution)
+    })
   })
 
   describe('useQueryBody', () => {
