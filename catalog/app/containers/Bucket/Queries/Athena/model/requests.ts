@@ -674,18 +674,18 @@ export function useQuery(
       return
     }
     setValue((v) => {
-      // 1: Keep current selection
-      if (Model.hasData(v) && queries.list.includes(v)) {
-        return v
-      }
-
       // 1: Match execution query
       if (Model.hasData(execution) && execution.query) {
         const executionQuery = queries.list.find((q) => execution.query === q.body)
         return executionQuery || null
       }
 
-      // 2: Preserve during execution loading (prevents flickering)
+      // 2: Keep current selection
+      if (Model.hasData(v) && queries.list.includes(v)) {
+        return v
+      }
+
+      // 3: Preserve during execution loading (prevents flickering)
       if (!Model.isReady(execution)) {
         return v
       }
