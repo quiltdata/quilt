@@ -135,7 +135,7 @@ interface ValueController<T> {
   <workgroups>
     <workgroup select=":workgroupId">
       <queries>
-        <query disabled>
+        <query disabled preserves-query>
           <queryBody readonly preserves-user-input />
         </query>
       </queries>
