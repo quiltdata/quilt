@@ -1247,16 +1247,28 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       }
     })
 
-    it('returns selected (first) when execution is not ready', () => {
+    it('preserves current selection when execution becomes not ready', async () => {
       const queries = {
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
           { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
         ],
       }
-      const execution = Model.Loading as Model.Value<requests.QueryExecution>
-      const { result } = renderHook(() => useWrapper([queries, execution]))
 
+      // Initially execution is ready (null), so first query gets selected
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (props: Parameters<typeof requests.useQuery>) => useWrapper(props),
+        {
+          initialProps: [queries, null],
+        },
+      )
+      expect(result.current.value).toBe(queries.list[0])
+
+      // Now execution becomes Loading - query should preserve current selection
+      await act(async () => {
+        rerender([queries, Model.Loading as Model.Value<requests.QueryExecution>])
+        await waitForNextUpdate()
+      })
       expect(result.current.value).toBe(queries.list[0])
     })
   })
@@ -1445,6 +1457,43 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       } else {
         throw new Error('Unexpected state')
       }
+    })
+
+    it('preserves user input during query submission loading', async () => {
+      const query = { name: 'Foo', key: 'foo', body: 'SELECT * FROM foo' }
+      const setQuery = jest.fn()
+
+      const { result, rerender, waitForNextUpdate } = renderHook(
+        (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
+        {
+          initialProps: [
+            query as Model.Value<requests.Query>,
+            setQuery,
+            null as Model.Value<requests.QueryExecution>,
+          ],
+        },
+      )
+      // Initial state: queryBody is set from query.body
+      expect(result.current.value).toBe('SELECT * FROM foo')
+
+      // User edits the query body
+      act(() => {
+        result.current.setValue('SELECT * FROM bar WHERE id = 1')
+      })
+      expect(result.current.value).toBe('SELECT * FROM bar WHERE id = 1')
+      expect(setQuery).toHaveBeenCalledWith(null) // query gets deselected
+
+      // Now execution starts loading (user submitted the query)
+      await act(async () => {
+        rerender([
+          null, // query is still deselected
+          setQuery,
+          Model.Loading as Model.Value<requests.QueryExecution>, // execution loading
+        ])
+        await waitForNextUpdate()
+      })
+      // queryBody should preserve user input, not become Loading
+      expect(result.current.value).toBe('SELECT * FROM bar WHERE id = 1')
     })
   })
 })
