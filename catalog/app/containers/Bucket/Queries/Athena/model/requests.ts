@@ -661,6 +661,9 @@ export function useQuery(
       if (Model.hasData(v) && queries.list.includes(v)) {
         return v
       }
+      if (!Model.isReady(execution)) {
+        return v
+      }
       return queries.list[0] || null
     })
   }, [execution, queries])
