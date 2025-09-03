@@ -723,7 +723,7 @@ export function useQueryBody(
         return null
       }
 
-      // 5 Preserve current value
+      // 5. Preserve current value
       return v
     })
   }, [execution, query])
