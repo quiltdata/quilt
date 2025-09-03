@@ -1247,7 +1247,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       }
     })
 
-    it('returns execution when execution is not ready', () => {
+    it('returns selected (first) when execution is not ready', () => {
       const queries = {
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
@@ -1257,7 +1257,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       const execution = Model.Loading as Model.Value<requests.QueryExecution>
       const { result } = renderHook(() => useWrapper([queries, execution]))
 
-      expect(result.current.value).toBe(execution)
+      expect(result.current.value).toBe(queries.list[0])
     })
   })
 

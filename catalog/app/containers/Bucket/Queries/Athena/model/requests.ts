@@ -658,9 +658,6 @@ export function useQuery(
         const executionQuery = queries.list.find((q) => execution.query === q.body)
         return executionQuery || null
       }
-      if (!Model.isReady(execution)) {
-        return execution
-      }
       if (Model.hasData(v) && queries.list.includes(v)) {
         return v
       }
