@@ -19,10 +19,10 @@ interface ValueController<T> {
 }
 ```
 
-**Data<T>** - System data from external sources (APIs). Cannot be `null`.
-**Value<T>** - User selections and choices. Can be `null` when user deselects.
+**`Data<T>`** - System data from external sources (APIs). Cannot be `null`.
+**`Value<T>`** - User selections and choices. Can be `null` when user deselects.
 
-**DataController** - Manages loading operations, handles `Loading`/`Error` states internally.
+**DataController** - Manages loading operations, handles `Loading`/`Error` states.
 **ValueController** - Manages user selections, cannot set `Loading`/`Error` directly.
 
 ## XML User Stories
