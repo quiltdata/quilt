@@ -60,25 +60,16 @@ jobs:
 
   test-gendocs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api/python
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          # on newer versions it crashes with
-          # TypeError: <classmethod(<function Package.install at 0x105219f30>)> is not a callable object
-          python-version: '3.9'
-      - name: install deps
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@v2.0.5+quilt3.2
-      - name: generate docs
-        run: cd gendocs && python build.py
-      - name: show invisible changes via cat
-        run: git diff | cat -A
-      - name: check there are no changes
-        run: git diff --exit-code
+      - uses: astral-sh/setup-uv@v6
+      - name: Check generated docs are up-to-date
+        run: uv run poe gendocs-check
 
   test-testdocs:
     runs-on: ubuntu-latest

@@ -132,3 +132,13 @@ if [ "$tag" != "$version" ]; then
 fi
 """
 verify-release-tag.verbosity = -1
+
+gendocs.help = "Generate API documentation"
+gendocs.cmd = "uv run python build.py"
+gendocs.cwd = "../../gendocs"
+
+gendocs-check.help = "Check if generated docs are up-to-date"
+gendocs-check.sequence = [
+    "gendocs",
+    {shell = "git diff --exit-code"},
+]
