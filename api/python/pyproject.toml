@@ -57,15 +57,8 @@ Repository = "https://github.com/quiltdata/quilt"
 [project.scripts]
 quilt3 = "quilt3.main:main"
 
-[tool.setuptools]
-packages = [
-    "quilt3",
-    "quilt3.admin",
-    "quilt3.admin._graphql_client",
-    "quilt3.backends",
-    "quilt3.workflows",
-]
-include-package-data = true
+[tool.setuptools.packages.find]
+exclude = ["tests", "tests.*"]
 
 [tool.setuptools.dynamic]
 version = {file = "quilt3/VERSION"}

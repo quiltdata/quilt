@@ -12,15 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - uses: astral-sh/setup-uv@v6
       - name: Run Ruff linter on entire codebase
-        run: |
-          uvx ruff check . --exclude catalog/ --exclude api/python/
+        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
 
-  # Lint quilt3 package specifically (uses UV and poethepoet)
   lint:
     runs-on: ubuntu-latest
     defaults:
@@ -28,16 +23,8 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - uses: astral-sh/setup-uv@v6
-      - name: Install dependencies
-        run: |
-          uv sync --frozen
-      - name: Run Ruff linter
-        run: |
-          uv run poe lint
+      - name: Lint
+        run: uv run poe lint
 
   # Formatting check disabled until codebase is reformatted
   # format:
@@ -47,22 +34,15 @@ jobs:
   #       working-directory: api/python
   #   steps:
   #     - uses: actions/checkout@v5
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.11'
   #     - uses: astral-sh/setup-uv@v6
-  #     - name: Install dependencies
-  #       run: |
-  #         uv sync --frozen
-  #     - name: Check formatting with Ruff
-  #       run: |
-  #         uv run poe fmt-check
+  #     - name: Check formatting
+  #       run: uv run poe fmt-check
 
   test-gendocs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./api/python
+        working-directory: api/python
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
@@ -77,11 +57,11 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     defaults:
       run:
-        working-directory: ./api/python
+        working-directory: api/python
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
-      - name: test codeblocks
+      - name: Test codeblocks
         run: uv run poe testdocs
 
   test-client:
@@ -140,13 +120,9 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - uses: astral-sh/setup-uv@v6
       - name: verify git tag vs. version
-        run: |
-          uv run poe verify-release-tag "${{ github.ref_name }}"
+        run: uv run poe verify-release-tag "${{ github.ref_name }}"
       - name: build
         run: uv build
       - name: upload to PyPI

@@ -1,14 +1,12 @@
 # Root Ruff configuration for the entire repository
 line-length = 119
-target-version = "py39"
 
 extend-exclude = [
-    # invalid syntax
-    "lambdas/indexer/test/data/404.ipynb",
-    "lambdas/indexer/test/data/attribute-error.ipynb",
-    "lambdas/indexer/test/data/empty.ipynb",
-    "lambdas/indexer/test/data/malformed-json.ipynb",
-    "lambdas/indexer/test/notebooks/s3events.ipynb",
+    # test data and notebooks
+    "lambdas/indexer/test/data/**",
+    "lambdas/indexer/test/notebooks/**",
+    "lambdas/preview/test/data/**",
+    "lambdas/shared/tests/data/**",
 ]
 
 [lint]
@@ -75,24 +73,8 @@ ignore = [
 ]
 
 [lint.isort]
-known-first-party = ["quilt3", "t4_lambda_"]
+known-first-party = ["quilt3", "quilt_shared", "t4_lambda_"]
 combine-as-imports = true
-
-[lint.per-file-ignores]
-"lambdas/shared/tests/data/**" = [
-    "W293",  # Blank line contains whitespace
-    "F811",  # Redefinition of unused `json`
-]
-
-"lambdas/preview/test/data/*.ipynb" = [
-    "F821",  # Undefined name `val_vol`
-]
-"lambdas/indexer/test/notebooks/*" = [
-]
-"lambdas/indexer/test/data/*" = [
-    "F811",  # Redefinition of unused ...
-    "W293",  # Blank line contains whitespace
-]
 
 [format]
 # Preserve existing quote style until we reformat everything
