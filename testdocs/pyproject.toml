@@ -3,7 +3,7 @@ name = "testdocs"
 version = "0.1.0"
 description = "Test documentation code blocks for quilt3"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.9.*"
 dependencies = [
     "quilt3",
     "pytest-codeblocks>=0.16.1",
