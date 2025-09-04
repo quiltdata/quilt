@@ -20,7 +20,6 @@ if __name__ == "__main__":
     generate_cli_api_reference_docs()
     gen_walkthrough_doc()
 
-    # Import pydocmd - UV handles dependency installation
     from pydocmd.__main__ import main as pydocmd_main
 
     # hacky, but we should maintain the same interpreter, and we're dependent on how

@@ -91,6 +91,8 @@ extend-exclude = [
 ]
 
 [tool.poe.tasks]
+_ensure-clean.cmd = "git diff --exit-code"
+
 test.help = "Run test suite"
 test.cmd = "pytest --disable-warnings"
 
@@ -114,16 +116,19 @@ clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -t
 
 _gql-clean.shell = "rm -rf quilt3/admin/_graphql_client"
 
+_ariadne-codegen.cmd = "uv run ariadne-codegen client"
+_ariadne-codegen.cwd = "quilt3-admin"
+
 gql-gen.help = "Generate GraphQL client code for quilt3.admin"
 gql-gen.sequence = [
     "_gql-clean",
-    {cmd = "uv run ariadne-codegen client", cwd = "quilt3-admin"},
+    "_ariadne-codegen",
 ]
 
 gql-check.help = "Check if GraphQL client code is up-to-date"
 gql-check.sequence = [
     "gql-gen",
-    {shell = "git diff --exit-code quilt3/admin/_graphql_client"},
+    "_ensure-clean",
 ]
 
 verify-release-tag.help = "Verify git tag matches package version (for releases)"
@@ -138,15 +143,15 @@ fi
 verify-release-tag.verbosity = -1
 
 gendocs.help = "Generate API documentation"
-gendocs.cmd = "uv run python build.py"
+gendocs.cmd = "uv run --locked build.py"
 gendocs.cwd = "../../gendocs"
 
 gendocs-check.help = "Check if generated docs are up-to-date"
 gendocs-check.sequence = [
     "gendocs",
-    {shell = "git diff --exit-code"},
+    "_ensure-clean",
 ]
 
 testdocs.help = "Test documentation code blocks"
-testdocs.cmd = "uv run pytest --codeblocks ../docs"
+testdocs.cmd = "uv run --locked pytest --codeblocks ../docs"
 testdocs.cwd = "../../testdocs"
