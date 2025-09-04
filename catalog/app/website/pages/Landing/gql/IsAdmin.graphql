@@ -1,5 +1,6 @@
 query {
   me {
     isAdmin
+    name
   }
 }
