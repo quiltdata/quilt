@@ -82,12 +82,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - uses: astral-sh/setup-uv@v6
-      - name: Install dependencies
-        run: |
-          uv sync --frozen
       - name: Run Pytest
-        run: |
-          uv run pytest --cov=. .
+        run: uv run poe test --cov=. .
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
