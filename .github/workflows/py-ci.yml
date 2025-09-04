@@ -13,6 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Run Ruff linter on entire codebase
         run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
 
@@ -24,6 +26,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Lint
         run: uv run poe lint
 
@@ -49,6 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Check generated docs are up-to-date
         run: uv run poe gendocs-check
 
@@ -62,6 +68,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Test codeblocks
         run: uv run poe testdocs
 
@@ -82,6 +90,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: Run Pytest
         run: uv run poe test --cov=. .
       - uses: codecov/codecov-action@v5
@@ -118,6 +128,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - name: verify git tag vs. version
         run: uv run poe verify-release-tag "${{ github.ref_name }}"
       - name: build
