@@ -30,8 +30,8 @@ git checkout -B new-branch-name
 
 ### Python Environment
 
-We use [UV](https://github.com/astral-sh/uv) for dependency management.
-First, install UV:
+We use [`uv`](https://github.com/astral-sh/uv) for dependency management.
+First, install `uv`:
 
 ```bash
 # macOS/Linux
@@ -41,15 +41,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 pip install uv
 ```
 
-Then install `quilt` locally (including development dependencies):
+`uv` ensures the environemnt is properly set up before executing a command,
+so you don't have to do anything else.
 
-```bash
-cd api/python
-uv sync
-```
-
-This will create a virtual environment in `.venv` and install all dependencies
-from the lock file, ensuring your environment matches CI exactly.
+Run `uv run poe` to see all configured tasks (or refer to `pyproject.toml`).
 
 ### Python Testing
 
@@ -60,7 +55,7 @@ Use `pytest` to test your changes during normal development:
 
 ```bash
 cd api/python
-# Run all tests using poethepoet
+# Run all tests
 uv run poe test
 
 # Run tests verbosely
@@ -70,16 +65,8 @@ uv run poe test-verbose
 uv run poe test-coverage
 
 # Run specific test file directly
-uv run pytest tests/test_util.py
+uv run poe test tests/test_util.py
 ```
-
-Other available tasks:
-
-- `uv run poe lint` - Run Ruff linter
-- `uv run poe fmt` - Format code with Ruff
-- `uv run poe fmt-check` - Check formatting with Ruff
-- `uv run poe build` - Build packages
-- `uv run poe clean` - Clean build artifacts
 
 ## Local catalog development
 
@@ -90,71 +77,11 @@ Elasticsearch Service) which cannot be run locally.
 
 ### Catalog Environment
 
-Use `npm` to install the catalog (`quilt-navigator`) dependencies locally:
+Use `npm` to install the catalog dependencies locally:
 
 ```bash
 cd catalog
 npm install
-```
-
-There is one known issue with installation. At time of writing, the
-`quilt-navigator` package depends on `iltorb@1.3.10`, which may
-lack prebuilt binaries for your platform and may fall back on
-building from source using `node-gyp`. `node-gyp` depends on Python
-2; if you only have Python 3 in your install environment it will
-fail.
-
-To fix this, point `npm` to a Python 2 path on your machine. For
-example on macOS:
-
-```bash
-npm config set python /usr/bin/python
-npm install
-```
-
-Next, you need to create a `config.json` and `federation.json` file
-in the `catalog/static` subdirectory. For `federation.json` use the
-following template:
-
-```json
-{
-   "buckets": [{
-         "name":"quilt-example",
-         "title":"Title here",
-         "icon":"placeholder icon here",
-         "description":"placeholder description here",
-         "searchEndpoint":"$SEARCH_ENDPOINT",
-         "apiGatewayEndpoint": "$PREVIEW_ENDPOINT",
-         "region":"us-east-1"
-      }
-   ]
-}
-```
-
-For `config.json` use the following template:
-
-```json
-{
-   "federations": [
-      "/federation.json"
-   ],
-   "suggestedBuckets": [
-   ],
-   "apiGatewayEndpoint": "$PREVIEW_ENDPOINT",
-   "sentryDSN": "",
-   "alwaysRequiresAuth": false,
-   "defaultBucket": "quilt-staging",
-   "disableSignUp": true,
-   "guestCredentials": {
-      "accessKeyId": "$ACCESS_KEY_ID",
-      "secretAccessKey": "$SECRET_ACCESS_KEY"
-   },
-   "intercomAppId": "",
-   "mixpanelToken": "",
-   "registryUrl": "$REGISTRY_ENDPOINT",
-   "signInRedirect": "/",
-   "signOutRedirect": "/"
-}
 ```
 
 ### Build
@@ -164,6 +91,8 @@ To build a static code bundle, as would be necessary in order to serve the catal
 ```bash
 npm run build
 ```
+
+<!-- TODO: add configuration instructions -->
 
 To run the catalog in developer mode:
 
@@ -213,13 +142,7 @@ the `pydoc-markdown` package to do the necessary work.
 
 To modify the API Reference, modify the docstring associated with a method of interest.
 
-Then, run the following to install the latest version of our docstring parser:
-
-```bash
-pip install git+git://github.com/quiltdata/pydoc-markdown.git@quilt
-```
-
-Then navigate to the `gendocs` directory and execute `python build.py`.
+Then, run `uv run poe gendocs` from the `api/python` directory.
 
 The resulting files will land in `docs/` and will be ready to be checked in.
 
