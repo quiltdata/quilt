@@ -18,7 +18,7 @@ interface WorkgroupSelectProps {
   bucket: string
   disabled?: boolean
   onLoadMore: (workgroups: Model.List<Model.Workgroup>) => void
-  value: Model.Workgroup | null
+  value: Model.Workgroup
   workgroups: Model.List<Model.Workgroup>
 }
 
@@ -57,7 +57,7 @@ function WorkgroupSelect({
       <M.Select
         disabled={disabled || !workgroups.list.length}
         onChange={handleChange}
-        value={value || 'none'}
+        value={value}
       >
         {workgroups.list.map((name) => (
           <M.MenuItem key={name} value={name}>
@@ -129,15 +129,15 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
     )
   }
 
-  if (!workgroups.data.list.length) return <WorkgroupsEmpty />
+  if (!workgroups.data.data.list.length) return <WorkgroupsEmpty />
 
   return (
     <WorkgroupSelect
       disabled={Model.isLoading(queryRun)}
       bucket={bucket}
       onLoadMore={workgroups.loadMore}
-      value={workgroup.data}
-      workgroups={workgroups.data}
+      value={workgroup.data.data}
+      workgroups={workgroups.data.data}
     />
   )
 }

@@ -59,6 +59,13 @@ function EditorField() {
     [queryRun],
   )
 
+  const handleChange = React.useCallback(
+    (value: string) => {
+      queryBody.setValue(Model.DataStateCreate(value))
+    },
+    [queryBody],
+  )
+
   if (Model.isNone(queryBody.value)) {
     return null
   }
@@ -81,9 +88,9 @@ function EditorField() {
           editorProps={editorProps}
           height="200px"
           mode="sql"
-          onChange={queryBody.setValue}
+          onChange={handleChange}
           theme="eclipse"
-          value={queryBody.value || ''}
+          value={queryBody.value.data}
           width="100%"
         />
         {Model.isLoading(queryRun) && <Lock />}

@@ -86,7 +86,7 @@ function FullQueryRow({ expanded, query }: FullQueryRowProps) {
   const { queryBody } = Model.use()
   const classes = useFullQueryRowStyles()
   const handleInsert = React.useCallback(() => {
-    queryBody.setValue(query)
+    queryBody.setValue(Model.DataStateCreate(query))
     push('Query has been pasted into editor')
   }, [push, queryBody, query])
   const handleCopy = React.useCallback(() => {
@@ -275,7 +275,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
   const hasPagination = rowsSorted.length > rowsPaginated.length
 
   const { workgroup } = Model.use()
-  if (!Model.hasValue(workgroup)) return null
+  if (!Model.hasValue(workgroup.data)) return null
 
   if (!executions.length)
     return (
