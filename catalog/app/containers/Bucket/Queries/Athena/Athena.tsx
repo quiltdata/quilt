@@ -108,7 +108,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
   const { query, queries, queryRun } = Model.use()
 
   if (Model.isError(queries.data)) {
-    return <Alert className={className} error={queries.data} title="Select query" />
+    return <Alert className={className} error={queries.data.error} title="Select query" />
   }
 
   if (!Model.hasData(queries.data) || !Model.isReady(query.value)) {
@@ -131,7 +131,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
         value={Model.isError(query.value) ? null : query.value}
       />
       {Model.isError(query.value) && (
-        <M.FormHelperText error>{query.value.message}</M.FormHelperText>
+        <M.FormHelperText error>{query.value.error.message}</M.FormHelperText>
       )}
     </>
   )
@@ -140,7 +140,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
 function HistoryContainer() {
   const { bucket, executions } = Model.use()
   if (Model.isError(executions.data)) {
-    return <Alert error={executions.data} title="Executions Data" />
+    return <Alert error={executions.data.error} title="Executions Data" />
   }
   if (!Model.hasData(executions.data)) {
     return <TableSkeleton size={4} />
@@ -208,7 +208,7 @@ function ResultsContainer({ className }: ResultsContainerProps) {
     return (
       <div className={className}>
         <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
-        <Alert error={execution} title="Query execution" className={className} />
+        <Alert error={execution.error} title="Query execution" className={className} />
       </div>
     )
   }
@@ -217,7 +217,7 @@ function ResultsContainer({ className }: ResultsContainerProps) {
     return (
       <div className={className}>
         <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
-        <Alert error={results.data} title="Query results" className={className} />
+        <Alert error={results.data.error} title="Query results" className={className} />
       </div>
     )
   }

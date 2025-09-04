@@ -74,7 +74,7 @@ interface SelectProps {
   label: string
   onChange: (value: string) => void
   onLoadMore: (prev: Response) => void
-  value: string | null
+  value: Model.ValueReady<string>
   disabled?: boolean
 }
 
@@ -104,7 +104,15 @@ function Select({
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select
         onChange={handleChange}
-        value={data.list.length ? value?.toLowerCase() || '' : EMPTY}
+        value={
+          data.list.length
+            ? (Model.isNone(value)
+                ? ''
+                : Model.isDataState(value)
+                  ? (value.data as string).toLowerCase()
+                  : '') || ''
+            : EMPTY
+        }
         disabled={disabled || !data.list.length}
       >
         {data.list.map((item) => (
@@ -114,8 +122,20 @@ function Select({
         ))}
         {data.next && <M.MenuItem value={LOAD_MORE}>Load more</M.MenuItem>}
         {!data.list.length && (
-          <M.MenuItem value={value?.toLowerCase() || EMPTY}>
-            {value || 'Empty list'}
+          <M.MenuItem
+            value={
+              (Model.isNone(value)
+                ? ''
+                : Model.isDataState(value)
+                  ? (value.data as string).toLowerCase()
+                  : '') || EMPTY
+            }
+          >
+            {Model.isNone(value)
+              ? 'Empty list'
+              : Model.isDataState(value)
+                ? (value.data as string)
+                : ''}
           </M.MenuItem>
         )}
       </M.Select>
@@ -140,10 +160,10 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
   )
 
   if (Model.isError(catalogNames.data)) {
-    return <SelectError className={className} error={catalogNames.data} />
+    return <SelectError className={className} error={catalogNames.data.error} />
   }
   if (Model.isError(catalogName.value)) {
-    return <SelectError className={className} error={catalogName.value} />
+    return <SelectError className={className} error={catalogName.value.error} />
   }
   if (!Model.hasValue(catalogName.value) || !Model.hasData(catalogNames.data)) {
     return <Skeleton className={className} height={32} animate mt={2} />
@@ -152,12 +172,12 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
   return (
     <Select
       className={className}
-      data={catalogNames.data}
+      data={catalogNames.data.data}
       disabled={Model.isLoading(queryRun)}
       label="Data catalog"
       onChange={handleChange}
       onLoadMore={catalogNames.loadMore}
-      value={catalogName.value}
+      value={catalogName.value as Model.ValueReady<string>}
     />
   )
 }
@@ -178,10 +198,10 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   )
 
   if (Model.isError(databases.data)) {
-    return <SelectError className={className} error={databases.data} />
+    return <SelectError className={className} error={databases.data.error} />
   }
   if (Model.isError(database.value)) {
-    return <SelectError className={className} error={database.value} />
+    return <SelectError className={className} error={database.value.error} />
   }
   if (!Model.hasValue(database.value) || !Model.hasData(databases.data)) {
     return <Skeleton className={className} height={32} animate mt={2} />
@@ -189,12 +209,12 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
 
   return (
     <Select
-      data={databases.data}
-      disabled={!Model.hasValue(catalogName) || Model.isLoading(queryRun)}
+      data={databases.data.data}
+      disabled={!Model.hasValue(catalogName.value) || Model.isLoading(queryRun)}
       label="Database"
       onChange={handleChange}
       onLoadMore={databases.loadMore}
-      value={database.value}
+      value={database.value as Model.ValueReady<string>}
     />
   )
 }

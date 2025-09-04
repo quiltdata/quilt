@@ -17,21 +17,21 @@ const noop = () => {}
 const emptyState: Model.State = {
   bucket: 'any',
 
-  catalogName: { value: undefined, setValue: noop },
-  catalogNames: { data: undefined, loadMore: noop },
-  database: { value: undefined, setValue: noop },
-  databases: { data: undefined, loadMore: noop },
-  execution: undefined,
-  executions: { data: undefined, loadMore: noop },
-  queries: { data: undefined, loadMore: noop },
-  query: { value: undefined, setValue: noop },
-  queryBody: { value: undefined, setValue: noop },
-  results: { data: undefined, loadMore: noop },
-  workgroups: { data: undefined, loadMore: noop },
-  workgroup: { data: undefined, loadMore: noop },
+  catalogName: { value: Model.Init, setValue: noop },
+  catalogNames: { data: Model.Init, loadMore: noop },
+  database: { value: Model.Init, setValue: noop },
+  databases: { data: Model.Init, loadMore: noop },
+  execution: Model.Init,
+  executions: { data: Model.Init, loadMore: noop },
+  queries: { data: Model.Init, loadMore: noop },
+  query: { value: Model.Init, setValue: noop },
+  queryBody: { value: Model.Init, setValue: noop },
+  results: { data: Model.Init, loadMore: noop },
+  workgroups: { data: Model.Init, loadMore: noop },
+  workgroup: { data: Model.Init, loadMore: noop },
 
-  submit: () => Promise.resolve({ id: 'bar' }),
-  queryRun: undefined,
+  submit: () => Promise.resolve(Model.DataStateCreate({ id: 'bar' })),
+  queryRun: Model.Init,
 }
 
 interface ProviderProps {
@@ -62,10 +62,10 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
       <Provider
         value={{
           ...emptyState,
-          catalogName: Model.wrapValue('foo', noop),
-          catalogNames: Model.wrapData({ list: ['foo'] }, noop),
-          databases: Model.wrapData({ list: ['bar'] }, noop),
-          database: Model.wrapValue('bar', noop),
+          catalogName: Model.wrapValue(Model.DataStateCreate('foo'), noop),
+          catalogNames: Model.wrapData(Model.DataStateCreate({ list: ['foo'] }), noop),
+          databases: Model.wrapData(Model.DataStateCreate({ list: ['bar'] }), noop),
+          database: Model.wrapValue(Model.DataStateCreate('bar'), noop),
         }}
       >
         <Database />
@@ -79,10 +79,10 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
       <Provider
         value={{
           ...emptyState,
-          catalogName: { value: null, setValue: noop },
-          catalogNames: Model.wrapData({ list: ['any'] }, noop),
-          databases: Model.wrapData({ list: ['any'] }, noop),
-          database: { value: null, setValue: noop },
+          catalogName: { value: Model.None, setValue: noop },
+          catalogNames: Model.wrapData(Model.DataStateCreate({ list: ['any'] }), noop),
+          databases: Model.wrapData(Model.DataStateCreate({ list: ['any'] }), noop),
+          database: { value: Model.None, setValue: noop },
         }}
       >
         <Database />
@@ -96,10 +96,10 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
       <Provider
         value={{
           ...emptyState,
-          catalogName: { value: null, setValue: noop },
-          catalogNames: Model.wrapData({ list: [] }, noop),
-          databases: Model.wrapData({ list: [] }, noop),
-          database: { value: null, setValue: noop },
+          catalogName: { value: Model.None, setValue: noop },
+          catalogNames: Model.wrapData(Model.DataStateCreate({ list: [] }), noop),
+          databases: Model.wrapData(Model.DataStateCreate({ list: [] }), noop),
+          database: { value: Model.None, setValue: noop },
         }}
       >
         <Database />
@@ -114,8 +114,8 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Provider
           value={{
             ...emptyState,
-            catalogName: { value: new Error('Value fail'), setValue: noop },
-            database: { value: new Error('Value fail'), setValue: noop },
+            catalogName: { value: Model.Err(new Error('Value fail')), setValue: noop },
+            database: { value: Model.Err(new Error('Value fail')), setValue: noop },
           }}
         >
           <Database />
@@ -131,8 +131,8 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Provider
           value={{
             ...emptyState,
-            catalogNames: { data: new Error('Data fail'), loadMore: noop },
-            databases: { data: new Error('Data fail'), loadMore: noop },
+            catalogNames: { data: Model.Err(new Error('Data fail')), loadMore: noop },
+            databases: { data: Model.Err(new Error('Data fail')), loadMore: noop },
           }}
         >
           <Database />

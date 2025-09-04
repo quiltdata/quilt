@@ -124,10 +124,10 @@ export function Provider({ preferences, children }: ProviderProps) {
     queryRun,
   }
 
-  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.id) {
+  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.data.id) {
     return (
       <RRDom.Redirect
-        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.id)}
+        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.data.id)}
       />
     )
   }

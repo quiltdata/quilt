@@ -64,7 +64,7 @@ function EditorField() {
   }
 
   if (Model.isError(queryBody.value)) {
-    return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
+    return <Lab.Alert severity="error">{queryBody.value.error.message}</Lab.Alert>
   }
 
   if (!Model.hasValue(queryBody.value)) {
@@ -211,7 +211,7 @@ export function Form({ className }: FormProps) {
 
       {Model.isError(queryRun) && (
         <Lab.Alert className={classes.error} severity="error">
-          {queryRun.message}
+          {queryRun.error.message}
         </Lab.Alert>
       )}
 

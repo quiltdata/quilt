@@ -112,8 +112,11 @@ describe('app/containers/Queries/Athena/model/state', () => {
     await act(async () => {
       await waitFor(() => typeof result.current.executions.data === 'object')
     })
-    expect(result.current.workgroups.data).toMatchObject({ list: ['bar', 'foo', 'w'] })
-    expect(result.current.workgroup.data).toBe('w')
+    expect(result.current.workgroups.data).toMatchObject({
+      _tag: 'data',
+      data: { list: ['bar', 'foo', 'w'] },
+    })
+    expect(result.current.workgroup.data).toMatchObject({ _tag: 'data', data: 'w' })
     unmount()
   })
 })

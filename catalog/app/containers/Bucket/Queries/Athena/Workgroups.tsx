@@ -114,8 +114,12 @@ interface AthenaWorkgroupsProps {
 export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
   const { queryRun, workgroup, workgroups } = Model.use()
 
-  if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
-  if (Model.isError(workgroup.data)) return <WorkgroupsEmpty error={workgroup.data} />
+  if (Model.isError(workgroups.data)) {
+    return <WorkgroupsEmpty error={workgroups.data.error} />
+  }
+  if (Model.isError(workgroup.data)) {
+    return <WorkgroupsEmpty error={workgroup.data.error} />
+  }
   if (!Model.hasData(workgroups.data) || !Model.hasData(workgroup.data)) {
     return (
       <>
