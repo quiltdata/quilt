@@ -109,21 +109,21 @@ export function useWorkgroup(
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
     setData((d) => {
-      // Not loaded or failed
+      // 1. Not loaded or failed
       if (!Model.hasData(workgroups.data)) return d
 
-      // 1: URL parameter workgroup (user navigation)
+      // 2. URL parameter workgroup (user navigation)
       if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
         return requestedWorkgroup
       }
 
-      // 2: Stored or default workgroup
+      // 3. Stored or default workgroup
       const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
       if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
         return initialWorkgroup
       }
 
-      // 3: First available workgroup or error
+      // 4. First available workgroup or error
       return workgroups.data.list[0] || new Error('Workgroup not found')
     })
   }, [preferences, requestedWorkgroup, workgroups])
@@ -518,7 +518,7 @@ export function useDatabase(
       return
     }
     setValue((v) => {
-      // 1: Match execution context
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
         execution.db &&
@@ -527,18 +527,18 @@ export function useDatabase(
         return execution.db
       }
 
-      // 2: Keep current selection
+      // 2. Keep current selection
       if (Model.hasData(v) && listIncludes(databases.list, v)) {
         return v
       }
 
-      // 3: Restore from storage
+      // 3. Restore from storage
       const initialDatabase = storage.getDatabase()
       if (initialDatabase && listIncludes(databases.list, initialDatabase)) {
         return initialDatabase
       }
 
-      // 4: Default to first available or null
+      // 4. Default to first available or null
       return databases.list[0] || null
     })
   }, [databases, execution])
@@ -637,7 +637,7 @@ export function useCatalogName(
       return
     }
     setValue((v) => {
-      // 1: Match execution context
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
         execution.catalog &&
@@ -646,17 +646,17 @@ export function useCatalogName(
         return execution.catalog
       }
 
-      // 2: Keep current selection
+      // 2. Keep current selection
       if (Model.hasData(v) && listIncludes(catalogNames.list, v)) {
         return v
       }
 
-      // 3: Restore from storage
+      // 3. Restore from storage
       const initialCatalogName = storage.getCatalog()
       if (initialCatalogName && listIncludes(catalogNames.list, initialCatalogName)) {
         return initialCatalogName
       }
-      // 4: Default to first available or null
+      // 4. Default to first available or null
       return catalogNames.list[0] || null
     })
   }, [catalogNames, execution])
@@ -674,23 +674,23 @@ export function useQuery(
       return
     }
     setValue((v) => {
-      // 1: Match execution query
+      // 1. Match execution query
       if (Model.hasData(execution) && execution.query) {
         const executionQuery = queries.list.find((q) => execution.query === q.body)
         return executionQuery || null
       }
 
-      // 2: Keep current selection
+      // 2. Keep current selection
       if (Model.hasData(v) && queries.list.includes(v)) {
         return v
       }
 
-      // 3: Preserve during execution loading (prevents flickering)
+      // 3. Preserve during execution loading (prevents flickering)
       if (!Model.isReady(execution)) {
         return v
       }
 
-      // 4: Default to first available or null
+      // 4. Default to first available or null
       return queries.list[0] || null
     })
   }, [execution, queries])
@@ -723,7 +723,7 @@ export function useQueryBody(
         return null
       }
 
-      // 5 Preserve current value
+      // 5. Preserve current value
       return v
     })
   }, [execution, query])
