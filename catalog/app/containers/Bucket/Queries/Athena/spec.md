@@ -29,7 +29,7 @@ interface ValueController<T> {
 
 ### Story 1: View Execution Results
 
-**URL:** `/bucket/{bucket}/athena/workgroup/{workgroupId}/execution/{executionId}`
+**URL:** `/b/{bucket}/queries/athena/{workgroupId}/{executionId}`
 
 ```xml
 <Athena :bucket :workgroupId :executionId>
@@ -57,7 +57,7 @@ interface ValueController<T> {
 
 ### Story 2: Main Query Interface
 
-**URL:** `/bucket/{bucket}/athena/workgroup/{workgroupId}`
+**URL:** `/b/{bucket}/queries/athena/{workgroupId}`
 
 ```xml
 <Athena :bucket :workgroupId>
@@ -84,7 +84,7 @@ interface ValueController<T> {
 
 ### Story 3: Landing Page (No Workgroup Selected)
 
-**URL:** `/bucket/{bucket}/athena`
+**URL:** `/b/{bucket}/queries/athena`
 
 ```xml
 <Athena :bucket>
