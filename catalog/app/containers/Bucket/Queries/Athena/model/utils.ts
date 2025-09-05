@@ -10,8 +10,8 @@ export const Err = (error: unknown): ErrState => ({
   error: error instanceof Error ? error : new Error(`${error}`),
 })
 
-type NoneState = { _tag: 'none' }
-export const None: NoneState = { _tag: 'none' }
+type NoneState = { _tag: 'none'; data: null }
+export const None: NoneState = { _tag: 'none', data: null }
 
 type PayloadState<T> = { _tag: 'data'; data: T }
 export const Payload = <T>(data: T): PayloadState<T> => ({ _tag: 'data', data })
@@ -37,17 +37,16 @@ export interface List<T> {
 
 export type Value<T> = Data<T> | NoneState
 
-// Ready values (excluding loading states)
-export type ValueReady<T> = Exclude<Value<T>, InitState | PendingState | ErrState>
+type ValueOrNone<T> = Extract<Value<T>, { data: any }>
 
 export interface ValueController<T> {
   value: Value<T>
-  setValue: (v: ValueReady<T>) => void
+  setValue: (v: ValueOrNone<T>) => void
 }
 
 export function wrapValue<T>(
   value: Value<T>,
-  setValue: (d: ValueReady<T>) => void,
+  setValue: (d: ValueOrNone<T>) => void,
 ): ValueController<T> {
   return {
     value,

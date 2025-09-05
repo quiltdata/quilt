@@ -74,7 +74,7 @@ interface SelectProps {
   label: string
   onChange: (value: string) => void
   onLoadMore: (prev: Response) => void
-  value: Model.ValueReady<string>
+  value: string | null
   disabled?: boolean
 }
 
@@ -104,15 +104,7 @@ function Select({
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select
         onChange={handleChange}
-        value={
-          data.list.length
-            ? (Model.isNone(value)
-                ? ''
-                : Model.isDataState(value)
-                  ? (value.data as string).toLowerCase()
-                  : '') || ''
-            : EMPTY
-        }
+        value={data.list.length ? value?.toLowerCase() || '' : EMPTY}
         disabled={disabled || !data.list.length}
       >
         {data.list.map((item) => (
@@ -122,20 +114,8 @@ function Select({
         ))}
         {data.next && <M.MenuItem value={LOAD_MORE}>Load more</M.MenuItem>}
         {!data.list.length && (
-          <M.MenuItem
-            value={
-              (Model.isNone(value)
-                ? ''
-                : Model.isDataState(value)
-                  ? (value.data as string).toLowerCase()
-                  : '') || EMPTY
-            }
-          >
-            {Model.isNone(value)
-              ? 'Empty list'
-              : Model.isDataState(value)
-                ? (value.data as string)
-                : ''}
+          <M.MenuItem value={value?.toLowerCase() || EMPTY}>
+            {value || 'Empty list'}
           </M.MenuItem>
         )}
       </M.Select>
@@ -177,7 +157,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
       label="Data catalog"
       onChange={handleChange}
       onLoadMore={catalogNames.loadMore}
-      value={catalogName.value as Model.ValueReady<string>}
+      value={catalogName.value.data}
     />
   )
 }
@@ -214,7 +194,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
       label="Database"
       onChange={handleChange}
       onLoadMore={databases.loadMore}
-      value={database.value as Model.ValueReady<string>}
+      value={database.value.data}
     />
   )
 }

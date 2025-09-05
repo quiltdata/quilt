@@ -755,7 +755,7 @@ export function useQueryBody(
     })
   }, [execution, query])
   const handleValue = React.useCallback(
-    (v: Model.ValueReady<string>) => {
+    (v: Extract<Model.Value<string>, { data: any }>) => {
       setQuery(Model.None)
       setValue(v)
     },
