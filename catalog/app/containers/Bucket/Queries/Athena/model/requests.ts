@@ -104,19 +104,26 @@ export function useWorkgroup(
   workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
   preferences?: BucketPreferences.AthenaPreferences,
-): Model.DataController<CatalogName> {
+): Model.DataController<Workgroup> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>()
   React.useEffect(() => {
     if (!Model.hasData(workgroups.data)) return
     setData((d) => {
+      // 1. Not loaded or failed
       if (!Model.hasData(workgroups.data)) return d
+
+      // 2. URL parameter workgroup (user navigation)
       if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
         return requestedWorkgroup
       }
+
+      // 3. Stored or default workgroup
       const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
       if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
         return initialWorkgroup
       }
+
+      // 4. First available workgroup or error
       return workgroups.data.list[0] || new Error('Workgroup not found')
     })
   }, [preferences, requestedWorkgroup, workgroups])
@@ -511,6 +518,7 @@ export function useDatabase(
       return
     }
     setValue((v) => {
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
         execution.db &&
@@ -518,13 +526,19 @@ export function useDatabase(
       ) {
         return execution.db
       }
+
+      // 2. Keep current selection
       if (Model.hasData(v) && listIncludes(databases.list, v)) {
         return v
       }
+
+      // 3. Restore from storage
       const initialDatabase = storage.getDatabase()
       if (initialDatabase && listIncludes(databases.list, initialDatabase)) {
         return initialDatabase
       }
+
+      // 4. Default to first available or null
       return databases.list[0] || null
     })
   }, [databases, execution])
@@ -623,6 +637,7 @@ export function useCatalogName(
       return
     }
     setValue((v) => {
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
         execution.catalog &&
@@ -630,13 +645,18 @@ export function useCatalogName(
       ) {
         return execution.catalog
       }
+
+      // 2. Keep current selection
       if (Model.hasData(v) && listIncludes(catalogNames.list, v)) {
         return v
       }
+
+      // 3. Restore from storage
       const initialCatalogName = storage.getCatalog()
       if (initialCatalogName && listIncludes(catalogNames.list, initialCatalogName)) {
         return initialCatalogName
       }
+      // 4. Default to first available or null
       return catalogNames.list[0] || null
     })
   }, [catalogNames, execution])
@@ -654,13 +674,23 @@ export function useQuery(
       return
     }
     setValue((v) => {
+      // 1. Match execution query
       if (Model.hasData(execution) && execution.query) {
         const executionQuery = queries.list.find((q) => execution.query === q.body)
         return executionQuery || null
       }
+
+      // 2. Keep current selection
       if (Model.hasData(v) && queries.list.includes(v)) {
         return v
       }
+
+      // 3. Preserve during execution loading (prevents flickering)
+      if (!Model.isReady(execution)) {
+        return v
+      }
+
+      // 4. Default to first available or null
       return queries.list[0] || null
     })
   }, [execution, queries])
@@ -679,12 +709,21 @@ export function useQueryBody(
       return
     }
     setValue((v) => {
+      // 1. Error state: clear query body
       if (Model.isError(query)) return null
+
+      // 2. Selected query: use its body content
       if (Model.hasData(query)) return query.body
+
+      // 3. Execution context: show executed query
       if (Model.hasData(execution) && execution.query) return execution.query
+
+      // 4. All ready but no values: set to null (clear state)
       if (!Model.isReady(v) && Model.isReady(query) && Model.isReady(execution)) {
         return null
       }
+
+      // 5. Preserve current value
       return v
     })
   }, [execution, query])

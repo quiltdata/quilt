@@ -70,7 +70,7 @@ describe('app/containers/Queries/Athena/model/state', () => {
           <Component />
         </Model.Provider>,
       )
-    expect(tree).toThrowError('`bucket` must be defined')
+    expect(tree).toThrow('`bucket` must be defined')
   })
 
   it('load workgroups and set current workgroup', async () => {
