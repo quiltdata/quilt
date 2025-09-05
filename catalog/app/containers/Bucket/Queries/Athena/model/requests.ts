@@ -1,4 +1,5 @@
 import type { Athena, AWSError } from 'aws-sdk'
+import invariant from 'invariant'
 import * as React from 'react'
 import * as Sentry from '@sentry/react'
 
@@ -32,6 +33,12 @@ function listIncludes(list: string[], value: string): boolean {
 }
 
 export type Workgroup = string
+
+function useAthena(): Athena {
+  const athena = AWS.Athena.use()
+  invariant(athena, 'Athena not available')
+  return athena
+}
 
 async function fetchWorkgroup(
   athena: Athena,
@@ -84,19 +91,12 @@ async function fetchWorkgroups(
 }
 
 export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
-  const athena = AWS.Athena.use()
+  const athena = useAthena()
   const [prev, setPrev] = React.useState<Model.List<Workgroup> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>(Model.Init)
-  React.useEffect(() => {
-    let mounted = true
-    if (!athena) return
-    fetchWorkgroups(athena, prev)
-      .then((d) => mounted && setData(Model.Payload(d)))
-      .catch((d) => mounted && setData(Model.Err(d)))
-    return () => {
-      mounted = false
-    }
-  }, [athena, prev])
+
+  const requestFn = React.useCallback(() => fetchWorkgroups(athena, prev), [athena, prev])
+  const data = Model.useRequest(requestFn)
+
   return React.useMemo(() => Model.wrapData(data, setPrev), [data])
 }
 

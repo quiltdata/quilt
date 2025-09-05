@@ -1,3 +1,7 @@
+import * as React from 'react'
+
+import * as Request from 'utils/useRequest'
+
 type InitState = { _tag: 'init' }
 export const Init: InitState = { _tag: 'init' }
 
@@ -81,4 +85,16 @@ export function isReady<T>(
 /** Value is selected with some or no value, or data is loaded successfully */
 export function hasValue<T>(value: Value<T>): value is PayloadState<T> | NoneState {
   return value._tag === 'none' || value._tag === 'data'
+}
+
+// Proxy function that wraps useRequest and returns discriminating union
+export function useRequest<T>(req: () => Promise<T>, proceed?: boolean): Data<T> {
+  const result = Request.use(req, proceed)
+
+  return React.useMemo(() => {
+    if (result === Request.Idle) return Init
+    if (result === Request.Loading) return Pending
+    if (result instanceof Error) return Err(result)
+    return Payload(result as T)
+  }, [result])
 }
