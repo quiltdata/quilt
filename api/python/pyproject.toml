@@ -9,6 +9,7 @@ description = "Quilt: where data comes together"
 readme = "README.rst"
 requires-python = ">=3.9"
 license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
     {name = "quiltdata", email = "contact@quiltdata.io"}
 ]
