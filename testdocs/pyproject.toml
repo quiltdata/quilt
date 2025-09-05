@@ -6,10 +6,10 @@ readme = "README.md"
 requires-python = "==3.9.*"
 dependencies = [
     "quilt3",
-    "pytest-codeblocks>=0.16.1",
-    "altair>=4.2.0",
-    "pandas>=2.0.0",
-    "pytest>=7.1.2",
+    "pytest-codeblocks~=0.16.1",
+    "altair~=4.2",
+    "pandas~=2.0",
+    "pytest~=7.1",
 ]
 
 [tool.uv.sources]
