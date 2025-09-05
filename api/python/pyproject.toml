@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"
 
 [project]
 name = "quilt3"
-dynamic = ["version"]
+version = "7.0.0"
 description = "Quilt: where data comes together"
 readme = "README.rst"
 requires-python = ">=3.9"
@@ -57,14 +57,9 @@ Repository = "https://github.com/quiltdata/quilt"
 [project.scripts]
 quilt3 = "quilt3.main:main"
 
-[tool.setuptools.packages.find]
-exclude = ["tests", "tests.*"]
-
-[tool.setuptools.dynamic]
-version = {file = "quilt3/VERSION"}
-
-[tool.setuptools.package-data]
-quilt3 = ["VERSION", "workflows/*.schema.json"]
+[tool.uv.build-backend]
+module-root = ""
+module-name = "quilt3"
 
 [dependency-groups]
 dev = [
@@ -130,7 +125,7 @@ gql-check.sequence = [
 verify-release-tag.help = "Verify git tag matches package version (for releases)"
 verify-release-tag.args = [{name = "tag", positional = true, required = true}]
 verify-release-tag.shell = """
-version=$(cat quilt3/VERSION)
+version=$(uv version --short)
 if [ "$tag" != "$version" ]; then
   echo "Error: Git tag '$tag' does not match version '$version'"
   exit 1
