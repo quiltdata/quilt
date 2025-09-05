@@ -101,39 +101,33 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
 }
 
 export function useWorkgroup(
-  workgroups: Model.DataController<Model.List<Workgroup>>,
+  { data: workgroupsList }: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
   preferences?: BucketPreferences.AthenaPreferences,
 ): Model.Data<Workgroup> {
-  const [data, setData] = React.useState<Model.Data<Workgroup>>(Model.Init)
-  React.useEffect(() => {
-    const workgroupsList = workgroups.data
-    if (!Model.hasData(workgroupsList)) return
-    setData((d) => {
-      // 1. Not loaded or failed
-      if (!Model.hasData(workgroups.data)) return d
+  return React.useMemo(() => {
+    // 1. Not loaded or failed
+    if (!Model.hasData(workgroupsList)) return workgroupsList
 
-      // 2. URL parameter workgroup (user navigation)
-      if (
-        requestedWorkgroup &&
-        listIncludes(workgroupsList.data.list, requestedWorkgroup)
-      ) {
-        return Model.Payload(requestedWorkgroup)
-      }
+    // 2. URL parameter workgroup (user navigation)
+    if (
+      requestedWorkgroup &&
+      listIncludes(workgroupsList.data.list, requestedWorkgroup)
+    ) {
+      return Model.Payload(requestedWorkgroup)
+    }
 
-      // 3. Stored or default workgroup
-      const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
-      if (initialWorkgroup && listIncludes(workgroupsList.data.list, initialWorkgroup)) {
-        return Model.Payload(initialWorkgroup)
-      }
+    // 3. Stored or default workgroup
+    const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
+    if (initialWorkgroup && listIncludes(workgroupsList.data.list, initialWorkgroup)) {
+      return Model.Payload(initialWorkgroup)
+    }
 
-      // 4. First available workgroup or error
-      return workgroupsList.data.list[0]
-        ? Model.Payload(workgroupsList.data.list[0])
-        : Model.Err('Workgroup not found')
-    })
-  }, [preferences, requestedWorkgroup, workgroups])
-  return data
+    // 4. First available workgroup or error
+    return workgroupsList.data.list[0]
+      ? Model.Payload(workgroupsList.data.list[0])
+      : Model.Err('Workgroup not found')
+  }, [preferences, requestedWorkgroup, workgroupsList])
 }
 
 export interface QueryExecution {
