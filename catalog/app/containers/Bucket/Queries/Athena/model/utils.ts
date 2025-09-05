@@ -1,8 +1,8 @@
 export type InitState = { _tag: 'init' }
 export const Init: InitState = { _tag: 'init' }
 
-export type LoadingState = { _tag: 'loading' }
-export const Loading: LoadingState = { _tag: 'loading' }
+export type PendingState = { _tag: 'loading' }
+export const Pending: PendingState = { _tag: 'loading' }
 
 export type ErrState = { _tag: 'error'; error: Error }
 export const Err = (error: unknown): ErrState => ({
@@ -16,11 +16,7 @@ export const None: NoneState = { _tag: 'none' }
 export type DataState<T> = { _tag: 'data'; data: T }
 export const DataStateCreate = <T>(data: T): DataState<T> => ({ _tag: 'data', data })
 
-// `DataState<T>` contains the actual data
-// `InitState` is no data. It is not initialized
-// `LoadingState` is loading
-// `ErrState` is error
-export type Data<T> = DataState<T> | InitState | LoadingState | ErrState
+export type Data<T> = DataState<T> | InitState | PendingState | ErrState
 
 export interface DataController<T> {
   data: Data<T>
@@ -47,7 +43,7 @@ export interface List<T> {
 export type Value<T> = Data<T> | NoneState
 
 // Ready values (excluding loading states)
-export type ValueReady<T> = Exclude<Value<T>, InitState | LoadingState | ErrState>
+export type ValueReady<T> = Exclude<Value<T>, InitState | PendingState | ErrState>
 
 export interface ValueController<T> {
   value: Value<T>
@@ -85,7 +81,7 @@ export function isNone<T>(value: Value<T>): value is NoneState {
 }
 
 /** Data is loading, or value is waiting for data */
-export function isLoading<T>(value: Value<T>): value is LoadingState {
+export function isLoading<T>(value: Value<T>): value is PendingState {
   return (value as any)?._tag === 'loading'
 }
 

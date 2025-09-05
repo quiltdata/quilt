@@ -196,7 +196,7 @@ export function useExecutions(
       setData(workgroup)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
     let batchRequest: ReturnType<InstanceType<typeof Athena>['batchGetQueryExecution']>
 
     const request = athena?.listQueryExecutions(
@@ -261,7 +261,7 @@ function useFetchQueryExecution(
       setData(Model.None)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
     const request = athena?.getQueryExecution({ QueryExecutionId }, (error, d) => {
       const { QueryExecution } = d || {}
       if (error) {
@@ -373,7 +373,7 @@ export function useQueries(
       setData(workgroup)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
 
     let batchRequest: ReturnType<InstanceType<typeof Athena>['batchGetNamedQuery']>
     const request = athena?.listNamedQueries(
@@ -504,7 +504,7 @@ export function useDatabases(
       setData(Model.isNone(catalogName) ? Model.Init : catalogName)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
     const request = athena?.listDatabases(
       {
         CatalogName: catalogName.data,
@@ -857,7 +857,7 @@ export function useQueryRun({
           Database: Model.isDataState(init.database) ? init.database.data : init.database,
         }
       }
-      setValue(Model.Loading)
+      setValue(Model.Pending)
       try {
         const d = await athena?.startQueryExecution(options).promise()
         const { QueryExecutionId } = d || {}

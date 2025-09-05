@@ -232,10 +232,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.Loading])
+        rerender([Model.Pending])
         await waitForValueToChange(() => result.current)
       })
-      expect(result.current.data).toBe(Model.Loading)
+      expect(result.current.data).toBe(Model.Pending)
 
       const error = new Error('foo')
       const errState = Model.Err(error)
@@ -306,10 +306,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.Loading, Model.DataStateCreate({ catalog: 'bar' })])
+        rerender([Model.Pending, Model.DataStateCreate({ catalog: 'bar' })])
         await waitForNextUpdate()
       })
-      expect(result.current.value).toBe(Model.Loading)
+      expect(result.current.value).toBe(Model.Pending)
 
       await act(async () => {
         rerender([
@@ -394,10 +394,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender(Model.Loading)
+        rerender(Model.Pending)
         await waitForNextUpdate()
       })
-      expect(result.current.data).toBe(Model.Loading)
+      expect(result.current.data).toBe(Model.Pending)
 
       const error = new Error('foo')
       const errState = Model.Err(error)
@@ -419,7 +419,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       expect((result.all[0] as Model.DataController<any>).data).toBe(Model.Init)
-      expect((result.all[1] as Model.DataController<any>).data).toBe(Model.Loading)
+      expect((result.all[1] as Model.DataController<any>).data).toBe(Model.Pending)
       await waitFor(() =>
         expect(result.current.data).toMatchObject({
           _tag: 'data',
@@ -475,10 +475,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       expect(result.current.value).toBe(Model.Init)
 
       await act(async () => {
-        rerender([Model.Loading, Model.None])
+        rerender([Model.Pending, Model.None])
         await waitForNextUpdate()
       })
-      expect(result.current.value).toBe(Model.Loading)
+      expect(result.current.value).toBe(Model.Pending)
 
       const error = new Error('Fail')
       const errState = Model.Err(error)
@@ -528,10 +528,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.Loading, Model.DataStateCreate({ db: 'bar' })])
+        rerender([Model.Pending, Model.DataStateCreate({ db: 'bar' })])
         await waitForNextUpdate()
       })
-      expect(result.current.value).toBe(Model.Loading)
+      expect(result.current.value).toBe(Model.Pending)
 
       await act(async () => {
         rerender([
@@ -1014,7 +1014,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           requests.useQueryRun({
             workgroup: Model.DataStateCreate('a'),
             catalogName: Model.DataStateCreate('b'),
-            database: Model.Loading,
+            database: Model.Pending,
             queryBody: Model.DataStateCreate('d'),
           }),
         )
@@ -1334,7 +1334,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
       // Now execution becomes Loading - query should preserve current selection
       await act(async () => {
-        rerender([queries, Model.Loading as Model.Value<requests.QueryExecution>])
+        rerender([queries, Model.Pending as Model.Value<requests.QueryExecution>])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({
@@ -1492,7 +1492,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('sets query body to null if query is null after being loaded', async () => {
-      const initialQuery = Model.Loading
+      const initialQuery = Model.Pending
       const initialExecution = Model.None
       const setQuery = jest.fn()
 
@@ -1507,7 +1507,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         },
       )
 
-      expect(result.current.value).toBe(Model.Loading)
+      expect(result.current.value).toBe(Model.Pending)
 
       await act(async () => {
         rerender([Model.None, setQuery, initialExecution])
@@ -1590,7 +1590,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         rerender([
           Model.None, // query is still deselected
           setQuery,
-          Model.Loading as Model.Value<requests.QueryExecution>, // execution loading
+          Model.Pending as Model.Value<requests.QueryExecution>, // execution loading
         ])
         await waitForNextUpdate()
       })
