@@ -131,10 +131,10 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
   const { catalogName, catalogNames, queryRun } = Model.use()
 
   const handleChange = React.useCallback(
-    (value) => {
+    (value: string) => {
       storage.setCatalog(value)
       storage.clearDatabase()
-      catalogName.setValue(value)
+      catalogName.setValue(Model.Payload(value))
     },
     [catalogName],
   )
@@ -170,9 +170,9 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   const { catalogName, database, databases, queryRun } = Model.use()
 
   const handleChange = React.useCallback(
-    (value) => {
+    (value: string) => {
       storage.setDatabase(value)
-      database.setValue(value)
+      database.setValue(Model.Payload(value))
     },
     [database],
   )
