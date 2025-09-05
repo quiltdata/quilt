@@ -308,12 +308,14 @@ function ResultsBreadcrumbs({ bucket, children, className }: ResultsBreadcrumbsP
   return (
     <div className={cx(classes.root, className)}>
       <M.Breadcrumbs classes={overrideClasses}>
-        <RRDom.Link
-          className={classes.breadcrumb}
-          to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)}
-        >
-          Query Executions
-        </RRDom.Link>
+        {Model.hasData(workgroup) && (
+          <RRDom.Link
+            className={classes.breadcrumb}
+            to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)}
+          >
+            Query Executions
+          </RRDom.Link>
+        )}
         <M.Typography className={classes.breadcrumb} color="textPrimary">
           Results for<Code className={classes.id}>{queryExecutionId}</Code>
         </M.Typography>
@@ -351,7 +353,7 @@ function AthenaContainer() {
 
       <Workgroups bucket={bucket} />
 
-      {Model.hasData(workgroup.data) && (
+      {Model.hasData(workgroup) && (
         <div className={classes.content}>
           <div className={classes.section}>
             <QueryConstructor />

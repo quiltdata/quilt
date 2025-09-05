@@ -28,7 +28,7 @@ const emptyState: Model.State = {
   queryBody: { value: Model.Init, setValue: noop },
   results: { data: Model.Init, loadMore: noop },
   workgroups: { data: Model.Init, loadMore: noop },
-  workgroup: { data: Model.Init, loadMore: noop },
+  workgroup: Model.Init,
 
   submit: () => Promise.resolve(Model.Payload({ id: 'bar' })),
   queryRun: Model.None,

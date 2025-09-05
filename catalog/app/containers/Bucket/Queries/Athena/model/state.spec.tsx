@@ -116,7 +116,7 @@ describe('app/containers/Queries/Athena/model/state', () => {
       _tag: 'data',
       data: { list: ['bar', 'foo', 'w'] },
     })
-    expect(result.current.workgroup.data).toMatchObject({ _tag: 'data', data: 'w' })
+    expect(result.current.workgroup).toMatchObject({ _tag: 'data', data: 'w' })
     unmount()
   })
 })

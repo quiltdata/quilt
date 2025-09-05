@@ -114,7 +114,7 @@ interface AthenaWorkgroupsProps {
 export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
   const { queryRun, workgroup, workgroups } = Model.use()
 
-  const selected = workgroup.data
+  const selected = workgroup
   const list = workgroups.data
 
   if (!Model.isReady(list) || !Model.isReady(selected)) {

@@ -25,7 +25,7 @@ export interface State {
    * If workgroup doesn't exist, then its value is Error
    * It can't be null
    */
-  workgroup: Model.DataController<requests.Workgroup>
+  workgroup: Model.Data<requests.Workgroup>
   /** List of named queries, including query body for each query */
   queries: Model.DataController<Model.List<requests.Query>>
   /** Selected named query */
@@ -86,19 +86,19 @@ export function Provider({ preferences, children }: ProviderProps) {
 
   const workgroups = requests.useWorkgroups()
   const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
-  const queries = requests.useQueries(workgroup.data)
+  const queries = requests.useQueries(workgroup)
   const query = requests.useQuery(queries.data, execution)
   const resetQuery = React.useCallback(() => query.setValue(null), [query])
   const queryBody = requests.useQueryBody(query.value, resetQuery, execution)
-  const catalogNames = requests.useCatalogNames(workgroup.data)
+  const catalogNames = requests.useCatalogNames(workgroup)
   const catalogName = requests.useCatalogName(catalogNames.data, execution)
   const databases = requests.useDatabases(catalogName.value)
   const database = requests.useDatabase(databases.data, execution)
-  const executions = requests.useExecutions(workgroup.data, queryExecutionId)
+  const executions = requests.useExecutions(workgroup, queryExecutionId)
   const results = requests.useResults(execution)
 
   const [queryRun, submit] = requests.useQueryRun({
-    workgroup: workgroup.data,
+    workgroup: workgroup,
     catalogName: catalogName.value,
     database: database.value,
     queryBody: queryBody.value,
@@ -125,7 +125,11 @@ export function Provider({ preferences, children }: ProviderProps) {
     queryRun,
   }
 
-  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.data.id) {
+  if (
+    Model.hasData(queryRun) &&
+    queryExecutionId !== queryRun.data.id &&
+    Model.hasData(workgroup)
+  ) {
     return (
       <RRDom.Redirect
         to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.data.id)}
@@ -133,7 +137,7 @@ export function Provider({ preferences, children }: ProviderProps) {
     )
   }
 
-  if (Model.hasData(workgroup.data) && !workgroupId) {
+  if (Model.hasData(workgroup) && !workgroupId) {
     return <RRDom.Redirect to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)} />
   }
 

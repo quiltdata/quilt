@@ -104,7 +104,7 @@ export function useWorkgroup(
   workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
   preferences?: BucketPreferences.AthenaPreferences,
-): Model.DataController<Workgroup> {
+): Model.Data<Workgroup> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>(Model.Init)
   React.useEffect(() => {
     const workgroupsList = workgroups.data
@@ -133,10 +133,7 @@ export function useWorkgroup(
         : Model.Err('Workgroup not found')
     })
   }, [preferences, requestedWorkgroup, workgroups])
-  return React.useMemo(
-    () => Model.wrapData(data, workgroups.loadMore),
-    [data, workgroups.loadMore],
-  )
+  return data
 }
 
 export interface QueryExecution {

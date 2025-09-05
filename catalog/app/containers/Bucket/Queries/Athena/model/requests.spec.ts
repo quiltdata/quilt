@@ -1055,8 +1055,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         const { result, waitFor } = renderHook(() =>
           useWrapper([workgroups, 'bar', undefined]),
         )
-        await waitFor(() => Model.hasData(result.current.data))
-        expect(result.current.data).toMatchObject({ _tag: 'data', data: 'bar' })
+        await waitFor(() => Model.hasData(result.current))
+        expect(result.current).toMatchObject({ _tag: 'data', data: 'bar' })
       })
     })
 
@@ -1073,8 +1073,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        await waitFor(() => Model.hasData(result.current.data))
-        expect(result.current.data).toMatchObject({ _tag: 'data', data: 'bar' })
+        await waitFor(() => Model.hasData(result.current))
+        expect(result.current).toMatchObject({ _tag: 'data', data: 'bar' })
       })
       getStorageKey.mockImplementation(storageMock)
       unmount()
@@ -1092,8 +1092,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        await waitFor(() => Model.hasData(result.current.data))
-        expect(result.current.data).toMatchObject({ _tag: 'data', data: 'bar' })
+        await waitFor(() => Model.hasData(result.current))
+        expect(result.current).toMatchObject({ _tag: 'data', data: 'bar' })
       })
       unmount()
     })
@@ -1109,8 +1109,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           useWrapper([workgroups, undefined, undefined]),
         )
 
-        await waitFor(() => Model.hasData(result.current.data))
-        expect(result.current.data).toMatchObject({ _tag: 'data', data: 'foo' })
+        await waitFor(() => Model.hasData(result.current))
+        expect(result.current).toMatchObject({ _tag: 'data', data: 'foo' })
       })
     })
 
@@ -1125,9 +1125,9 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           useWrapper([workgroups, undefined, undefined]),
         )
 
-        await waitFor(() => Model.isError(result.current.data))
-        if (Model.isError(result.current.data)) {
-          expect(result.current.data.error.message).toBe('Workgroup not found')
+        await waitFor(() => Model.isError(result.current))
+        if (Model.isError(result.current)) {
+          expect(result.current.error.message).toBe('Workgroup not found')
         } else {
           throw new Error('Not an error')
         }
@@ -1144,13 +1144,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         (x: Parameters<typeof requests.useWorkgroup>) => useWrapper(x),
         { initialProps: [workgroups, undefined, undefined] },
       )
-      expect(result.current.data._tag).toBe('init')
+      expect(result.current._tag).toBe('init')
 
       await act(async () => {
         rerender()
         await waitForNextUpdate()
       })
-      expect(result.current.data._tag).toBe('init')
+      expect(result.current._tag).toBe('init')
       unmount()
     })
   })
