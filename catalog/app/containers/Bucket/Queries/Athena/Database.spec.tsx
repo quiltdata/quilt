@@ -31,7 +31,7 @@ const emptyState: Model.State = {
   workgroup: { data: Model.Init, loadMore: noop },
 
   submit: () => Promise.resolve(Model.Payload({ id: 'bar' })),
-  queryRun: Model.Init,
+  queryRun: Model.None,
 }
 
 interface ProviderProps {

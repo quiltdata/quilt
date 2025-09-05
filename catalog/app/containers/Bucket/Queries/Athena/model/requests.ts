@@ -726,7 +726,7 @@ export function useQuery(
 
 export function useQueryBody(
   query: Model.Value<Query>,
-  setQuery: (value: typeof Model.None) => void,
+  resetQuery: () => void,
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>(Model.Init)
@@ -756,11 +756,11 @@ export function useQueryBody(
     })
   }, [execution, query])
   const handleValue = React.useCallback(
-    (v: Extract<Model.Value<string>, { data: any }>) => {
-      setQuery(Model.None)
+    (v: Model.Value<string>) => {
+      resetQuery()
       setValue(v)
     },
-    [setQuery],
+    [resetQuery],
   )
   return React.useMemo(() => Model.wrapValue(value, handleValue), [value, handleValue])
 }
@@ -803,23 +803,23 @@ export function useQueryRun({
       // because if catalogName is not selected, no databases loaded and no database selected as well
       if (!database.data && !forceDefaultExecutionContext) return NO_DATABASE
 
-      return {
+      return Model.Payload({
         workgroup: workgroup.data,
         catalogName: catalogName,
         database: database,
         queryBody: queryBody.data,
-      }
+      })
     },
     [workgroup, catalogName, database, queryBody],
   )
-  React.useEffect(() => {
-    const init = prepare(true)
-    setValue(typeof init === 'object' && 'workgroup' in init ? Model.None : Model.Init)
-  }, [prepare])
+  React.useEffect(
+    () => setValue(Model.hasData(prepare(true)) ? Model.None : Model.Init),
+    [prepare],
+  )
   const run = React.useCallback(
     async (forceDefaultExecutionContext: boolean) => {
       const init = prepare(forceDefaultExecutionContext)
-      if (typeof init !== 'object' || !('workgroup' in init)) {
+      if (!Model.hasData(init)) {
         // Error shouldn't be here, because we already checked for errors
         // Except `NO_DATABASE`, and if there is some mistake in code
         setValue(init)
@@ -827,18 +827,18 @@ export function useQueryRun({
       }
 
       const options: Athena.Types.StartQueryExecutionInput = {
-        QueryString: init.queryBody,
+        QueryString: init.data.queryBody,
         ResultConfiguration: {
           EncryptionConfiguration: {
             EncryptionOption: 'SSE_S3',
           },
         },
-        WorkGroup: init.workgroup,
+        WorkGroup: init.data.workgroup,
       }
-      if (init.catalogName.data && init.database.data) {
+      if (init.data.catalogName.data && init.data.database.data) {
         options.QueryExecutionContext = {
-          Catalog: init.catalogName.data,
-          Database: init.database.data,
+          Catalog: init.data.catalogName.data,
+          Database: init.data.database.data,
         }
       }
       setValue(Model.Pending)

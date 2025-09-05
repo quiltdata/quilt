@@ -215,7 +215,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           requests.useCatalogNames(Model.Payload('any')),
         )
         await waitFor(() => Model.isError(result.current.data))
-        expect(Log.error).toBeCalledWith(expect.any(Error))
+        expect(Log.error).toHaveBeenCalledWith(expect.any(Error))
         expect(Model.isError(result.current.data)).toBe(true)
         unmount()
       })
@@ -360,7 +360,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       expect(Model.isNone(result.current.value)).toBe(true)
 
       act(() => {
-        result.current.setValue(Model.Payload('baz'))
+        result.current.setValue('baz')
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'baz' })
 
@@ -573,7 +573,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       expect(Model.isNone(result.current.value)).toBe(true)
 
       act(() => {
-        result.current.setValue(Model.Payload('baz'))
+        result.current.setValue('baz')
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'baz' })
 
@@ -676,11 +676,11 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         getWorkGroup.mockImplementation(reqThrow)
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => Model.hasData(result.current.data))
-        expect(Log.error).toBeCalledWith(
+        expect(Log.error).toHaveBeenCalledWith(
           'Fetching "bar" workgroup failed:',
           expect.any(Error),
         )
-        expect(Log.error).toBeCalledWith(
+        expect(Log.error).toHaveBeenCalledWith(
           'Fetching "foo" workgroup failed:',
           expect.any(Error),
         )
@@ -696,10 +696,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         )
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => Model.hasData(result.current.data))
-        expect(Log.info).toBeCalledWith(
+        expect(Log.info).toHaveBeenCalledWith(
           'Fetching "bar" workgroup failed: AccessDeniedException',
         )
-        expect(Log.info).toBeCalledWith(
+        expect(Log.info).toHaveBeenCalledWith(
           'Fetching "foo" workgroup failed: AccessDeniedException',
         )
         expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
@@ -730,7 +730,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         )
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => Model.isError(result.current.data))
-        expect(Log.error).toBeCalledWith(
+        expect(Log.error).toHaveBeenCalledWith(
           new TypeError(`Cannot read properties of null (reading 'WorkGroups')`),
         )
         expect(Model.isError(result.current.data)).toBe(true)
@@ -743,7 +743,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         listWorkGroups.mockImplementation(reqThrow)
         const { result, unmount, waitFor } = renderHook(() => requests.useWorkgroups())
         await waitFor(() => Model.isError(result.current.data))
-        expect(Log.error).toBeCalledWith(expect.any(Error))
+        expect(Log.error).toHaveBeenCalledWith(expect.any(Error))
         expect(Model.isError(result.current.data)).toBe(true)
         unmount()
       })
@@ -968,7 +968,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         await waitForNextUpdate()
         const run = await result.current[1](false)
         expect(Model.isError(run)).toBe(true)
-        expect(Log.error).toBeCalledWith(new Error('No execution id'))
+        expect(Log.error).toHaveBeenCalledWith(new Error('No execution id'))
         if (Model.isError(run)) {
           expect(run.error.message).toBe('No execution id')
         } else {
@@ -1408,7 +1408,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       // That's not possible from UI now,
       // but let's pretend UI is ready to handle user input
       act(() => {
-        result.current.setValue(Model.Payload('foo'))
+        result.current.setValue('foo')
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
 
@@ -1433,14 +1433,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
       act(() => {
-        result.current.setValue(Model.Payload('SELECT * FROM bar'))
+        result.current.setValue('SELECT * FROM bar')
       })
 
       expect(result.current.value).toMatchObject({
         _tag: 'data',
         data: 'SELECT * FROM bar',
       })
-      expect(setQuery).toHaveBeenCalledWith(Model.None)
+      expect(setQuery).toHaveBeenCalled()
     })
 
     it('obtains value when execution and query are initially empty but later update', async () => {
@@ -1568,13 +1568,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
       // User edits the query body
       act(() => {
-        result.current.setValue(Model.Payload('SELECT * FROM bar WHERE id = 1'))
+        result.current.setValue('SELECT * FROM bar WHERE id = 1')
       })
       expect(result.current.value).toMatchObject({
         _tag: 'data',
         data: 'SELECT * FROM bar WHERE id = 1',
       })
-      expect(setQuery).toHaveBeenCalledWith(Model.None) // query gets deselected
+      expect(setQuery).toHaveBeenCalled() // query gets deselected
 
       // Now execution starts loading (user submitted the query)
       await act(async () => {

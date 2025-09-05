@@ -86,7 +86,7 @@ function FullQueryRow({ expanded, query }: FullQueryRowProps) {
   const { queryBody } = Model.use()
   const classes = useFullQueryRowStyles()
   const handleInsert = React.useCallback(() => {
-    queryBody.setValue(Model.Payload(query))
+    queryBody.setValue(query)
     push('Query has been pasted into editor')
   }, [push, queryBody, query])
   const handleCopy = React.useCallback(() => {

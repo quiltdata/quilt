@@ -59,13 +59,6 @@ function EditorField() {
     [queryRun],
   )
 
-  const handleChange = React.useCallback(
-    (value: string) => {
-      queryBody.setValue(Model.Payload(value))
-    },
-    [queryBody],
-  )
-
   if (!Model.isReady(queryBody.value)) {
     return <FormSkeleton />
   }
@@ -84,7 +77,7 @@ function EditorField() {
           editorProps={editorProps}
           height="200px"
           mode="sql"
-          onChange={handleChange}
+          onChange={queryBody.setValue}
           theme="eclipse"
           value={queryBody.value.data || ''}
           width="100%"

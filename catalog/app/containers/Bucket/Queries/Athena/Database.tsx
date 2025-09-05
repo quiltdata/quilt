@@ -137,19 +137,19 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
     (value: string) => {
       storage.setCatalog(value)
       storage.clearDatabase()
-      catalogName.setValue(Model.Payload(value))
+      catalogName.setValue(value)
     },
     [catalogName],
   )
 
-  if (!Model.isReady(selected) || !Model.isReady(list)) {
-    return <Skeleton className={className} height={32} animate mt={2} />
-  }
   if (Model.isError(list)) {
     return <SelectError className={className} error={list.error} />
   }
   if (Model.isError(selected)) {
     return <SelectError className={className} error={selected.error} />
+  }
+  if (!Model.isReady(selected) || !Model.isReady(list)) {
+    return <Skeleton className={className} height={32} animate mt={2} />
   }
 
   return (
@@ -178,21 +178,19 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   const handleChange = React.useCallback(
     (value: string) => {
       storage.setDatabase(value)
-      database.setValue(Model.Payload(value))
+      database.setValue(value)
     },
     [database],
   )
 
-  if (!Model.isReady(selected) || !Model.isReady(list)) {
-    return <Skeleton className={className} height={32} animate mt={2} />
-  }
-
   if (Model.isError(list)) {
     return <SelectError className={className} error={list.error} />
   }
-
   if (Model.isError(selected)) {
     return <SelectError className={className} error={selected.error} />
+  }
+  if (!Model.isReady(selected) || !Model.isReady(list)) {
+    return <Skeleton className={className} height={32} animate mt={2} />
   }
 
   return (
