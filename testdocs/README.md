@@ -4,11 +4,19 @@ Uses [pytest_codeblocks](https://github.com/nschloe/pytest-codeblocks) to verify
 
 ## Usage
 
-From inside the `testdocs` directory:
+From `api/python`:
 
+```sh
+# Test documentation code blocks
+uv run poe testdocs
 ```
-$ pip3 install poetry
-$ poetry install
-$ poetry run pytest --codeblocks ../docs
-$ zsh clean.sh # remove test files
+
+From the `testdocs` directory:
+
+```sh
+# Test documentation code blocks
+uv run pytest --codeblocks ../docs
+
+# Clean up test files
+./clean.sh
 ```

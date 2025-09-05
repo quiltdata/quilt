@@ -1,0 +1,15 @@
+[project]
+name = "quilt3-gendocs"
+version = "0.1.0"
+description = "Documentation generator for quilt3"
+readme = "README.md"
+requires-python = "==3.9.*"
+dependencies = [
+    "quilt3",
+    "pydoc-markdown",
+    "nbconvert~=7.16",
+]
+
+[tool.uv.sources]
+quilt3 = { path = "../api/python", editable = true }
+pydoc-markdown = { git = "https://github.com/quiltdata/pydoc-markdown.git", tag = "v2.0.5+quilt3.2" }

@@ -1,3 +1,15 @@
+[project]
+name = "quilt3-admin-codegen"
+version = "0.1.0"
+description = "GraphQL client code generator for quilt3.admin"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[dependency-groups]
+dev = [
+    "ariadne-codegen ~= 0.13.0",
+]
+
 [tool.ariadne-codegen]
 schema_path = "../../../shared/graphql/schema.graphql"
 queries_path = "queries.graphql"
