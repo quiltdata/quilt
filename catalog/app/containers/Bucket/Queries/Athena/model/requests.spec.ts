@@ -1010,7 +1010,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
           }),
         )
         await waitForNextUpdate()
-        expect(Model.isInit(result.current[0])).toBe(true)
+        expect(result.current[0]._tag).toBe('init')
         unmount()
       })
     })
@@ -1144,13 +1144,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         (x: Parameters<typeof requests.useWorkgroup>) => useWrapper(x),
         { initialProps: [workgroups, undefined, undefined] },
       )
-      expect(Model.isInit(result.current.data)).toBe(true)
+      expect(result.current.data._tag).toBe('init')
 
       await act(async () => {
         rerender()
         await waitForNextUpdate()
       })
-      expect(Model.isInit(result.current.data)).toBe(true)
+      expect(result.current.data._tag).toBe('init')
       unmount()
     })
   })
@@ -1404,7 +1404,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         },
       )
 
-      expect(Model.isInit(result.current.value)).toBe(true)
+      expect(result.current.value._tag).toBe('init')
       // That's not possible from UI now,
       // but let's pretend UI is ready to handle user input
       act(() => {

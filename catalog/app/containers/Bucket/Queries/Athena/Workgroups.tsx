@@ -133,7 +133,7 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
 
   return (
     <WorkgroupSelect
-      disabled={Model.isLoading(queryRun)}
+      disabled={!Model.isReady(queryRun)}
       bucket={bucket}
       onLoadMore={workgroups.loadMore}
       value={selected.data}

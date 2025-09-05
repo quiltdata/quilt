@@ -127,7 +127,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
       <QuerySelect<Model.Query | null>
         label="Select a query"
         className={className}
-        disabled={Model.isLoading(queryRun)}
+        disabled={!Model.isReady(queryRun)}
         onChange={(v: Model.Query | null) =>
           query.setValue(v ? Model.Payload(v) : Model.None)
         }

@@ -156,7 +156,7 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
     <Select
       className={className}
       data={list.data}
-      disabled={Model.isLoading(queryRun)}
+      disabled={!Model.isReady(queryRun)}
       label="Data catalog"
       onChange={handleChange}
       onLoadMore={catalogNames.loadMore}
@@ -198,7 +198,7 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
   return (
     <Select
       data={list.data}
-      disabled={!Model.isReady(catalogName.value) || Model.isLoading(queryRun)}
+      disabled={!Model.isReady(catalogName.value) || !Model.isReady(queryRun)}
       label="Database"
       onChange={handleChange}
       onLoadMore={databases.loadMore}

@@ -26,7 +26,7 @@ export interface DataController<T> {
 export function wrapData<T>(data: Data<T>, setPrev: (d: T) => void): DataController<T> {
   return {
     data,
-    loadMore: () => isDataState(data) && setPrev(data.data),
+    loadMore: () => data._tag === 'data' && setPrev(data.data),
   }
 }
 
@@ -55,11 +55,11 @@ export function wrapValue<T>(
 }
 
 /** Check if value is DataState */
-export function isDataState<T>(value: Data<T>): value is PayloadState<T> {
-  return value._tag === 'data'
-}
+// export function isDataState<T>(value: Data<T>): value is PayloadState<T> {
+//   return value._tag === 'data'
+// }
 
-/** Data is loaded - for Data<T> use isDataState, for Value<T> this checks if it's actual data */
+/** Data is loaded - for Data<T>, for Value<T> this checks if it's actual data and not `null` */
 export function hasData<T>(value: Value<T>): value is PayloadState<T> {
   return value._tag === 'data'
 }
@@ -74,10 +74,10 @@ export function isNone<T>(value: Value<T>): value is NoneState {
   return value._tag === 'none'
 }
 
-/** Data is loading, or value is waiting for data */
-export function isLoading<T>(value: Value<T>): value is PendingState {
-  return value._tag === 'pending'
-}
+/** Data is pending, or value is waiting for data */
+// export function isPending<T>(value: Value<T>): value is PendingState {
+//   return value._tag === 'pending'
+// }
 
 export function isError<T>(value: Value<T>): value is ErrState {
   return value._tag === 'error'

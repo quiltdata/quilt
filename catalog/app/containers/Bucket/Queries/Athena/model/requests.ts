@@ -445,7 +445,7 @@ export function useResults(
       setData(execution)
       return
     }
-    if (!Model.hasData(execution) || !execution.data.id) {
+    if (!execution.data.id) {
       setData(Model.Err('Query execution has no ID'))
       return
     }
@@ -794,26 +794,15 @@ export function useQueryRun({
   const [value, setValue] = React.useState<Model.Value<QueryRun>>(Model.Init)
   const prepare = React.useCallback(
     (forceDefaultExecutionContext?: boolean) => {
-      if (!Model.hasData(workgroup)) {
-        return Model.Err('No workgroup')
-      }
+      if (!Model.hasData(workgroup)) return Model.Err('No workgroup')
+      if (!Model.hasValue(catalogName)) return catalogName
+      if (!Model.hasValue(database)) return database
+      if (!Model.hasData(queryBody)) return queryBody
 
-      if (!Model.hasValue(catalogName)) {
-        return catalogName
-      }
+      // We only check if database is selected,
+      // because if catalogName is not selected, no databases loaded and no database selected as well
+      if (!database.data && !forceDefaultExecutionContext) return NO_DATABASE
 
-      if (!Model.hasValue(database)) {
-        return database
-      }
-      if (Model.isNone(database) && !forceDefaultExecutionContext) {
-        // We only check if database is selected,
-        // because if catalogName is not selected, no databases loaded and no database selected as well
-        return NO_DATABASE
-      }
-
-      if (!Model.hasData(queryBody)) {
-        return queryBody
-      }
       return {
         workgroup: workgroup.data,
         catalogName: catalogName,
@@ -846,12 +835,10 @@ export function useQueryRun({
         },
         WorkGroup: init.workgroup,
       }
-      if (!Model.isNone(init.catalogName) && !Model.isNone(init.database)) {
+      if (init.catalogName.data && init.database.data) {
         options.QueryExecutionContext = {
-          Catalog: Model.isDataState(init.catalogName)
-            ? init.catalogName.data
-            : init.catalogName,
-          Database: Model.isDataState(init.database) ? init.database.data : init.database,
+          Catalog: init.catalogName.data,
+          Database: init.database.data,
         }
       }
       setValue(Model.Pending)

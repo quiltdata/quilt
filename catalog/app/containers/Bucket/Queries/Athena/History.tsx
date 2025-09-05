@@ -275,7 +275,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
   const hasPagination = rowsSorted.length > rowsPaginated.length
 
   const { workgroup } = Model.use()
-  if (!Model.hasValue(workgroup.data)) return null
+  if (!Model.hasData(workgroup.data)) return null
 
   if (!executions.length)
     return (
