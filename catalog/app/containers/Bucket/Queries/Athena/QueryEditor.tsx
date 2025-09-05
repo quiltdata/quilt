@@ -61,7 +61,7 @@ function EditorField() {
 
   const handleChange = React.useCallback(
     (value: string) => {
-      queryBody.setValue(Model.DataStateCreate(value))
+      queryBody.setValue(Model.Payload(value))
     },
     [queryBody],
   )

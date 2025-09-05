@@ -91,7 +91,7 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
     let mounted = true
     if (!athena) return
     fetchWorkgroups(athena, prev)
-      .then((d) => mounted && setData(Model.DataStateCreate(d)))
+      .then((d) => mounted && setData(Model.Payload(d)))
       .catch((d) => mounted && setData(Model.Err(d)))
     return () => {
       mounted = false
@@ -117,18 +117,18 @@ export function useWorkgroup(
         requestedWorkgroup &&
         listIncludes(workgroups.data.data.list, requestedWorkgroup)
       ) {
-        return Model.DataStateCreate(requestedWorkgroup)
+        return Model.Payload(requestedWorkgroup)
       }
 
       // 3. Stored or default workgroup
       const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
       if (initialWorkgroup && listIncludes(workgroups.data.data.list, initialWorkgroup)) {
-        return Model.DataStateCreate(initialWorkgroup)
+        return Model.Payload(initialWorkgroup)
       }
 
       // 4. First available workgroup or error
       return workgroups.data.data.list[0]
-        ? Model.DataStateCreate(workgroups.data.data.list[0])
+        ? Model.Payload(workgroups.data.data.list[0])
         : Model.Err('Workgroup not found')
     })
   }, [preferences, requestedWorkgroup, workgroups])
@@ -210,7 +210,7 @@ export function useExecutions(
         }
         if (!QueryExecutionIds || !QueryExecutionIds.length) {
           setData(
-            Model.DataStateCreate({
+            Model.Payload({
               list: [],
               next,
             }),
@@ -231,7 +231,7 @@ export function useExecutions(
               .concat((UnprocessedQueryExecutionIds || []).map(parseQueryExecutionError))
             const list = (prev?.list || []).concat(parsed)
             setData(
-              Model.DataStateCreate({
+              Model.Payload({
                 list,
                 next,
               }),
@@ -281,7 +281,7 @@ function useFetchQueryExecution(
           break
         }
         case 'SUCCEEDED':
-          setData(Model.DataStateCreate(parsed))
+          setData(Model.Payload(parsed))
           break
         case 'QUEUED':
         case 'RUNNING':
@@ -390,7 +390,7 @@ export function useQueries(
         }
         if (!NamedQueryIds || !NamedQueryIds.length) {
           setData(
-            Model.DataStateCreate({
+            Model.Payload({
               list: prev?.list || [],
               next,
             }),
@@ -411,7 +411,7 @@ export function useQueries(
               .sort((a, b) => a.name.localeCompare(b.name))
             const list = (prev?.list || []).concat(parsed)
             setData(
-              Model.DataStateCreate({
+              Model.Payload({
                 list,
                 next,
               }),
@@ -465,7 +465,7 @@ export function useResults(
         const rows = [...(prev?.rows || emptyList), ...parsed]
         if (!rows.length) {
           setData(
-            Model.DataStateCreate({
+            Model.Payload({
               rows: [],
               columns: [],
               next,
@@ -480,7 +480,7 @@ export function useResults(
           })) || emptyColumns
         const isHeadColumns = columns.every(({ name }, index) => name === rows[0][index])
         setData(
-          Model.DataStateCreate({
+          Model.Payload({
             rows: isHeadColumns ? rows.slice(1) : rows,
             columns,
             next,
@@ -518,7 +518,7 @@ export function useDatabases(
           return
         }
         const list = DatabaseList?.map(({ Name }) => Name || 'Unknown').sort() || []
-        setData(Model.DataStateCreate({ list: (prev?.list || []).concat(list), next }))
+        setData(Model.Payload({ list: (prev?.list || []).concat(list), next }))
       },
     )
     return () => request?.abort()
@@ -543,7 +543,7 @@ export function useDatabase(
         execution.data.db &&
         listIncludes(databases.data.list, execution.data.db)
       ) {
-        return Model.DataStateCreate(execution.data.db)
+        return Model.Payload(execution.data.db)
       }
 
       // 2. Keep current selection
@@ -554,13 +554,11 @@ export function useDatabase(
       // 3. Restore from storage
       const initialDatabase = storage.getDatabase()
       if (initialDatabase && listIncludes(databases.data.list, initialDatabase)) {
-        return Model.DataStateCreate(initialDatabase)
+        return Model.Payload(initialDatabase)
       }
 
       // 4. Default to first available or null
-      return databases.data.list[0]
-        ? Model.DataStateCreate(databases.data.list[0])
-        : Model.None
+      return databases.data.list[0] ? Model.Payload(databases.data.list[0]) : Model.None
     })
   }, [databases, execution])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
@@ -638,7 +636,7 @@ export function useCatalogNames(
     let mounted = true
     if (!athena) return
     fetchCatalogNames(athena, workgroup.data, prev)
-      .then((d) => mounted && setData(Model.DataStateCreate(d)))
+      .then((d) => mounted && setData(Model.Payload(d)))
       .catch((d) => mounted && setData(Model.Err(d)))
     return () => {
       mounted = false
@@ -664,7 +662,7 @@ export function useCatalogName(
         execution.data.catalog &&
         listIncludes(catalogNames.data.list, execution.data.catalog)
       ) {
-        return Model.DataStateCreate(execution.data.catalog)
+        return Model.Payload(execution.data.catalog)
       }
 
       // 2. Keep current selection
@@ -678,11 +676,11 @@ export function useCatalogName(
         initialCatalogName &&
         listIncludes(catalogNames.data.list, initialCatalogName)
       ) {
-        return Model.DataStateCreate(initialCatalogName)
+        return Model.Payload(initialCatalogName)
       }
       // 4. Default to first available or null
       return catalogNames.data.list[0]
-        ? Model.DataStateCreate(catalogNames.data.list[0])
+        ? Model.Payload(catalogNames.data.list[0])
         : Model.None
     })
   }, [catalogNames, execution])
@@ -705,7 +703,7 @@ export function useQuery(
         const executionQuery = queries.data.list.find(
           (q) => execution.data.query === q.body,
         )
-        return executionQuery ? Model.DataStateCreate(executionQuery) : Model.None
+        return executionQuery ? Model.Payload(executionQuery) : Model.None
       }
 
       // 2. Keep current selection
@@ -719,9 +717,7 @@ export function useQuery(
       }
 
       // 4. Default to first available or null
-      return queries.data.list[0]
-        ? Model.DataStateCreate(queries.data.list[0])
-        : Model.None
+      return queries.data.list[0] ? Model.Payload(queries.data.list[0]) : Model.None
     })
   }, [execution, queries])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
@@ -743,11 +739,11 @@ export function useQueryBody(
       if (Model.isError(query)) return Model.None
 
       // 2. Selected query: use its body content
-      if (Model.hasData(query)) return Model.DataStateCreate(query.data.body)
+      if (Model.hasData(query)) return Model.Payload(query.data.body)
 
       // 3. Execution context: show executed query
       if (Model.hasData(execution) && execution.data.query)
-        return Model.DataStateCreate(execution.data.query)
+        return Model.Payload(execution.data.query)
 
       // 4. All ready but no values: set to null (clear state)
       if (!Model.isReady(v) && Model.isReady(query) && Model.isReady(execution)) {
@@ -867,7 +863,7 @@ export function useQueryRun({
           setValue(error)
           return error
         }
-        const output = Model.DataStateCreate({ id: QueryExecutionId })
+        const output = Model.Payload({ id: QueryExecutionId })
         setValue(output)
         return output
       } catch (error) {

@@ -30,7 +30,7 @@ const emptyState: Model.State = {
   workgroups: { data: Model.Init, loadMore: noop },
   workgroup: { data: Model.Init, loadMore: noop },
 
-  submit: () => Promise.resolve(Model.DataStateCreate({ id: 'bar' })),
+  submit: () => Promise.resolve(Model.Payload({ id: 'bar' })),
   queryRun: Model.Init,
 }
 
@@ -62,10 +62,10 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
       <Provider
         value={{
           ...emptyState,
-          catalogName: Model.wrapValue(Model.DataStateCreate('foo'), noop),
-          catalogNames: Model.wrapData(Model.DataStateCreate({ list: ['foo'] }), noop),
-          databases: Model.wrapData(Model.DataStateCreate({ list: ['bar'] }), noop),
-          database: Model.wrapValue(Model.DataStateCreate('bar'), noop),
+          catalogName: Model.wrapValue(Model.Payload('foo'), noop),
+          catalogNames: Model.wrapData(Model.Payload({ list: ['foo'] }), noop),
+          databases: Model.wrapData(Model.Payload({ list: ['bar'] }), noop),
+          database: Model.wrapValue(Model.Payload('bar'), noop),
         }}
       >
         <Database />
@@ -80,8 +80,8 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         value={{
           ...emptyState,
           catalogName: { value: Model.None, setValue: noop },
-          catalogNames: Model.wrapData(Model.DataStateCreate({ list: ['any'] }), noop),
-          databases: Model.wrapData(Model.DataStateCreate({ list: ['any'] }), noop),
+          catalogNames: Model.wrapData(Model.Payload({ list: ['any'] }), noop),
+          databases: Model.wrapData(Model.Payload({ list: ['any'] }), noop),
           database: { value: Model.None, setValue: noop },
         }}
       >
@@ -97,8 +97,8 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         value={{
           ...emptyState,
           catalogName: { value: Model.None, setValue: noop },
-          catalogNames: Model.wrapData(Model.DataStateCreate({ list: [] }), noop),
-          databases: Model.wrapData(Model.DataStateCreate({ list: [] }), noop),
+          catalogNames: Model.wrapData(Model.Payload({ list: [] }), noop),
+          databases: Model.wrapData(Model.Payload({ list: [] }), noop),
           database: { value: Model.None, setValue: noop },
         }}
       >

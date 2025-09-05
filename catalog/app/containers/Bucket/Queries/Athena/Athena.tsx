@@ -126,7 +126,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
         className={className}
         disabled={Model.isLoading(queryRun)}
         onChange={(v: Model.Query | null) =>
-          query.setValue(v ? Model.DataStateCreate(v) : Model.None)
+          query.setValue(v ? Model.Payload(v) : Model.None)
         }
         onLoadMore={queries.data.data.next ? queries.loadMore : undefined}
         queries={queries.data.data.list}

@@ -13,10 +13,10 @@ export const Err = (error: unknown): ErrState => ({
 export type NoneState = { _tag: 'none' }
 export const None: NoneState = { _tag: 'none' }
 
-export type DataState<T> = { _tag: 'data'; data: T }
-export const DataStateCreate = <T>(data: T): DataState<T> => ({ _tag: 'data', data })
+export type PayloadState<T> = { _tag: 'data'; data: T }
+export const Payload = <T>(data: T): PayloadState<T> => ({ _tag: 'data', data })
 
-export type Data<T> = DataState<T> | InitState | PendingState | ErrState
+export type Data<T> = PayloadState<T> | InitState | PendingState | ErrState
 
 export interface DataController<T> {
   data: Data<T>
@@ -35,11 +35,6 @@ export interface List<T> {
   next?: string
 }
 
-// `T` is the value
-// `NoneState` is no value, explicitly set by user
-// `InitState` is no value. It is not initialized
-// `LoadingState` is loading
-// `ErrState` is error
 export type Value<T> = Data<T> | NoneState
 
 // Ready values (excluding loading states)
@@ -61,12 +56,12 @@ export function wrapValue<T>(
 }
 
 /** Check if value is DataState */
-export function isDataState<T>(value: Data<T>): value is DataState<T> {
+export function isDataState<T>(value: Data<T>): value is PayloadState<T> {
   return (value as any)?._tag === 'data'
 }
 
 /** Data is loaded - for Data<T> use isDataState, for Value<T> this checks if it's actual data */
-export function hasData<T>(value: Value<T>): value is DataState<T> {
+export function hasData<T>(value: Value<T>): value is PayloadState<T> {
   return isDataState(value as Data<T>)
 }
 
@@ -92,7 +87,7 @@ export function isError<T>(value: Value<T>): value is ErrState {
 /** Value is selected with some or no value, or resolved with error, or data is loaded (successfully or not) */
 export function isReady<T>(
   value: Value<T>,
-): value is DataState<T> | NoneState | ErrState {
+): value is PayloadState<T> | NoneState | ErrState {
   if (isInit(value) || isLoading(value)) {
     return false
   }
@@ -100,7 +95,7 @@ export function isReady<T>(
 }
 
 /** Value is selected with some or no value, or data is loaded successfully */
-export function hasValue<T>(value: Value<T>): value is DataState<T> | NoneState {
+export function hasValue<T>(value: Value<T>): value is PayloadState<T> | NoneState {
   if (isInit(value) || isLoading(value) || isError(value)) {
     return false
   }

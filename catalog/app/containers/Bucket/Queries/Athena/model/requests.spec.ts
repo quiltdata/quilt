@@ -121,7 +121,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.DataStateCreate('any')),
+        requests.useCatalogNames(Model.Payload('any')),
       )
       expect(result.current.data).toBe(Model.Init)
 
@@ -139,7 +139,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.DataStateCreate('any')),
+        requests.useCatalogNames(Model.Payload('any')),
       )
 
       await waitForValueToChange(() => result.current)
@@ -154,7 +154,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.DataStateCreate('any')),
+        requests.useCatalogNames(Model.Payload('any')),
       )
 
       await waitForValueToChange(() => result.current)
@@ -169,7 +169,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         })),
       )
       const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.DataStateCreate('any')),
+        requests.useCatalogNames(Model.Payload('any')),
       )
 
       await waitForValueToChange(() => result.current)
@@ -186,7 +186,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         reqThrowWith(new AWSError('AccessDeniedException')),
       )
       const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.DataStateCreate('any')),
+        requests.useCatalogNames(Model.Payload('any')),
       )
 
       await waitForValueToChange(() => result.current)
@@ -201,7 +201,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
       getDataCatalog.mockImplementation(reqThrow)
       const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.DataStateCreate('any')),
+        requests.useCatalogNames(Model.Payload('any')),
       )
 
       await waitForValueToChange(() => result.current)
@@ -212,7 +212,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         listDataCatalogs.mockImplementation(reqThrow)
         const { result, unmount, waitFor } = renderHook(() =>
-          requests.useCatalogNames(Model.DataStateCreate('any')),
+          requests.useCatalogNames(Model.Payload('any')),
         )
         await waitFor(() => Model.isError(result.current.data))
         expect(Log.error).toBeCalledWith(expect.any(Error))
@@ -271,7 +271,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       expect(result.current.value).toBe(errState)
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'bar'] }), Model.None])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.None])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
@@ -284,14 +284,14 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         { initialProps: [Model.Init, Model.Init] },
       )
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'bar'] }), Model.Init])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.Init])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
       await act(async () => {
         rerender([
-          Model.DataStateCreate({ list: ['foo', 'bar'] }),
-          Model.DataStateCreate({ catalog: 'bar' }),
+          Model.Payload({ list: ['foo', 'bar'] }),
+          Model.Payload({ catalog: 'bar' }),
         ])
         await waitForNextUpdate()
       })
@@ -306,15 +306,15 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.Pending, Model.DataStateCreate({ catalog: 'bar' })])
+        rerender([Model.Pending, Model.Payload({ catalog: 'bar' })])
         await waitForNextUpdate()
       })
       expect(result.current.value).toBe(Model.Pending)
 
       await act(async () => {
         rerender([
-          Model.DataStateCreate({ list: ['foo', 'bar'] }),
-          Model.DataStateCreate({ catalog: 'bar' }),
+          Model.Payload({ list: ['foo', 'bar'] }),
+          Model.Payload({ catalog: 'bar' }),
         ])
         await waitForNextUpdate()
       })
@@ -330,15 +330,15 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'bar'] }), Model.Init])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.Init])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
 
       await act(async () => {
         rerender([
-          Model.DataStateCreate({ list: ['foo', 'bar'] }),
-          Model.DataStateCreate({ catalog: 'baz' }),
+          Model.Payload({ list: ['foo', 'bar'] }),
+          Model.Payload({ catalog: 'baz' }),
         ])
         await waitForNextUpdate()
       })
@@ -354,13 +354,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: [] }), Model.Init])
+        rerender([Model.Payload({ list: [] }), Model.Init])
         await waitForNextUpdate()
       })
       expect(Model.isNone(result.current.value)).toBe(true)
 
       act(() => {
-        result.current.setValue(Model.DataStateCreate('baz'))
+        result.current.setValue(Model.Payload('baz'))
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'baz' })
 
@@ -375,7 +375,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'catalog-bar'] }), Model.None])
+        rerender([Model.Payload({ list: ['foo', 'catalog-bar'] }), Model.None])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'catalog-bar' })
@@ -415,7 +415,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         }),
       )
       const { result, waitFor } = renderHook(() =>
-        requests.useDatabases(Model.DataStateCreate('foo')),
+        requests.useDatabases(Model.Payload('foo')),
       )
 
       expect((result.all[0] as Model.DataController<any>).data).toBe(Model.Init)
@@ -436,7 +436,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         }),
       )
       const { result, waitFor } = renderHook(() =>
-        requests.useDatabases(Model.DataStateCreate('foo')),
+        requests.useDatabases(Model.Payload('foo')),
       )
       await waitFor(() =>
         expect(result.current.data).toMatchObject({
@@ -454,7 +454,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
         }),
       )
       const { result, waitFor } = renderHook(() =>
-        requests.useDatabases(Model.DataStateCreate('foo')),
+        requests.useDatabases(Model.Payload('foo')),
       )
       await waitFor(() =>
         expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } }),
@@ -489,7 +489,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       expect(result.current.value).toBe(errState)
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'bar'] }), Model.None])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.None])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
@@ -504,16 +504,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'bar'] }), Model.Init])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.Init])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
 
       await act(async () => {
-        rerender([
-          Model.DataStateCreate({ list: ['foo', 'bar'] }),
-          Model.DataStateCreate({ db: 'bar' }),
-        ])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.Payload({ db: 'bar' })])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'bar' })
@@ -528,16 +525,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.Pending, Model.DataStateCreate({ db: 'bar' })])
+        rerender([Model.Pending, Model.Payload({ db: 'bar' })])
         await waitForNextUpdate()
       })
       expect(result.current.value).toBe(Model.Pending)
 
       await act(async () => {
-        rerender([
-          Model.DataStateCreate({ list: ['foo', 'bar'] }),
-          Model.DataStateCreate({ db: 'bar' }),
-        ])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.Payload({ db: 'bar' })])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'bar' })
@@ -552,16 +546,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'bar'] }), Model.Init])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.Init])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
 
       await act(async () => {
-        rerender([
-          Model.DataStateCreate({ list: ['foo', 'bar'] }),
-          Model.DataStateCreate({ db: 'baz' }),
-        ])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.Payload({ db: 'baz' })])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
@@ -576,13 +567,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: [] }), Model.Init])
+        rerender([Model.Payload({ list: [] }), Model.Init])
         await waitForNextUpdate()
       })
       expect(Model.isNone(result.current.value)).toBe(true)
 
       act(() => {
-        result.current.setValue(Model.DataStateCreate('baz'))
+        result.current.setValue(Model.Payload('baz'))
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'baz' })
 
@@ -597,7 +588,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
 
       await act(async () => {
-        rerender([Model.DataStateCreate({ list: ['foo', 'bar'] }), Model.None])
+        rerender([Model.Payload({ list: ['foo', 'bar'] }), Model.None])
         await waitForNextUpdate()
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'bar' })
@@ -783,7 +774,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
       await act(async () => {
         const { result, unmount, waitFor } = renderHook(() =>
-          requests.useExecutions(Model.DataStateCreate('any')),
+          requests.useExecutions(Model.Payload('any')),
         )
         await waitFor(() => Model.hasData(result.current.data))
         expect(result.current.data).toMatchObject({
@@ -849,7 +840,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
       await act(async () => {
         const { result, unmount, waitFor } = renderHook(() =>
-          requests.useQueries(Model.DataStateCreate('any')),
+          requests.useQueries(Model.Payload('any')),
         )
         await waitFor(() => Model.hasData(result.current.data))
         expect(result.current.data).toMatchObject({
@@ -880,7 +871,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
       await act(async () => {
         const { result, unmount, waitFor } = renderHook(() =>
-          requests.useResults(Model.DataStateCreate({ id: 'any' })),
+          requests.useResults(Model.Payload({ id: 'any' })),
         )
         await waitFor(() => Model.hasData(result.current.data))
         expect(result.current.data).toMatchObject({
@@ -917,7 +908,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       )
       await act(async () => {
         const { result, unmount, waitFor } = renderHook(() =>
-          requests.useResults(Model.DataStateCreate({ id: 'any' })),
+          requests.useResults(Model.Payload({ id: 'any' })),
         )
         await waitFor(() => Model.hasData(result.current.data))
         expect(result.current.data).toMatchObject({
@@ -945,10 +936,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const { result, unmount, waitForNextUpdate } = renderHook(() =>
           requests.useQueryRun({
-            workgroup: Model.DataStateCreate('a'),
-            catalogName: Model.DataStateCreate('b'),
-            database: Model.DataStateCreate('c'),
-            queryBody: Model.DataStateCreate('d'),
+            workgroup: Model.Payload('a'),
+            catalogName: Model.Payload('b'),
+            database: Model.Payload('c'),
+            queryBody: Model.Payload('d'),
           }),
         )
         await waitForNextUpdate()
@@ -968,10 +959,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const { result, unmount, waitForNextUpdate } = renderHook(() =>
           requests.useQueryRun({
-            workgroup: Model.DataStateCreate('a'),
-            catalogName: Model.DataStateCreate('b'),
-            database: Model.DataStateCreate('c'),
-            queryBody: Model.DataStateCreate('d'),
+            workgroup: Model.Payload('a'),
+            catalogName: Model.Payload('b'),
+            database: Model.Payload('c'),
+            queryBody: Model.Payload('d'),
           }),
         )
         await waitForNextUpdate()
@@ -992,10 +983,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const { result, unmount, waitForNextUpdate } = renderHook(() =>
           requests.useQueryRun({
-            workgroup: Model.DataStateCreate('a'),
-            catalogName: Model.DataStateCreate('b'),
-            database: Model.DataStateCreate('c'),
-            queryBody: Model.DataStateCreate('d'),
+            workgroup: Model.Payload('a'),
+            catalogName: Model.Payload('b'),
+            database: Model.Payload('c'),
+            queryBody: Model.Payload('d'),
           }),
         )
         await waitForNextUpdate()
@@ -1012,10 +1003,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const { result, unmount, waitForNextUpdate } = renderHook(() =>
           requests.useQueryRun({
-            workgroup: Model.DataStateCreate('a'),
-            catalogName: Model.DataStateCreate('b'),
+            workgroup: Model.Payload('a'),
+            catalogName: Model.Payload('b'),
             database: Model.Pending,
-            queryBody: Model.DataStateCreate('d'),
+            queryBody: Model.Payload('d'),
           }),
         )
         await waitForNextUpdate()
@@ -1031,10 +1022,10 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       await act(async () => {
         const { result, unmount, waitForValueToChange } = renderHook(() =>
           requests.useQueryRun({
-            workgroup: Model.DataStateCreate('a'),
-            catalogName: Model.DataStateCreate('b'),
+            workgroup: Model.Payload('a'),
+            catalogName: Model.Payload('b'),
             database: Model.None,
-            queryBody: Model.DataStateCreate('d'),
+            queryBody: Model.Payload('d'),
           }),
         )
         await waitForValueToChange(() => result.current)
@@ -1058,7 +1049,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('select requested workgroup if it exists', async () => {
       await act(async () => {
         const workgroups = {
-          data: Model.DataStateCreate({ list: ['foo', 'bar'] }),
+          data: Model.Payload({ list: ['foo', 'bar'] }),
           loadMore: jest.fn(),
         }
         const { result, waitFor } = renderHook(() =>
@@ -1073,7 +1064,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       const storageMock = getStorageKey.getMockImplementation()
       getStorageKey.mockImplementation(() => 'bar')
       const workgroups = {
-        data: Model.DataStateCreate({ list: ['foo', 'bar'] }),
+        data: Model.Payload({ list: ['foo', 'bar'] }),
         loadMore: jest.fn(),
       }
 
@@ -1091,7 +1082,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('select default workgroup from preferences if valid', async () => {
       const workgroups = {
-        data: Model.DataStateCreate({ list: ['foo', 'bar'] }),
+        data: Model.Payload({ list: ['foo', 'bar'] }),
         loadMore: jest.fn(),
       }
       const preferences = { defaultWorkgroup: 'bar' }
@@ -1110,7 +1101,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('select the first available workgroup if no requested or default', async () => {
       await act(async () => {
         const workgroups = {
-          data: Model.DataStateCreate({ list: ['foo', 'bar', 'baz'] }),
+          data: Model.Payload({ list: ['foo', 'bar', 'baz'] }),
           loadMore: jest.fn(),
         }
 
@@ -1126,7 +1117,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('return error if no workgroups are available', async () => {
       await act(async () => {
         const workgroups = {
-          data: Model.DataStateCreate({ list: [] }),
+          data: Model.Payload({ list: [] }),
           loadMore: jest.fn(),
         }
 
@@ -1170,13 +1161,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     }
 
     it('sets query to the one matching the execution query', () => {
-      const queries = Model.DataStateCreate({
+      const queries = Model.Payload({
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
           { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
         ],
       })
-      const execution = Model.DataStateCreate({ query: 'SELECT * FROM bar' })
+      const execution = Model.Payload({ query: 'SELECT * FROM bar' })
       const { result } = renderHook(() => useWrapper([queries, execution]))
 
       if (Model.hasData(result.current.value)) {
@@ -1187,13 +1178,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('unsets query if no matching execution query', () => {
-      const queries = Model.DataStateCreate({
+      const queries = Model.Payload({
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
           { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
         ],
       })
-      const execution = Model.DataStateCreate({ query: 'SELECT * FROM baz' })
+      const execution = Model.Payload({ query: 'SELECT * FROM baz' })
       const { result } = renderHook(() => useWrapper([queries, execution]))
 
       if (Model.hasValue(result.current.value)) {
@@ -1204,13 +1195,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('sets query to the first one if no execution query is set', () => {
-      const queries = Model.DataStateCreate({
+      const queries = Model.Payload({
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
           { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
         ],
       })
-      const execution = Model.DataStateCreate({})
+      const execution = Model.Payload({})
       const { result } = renderHook(() => useWrapper([queries, execution]))
 
       if (Model.hasData(result.current.value)) {
@@ -1221,8 +1212,8 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('sets query to null if no queries are available', () => {
-      const queries = Model.DataStateCreate({ list: [] })
-      const execution = Model.DataStateCreate({})
+      const queries = Model.Payload({ list: [] })
+      const execution = Model.Payload({})
       const { result } = renderHook(() => useWrapper([queries, execution]))
 
       if (Model.hasValue(result.current.value)) {
@@ -1233,13 +1224,13 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('retains execution query when the list is changed', async () => {
-      const queries = Model.DataStateCreate({
+      const queries = Model.Payload({
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
           { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
         ],
       })
-      const execution = Model.DataStateCreate({
+      const execution = Model.Payload({
         query: 'SELECT * FROM bar',
       })
       const { result, rerender, waitForNextUpdate } = renderHook(
@@ -1256,7 +1247,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       }
       await act(async () => {
         rerender([
-          Model.DataStateCreate({
+          Model.Payload({
             list: [
               { key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' },
               ...queries.data.list,
@@ -1274,7 +1265,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('does not change query when list is updated if a valid query is already selected', async () => {
-      const queries = Model.DataStateCreate({
+      const queries = Model.Payload({
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
           { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
@@ -1295,7 +1286,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       }
       await act(async () => {
         rerender([
-          Model.DataStateCreate({
+          Model.Payload({
             list: [
               { key: 'baz', name: 'Baz', body: 'SELECT * FROM baz' },
               ...queries.data.list,
@@ -1313,7 +1304,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('preserves current selection when execution becomes not ready', async () => {
-      const queries = Model.DataStateCreate({
+      const queries = Model.Payload({
         list: [
           { key: 'foo', name: 'Foo', body: 'SELECT * FROM foo' },
           { key: 'bar', name: 'Bar', body: 'SELECT * FROM bar' },
@@ -1350,7 +1341,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     }
 
     it('sets query body from query if query is ready', () => {
-      const query = Model.DataStateCreate({
+      const query = Model.Payload({
         name: 'Foo',
         key: 'foo',
         body: 'SELECT * FROM foo',
@@ -1372,7 +1363,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('sets query body from execution if query is not selected', () => {
       const query = Model.None
-      const execution = Model.DataStateCreate({ query: 'SELECT * FROM bar' })
+      const execution = Model.Payload({ query: 'SELECT * FROM bar' })
       const setQuery = jest.fn()
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
@@ -1389,7 +1380,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('sets query body to null if query is an error', () => {
       const query = Model.Err(new Error('Query failed'))
-      const execution = Model.DataStateCreate({})
+      const execution = Model.Payload({})
       const setQuery = jest.fn()
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
@@ -1417,7 +1408,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       // That's not possible from UI now,
       // but let's pretend UI is ready to handle user input
       act(() => {
-        result.current.setValue(Model.DataStateCreate('foo'))
+        result.current.setValue(Model.Payload('foo'))
       })
       expect(result.current.value).toMatchObject({ _tag: 'data', data: 'foo' })
 
@@ -1431,18 +1422,18 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('updates query body and resets query when handleValue is called', async () => {
-      const query = Model.DataStateCreate({
+      const query = Model.Payload({
         name: 'Foo',
         key: 'foo',
         body: 'SELECT * FROM foo',
       })
-      const execution = Model.DataStateCreate({})
+      const execution = Model.Payload({})
       const setQuery = jest.fn()
 
       const { result } = renderHook(() => useWrapper([query, setQuery, execution]))
 
       act(() => {
-        result.current.setValue(Model.DataStateCreate('SELECT * FROM bar'))
+        result.current.setValue(Model.Payload('SELECT * FROM bar'))
       })
 
       expect(result.current.value).toMatchObject({
@@ -1470,7 +1461,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       // Execution is ready but it's still null
       await act(async () => {
         rerender([
-          Model.DataStateCreate({
+          Model.Payload({
             key: 'up',
             name: 'Updated',
             body: 'SELECT * FROM updated',
@@ -1526,7 +1517,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       // but we don't know what chanded the query body: execution page or user.
       // So, at least, it is documented here.
       const initialQuery = Model.None
-      const initialExecution = Model.DataStateCreate({
+      const initialExecution = Model.Payload({
         id: 'any',
         query: 'SELECT * FROM updated',
       })
@@ -1566,7 +1557,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       const { result, rerender, waitForNextUpdate } = renderHook(
         (props: Parameters<typeof requests.useQueryBody>) => useWrapper(props),
         {
-          initialProps: [Model.DataStateCreate(query), setQuery, Model.None],
+          initialProps: [Model.Payload(query), setQuery, Model.None],
         },
       )
       // Initial state: queryBody is set from query.body
@@ -1577,7 +1568,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
       // User edits the query body
       act(() => {
-        result.current.setValue(Model.DataStateCreate('SELECT * FROM bar WHERE id = 1'))
+        result.current.setValue(Model.Payload('SELECT * FROM bar WHERE id = 1'))
       })
       expect(result.current.value).toMatchObject({
         _tag: 'data',
