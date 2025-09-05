@@ -116,14 +116,10 @@ clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -t
 
 _gql-clean.shell = "rm -rf quilt3/admin/_graphql_client"
 
-_ariadne-codegen.cmd = "uv run ariadne-codegen client"
-_ariadne-codegen.cwd = "quilt3-admin"
-
 gql-gen.help = "Generate GraphQL client code for quilt3.admin"
-gql-gen.sequence = [
-    "_gql-clean",
-    "_ariadne-codegen",
-]
+gql-gen.deps = ["_gql-clean"]
+gql-gen.cmd = "uv run ariadne-codegen client"
+gql-gen.cwd = "quilt3-admin"
 
 gql-check.help = "Check if GraphQL client code is up-to-date"
 gql-check.sequence = [
