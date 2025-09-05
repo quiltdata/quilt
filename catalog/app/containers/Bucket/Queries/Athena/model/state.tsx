@@ -88,7 +88,8 @@ export function Provider({ preferences, children }: ProviderProps) {
   const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
   const queries = requests.useQueries(workgroup.data)
   const query = requests.useQuery(queries.data, execution)
-  const queryBody = requests.useQueryBody(query.value, query.setValue, execution)
+  const resetQuery = React.useCallback(() => query.setValue(null), [query])
+  const queryBody = requests.useQueryBody(query.value, resetQuery, execution)
   const catalogNames = requests.useCatalogNames(workgroup.data)
   const catalogName = requests.useCatalogName(catalogNames.data, execution)
   const databases = requests.useDatabases(catalogName.value)
@@ -124,10 +125,10 @@ export function Provider({ preferences, children }: ProviderProps) {
     queryRun,
   }
 
-  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.id) {
+  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.data.id) {
     return (
       <RRDom.Redirect
-        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.id)}
+        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.data.id)}
       />
     )
   }

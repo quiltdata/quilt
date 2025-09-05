@@ -86,13 +86,13 @@ async function fetchWorkgroups(
 export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<Workgroup> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>()
+  const [data, setData] = React.useState<Model.Data<Model.List<Workgroup>>>(Model.Init)
   React.useEffect(() => {
     let mounted = true
     if (!athena) return
     fetchWorkgroups(athena, prev)
-      .then((d) => mounted && setData(d))
-      .catch((d) => mounted && setData(d))
+      .then((d) => mounted && setData(Model.Payload(d)))
+      .catch((d) => mounted && setData(Model.Err(d)))
     return () => {
       mounted = false
     }
@@ -104,20 +104,33 @@ export function useWorkgroup(
   workgroups: Model.DataController<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
   preferences?: BucketPreferences.AthenaPreferences,
-): Model.DataController<CatalogName> {
-  const [data, setData] = React.useState<Model.Data<Workgroup>>()
+): Model.DataController<Workgroup> {
+  const [data, setData] = React.useState<Model.Data<Workgroup>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(workgroups.data)) return
+    const workgroupsList = workgroups.data
+    if (!Model.hasData(workgroupsList)) return
     setData((d) => {
+      // 1. Not loaded or failed
       if (!Model.hasData(workgroups.data)) return d
-      if (requestedWorkgroup && listIncludes(workgroups.data.list, requestedWorkgroup)) {
-        return requestedWorkgroup
+
+      // 2. URL parameter workgroup (user navigation)
+      if (
+        requestedWorkgroup &&
+        listIncludes(workgroupsList.data.list, requestedWorkgroup)
+      ) {
+        return Model.Payload(requestedWorkgroup)
       }
+
+      // 3. Stored or default workgroup
       const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
-      if (initialWorkgroup && listIncludes(workgroups.data.list, initialWorkgroup)) {
-        return initialWorkgroup
+      if (initialWorkgroup && listIncludes(workgroupsList.data.list, initialWorkgroup)) {
+        return Model.Payload(initialWorkgroup)
       }
-      return workgroups.data.list[0] || new Error('Workgroup not found')
+
+      // 4. First available workgroup or error
+      return workgroupsList.data.list[0]
+        ? Model.Payload(workgroupsList.data.list[0])
+        : Model.Err('Workgroup not found')
     })
   }, [preferences, requestedWorkgroup, workgroups])
   return React.useMemo(
@@ -174,7 +187,9 @@ export function useExecutions(
 ): Model.DataController<Model.List<QueryExecutionsItem>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<QueryExecutionsItem> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<QueryExecutionsItem>>>()
+  const [data, setData] = React.useState<Model.Data<Model.List<QueryExecutionsItem>>>(
+    Model.Init,
+  )
 
   React.useEffect(() => {
     if (queryExecutionId) return
@@ -182,23 +197,25 @@ export function useExecutions(
       setData(workgroup)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
     let batchRequest: ReturnType<InstanceType<typeof Athena>['batchGetQueryExecution']>
 
     const request = athena?.listQueryExecutions(
-      { WorkGroup: workgroup, NextToken: prev?.next },
+      { WorkGroup: workgroup.data, NextToken: prev?.next },
       (error, d) => {
         const { QueryExecutionIds, NextToken: next } = d || {}
         if (error) {
           Sentry.captureException(error)
-          setData(error)
+          setData(Model.Err(error))
           return
         }
         if (!QueryExecutionIds || !QueryExecutionIds.length) {
-          setData({
-            list: [],
-            next,
-          })
+          setData(
+            Model.Payload({
+              list: [],
+              next,
+            }),
+          )
           return
         }
         batchRequest = athena?.batchGetQueryExecution(
@@ -207,17 +224,19 @@ export function useExecutions(
             const { QueryExecutions, UnprocessedQueryExecutionIds } = batchData || {}
             if (batchErr) {
               Sentry.captureException(batchErr)
-              setData(batchErr)
+              setData(Model.Err(batchErr))
               return
             }
             const parsed = (QueryExecutions || [])
               .map(parseQueryExecution)
               .concat((UnprocessedQueryExecutionIds || []).map(parseQueryExecutionError))
             const list = (prev?.list || []).concat(parsed)
-            setData({
-              list,
-              next,
-            })
+            setData(
+              Model.Payload({
+                list,
+                next,
+              }),
+            )
           },
         )
       },
@@ -235,20 +254,20 @@ function useFetchQueryExecution(
 ): [Model.Value<QueryExecution>, () => void] {
   const athena = AWS.Athena.use()
   const [data, setData] = React.useState<Model.Value<QueryExecution>>(
-    QueryExecutionId ? undefined : null,
+    QueryExecutionId ? Model.Init : Model.None,
   )
   const [counter, setCounter] = React.useState(0)
   React.useEffect(() => {
     if (!QueryExecutionId) {
-      setData(null)
+      setData(Model.None)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
     const request = athena?.getQueryExecution({ QueryExecutionId }, (error, d) => {
       const { QueryExecution } = d || {}
       if (error) {
         Sentry.captureException(error)
-        setData(error)
+        setData(Model.Err(error))
         return
       }
       const status = QueryExecution?.Status?.State
@@ -259,17 +278,17 @@ function useFetchQueryExecution(
         case 'FAILED':
         case 'CANCELLED': {
           const reason = QueryExecution?.Status?.StateChangeReason || ''
-          setData(new Error(`${status}: ${reason}`))
+          setData(Model.Err(`${status}: ${reason}`))
           break
         }
         case 'SUCCEEDED':
-          setData(parsed)
+          setData(Model.Payload(parsed))
           break
         case 'QUEUED':
         case 'RUNNING':
           break
         default:
-          setData(new Error('Unknown query execution status'))
+          setData(Model.Err('Unknown query execution status'))
           break
       }
     })
@@ -349,32 +368,34 @@ export function useQueries(
 ): Model.DataController<Model.List<Query>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<Query> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<Query>>>()
+  const [data, setData] = React.useState<Model.Data<Model.List<Query>>>(Model.Init)
   React.useEffect(() => {
     if (!Model.hasValue(workgroup)) {
       setData(workgroup)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
 
     let batchRequest: ReturnType<InstanceType<typeof Athena>['batchGetNamedQuery']>
     const request = athena?.listNamedQueries(
       {
-        WorkGroup: workgroup,
+        WorkGroup: workgroup.data,
         NextToken: prev?.next,
       },
       async (error, d) => {
         const { NamedQueryIds, NextToken: next } = d || {}
         if (error) {
           Sentry.captureException(error)
-          setData(error)
+          setData(Model.Err(error))
           return
         }
         if (!NamedQueryIds || !NamedQueryIds.length) {
-          setData({
-            list: prev?.list || [],
-            next,
-          })
+          setData(
+            Model.Payload({
+              list: prev?.list || [],
+              next,
+            }),
+          )
           return
         }
         batchRequest = athena?.batchGetNamedQuery(
@@ -383,17 +404,19 @@ export function useQueries(
             const { NamedQueries } = batchData || {}
             if (batchErr) {
               Sentry.captureException(batchErr)
-              setData(batchErr)
+              setData(Model.Err(batchErr))
               return
             }
             const parsed = (NamedQueries || [])
               .map(parseNamedQuery)
               .sort((a, b) => a.name.localeCompare(b.name))
             const list = (prev?.list || []).concat(parsed)
-            setData({
-              list,
-              next,
-            })
+            setData(
+              Model.Payload({
+                list,
+                next,
+              }),
+            )
           },
         )
       },
@@ -411,29 +434,29 @@ export function useResults(
 ): Model.DataController<QueryResults> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<QueryResults | null>(null)
-  const [data, setData] = React.useState<Model.Data<QueryResults>>()
+  const [data, setData] = React.useState<Model.Data<QueryResults>>(Model.Init)
 
   React.useEffect(() => {
-    if (execution === null) {
-      setData(undefined)
+    if (Model.isNone(execution)) {
+      setData(Model.Init)
       return
     }
     if (!Model.hasValue(execution)) {
       setData(execution)
       return
     }
-    if (!execution.id) {
-      setData(new Error('Query execution has no ID'))
+    if (!execution.data.id) {
+      setData(Model.Err('Query execution has no ID'))
       return
     }
 
     const request = athena?.getQueryResults(
-      { QueryExecutionId: execution.id, NextToken: prev?.next },
+      { QueryExecutionId: execution.data.id, NextToken: prev?.next },
       (error, d) => {
         const { ResultSet, NextToken: next } = d || {}
         if (error) {
           Sentry.captureException(error)
-          setData(error)
+          setData(Model.Err(error))
           return
         }
         const parsed =
@@ -442,11 +465,13 @@ export function useResults(
           ) || emptyList
         const rows = [...(prev?.rows || emptyList), ...parsed]
         if (!rows.length) {
-          setData({
-            rows: [],
-            columns: [],
-            next,
-          })
+          setData(
+            Model.Payload({
+              rows: [],
+              columns: [],
+              next,
+            }),
+          )
           return
         }
         const columns =
@@ -455,11 +480,13 @@ export function useResults(
             type: Type,
           })) || emptyColumns
         const isHeadColumns = columns.every(({ name }, index) => name === rows[0][index])
-        setData({
-          rows: isHeadColumns ? rows.slice(1) : rows,
-          columns,
-          next,
-        })
+        setData(
+          Model.Payload({
+            rows: isHeadColumns ? rows.slice(1) : rows,
+            columns,
+            next,
+          }),
+        )
       },
     )
     return () => request?.abort()
@@ -472,27 +499,27 @@ export function useDatabases(
 ): Model.DataController<Model.List<Database>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<Database> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<Database>>>()
+  const [data, setData] = React.useState<Model.Data<Model.List<Database>>>(Model.Init)
   React.useEffect(() => {
     if (!Model.hasData(catalogName)) {
-      setData(catalogName || undefined)
+      setData(Model.isNone(catalogName) ? Model.Init : catalogName)
       return
     }
-    setData(Model.Loading)
+    setData(Model.Pending)
     const request = athena?.listDatabases(
       {
-        CatalogName: catalogName,
+        CatalogName: catalogName.data,
         NextToken: prev?.next,
       },
       (error, d) => {
         const { DatabaseList, NextToken: next } = d || {}
         if (error) {
           Sentry.captureException(error)
-          setData(error)
+          setData(Model.Err(error))
           return
         }
         const list = DatabaseList?.map(({ Name }) => Name || 'Unknown').sort() || []
-        setData({ list: (prev?.list || []).concat(list), next })
+        setData(Model.Payload({ list: (prev?.list || []).concat(list), next }))
       },
     )
     return () => request?.abort()
@@ -504,28 +531,34 @@ export function useDatabase(
   databases: Model.Data<Model.List<Database>>,
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Database> {
-  const [value, setValue] = React.useState<Model.Value<Database>>()
+  const [value, setValue] = React.useState<Model.Value<Database>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(databases)) {
-      setValue(databases)
-      return
-    }
     setValue((v) => {
+      // 0. Handle not loaded/error states
+      if (!Model.hasData(databases)) return databases
+
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
-        execution.db &&
-        listIncludes(databases.list, execution.db)
+        execution.data.db &&
+        listIncludes(databases.data.list, execution.data.db)
       ) {
-        return execution.db
+        return Model.Payload(execution.data.db)
       }
-      if (Model.hasData(v) && listIncludes(databases.list, v)) {
+
+      // 2. Keep current selection
+      if (Model.hasData(v) && listIncludes(databases.data.list, v.data)) {
         return v
       }
+
+      // 3. Restore from storage
       const initialDatabase = storage.getDatabase()
-      if (initialDatabase && listIncludes(databases.list, initialDatabase)) {
-        return initialDatabase
+      if (initialDatabase && listIncludes(databases.data.list, initialDatabase)) {
+        return Model.Payload(initialDatabase)
       }
-      return databases.list[0] || null
+
+      // 4. Default to first available or null
+      return databases.data.list[0] ? Model.Payload(databases.data.list[0]) : Model.None
     })
   }, [databases, execution])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
@@ -594,17 +627,17 @@ export function useCatalogNames(
 ): Model.DataController<Model.List<CatalogName>> {
   const athena = AWS.Athena.use()
   const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
-  const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>()
+  const [data, setData] = React.useState<Model.Data<Model.List<CatalogName>>>(Model.Init)
   React.useEffect(() => {
     if (!Model.hasData(workgroup)) {
-      setData(workgroup || undefined)
+      setData(Model.isNone(workgroup) ? Model.Init : workgroup)
       return
     }
     let mounted = true
     if (!athena) return
-    fetchCatalogNames(athena, workgroup, prev)
-      .then((d) => mounted && setData(d))
-      .catch((d) => mounted && setData(d))
+    fetchCatalogNames(athena, workgroup.data, prev)
+      .then((d) => mounted && setData(Model.Payload(d)))
+      .catch((d) => mounted && setData(Model.Err(d)))
     return () => {
       mounted = false
     }
@@ -616,28 +649,38 @@ export function useCatalogName(
   catalogNames: Model.Data<Model.List<CatalogName>>,
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<CatalogName> {
-  const [value, setValue] = React.useState<Model.Value<CatalogName>>()
+  const [value, setValue] = React.useState<Model.Value<CatalogName>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(catalogNames)) {
-      setValue(catalogNames)
-      return
-    }
     setValue((v) => {
+      // 0. Handle not loaded/error states
+      if (!Model.hasData(catalogNames)) return catalogNames
+
+      // 1. Match execution context
       if (
         Model.hasData(execution) &&
-        execution.catalog &&
-        listIncludes(catalogNames.list, execution.catalog)
+        execution.data.catalog &&
+        listIncludes(catalogNames.data.list, execution.data.catalog)
       ) {
-        return execution.catalog
+        return Model.Payload(execution.data.catalog)
       }
-      if (Model.hasData(v) && listIncludes(catalogNames.list, v)) {
+
+      // 2. Keep current selection
+      if (Model.hasData(v) && listIncludes(catalogNames.data.list, v.data)) {
         return v
       }
+
+      // 3. Restore from storage
       const initialCatalogName = storage.getCatalog()
-      if (initialCatalogName && listIncludes(catalogNames.list, initialCatalogName)) {
-        return initialCatalogName
+      if (
+        initialCatalogName &&
+        listIncludes(catalogNames.data.list, initialCatalogName)
+      ) {
+        return Model.Payload(initialCatalogName)
       }
-      return catalogNames.list[0] || null
+      // 4. Default to first available or null
+      return catalogNames.data.list[0]
+        ? Model.Payload(catalogNames.data.list[0])
+        : Model.None
     })
   }, [catalogNames, execution])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
@@ -647,21 +690,32 @@ export function useQuery(
   queries: Model.Data<Model.List<Query>>,
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Query> {
-  const [value, setValue] = React.useState<Model.Value<Query>>()
+  const [value, setValue] = React.useState<Model.Value<Query>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(queries)) {
-      setValue(queries)
-      return
-    }
     setValue((v) => {
-      if (Model.hasData(execution) && execution.query) {
-        const executionQuery = queries.list.find((q) => execution.query === q.body)
-        return executionQuery || null
+      // 0. Handle not loaded/error states
+      if (!Model.hasData(queries)) return queries
+
+      // 1. Match execution query
+      if (Model.hasData(execution) && execution.data.query) {
+        const executionQuery = queries.data.list.find(
+          (q) => execution.data.query === q.body,
+        )
+        return executionQuery ? Model.Payload(executionQuery) : Model.None
       }
-      if (Model.hasData(v) && queries.list.includes(v)) {
+
+      // 2. Keep current selection
+      if (Model.hasData(v) && queries.data.list.includes(v.data)) {
         return v
       }
-      return queries.list[0] || null
+
+      // 3. Preserve during execution loading (prevents flickering)
+      if (!Model.isReady(execution)) {
+        return v
+      }
+
+      // 4. Default to first available or null
+      return queries.data.list[0] ? Model.Payload(queries.data.list[0]) : Model.None
     })
   }, [execution, queries])
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
@@ -669,31 +723,40 @@ export function useQuery(
 
 export function useQueryBody(
   query: Model.Value<Query>,
-  setQuery: (value: null) => void,
+  resetQuery: () => void,
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<string> {
-  const [value, setValue] = React.useState<Model.Value<string>>()
+  const [value, setValue] = React.useState<Model.Value<string>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.isReady(query)) {
-      setValue(query)
-      return
-    }
     setValue((v) => {
-      if (Model.isError(query)) return null
-      if (Model.hasData(query)) return query.body
-      if (Model.hasData(execution) && execution.query) return execution.query
+      // 0. Handle not ready states
+      if (!Model.isReady(query)) return query
+
+      // 1. Error state: clear query body
+      if (Model.isError(query)) return Model.None
+
+      // 2. Selected query: use its body content
+      if (Model.hasData(query)) return Model.Payload(query.data.body)
+
+      // 3. Execution context: show executed query
+      if (Model.hasData(execution) && execution.data.query)
+        return Model.Payload(execution.data.query)
+
+      // 4. All ready but no values: set to null (clear state)
       if (!Model.isReady(v) && Model.isReady(query) && Model.isReady(execution)) {
-        return null
+        return Model.None
       }
+
+      // 5. Preserve current value
       return v
     })
   }, [execution, query])
   const handleValue = React.useCallback(
-    (v: string | null) => {
-      setQuery(null)
+    (v: Model.Value<string>) => {
+      resetQuery()
       setValue(v)
     },
-    [setQuery],
+    [resetQuery],
   )
   return React.useMemo(() => Model.wrapValue(value, handleValue), [value, handleValue])
 }
@@ -703,7 +766,7 @@ export interface ExecutionContext {
   database: Database
 }
 
-export const NO_DATABASE = new Error('No database')
+export const NO_DATABASE = Model.Err('No database')
 
 interface QueryRunArgs {
   workgroup: Model.Data<Workgroup>
@@ -724,37 +787,31 @@ export function useQueryRun({
   const athena = AWS.Athena.use()
   // `undefined` = "is not initialized" → is not ready for run
   // `null` = is ready but not set, because not submitted for new run
-  const [value, setValue] = React.useState<Model.Value<QueryRun>>()
+  const [value, setValue] = React.useState<Model.Value<QueryRun>>(Model.Init)
   const prepare = React.useCallback(
     (forceDefaultExecutionContext?: boolean) => {
-      if (!Model.hasData(workgroup)) {
-        return new Error('No workgroup')
-      }
+      if (!Model.hasData(workgroup)) return Model.Err('No workgroup')
+      if (!Model.hasValue(catalogName)) return catalogName
+      if (!Model.hasValue(database)) return database
+      if (!Model.hasData(queryBody)) return queryBody
 
-      if (!Model.hasValue(catalogName)) {
-        return catalogName
-      }
+      // We only check if database is selected,
+      // because if catalogName is not selected, no databases loaded and no database selected as well
+      if (!database.data && !forceDefaultExecutionContext) return NO_DATABASE
 
-      if (!Model.hasValue(database)) {
-        return database
-      }
-      if (!database && !forceDefaultExecutionContext) {
-        // We only check if database is selected,
-        // because if catalogName is not selected, no databases loaded and no database selected as well
-        return NO_DATABASE
-      }
-
-      if (!Model.hasData(queryBody)) {
-        return queryBody
-      }
-      return { workgroup, catalogName, database, queryBody }
+      return Model.Payload({
+        workgroup: workgroup.data,
+        catalogName: catalogName,
+        database: database,
+        queryBody: queryBody.data,
+      })
     },
     [workgroup, catalogName, database, queryBody],
   )
-  React.useEffect(() => {
-    const init = prepare(true)
-    setValue(Model.hasData(init) ? null : undefined)
-  }, [prepare])
+  React.useEffect(
+    () => setValue(Model.hasData(prepare(true)) ? Model.None : Model.Init),
+    [prepare],
+  )
   const run = React.useCallback(
     async (forceDefaultExecutionContext: boolean) => {
       const init = prepare(forceDefaultExecutionContext)
@@ -766,41 +823,38 @@ export function useQueryRun({
       }
 
       const options: Athena.Types.StartQueryExecutionInput = {
-        QueryString: init.queryBody,
+        QueryString: init.data.queryBody,
         ResultConfiguration: {
           EncryptionConfiguration: {
             EncryptionOption: 'SSE_S3',
           },
         },
-        WorkGroup: init.workgroup,
+        WorkGroup: init.data.workgroup,
       }
-      if (init.catalogName && init.database) {
+      if (init.data.catalogName.data && init.data.database.data) {
         options.QueryExecutionContext = {
-          Catalog: init.catalogName,
-          Database: init.database,
+          Catalog: init.data.catalogName.data,
+          Database: init.data.database.data,
         }
       }
-      setValue(Model.Loading)
+      setValue(Model.Pending)
       try {
         const d = await athena?.startQueryExecution(options).promise()
         const { QueryExecutionId } = d || {}
         if (!QueryExecutionId) {
-          const error = new Error('No execution id')
-          Log.error(error)
+          const error = Model.Err('No execution id')
+          Log.error(error.error)
           setValue(error)
           return error
         }
-        const output = { id: QueryExecutionId }
+        const output = Model.Payload({ id: QueryExecutionId })
         setValue(output)
         return output
       } catch (error) {
-        if (error) {
-          Log.error(error)
-          if (error instanceof Error) {
-            setValue(error)
-          }
-        }
-        return error as Error
+        Log.error(error)
+        const errState = Model.Err(error)
+        setValue(errState)
+        return errState
       }
     },
     [athena, prepare],

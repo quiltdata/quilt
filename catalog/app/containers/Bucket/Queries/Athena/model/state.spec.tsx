@@ -70,7 +70,7 @@ describe('app/containers/Queries/Athena/model/state', () => {
           <Component />
         </Model.Provider>,
       )
-    expect(tree).toThrowError('`bucket` must be defined')
+    expect(tree).toThrow('`bucket` must be defined')
   })
 
   it('load workgroups and set current workgroup', async () => {
@@ -112,8 +112,11 @@ describe('app/containers/Queries/Athena/model/state', () => {
     await act(async () => {
       await waitFor(() => typeof result.current.executions.data === 'object')
     })
-    expect(result.current.workgroups.data).toMatchObject({ list: ['bar', 'foo', 'w'] })
-    expect(result.current.workgroup.data).toBe('w')
+    expect(result.current.workgroups.data).toMatchObject({
+      _tag: 'data',
+      data: { list: ['bar', 'foo', 'w'] },
+    })
+    expect(result.current.workgroup.data).toMatchObject({ _tag: 'data', data: 'w' })
     unmount()
   })
 })
