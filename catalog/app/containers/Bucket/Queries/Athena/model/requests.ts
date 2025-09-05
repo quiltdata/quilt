@@ -533,11 +533,10 @@ export function useDatabase(
 ): Model.ValueController<Database> {
   const [value, setValue] = React.useState<Model.Value<Database>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(databases)) {
-      setValue(databases)
-      return
-    }
     setValue((v) => {
+      // 0. Handle not loaded/error states
+      if (!Model.hasData(databases)) return databases
+
       // 1. Match execution context
       if (
         Model.hasData(execution) &&
@@ -652,11 +651,10 @@ export function useCatalogName(
 ): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(catalogNames)) {
-      setValue(catalogNames)
-      return
-    }
     setValue((v) => {
+      // 0. Handle not loaded/error states
+      if (!Model.hasData(catalogNames)) return catalogNames
+
       // 1. Match execution context
       if (
         Model.hasData(execution) &&
@@ -694,11 +692,10 @@ export function useQuery(
 ): Model.ValueController<Query> {
   const [value, setValue] = React.useState<Model.Value<Query>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(queries)) {
-      setValue(queries)
-      return
-    }
     setValue((v) => {
+      // 0. Handle not loaded/error states
+      if (!Model.hasData(queries)) return queries
+
       // 1. Match execution query
       if (Model.hasData(execution) && execution.data.query) {
         const executionQuery = queries.data.list.find(
@@ -731,11 +728,10 @@ export function useQueryBody(
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.isReady(query)) {
-      setValue(query)
-      return
-    }
     setValue((v) => {
+      // 0. Handle not ready states
+      if (!Model.isReady(query)) return query
+
       // 1. Error state: clear query body
       if (Model.isError(query)) return Model.None
 
