@@ -1,19 +1,19 @@
-export type InitState = { _tag: 'init' }
+type InitState = { _tag: 'init' }
 export const Init: InitState = { _tag: 'init' }
 
-export type PendingState = { _tag: 'loading' }
+type PendingState = { _tag: 'loading' }
 export const Pending: PendingState = { _tag: 'loading' }
 
-export type ErrState = { _tag: 'error'; error: Error }
+type ErrState = { _tag: 'error'; error: Error }
 export const Err = (error: unknown): ErrState => ({
   _tag: 'error',
   error: error instanceof Error ? error : new Error(`${error}`),
 })
 
-export type NoneState = { _tag: 'none' }
+type NoneState = { _tag: 'none' }
 export const None: NoneState = { _tag: 'none' }
 
-export type PayloadState<T> = { _tag: 'data'; data: T }
+type PayloadState<T> = { _tag: 'data'; data: T }
 export const Payload = <T>(data: T): PayloadState<T> => ({ _tag: 'data', data })
 
 export type Data<T> = PayloadState<T> | InitState | PendingState | ErrState

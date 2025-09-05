@@ -725,7 +725,7 @@ export function useQuery(
 
 export function useQueryBody(
   query: Model.Value<Query>,
-  setQuery: (value: Model.NoneState) => void,
+  setQuery: (value: typeof Model.None) => void,
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<string> {
   const [value, setValue] = React.useState<Model.Value<string>>(Model.Init)
