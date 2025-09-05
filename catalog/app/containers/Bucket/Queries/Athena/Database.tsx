@@ -130,6 +130,9 @@ interface SelectCatalogNameProps {
 function SelectCatalogName({ className }: SelectCatalogNameProps) {
   const { catalogName, catalogNames, queryRun } = Model.use()
 
+  const selected = catalogName.value
+  const list = catalogNames.data
+
   const handleChange = React.useCallback(
     (value: string) => {
       storage.setCatalog(value)
@@ -139,25 +142,25 @@ function SelectCatalogName({ className }: SelectCatalogNameProps) {
     [catalogName],
   )
 
-  if (Model.isError(catalogNames.data)) {
-    return <SelectError className={className} error={catalogNames.data.error} />
-  }
-  if (Model.isError(catalogName.value)) {
-    return <SelectError className={className} error={catalogName.value.error} />
-  }
-  if (!Model.hasValue(catalogName.value) || !Model.hasData(catalogNames.data)) {
+  if (!Model.isReady(selected) || !Model.isReady(list)) {
     return <Skeleton className={className} height={32} animate mt={2} />
+  }
+  if (Model.isError(list)) {
+    return <SelectError className={className} error={list.error} />
+  }
+  if (Model.isError(selected)) {
+    return <SelectError className={className} error={selected.error} />
   }
 
   return (
     <Select
       className={className}
-      data={catalogNames.data.data}
+      data={list.data}
       disabled={Model.isLoading(queryRun)}
       label="Data catalog"
       onChange={handleChange}
       onLoadMore={catalogNames.loadMore}
-      value={catalogName.value.data}
+      value={selected.data}
     />
   )
 }
@@ -169,6 +172,9 @@ interface SelectDatabaseProps {
 function SelectDatabase({ className }: SelectDatabaseProps) {
   const { catalogName, database, databases, queryRun } = Model.use()
 
+  const selected = database.value
+  const list = databases.data
+
   const handleChange = React.useCallback(
     (value: string) => {
       storage.setDatabase(value)
@@ -177,24 +183,26 @@ function SelectDatabase({ className }: SelectDatabaseProps) {
     [database],
   )
 
-  if (Model.isError(databases.data)) {
-    return <SelectError className={className} error={databases.data.error} />
-  }
-  if (Model.isError(database.value)) {
-    return <SelectError className={className} error={database.value.error} />
-  }
-  if (!Model.hasValue(database.value) || !Model.hasData(databases.data)) {
+  if (!Model.isReady(selected) || !Model.isReady(list)) {
     return <Skeleton className={className} height={32} animate mt={2} />
+  }
+
+  if (Model.isError(list)) {
+    return <SelectError className={className} error={list.error} />
+  }
+
+  if (Model.isError(selected)) {
+    return <SelectError className={className} error={selected.error} />
   }
 
   return (
     <Select
-      data={databases.data.data}
-      disabled={!Model.hasValue(catalogName.value) || Model.isLoading(queryRun)}
+      data={list.data}
+      disabled={!Model.isReady(catalogName.value) || Model.isLoading(queryRun)}
       label="Database"
       onChange={handleChange}
       onLoadMore={databases.loadMore}
-      value={database.value.data}
+      value={selected.data}
     />
   )
 }

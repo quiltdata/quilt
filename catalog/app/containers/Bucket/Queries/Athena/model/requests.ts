@@ -107,7 +107,8 @@ export function useWorkgroup(
 ): Model.DataController<Workgroup> {
   const [data, setData] = React.useState<Model.Data<Workgroup>>(Model.Init)
   React.useEffect(() => {
-    if (!Model.hasData(workgroups.data)) return
+    const workgroupsList = workgroups.data
+    if (!Model.hasData(workgroupsList)) return
     setData((d) => {
       // 1. Not loaded or failed
       if (!Model.hasData(workgroups.data)) return d
@@ -115,20 +116,20 @@ export function useWorkgroup(
       // 2. URL parameter workgroup (user navigation)
       if (
         requestedWorkgroup &&
-        listIncludes(workgroups.data.data.list, requestedWorkgroup)
+        listIncludes(workgroupsList.data.list, requestedWorkgroup)
       ) {
         return Model.Payload(requestedWorkgroup)
       }
 
       // 3. Stored or default workgroup
       const initialWorkgroup = storage.getWorkgroup() || preferences?.defaultWorkgroup
-      if (initialWorkgroup && listIncludes(workgroups.data.data.list, initialWorkgroup)) {
+      if (initialWorkgroup && listIncludes(workgroupsList.data.list, initialWorkgroup)) {
         return Model.Payload(initialWorkgroup)
       }
 
       // 4. First available workgroup or error
-      return workgroups.data.data.list[0]
-        ? Model.Payload(workgroups.data.data.list[0])
+      return workgroupsList.data.list[0]
+        ? Model.Payload(workgroupsList.data.list[0])
         : Model.Err('Workgroup not found')
     })
   }, [preferences, requestedWorkgroup, workgroups])

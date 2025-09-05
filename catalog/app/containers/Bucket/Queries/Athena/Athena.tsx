@@ -107,15 +107,18 @@ interface QueryConstructorProps {
 function QueryConstructor({ className }: QueryConstructorProps) {
   const { query, queries, queryRun } = Model.use()
 
-  if (Model.isError(queries.data)) {
-    return <Alert className={className} error={queries.data.error} title="Select query" />
+  const selected = query.value
+  const list = queries.data
+
+  if (Model.isError(list)) {
+    return <Alert className={className} error={list.error} title="Select query" />
   }
 
-  if (!Model.hasData(queries.data) || !Model.isReady(query.value)) {
+  if (!Model.isReady(list) || !Model.isReady(selected)) {
     return <QuerySelectSkeleton className={className} />
   }
 
-  if (!queries.data.data.list.length && !Model.isError(query.value)) {
+  if (!list.data.list.length && !Model.isError(selected)) {
     return <M.Typography className={className}>No saved queries.</M.Typography>
   }
 
@@ -128,12 +131,12 @@ function QueryConstructor({ className }: QueryConstructorProps) {
         onChange={(v: Model.Query | null) =>
           query.setValue(v ? Model.Payload(v) : Model.None)
         }
-        onLoadMore={queries.data.data.next ? queries.loadMore : undefined}
-        queries={queries.data.data.list}
-        value={Model.hasData(query.value) ? query.value.data : null}
+        onLoadMore={list.data.next ? queries.loadMore : undefined}
+        queries={list.data.list}
+        value={Model.hasData(selected) ? selected.data : null}
       />
-      {Model.isError(query.value) && (
-        <M.FormHelperText error>{query.value.error.message}</M.FormHelperText>
+      {Model.isError(selected) && (
+        <M.FormHelperText error>{selected.error.message}</M.FormHelperText>
       )}
     </>
   )
@@ -141,17 +144,18 @@ function QueryConstructor({ className }: QueryConstructorProps) {
 
 function HistoryContainer() {
   const { bucket, executions } = Model.use()
-  if (Model.isError(executions.data)) {
-    return <Alert error={executions.data.error} title="Executions Data" />
-  }
-  if (!Model.hasData(executions.data)) {
-    return <TableSkeleton size={4} />
-  }
+
+  const list = executions.data
+
+  if (!Model.isReady(list)) return <TableSkeleton size={4} />
+
+  if (Model.isError(list)) return <Alert error={list.error} title="Executions Data" />
+
   return (
     <History
       bucket={bucket}
-      executions={executions.data.data.list}
-      onLoadMore={executions.data.data.next ? executions.loadMore : undefined}
+      executions={list.data.list}
+      onLoadMore={list.data.next ? executions.loadMore : undefined}
     />
   )
 }
@@ -206,6 +210,12 @@ function ResultsContainer({ className }: ResultsContainerProps) {
   const classes = useResultsContainerStyles()
   const { bucket, execution, results } = Model.use()
 
+  const list = results.data
+
+  if (!Model.isReady(execution) || !Model.isReady(list)) {
+    return <ResultsContainerSkeleton bucket={bucket} className={className} />
+  }
+
   if (Model.isError(execution)) {
     return (
       <div className={className}>
@@ -215,34 +225,30 @@ function ResultsContainer({ className }: ResultsContainerProps) {
     )
   }
 
-  if (Model.isError(results.data)) {
+  if (Model.isError(list)) {
     return (
       <div className={className}>
         <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
-        <Alert error={results.data.error} title="Query results" className={className} />
+        <Alert error={list.error} title="Query results" className={className} />
       </div>
     )
-  }
-
-  if (!Model.isReady(execution) || !Model.isReady(results.data)) {
-    return <ResultsContainerSkeleton bucket={bucket} className={className} />
   }
 
   return (
     <div className={className}>
       <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
-        {doQueryResultsContainManifestEntries(results.data.data) ? (
+        {doQueryResultsContainManifestEntries(list.data) ? (
           <React.Suspense fallback={<M.CircularProgress />}>
-            <CreatePackage bucket={bucket} queryResults={results.data.data} />
+            <CreatePackage bucket={bucket} queryResults={list.data} />
           </React.Suspense>
         ) : (
           <SeeDocsForCreatingPackage />
         )}
       </ResultsBreadcrumbs>
       <Results
-        rows={results.data.data.rows}
-        columns={results.data.data.columns}
-        onLoadMore={results.data.data.next ? results.loadMore : undefined}
+        rows={list.data.rows}
+        columns={list.data.columns}
+        onLoadMore={list.data.next ? results.loadMore : undefined}
       />
     </div>
   )
