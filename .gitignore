@@ -20,7 +20,7 @@ derby.log
 .imdone
 
 # Test coverage
-.coverage
+.coverage*
 cov_html/*
 
 # Pytest cache
