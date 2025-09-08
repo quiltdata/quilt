@@ -59,6 +59,10 @@ export interface State {
    * Error when submit failed or when validation failed (e.g. no database selected)
    */
   queryRun: Model.Value<requests.QueryRun>
+
+  /** URL generators */
+  toWorkgroup: (workgroup: string) => string
+  toExecution: (executionId: string) => string
 }
 
 export const Ctx = React.createContext<State | null>(null)
@@ -104,6 +108,20 @@ export function Provider({ preferences, children }: ProviderProps) {
     queryBody: queryBody.value,
   })
 
+  const toWorkgroup = React.useCallback(
+    (w: string) => urls.bucketAthenaWorkgroup(bucket, w),
+    [bucket, urls],
+  )
+  const toExecution = React.useCallback(
+    (e: string) => {
+      if (!Model.hasData(workgroup)) {
+        throw new Error('Workgroup not ready')
+      }
+      return urls.bucketAthenaExecution(bucket, workgroup.data, e)
+    },
+    [bucket, workgroup, urls],
+  )
+
   const value: State = {
     bucket,
     queryExecutionId,
@@ -123,22 +141,17 @@ export function Provider({ preferences, children }: ProviderProps) {
 
     submit,
     queryRun,
+
+    toWorkgroup,
+    toExecution,
   }
 
-  if (
-    Model.hasData(queryRun) &&
-    queryExecutionId !== queryRun.data.id &&
-    Model.hasData(workgroup)
-  ) {
-    return (
-      <RRDom.Redirect
-        to={urls.bucketAthenaExecution(bucket, workgroup.data, queryRun.data.id)}
-      />
-    )
+  if (Model.hasData(queryRun) && queryExecutionId !== queryRun.data.id) {
+    return <RRDom.Redirect to={toExecution(queryRun.data.id)} />
   }
 
   if (Model.hasData(workgroup) && !workgroupId) {
-    return <RRDom.Redirect to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)} />
+    return <RRDom.Redirect to={toWorkgroup(workgroup.data)} />
   }
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

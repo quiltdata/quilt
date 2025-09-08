@@ -8,7 +8,6 @@ import Code from 'components/Code'
 import Placeholder from 'components/Placeholder'
 import Skeleton from 'components/Skeleton'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
 
@@ -141,7 +140,7 @@ function QueryConstructor({ className }: QueryConstructorProps) {
 }
 
 function HistoryContainer() {
-  const { bucket, executions } = Model.use()
+  const { executions } = Model.use()
 
   const list = executions.data
 
@@ -151,7 +150,6 @@ function HistoryContainer() {
 
   return (
     <History
-      bucket={bucket}
       executions={list.data.list}
       onLoadMore={list.data.next ? executions.loadMore : undefined}
     />
@@ -174,7 +172,6 @@ const useResultsContainerStyles = M.makeStyles((t) => ({
 }))
 
 interface ResultsContainerSkeletonProps {
-  bucket: string
   className: string
 }
 
@@ -185,11 +182,11 @@ const relieveMessages = [
   'Hang in there, we haven’t forgotten about you! Your request is still being processed.',
 ]
 
-function ResultsContainerSkeleton({ bucket, className }: ResultsContainerSkeletonProps) {
+function ResultsContainerSkeleton({ className }: ResultsContainerSkeletonProps) {
   const classes = useResultsContainerStyles()
   return (
     <div className={className}>
-      <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
+      <ResultsBreadcrumbs className={classes.breadcrumbs}>
         <Skeleton height={24} width={144} animate />
       </ResultsBreadcrumbs>
       <div className={classes.table}>
@@ -211,13 +208,13 @@ function ResultsContainer({ className }: ResultsContainerProps) {
   const list = results.data
 
   if (!Model.isReady(execution) || !Model.isReady(list)) {
-    return <ResultsContainerSkeleton bucket={bucket} className={className} />
+    return <ResultsContainerSkeleton className={className} />
   }
 
   if (Model.isError(execution)) {
     return (
       <div className={className}>
-        <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
+        <ResultsBreadcrumbs className={classes.breadcrumbs} />
         <Alert error={execution.error} title="Query execution" className={className} />
       </div>
     )
@@ -226,7 +223,7 @@ function ResultsContainer({ className }: ResultsContainerProps) {
   if (Model.isError(list)) {
     return (
       <div className={className}>
-        <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs} />
+        <ResultsBreadcrumbs className={classes.breadcrumbs} />
         <Alert error={list.error} title="Query results" className={className} />
       </div>
     )
@@ -234,7 +231,7 @@ function ResultsContainer({ className }: ResultsContainerProps) {
 
   return (
     <div className={className}>
-      <ResultsBreadcrumbs bucket={bucket} className={classes.breadcrumbs}>
+      <ResultsBreadcrumbs className={classes.breadcrumbs}>
         {doQueryResultsContainManifestEntries(list.data) ? (
           <React.Suspense fallback={<M.CircularProgress />}>
             <CreatePackage bucket={bucket} queryResults={list.data} />
@@ -295,24 +292,19 @@ const useResultsBreadcrumbsStyles = M.makeStyles({
 })
 
 interface ResultsBreadcrumbsProps {
-  bucket: string
   children?: React.ReactNode
   className?: string
 }
 
-function ResultsBreadcrumbs({ bucket, children, className }: ResultsBreadcrumbsProps) {
-  const { workgroup, queryExecutionId } = Model.use()
+function ResultsBreadcrumbs({ children, className }: ResultsBreadcrumbsProps) {
+  const { workgroup, queryExecutionId, toWorkgroup } = Model.use()
   const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
-  const { urls } = NamedRoutes.use()
   return (
     <div className={cx(classes.root, className)}>
       <M.Breadcrumbs classes={overrideClasses}>
         {Model.hasData(workgroup) && (
-          <RRDom.Link
-            className={classes.breadcrumb}
-            to={urls.bucketAthenaWorkgroup(bucket, workgroup.data)}
-          >
+          <RRDom.Link className={classes.breadcrumb} to={toWorkgroup(workgroup.data)}>
             Query Executions
           </RRDom.Link>
         )}
@@ -342,7 +334,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function AthenaContainer() {
-  const { bucket, queryExecutionId, workgroup } = Model.use()
+  const { queryExecutionId, workgroup } = Model.use()
 
   const classes = useStyles()
   return (
@@ -351,7 +343,7 @@ function AthenaContainer() {
         Athena SQL
       </M.Typography>
 
-      <Workgroups bucket={bucket} />
+      <Workgroups />
 
       {Model.hasData(workgroup) && (
         <div className={classes.content}>

@@ -7,7 +7,6 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
 
 import * as Model from './model'
@@ -241,13 +240,12 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface HistoryProps {
-  bucket: string
   executions: Model.QueryExecutionsItem[]
   onLoadMore?: () => void
 }
 
-export default function History({ bucket, executions, onLoadMore }: HistoryProps) {
-  const { urls } = NamedRoutes.use()
+export default function History({ executions, onLoadMore }: HistoryProps) {
+  const { toExecution } = Model.use()
   const classes = useStyles()
 
   const pageSize = 10
@@ -273,9 +271,6 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
   )
   const rowsPaginated = rowsSorted.slice(pageSize * (page - 1), pageSize * page)
   const hasPagination = rowsSorted.length > rowsPaginated.length
-
-  const { workgroup } = Model.use()
-  if (!Model.hasData(workgroup)) return null
 
   if (!executions.length)
     return (
@@ -305,7 +300,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
               key={queryExecution.id}
               to={
                 queryExecution.status === 'SUCCEEDED'
-                  ? urls.bucketAthenaExecution(bucket, workgroup.data, queryExecution.id)
+                  ? toExecution(queryExecution.id!)
                   : undefined
               }
             />

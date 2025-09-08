@@ -32,6 +32,9 @@ const emptyState: Model.State = {
 
   submit: () => Promise.resolve(Model.Payload({ id: 'bar' })),
   queryRun: Model.None,
+
+  toWorkgroup: (workgroup: string) => `/bucket/any/athena/${workgroup}`,
+  toExecution: (executionId: string) => `/bucket/any/athena/workgroup/${executionId}`,
 }
 
 interface ProviderProps {

@@ -5,7 +5,6 @@ import * as Lab from '@material-ui/lab'
 
 import { docs } from 'constants/urls'
 import Skeleton from 'components/Skeleton'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
 import { Alert } from './Components'
@@ -15,7 +14,6 @@ import * as storage from './model/storage'
 const LOAD_MORE = 'load-more'
 
 interface WorkgroupSelectProps {
-  bucket: string
   disabled?: boolean
   onLoadMore: (workgroups: Model.List<Model.Workgroup>) => void
   value: Model.Workgroup
@@ -23,20 +21,17 @@ interface WorkgroupSelectProps {
 }
 
 function WorkgroupSelect({
-  bucket,
   disabled,
   onLoadMore,
   value,
   workgroups,
 }: WorkgroupSelectProps) {
-  const { urls } = NamedRoutes.use()
+  const { toWorkgroup } = Model.use()
   const history = RRDom.useHistory()
 
   const goToWorkgroup = React.useCallback(
-    (workgroup: string) => {
-      history.push(urls.bucketAthenaWorkgroup(bucket, workgroup))
-    },
-    [bucket, history, urls],
+    (workgroup: string) => history.push(toWorkgroup(workgroup)),
+    [toWorkgroup, history],
   )
 
   const handleChange = React.useCallback(
@@ -107,11 +102,7 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
   )
 }
 
-interface AthenaWorkgroupsProps {
-  bucket: string
-}
-
-export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
+export default function AthenaWorkgroups() {
   const { queryRun, workgroup, workgroups } = Model.use()
 
   const selected = workgroup
@@ -134,7 +125,6 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
   return (
     <WorkgroupSelect
       disabled={!Model.isReady(queryRun)}
-      bucket={bucket}
       onLoadMore={workgroups.loadMore}
       value={selected.data}
       workgroups={list.data}
