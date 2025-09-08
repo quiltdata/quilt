@@ -21,6 +21,7 @@ derby.log
 
 # Test coverage
 .coverage*
+coverage.xml
 cov_html/*
 
 # Pytest cache

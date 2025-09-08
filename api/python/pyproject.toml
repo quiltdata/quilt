@@ -104,7 +104,7 @@ test-verbose.help = "Run tests with verbose output"
 test-verbose.cmd = "pytest -v"
 
 test-cov.help = "Run tests with coverage report"
-test-cov.cmd = "pytest --cov=quilt3"
+test-cov.cmd = "pytest --cov=quilt3 --cov-report=term-missing"
 
 lint.help = "Run Ruff linter"
 lint.cmd = "ruff check ."
