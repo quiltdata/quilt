@@ -93,6 +93,8 @@ jobs:
           name: ${{ github.job }}
           env_vars: OS,PYTHON_VERSION
           directory: api/python
+          working-directory: api/python
+          verbose: true
 
   pypi-release-tag-check:
     needs: test-client
