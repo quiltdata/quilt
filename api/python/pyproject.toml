@@ -95,8 +95,8 @@ test.cmd = "pytest --disable-warnings"
 test-verbose.help = "Run tests with verbose output"
 test-verbose.cmd = "pytest -v"
 
-test-coverage.help = "Run tests with coverage report"
-test-coverage.cmd = "pytest --cov=quilt3 --cov-report=term-missing"
+test-cov.help = "Run tests with coverage report"
+test-cov.cmd = "pytest --cov=quilt3 --cov-report=term-missing"
 
 lint.help = "Run Ruff linter"
 lint.cmd = "ruff check ."
@@ -108,7 +108,7 @@ fmt-check.help = "Check code formatting"
 fmt-check.cmd = "ruff format --check ."
 
 clean.help = "Remove build artifacts and cache files"
-clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true"
+clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage* && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true"
 
 _gql-clean.shell = "rm -rf quilt3/admin/_graphql_client"
 
