@@ -446,16 +446,12 @@ provides-extras = ["pyarrow", "anndata", "catalog"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "anndata", specifier = "!=0.9.0" },
-    { name = "coverage", specifier = "==6.4" },
-    { name = "numpy", specifier = ">=1.14.0" },
-    { name = "pandas", specifier = ">=0.19.2" },
     { name = "poethepoet", specifier = ">=0.37.0" },
-    { name = "pyarrow", specifier = ">=0.14.1" },
     { name = "pytest", specifier = "==6.*" },
     { name = "pytest-cov" },
     { name = "pytest-env" },
     { name = "pytest-subtests" },
+    { name = "quilt3", extras = ["pyarrow", "anndata"] },
     { name = "responses" },
     { name = "ruff", specifier = ">=0.12.11" },
 ]
