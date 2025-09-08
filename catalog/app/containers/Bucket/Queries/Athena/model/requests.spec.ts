@@ -115,97 +115,107 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       ),
     )
     it('return catalog names', async () => {
-      listDataCatalogs.mockImplementation(
-        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
-          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
-        })),
-      )
-      const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.Payload('any')),
-      )
-      expect(result.current.data).toBe(Model.Init)
-
-      await waitForValueToChange(() => result.current)
-      expect(result.current.data).toMatchObject({
-        _tag: 'data',
-        data: { list: ['bar', 'foo'] },
+      await act(async () => {
+        listDataCatalogs.mockImplementation(
+          reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+            DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+          })),
+        )
+        const { result, waitFor } = renderHook(() =>
+          requests.useCatalogNames(Model.Payload('any')),
+        )
+        await waitFor(() => Model.hasData(result.current.data))
+        expect(result.current.data).toMatchObject({
+          _tag: 'data',
+          data: { list: ['bar', 'foo'] },
+        })
       })
     })
 
     it('return empty list', async () => {
-      listDataCatalogs.mockImplementation(
-        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
-          DataCatalogsSummary: [],
-        })),
-      )
-      const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.Payload('any')),
-      )
+      await act(async () => {
+        listDataCatalogs.mockImplementation(
+          reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+            DataCatalogsSummary: [],
+          })),
+        )
+        const { result, waitFor } = renderHook(() =>
+          requests.useCatalogNames(Model.Payload('any')),
+        )
 
-      await waitForValueToChange(() => result.current)
-      expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+        await waitFor(() => Model.hasData(result.current.data))
+        expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+      })
     })
 
     it('return empty list on invalid catalog data', async () => {
-      listDataCatalogs.mockImplementation(
-        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
-          // @ts-expect-error
-          DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
-        })),
-      )
-      const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.Payload('any')),
-      )
+      await act(async () => {
+        listDataCatalogs.mockImplementation(
+          reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+            // @ts-expect-error
+            DataCatalogsSummary: [{ Nonsense: true }, { Absurd: false }],
+          })),
+        )
+        const { result, waitFor } = renderHook(() =>
+          requests.useCatalogNames(Model.Payload('any')),
+        )
 
-      await waitForValueToChange(() => result.current)
-      expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+        await waitFor(() => Model.hasData(result.current.data))
+        expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+      })
     })
 
     it('return empty list on invalid list data', async () => {
-      listDataCatalogs.mockImplementation(
-        // @ts-expect-error
-        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
-          Invalid: [],
-        })),
-      )
-      const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.Payload('any')),
-      )
+      await act(async () => {
+        listDataCatalogs.mockImplementation(
+          // @ts-expect-error
+          reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+            Invalid: [],
+          })),
+        )
+        const { result, waitFor } = renderHook(() =>
+          requests.useCatalogNames(Model.Payload('any')),
+        )
 
-      await waitForValueToChange(() => result.current)
-      expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+        await waitFor(() => Model.hasData(result.current.data))
+        expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+      })
     })
 
     it('doesnt return catalogs with denied access', async () => {
-      listDataCatalogs.mockImplementation(
-        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
-          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
-        })),
-      )
-      getDataCatalog.mockImplementation(
-        reqThrowWith(new AWSError('AccessDeniedException')),
-      )
-      const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.Payload('any')),
-      )
+      await act(async () => {
+        listDataCatalogs.mockImplementation(
+          reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+            DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+          })),
+        )
+        getDataCatalog.mockImplementation(
+          reqThrowWith(new AWSError('AccessDeniedException')),
+        )
+        const { result, waitFor } = renderHook(() =>
+          requests.useCatalogNames(Model.Payload('any')),
+        )
 
-      await waitForValueToChange(() => result.current)
-      expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+        await waitFor(() => Model.hasData(result.current.data))
+        expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+      })
     })
 
     it('doesnt return failed catalogs', async () => {
-      listDataCatalogs.mockImplementation(
-        reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
-          DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
-        })),
-      )
-      getDataCatalog.mockImplementation(reqThrow)
-      const { result, waitForValueToChange } = renderHook(() =>
-        requests.useCatalogNames(Model.Payload('any')),
-      )
+      await act(async () => {
+        listDataCatalogs.mockImplementation(
+          reqThen<A.ListDataCatalogsInput, A.ListDataCatalogsOutput>(() => ({
+            DataCatalogsSummary: [{ CatalogName: 'foo' }, { CatalogName: 'bar' }],
+          })),
+        )
+        getDataCatalog.mockImplementation(reqThrow)
+        const { result, waitFor } = renderHook(() =>
+          requests.useCatalogNames(Model.Payload('any')),
+        )
 
-      await waitForValueToChange(() => result.current)
-      expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+        await waitFor(() => Model.hasData(result.current.data))
+        expect(result.current.data).toMatchObject({ _tag: 'data', data: { list: [] } })
+      })
     })
 
     it('handle fail in requesting list', async () => {
@@ -225,25 +235,19 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
       return requests.useCatalogNames(...props)
     }
 
-    it('wait until workgroup is ready', async () => {
-      const { result, rerender, waitForValueToChange, unmount } = renderHook(
+    it('wait until workgroup is ready, does not even start loading', async () => {
+      const { result, rerender, unmount } = renderHook(
         (x: Parameters<typeof requests.useCatalogNames>) => useWrapper(x),
         { initialProps: [Model.None] },
       )
 
-      await act(async () => {
-        rerender([Model.Pending])
-        await waitForValueToChange(() => result.current)
-      })
-      expect(result.current.data).toBe(Model.Pending)
+      act(() => rerender([Model.Pending]))
+      expect(result.current.data).toBe(Model.Init)
 
       const error = new Error('foo')
       const errState = Model.Err(error)
-      await act(async () => {
-        rerender([errState])
-        await waitForValueToChange(() => result.current)
-      })
-      expect(result.current.data).toBe(errState)
+      act(() => rerender([errState]))
+      expect(result.current.data).toBe(Model.Init)
       unmount()
     })
   })
@@ -386,26 +390,20 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
   describe('useDatabases', () => {
     it('wait for catalogName', async () => {
-      const { result, rerender, waitForNextUpdate } = renderHook(
+      const { result, rerender } = renderHook(
         (...c: Parameters<typeof requests.useDatabases>) => requests.useDatabases(...c),
         {
           initialProps: Model.Init as Model.Value<string>,
         },
       )
 
-      await act(async () => {
-        rerender(Model.Pending)
-        await waitForNextUpdate()
-      })
-      expect(result.current.data).toBe(Model.Pending)
+      act(() => rerender(Model.Pending))
+      expect(result.current.data).toBe(Model.Init)
 
       const error = new Error('foo')
       const errState = Model.Err(error)
-      await act(async () => {
-        rerender(errState)
-        await waitForNextUpdate()
-      })
-      expect(result.current.data).toBe(errState)
+      act(() => rerender(errState))
+      expect(result.current.data).toBe(Model.Init)
     })
 
     it('return databases', async () => {

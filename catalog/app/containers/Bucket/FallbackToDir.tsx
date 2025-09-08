@@ -52,8 +52,8 @@ function useIsDirectory(handle: Model.S3.S3ObjectLocation, proceed: boolean) {
 }
 
 function useFallbackToDir(handle: Model.S3.S3ObjectLocation) {
-  const isObject = useIsObject(handle)
-  const isDirectory = useIsDirectory(handle, !isObject)
+  const { result: isObject } = useIsObject(handle)
+  const { result: isDirectory } = useIsDirectory(handle, !isObject)
 
   if (
     isObject === Request.Idle ||

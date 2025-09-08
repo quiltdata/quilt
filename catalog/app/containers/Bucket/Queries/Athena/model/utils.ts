@@ -27,10 +27,14 @@ export interface DataController<T> {
   loadMore: () => void
 }
 
-export function wrapData<T>(data: Data<T>, setPrev: (d: T) => void): DataController<T> {
+export function wrapData<T>(
+  requestController: RequestController<T>,
+  setPrev: (d: T) => void,
+): DataController<T> {
+  const { result } = requestController
   return {
-    data,
-    loadMore: () => data._tag === 'data' && setPrev(data.data),
+    data: result,
+    loadMore: () => result._tag === 'data' && setPrev(result.data),
   }
 }
 
@@ -87,14 +91,83 @@ export function hasValue<T>(value: Value<T>): value is PayloadState<T> | NoneSta
   return value._tag === 'none' || value._tag === 'data'
 }
 
-// Proxy function that wraps useRequest and returns discriminating union
-export function useRequest<T>(req: () => Promise<T>, proceed?: boolean): Data<T> {
-  const result = Request.use(req, proceed)
+export interface RequestController<T> {
+  result: Data<T>
+  refetch: () => void
+}
 
-  return React.useMemo(() => {
+// Proxy function that wraps useRequest and returns discriminating union with refetch
+export function useRequest<T>(
+  req: (signal: AbortSignal) => Promise<T>,
+  proceed?: boolean,
+): RequestController<T> {
+  const { result, refetch } = Request.use(req, proceed)
+
+  const data = React.useMemo(() => {
     if (result === Request.Idle) return Init
     if (result === Request.Loading) return Pending
     if (result instanceof Error) return Err(result)
     return Payload(result as T)
   }, [result])
+
+  return React.useMemo(
+    () => ({
+      result: data,
+      refetch,
+    }),
+    [data, refetch],
+  )
+}
+
+// Legacy function that returns only data for backward compatibility
+export function useRequestData<T>(
+  req: (signal: AbortSignal) => Promise<T>,
+  proceed?: boolean,
+): Data<T> {
+  const { result } = useRequest(req, proceed)
+  return result
+}
+
+/**
+ * Utility function to wrap AWS SDK requests with AbortSignal support
+ *
+ * @param requestFactory - Function that creates AWS SDK request
+ * @param signal - AbortSignal to handle cancellation
+ * @returns Promise that resolves with the request result
+ *
+ * @example
+ * ```typescript
+ * function fetchWorkgroups(athena: Athena, signal: AbortSignal) {
+ *   return withAbortSignal(
+ *     (callback) => athena.listWorkGroups({}, callback),
+ *     signal
+ *   )
+ * }
+ * ```
+ */
+export function withAbortSignal<TResult>(
+  requestFactory: (callback: (error: any, data: TResult) => void) => {
+    abort?: () => void
+  },
+  signal: AbortSignal,
+): Promise<TResult> {
+  return new Promise<TResult>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new Error('Request aborted'))
+      return
+    }
+
+    const request = requestFactory((error, data) => {
+      if (error) {
+        reject(error)
+        return
+      }
+      resolve(data)
+    })
+
+    signal.addEventListener('abort', () => {
+      request?.abort?.()
+      reject(new Error('Request aborted'))
+    })
+  })
 }

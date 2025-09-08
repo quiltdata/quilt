@@ -63,8 +63,14 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         value={{
           ...emptyState,
           catalogName: Model.wrapValue(Model.Payload('foo'), noop),
-          catalogNames: Model.wrapData(Model.Payload({ list: ['foo'] }), noop),
-          databases: Model.wrapData(Model.Payload({ list: ['bar'] }), noop),
+          catalogNames: Model.wrapData(
+            { result: Model.Payload({ list: ['foo'] }), refetch: noop },
+            noop,
+          ),
+          databases: Model.wrapData(
+            { result: Model.Payload({ list: ['bar'] }), refetch: noop },
+            noop,
+          ),
           database: Model.wrapValue(Model.Payload('bar'), noop),
         }}
       >
@@ -80,8 +86,14 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         value={{
           ...emptyState,
           catalogName: { value: Model.None, setValue: noop },
-          catalogNames: Model.wrapData(Model.Payload({ list: ['any'] }), noop),
-          databases: Model.wrapData(Model.Payload({ list: ['any'] }), noop),
+          catalogNames: Model.wrapData(
+            { result: Model.Payload({ list: ['any'] }), refetch: noop },
+            noop,
+          ),
+          databases: Model.wrapData(
+            { result: Model.Payload({ list: ['any'] }), refetch: noop },
+            noop,
+          ),
           database: { value: Model.None, setValue: noop },
         }}
       >
@@ -97,8 +109,14 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         value={{
           ...emptyState,
           catalogName: { value: Model.None, setValue: noop },
-          catalogNames: Model.wrapData(Model.Payload({ list: [] }), noop),
-          databases: Model.wrapData(Model.Payload({ list: [] }), noop),
+          catalogNames: Model.wrapData(
+            { result: Model.Payload({ list: [] }), refetch: noop },
+            noop,
+          ),
+          databases: Model.wrapData(
+            { result: Model.Payload({ list: [] }), refetch: noop },
+            noop,
+          ),
           database: { value: Model.None, setValue: noop },
         }}
       >
