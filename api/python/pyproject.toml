@@ -52,8 +52,11 @@ catalog = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/quiltdata/quilt"
+Homepage = "https://quilt.bio/"
+Documentation = "https://docs.quilt.bio/"
 Repository = "https://github.com/quiltdata/quilt"
+Issues  = "https://github.com/quiltdata/quilt/issues"
+Changelog = "https://github.com/quiltdata/quilt/blob/master/docs/CHANGELOG.md"
 
 [project.scripts]
 quilt3 = "quilt3.main:main"
