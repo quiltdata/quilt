@@ -78,6 +78,14 @@ dev = [
     "poethepoet>=0.37.0",
 ]
 
+[tool.uv]
+conflicts = [
+    [
+      { group = "dev" },
+      { extra = "catalog" },
+    ],
+]
+
 [tool.ruff]
 # Extends from root configuration
 extend = "../../ruff.toml"
