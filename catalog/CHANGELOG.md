@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Fixed] Athena: preserve query body during execution loading ([#4528](https://github.com/quiltdata/quilt/pull/4528))
 - [Fixed] Fix GraphQL cache key for user data to properly show logged-in state ([#4527](https://github.com/quiltdata/quilt/pull/4527))
 - [Added] Qurator devtools: model override, session recording ([#4467](https://github.com/quiltdata/quilt/pull/4467))
 - [Changed] Adjust GQL schema for the upstream changes and handle search timeouts ([#4477](https://github.com/quiltdata/quilt/pull/4477))
