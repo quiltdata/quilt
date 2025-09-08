@@ -80,12 +80,9 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
       - uses: astral-sh/setup-uv@v6
       - name: Run Pytest
-        run: uv run poe test-cov
+        run: uv run --python ${{ matrix.python-version }} poe test-cov
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
