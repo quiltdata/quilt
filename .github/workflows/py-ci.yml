@@ -6,6 +6,8 @@ on:
       - "*"
   pull_request:
   merge_group:
+env:
+  UV_LOCKED: 1
 jobs:
   # Lint the entire Python codebase (except catalog/ and api/python/)
   lint-root:
