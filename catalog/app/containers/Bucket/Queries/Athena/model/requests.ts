@@ -571,6 +571,7 @@ export function useDatabase(
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Database> {
   const [value, setValue] = React.useState<Model.Value<Database>>(Model.Init)
+
   React.useEffect(() => {
     setValue((v) => {
       // 0. Handle not loaded/error states
@@ -600,6 +601,7 @@ export function useDatabase(
       return databases.data.list[0] ? Model.Payload(databases.data.list[0]) : Model.None
     })
   }, [databases, execution])
+
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
@@ -685,6 +687,7 @@ export function useCatalogName(
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<CatalogName> {
   const [value, setValue] = React.useState<Model.Value<CatalogName>>(Model.Init)
+
   React.useEffect(() => {
     setValue((v) => {
       // 0. Handle not loaded/error states
@@ -718,6 +721,7 @@ export function useCatalogName(
         : Model.None
     })
   }, [catalogNames, execution])
+
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
@@ -726,6 +730,7 @@ export function useQuery(
   execution: Model.Value<QueryExecution>,
 ): Model.ValueController<Query> {
   const [value, setValue] = React.useState<Model.Value<Query>>(Model.Init)
+
   React.useEffect(() => {
     setValue((v) => {
       // 0. Handle not loaded/error states
@@ -753,6 +758,7 @@ export function useQuery(
       return queries.data.list[0] ? Model.Payload(queries.data.list[0]) : Model.None
     })
   }, [execution, queries])
+
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
 }
 
