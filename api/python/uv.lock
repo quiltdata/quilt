@@ -2670,18 +2670,12 @@ pyarrow = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "anndata", version = "0.10.9", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.10' and extra == 'group-6-quilt3-dev') or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
-    { name = "anndata", version = "0.11.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.10' and extra == 'group-6-quilt3-dev') or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
-    { name = "coverage" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.11' and extra == 'group-6-quilt3-dev') or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
-    { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and extra == 'group-6-quilt3-dev') or (extra == 'extra-6-quilt3-catalog' and extra == 'group-6-quilt3-dev')" },
-    { name = "pandas", version = "2.3.2", source = { registry = "https://pypi.org/simple" } },
     { name = "poethepoet" },
-    { name = "pyarrow", version = "21.0.0", source = { registry = "https://pypi.org/simple" } },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-env" },
     { name = "pytest-subtests" },
+    { name = "quilt3", extra = ["anndata", "pyarrow"], marker = "extra == 'group-6-quilt3-dev'" },
     { name = "responses" },
     { name = "ruff" },
 ]
@@ -2710,16 +2704,12 @@ provides-extras = ["pyarrow", "anndata", "catalog"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "anndata", specifier = "!=0.9.0" },
-    { name = "coverage", specifier = "==6.4" },
-    { name = "numpy", specifier = ">=1.14.0" },
-    { name = "pandas", specifier = ">=0.19.2" },
     { name = "poethepoet", specifier = ">=0.37.0" },
-    { name = "pyarrow", specifier = ">=0.14.1" },
     { name = "pytest", specifier = "==6.*" },
     { name = "pytest-cov" },
     { name = "pytest-env" },
     { name = "pytest-subtests" },
+    { name = "quilt3", extras = ["pyarrow", "anndata"] },
     { name = "responses" },
     { name = "ruff", specifier = ">=0.12.11" },
 ]
