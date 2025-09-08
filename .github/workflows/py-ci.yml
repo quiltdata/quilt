@@ -83,8 +83,6 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov
-      - name: List coverage files
-        run: ls -a . | grep .cov
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -94,6 +92,7 @@ jobs:
           flags: api-python
           name: ${{ github.job }}
           env_vars: OS,PYTHON_VERSION
+          directory: api/python
 
   pypi-release-tag-check:
     needs: test-client
