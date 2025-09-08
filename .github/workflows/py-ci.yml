@@ -85,7 +85,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - uses: astral-sh/setup-uv@v6
       - name: Run Pytest
-        run: uv run poe test --cov=. .
+        run: uv run poe test-cov
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
