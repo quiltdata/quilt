@@ -92,8 +92,8 @@ jobs:
           flags: api-python
           name: ${{ github.job }}
           env_vars: OS,PYTHON_VERSION
-          directory: api/python
-          working-directory: api/python
+          # directory: api/python
+          # working-directory: api/python
           verbose: true
 
   pypi-release-tag-check:
