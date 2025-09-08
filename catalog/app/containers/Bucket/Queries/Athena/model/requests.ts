@@ -566,6 +566,41 @@ export function useDatabases(
   )
 }
 
+function selectDatabase(
+  databases: Model.Data<Model.List<Database>>,
+  execution: Model.Value<QueryExecution>,
+  currentValue: Model.Value<Database>,
+): Model.Value<Database> {
+  // 0. Handle not loaded/error states
+  if (!Model.hasData(databases)) return databases
+
+  // 1. Match execution context
+  if (
+    Model.hasData(execution) &&
+    execution.data.db &&
+    listIncludes(databases.data.list, execution.data.db)
+  ) {
+    return Model.Payload(execution.data.db)
+  }
+
+  // 2. Keep current selection
+  if (
+    Model.hasData(currentValue) &&
+    listIncludes(databases.data.list, currentValue.data)
+  ) {
+    return currentValue
+  }
+
+  // 3. Restore from storage
+  const initialDatabase = storage.getDatabase()
+  if (initialDatabase && listIncludes(databases.data.list, initialDatabase)) {
+    return Model.Payload(initialDatabase)
+  }
+
+  // 4. Default to first available or null
+  return databases.data.list[0] ? Model.Payload(databases.data.list[0]) : Model.None
+}
+
 export function useDatabase(
   databases: Model.Data<Model.List<Database>>,
   execution: Model.Value<QueryExecution>,
@@ -573,33 +608,7 @@ export function useDatabase(
   const [value, setValue] = React.useState<Model.Value<Database>>(Model.Init)
 
   React.useEffect(() => {
-    setValue((v) => {
-      // 0. Handle not loaded/error states
-      if (!Model.hasData(databases)) return databases
-
-      // 1. Match execution context
-      if (
-        Model.hasData(execution) &&
-        execution.data.db &&
-        listIncludes(databases.data.list, execution.data.db)
-      ) {
-        return Model.Payload(execution.data.db)
-      }
-
-      // 2. Keep current selection
-      if (Model.hasData(v) && listIncludes(databases.data.list, v.data)) {
-        return v
-      }
-
-      // 3. Restore from storage
-      const initialDatabase = storage.getDatabase()
-      if (initialDatabase && listIncludes(databases.data.list, initialDatabase)) {
-        return Model.Payload(initialDatabase)
-      }
-
-      // 4. Default to first available or null
-      return databases.data.list[0] ? Model.Payload(databases.data.list[0]) : Model.None
-    })
+    setValue((v) => selectDatabase(databases, execution, v))
   }, [databases, execution])
 
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
@@ -682,6 +691,40 @@ export function useCatalogNames(
   )
 }
 
+function selectCatalogName(
+  catalogNames: Model.Data<Model.List<CatalogName>>,
+  execution: Model.Value<QueryExecution>,
+  currentValue: Model.Value<CatalogName>,
+): Model.Value<CatalogName> {
+  // 0. Handle not loaded/error states
+  if (!Model.hasData(catalogNames)) return catalogNames
+
+  // 1. Match execution context
+  if (
+    Model.hasData(execution) &&
+    execution.data.catalog &&
+    listIncludes(catalogNames.data.list, execution.data.catalog)
+  ) {
+    return Model.Payload(execution.data.catalog)
+  }
+
+  // 2. Keep current selection
+  if (
+    Model.hasData(currentValue) &&
+    listIncludes(catalogNames.data.list, currentValue.data)
+  ) {
+    return currentValue
+  }
+
+  // 3. Restore from storage
+  const initialCatalogName = storage.getCatalog()
+  if (initialCatalogName && listIncludes(catalogNames.data.list, initialCatalogName)) {
+    return Model.Payload(initialCatalogName)
+  }
+  // 4. Default to first available or null
+  return catalogNames.data.list[0] ? Model.Payload(catalogNames.data.list[0]) : Model.None
+}
+
 export function useCatalogName(
   catalogNames: Model.Data<Model.List<CatalogName>>,
   execution: Model.Value<QueryExecution>,
@@ -689,40 +732,38 @@ export function useCatalogName(
   const [value, setValue] = React.useState<Model.Value<CatalogName>>(Model.Init)
 
   React.useEffect(() => {
-    setValue((v) => {
-      // 0. Handle not loaded/error states
-      if (!Model.hasData(catalogNames)) return catalogNames
-
-      // 1. Match execution context
-      if (
-        Model.hasData(execution) &&
-        execution.data.catalog &&
-        listIncludes(catalogNames.data.list, execution.data.catalog)
-      ) {
-        return Model.Payload(execution.data.catalog)
-      }
-
-      // 2. Keep current selection
-      if (Model.hasData(v) && listIncludes(catalogNames.data.list, v.data)) {
-        return v
-      }
-
-      // 3. Restore from storage
-      const initialCatalogName = storage.getCatalog()
-      if (
-        initialCatalogName &&
-        listIncludes(catalogNames.data.list, initialCatalogName)
-      ) {
-        return Model.Payload(initialCatalogName)
-      }
-      // 4. Default to first available or null
-      return catalogNames.data.list[0]
-        ? Model.Payload(catalogNames.data.list[0])
-        : Model.None
-    })
+    setValue((v) => selectCatalogName(catalogNames, execution, v))
   }, [catalogNames, execution])
 
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
+}
+
+function selectQuery(
+  queries: Model.Data<Model.List<Query>>,
+  execution: Model.Value<QueryExecution>,
+  currentValue: Model.Value<Query>,
+): Model.Value<Query> {
+  // 0. Handle not loaded/error states
+  if (!Model.hasData(queries)) return queries
+
+  // 1. Match execution query
+  if (Model.hasData(execution) && execution.data.query) {
+    const executionQuery = queries.data.list.find((q) => execution.data.query === q.body)
+    return executionQuery ? Model.Payload(executionQuery) : Model.None
+  }
+
+  // 2. Keep current selection
+  if (Model.hasData(currentValue) && queries.data.list.includes(currentValue.data)) {
+    return currentValue
+  }
+
+  // 3. Preserve during execution loading (prevents flickering)
+  if (!Model.isReady(execution)) {
+    return currentValue
+  }
+
+  // 4. Default to first available or null
+  return queries.data.list[0] ? Model.Payload(queries.data.list[0]) : Model.None
 }
 
 export function useQuery(
@@ -732,31 +773,7 @@ export function useQuery(
   const [value, setValue] = React.useState<Model.Value<Query>>(Model.Init)
 
   React.useEffect(() => {
-    setValue((v) => {
-      // 0. Handle not loaded/error states
-      if (!Model.hasData(queries)) return queries
-
-      // 1. Match execution query
-      if (Model.hasData(execution) && execution.data.query) {
-        const executionQuery = queries.data.list.find(
-          (q) => execution.data.query === q.body,
-        )
-        return executionQuery ? Model.Payload(executionQuery) : Model.None
-      }
-
-      // 2. Keep current selection
-      if (Model.hasData(v) && queries.data.list.includes(v.data)) {
-        return v
-      }
-
-      // 3. Preserve during execution loading (prevents flickering)
-      if (!Model.isReady(execution)) {
-        return v
-      }
-
-      // 4. Default to first available or null
-      return queries.data.list[0] ? Model.Payload(queries.data.list[0]) : Model.None
-    })
+    setValue((v) => selectQuery(queries, execution, v))
   }, [execution, queries])
 
   return React.useMemo(() => Model.wrapValue(value, setValue), [value])
