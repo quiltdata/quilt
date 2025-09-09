@@ -94,17 +94,13 @@ export function useWorkgroups(): Model.DataController<Model.List<Workgroup>> {
   const athena = useAthena()
   const [prev, setPrev] = React.useState<Model.List<Workgroup> | null>(null)
 
-  const requestFn = React.useCallback(() => fetchWorkgroups(athena, prev), [athena, prev])
-  const requestController = Model.useRequest(requestFn)
-
-  return React.useMemo(
-    () => Model.wrapData(requestController, setPrev),
-    [requestController],
-  )
+  const req = React.useCallback(() => fetchWorkgroups(athena, prev), [athena, prev])
+  const { result } = Model.useRequest(req)
+  return React.useMemo(() => Model.wrapData(result, setPrev), [result])
 }
 
 export function useWorkgroup(
-  { data: workgroupsList }: Model.DataController<Model.List<Workgroup>>,
+  workgroupsList: Model.Data<Model.List<Workgroup>>,
   requestedWorkgroup?: Workgroup,
   preferences?: BucketPreferences.AthenaPreferences,
 ): Model.Data<Workgroup> {
@@ -225,22 +221,16 @@ export function useExecutions(
   const athena = useAthena()
   const [prev, setPrev] = React.useState<Model.List<QueryExecutionsItem> | null>(null)
 
-  const requestFn = React.useCallback(
+  const req = React.useCallback(
     (signal: AbortSignal) => {
       invariant(Model.hasData(workgroup), 'Expected workgroup data')
       return fetchExecutions(athena, workgroup.data, prev, signal)
     },
     [athena, workgroup, prev],
   )
-
   const canProceed = !queryExecutionId && Model.hasData(workgroup)
-
-  const requestController = Model.useRequest(requestFn, canProceed)
-
-  return React.useMemo(
-    () => Model.wrapData(requestController, setPrev),
-    [requestController],
-  )
+  const { result } = Model.useRequest(req, canProceed)
+  return React.useMemo(() => Model.wrapData(result, setPrev), [result])
 }
 
 async function fetchQueryExecution(
@@ -284,7 +274,7 @@ async function fetchQueryExecution(
 function useFetchQueryExecution(QueryExecutionId?: string) {
   const athena = useAthena()
 
-  const requestFn = React.useCallback(
+  const req = React.useCallback(
     (signal: AbortSignal) => {
       invariant(QueryExecutionId, 'QueryExecutionId is required')
       return fetchQueryExecution(athena, QueryExecutionId, signal)
@@ -292,7 +282,7 @@ function useFetchQueryExecution(QueryExecutionId?: string) {
     [athena, QueryExecutionId],
   )
 
-  return Model.useRequest(requestFn, !!QueryExecutionId)
+  return Model.useRequest(req, !!QueryExecutionId)
 }
 
 export function useWaitForQueryExecution(
@@ -415,20 +405,15 @@ export function useQueries(
   const athena = useAthena()
   const [prev, setPrev] = React.useState<Model.List<Query> | null>(null)
 
-  const requestFn = React.useCallback(
+  const req = React.useCallback(
     (signal: AbortSignal) => {
       invariant(Model.hasData(workgroup), 'Expected workgroup data')
       return fetchQueries(athena, workgroup.data, prev, signal)
     },
     [athena, workgroup, prev],
   )
-
-  const requestController = Model.useRequest(requestFn, Model.hasData(workgroup))
-
-  return React.useMemo(
-    () => Model.wrapData(requestController, setPrev),
-    [requestController],
-  )
+  const { result } = Model.useRequest(req, Model.hasData(workgroup))
+  return React.useMemo(() => Model.wrapData(result, setPrev), [result])
 }
 
 async function fetchResults(
@@ -486,7 +471,7 @@ export function useResults(
   const athena = useAthena()
   const [prev, setPrev] = React.useState<QueryResults | null>(null)
 
-  const requestFn = React.useCallback(
+  const req = React.useCallback(
     (signal: AbortSignal) => {
       if (Model.isNone(execution)) {
         throw new Error('No execution provided')
@@ -504,12 +489,8 @@ export function useResults(
 
   const canProceed = Model.hasData(execution) && !!execution.data.id
 
-  const requestController = Model.useRequest(requestFn, canProceed)
-
-  return React.useMemo(
-    () => Model.wrapData(requestController, setPrev),
-    [requestController],
-  )
+  const { result } = Model.useRequest(req, canProceed)
+  return React.useMemo(() => Model.wrapData(result, setPrev), [result])
 }
 
 async function fetchDatabases(
@@ -550,20 +531,15 @@ export function useDatabases(
   const athena = useAthena()
   const [prev, setPrev] = React.useState<Model.List<Database> | null>(null)
 
-  const requestFn = React.useCallback(
+  const req = React.useCallback(
     (signal: AbortSignal) => {
       invariant(Model.hasData(catalogName), 'Expected catalog name data')
       return fetchDatabases(athena, catalogName.data, prev, signal)
     },
     [athena, catalogName, prev],
   )
-
-  const requestController = Model.useRequest(requestFn, Model.hasData(catalogName))
-
-  return React.useMemo(
-    () => Model.wrapData(requestController, setPrev),
-    [requestController],
-  )
+  const { result } = Model.useRequest(req, Model.hasData(catalogName))
+  return React.useMemo(() => Model.wrapData(result, setPrev), [result])
 }
 
 function selectDatabase(
@@ -678,17 +654,12 @@ export function useCatalogNames(
   const athena = useAthena()
   const [prev, setPrev] = React.useState<Model.List<CatalogName> | null>(null)
 
-  const requestFn = React.useCallback(() => {
+  const req = React.useCallback(() => {
     invariant(Model.hasData(workgroup), 'Expected workgroup data')
     return fetchCatalogNames(athena, workgroup.data, prev)
   }, [athena, workgroup, prev])
-
-  const requestController = Model.useRequest(requestFn, Model.hasData(workgroup))
-
-  return React.useMemo(
-    () => Model.wrapData(requestController, setPrev),
-    [requestController],
-  )
+  const { result } = Model.useRequest(req, Model.hasData(workgroup))
+  return React.useMemo(() => Model.wrapData(result, setPrev), [result])
 }
 
 function selectCatalogName(

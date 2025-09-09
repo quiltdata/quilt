@@ -68,28 +68,26 @@ export interface State {
 export const Ctx = React.createContext<State | null>(null)
 
 interface ProviderProps {
-  preferences?: BucketPreferences.AthenaPreferences
+  bucket: string
   children: React.ReactNode
+  preferences?: BucketPreferences.AthenaPreferences
+  queryExecutionId?: string
+  workgroupId?: requests.Workgroup
 }
 
-export function Provider({ preferences, children }: ProviderProps) {
+export function Provider({
+  bucket,
+  preferences,
+  queryExecutionId,
+  workgroupId,
+  children,
+}: ProviderProps) {
   const { urls } = NamedRoutes.use()
-
-  const {
-    bucket,
-    queryExecutionId,
-    workgroup: workgroupId,
-  } = RRDom.useParams<{
-    bucket: string
-    queryExecutionId?: string
-    workgroup?: requests.Workgroup
-  }>()
-  invariant(!!bucket, '`bucket` must be defined')
 
   const execution = requests.useWaitForQueryExecution(queryExecutionId)
 
   const workgroups = requests.useWorkgroups()
-  const workgroup = requests.useWorkgroup(workgroups, workgroupId, preferences)
+  const workgroup = requests.useWorkgroup(workgroups.data, workgroupId, preferences)
   const queries = requests.useQueries(workgroup)
   const query = requests.useQuery(queries.data, execution)
   const resetQuery = React.useCallback(() => query.setValue(null), [query])

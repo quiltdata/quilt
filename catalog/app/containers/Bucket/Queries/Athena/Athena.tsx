@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -297,14 +298,18 @@ interface ResultsBreadcrumbsProps {
 }
 
 function ResultsBreadcrumbs({ children, className }: ResultsBreadcrumbsProps) {
-  const { workgroup, queryExecutionId, toWorkgroup } = Model.use()
+  const { queryExecutionId, toWorkgroup } = Model.use()
   const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
+
+  // Get workgroup from URL since it's available in AthenaContainer context
+  const { workgroup: workgroupFromUrl } = RRDom.useParams<{ workgroup?: string }>()
+
   return (
     <div className={cx(classes.root, className)}>
       <M.Breadcrumbs classes={overrideClasses}>
-        {Model.hasData(workgroup) && (
-          <RRDom.Link className={classes.breadcrumb} to={toWorkgroup(workgroup.data)}>
+        {workgroupFromUrl && (
+          <RRDom.Link className={classes.breadcrumb} to={toWorkgroup(workgroupFromUrl)}>
             Query Executions
           </RRDom.Link>
         )}
@@ -333,10 +338,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function AthenaContainer() {
+interface AthenaParams {
+  bucket: string
+  queryExecutionId?: string
+  workgroup?: Model.Workgroup
+}
+
+function AthenaContainer({}) {
+  const classes = useStyles()
   const { queryExecutionId, workgroup } = Model.use()
 
-  const classes = useStyles()
   return (
     <>
       <M.Typography className={classes.header} variant="h6">
@@ -365,11 +376,19 @@ function AthenaContainer() {
 }
 
 export default function Wrapper() {
+  const { bucket, queryExecutionId, workgroup } = RRDom.useParams<AthenaParams>()
+  invariant(!!bucket, '`bucket` must be defined')
+
   const { prefs } = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui }) => (
-        <Model.Provider preferences={ui.athena}>
+        <Model.Provider
+          bucket={bucket}
+          preferences={ui.athena}
+          queryExecutionId={queryExecutionId}
+          workgroupId={workgroup}
+        >
           <AthenaContainer />
         </Model.Provider>
       ),

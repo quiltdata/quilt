@@ -27,11 +27,7 @@ export interface DataController<T> {
   loadMore: () => void
 }
 
-export function wrapData<T>(
-  requestController: RequestController<T>,
-  setPrev: (d: T) => void,
-): DataController<T> {
-  const { result } = requestController
+export function wrapData<T>(result: Data<T>, setPrev: (d: T) => void): DataController<T> {
   return {
     data: result,
     loadMore: () => result._tag === 'data' && setPrev(result.data),
@@ -91,16 +87,11 @@ export function hasValue<T>(value: Value<T>): value is PayloadState<T> | NoneSta
   return value._tag === 'none' || value._tag === 'data'
 }
 
-export interface RequestController<T> {
-  result: Data<T>
-  refetch: () => void
-}
-
 // Proxy function that wraps useRequest and returns discriminating union with refetch
 export function useRequest<T>(
   req: (signal: AbortSignal) => Promise<T>,
   proceed?: boolean,
-): RequestController<T> {
+) {
   const { result, refetch } = Request.use(req, proceed)
 
   const data = React.useMemo(() => {
@@ -110,13 +101,7 @@ export function useRequest<T>(
     return Payload(result as T)
   }, [result])
 
-  return React.useMemo(
-    () => ({
-      result: data,
-      refetch,
-    }),
-    [data, refetch],
-  )
+  return React.useMemo(() => ({ result: data, refetch }), [data, refetch])
 }
 
 // Legacy function that returns only data for backward compatibility

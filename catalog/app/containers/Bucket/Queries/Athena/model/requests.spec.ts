@@ -1046,10 +1046,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('select requested workgroup if it exists', async () => {
       await act(async () => {
-        const workgroups = {
-          data: Model.Payload({ list: ['foo', 'bar'] }),
-          loadMore: jest.fn(),
-        }
+        const workgroups = Model.Payload({ list: ['foo', 'bar'] })
         const { result, waitFor } = renderHook(() =>
           useWrapper([workgroups, 'bar', undefined]),
         )
@@ -1061,10 +1058,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     it('select initial workgroup from storage if valid', async () => {
       const storageMock = getStorageKey.getMockImplementation()
       getStorageKey.mockImplementation(() => 'bar')
-      const workgroups = {
-        data: Model.Payload({ list: ['foo', 'bar'] }),
-        loadMore: jest.fn(),
-      }
+      const workgroups = Model.Payload({ list: ['foo', 'bar'] })
 
       const { result, waitFor, unmount } = renderHook(() =>
         useWrapper([workgroups, undefined, undefined]),
@@ -1079,10 +1073,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('select default workgroup from preferences if valid', async () => {
-      const workgroups = {
-        data: Model.Payload({ list: ['foo', 'bar'] }),
-        loadMore: jest.fn(),
-      }
+      const workgroups = Model.Payload({ list: ['foo', 'bar'] })
       const preferences = { defaultWorkgroup: 'bar' }
 
       const { result, waitFor, unmount } = renderHook(() =>
@@ -1098,10 +1089,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('select the first available workgroup if no requested or default', async () => {
       await act(async () => {
-        const workgroups = {
-          data: Model.Payload({ list: ['foo', 'bar', 'baz'] }),
-          loadMore: jest.fn(),
-        }
+        const workgroups = Model.Payload({ list: ['foo', 'bar', 'baz'] })
 
         const { result, waitFor } = renderHook(() =>
           useWrapper([workgroups, undefined, undefined]),
@@ -1114,10 +1102,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
 
     it('return error if no workgroups are available', async () => {
       await act(async () => {
-        const workgroups = {
-          data: Model.Payload({ list: [] }),
-          loadMore: jest.fn(),
-        }
+        const workgroups = Model.Payload({ list: [] })
 
         const { result, waitFor } = renderHook(() =>
           useWrapper([workgroups, undefined, undefined]),
@@ -1133,10 +1118,7 @@ describe('containers/Bucket/Queries/Athena/model/requests', () => {
     })
 
     it('wait for workgroups', async () => {
-      const workgroups = {
-        data: Model.Init,
-        loadMore: jest.fn(),
-      }
+      const workgroups = Model.Init
 
       const { result, rerender, unmount, waitForNextUpdate } = renderHook(
         (x: Parameters<typeof requests.useWorkgroup>) => useWrapper(x),
