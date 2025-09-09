@@ -117,10 +117,9 @@ npm run test
 
 ## Creating a release
 
-1. Once you are ready to cut a new release, you update the version in
-`api/python/pyproject.toml` and in `docs/CHANGELOG.md`.
-[`uv version`](https://docs.astral.sh/uv/guides/package/#updating-your-version)
-can help with this.
+1. Once you are ready to cut a new release, update the version in `api/python/pyproject.toml`
+([`uv version`](https://docs.astral.sh/uv/guides/package/#updating-your-version)
+can help with this) and in `docs/CHANGELOG.md`.
 1. Create PR with these changes.
 1. Once PR is merged, create a tag from commit with merge: `git tag $VERSION $COMMIT_HASH`.
 1. Once you push the tag to GitHub with `git push origin $VERSION` a new CI build
