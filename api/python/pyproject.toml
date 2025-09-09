@@ -1,0 +1,153 @@
+[build-system]
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"
+
+[project]
+name = "quilt3"
+version = "7.0.0"
+description = "Quilt: where data comes together"
+readme = "README.rst"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "quiltdata", email = "contact@quiltdata.io" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "platformdirs>=2",
+    "boto3>=1.21.7",
+    "jsonlines==1.2.0",
+    "PyYAML>=5.1",
+    "requests>=2.12.4",
+    "tenacity>=5.1.1,!=8.4.0",
+    "tqdm>=4.32",
+    "requests_futures==1.0.0",
+    "jsonschema>=3,<5",
+    "pydantic>=2.0.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+pyarrow = [
+    "numpy>=1.14.0",
+    "pandas>=0.19.2",
+    "pyarrow>=0.14.1",
+]
+anndata = [
+    "anndata>=0.8.0",
+]
+catalog = [
+    "quilt3_local>=2,<3",
+    "uvicorn>=0.15,<0.18",
+    "aiobotocore[boto3]>=2",
+]
+
+[project.urls]
+Homepage = "https://quilt.bio/"
+Documentation = "https://docs.quilt.bio/#quilt-python-sdk"
+Repository = "https://github.com/quiltdata/quilt"
+Issues = "https://github.com/quiltdata/quilt/issues"
+Changelog = "https://docs.quilt.bio/quilt-python-sdk/more/changelog"
+
+[project.scripts]
+quilt3 = "quilt3.main:main"
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "quilt3"
+
+[dependency-groups]
+dev = [
+    "poethepoet>=0.37.0",
+    "pytest-cov",
+    "pytest-env",
+    "pytest-subtests",
+    "pytest==6.*",
+    "responses",
+    "ruff>=0.12.11",
+    "quilt3[pyarrow,anndata]",
+]
+
+[tool.uv]
+conflicts = [
+    [
+        { group = "dev" },
+        { extra = "catalog" },
+    ],
+]
+
+[tool.ruff]
+# Extends from root configuration
+extend = "../../ruff.toml"
+# Exclude auto-generated files specific to quilt3
+extend-exclude = [
+    "quilt3/admin/_graphql_client",
+]
+
+[tool.poe.tasks]
+_ensure-clean.cmd = "git diff --exit-code"
+
+test.help = "Run test suite"
+test.cmd = "pytest --disable-warnings"
+
+test-verbose.help = "Run tests with verbose output"
+test-verbose.cmd = "pytest -v"
+
+test-cov.help = "Run tests with coverage report"
+test-cov.cmd = "pytest --cov=. --cov-report=term-missing"
+
+lint.help = "Run Ruff linter"
+lint.cmd = "ruff check ."
+
+fmt.help = "Format code with Ruff (append --check to check formatting)"
+fmt.cmd = "ruff format"
+
+clean.help = "Remove build artifacts and cache files"
+clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage* coverage.* && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true"
+
+_gql-clean.shell = "rm -rf quilt3/admin/_graphql_client"
+
+gql-gen.help = "Generate GraphQL client code for quilt3.admin"
+gql-gen.deps = ["_gql-clean"]
+gql-gen.cmd = "uv run ariadne-codegen client"
+gql-gen.cwd = "quilt3-admin"
+
+gql-check.help = "Check if GraphQL client code is up-to-date"
+gql-check.sequence = [
+    "gql-gen",
+    "_ensure-clean",
+]
+
+verify-release-tag.help = "Verify git tag matches package version (for releases)"
+verify-release-tag.args = [{ name = "tag", positional = true, required = true }]
+verify-release-tag.shell = """
+version=$(uv version --short)
+if [ "$tag" != "$version" ]; then
+  echo "Error: Git tag '$tag' does not match version '$version'"
+  exit 1
+fi
+"""
+verify-release-tag.verbosity = -1
+
+gendocs.help = "Generate API documentation"
+gendocs.cmd = "uv run --locked build.py"
+gendocs.cwd = "../../gendocs"
+
+gendocs-check.help = "Check if generated docs are up-to-date"
+gendocs-check.sequence = [
+    "gendocs",
+    "_ensure-clean",
+]
+
+testdocs.help = "Test documentation code blocks"
+testdocs.cmd = "uv run --locked pytest --codeblocks ../docs"
+testdocs.cwd = "../../testdocs"

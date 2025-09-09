@@ -1,0 +1,81 @@
+# Root Ruff configuration for the entire repository
+line-length = 119
+
+extend-exclude = [
+    # test data and notebooks
+    "lambdas/indexer/test/data/**",
+    "lambdas/indexer/test/notebooks/**",
+    "lambdas/preview/test/data/**",
+    "lambdas/shared/tests/data/**",
+]
+
+[lint]
+# Start with basic rule sets, can be expanded later
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "S",    # flake8-bandit (security)
+]
+
+# Ignore rules that were disabled in pylint or would cause too many changes
+ignore = [
+    "E501",  # line-too-long (already handled by line-length setting)
+    "E731",  # lambda assignment
+    "B008",  # function calls in argument defaults
+    "B904",  # raise without from
+    "S101",  # assert usage
+    "S105",  # hardcoded passwords (false positives)
+    "S106",  # hardcoded passwords (false positives)
+    "S107",  # hardcoded passwords (false positives)
+    "S110",  # try-except-pass
+    "S301",  # pickle usage
+    "S603",  # subprocess without shell=True
+    "S607",  # subprocess partial path
+    # Currently found in existing codebase, to be cleaned up later:
+    "B007",  # Loop control variable not used within loop body
+    "B010",  # Do not call `setattr` with a constant attribute value. It is not any safer than normal property access.
+    "B011",  # Do not assert False
+    "B018",  # Found useless expression
+    "B023",  # Function definition does not bind loop variable
+    "B028",  # No explicit stacklevel keyword argument found
+    "C400",  # Unnecessary generator (rewrite as a list comprehension)
+    "C401",  # Unnecessary generator (rewrite as a set comprehension)
+    "C405",  # Unnecessary list literal (rewrite as a set literal)
+    "C408",  # Unnecessary dict() call (rewrite as a literal)
+    "C413",  # Unnecessary list() call around sorted()
+    "C414",  # Unnecessary list() call within set()
+    "E402",  # Module level import not at top of file
+    "F401",  # Imported but unused
+    "F841",  # Local variable assigned but never used
+    "I001",  # Import block is un-sorted or un-formatted
+    "S113",  # Probable use of requests call without timeout
+    "S310",  # Audit URL open for permitted schemes. Allowing use of `file:` or custom schemes is often unexpected.
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S324",  # Probable use of insecure hash functions
+    "S606",  # Starting a process without a shell
+    "S608",  # Possible SQL injection vector through string-based query construction
+    "UP006", # Use list instead of List for type annotation
+    "UP015", # Unnecessary mode argument
+    "UP030", # Use implicit references for positional format fields
+    "UP031", # Use format specifiers instead of percent format
+    "UP032", # Use f-string instead of format call
+    "UP033", # Use @functools.cache instead of @functools.lru_cache(maxsize=None)
+    "UP034", # Avoid extraneous parentheses
+    "UP035", # typing.Tuple is deprecated, use tuple instead
+    "UP039", # Unnecessary parentheses after class definition
+    "UP045", # Use `X | None` for type annotations
+    "W291",  # Trailing whitespace
+]
+
+[lint.isort]
+known-first-party = ["quilt3", "quilt_shared", "t4_lambda_"]
+combine-as-imports = true
+
+[format]
+# Preserve existing quote style until we reformat everything
+quote-style = "preserve"
