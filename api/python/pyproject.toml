@@ -11,7 +11,7 @@ requires-python = ">=3.9"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-    {name = "quiltdata", email = "contact@quiltdata.io"}
+    { name = "quiltdata", email = "contact@quiltdata.io" },
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -55,7 +55,7 @@ catalog = [
 Homepage = "https://quilt.bio/"
 Documentation = "https://docs.quilt.bio/#quilt-python-sdk"
 Repository = "https://github.com/quiltdata/quilt"
-Issues  = "https://github.com/quiltdata/quilt/issues"
+Issues = "https://github.com/quiltdata/quilt/issues"
 Changelog = "https://docs.quilt.bio/quilt-python-sdk/more/changelog"
 
 [project.scripts]
@@ -80,8 +80,8 @@ dev = [
 [tool.uv]
 conflicts = [
     [
-      { group = "dev" },
-      { extra = "catalog" },
+        { group = "dev" },
+        { extra = "catalog" },
     ],
 ]
 
@@ -108,11 +108,8 @@ test-cov.cmd = "pytest --cov=. --cov-report=term-missing"
 lint.help = "Run Ruff linter"
 lint.cmd = "ruff check ."
 
-fmt.help = "Format code with Ruff"
-fmt.cmd = "ruff format ."
-
-fmt-check.help = "Check code formatting"
-fmt-check.cmd = "ruff format --check ."
+fmt.help = "Format code with Ruff (append --check to check formatting)"
+fmt.cmd = "ruff format"
 
 clean.help = "Remove build artifacts and cache files"
 clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage* coverage.* && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true"
@@ -131,7 +128,7 @@ gql-check.sequence = [
 ]
 
 verify-release-tag.help = "Verify git tag matches package version (for releases)"
-verify-release-tag.args = [{name = "tag", positional = true, required = true}]
+verify-release-tag.args = [{ name = "tag", positional = true, required = true }]
 verify-release-tag.shell = """
 version=$(uv version --short)
 if [ "$tag" != "$version" ]; then
