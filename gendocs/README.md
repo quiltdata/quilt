@@ -18,7 +18,7 @@ uv run poe gendocs-check
 From the `gendocs` directory:
 
 ```sh
-uv run python build.py
+uv run build.py
 ```
 
 ## Configuration
