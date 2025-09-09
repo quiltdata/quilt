@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import WithGlobalDialogs from 'utils/GlobalDialogs'
 
@@ -52,16 +52,16 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
   afterAll(() => {})
 
   it('should render skeletons', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider value={emptyState}>
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render selected values', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider
         value={{
           ...emptyState,
@@ -74,11 +74,11 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show no value (zero-width space) if selected no value', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider
         value={{
           ...emptyState,
@@ -91,11 +91,11 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should disable selection if no spare values', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <Provider
         value={{
           ...emptyState,
@@ -108,11 +108,11 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show error when values failed', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <WithGlobalDialogs>
         <Provider
           value={{
@@ -125,11 +125,11 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show error when data failed', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <WithGlobalDialogs>
         <Provider
           value={{
@@ -142,6 +142,6 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })
