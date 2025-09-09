@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Empty from 'components/Empty'
 import { ES_REF_SYNTAX } from 'components/SearchResults'
 import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
@@ -75,13 +76,12 @@ export enum Refine {
   Network,
 }
 
-interface EmptyProps {
+interface EmptyWrapperProps {
   className?: string
   onRefine: (action: Exclude<Refine, Refine.Network>) => void
 }
 
-export function Empty({ className, onRefine }: EmptyProps) {
-  const classes = useEmptyStyles()
+function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
   const { baseSearchQuery, state } = SearchUIModel.use()
 
   const otherResultType =
@@ -101,6 +101,7 @@ export function Empty({ className, onRefine }: EmptyProps) {
             return 0
           case 'ObjectsSearchResultSet':
           case 'PackagesSearchResultSet':
+            // `-1` == secure search
             return r.total >= 0 ? r.total : null
           default:
             return null
@@ -118,19 +119,16 @@ export function Empty({ className, onRefine }: EmptyProps) {
   }
 
   return (
-    <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
-
-      <M.Typography variant="body1" align="center" className={classes.body}>
+    <Empty className={className} title={`No matching ${LABELS[state.resultType]}`}>
+      <p>
         Search for{' '}
         <StyledLink onClick={() => onRefine(Refine.ResultType)}>
           {LABELS[otherResultType]}
         </StyledLink>{' '}
         instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or adjust
         your search:
-      </M.Typography>
-
-      <ul className={classes.list}>
+      </p>
+      <ul>
         {state.buckets.length > 0 && (
           <li>
             Search in{' '}
@@ -153,9 +151,11 @@ export function Empty({ className, onRefine }: EmptyProps) {
           Start <StyledLink onClick={() => onRefine(Refine.New)}>from scratch</StyledLink>
         </li>
       </ul>
-    </div>
+    </Empty>
   )
 }
+
+export { EmptyWrapper as Empty }
 
 interface SecureSearchProps {
   className?: string
@@ -265,6 +265,27 @@ export function SyntaxError({ className, children, onRefine }: SyntaxErrorProps)
       </M.Typography>
 
       <ErrorDetails className={classes.details}>{children}</ErrorDetails>
+    </div>
+  )
+}
+
+export interface TimeoutErrorProps {
+  className?: string
+  onRefine: (action: Refine.Network | Refine.New) => void
+}
+
+export function TimeoutError({ className, onRefine }: TimeoutErrorProps) {
+  const classes = useEmptyStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h4">Query syntax error</M.Typography>
+      <M.Box mt={3} />
+      <M.Typography variant="body1" align="center" className={classes.body}>
+        Oops, the search cluster seems stressed.
+        <br />
+        <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+        start a <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
+      </M.Typography>
     </div>
   )
 }

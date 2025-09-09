@@ -329,7 +329,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
   const predicateState = model.state.filter.predicates[field]
   invariant(predicateState, 'Filter not active')
 
-  const extents = SearchUIModel.usePackageSystemMetaFacetExtents(field)
+  const { fetching, extents } = SearchUIModel.usePackageSystemMetaFacetExtents(field)
 
   const { deactivatePackagesFilter, setPackagesFilter } = model.actions
 
@@ -351,7 +351,10 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
       onDeactivate={deactivate}
       title={PACKAGE_FILTER_LABELS[field]}
     >
-      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      {/* TODO: add units */}
+      {!fetching && (
+        <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      )}
     </FiltersUI.Container>
   )
 }

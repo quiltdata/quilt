@@ -18,7 +18,18 @@ where verb is one of
 
 ## Changes
 
-- [Added] Search: Table view for package search results (including matching entries) ([#4413](https://github.com/quiltdata/quilt/pull/4413), [#4451](https://github.com/quiltdata/quilt/pull/4451), [#4452](https://github.com/quiltdata/quilt/pull/4452), [#4460](https://github.com/quiltdata/quilt/pull/4460))
+- [Changed] Enable package creation from current bucket without workflows configuration ([#4522](https://github.com/quiltdata/quilt/pull/4522))
+- [Fixed] Athena: preserve query body during execution loading ([#4528](https://github.com/quiltdata/quilt/pull/4528))
+- [Fixed] Fix GraphQL cache key for user data to properly show logged-in state ([#4527](https://github.com/quiltdata/quilt/pull/4527))
+- [Added] Qurator devtools: model override, session recording ([#4467](https://github.com/quiltdata/quilt/pull/4467))
+- [Changed] Adjust GQL schema for the upstream changes and handle search timeouts ([#4477](https://github.com/quiltdata/quilt/pull/4477))
+- [Fixed] Correctly sign and proxy S3 requests and URIs in OPEN mode ([#4470](https://github.com/quiltdata/quilt/pull/4470))
+- [Fixed] Show "0 packages" when no packages ([#4473](https://github.com/quiltdata/quilt/pull/4473))
+- [Changed] Search: handle invalid numbers gracefully ([#4468](https://github.com/quiltdata/quilt/pull/4468))
+- [Added] Search: add dates slider ([#4468](https://github.com/quiltdata/quilt/pull/4468))
+- [Fixed] Search: handle invalid dates ([#4466](https://github.com/quiltdata/quilt/pull/4466))
+- [Added] A page for redirecting Quilt+ URIs to QuiltSync ([#4446](https://github.com/quiltdata/quilt/pull/4446))
+- [Added] Search: Table view for package search results (including matching entries) ([#4413](https://github.com/quiltdata/quilt/pull/4413), [#4451](https://github.com/quiltdata/quilt/pull/4451), [#4452](https://github.com/quiltdata/quilt/pull/4452), [#4460](https://github.com/quiltdata/quilt/pull/4460), [#4461](https://github.com/quiltdata/quilt/pull/4461), [#4462](https://github.com/quiltdata/quilt/pull/4462))
 - [Changed] Packages tab: Use search view to navigate packages ([#4413](https://github.com/quiltdata/quilt/pull/4413))
 - [Fixed] Freeform search: pass 'size' set to 0 to backend, properly handle 'from' ([#4432](https://github.com/quiltdata/quilt/pull/4432))
 - [Changed] Increase font size in tooltips and make them uniform ([#4425](https://github.com/quiltdata/quilt/pull/4425))

@@ -1,63 +1,45 @@
 import * as dateFns from 'date-fns'
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
-const ymdToDate = (ymd: string): Date => new Date(ymd)
+import Log from 'utils/Logging'
 
-const dateToYmd = (date: Date): string => dateFns.format(date, 'yyyy-MM-dd')
+import * as Range from './Range'
+import * as RangeField from './RangeField'
 
-const useStyles = M.makeStyles((t) => {
-  const gap = t.spacing(1)
-  return {
-    root: {
-      display: 'grid',
-      gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
-      columnGap: gap,
-    },
-    input: {
-      background: t.palette.background.paper,
-    },
-  }
-})
+const InputLabelProps = { shrink: true }
 
-interface DateRangeProps {
-  extents: { min: Date; max: Date }
-  onChange: (v: { min: Date | null; max: Date | null }) => void
-  value: { min: Date | null; max: Date | null }
+function parseString(ymd: string): RangeField.InputState<Date> {
+  const date = dateFns.parseISO(ymd)
+  return dateFns.isValid(date)
+    ? RangeField.Ok(ymd, date)
+    : RangeField.Err(ymd, new Error(date.toString()))
 }
 
+function stringify(date?: Date | null): RangeField.InputState<Date> {
+  if (!date) return RangeField.Err('', new Error('Empty date'))
+  try {
+    return RangeField.Ok(dateFns.format(date, 'yyyy-MM-dd'), date)
+  } catch (e) {
+    Log.error(e)
+    return RangeField.Err('', e)
+  }
+}
+
+const formatLabel = (number: number) => dateFns.intlFormat(new Date(number))
+
+type DateRangeProps = Pick<Range.FormControlProps<Date>, 'extents' | 'onChange' | 'value'>
+
 export default function DatesRange({ extents, value, onChange }: DateRangeProps) {
-  const classes = useStyles()
-  const min = value.min || extents.min
-  const max = value.max || extents.max
-  const handleFrom = React.useCallback(
-    (event) => onChange({ min: ymdToDate(event.target.value), max }),
-    [onChange, max],
-  )
-  const handleTo = React.useCallback(
-    (event) => onChange({ min, max: ymdToDate(event.target.value) }),
-    [onChange, min],
-  )
   return (
-    <div className={classes.root}>
-      <M.TextField
-        className={classes.input}
-        label="From"
-        onChange={handleFrom}
-        size="small"
-        type="date"
-        value={dateToYmd(min)}
-        variant="outlined"
-      />
-      <M.TextField
-        className={classes.input}
-        label="To"
-        onChange={handleTo}
-        size="small"
-        type="date"
-        value={dateToYmd(max)}
-        variant="outlined"
-      />
-    </div>
+    <Range.FormControl
+      InputLabelProps={InputLabelProps}
+      extents={extents}
+      formatLabel={formatLabel}
+      onChange={onChange}
+      parseNumber={dateFns.toDate}
+      parseString={parseString}
+      stringify={stringify}
+      value={value}
+    />
   )
 }

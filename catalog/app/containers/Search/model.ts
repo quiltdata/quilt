@@ -903,6 +903,7 @@ export function AvailablePackagesMetaFilters({
       switch (r.__typename) {
         case 'EmptySearchResultSet':
         case 'InvalidInput':
+        case 'OperationError':
           return children(AvailableFiltersState.Empty())
         case 'PackagesSearchResultSet':
           return React.createElement(AvailablePackagesMetaFiltersReady, {
@@ -1041,6 +1042,7 @@ function AvailablePackagesMetaFiltersServerFilterQuery({
     switch (r.__typename) {
       case 'EmptySearchResultSet':
       case 'InvalidInput':
+      case 'OperationError':
         return NO_FACETS
       case 'PackagesSearchResultSet':
         return r.filteredUserMetaFacets
@@ -1282,26 +1284,29 @@ function oneOf<T extends string, L extends T[]>(
   return comparisonList.some((compare) => compare === subject)
 }
 
-export function usePackageSystemMetaFacetExtents(
-  field: keyof PackagesSearchFilter,
-): Extents | undefined {
+export function usePackageSystemMetaFacetExtents(field: keyof PackagesSearchFilter): {
+  fetching: boolean
+  extents: Extents | undefined
+} {
   const model = useSearchUIModelContext(ResultType.QuiltPackage)
   return GQL.fold(model.baseSearchQuery, {
     data: ({ searchPackages: r }) => {
       switch (r.__typename) {
         case 'EmptySearchResultSet':
-          return undefined
         case 'InvalidInput':
-          return undefined
+        case 'OperationError':
+          return { fetching: false, extents: undefined }
         case 'PackagesSearchResultSet':
-          if (!oneOf(['workflow', 'modified', 'size', 'entries'], field)) return undefined
-          return r.stats[field]
+          if (oneOf(['workflow', 'modified', 'size', 'entries'], field)) {
+            return { fetching: false, extents: r.stats[field] }
+          }
+          return { fetching: false, extents: undefined }
         default:
           assertNever(r)
       }
     },
-    fetching: () => undefined,
-    error: () => undefined,
+    fetching: () => ({ fetching: true, extents: undefined }),
+    error: () => ({ fetching: false, extents: undefined }),
   })
 }
 
@@ -1339,6 +1344,7 @@ export function usePackageUserMetaFacetExtents(path: string): {
       switch (r.__typename) {
         case 'EmptySearchResultSet':
         case 'InvalidInput':
+        case 'OperationError':
           return { fetching: false, extents: undefined }
         case 'PackagesSearchResultSet':
           const facet = r.filteredUserMetaFacets[0]

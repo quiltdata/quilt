@@ -87,6 +87,17 @@ function NextPage({
             )
           case 'data':
             switch (r.data.__typename) {
+              case 'OperationError':
+                if (r.data.name === 'Timeout') {
+                  return (
+                    <NoResults.TimeoutError className={className} onRefine={onRefine} />
+                  )
+                }
+                return (
+                  <NoResults.UnexpectedError className={className} onRefine={onRefine}>
+                    Operation error: {r.data.message}
+                  </NoResults.UnexpectedError>
+                )
               case 'InvalidInput':
                 // should not happen
                 const [err] = r.data.errors
@@ -242,6 +253,15 @@ export default function ListResults({
               {err.message}
             </NoResults.UnexpectedError>
           )
+        case 'OperationError':
+          if (r.data.name === 'Timeout') {
+            return <NoResults.TimeoutError className={className} onRefine={onRefine} />
+          }
+          return (
+            <NoResults.UnexpectedError className={className} onRefine={onRefine}>
+              Operation error: {r.data.message}
+            </NoResults.UnexpectedError>
+          )
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           const latestOnly =
@@ -259,7 +279,7 @@ export default function ListResults({
               singleBucket={model.state.buckets.length === 1}
               latestOnly={latestOnly}
               onRefine={onRefine}
-              determinate={r.data.total > -1}
+              determinate={r.data.total > -1 /* `-1` == secure search */}
             />
           )
         default:

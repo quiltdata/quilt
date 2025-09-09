@@ -1,0 +1,91 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Successors/SuccessorsSelect should render empty state 1`] = `
+<div>
+  <div
+    class="MuiBox-root MuiBox-root-3"
+  >
+    <p
+      class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"
+    >
+      Add or update a 
+      <a>
+        config.yml
+      </a>
+       file to populate this menu.
+    </p>
+    <p
+      class="MuiTypography-root MuiTypography-body1"
+    >
+      <a
+        href="https://docs.quilt.bio/workflows#cross-bucket-package-push-quilt-catalog"
+        target="_blank"
+      >
+        Learn more
+      </a>
+      .
+    </p>
+  </div>
+</div>
+`;
+
+exports[`containers/Bucket/Successors/SuccessorsSelect should render error state 1`] = `
+<div>
+  <div
+    class="MuiBox-root MuiBox-root-2"
+  >
+    <p
+      class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom"
+    >
+      Error: 
+      <code>
+        Test error
+      </code>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`containers/Bucket/Successors/SuccessorsSelect should render loading state 1`] = `
+<ul
+  data-testid="menu"
+>
+  <li>
+    <div>
+      Loading…
+    </div>
+  </li>
+  <li>
+    <div>
+      Loading…
+    </div>
+  </li>
+  <li>
+    <div>
+      Loading…
+    </div>
+  </li>
+</ul>
+`;
+
+exports[`containers/Bucket/Successors/SuccessorsSelect should render populated state 1`] = `
+<ul
+  data-testid="menu"
+>
+  <h1>
+    Destination bucket
+  </h1>
+  <li>
+    <span
+      title="s3://bucket1"
+    >
+      Bucket One
+    </span>
+  </li>
+  <li>
+    <span>
+      s3://bucket2
+    </span>
+  </li>
+</ul>
+`;

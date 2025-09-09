@@ -65,29 +65,37 @@ export default function TablePage({
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'fail':
       const { error, _tag: tag } = results.error
-      const ErrorMessage =
-        error.name === 'QuerySyntaxError'
-          ? NoResults.SyntaxError
-          : NoResults.UnexpectedError
       switch (tag) {
         case 'general':
         case 'page':
           return (
-            <ErrorMessage className={className} onRefine={onRefine}>
+            <NoResults.UnexpectedError className={className} onRefine={onRefine}>
               {error.message}
-            </ErrorMessage>
+            </NoResults.UnexpectedError>
           )
         case 'data':
-          return (
-            <ErrorMessage className={className} onRefine={onRefine}>
-              <>
-                Invalid input at <code>{error.path}</code>: {error.name}
-                <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
-              </>
-            </ErrorMessage>
-          )
+          switch (error.name) {
+            case 'QuerySyntaxError':
+              return (
+                <NoResults.SyntaxError className={className} onRefine={onRefine}>
+                  <>
+                    {/* @ts-expect-error */}
+                    Invalid input at <code>{error.path}</code>: {error.name}
+                    <pre style={{ whiteSpace: 'pre-wrap' }}>{error.message}</pre>
+                  </>
+                </NoResults.SyntaxError>
+              )
+            case 'Timeout':
+              return <NoResults.TimeoutError className={className} onRefine={onRefine} />
+            default:
+              return (
+                <NoResults.UnexpectedError className={className} onRefine={onRefine}>
+                  {error.message}
+                </NoResults.UnexpectedError>
+              )
+          }
         default:
-          assertNever(tag)
+          assertNever(error)
       }
     case 'empty':
       return (

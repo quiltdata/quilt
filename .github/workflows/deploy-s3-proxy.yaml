@@ -19,9 +19,9 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configure AWS credentials from Prod account
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
           aws-region: us-east-1
@@ -34,7 +34,7 @@ jobs:
         with:
           registries: 709825985650
       - name: Configure AWS credentials from GovCloud account
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
