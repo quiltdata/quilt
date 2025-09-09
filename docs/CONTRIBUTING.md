@@ -62,7 +62,7 @@ uv run poe test
 uv run poe test-verbose
 
 # Run with coverage
-uv run poe test-coverage
+uv run poe test-cov
 
 # Run specific test file directly
 uv run poe test tests/test_util.py
