@@ -111,7 +111,7 @@ for your company's domain.
     1. The ARN for this certificate or set of certificates is required for use as the `CertificateArnELB` CloudFormation parameter.
 1. For maximum security, Quilt requires **a region that supports
 [AWS
-Fargate](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)**.
+Fargate](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate-Regions.html#linux-regions)**.
 As of this writing, all U.S. regions support Fargate.
 1. **An S3 Bucket** for your team data. This may be a new or existing
 bucket. The bucket should not have any notifications attached to
