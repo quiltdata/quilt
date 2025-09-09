@@ -297,6 +297,7 @@ export default function Dir() {
                       onChange={openPackageCreationDialog}
                       variant={slt.isEmpty ? 'outlined' : 'contained'}
                       color={slt.isEmpty ? 'default' : 'primary'}
+                      currentBucketCanBeSuccessor
                     >
                       Create package
                     </Successors.Button>
