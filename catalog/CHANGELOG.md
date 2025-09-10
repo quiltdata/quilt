@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Always provide source buckets for S3FilePicker and use current bucket as default when no sourceBuckets configured ([#4525](https://github.com/quiltdata/quilt/pull/4525))
 - [Changed] Enable package creation from current bucket without workflows configuration ([#4522](https://github.com/quiltdata/quilt/pull/4522))
 - [Fixed] Athena: preserve query body during execution loading ([#4528](https://github.com/quiltdata/quilt/pull/4528))
 - [Fixed] Fix GraphQL cache key for user data to properly show logged-in state ([#4527](https://github.com/quiltdata/quilt/pull/4527))
