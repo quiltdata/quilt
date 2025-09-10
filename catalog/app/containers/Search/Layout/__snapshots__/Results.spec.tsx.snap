@@ -8,11 +8,6 @@ exports[`containers/Search/Layout/Results does not show ToggleResultsView for S3
       5 results
     </div>
     <div>
-      <button>
-        <span>
-          Create new package
-        </span>
-      </button>
       <div>
         <div>
           Sort Selector
@@ -30,11 +25,6 @@ exports[`containers/Search/Layout/Results renders error state 1`] = `
       Column Title: 
     </div>
     <div>
-      <button>
-        <span>
-          Create new package
-        </span>
-      </button>
       <div>
         <ul
           data-selected="l"
@@ -67,11 +57,6 @@ exports[`containers/Search/Layout/Results renders with FiltersButton when onFilt
       3 results
     </div>
     <div>
-      <button>
-        <span>
-          Create new package
-        </span>
-      </button>
       <div>
         <ul
           data-selected="l"
@@ -107,11 +92,6 @@ exports[`containers/Search/Layout/Results renders with data and shows number of 
       5 results
     </div>
     <div>
-      <button>
-        <span>
-          Create new package
-        </span>
-      </button>
       <div>
         <ul
           data-selected="l"
@@ -146,11 +126,44 @@ exports[`containers/Search/Layout/Results renders with loading state 1`] = `
       </div>
     </div>
     <div>
+      <div>
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/Layout/Results shows Create Package button in bucket 1`] = `
+<div>
+  <div>
+    <div>
+      Column Title: 
+      5 results
+    </div>
+    <div>
       <button>
         <span>
           Create new package
         </span>
       </button>
+      Don't forget to render dialog
       <div>
         <ul
           data-selected="l"
