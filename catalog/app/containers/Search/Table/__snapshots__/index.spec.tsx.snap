@@ -1,5 +1,26 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`containers/Search/Table/index when has results renders table with rows 1`] = `
+<div>
+  <div>
+    <table>
+      <tbody>
+        <tr>
+          <td>
+            package-1
+          </td>
+        </tr>
+        <tr>
+          <td>
+            package-2
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+`;
+
 exports[`containers/Search/Table/index when no results renders empty slot for empty state 1`] = `
 <div>
   <div>

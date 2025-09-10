@@ -61,9 +61,9 @@ jest.mock('../NoResults', () => ({
 jest.mock('./Table', () => ({ hits }: { hits: any[] }) => (
   <table>
     <tbody>
-      {hits.map((hit, index) => (
-        <tr key={index}>
-          <td>{JSON.stringify(hit)}</td>
+      {hits.map((hit) => (
+        <tr key={hit.id}>
+          <td>{hit.name}</td>
         </tr>
       ))}
     </tbody>
@@ -201,6 +201,25 @@ describe('containers/Search/Table/index', () => {
 
     it('renders empty slot for empty state', () => {
       useResults.mockReturnValue([{ _tag: 'empty' }])
+
+      const { container } = render(<TablePage />)
+      expect(container).toMatchSnapshot()
+    })
+  })
+
+  describe('when has results', () => {
+    it('renders table with rows', () => {
+      useResults.mockReturnValue([
+        {
+          _tag: 'ok',
+          hits: [
+            { id: '1', name: 'package-1' },
+            { id: '2', name: 'package-2' },
+          ],
+          cursor: null,
+          determinate: true,
+        },
+      ])
 
       const { container } = render(<TablePage />)
       expect(container).toMatchSnapshot()
