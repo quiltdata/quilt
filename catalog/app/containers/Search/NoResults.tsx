@@ -278,7 +278,7 @@ export function TimeoutError({ className, onRefine }: TimeoutErrorProps) {
   const classes = useEmptyStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">Query syntax error</M.Typography>
+      <M.Typography variant="h4">Search timed out</M.Typography>
       <M.Box mt={3} />
       <M.Typography variant="body1" align="center" className={classes.body}>
         Oops, the search cluster seems stressed.
