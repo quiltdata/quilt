@@ -4,7 +4,6 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import Skeleton from 'components/Skeleton'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -97,16 +96,12 @@ function resultsCountI18n(n: number, state: SearchUIModel.SearchUrlState) {
   return Format.pluralify(n, I18_COUNT_RESULTS)
 }
 
-interface ResultsCountProps {
-  className: string
-}
-
-function ResultsCount({ className }: ResultsCountProps) {
+function ResultsCount() {
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
   switch (r._tag) {
     case 'fetching':
-      return <Skeleton width={140} height={24} />
+      return <Lab.Skeleton width={140} />
     case 'error':
       return null
     case 'data':
@@ -117,11 +112,7 @@ function ResultsCount({ className }: ResultsCountProps) {
           return null
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
-          return (
-            <ColumnTitle className={className}>
-              {resultsCountI18n(r.data.total, model.state)}
-            </ColumnTitle>
-          )
+          return <>{resultsCountI18n(r.data.total, model.state)}</>
         default:
           assertNever(r.data)
       }
@@ -244,7 +235,9 @@ export default function Results({ onFilters }: ResultsProps) {
   const { paths } = NamedRoutes.use()
   return (
     <div className={classes.root}>
-      <ResultsCount className={classes.title} />
+      <ColumnTitle className={classes.title}>
+        <ResultsCount />
+      </ColumnTitle>
 
       <div className={classes.controls}>
         <RRDom.Switch>
