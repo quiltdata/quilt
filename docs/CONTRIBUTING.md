@@ -30,29 +30,42 @@ git checkout -B new-branch-name
 
 ### Python Environment
 
-Use `pip` to install `quilt` locally (including development dependencies):
+We use [`uv`](https://github.com/astral-sh/uv) for dependency management.
+First, install `uv`:
 
 ```bash
-cd api/python
-pip install -e '.[extra]'
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with pip
+pip install uv
 ```
 
-This will create an [editable
-install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs)
-of `quilt`, allowing you to modify the code and test your changes
-right away.
+`uv` ensures the environemnt is properly set up before executing a command,
+so you don't have to do anything else.
+
+Run `uv run poe` to see all configured tasks (or refer to `pyproject.toml`).
 
 ### Python Testing
 
 All new code contributions are expected to have complete unit test
 coverage, and to pass all preexisting tests.
 
-Use `pytest` to test your changes during normal development. To run
-`pytest` on the entire codebase:
+Use `pytest` to test your changes during normal development:
 
 ```bash
-cd api/python/tests
-pytest
+cd api/python
+# Run all tests
+uv run poe test
+
+# Run tests verbosely
+uv run poe test-verbose
+
+# Run with coverage
+uv run poe test-cov
+
+# Run specific test file directly
+uv run poe test tests/test_util.py
 ```
 
 ## Local catalog development
@@ -64,71 +77,11 @@ Elasticsearch Service) which cannot be run locally.
 
 ### Catalog Environment
 
-Use `npm` to install the catalog (`quilt-navigator`) dependencies locally:
+Use `npm` to install the catalog dependencies locally:
 
 ```bash
 cd catalog
 npm install
-```
-
-There is one known issue with installation. At time of writing, the
-`quilt-navigator` package depends on `iltorb@1.3.10`, which may
-lack prebuilt binaries for your platform and may fall back on
-building from source using `node-gyp`. `node-gyp` depends on Python
-2; if you only have Python 3 in your install environment it will
-fail.
-
-To fix this, point `npm` to a Python 2 path on your machine. For
-example on macOS:
-
-```bash
-npm config set python /usr/bin/python
-npm install
-```
-
-Next, you need to create a `config.json` and `federation.json` file
-in the `catalog/static` subdirectory. For `federation.json` use the
-following template:
-
-```json
-{
-   "buckets": [{
-         "name":"quilt-example",
-         "title":"Title here",
-         "icon":"placeholder icon here",
-         "description":"placeholder description here",
-         "searchEndpoint":"$SEARCH_ENDPOINT",
-         "apiGatewayEndpoint": "$PREVIEW_ENDPOINT",
-         "region":"us-east-1"
-      }
-   ]
-}
-```
-
-For `config.json` use the following template:
-
-```json
-{
-   "federations": [
-      "/federation.json"
-   ],
-   "suggestedBuckets": [
-   ],
-   "apiGatewayEndpoint": "$PREVIEW_ENDPOINT",
-   "sentryDSN": "",
-   "alwaysRequiresAuth": false,
-   "defaultBucket": "quilt-staging",
-   "disableSignUp": true,
-   "guestCredentials": {
-      "accessKeyId": "$ACCESS_KEY_ID",
-      "secretAccessKey": "$SECRET_ACCESS_KEY"
-   },
-   "intercomAppId": "",
-   "mixpanelToken": "",
-   "registryUrl": "$REGISTRY_ENDPOINT",
-   "signInRedirect": "/",
-   "signOutRedirect": "/"
-}
 ```
 
 ### Build
@@ -138,6 +91,8 @@ To build a static code bundle, as would be necessary in order to serve the catal
 ```bash
 npm run build
 ```
+
+<!-- TODO: add configuration instructions -->
 
 To run the catalog in developer mode:
 
@@ -162,9 +117,9 @@ npm run test
 
 ## Creating a release
 
-1. Once you are ready to cut a new release, you update the version in
-[`VERSION`](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/VERSION)
-file and in [`CHANGELOG`](https://github.com/quiltdata/quilt/blob/master/docs/CHANGELOG.md).
+1. Once you are ready to cut a new release, update the version in `api/python/pyproject.toml`
+([`uv version`](https://docs.astral.sh/uv/guides/package/#updating-your-version)
+can help with this) and in `docs/CHANGELOG.md`.
 1. Create PR with these changes.
 1. Once PR is merged, create a tag from commit with merge: `git tag $VERSION $COMMIT_HASH`.
 1. Once you push the tag to GitHub with `git push origin $VERSION` a new CI build
@@ -187,13 +142,7 @@ the `pydoc-markdown` package to do the necessary work.
 
 To modify the API Reference, modify the docstring associated with a method of interest.
 
-Then, run the following to install the latest version of our docstring parser:
-
-```bash
-pip install git+git://github.com/quiltdata/pydoc-markdown.git@quilt
-```
-
-Then navigate to the `gendocs` directory and execute `python build.py`.
+Then, run `uv run poe gendocs` from the `api/python` directory.
 
 The resulting files will land in `docs/` and will be ready to be checked in.
 

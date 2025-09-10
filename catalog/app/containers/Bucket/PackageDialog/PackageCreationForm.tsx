@@ -623,15 +623,16 @@ function PackageCreationForm({
   )
 }
 
-function prependSourceBucket(
+const prependSourceBucket = (
   buckets: BucketPreferences.SourceBuckets,
   bucket: string,
-): BucketPreferences.SourceBuckets {
-  return {
-    getDefault: () => bucket,
-    list: R.prepend(bucket, buckets.list),
-  }
-}
+): BucketPreferences.SourceBuckets =>
+  buckets.list.find((b) => b === bucket)
+    ? buckets
+    : {
+        getDefault: () => bucket,
+        list: R.prepend(bucket, buckets.list),
+      }
 
 const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
@@ -729,10 +730,7 @@ export function usePackageCreationDialog({
                       AsyncResult.Ok({
                         manifest,
                         workflowsConfig,
-                        sourceBuckets:
-                          s3Path === undefined
-                            ? sourceBuckets
-                            : prependSourceBucket(sourceBuckets, bucket),
+                        sourceBuckets: prependSourceBucket(sourceBuckets, bucket),
                       }),
                     Pending: AsyncResult.Pending,
                     Init: AsyncResult.Init,
@@ -746,7 +744,7 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, prefs],
+    [bucket, workflowsData, manifestResult, prefs],
   )
 
   const [waitingListing, setWaitingListing] = React.useState(false)

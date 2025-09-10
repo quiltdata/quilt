@@ -1223,6 +1223,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
       <div
         id="autocomplete"
       >
+        test-bucket
          from [
         
         ]
@@ -1231,7 +1232,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         className="MuiFormControl-root margin MuiFormControl-fullWidth"
       >
         <label
-          className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense Mui-disabled Mui-disabled"
+          className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
           data-shrink={false}
         >
           Default bucket
@@ -1239,7 +1240,7 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
         <div
           id="select"
         >
-          
+          test-bucket
         </div>
       </div>
     </div>

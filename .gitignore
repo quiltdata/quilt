@@ -14,14 +14,14 @@ metastore_db
 derby.log
 
 # let users have their own local ignores
-**/*.gitignore
 
 # Visual Studio Code
 .vscode
 .imdone
 
 # Test coverage
-.coverage
+.coverage*
+coverage.xml
 cov_html/*
 
 # Pytest cache
@@ -40,13 +40,7 @@ registry/dpmd
 
 # Doc Build
 _build
-testdocs/*.json*
-testdocs/test_workflow
-testdocs/references
-testdocs/notebooks
-testdocs/scripts
 
 .env
 
-.venv
 .aider*

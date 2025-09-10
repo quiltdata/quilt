@@ -57,11 +57,9 @@ export function ErrorSlot({ error }: ErrorSlotProps) {
 }
 
 const useMenuPlaceholderStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(22),
-  },
   item: {
     height: t.spacing(6),
+    minWidth: t.spacing(22),
     width: '100%',
   },
 }))
@@ -69,7 +67,7 @@ const useMenuPlaceholderStyles = M.makeStyles((t) => ({
 function MenuPlaceholder() {
   const classes = useMenuPlaceholderStyles()
   return (
-    <div className={classes.root}>
+    <>
       <M.MenuItem disabled>
         <Lab.Skeleton className={classes.item} />
       </M.MenuItem>
@@ -79,7 +77,7 @@ function MenuPlaceholder() {
       <M.MenuItem disabled>
         <Lab.Skeleton className={classes.item} />
       </M.MenuItem>
-    </div>
+    </>
   )
 }
 
@@ -106,40 +104,69 @@ function useSuccessors(
   )
 }
 
+const ANCHOR_ORIGIN = { vertical: 'bottom', horizontal: 'left' } as const
+
 interface SuccessorsSelectProps {
   anchorEl: HTMLElement | null
-  bucket: string
   onChange: (x: workflows.Successor) => void
   onClose: () => void
-  open: boolean
+  successors: workflows.Successor[] | Error | undefined
 }
 
-function SuccessorsSelect({
+export function SuccessorsSelect({
   anchorEl,
-  bucket,
   onChange,
   onClose,
-  open,
+  successors,
 }: SuccessorsSelectProps) {
-  const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsConfig, { s3, bucket })
+  const open = !!anchorEl
+
+  if (successors instanceof Error) {
+    return (
+      <M.Popover
+        anchorEl={anchorEl}
+        onClose={onClose}
+        open={open}
+        anchorOrigin={ANCHOR_ORIGIN}
+      >
+        <ErrorSlot error={successors} />
+      </M.Popover>
+    )
+  }
+
+  if (!successors) {
+    return (
+      <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
+        <MenuPlaceholder />
+      </M.Menu>
+    )
+  }
+
+  if (!successors.length) {
+    return (
+      <M.Popover
+        anchorEl={anchorEl}
+        onClose={onClose}
+        open={open}
+        anchorOrigin={ANCHOR_ORIGIN}
+      >
+        <EmptySlot />
+      </M.Popover>
+    )
+  }
 
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
-      {data.case({
-        Ok: ({ successors }: { successors: workflows.Successor[] }) =>
-          successors.length ? (
-            successors.map((successor) => (
-              <M.MenuItem key={successor.slug} onClick={() => onChange(successor)}>
-                <M.ListItemText primary={successor.name} secondary={successor.url} />
-              </M.MenuItem>
-            ))
+      <M.ListSubheader>Destination bucket</M.ListSubheader>
+      {successors.map((successor) => (
+        <M.MenuItem key={successor.slug} onClick={() => onChange(successor)}>
+          {successor.name !== successor.slug ? (
+            <M.ListItemText primary={successor.name} secondary={successor.url} />
           ) : (
-            <EmptySlot />
-          ),
-        _: () => <MenuPlaceholder />,
-        Err: (error: Error) => <ErrorSlot error={error} />,
-      })}
+            <M.ListItemText primary={successor.url} />
+          )}
+        </M.MenuItem>
+      ))}
     </M.Menu>
   )
 }
@@ -225,6 +252,7 @@ export function Dropdown({
 interface ButtonProps extends Omit<M.IconButtonProps, 'onChange' | 'variant'> {
   bucket: string
   icon?: Buttons.StrIcon
+  currentBucketCanBeSuccessor?: boolean
   className: string
   children: string
   onChange: (s: workflows.Successor) => void
@@ -235,11 +263,13 @@ export function Button({
   bucket,
   className,
   children,
+  currentBucketCanBeSuccessor = false,
   icon,
   onChange,
   ...props
 }: ButtonProps) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
+  const successors = useSuccessors(bucket, { currentBucketCanBeSuccessor })
 
   const onButtonClick = React.useCallback(
     (event) => setMenuAnchorEl(event.currentTarget),
@@ -274,10 +304,9 @@ export function Button({
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}
-        bucket={bucket}
-        open={!!menuAnchorEl}
         onChange={onMenuClick}
         onClose={onMenuClose}
+        successors={successors}
       />
     </>
   )

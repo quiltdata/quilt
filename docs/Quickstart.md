@@ -23,6 +23,7 @@ Explore production datasets with guided examples:
 ## ⚡ 5-Minute Quick Start
 
 ### 1. **Install Quilt**
+<!-- pytest.mark.skip -->
 ```bash
 pip install quilt3
 ```
@@ -41,10 +42,10 @@ print(pkg)
 ```
 
 ### 3. **Access Your First File**
-<!-- pytest-codeblocks:skip -->
+<!-- pytest-codeblocks:cont -->
 ```python
 # Download and read a file (using pkg from previous step)
-data_file = pkg["README.md"]
+data_file = pkg["README_NF_QUILT.md"]
 content = data_file.get()
 print(content)
 ```

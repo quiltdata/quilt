@@ -11,7 +11,6 @@ import {
 } from '@material-ui/icons'
 
 import * as Dialog from 'components/Dialog'
-import { MissingSourceBucket } from 'components/FileEditor/HelpLinks'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import assertNever from 'utils/assertNever'
@@ -246,16 +245,6 @@ export default function S3FilesButton({
   )
 
   const handleS3Btn = React.useCallback(() => setOpen(true), [])
-
-  if (!sourceBuckets.list.length) {
-    return (
-      <MissingSourceBucket>
-        <M.Button disabled className={className} variant="outlined" size="small">
-          Add files from bucket
-        </M.Button>
-      </MissingSourceBucket>
-    )
-  }
 
   return (
     <>

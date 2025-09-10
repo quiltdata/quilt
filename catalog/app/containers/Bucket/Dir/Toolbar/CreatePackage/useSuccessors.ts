@@ -3,6 +3,7 @@ import * as React from 'react'
 import { workflowsConfig } from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
 import * as Request from 'utils/useRequest'
+import { bucketToSuccessor } from 'utils/workflows'
 import type { Successor } from 'utils/workflows'
 
 export default function useSuccessors(bucket: string): Request.Result<Successor[]> {
@@ -14,5 +15,7 @@ export default function useSuccessors(bucket: string): Request.Result<Successor[
     return data
   }
 
-  return data.successors
+  return data.successors.find(({ slug }) => slug === bucket)
+    ? data.successors
+    : [bucketToSuccessor(bucket), ...data.successors]
 }
