@@ -1,0 +1,88 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Search/List/index renders empty slot for EmptySearchResultSet 1`] = `
+<div>
+  <div>
+    No results
+  </div>
+</div>
+`;
+
+exports[`containers/Search/List/index renders error for InputError 1`] = `
+<div>
+  <section>
+    <h1>
+      Unexpected error
+    </h1>
+    <details>
+      Invalid input at 
+      <code>
+        search.query
+      </code>
+      : 
+      ValidationError
+      <br />
+      Invalid search syntax
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index renders error for error state 1`] = `
+<div>
+  <section>
+    <h1>
+      Unexpected error
+    </h1>
+    <details>
+      Network error
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index renders operation error for other OperationError 1`] = `
+<div>
+  <section>
+    <h1>
+      Unexpected error
+    </h1>
+    <details>
+      Operation error: 
+      Internal server error
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index renders skeleton for fetching state 1`] = `
+<div>
+  <div>
+    Loading…
+  </div>
+</div>
+`;
+
+exports[`containers/Search/List/index renders syntax error for QuerySyntaxError 1`] = `
+<div>
+  <section>
+    <h1>
+      Syntax error
+    </h1>
+    <details>
+      Syntax error in query
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index renders timeout error for OperationError with Timeout 1`] = `
+<div>
+  <section>
+    <h1>
+      Timeout error
+    </h1>
+    <details />
+  </section>
+</div>
+`;
