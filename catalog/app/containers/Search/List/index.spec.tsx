@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 
+import type { SearchHitObject, SearchHitPackage } from '../model'
+
 import ListView from './index'
 
 jest.mock('@material-ui/core', () => ({
@@ -65,8 +67,8 @@ jest.mock('../NoResults', () => ({
 }))
 
 jest.mock('./Hit', () => ({
-  Object: ({ hit }: { hit: { key: string } }) => <div>Object: {hit.key}</div>,
-  Package: ({ hit }: { hit: { name: string; hash: string } }) => (
+  Object: ({ hit }: { hit: SearchHitObject }) => <div>Object: {hit.key}</div>,
+  Package: ({ hit }: { hit: SearchHitPackage }) => (
     <div>
       Package: {hit.name}#{hit.hash}
     </div>
@@ -211,14 +213,14 @@ describe('containers/Search/List/index', () => {
                 name: 'package-1',
                 bucket: 'test-bucket',
                 hash: 'abc123',
-              },
+              } as SearchHitPackage,
               {
                 id: '2',
                 __typename: 'SearchHitPackage',
                 name: 'package-2',
                 bucket: 'test-bucket',
                 hash: 'def456',
-              },
+              } as SearchHitPackage,
             ],
           },
         },
@@ -242,13 +244,13 @@ describe('containers/Search/List/index', () => {
                 __typename: 'SearchHitObject',
                 key: 'data/file1.csv',
                 bucket: 'test-bucket',
-              },
+              } as SearchHitObject,
               {
                 id: '4',
                 __typename: 'SearchHitObject',
                 key: 'data/file2.json',
                 bucket: 'test-bucket',
-              },
+              } as SearchHitObject,
             ],
           },
         },

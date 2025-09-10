@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 
+import type { SearchHitPackage } from '../model'
+
 import TableView from './index'
 
 jest.mock('components/Layout', () => ({
@@ -58,7 +60,7 @@ jest.mock('../NoResults', () => ({
   },
 }))
 
-jest.mock('./Table', () => ({ hits }: { hits: any[] }) => (
+jest.mock('./Table', () => ({ hits }: { hits: SearchHitPackage[] }) => (
   <table>
     <tbody>
       {hits.map((hit) => (
