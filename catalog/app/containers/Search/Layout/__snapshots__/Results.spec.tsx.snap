@@ -1,0 +1,176 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Search/Layout/Results does not show ToggleResultsView for S3Object result type 1`] = `
+<div>
+  <div>
+    <div>
+      Column Title: 
+      5 results
+    </div>
+    <div>
+      <button>
+        <span>
+          Create new package
+        </span>
+      </button>
+      <div>
+        <div>
+          Sort Selector
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/Layout/Results renders error state 1`] = `
+<div>
+  <div>
+    <div>
+      Column Title: 
+    </div>
+    <div>
+      <button>
+        <span>
+          Create new package
+        </span>
+      </button>
+      <div>
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/Layout/Results renders with FiltersButton when onFilters prop is provided 1`] = `
+<div>
+  <div>
+    <div>
+      Column Title: 
+      3 results
+    </div>
+    <div>
+      <button>
+        <span>
+          Create new package
+        </span>
+      </button>
+      <div>
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <button>
+          Filters
+        </button>
+        <div>
+          Sort Selector
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/Layout/Results renders with data and shows number of results 1`] = `
+<div>
+  <div>
+    <div>
+      Column Title: 
+      5 results
+    </div>
+    <div>
+      <button>
+        <span>
+          Create new package
+        </span>
+      </button>
+      <div>
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/Layout/Results renders with loading state 1`] = `
+<div>
+  <div>
+    <div>
+      Column Title: 
+      <div>
+        Loading…
+      </div>
+    </div>
+    <div>
+      <button>
+        <span>
+          Create new package
+        </span>
+      </button>
+      <div>
+        <ul
+          data-selected="l"
+        >
+          <li
+            data-value="t"
+          >
+            table icon
+          </li>
+          <li
+            data-value="l"
+          >
+            list icon
+          </li>
+        </ul>
+        <div>
+          Sort Selector
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

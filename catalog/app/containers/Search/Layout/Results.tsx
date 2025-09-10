@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { GridOn as IconGridOn, List as IconList } from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
@@ -178,10 +179,10 @@ function ToggleResultsView({ className }: ToggleResultsViewProps) {
       size="small"
     >
       <Lab.ToggleButton value={SearchUIModel.View.Table} classes={classes}>
-        <M.Icon>grid_on</M.Icon>
+        <IconGridOn />
       </Lab.ToggleButton>
       <Lab.ToggleButton value={SearchUIModel.View.List} classes={classes}>
-        <M.Icon>list</M.Icon>
+        <IconList />
       </Lab.ToggleButton>
     </Lab.ToggleButtonGroup>
   )
