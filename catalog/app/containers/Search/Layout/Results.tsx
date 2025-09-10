@@ -240,6 +240,7 @@ interface ResultsProps {
 
 export default function Results({ onFilters }: ResultsProps) {
   const model = SearchUIModel.use()
+  const r = model.firstPageQuery
   const classes = useResultsStyles()
   const { paths } = NamedRoutes.use()
   return (
@@ -249,7 +250,11 @@ export default function Results({ onFilters }: ResultsProps) {
       <div className={classes.controls}>
         <RRDom.Switch>
           <RRDom.Route path={paths.bucketRoot}>
-            <CreatePackage className={classes.create} />
+            {r._tag === 'data' &&
+              (r.data.__typename === 'ObjectsSearchResultSet' ||
+                r.data.__typename === 'PackagesSearchResultSet') && (
+                <CreatePackage className={classes.create} />
+              )}
           </RRDom.Route>
         </RRDom.Switch>
 
