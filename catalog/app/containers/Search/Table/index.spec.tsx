@@ -1,39 +1,19 @@
 import * as React from 'react'
 import { render } from '@testing-library/react'
 
-import TablePage from './index'
-
-jest.mock('@material-ui/core', () => ({
-  makeStyles: () => () => ({}),
-}))
+import TableView from './index'
 
 jest.mock('components/Layout', () => ({
   useSetFullWidth: jest.fn(),
 }))
 
-const mockModel = {
-  state: {
-    resultType: 'p',
-    view: 't',
-    searchString: 'test',
-    buckets: ['test-bucket'],
-    order: 'BEST_MATCH',
-    filter: {
-      predicates: {},
-      order: [],
-    },
-    userMetaFilters: {
-      filters: new Map(),
-    },
-    latestOnly: true,
-  },
-  actions: {
-    setView: jest.fn(),
-  },
-}
-
 jest.mock('../model', () => ({
-  use: () => mockModel,
+  use: () => ({
+    state: {
+      resultType: 'p',
+      view: 't',
+    },
+  }),
   ResultType: {
     QuiltPackage: 'p',
     S3Object: 'o',
@@ -78,7 +58,6 @@ jest.mock('../NoResults', () => ({
   },
 }))
 
-// Mock Table component
 jest.mock('./Table', () => ({ hits }: { hits: any[] }) => (
   <table>
     <tbody>
@@ -91,36 +70,11 @@ jest.mock('./Table', () => ({ hits }: { hits: any[] }) => (
   </table>
 ))
 
-// Mock LoadNextPage component
-jest.mock(
-  '../Layout/LoadNextPage',
-  () =>
-    ({
-      className,
-      loading,
-      onClick,
-      determinate,
-    }: {
-      className?: string
-      loading: boolean
-      onClick: () => void
-      determinate: boolean
-    }) => (
-      <div
-        className={className}
-        data-testid="load-next-page"
-        data-loading={loading}
-        data-determinate={determinate}
-      >
-        <button onClick={onClick}>Load More</button>
-      </div>
-    ),
+const TablePage = () => (
+  <TableView emptySlot={<div>No results</div>} onRefine={jest.fn()} />
 )
 
 describe('containers/Search/Table/index', () => {
-  const emptySlot = <div>No results</div>
-  const onRefine = jest.fn()
-
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -128,14 +82,14 @@ describe('containers/Search/Table/index', () => {
   it('renders null for idle state', () => {
     useResults.mockReturnValue([{ _tag: 'idle' }])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
   it('renders skeleton for in-progress state', () => {
     useResults.mockReturnValue([{ _tag: 'in-progress' }])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
@@ -150,7 +104,7 @@ describe('containers/Search/Table/index', () => {
       },
     ])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
@@ -165,7 +119,7 @@ describe('containers/Search/Table/index', () => {
       },
     ])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
@@ -183,7 +137,7 @@ describe('containers/Search/Table/index', () => {
       },
     ])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
@@ -203,7 +157,7 @@ describe('containers/Search/Table/index', () => {
       },
     ])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
@@ -222,7 +176,7 @@ describe('containers/Search/Table/index', () => {
       },
     ])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
@@ -240,14 +194,14 @@ describe('containers/Search/Table/index', () => {
       },
     ])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 
   it('renders empty slot for empty state', () => {
     useResults.mockReturnValue([{ _tag: 'empty' }])
 
-    const { container } = render(<TablePage {...{ emptySlot, onRefine }} />)
+    const { container } = render(<TablePage />)
     expect(container).toMatchSnapshot()
   })
 })
