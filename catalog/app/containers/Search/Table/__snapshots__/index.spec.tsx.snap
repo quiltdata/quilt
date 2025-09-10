@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`containers/Search/Table/index renders empty slot for empty state 1`] = `
+exports[`containers/Search/Table/index when no results renders empty slot for empty state 1`] = `
 <div>
   <div>
     No results
@@ -8,7 +8,7 @@ exports[`containers/Search/Table/index renders empty slot for empty state 1`] = 
 </div>
 `;
 
-exports[`containers/Search/Table/index renders error for InputError data fail state 1`] = `
+exports[`containers/Search/Table/index when no results renders error for InputError data fail state 1`] = `
 <div>
   <section>
     <h1>
@@ -28,7 +28,7 @@ exports[`containers/Search/Table/index renders error for InputError data fail st
 </div>
 `;
 
-exports[`containers/Search/Table/index renders error for QuerySyntaxError data fail state 1`] = `
+exports[`containers/Search/Table/index when no results renders error for QuerySyntaxError data fail state 1`] = `
 <div>
   <section>
     <h1>
@@ -51,7 +51,7 @@ exports[`containers/Search/Table/index renders error for QuerySyntaxError data f
 </div>
 `;
 
-exports[`containers/Search/Table/index renders error for general fail state 1`] = `
+exports[`containers/Search/Table/index when no results renders error for general fail state 1`] = `
 <div>
   <section>
     <h1>
@@ -64,7 +64,7 @@ exports[`containers/Search/Table/index renders error for general fail state 1`] 
 </div>
 `;
 
-exports[`containers/Search/Table/index renders error for page fail state 1`] = `
+exports[`containers/Search/Table/index when no results renders error for page fail state 1`] = `
 <div>
   <section>
     <h1>
@@ -77,9 +77,9 @@ exports[`containers/Search/Table/index renders error for page fail state 1`] = `
 </div>
 `;
 
-exports[`containers/Search/Table/index renders null for idle state 1`] = `<div />`;
+exports[`containers/Search/Table/index when no results renders null for idle state 1`] = `<div />`;
 
-exports[`containers/Search/Table/index renders operation error for other OperationError data fail state 1`] = `
+exports[`containers/Search/Table/index when no results renders operation error for other OperationError data fail state 1`] = `
 <div>
   <section>
     <h1>
@@ -93,7 +93,7 @@ exports[`containers/Search/Table/index renders operation error for other Operati
 </div>
 `;
 
-exports[`containers/Search/Table/index renders skeleton for in-progress state 1`] = `
+exports[`containers/Search/Table/index when no results renders skeleton for in-progress state 1`] = `
 <div>
   <div>
     Loading…
@@ -101,7 +101,7 @@ exports[`containers/Search/Table/index renders skeleton for in-progress state 1`
 </div>
 `;
 
-exports[`containers/Search/Table/index renders timeout error for OperationError data fail state 1`] = `
+exports[`containers/Search/Table/index when no results renders timeout error for OperationError data fail state 1`] = `
 <div>
   <section>
     <h1>

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`containers/Search/List/index renders empty slot for EmptySearchResultSet 1`] = `
+exports[`containers/Search/List/index when no results renders empty slot for EmptySearchResultSet 1`] = `
 <div>
   <div>
     No results
@@ -8,7 +8,7 @@ exports[`containers/Search/List/index renders empty slot for EmptySearchResultSe
 </div>
 `;
 
-exports[`containers/Search/List/index renders error for InputError 1`] = `
+exports[`containers/Search/List/index when no results renders error for InputError 1`] = `
 <div>
   <section>
     <h1>
@@ -28,7 +28,7 @@ exports[`containers/Search/List/index renders error for InputError 1`] = `
 </div>
 `;
 
-exports[`containers/Search/List/index renders error for error state 1`] = `
+exports[`containers/Search/List/index when no results renders error for error state 1`] = `
 <div>
   <section>
     <h1>
@@ -41,7 +41,7 @@ exports[`containers/Search/List/index renders error for error state 1`] = `
 </div>
 `;
 
-exports[`containers/Search/List/index renders operation error for other OperationError 1`] = `
+exports[`containers/Search/List/index when no results renders operation error for other OperationError 1`] = `
 <div>
   <section>
     <h1>
@@ -55,7 +55,7 @@ exports[`containers/Search/List/index renders operation error for other Operatio
 </div>
 `;
 
-exports[`containers/Search/List/index renders skeleton for fetching state 1`] = `
+exports[`containers/Search/List/index when no results renders skeleton for fetching state 1`] = `
 <div>
   <div>
     Loading…
@@ -63,7 +63,7 @@ exports[`containers/Search/List/index renders skeleton for fetching state 1`] = 
 </div>
 `;
 
-exports[`containers/Search/List/index renders syntax error for QuerySyntaxError 1`] = `
+exports[`containers/Search/List/index when no results renders syntax error for QuerySyntaxError 1`] = `
 <div>
   <section>
     <h1>
@@ -76,7 +76,7 @@ exports[`containers/Search/List/index renders syntax error for QuerySyntaxError 
 </div>
 `;
 
-exports[`containers/Search/List/index renders timeout error for OperationError with Timeout 1`] = `
+exports[`containers/Search/List/index when no results renders timeout error for OperationError with Timeout 1`] = `
 <div>
   <section>
     <h1>

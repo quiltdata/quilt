@@ -66,103 +66,105 @@ jest.mock('./Hit', () => ({
 const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={jest.fn()} />
 
 describe('containers/Search/List/index', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-    firstPageQuery = { _tag: 'fetching' }
-  })
+  describe('when no results', () => {
+    beforeEach(() => {
+      jest.clearAllMocks()
+      firstPageQuery = { _tag: 'fetching' }
+    })
 
-  it('renders skeleton for fetching state', () => {
-    firstPageQuery = { _tag: 'fetching' }
+    it('renders skeleton for fetching state', () => {
+      firstPageQuery = { _tag: 'fetching' }
 
-    const { container } = render(<ListPage />)
-    expect(container).toMatchSnapshot()
-  })
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
 
-  it('renders error for error state', () => {
-    firstPageQuery = {
-      _tag: 'error',
-      error: new Error('Network error'),
-    }
+    it('renders error for error state', () => {
+      firstPageQuery = {
+        _tag: 'error',
+        error: new Error('Network error'),
+      }
 
-    const { container } = render(<ListPage />)
-    expect(container).toMatchSnapshot()
-  })
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
 
-  it('renders empty slot for EmptySearchResultSet', () => {
-    firstPageQuery = {
-      _tag: 'data',
-      data: {
-        __typename: 'EmptySearchResultSet',
-      },
-    }
+    it('renders empty slot for EmptySearchResultSet', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'EmptySearchResultSet',
+        },
+      }
 
-    const { container } = render(<ListPage />)
-    expect(container).toMatchSnapshot()
-  })
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
 
-  it('renders error for InputError', () => {
-    firstPageQuery = {
-      _tag: 'data',
-      data: {
-        __typename: 'InvalidInput',
-        errors: [
-          {
-            name: 'ValidationError',
-            path: 'search.query',
-            message: 'Invalid search syntax',
-          },
-        ],
-      },
-    }
+    it('renders error for InputError', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'InvalidInput',
+          errors: [
+            {
+              name: 'ValidationError',
+              path: 'search.query',
+              message: 'Invalid search syntax',
+            },
+          ],
+        },
+      }
 
-    const { container } = render(<ListPage />)
-    expect(container).toMatchSnapshot()
-  })
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
 
-  it('renders syntax error for QuerySyntaxError', () => {
-    firstPageQuery = {
-      _tag: 'data',
-      data: {
-        __typename: 'InvalidInput',
-        errors: [
-          {
-            name: 'QuerySyntaxError',
-            path: 'search.query',
-            message: 'Syntax error in query',
-          },
-        ],
-      },
-    }
+    it('renders syntax error for QuerySyntaxError', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'InvalidInput',
+          errors: [
+            {
+              name: 'QuerySyntaxError',
+              path: 'search.query',
+              message: 'Syntax error in query',
+            },
+          ],
+        },
+      }
 
-    const { container } = render(<ListPage />)
-    expect(container).toMatchSnapshot()
-  })
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
 
-  it('renders timeout error for OperationError with Timeout', () => {
-    firstPageQuery = {
-      _tag: 'data',
-      data: {
-        __typename: 'OperationError',
-        name: 'Timeout',
-        message: 'Request timeout',
-      },
-    }
+    it('renders timeout error for OperationError with Timeout', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'OperationError',
+          name: 'Timeout',
+          message: 'Request timeout',
+        },
+      }
 
-    const { container } = render(<ListPage />)
-    expect(container).toMatchSnapshot()
-  })
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
 
-  it('renders operation error for other OperationError', () => {
-    firstPageQuery = {
-      _tag: 'data',
-      data: {
-        __typename: 'OperationError',
-        name: 'ServerError',
-        message: 'Internal server error',
-      },
-    }
+    it('renders operation error for other OperationError', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'OperationError',
+          name: 'ServerError',
+          message: 'Internal server error',
+        },
+      }
 
-    const { container } = render(<ListPage />)
-    expect(container).toMatchSnapshot()
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
   })
 })
