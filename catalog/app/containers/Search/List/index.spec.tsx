@@ -56,11 +56,21 @@ jest.mock('../NoResults', () => ({
         )
     }
   },
+  SecureSearch: () => (
+    <section>
+      <h1>This is secure search.</h1>
+      <p>We don't know in advance if users have access to each individual result</p>
+    </section>
+  ),
 }))
 
 jest.mock('./Hit', () => ({
-  Object: jest.fn(),
-  Package: jest.fn(),
+  Object: ({ hit }: { hit: { key: string } }) => <div>Object: {hit.key}</div>,
+  Package: ({ hit }: { hit: { name: string; hash: string } }) => (
+    <div>
+      Package: {hit.name}#{hit.hash}
+    </div>
+  ),
 }))
 
 const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={jest.fn()} />
@@ -160,6 +170,87 @@ describe('containers/Search/List/index', () => {
           __typename: 'OperationError',
           name: 'ServerError',
           message: 'Internal server error',
+        },
+      }
+
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
+  })
+
+  describe('when has results', () => {
+    it('renders PackagesSearchResultSet with empty hits and secure search', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'PackagesSearchResultSet',
+          total: -1, // secure search
+          firstPage: {
+            cursor: null,
+            hits: [], // We show Secure search "error", only if no results
+          },
+        },
+      }
+
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
+
+    it('renders PackagesSearchResultSet with package hits', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'PackagesSearchResultSet',
+          total: 2,
+          firstPage: {
+            cursor: null,
+            hits: [
+              {
+                id: '1',
+                __typename: 'SearchHitPackage',
+                name: 'package-1',
+                bucket: 'test-bucket',
+                hash: 'abc123',
+              },
+              {
+                id: '2',
+                __typename: 'SearchHitPackage',
+                name: 'package-2',
+                bucket: 'test-bucket',
+                hash: 'def456',
+              },
+            ],
+          },
+        },
+      }
+
+      const { container } = render(<ListPage />)
+      expect(container).toMatchSnapshot()
+    })
+
+    it('renders ObjectsSearchResultSet with object hits', () => {
+      firstPageQuery = {
+        _tag: 'data',
+        data: {
+          __typename: 'ObjectsSearchResultSet',
+          total: 2,
+          firstPage: {
+            cursor: null,
+            hits: [
+              {
+                id: '3',
+                __typename: 'SearchHitObject',
+                key: 'data/file1.csv',
+                bucket: 'test-bucket',
+              },
+              {
+                id: '4',
+                __typename: 'SearchHitObject',
+                key: 'data/file2.json',
+                bucket: 'test-bucket',
+              },
+            ],
+          },
         },
       }
 
