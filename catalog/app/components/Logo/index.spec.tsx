@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 import { handleToS3Url } from 'utils/s3paths'
 
 import Logo from '.'
@@ -12,20 +12,20 @@ jest.mock('utils/AWS', () => ({
 
 describe('components/Logo', () => {
   it('should render squared logo', () => {
-    const tree = renderer.create(<Logo height="20px" width="20px" />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Logo height="20px" width="20px" />)
+    expect(container).toMatchSnapshot()
   })
 
   it('should render rectangular logo', () => {
-    const tree = renderer.create(<Logo height="30px" width="60px" />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Logo height="30px" width="60px" />)
+    expect(container).toMatchSnapshot()
   })
 
   it('should render custom logo', () => {
     // TODO: mock AWS.Signer
-    const tree = renderer
-      .create(<Logo src="https://example.com/example.png" height="10px" width="10px" />)
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(
+      <Logo src="https://example.com/example.png" height="10px" width="10px" />,
+    )
+    expect(container).toMatchSnapshot()
   })
 })
