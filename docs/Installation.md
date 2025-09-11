@@ -118,7 +118,6 @@ bucket. The bucket should not have any notifications attached to
 it (`S3 Console > Bucket > Properties > Events`). Quilt will need
 to install its own notifications. Installing Quilt will modify the
 following Bucket characteristics:
-    1. Permissions > CORS configuration (will be modified for secure web access).
     1. Properties > Object-level logging (will be enabled).
     1. Properties > Events (will add one notification).
 
