@@ -834,7 +834,8 @@ class CSVPandasFormatHandler(BaseFormatHandler):
             elif not len(opts['index_names']) == len(obj.index.names):
                 raise ValueError(
                     "{} entries in `index_names`, but the DataFrame to be serialized has {} indexes".format(
-                        len(opts['index_names']), len(obj.index.names)
+                        len(opts['index_names']),
+                        len(obj.index.names),
                     )
                 )
 

@@ -27,19 +27,37 @@ class TestBucket(QuiltTestCase):
             method='list_objects_v2',
             service_response={
                 'IsTruncated': False,
-                'Contents': [{'Key': 'dir/a', 'Size': len(a_contents)}, {'Key': 'dir/foo/b', 'Size': len(b_contents)}],
+                'Contents': [
+                    {'Key': 'dir/a', 'Size': len(a_contents)},
+                    {'Key': 'dir/foo/b', 'Size': len(b_contents)},
+                ],
             },
-            expected_params={'Bucket': 'test-bucket', 'Prefix': 'dir/'},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': 'dir/',
+            },
         )
         self.s3_stubber.add_response(
             method='get_object',
-            service_response={'ContentLength': len(a_contents), 'Body': BytesIO(a_contents)},
-            expected_params={'Bucket': 'test-bucket', 'Key': 'dir/a'},
+            service_response={
+                'ContentLength': len(a_contents),
+                'Body': BytesIO(a_contents),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/a',
+            },
         )
         self.s3_stubber.add_response(
             method='get_object',
-            service_response={'ContentLength': len(b_contents), 'Body': BytesIO(b_contents)},
-            expected_params={'Bucket': 'test-bucket', 'Key': 'dir/foo/b'},
+            service_response={
+                'ContentLength': len(b_contents),
+                'Body': BytesIO(b_contents),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/foo/b',
+            },
         )
 
         with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
@@ -55,13 +73,22 @@ class TestBucket(QuiltTestCase):
             service_response={
                 'ContentLength': len(b_contents),
             },
-            expected_params={'Bucket': 'test-bucket', 'Key': 'dir/foo/b'},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/foo/b',
+            },
         )
 
         self.s3_stubber.add_response(
             method='get_object',
-            service_response={'ContentLength': len(b_contents), 'Body': BytesIO(b_contents)},
-            expected_params={'Bucket': 'test-bucket', 'Key': 'dir/foo/b'},
+            service_response={
+                'ContentLength': len(b_contents),
+                'Body': BytesIO(b_contents),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/foo/b',
+            },
         )
 
         bucket.fetch('dir/foo/b', './blah/')
@@ -72,7 +99,10 @@ class TestBucket(QuiltTestCase):
         self.s3_stubber.add_response(
             method='list_objects_v2',
             service_response={'IsTruncated': False},
-            expected_params={'Bucket': 'test-bucket', 'Prefix': 'does/not/exist/'},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': 'does/not/exist/',
+            },
         )
         with pytest.raises(QuiltException):
             bucket.fetch('does/not/exist/', './')
@@ -126,7 +156,10 @@ class TestBucket(QuiltTestCase):
             'Key': 'test.json',
             'Expression': 'select * from S3Object',
             'ExpressionType': 'SQL',
-            'InputSerialization': {'CompressionType': 'NONE', 'JSON': {'Type': 'DOCUMENT'}},
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'DOCUMENT'},
+            },
             'OutputSerialization': {'JSON': {}},
         }
 
@@ -147,7 +180,8 @@ class TestBucket(QuiltTestCase):
             bucket.put_file(key='README.md', path='./README')  # put local file to bucket
 
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path('README'), PhysicalKey.from_url('s3://test-bucket/README.md')
+                PhysicalKey.from_path('README'),
+                PhysicalKey.from_url('s3://test-bucket/README.md'),
             )
 
     def test_bucket_put_dir(self):
@@ -157,19 +191,22 @@ class TestBucket(QuiltTestCase):
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('test', path)
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/')
+                PhysicalKey.from_path(str(path) + '/'),
+                PhysicalKey.from_url('s3://test-bucket/test/'),
             )
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('test/', path)
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/')
+                PhysicalKey.from_path(str(path) + '/'),
+                PhysicalKey.from_url('s3://test-bucket/test/'),
             )
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('', path)
             copy_mock.assert_called_once_with(
-                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/')
+                PhysicalKey.from_path(str(path) + '/'),
+                PhysicalKey.from_url('s3://test-bucket/'),
             )
 
     def test_remote_delete(self):
@@ -203,19 +240,42 @@ class TestBucket(QuiltTestCase):
                 'IsTruncated': False,
                 'Contents': [{'Key': 'dir/a'}, {'Key': 'dir/b'}],
             },
-            expected_params={'Bucket': 'test-bucket', 'Prefix': 'dir/'},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': 'dir/',
+            },
         )
         self.s3_stubber.add_response(
-            method='head_object', service_response={}, expected_params={'Bucket': 'test-bucket', 'Key': 'dir/a'}
+            method='head_object',
+            service_response={},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/a',
+            },
         )
         self.s3_stubber.add_response(
-            method='delete_object', service_response={}, expected_params={'Bucket': 'test-bucket', 'Key': 'dir/a'}
+            method='delete_object',
+            service_response={},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/a',
+            },
         )
         self.s3_stubber.add_response(
-            method='head_object', service_response={}, expected_params={'Bucket': 'test-bucket', 'Key': 'dir/b'}
+            method='head_object',
+            service_response={},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/b',
+            },
         )
         self.s3_stubber.add_response(
-            method='delete_object', service_response={}, expected_params={'Bucket': 'test-bucket', 'Key': 'dir/b'}
+            method='delete_object',
+            service_response={},
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/b',
+            },
         )
 
         bucket = Bucket('s3://test-bucket')

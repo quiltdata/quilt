@@ -1375,7 +1375,9 @@ def select(src, query, meta=None, raw=False, **kwargs):
             if compression not in ok_compression:
                 raise QuiltException(
                     "Compression {!r} not valid for select on format {!r}: Expected {!r}".format(
-                        compression, s3_format, ok_compression
+                        compression,
+                        s3_format,
+                        ok_compression,
                     )
                 )
     if not format:

@@ -373,7 +373,10 @@ def configure_from_url(catalog_url):
     response = requests.get(config_url)
     if not response.ok:
         message = "An HTTP Error ({code}) occurred: {reason}"
-        raise QuiltException(message.format(code=response.status_code, reason=response.reason), response=response)
+        raise QuiltException(
+            message.format(code=response.status_code, reason=response.reason),
+            response=response,
+        )
 
     # QuiltConfig may perform some validation and value scrubbing.
     new_config = QuiltConfig('', response.json())

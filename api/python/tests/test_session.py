@@ -36,9 +36,18 @@ class TestSession(QuiltTestCase):
     def test_login_with_token(self, mock_save_credentials, mock_save_auth):
         url = quilt3.session.get_registry_url()
 
-        mock_auth = dict(refresh_token='refresh-token', access_token='access-token', expires_at=123456789)
+        mock_auth = dict(
+            refresh_token='refresh-token',
+            access_token='access-token',
+            expires_at=123456789,
+        )
 
-        self.requests_mock.add(responses.POST, f'{url}/api/token', json=mock_auth, status=200)
+        self.requests_mock.add(
+            responses.POST,
+            f'{url}/api/token',
+            json=mock_auth,
+            status=200,
+        )
 
         self.requests_mock.add(
             responses.GET,
@@ -90,7 +99,10 @@ class TestSession(QuiltTestCase):
         past_date = datetime.datetime.now() - datetime.timedelta(minutes=5)
 
         mock_load_credentials.return_value = dict(
-            access_key='access-key', secret_key='secret-key', token='session-token', expiry_time=format_date(past_date)
+            access_key='access-key',
+            secret_key='secret-key',
+            token='session-token',
+            expiry_time=format_date(past_date),
         )
 
         url = quilt3.session.get_registry_url()

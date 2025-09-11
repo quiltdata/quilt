@@ -320,8 +320,12 @@ class PackageTest(QuiltTestCase):
         if os.name != 'nt':
             # TODO: LOCAL_MANIFEST contains paths like file:///foo -
             # but they're not valid absolute paths on Windows. What do we do?
-            assert sorted(original_set, key=lambda k: k.get('logical_key', 'manifest')) == sorted(
-                written_set, key=lambda k: k.get('logical_key', 'manifest')
+            assert sorted(
+                original_set,
+                key=lambda k: k.get('logical_key', 'manifest'),
+            ) == sorted(
+                written_set,
+                key=lambda k: k.get('logical_key', 'manifest'),
             )
 
     @pytest.mark.usefixtures('isolate_packages_cache')
@@ -335,7 +339,10 @@ class PackageTest(QuiltTestCase):
 
         # Make the first request.
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, top_hash=top_hash, manifest=REMOTE_MANIFEST.read_bytes()
+            pkg_registry,
+            pkg_name,
+            top_hash=top_hash,
+            manifest=REMOTE_MANIFEST.read_bytes(),
         )
 
         pkg = Package.browse('Quilt/test', registry=registry)
@@ -756,10 +763,16 @@ class PackageTest(QuiltTestCase):
             serialization_location=SERIALIZATION_DIR / "df1.parquet",
         )
         pkg.set(
-            "mydataframe2.csv", df, meta={'user_meta': 'blah2'}, serialization_location=SERIALIZATION_DIR / "df2.csv"
+            "mydataframe2.csv",
+            df,
+            meta={'user_meta': 'blah2'},
+            serialization_location=SERIALIZATION_DIR / "df2.csv",
         )
         pkg.set(
-            "mydataframe3.tsv", df, meta={'user_meta': 'blah3'}, serialization_location=SERIALIZATION_DIR / "df3.tsv"
+            "mydataframe3.tsv",
+            df,
+            meta={'user_meta': 'blah3'},
+            serialization_location=SERIALIZATION_DIR / "df3.tsv",
         )
 
         # Test without serialization_dir set
@@ -1065,7 +1078,14 @@ class PackageTest(QuiltTestCase):
         quilt3.delete_package(pkg_name, registry=registry)
 
     def _test_remote_revision_delete_setup_stubber(
-        self, pkg_registry, pkg_name, *, top_hashes, latest, remove, new_latest
+        self,
+        pkg_registry,
+        pkg_name,
+        *,
+        top_hashes,
+        latest,
+        remove,
+        new_latest,
     ):
         pointers = {str(i): top_hash for top_hash, i in top_hashes.items()}
         pointers['latest'] = latest
@@ -1120,19 +1140,34 @@ class PackageTest(QuiltTestCase):
         }
 
         self._test_remote_revision_delete_setup_stubber(
-            pkg_registry, pkg_name, top_hashes=top_hashes, latest=top_hash3, new_latest=top_hash2, remove=top_hash3
+            pkg_registry,
+            pkg_name,
+            top_hashes=top_hashes,
+            latest=top_hash3,
+            new_latest=top_hash2,
+            remove=top_hash3,
         )
         quilt3.delete_package(pkg_name, top_hash=top_hash3, registry=registry)
         top_hashes.pop(top_hash3)
 
         self._test_remote_revision_delete_setup_stubber(
-            pkg_registry, pkg_name, top_hashes=top_hashes, latest=top_hash2, new_latest=None, remove=top_hash1
+            pkg_registry,
+            pkg_name,
+            top_hashes=top_hashes,
+            latest=top_hash2,
+            new_latest=None,
+            remove=top_hash1,
         )
         quilt3.delete_package(pkg_name, top_hash=top_hash1, registry=registry)
         top_hashes.pop(top_hash1)
 
         self._test_remote_revision_delete_setup_stubber(
-            pkg_registry, pkg_name, top_hashes=top_hashes, latest=top_hash2, new_latest=None, remove=top_hash2
+            pkg_registry,
+            pkg_name,
+            top_hashes=top_hashes,
+            latest=top_hash2,
+            new_latest=None,
+            remove=top_hash2,
         )
         quilt3.delete_package(pkg_name, top_hash=top_hash2, registry=registry)
 
@@ -1259,7 +1294,10 @@ class PackageTest(QuiltTestCase):
             )
 
     def test_overwrite_dir_fails(self):
-        with pytest.raises(QuiltException, match="Cannot overwrite directory 'asdf' with PackageEntry"):
+        with pytest.raises(
+            QuiltException,
+            match="Cannot overwrite directory 'asdf' with PackageEntry",
+        ):
             pkg = Package()
             pkg.set('asdf/jkl', LOCAL_MANIFEST)
             pkg.set('asdf', LOCAL_MANIFEST)
@@ -1300,12 +1338,19 @@ class PackageTest(QuiltTestCase):
 
     def test_remote_repr(self):
         with patch('quilt3.packages.get_size_and_version', return_value=(0, '0')):
-            TEST_REPR = "(remote Package)\n └─asdf\n"
+            TEST_REPR = (
+                "(remote Package)\n"
+                " └─asdf\n"
+            )  # fmt: skip
             pkg = Package()
             pkg.set('asdf', 's3://my-bucket/asdf')
             assert repr(pkg) == TEST_REPR
 
-            TEST_REPR = "(remote Package)\n └─asdf\n └─qwer\n"
+            TEST_REPR = (
+                "(remote Package)\n"
+                " └─asdf\n"
+                " └─qwer\n"
+            )  # fmt: skip
             pkg = Package()
             pkg.set('asdf', 's3://my-bucket/asdf')
             pkg.set('qwer', LOCAL_MANIFEST)
@@ -1510,7 +1555,8 @@ class PackageTest(QuiltTestCase):
             patch('quilt3.data_transfer.MAX_CONCURRENCY', 1),
             tempfile.TemporaryDirectory() as tmp_dir,
             patch(
-                'quilt3.packages.get_install_location', return_value=str(PhysicalKey.from_path(tmp_dir))
+                'quilt3.packages.get_install_location',
+                return_value=str(PhysicalKey.from_path(tmp_dir)),
             ) as mocked_get_install_location,
         ):
             Package.install(pkg_name2, registry=registry)
@@ -1594,7 +1640,10 @@ class PackageTest(QuiltTestCase):
         entries = ((entry_url, entry_content),)
         dest = 'package'
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries
+            pkg_registry,
+            pkg_name,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+            entries=entries,
         )
 
         Package.install(pkg_name, registry=registry, dest=dest, path=path)
@@ -1619,7 +1668,10 @@ class PackageTest(QuiltTestCase):
         entries = ((entry_url, entry_content),)
         dest = 'package'
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries
+            pkg_registry,
+            pkg_name,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+            entries=entries,
         )
 
         Package.install(pkg_name, registry=registry, dest=dest, path=path)
@@ -1792,7 +1844,8 @@ class PackageTest(QuiltTestCase):
         for method in (pkg.build, pkg.push):
             with self.subTest(method=method):
                 with patch(
-                    'quilt3.workflows.validate', side_effect=Exception('test exception')
+                    'quilt3.workflows.validate',
+                    side_effect=Exception('test exception'),
                 ) as workflow_validate_mock:
                     with pytest.raises(Exception) as excinfo:
                         method('test/pkg', registry='s3://test-bucket')
@@ -2174,7 +2227,14 @@ class PackageTestV2(PackageTest):
         super()._test_remote_package_delete_setup_stubber(pkg_registry, pkg_name, pointers=pointers)
 
     def _test_remote_revision_delete_setup_stubber(
-        self, pkg_registry, pkg_name, *, top_hashes, latest, remove, new_latest
+        self,
+        pkg_registry,
+        pkg_name,
+        *,
+        top_hashes,
+        latest,
+        remove,
+        new_latest,
     ):
         self.s3_stubber.add_response(
             method='delete_object',

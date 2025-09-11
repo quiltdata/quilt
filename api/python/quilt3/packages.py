@@ -204,7 +204,12 @@ class PackageEntry:
         """
         Returns dict representation of entry.
         """
-        return {'physical_keys': [str(self.physical_key)], 'size': self.size, 'hash': self.hash, 'meta': self._meta}
+        return {
+            'physical_keys': [str(self.physical_key)],
+            'size': self.size,
+            'hash': self.hash,
+            'meta': self._meta,
+        }
 
     @property
     def meta(self):
@@ -968,11 +973,10 @@ class Package:
         no such entry exists.
         """
         if "README.md" not in self:
-            ex_msg = (
-                "This Package is missing a README file. A Quilt recognized README file is a  file named "
-                "'README.md' (case-insensitive)"
+            raise QuiltException(
+                "This Package is missing a README file. "
+                "Quilt recognized README file is a file named 'README.md' (case-insensitive)"
             )
-            raise QuiltException(ex_msg)
 
         return self["README.md"]
 
@@ -1224,9 +1228,9 @@ class Package:
 
             if logical_key_ext is not None and serialize_loc_ext is not None:
                 assert logical_key_ext == serialize_loc_ext, (
-                    f"The logical_key and the serialization_location have "
-                    f"different file extensions: {logical_key_ext} vs "
-                    f"{serialize_loc_ext}. Quilt doesn't know which to use!"
+                    "The logical_key and the serialization_location have different file extensions: "
+                    f"{logical_key_ext} vs {serialize_loc_ext}. "
+                    "Quilt doesn't know which to use!"
                 )
 
             if serialize_loc_ext is not None:
@@ -1243,7 +1247,7 @@ class Package:
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
-                    error_message += f' as a {ext!r} file.'
+                    error_message += f' as a {ext!r} file'
                 error_message += (
                     '. If you think this should be supported, please open an issue or PR at '
                     'https://github.com/quiltdata/quilt'
@@ -1253,7 +1257,10 @@ class Package:
             if serialization_format_opts is None:
                 serialization_format_opts = {}
             serialized_object_bytes, new_meta = format_handlers[0].serialize(
-                entry, meta=None, ext=ext, **serialization_format_opts
+                entry,
+                meta=None,
+                ext=ext,
+                **serialization_format_opts,
             )
             if serialization_location is None:
                 serialization_path = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
@@ -1455,7 +1462,15 @@ class Package:
             A new package that points to the copied objects.
         """
         return self._push(
-            name, registry, dest, message, selector_fn, workflow=workflow, print_info=True, force=force, dedupe=dedupe
+            name,
+            registry,
+            dest,
+            message,
+            selector_fn,
+            workflow=workflow,
+            print_info=True,
+            force=force,
+            dedupe=dedupe,
         )
 
     def _push(
@@ -1651,7 +1666,7 @@ class Package:
                 navigator_url = get_from_config("navigator_url")
 
                 print(
-                    f"Successfully pushed the new package to "
+                    "Successfully pushed the new package to "
                     f"{catalog_package_url(navigator_url, registry.base.bucket, name, tree=False)}"
                 )
             else:

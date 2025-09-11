@@ -105,11 +105,13 @@ class WorkflowTest(QuiltTestCase):
 
     def test_workflow_is_required_not_specified(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-        ''')
+            get_v1_conf_data(
+                '''
+                workflows:
+                  w1:
+                    name: Name
+                '''
+            )
         )
         for workflow in (None, ...):
             with self.subTest(workflow=workflow):
@@ -118,12 +120,14 @@ class WorkflowTest(QuiltTestCase):
 
     def test_workflow_is_required_default_set(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            default_workflow: w1
-            workflows:
-              w1:
-                name: Name
-        ''')
+            get_v1_conf_data(
+                '''
+                default_workflow: w1
+                workflows:
+                  w1:
+                    name: Name
+                '''
+            )
         )
 
         assert self._validate() == {
@@ -136,12 +140,14 @@ class WorkflowTest(QuiltTestCase):
 
     def test_workflow_not_required_not_specified(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            is_workflow_required: false
-            workflows:
-              w1:
-                name: Name
-        ''')
+            get_v1_conf_data(
+                '''
+                is_workflow_required: false
+                workflows:
+                  w1:
+                    name: Name
+                '''
+            )
         )
         for workflow in (None, ...):
             with self.subTest(workflow=workflow):
@@ -152,13 +158,15 @@ class WorkflowTest(QuiltTestCase):
 
     def test_workflow_not_required_default_set(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            is_workflow_required: false
-            default_workflow: w1
-            workflows:
-              w1:
-                name: Name
-        ''')
+            get_v1_conf_data(
+                '''
+                is_workflow_required: false
+                default_workflow: w1
+                workflows:
+                  w1:
+                    name: Name
+                '''
+            )
         )
 
         assert self._validate() == {
@@ -173,11 +181,13 @@ class WorkflowTest(QuiltTestCase):
 
     def test_missing_workflow(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-        ''')
+            get_v1_conf_data(
+                '''
+                workflows:
+                  w1:
+                    name: Name
+                '''
+            )
         )
 
         with pytest.raises(QuiltException, match=r"There is no 'w2' workflow in config."):
@@ -185,12 +195,14 @@ class WorkflowTest(QuiltTestCase):
 
     def test_missing_schema(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-        ''')
+            get_v1_conf_data(
+                '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                '''
+            )
         )
 
         with pytest.raises(QuiltException, match=r"There is no 'schema-id' in schemas."):
@@ -200,14 +212,14 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % create_local_tmp_schema('{"$schema": 42}')
             )
         )
@@ -219,14 +231,14 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % tmp_schema
             )
         )
@@ -238,14 +250,14 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % tmp_schema
             )
         )
@@ -257,14 +269,14 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % schema_pk
             )
         )
@@ -282,7 +294,7 @@ class WorkflowTest(QuiltTestCase):
             schemas:
               schema-id:
                 url: %s
-        '''
+            '''
             % schema_pk
         )
         registry = get_package_registry('s3://some-bucket')
@@ -303,14 +315,14 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % create_local_tmp_schema('{"$ref": "other-schema"}')
             )
         )
@@ -322,33 +334,36 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % create_local_tmp_schema('{"type": "string"}')
             )
         )
 
-        with pytest.raises(QuiltException, match=r"Metadata failed validation: {} is not of type 'string'."):
+        with pytest.raises(
+            QuiltException,
+            match=r"Metadata failed validation: {} is not of type 'string'.",
+        ):
             self._validate(workflow='w1', meta={})
 
     def test_schema_validation_valid_meta(self):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % create_local_tmp_schema('{"type": "string"}')
             )
         )
@@ -383,7 +398,7 @@ class WorkflowTest(QuiltTestCase):
                 schemas:
                   schema-id:
                     url: %s
-            '''
+                '''
                 % schema_url
             )
             with self.subTest(schema_url=schema_url):
@@ -405,7 +420,8 @@ class WorkflowTest(QuiltTestCase):
                 }
 
     def test_remote_registry_local_schema(self):
-        data = get_v1_conf_data('''
+        data = get_v1_conf_data(
+            '''
             workflows:
               w1:
                 name: Name
@@ -413,7 +429,8 @@ class WorkflowTest(QuiltTestCase):
             schemas:
               schema-id:
                 url: file:///local/path
-        ''')
+            '''
+        )
         registry = 's3://some-bucket'
         self.s3_mock_config(data, get_package_registry(registry))
         schema_pk = PhysicalKey.from_path('/local/path')
@@ -423,12 +440,14 @@ class WorkflowTest(QuiltTestCase):
 
     def test_is_message_required(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-                is_message_required: true
-        ''')
+            get_v1_conf_data(
+                '''
+                workflows:
+                  w1:
+                    name: Name
+                    is_message_required: true
+                '''
+            )
         )
 
         assert self._validate(workflow='w1', message='some message') == {
@@ -446,15 +465,17 @@ class WorkflowTest(QuiltTestCase):
         for url in (',', 'http://example.com', 's3://'):
             with self.subTest(url=url):
                 set_local_conf_data(
-                    get_v1_conf_data(f'''
-                    workflows:
-                      w1:
-                        name: Name
-                        metadata_schema: schema-id
-                    schemas:
-                      schema-id:
-                        url: "{url}"
-                ''')
+                    get_v1_conf_data(
+                        f'''
+                        workflows:
+                          w1:
+                            name: Name
+                            metadata_schema: schema-id
+                        schemas:
+                          schema-id:
+                            url: "{url}"
+                        '''
+                    )
                 )
                 with pytest.raises(QuiltException, match=rf"Couldn't parse URL '{url}'."):
                     self._validate(workflow='w1')
@@ -468,14 +489,14 @@ class WorkflowTest(QuiltTestCase):
                 set_local_conf_data(
                     get_v1_conf_data(
                         '''
-                    workflows:
-                      w1:
-                        name: Name
-                        metadata_schema: schema-id
-                    schemas:
-                      schema-id:
-                        url: %s
-                '''
+                        workflows:
+                          w1:
+                            name: Name
+                            metadata_schema: schema-id
+                        schemas:
+                          schema-id:
+                            url: %s
+                        '''
                         % create_local_tmp_schema(f'{{"$schema": "{meta_schema}"}}')
                     )
                 )
@@ -488,14 +509,14 @@ class WorkflowTest(QuiltTestCase):
                 set_local_conf_data(
                     get_v1_conf_data(
                         '''
-                    workflows:
-                      w1:
-                        name: Name
-                        metadata_schema: schema-id
-                    schemas:
-                      schema-id:
-                        url: %s
-                '''
+                        workflows:
+                          w1:
+                            name: Name
+                            metadata_schema: schema-id
+                        schemas:
+                          schema-id:
+                            url: %s
+                        '''
                         % create_local_tmp_schema(f'{{"$schema": "{meta_schema}"}}')
                     )
                 )
@@ -509,14 +530,16 @@ class WorkflowTest(QuiltTestCase):
 
     def test_successors(self):
         set_local_conf_data(
-            get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-            successors:
-              s3://some-bucket:
-                title: successor title
-        ''')
+            get_v1_conf_data(
+                '''
+                workflows:
+                  w1:
+                    name: Name
+                successors:
+                  s3://some-bucket:
+                    title: successor title
+                '''
+            )
         )
         assert self._validate(workflow='w1') == {
             'id': 'w1',
@@ -528,15 +551,18 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-        ''',
+                workflows:
+                  w1:
+                    name: Name
+                ''',
                 version='2',
             )
         )
 
-        with pytest.raises(workflows.UnsupportedConfigurationVersionError, match=r"Version '2.0.0' is not supported"):
+        with pytest.raises(
+            workflows.UnsupportedConfigurationVersionError,
+            match=r"Version '2.0.0' is not supported",
+        ):
             self._validate(workflow='w1')
 
     @mock.patch('quilt3.workflows.WorkflowConfig.load_schema')
@@ -545,15 +571,15 @@ class WorkflowTest(QuiltTestCase):
         set_local_conf_data(
             get_v1_conf_data(
                 '''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-                entries_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        '''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                    entries_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+                '''
                 % create_local_tmp_schema('true')
             )
         )
@@ -583,7 +609,7 @@ class WorkflowTest(QuiltTestCase):
                     url: %s
                   schema-id2:
                     url: %s
-            '''
+                '''
                 % ((create_local_tmp_schema('true'),) * 2)
             )
         )

@@ -110,4 +110,7 @@ class QuiltTestCase(TestCase):
                 get_object_mock.assert_called_once_with(**expected_params)
             else:
                 assert get_object_mock.call_count == num_parts
-                get_object_mock.assert_has_calls([mock.call(**expected_params, Range=r) for r in data], any_order=True)
+                get_object_mock.assert_has_calls(
+                    [mock.call(**expected_params, Range=r) for r in data],
+                    any_order=True,
+                )

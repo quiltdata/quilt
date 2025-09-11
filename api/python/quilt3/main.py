@@ -142,12 +142,12 @@ def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port:
     else:
         num_colons = navigation_target.count(":")
         assert num_colons == 1, (
-            f"To go to Package view, the input should follow the pattern BUCKET:USER/PKG. "
+            "To go to Package view, the input should follow the pattern BUCKET:USER/PKG. "
             f"However the input {navigation_target} has {num_colons} colons when it should have exactly one."
         )
         num_slashes = navigation_target.count("/")
         assert num_slashes == 1, (
-            f"To go to Package view, the input should follow the pattern BUCKET:USER/PKG. "
+            "To go to Package view, the input should follow the pattern BUCKET:USER/PKG. "
             f"However the input {navigation_target} has {num_slashes} backslashes when it should have exactly one."
         )
         bucket, package_name = navigation_target.split(":")
@@ -259,7 +259,10 @@ def create_parser():
     shorthelp = "Configure Quilt"
     config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp, allow_abbrev=False)
     config_p.add_argument(
-        "catalog_url", help="URL of catalog to config with, or empty string to reset the config", type=str, nargs="?"
+        "catalog_url",
+        help="URL of catalog to config with, or empty string to reset the config",
+        type=str,
+        nargs="?",
     )
     config_p.add_argument(
         "--set",
@@ -267,10 +270,9 @@ def create_parser():
         nargs="+",
         help="Set a number of key-value pairs for config_values"
         "(do not put spaces before or after the = sign). "
-        "If a value contains spaces, you should define "
-        "it with double quotes: "
-        'foo="this is a sentence". Note that '
-        "values are always treated as strings.",
+        "If a value contains spaces, you should define it with double quotes: "
+        'foo="this is a sentence". '
+        "Note that values are always treated as strings.",
         action=ParseConfigDict,
     )
     config_p.set_defaults(func=cmd_config)
@@ -278,10 +280,15 @@ def create_parser():
     # config-default-registry
     shorthelp = "Configure default remote registry for Quilt"
     config_p = subparsers.add_parser(
-        "config-default-remote-registry", description=shorthelp, help=shorthelp, allow_abbrev=False
+        "config-default-remote-registry",
+        description=shorthelp,
+        help=shorthelp,
+        allow_abbrev=False,
     )
     config_p.add_argument(
-        "default_remote_registry", help="The default remote registry to use, e.g. s3://quilt-ml", type=str
+        "default_remote_registry",
+        help="The default remote registry to use, e.g. s3://quilt-ml",
+        type=str,
     )
     config_p.set_defaults(func=cmd_config_default_registry)
 
@@ -290,9 +297,10 @@ def create_parser():
     catalog_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp, allow_abbrev=False)
     catalog_p.add_argument(
         "navigation_target",
-        help="Which page in the local catalog to open. Leave blank to go to the catalog landing page, pass in an "
-        "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
-        "'BUCKET:USER/PKG' to go to the package viewer.",
+        help="Which page in the local catalog to open. "
+        "Leave blank to go to the catalog landing page, pass in an S3 url "
+        "(e.g. 's3://bucket/myfile.txt') to go to file viewer, "
+        "or pass in a package name in the form 'BUCKET:USER/PKG' to go to the package viewer.",
         type=str,
         nargs="?",
     )
@@ -324,7 +332,10 @@ def create_parser():
     # disable-telemetry
     shorthelp = "Disable anonymous usage metrics"
     disable_telemetry_p = subparsers.add_parser(
-        "disable-telemetry", description=shorthelp, help=shorthelp, allow_abbrev=False
+        "disable-telemetry",
+        description=shorthelp,
+        help=shorthelp,
+        allow_abbrev=False,
     )
     disable_telemetry_p.set_defaults(func=cmd_disable_telemetry)
 
@@ -333,7 +344,7 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help=("Name of package, in the USER/PKG format"),
+        help="Name of package, in the USER/PKG format",
         type=str,
     )
     install_p.add_argument(
@@ -405,7 +416,9 @@ def create_parser():
         required=True,
     )
     verify_p.add_argument(
-        "--extra-files-ok", help="Whether extra files in the directory should cause a failure", action="store_true"
+        "--extra-files-ok",
+        help="Whether extra files in the directory should cause a failure",
+        action="store_true",
     )
     verify_p.set_defaults(func=cmd_verify)
 
@@ -426,7 +439,11 @@ def create_parser():
         required=True,
     )
     optional_args.add_argument(
-        '-h', '--help', action='help', default=argparse.SUPPRESS, help='show this help message and exit'
+        '-h',
+        '--help',
+        action='help',
+        default=argparse.SUPPRESS,
+        help='show this help message and exit',
     )
     optional_args.add_argument(
         "--registry",

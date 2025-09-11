@@ -79,7 +79,10 @@ class DataTransferTest(QuiltTestCase):
             'Key': 'bar/baz.json',
             'Expression': 'select * from S3Object',
             'ExpressionType': 'SQL',
-            'InputSerialization': {'CompressionType': 'NONE', 'JSON': {'Type': 'DOCUMENT'}},
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'DOCUMENT'},
+            },
             'OutputSerialization': {'JSON': {}},
         }
         boto_return_val = {'Payload': iter(records)}
@@ -100,14 +103,19 @@ class DataTransferTest(QuiltTestCase):
             'Key': 'bar/baz',
             'Expression': 'select * from S3Object',
             'ExpressionType': 'SQL',
-            'InputSerialization': {'CompressionType': 'NONE', 'JSON': {'Type': 'DOCUMENT'}},
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'DOCUMENT'},
+            },
             'OutputSerialization': {'JSON': {}},
         }
 
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             result = data_transfer.select(
-                PhysicalKey.from_url('s3://foo/bar/baz'), 'select * from S3Object', meta={'target': 'json'}
+                PhysicalKey.from_url('s3://foo/bar/baz'),
+                'select * from S3Object',
+                meta={'target': 'json'},
             )
             assert result.equals(expected_result)
             patched.assert_called_once_with(**expected_args)
@@ -118,7 +126,10 @@ class DataTransferTest(QuiltTestCase):
             'Key': 'bar/baz.json.gz',
             'Expression': 'select * from S3Object',
             'ExpressionType': 'SQL',
-            'InputSerialization': {'CompressionType': 'GZIP', 'JSON': {'Type': 'DOCUMENT'}},
+            'InputSerialization': {
+                'CompressionType': 'GZIP',
+                'JSON': {'Type': 'DOCUMENT'},
+            },
             'OutputSerialization': {'JSON': {}},
         }
         boto_return_val = {'Payload': iter(records)}
@@ -145,7 +156,12 @@ class DataTransferTest(QuiltTestCase):
     def test_list_local_url(self):
         dir_path = DATA_DIR / 'dir'
         contents = set(list(data_transfer.list_url(PhysicalKey.from_path(dir_path))))
-        assert contents == set([('foo.txt', 4), ('x/blah.txt', 6)])
+        assert contents == set(
+            [
+                ('foo.txt', 4),
+                ('x/blah.txt', 6),
+            ]
+        )
 
     def test_etag(self):
         assert data_transfer._calculate_etag(DATA_DIR / 'small_file.csv') == '"0bec5bf6f93c547bc9c6774acaf85e1a"'
@@ -651,7 +667,11 @@ class DataTransferTest(QuiltTestCase):
                 'UploadId': '123',
                 'MultipartUpload': {
                     'Parts': [
-                        {'ETag': 'etag%d' % i, 'ChecksumSHA256': 'hash%d' % i, 'PartNumber': i}
+                        {
+                            'ETag': 'etag%d' % i,
+                            'ChecksumSHA256': 'hash%d' % i,
+                            'PartNumber': i,
+                        }
                         for i in range(1, chunks + 1)
                     ]
                 },
@@ -661,7 +681,11 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             data_transfer.copy_file_list(
                 [
-                    (PhysicalKey.from_path(path), PhysicalKey.from_url(f's3://example/{name}'), path.stat().st_size),
+                    (
+                        PhysicalKey.from_path(path),
+                        PhysicalKey.from_url(f's3://example/{name}'),
+                        path.stat().st_size,
+                    ),
                 ]
             )
 
@@ -718,7 +742,11 @@ class DataTransferTest(QuiltTestCase):
                 'UploadId': '123',
                 'MultipartUpload': {
                     'Parts': [
-                        {'ETag': 'etag%d' % i, 'ChecksumSHA256': 'hash%d' % i, 'PartNumber': i}
+                        {
+                            'ETag': 'etag%d' % i,
+                            'ChecksumSHA256': 'hash%d' % i,
+                            'PartNumber': i,
+                        }
                         for i in range(1, chunks + 1)
                     ]
                 },
@@ -765,7 +793,8 @@ class DataTransferTest(QuiltTestCase):
         dst = PhysicalKey(other_bucket, key, vid)
 
         with mock.patch(
-            'botocore.client.BaseClient._make_api_call', side_effect=ClientError({}, 'CopyObject')
+            'botocore.client.BaseClient._make_api_call',
+            side_effect=ClientError({}, 'CopyObject'),
         ) as mocked_api_call:
             with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, 1)])
@@ -784,7 +813,8 @@ class DataTransferTest(QuiltTestCase):
         dst = PhysicalKey(other_bucket, key, vid)
 
         with mock.patch(
-            'botocore.client.BaseClient._make_api_call', side_effect=Exception('test exception')
+            'botocore.client.BaseClient._make_api_call',
+            side_effect=Exception('test exception'),
         ) as mocked_api_call:
             with pytest.raises(Exception, match='test exception'):
                 data_transfer.copy_file_list([(src, dst, 1)])
@@ -816,7 +846,8 @@ class DataTransferTest(QuiltTestCase):
 
         # TODO: copy_file_list also retries ClientError. Should calculate_checksum do that?
         with mock.patch(
-            'botocore.client.BaseClient._make_api_call', side_effect=ConnectionError(error='foo')
+            'botocore.client.BaseClient._make_api_call',
+            side_effect=ConnectionError(error='foo'),
         ) as mocked_api_call:
             result = data_transfer.calculate_checksum([src], [1])
             assert isinstance(result[0], ConnectionError)
@@ -829,9 +860,7 @@ class DataTransferTest(QuiltTestCase):
         def side_effect(operation_name, *args, **kwargs):
             if args[0]['Key'] == 'dir/a':
                 # src1 succeeds
-                return {
-                    'Body': io.BytesIO(b'a'),
-                }
+                return {'Body': io.BytesIO(b'a')}
             else:
                 # src2 fails twice, then succeeds
                 if side_effect.counter < 2:
@@ -843,7 +872,10 @@ class DataTransferTest(QuiltTestCase):
 
         side_effect.counter = 0
 
-        with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=side_effect) as mocked_api_call:
+        with mock.patch(
+            'botocore.client.BaseClient._make_api_call',
+            side_effect=side_effect,
+        ) as mocked_api_call:
             result = data_transfer.calculate_checksum([src1, src2], [1, 2])
             assert result[0] == 'v106/7c+/S7Gw2rTES3ZM+/tY8Thy//PqI4nWcFE8tg='
             assert result[1] == 'OTYRYJA8ZpXGgEtxV8e9EAE+m6ibH5VCQ7yOOZCwjbk='
@@ -961,7 +993,11 @@ class S3DownloadTest(QuiltTestCase):
         dst = PhysicalKey(None, os.devnull, None) if devnull else self.dst
 
         with self.s3_test_multi_thread_download(
-            self.bucket, self.key, parts, threshold=threshold, chunksize=chunksize
+            self.bucket,
+            self.key,
+            parts,
+            threshold=threshold,
+            chunksize=chunksize,
         ):
             data_transfer.copy_file_list([(self.src, dst, self.size)])
 
@@ -1023,7 +1059,11 @@ class S3HashingTest(QuiltTestCase):
         }
 
         with self.s3_test_multi_thread_download(
-            self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
+            self.bucket,
+            self.key,
+            ranges,
+            threshold=chunksize,
+            chunksize=chunksize,
         ):
             hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
             hash2 = data_transfer.calculate_checksum_bytes(data)
@@ -1043,7 +1083,11 @@ class S3HashingTest(QuiltTestCase):
         }
 
         with self.s3_test_multi_thread_download(
-            self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
+            self.bucket,
+            self.key,
+            ranges,
+            threshold=chunksize,
+            chunksize=chunksize,
         ):
             hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
             hash2 = data_transfer.calculate_checksum_bytes(data)
@@ -1062,7 +1106,11 @@ class S3HashingTest(QuiltTestCase):
         }
 
         with self.s3_test_multi_thread_download(
-            self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
+            self.bucket,
+            self.key,
+            ranges,
+            threshold=chunksize,
+            chunksize=chunksize,
         ):
             hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
             hash2 = data_transfer.calculate_checksum_bytes(data)
