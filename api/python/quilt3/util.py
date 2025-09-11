@@ -16,6 +16,7 @@ from urllib.parse import (
 from urllib.request import url2pathname
 
 import requests
+
 # Third-Party
 import yaml
 from platformdirs import user_cache_dir, user_data_dir
@@ -186,8 +187,7 @@ class PhysicalKey:
         if os.path.sep != '/':
             new_path = new_path.replace(os.path.sep, '/')
         # Add back a trailing '/' if the original path has it.
-        if (path.endswith(os.path.sep) or
-                (os.path.altsep is not None and path.endswith(os.path.altsep))):
+        if path.endswith(os.path.sep) or (os.path.altsep is not None and path.endswith(os.path.altsep)):
             new_path += '/'
         return cls(None, new_path, None)
 
@@ -212,10 +212,10 @@ class PhysicalKey:
 
     def __eq__(self, other):
         return (
-            isinstance(other, self.__class__) and
-            self.bucket == other.bucket and
-            self.path == other.path and
-            self.version_id == other.version_id
+            isinstance(other, self.__class__)
+            and self.bucket == other.bucket
+            and self.path == other.path
+            and self.version_id == other.version_id
         )
 
     def __repr__(self):
@@ -303,7 +303,7 @@ def write_yaml(data, yaml_path, keep_backup=False):
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
-    except Exception:     # intentionally wide catch -- reraised immediately.
+    except Exception:  # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
             backup_path.replace(path)
         raise
@@ -341,8 +341,7 @@ class QuiltConfig(OrderedDict):
         # This is a good spot.
         if key == 'navigator_url' and value:
             if not isinstance(value, str):
-                raise ValueError("Expected a string for config key {!r}, but got {!r}"
-                                 .format(key, value))
+                raise ValueError("Expected a string for config key {!r}, but got {!r}".format(key, value))
             value = value.strip().rstrip('/')
         # Similar activity, moved from api.config() to here.
         if isinstance(key, str) and key.endswith('_url'):
@@ -356,13 +355,13 @@ class QuiltConfig(OrderedDict):
 
 
 def validate_package_name(name):
-    """ Verify that a package name is two alphanumeric strings separated by a slash."""
+    """Verify that a package name is two alphanumeric strings separated by a slash."""
     if not re.match(PACKAGE_NAME_FORMAT, name):
         raise QuiltException(f"Invalid package name: {name}.")
 
 
 def configure_from_url(catalog_url):
-    """ Read configuration settings from a Quilt catalog """
+    """Read configuration settings from a Quilt catalog"""
     config_template = read_yaml(CONFIG_TEMPLATE)
     # Clean up and validate catalog url
     catalog_url = catalog_url.rstrip('/')
@@ -374,10 +373,7 @@ def configure_from_url(catalog_url):
     response = requests.get(config_url)
     if not response.ok:
         message = "An HTTP Error ({code}) occurred: {reason}"
-        raise QuiltException(
-            message.format(code=response.status_code, reason=response.reason),
-            response=response
-            )
+        raise QuiltException(message.format(code=response.status_code, reason=response.reason), response=response)
 
     # QuiltConfig may perform some validation and value scrubbing.
     new_config = QuiltConfig('', response.json())
@@ -483,7 +479,6 @@ def quiltignore_filter(paths, ignore, url_scheme):
 
         filtered_dirs = dirs.copy()
         for ignore_rule in ignore_rules:
-
             for pkg_dir in filtered_dirs.copy():
                 # copy git behavior --- git matches paths and directories equivalently.
                 # e.g. both foo and foo/ will match the ignore rule "foo"
@@ -504,9 +499,7 @@ def validate_key(key):
     Verify that a file path or S3 path does not contain any '.' or '..' separators or files.
     """
     if key is None or key == '':
-        raise QuiltException(
-            f"Invalid key {key!r}. A package entry key cannot be empty."
-        )
+        raise QuiltException(f"Invalid key {key!r}. A package entry key cannot be empty.")
 
     for part in key.split('/'):
         if part in ('', '.', '..'):

@@ -85,8 +85,7 @@ class CopyFileListFn(T.Protocol):
         file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
         message: T.Optional[str] = None,
         callback: T.Optional[T.Callable] = None,
-    ) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]:
-        ...
+    ) -> T.List[T.Tuple[PhysicalKey, T.Optional[str]]]: ...
 
 
 def _fix_docstring(**kwargs):
@@ -94,6 +93,7 @@ def _fix_docstring(**kwargs):
         if sys.flags.optimize < 2:
             wrapped.__doc__ = textwrap.dedent(wrapped.__doc__) % kwargs
         return wrapped
+
     return f
 
 
@@ -168,6 +168,7 @@ class PackageEntry:
     """
     Represents an entry at a logical key inside a package.
     """
+
     __slots__ = ('physical_key', 'size', 'hash', '_meta')
 
     def __init__(self, physical_key, size, hash_obj, meta):
@@ -193,9 +194,7 @@ class PackageEntry:
     def __eq__(self, other):
         return (
             # Don't check physical keys.
-            self.size == other.size
-            and self.hash == other.hash
-            and self._meta == other._meta
+            self.size == other.size and self.hash == other.hash and self._meta == other._meta
         )
 
     def __repr__(self):
@@ -205,12 +204,7 @@ class PackageEntry:
         """
         Returns dict representation of entry.
         """
-        return {
-            'physical_keys': [str(self.physical_key)],
-            'size': self.size,
-            'hash': self.hash,
-            'meta': self._meta
-        }
+        return {'physical_keys': [str(self.physical_key)], 'size': self.size, 'hash': self.hash, 'meta': self._meta}
 
     @property
     def meta(self):
@@ -399,22 +393,20 @@ class ManifestJSONDecoder(json.JSONDecoder):
     a single `decode()` call.
     This class also reuses `str` between many `decode()`s.
     """
+
     def __init__(self, *args, **kwargs):
         @functools.lru_cache(maxsize=None)
         def memoize_key(s):
             return s
 
         def object_pairs_hook(items):
-            return {
-                memoize_key(k): v
-                for k, v in items
-            }
+            return {memoize_key(k): v for k, v in items}
 
         super().__init__(*args, object_pairs_hook=object_pairs_hook, **kwargs)
 
 
 class Package:
-    """ In-memory representation of a package """
+    """In-memory representation of a package"""
 
     def __init__(self):
         self._children = {}
@@ -426,6 +418,7 @@ class Package:
         """
         String representation of the Package.
         """
+
         def _create_str(results_dict, level=0, parent=True):
             """
             Creates a string from the results dict
@@ -436,11 +429,7 @@ class Package:
                 return result
 
             if parent:
-                has_remote_entries = any(
-                    self._map(
-                        lambda lk, entry: not entry.physical_key.is_local()
-                    )
-                )
+                has_remote_entries = any(self._map(lambda lk, entry: not entry.physical_key.is_local()))
                 pkg_type = 'remote' if has_remote_entries else 'local'
                 result = f'({pkg_type} Package)\n'
 
@@ -634,8 +623,8 @@ class Package:
 
         top_hash = (
             get_bytes(registry.pointer_latest_pk(name)).decode()
-            if top_hash is None else
-            registry.resolve_top_hash(name, top_hash)
+            if top_hash is None
+            else registry.resolve_top_hash(name, top_hash)
         )
         pkg_manifest = registry.manifest_pk(name, top_hash)
 
@@ -667,7 +656,7 @@ class Package:
 
     @classmethod
     def _from_path(cls, path):
-        """ Takes a path and returns a package loaded from that path"""
+        """Takes a path and returns a package loaded from that path"""
         with open(path, encoding='utf-8') as open_file:
             pkg = cls._load(open_file)
         return pkg
@@ -942,7 +931,7 @@ class Package:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
                 obj_pk = PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
-                logical_key = obj['Key'][len(src_path):]
+                logical_key = obj['Key'][len(src_path) :]
                 # check update policy
                 if update_policy == 'existing' and logical_key in root:
                     continue
@@ -979,8 +968,10 @@ class Package:
         no such entry exists.
         """
         if "README.md" not in self:
-            ex_msg = "This Package is missing a README file. A Quilt recognized README file is a  file named " \
-                     "'README.md' (case-insensitive)"
+            ex_msg = (
+                "This Package is missing a README file. A Quilt recognized README file is a  file named "
+                "'README.md' (case-insensitive)"
+            )
             raise QuiltException(ex_msg)
 
         return self["README.md"]
@@ -1035,8 +1026,7 @@ class Package:
         """
         if msg is not None and not isinstance(msg, str):
             raise ValueError(
-                f"The package commit message must be a string, but the message provided is an "
-                f"instance of {type(msg)}."
+                f"The package commit message must be a string, but the message provided is an instance of {type(msg)}."
             )
 
         self._meta.update({'message': msg})
@@ -1048,10 +1038,7 @@ class Package:
 
         manifest = io.BytesIO()
         self._dump(manifest)
-        put_bytes(
-            manifest.getvalue(),
-            pkg_manifest_file
-        )
+        put_bytes(manifest.getvalue(), pkg_manifest_file)
         return pkg_manifest_file.path
 
     @property
@@ -1189,12 +1176,14 @@ class Package:
         Returns:
             self
         """
-        return self._set(logical_key=logical_key,
-                         entry=entry,
-                         meta=meta,
-                         serialization_location=serialization_location,
-                         serialization_format_opts=serialization_format_opts,
-                         unversioned=unversioned)
+        return self._set(
+            logical_key=logical_key,
+            entry=entry,
+            meta=meta,
+            serialization_location=serialization_location,
+            serialization_format_opts=serialization_format_opts,
+            unversioned=unversioned,
+        )
 
     def _set(
         self,
@@ -1206,9 +1195,7 @@ class Package:
         unversioned: bool = False,
     ):
         if not logical_key or logical_key.endswith('/'):
-            raise QuiltException(
-                f"A package entry logical key {logical_key!r} must be a file."
-            )
+            raise QuiltException(f"A package entry logical key {logical_key!r} must be a file.")
 
         validate_key(logical_key)
 
@@ -1236,9 +1223,11 @@ class Package:
                 serialize_loc_ext = extract_file_extension(serialization_location)
 
             if logical_key_ext is not None and serialize_loc_ext is not None:
-                assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
-                                                             f"different file extensions: {logical_key_ext} vs " \
-                                                             f"{serialize_loc_ext}. Quilt doesn't know which to use!"
+                assert logical_key_ext == serialize_loc_ext, (
+                    f"The logical_key and the serialization_location have "
+                    f"different file extensions: {logical_key_ext} vs "
+                    f"{serialize_loc_ext}. Quilt doesn't know which to use!"
+                )
 
             if serialize_loc_ext is not None:
                 ext = serialize_loc_ext
@@ -1255,14 +1244,17 @@ class Package:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
                     error_message += f' as a {ext!r} file.'
-                error_message += '. If you think this should be supported, please open an issue or PR at ' \
-                                 'https://github.com/quiltdata/quilt'
+                error_message += (
+                    '. If you think this should be supported, please open an issue or PR at '
+                    'https://github.com/quiltdata/quilt'
+                )
                 raise QuiltException(error_message)
 
             if serialization_format_opts is None:
                 serialization_format_opts = {}
-            serialized_object_bytes, new_meta = format_handlers[0].serialize(entry, meta=None, ext=ext,
-                                                                             **serialization_format_opts)
+            serialized_object_bytes, new_meta = format_handlers[0].serialize(
+                entry, meta=None, ext=ext, **serialization_format_opts
+            )
             if serialization_location is None:
                 serialization_path = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
                 if ext:
@@ -1306,8 +1298,7 @@ class Package:
         """
         pkg = self
         for key_fragment in path:
-            if ensure_no_entry and key_fragment in pkg \
-                    and isinstance(pkg[key_fragment], PackageEntry):
+            if ensure_no_entry and key_fragment in pkg and isinstance(pkg[key_fragment], PackageEntry):
                 raise QuiltException(
                     f"Already a PackageEntry for {key_fragment!r} "
                     f"along the path {path!r}: {pkg[key_fragment].physical_key!r}",
@@ -1360,9 +1351,7 @@ class Package:
         # TODO: dir-level metadata should affect top hash as well.
         for logical_key, entry in entries:
             if entry.hash is None or entry.size is None:
-                raise QuiltException(
-                    "PackageEntry missing hash and/or size: %r" % entry.physical_key
-                )
+                raise QuiltException("PackageEntry missing hash and/or size: %r" % entry.physical_key)
             yield {
                 'hash': entry.hash,
                 'logical_key': logical_key,
@@ -1373,8 +1362,16 @@ class Package:
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
-        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow=..., force: bool = False, dedupe: bool = False
+        self,
+        name,
+        registry=None,
+        dest=None,
+        message=None,
+        selector_fn=None,
+        *,
+        workflow=...,
+        force: bool = False,
+        dedupe: bool = False,
     ):
         """
         Creates a new package, or a new revision of an existing package in a
@@ -1458,13 +1455,21 @@ class Package:
             A new package that points to the copied objects.
         """
         return self._push(
-            name, registry, dest, message, selector_fn, workflow=workflow,
-            print_info=True, force=force, dedupe=dedupe
+            name, registry, dest, message, selector_fn, workflow=workflow, print_info=True, force=force, dedupe=dedupe
         )
 
     def _push(
-        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow, print_info, force: bool, dedupe: bool,
+        self,
+        name,
+        registry=None,
+        dest=None,
+        message=None,
+        selector_fn=None,
+        *,
+        workflow,
+        print_info,
+        force: bool,
+        dedupe: bool,
         copy_file_list_fn: T.Optional[CopyFileListFn] = None,
     ):
         if copy_file_list_fn is None:
@@ -1505,6 +1510,7 @@ class Package:
                 return entry.physical_key.bucket != registry_parsed.bucket
 
         if callable(dest):
+
             def dest_fn(*args, **kwargs):
                 url = dest(*args, **kwargs)
                 if not isinstance(url, str):
@@ -1516,8 +1522,10 @@ class Package:
                     raise ValueError(f'{dest!r} returned {url!r}, but URI must not include versionId')
                 return pk
         else:
+
             def dest_fn(lk, *args, **kwargs):
                 return dest_parsed.join(lk)
+
             if dest is None:
                 dest_parsed = registry_parsed.join(name)
             else:
@@ -1579,10 +1587,7 @@ class Package:
             physical_key = entry.physical_key
 
             new_physical_key = dest_fn(logical_key, entry)
-            if (
-                physical_key.bucket == new_physical_key.bucket and
-                physical_key.path == new_physical_key.path
-            ):
+            if physical_key.bucket == new_physical_key.bucket and physical_key.path == new_physical_key.path:
                 # No need to copy - re-use the original physical key.
                 pkg._set(logical_key, entry)
             else:
@@ -1645,8 +1650,10 @@ class Package:
             if user_is_configured_to_custom_stack():
                 navigator_url = get_from_config("navigator_url")
 
-                print(f"Successfully pushed the new package to "
-                      f"{catalog_package_url(navigator_url, registry.base.bucket, name, tree=False)}")
+                print(
+                    f"Successfully pushed the new package to "
+                    f"{catalog_package_url(navigator_url, registry.base.bucket, name, tree=False)}"
+                )
             else:
                 dest_s3_url = str(registry.base)
                 if not dest_s3_url.endswith("/"):
@@ -1724,7 +1731,6 @@ class Package:
         return self._map(f, include_directories=include_directories)
 
     def _map(self, f, include_directories=False):
-
         if include_directories:
             for lk, _ in self._walk_dir_meta():
                 yield f(lk, self[lk.rstrip("/")])
@@ -1761,9 +1767,7 @@ class Package:
                     excluded_dirs.add(lk)
 
         for lk, entity in self.walk():
-            if (not any(p in excluded_dirs
-                        for p in pathlib.PurePosixPath(lk).parents)
-                    and f(lk, entity)):
+            if not any(p in excluded_dirs for p in pathlib.PurePosixPath(lk).parents) and f(lk, entity):
                 p._set(lk, entity)
 
         return p

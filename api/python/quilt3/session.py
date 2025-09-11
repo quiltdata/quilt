@@ -69,7 +69,7 @@ def _update_auth(refresh_token, timeout=None):
             timeout=timeout,
             data=dict(
                 refresh_token=refresh_token,
-            )
+            ),
         )
     except requests.exceptions.ConnectionError as ex:
         raise QuiltException("Failed to connect: %s" % ex)
@@ -82,18 +82,12 @@ def _update_auth(refresh_token, timeout=None):
     if error is not None:
         raise QuiltException("Failed to log in: %s" % error)
 
-    return dict(
-        refresh_token=data['refresh_token'],
-        access_token=data['access_token'],
-        expires_at=data['expires_at']
-    )
+    return dict(refresh_token=data['refresh_token'], access_token=data['access_token'], expires_at=data['expires_at'])
 
 
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
-        raise QuiltException(
-            "Authentication failed. Run `quilt3 login` again."
-        )
+        raise QuiltException("Authentication failed. Run `quilt3 login` again.")
     elif not resp.ok:
         try:
             data = resp.json()
@@ -116,9 +110,7 @@ def _create_auth(timeout=None):
             try:
                 auth = _update_auth(auth['refresh_token'], timeout)
             except QuiltException as ex:
-                raise QuiltException(
-                    "Failed to update the access token (%s). Run `quilt3 login` again." % ex
-                )
+                raise QuiltException("Failed to update the access token (%s). Run `quilt3 login` again." % ex)
             contents[url] = auth
             _save_auth(contents)
 
@@ -130,17 +122,21 @@ def _create_session(auth):
     Creates a session object to be used for `push`, `install`, etc.
     """
     session = requests.Session()
-    session.hooks.update(
-        response=_handle_response
+    session.hooks.update(response=_handle_response)
+    session.headers.update(
+        {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "quilt-python/%s (%s %s) %s/%s"
+            % (
+                VERSION,
+                platform.system(),
+                platform.release(),
+                platform.python_implementation(),
+                platform.python_version(),
+            ),
+        }
     )
-    session.headers.update({
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "quilt-python/%s (%s %s) %s/%s" % (
-            VERSION, platform.system(), platform.release(),
-            platform.python_implementation(), platform.python_version()
-        )
-    })
     if auth is not None:
         session.headers["Authorization"] = "Bearer %s" % auth['access_token']
 
@@ -174,14 +170,14 @@ def clear_session():
 def open_url(url):
     try:
         if sys.platform == 'win32':
-            os.startfile(url)   # pylint:disable=E1101
+            os.startfile(url)  # pylint:disable=E1101
         elif sys.platform == 'darwin':
             with open(os.devnull, 'rb+') as null:
                 subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
         else:
             with open(os.devnull, 'rb+') as null:
                 subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
-    except Exception as ex:     # pylint:disable=W0703
+    except Exception as ex:  # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
 
@@ -247,16 +243,12 @@ def logout():
 
 def _refresh_credentials():
     session = get_session()
-    creds = session.get(
-        "{url}/api/auth/get_credentials".format(
-            url=get_registry_url()
-        )
-    ).json()
+    creds = session.get("{url}/api/auth/get_credentials".format(url=get_registry_url())).json()
     result = {
         'access_key': creds['AccessKeyId'],
         'secret_key': creds['SecretAccessKey'],
         'token': creds['SessionToken'],
-        'expiry_time': creds['Expiration']
+        'expiry_time': creds['Expiration'],
     }
     _save_credentials(result)
     return result

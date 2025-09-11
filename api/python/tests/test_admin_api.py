@@ -82,7 +82,9 @@ def _as_dataclass_kwargs(data: dict) -> dict:
         "typename__" if k == "__typename" else _camel_to_snake(k): (
             _as_dataclass_kwargs(v)
             if isinstance(v, dict)
-            else [_as_dataclass_kwargs(x) for x in v] if isinstance(v, list) else v
+            else [_as_dataclass_kwargs(x) for x in v]
+            if isinstance(v, list)
+            else v
         )
         for k, v in data.items()
     }
