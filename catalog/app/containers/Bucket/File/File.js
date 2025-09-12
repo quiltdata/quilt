@@ -439,7 +439,7 @@ function File() {
           throw e
         },
         Ok: requests.ObjectExistence.case({
-          Exists: () => (
+          Exists: ({ deleted }) => (
             <>
               {BucketPreferences.Result.match(
                 {
@@ -448,7 +448,7 @@ function File() {
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
-                      {blocks.meta && (
+                      {!deleted && blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />
                           <FileView.ObjectTags handle={handle} />
@@ -469,6 +469,7 @@ function File() {
                     {...editorState}
                     className={classes.editor}
                     handle={handle}
+                    empty={deleted}
                   />
                 </FileEditorSection>
               ) : (
