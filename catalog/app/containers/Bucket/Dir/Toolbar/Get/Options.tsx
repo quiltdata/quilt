@@ -52,11 +52,7 @@ function DownloadDir({ dirHandle }: DownloadDirProps) {
         event.stopPropagation()
         setDownloading(true)
       }}
-      {...(downloading
-        ? {
-            startIcon: <M.CircularProgress size={20} />,
-          }
-        : {})}
+      startIcon={downloading ? <M.CircularProgress size={20} /> : undefined}
     >
       Download ZIP (directory)
     </Buttons.DownloadDir>
