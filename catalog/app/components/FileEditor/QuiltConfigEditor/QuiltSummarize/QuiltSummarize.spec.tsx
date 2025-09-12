@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render, act, waitFor } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
 
 import QuiltSummarize from './QuiltSummarize'
@@ -60,15 +60,15 @@ jest.mock(
 
 describe('QuiltSummarize', () => {
   it('Render empty placeholders', () => {
-    const tree = renderer
-      .create(<QuiltSummarize className="root" error={null} onChange={noop} />)
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(
+      <QuiltSummarize className="root" error={null} onChange={noop} />,
+    )
+    expect(container).toMatchSnapshot()
   })
 
   it('Render row', async () => {
     const quiltSummarize = `["foo.md"]`
-    const tree = renderer.create(
+    const { container } = render(
       <QuiltSummarize
         className="root"
         error={null}
@@ -76,24 +76,19 @@ describe('QuiltSummarize', () => {
         initialValue={quiltSummarize}
       />,
     )
-    // Wait until React.useEffect is resolved (it's actually immediately resolved)
-    await renderer.act(
-      () =>
-        new Promise((resolve) => {
-          const t = setInterval(() => {
-            if (!tree.root.findByProps({ id: 'text-field' }).props.value) {
-              clearInterval(t)
-              resolve(undefined)
-            }
-          }, 10)
-        }),
-    )
-    expect(tree.toJSON()).toMatchSnapshot()
+    // Wait until React.useEffect is resolved
+    await act(async () => {
+      await waitFor(() => {
+        const textField = container.querySelector('#text-field')
+        expect(textField).not.toBeNull()
+      })
+    })
+    expect(container).toMatchSnapshot()
   })
 
   it('Render columns', async () => {
     const quiltSummarize = `[["foo.md", "bar.md"]]`
-    const tree = renderer.create(
+    const { container } = render(
       <QuiltSummarize
         className="root"
         error={null}
@@ -101,18 +96,13 @@ describe('QuiltSummarize', () => {
         initialValue={quiltSummarize}
       />,
     )
-    // Wait until React.useEffect is resolved (it's actually immediately resolved)
-    await renderer.act(
-      () =>
-        new Promise((resolve) => {
-          const t = setInterval(() => {
-            if (tree.root.findAllByProps({ id: 'text-field' }).length > 1) {
-              clearInterval(t)
-              resolve(undefined)
-            }
-          }, 10)
-        }),
-    )
-    expect(tree.toJSON()).toMatchSnapshot()
+    // Wait until React.useEffect is resolved
+    await act(async () => {
+      await waitFor(() => {
+        const textFields = container.querySelectorAll('#text-field')
+        expect(textFields.length).toBeGreaterThan(1)
+      })
+    })
+    expect(container).toMatchSnapshot()
   })
 })

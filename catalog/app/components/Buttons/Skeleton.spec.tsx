@@ -1,19 +1,19 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import * as Buttons from './'
 
 describe('components/Buttons/Skeleton', () => {
   it('render medium by default', () => {
-    const tree = renderer.create(<Buttons.Skeleton />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Buttons.Skeleton />)
+    expect(container).toMatchSnapshot()
   })
   it('render small', () => {
-    const tree = renderer.create(<Buttons.Skeleton size="small" />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Buttons.Skeleton size="small" />)
+    expect(container).toMatchSnapshot()
   })
   it('render large', () => {
-    const tree = renderer.create(<Buttons.Skeleton size="large" />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Buttons.Skeleton size="large" />)
+    expect(container).toMatchSnapshot()
   })
 })

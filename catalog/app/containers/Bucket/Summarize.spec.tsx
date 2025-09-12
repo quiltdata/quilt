@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import { ConfigureAppearance } from './Summarize'
 
@@ -76,59 +76,51 @@ describe('containers/Buckets/Summarize', () => {
     const packageHandle = { bucket: 'b', name: 'n', hash: 'h' }
 
     it('should not render buttons when there are files out there', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme
-            hasSummarizeJson
-            packageHandle={packageHandle}
-            path=""
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <ConfigureAppearance
+          hasReadme
+          hasSummarizeJson
+          packageHandle={packageHandle}
+          path=""
+        />,
+      )
+      expect(container).toMatchSnapshot()
     })
 
     it('should render readme link', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme={false}
-            hasSummarizeJson
-            packageHandle={packageHandle}
-            path=""
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <ConfigureAppearance
+          hasReadme={false}
+          hasSummarizeJson
+          packageHandle={packageHandle}
+          path=""
+        />,
+      )
+      expect(container).toMatchSnapshot()
     })
 
     it('should render quilt_summarize link', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme
-            hasSummarizeJson={false}
-            packageHandle={packageHandle}
-            path=""
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <ConfigureAppearance
+          hasReadme
+          hasSummarizeJson={false}
+          packageHandle={packageHandle}
+          path=""
+        />,
+      )
+      expect(container).toMatchSnapshot()
     })
 
     it('should render both links', () => {
-      const tree = renderer
-        .create(
-          <ConfigureAppearance
-            hasReadme={false}
-            hasSummarizeJson={false}
-            packageHandle={packageHandle}
-            path="some/path"
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <ConfigureAppearance
+          hasReadme={false}
+          hasSummarizeJson={false}
+          packageHandle={packageHandle}
+          path="some/path"
+        />,
+      )
+      expect(container).toMatchSnapshot()
     })
   })
 })
