@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Make 'add bucket' buttons on the main page route to 'add bucket' admin page instead of bucket list ([#4538](https://github.com/quiltdata/quilt/pull/4538))
 - [Changed] Always provide source buckets for S3FilePicker and use current bucket as default when no sourceBuckets configured ([#4525](https://github.com/quiltdata/quilt/pull/4525))
 - [Changed] Enable package creation from current bucket without workflows configuration ([#4522](https://github.com/quiltdata/quilt/pull/4522))
 - [Fixed] Athena: preserve query body during execution loading ([#4528](https://github.com/quiltdata/quilt/pull/4528))
