@@ -24,6 +24,7 @@ interface Features {
 
 export function useFeatures(deleted?: boolean): Features | null {
   const { prefs } = BucketPreferences.use()
+  if (typeof deleted === 'undefined') return null
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { actions, blocks } }) => ({
@@ -31,7 +32,7 @@ export function useFeatures(deleted?: boolean): Features | null {
           !deleted && !cfg.noDownload && actions.downloadObject
             ? { code: blocks.code }
             : false,
-        organize: true,
+        organize: !deleted,
         qurator: blocks.qurator,
       }),
       _: () => null,
