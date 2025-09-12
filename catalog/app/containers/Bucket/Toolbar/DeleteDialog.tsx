@@ -148,7 +148,7 @@ export default function DeleteDialog({ close, handles }: DeleteDialogProps) {
             variant="contained"
             onClick={onSubmit}
           >
-            Submit
+            Delete
           </M.Button>
         )}
       </M.DialogActions>
