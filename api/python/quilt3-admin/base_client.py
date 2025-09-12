@@ -2,6 +2,7 @@
 # https://github.com/mirumee/ariadne-codegen/blob/5bfd63c5e7e3a8cc5293eb94deee638b7adab98d/ariadne_codegen/client_generators/dependencies/base_client.py
 # modified to use our requests session instead of httpx.
 # pylint: disable=relative-beyond-top-level
+# fmt: off
 import json
 from typing import IO, Any, Dict, List, Optional, Tuple, TypeVar, cast
 
@@ -68,35 +69,49 @@ class BaseClient:
 
     def get_data(self, response: requests.Response) -> Dict[str, Any]:
         if not 200 <= response.status_code < 300:
-            raise GraphQLClientHttpError(status_code=response.status_code, response=response)
+            raise GraphQLClientHttpError(
+                status_code=response.status_code, response=response
+            )
 
         try:
             response_json = response.json()
         except ValueError as exc:
             raise GraphQLClientInvalidResponseError(response=response) from exc
 
-        if (not isinstance(response_json, dict)) or ("data" not in response_json and "errors" not in response_json):
+        if (not isinstance(response_json, dict)) or (
+            "data" not in response_json and "errors" not in response_json
+        ):
             raise GraphQLClientInvalidResponseError(response=response)
 
         data = response_json.get("data")
         errors = response_json.get("errors")
 
         if errors:
-            raise GraphQLClientGraphQLMultiError.from_errors_dicts(errors_dicts=errors, data=data)
+            raise GraphQLClientGraphQLMultiError.from_errors_dicts(
+                errors_dicts=errors, data=data
+            )
 
         return cast(Dict[str, Any], data)
 
     def _process_variables(
         self, variables: Optional[Dict[str, Any]]
-    ) -> Tuple[Dict[str, Any], Dict[str, Tuple[str, IO[bytes], str]], Dict[str, List[str]]]:
+    ) -> Tuple[
+        Dict[str, Any], Dict[str, Tuple[str, IO[bytes], str]], Dict[str, List[str]]
+    ]:
         if not variables:
             return {}, {}, {}
 
         serializable_variables = self._convert_dict_to_json_serializable(variables)
         return self._get_files_from_variables(serializable_variables)
 
-    def _convert_dict_to_json_serializable(self, dict_: Dict[str, Any]) -> Dict[str, Any]:
-        return {key: self._convert_value(value) for key, value in dict_.items() if value is not UNSET}
+    def _convert_dict_to_json_serializable(
+        self, dict_: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        return {
+            key: self._convert_value(value)
+            for key, value in dict_.items()
+            if value is not UNSET
+        }
 
     def _convert_value(self, value: Any) -> Any:
         if isinstance(value, BaseModel):
@@ -107,7 +122,9 @@ class BaseClient:
 
     def _get_files_from_variables(
         self, variables: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], Dict[str, Tuple[str, IO[bytes], str]], Dict[str, List[str]]]:
+    ) -> Tuple[
+        Dict[str, Any], Dict[str, Tuple[str, IO[bytes], str]], Dict[str, List[str]]
+    ]:
         files_map: Dict[str, List[str]] = {}
         files_list: List[Upload] = []
 
