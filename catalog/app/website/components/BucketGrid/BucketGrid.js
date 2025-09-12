@@ -188,7 +188,7 @@ export default React.forwardRef(function BucketGrid(
         />
       ))}
       {showAddLink && (
-        <Link className={classes.add} to={urls.adminBuckets()}>
+        <Link className={classes.add} to={urls.adminBuckets({ add: true })}>
           <M.Icon>add</M.Icon>
         </Link>
       )}
