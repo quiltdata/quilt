@@ -1553,6 +1553,15 @@ function DndProvider({ children }: DndProviderProps) {
   )
 }
 
+const waitFor = (added: FilesState['added']) =>
+  Object.values(added).reduce(
+    (acc, f) =>
+      S3FilePicker.isS3File(f) || f.hash.ready
+        ? acc
+        : acc.concat(f.hash.promise.catch(() => {})),
+    [] as Promise<any>[],
+  )
+
 const useFilesInputStyles = M.makeStyles((t) => ({
   hashing: {
     marginLeft: t.spacing(1),
@@ -1632,18 +1641,26 @@ export function FilesInput({
   const classes = useFilesInputStyles()
 
   const pRef = React.useRef<Promise<any>>()
-  const scheduleUpdate = (waitFor: Promise<any>[]) => {
-    const p = waitFor.length ? Promise.all(waitFor) : undefined
-    pRef.current = p
-    if (p) {
-      p.then(() => {
-        if (p === pRef.current) {
-          const v = ref.current!.value
-          onChange({ ...v, counter: (v.counter || 0) + 1 }) // trigger field validation
-        }
-      })
-    }
-  }
+  const scheduleUpdate = React.useCallback(
+    (hashings: Promise<any>[]) => {
+      const p = hashings.length ? Promise.all(hashings) : undefined
+      pRef.current = p
+      if (p) {
+        p.then(() => {
+          if (p === pRef.current) {
+            const v = ref.current!.value
+            onChange({ ...v, counter: (v.counter || 0) + 1 }) // trigger field validation
+          }
+        })
+      }
+    },
+    [onChange],
+  )
+
+  React.useEffect(
+    () => scheduleUpdate(waitFor(meta.initial.added)),
+    [meta.initial.added, scheduleUpdate],
+  )
 
   const disabled = meta.submitting || meta.submitSucceeded || meta.validating
   const error =
@@ -1666,14 +1683,7 @@ export function FilesInput({
     const newValue = handleFilesAction(action, { initial: cur.initial })(cur.value)
     // XXX: maybe observe value and trigger this when it changes,
     // regardless of the source of change (e.g. new value supplied directly via the prop)
-    const waitFor = Object.values(newValue.added).reduce(
-      (acc, f) =>
-        S3FilePicker.isS3File(f) || f.hash.ready
-          ? acc
-          : acc.concat(f.hash.promise.catch(() => {})),
-      [] as Promise<any>[],
-    )
-    cur.scheduleUpdate(waitFor)
+    cur.scheduleUpdate(waitFor(newValue.added))
 
     cur.onChange(newValue)
     if (cur.onFilesAction) cur.onFilesAction(action, cur.value, newValue)
