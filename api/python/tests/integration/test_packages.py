@@ -794,7 +794,10 @@ class PackageTest(QuiltTestCase):
             )
 
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
-        with patch('quilt3.Package._push_manifest'), patch('quilt3.packages.copy_file_list', _mock_copy_file_list):
+        with (
+            patch('quilt3.Package._push_manifest'),
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+        ):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
 
         for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
@@ -1039,7 +1042,10 @@ class PackageTest(QuiltTestCase):
         top_hashes = (top_hash1, top_hash2, top_hash3)
 
         for i, top_hash in enumerate(top_hashes):
-            with patch('quilt3.Package.top_hash', top_hash), patch('time.time', return_value=i):
+            with (
+                patch('quilt3.Package.top_hash', top_hash),
+                patch('time.time', return_value=i),
+            ):
                 Path(top_hash).write_text(top_hash)
                 Package().set(top_hash, top_hash).build(pkg_name)
 
@@ -1203,7 +1209,10 @@ class PackageTest(QuiltTestCase):
 
         self.patch_s3_registry('shorten_top_hash', return_value='123456')
 
-        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), patch('quilt3.Package._push_manifest'):
+        with (
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            patch('quilt3.Package._push_manifest'),
+        ):
             # Remote package does not yet exist: push succeeds.
 
             for _ in range(2):
@@ -1824,15 +1833,24 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException, match='Found zero matches'):
             Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
 
-        with patch('quilt3.Package.top_hash', top_hash1), patch('time.time', return_value=1):
+        with (
+            patch('quilt3.Package.top_hash', top_hash1),
+            patch('time.time', return_value=1),
+        ):
             Package().build(pkg_name)
 
-        with patch('quilt3.Package.top_hash', top_hash2), patch('time.time', return_value=2):
+        with (
+            patch('quilt3.Package.top_hash', top_hash2),
+            patch('time.time', return_value=2),
+        ):
             Package().build(pkg_name)
 
         assert Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix) == top_hash1
 
-        with patch('quilt3.Package.top_hash', top_hash3), patch('time.time', return_value=3):
+        with (
+            patch('quilt3.Package.top_hash', top_hash3),
+            patch('time.time', return_value=3),
+        ):
             Package().build(pkg_name)
 
         with pytest.raises(QuiltException, match='Found multiple matches'):
