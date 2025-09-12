@@ -10,7 +10,7 @@ Run Quilt catalog locally
 
 positional arguments:
   navigation_target     Which page in the local catalog to open. Leave blank
-                        to go to the catalog landing page, pass in an s3 url
+                        to go to the catalog landing page, pass in an S3 url
                         (e.g. 's3://bucket/myfile.txt') to go to file viewer,
                         or pass in a package name in the form
                         'BUCKET:USER/PKG' to go to the package viewer.

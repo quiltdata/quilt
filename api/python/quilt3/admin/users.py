@@ -1,4 +1,3 @@
-
 from typing import List, Optional
 
 from . import _graphql_client, exceptions, types, util

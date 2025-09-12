@@ -44,7 +44,7 @@ def test_formats_for_obj():
 def test_formats_for_ext():
     fmt = FormatRegistry.for_ext('json')[0]
     assert fmt.serialize({'blah': 'blah'})[0] == b'{"blah": "blah"}'
-    assert fmt.deserialize(b'{"meow": "mix"}', ) == {'meow': 'mix'}
+    assert fmt.deserialize(b'{"meow": "mix"}') == {'meow': 'mix'}
 
 
 def test_formats_for_meta():

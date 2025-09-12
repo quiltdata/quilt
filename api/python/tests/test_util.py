@@ -1,4 +1,4 @@
-""" Testing for util.py """
+"""Testing for util.py"""
 
 import pathlib
 from unittest import mock
@@ -90,7 +90,7 @@ def test_validate_url():
         ('1', 1),
         ('10', 10),
         ('20', 20),
-    )
+    ),
 )
 def test_get_pos_int_from_env(env_val, expected_val):
     var_name = 'ENV_VAR_NAME'

@@ -104,6 +104,7 @@ class PackageRegistry(abc.ABC):
 
     def get_workflow_config(self):
         from quilt3.workflows import WorkflowConfig
+
         return WorkflowConfig.load(self.workflow_conf_pk)
 
 
@@ -152,9 +153,11 @@ class PackageRegistryV1(PackageRegistry):
         if len(hash_prefix) == 64:
             top_hash = hash_prefix
         elif 6 <= len(hash_prefix) < 64:
-            matching_hashes = [self._top_hash_from_path(h) for h, _
-                               in list_url(self.manifests_package_dir(pkg_name))
-                               if h.startswith(hash_prefix)]
+            matching_hashes = [
+                self._top_hash_from_path(h)
+                for h, _ in list_url(self.manifests_package_dir(pkg_name))
+                if h.startswith(hash_prefix)
+            ]
             if not matching_hashes:
                 raise QuiltException("Found zero matches for %r" % hash_prefix)
             elif len(matching_hashes) > 1:
@@ -171,8 +174,11 @@ class PackageRegistryV1(PackageRegistry):
     def shorten_top_hash(self, pkg_name: str, top_hash: str) -> str:
         min_shorthash_len = 7
 
-        matches = [self._top_hash_from_path(h) for h, _ in list_url(self.manifests_package_dir(pkg_name))
-                   if h.startswith(top_hash[:min_shorthash_len])]
+        matches = [
+            self._top_hash_from_path(h)
+            for h, _ in list_url(self.manifests_package_dir(pkg_name))
+            if h.startswith(top_hash[:min_shorthash_len])
+        ]
         if len(matches) == 0:
             raise ValueError(f"Tophash {top_hash} was not found in registry {self.base}")
         for prefix_length in range(min_shorthash_len, 64):

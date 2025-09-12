@@ -4,6 +4,7 @@
 # https://github.com/mirumee/ariadne-codegen/blob/5bfd63c5e7e3a8cc5293eb94deee638b7adab98d/ariadne_codegen/client_generators/dependencies/base_client.py
 # modified to use our requests session instead of httpx.
 # pylint: disable=relative-beyond-top-level
+# fmt: off
 import json
 from typing import IO, Any, Dict, List, Optional, Tuple, TypeVar, cast
 

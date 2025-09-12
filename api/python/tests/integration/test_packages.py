@@ -1,4 +1,5 @@
-""" Integration tests for Quilt Packages. """
+"""Integration tests for Quilt Packages."""
+
 import io
 import locale
 import math
@@ -96,7 +97,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Key': pkg_registry.pointer_pk(pkg_name, pointer).path,
-            }
+            },
         )
 
     def setup_s3_stubber_resolve_pointer_not_found(self, pkg_registry, pkg_name, *, pointer):
@@ -107,7 +108,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Key': pkg_registry.pointer_pk(pkg_name, pointer).path,
-            }
+            },
         )
 
     def setup_s3_stubber_delete_pointer(self, pkg_registry, pkg_name, *, pointer):
@@ -117,7 +118,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Key': pkg_registry.pointer_pk(pkg_name, pointer).path,
-            }
+            },
         )
 
     def setup_s3_stubber_pkg_install(self, pkg_registry, pkg_name, *, top_hash=None, manifest=None, entries=()):
@@ -135,7 +136,7 @@ class PackageTest(QuiltTestCase):
                 expected_params={
                     'Bucket': pkg_registry.root.bucket,
                     'Key': pkg_registry.manifest_pk(pkg_name, top_hash).path,
-                }
+                },
             )
 
             self.s3_stubber.add_response(
@@ -149,7 +150,7 @@ class PackageTest(QuiltTestCase):
                     'Bucket': pkg_registry.root.bucket,
                     'VersionId': 'v1',
                     'Key': pkg_registry.manifest_pk(pkg_name, top_hash).path,
-                }
+                },
             )
 
         for url, content in entries:
@@ -163,7 +164,7 @@ class PackageTest(QuiltTestCase):
                 expected_params={
                     'Bucket': key.bucket,
                     'Key': key.path,
-                }
+                },
             )
 
     def setup_s3_stubber_list_top_hash_candidates(self, pkg_registry, pkg_name, top_hashes):
@@ -181,43 +182,37 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Prefix': pkg_registry.manifests_package_dir(pkg_name).path,
-            }
+            },
         )
 
     def setup_s3_stubber_push_manifest(self, pkg_registry, pkg_name, top_hash, *, pointer_name):
         self.s3_stubber.add_response(
             method='put_object',
-            service_response={
-                'VersionId': 'v2'
-            },
+            service_response={'VersionId': 'v2'},
             expected_params={
                 'Body': ANY,
                 'Bucket': pkg_registry.root.bucket,
                 'Key': pkg_registry.manifest_pk(pkg_name, top_hash).path,
-            }
+            },
         )
         if pkg_registry.revision_pointers:
             self.s3_stubber.add_response(
                 method='put_object',
-                service_response={
-                    'VersionId': 'v3'
-                },
+                service_response={'VersionId': 'v3'},
                 expected_params={
                     'Body': top_hash.encode(),
                     'Bucket': pkg_registry.root.bucket,
                     'Key': pkg_registry.pointer_pk(pkg_name, pointer_name).path,
-                }
+                },
             )
         self.s3_stubber.add_response(
             method='put_object',
-            service_response={
-                'VersionId': 'v4'
-            },
+            service_response={'VersionId': 'v4'},
             expected_params={
                 'Body': top_hash.encode(),
                 'Bucket': pkg_registry.root.bucket,
                 'Key': pkg_registry.pointer_latest_pk(pkg_name).path,
-            }
+            },
         )
 
     def setup_s3_stubber_upload_pkg_data(self, pkg_registry, pkg_name, *, lkey, data, version):
@@ -232,7 +227,7 @@ class PackageTest(QuiltTestCase):
                 'Bucket': pkg_registry.root.bucket,
                 'Key': f'{pkg_name}/{lkey}',
                 'ChecksumAlgorithm': 'SHA256',
-            }
+            },
         )
 
     def setup_s3_stubber_list_pkg_pointers(self, pkg_registry, pkg_name, *, pointers):
@@ -250,7 +245,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Prefix': pkg_registry.pointers_dir(pkg_name).path,
-            }
+            },
         )
 
     def test_build_default_registry(self):
@@ -300,14 +295,12 @@ class PackageTest(QuiltTestCase):
 
             build_mock.assert_called_once_with(
                 pkg_name,
-                registry=self.LocalPackageRegistryDefault(
-                    PhysicalKey.from_url(quilt3.util.get_install_location())
-                ),
-                message=None
+                registry=self.LocalPackageRegistryDefault(PhysicalKey.from_url(quilt3.util.get_install_location())),
+                message=None,
             )
 
     def test_read_manifest(self):
-        """ Verify reading serialized manifest from disk. """
+        """Verify reading serialized manifest from disk."""
         with open(LOCAL_MANIFEST, encoding='utf-8') as fd:
             pkg = Package.load(fd)
 
@@ -327,12 +320,17 @@ class PackageTest(QuiltTestCase):
         if os.name != 'nt':
             # TODO: LOCAL_MANIFEST contains paths like file:///foo -
             # but they're not valid absolute paths on Windows. What do we do?
-            assert sorted(original_set, key=lambda k: k.get('logical_key', 'manifest')) \
-                == sorted(written_set, key=lambda k: k.get('logical_key', 'manifest'))
+            assert sorted(
+                original_set,
+                key=lambda k: k.get('logical_key', 'manifest'),
+            ) == sorted(
+                written_set,
+                key=lambda k: k.get('logical_key', 'manifest'),
+            )
 
     @pytest.mark.usefixtures('isolate_packages_cache')
     def test_remote_browse(self):
-        """ Verify loading manifest from s3 """
+        """Verify loading manifest from s3"""
         registry = 's3://test-bucket'
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
         pkg_name = 'Quilt/test'
@@ -341,7 +339,11 @@ class PackageTest(QuiltTestCase):
 
         # Make the first request.
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, top_hash=top_hash, manifest=REMOTE_MANIFEST.read_bytes())
+            pkg_registry,
+            pkg_name,
+            top_hash=top_hash,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+        )
 
         pkg = Package.browse('Quilt/test', registry=registry)
         assert 'foo' in pkg
@@ -386,7 +388,7 @@ class PackageTest(QuiltTestCase):
             quilt3.Package.install('Quilt/nice-name', dest_registry='s3://test-bucket')
 
     def test_package_fetch(self):
-        """ Package.fetch() on nested, relative keys """
+        """Package.fetch() on nested, relative keys"""
         package_ = Package().set_dir('/', DATA_DIR / 'nested')
 
         out_dir = 'output'
@@ -400,10 +402,8 @@ class PackageTest(QuiltTestCase):
                 with open(os.path.join(dirpath, name), encoding='utf-8') as file_:
                     assert name in expected, 'unexpected file: {}'.format(name)
                     contents = file_.read().strip()
-                    assert contents == expected[name], \
-                        'unexpected contents in {}: {}'.format(name, contents)
-        assert file_count == len(expected), \
-            'fetch wrote {} files; expected: {}'.format(file_count, expected)
+                    assert contents == expected[name], 'unexpected contents in {}: {}'.format(name, contents)
+        assert file_count == len(expected), 'fetch wrote {} files; expected: {}'.format(file_count, expected)
 
         # test that package re-rooting works as expected
         out_dir_abs_path = pathlib.Path(out_dir).resolve()
@@ -419,7 +419,7 @@ class PackageTest(QuiltTestCase):
         assert pathlib.Path('sub/three.txt').exists()
 
     def test_fetch(self):
-        """ Verify fetching a package entry. """
+        """Verify fetching a package entry."""
         pkg = (
             Package()
             .set('foo', DATA_DIR / 'foo.txt', {'user_meta': 'blah'})
@@ -447,18 +447,13 @@ class PackageTest(QuiltTestCase):
     def test_fetch_default_dest(tmpdir):
         """Verify fetching a package entry to a default destination."""
         with patch('quilt3.packages.copy_file') as copy_mock:
-            (Package()
-             .set('foo', os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))['foo']
-             .fetch())
+            (Package().set('foo', os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))['foo'].fetch())
             filepath = os.path.join(os.path.dirname(__file__), 'data', 'foo.txt')
-            copy_mock.assert_called_once_with(
-                PhysicalKey.from_path(filepath),
-                PhysicalKey.from_path('foo.txt')
-            )
+            copy_mock.assert_called_once_with(PhysicalKey.from_path(filepath), PhysicalKey.from_path('foo.txt'))
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_load_into_quilt(self):
-        """ Verify loading local manifest and data into S3. """
+        """Verify loading local manifest and data into S3."""
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
 
         registry = 's3://my_test_bucket/'
@@ -483,8 +478,10 @@ class PackageTest(QuiltTestCase):
             'b8cc6e8caa93d1250afe3a4ae1d47bb4f03a900076d9d12bcb6797df57b273d0',
             pointer_name=str(timestamp1),
         )
-        with patch('time.time', return_value=timestamp1), \
-             patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
+        with (
+            patch('time.time', return_value=timestamp1),
+            patch('quilt3.data_transfer.MAX_CONCURRENCY', 1),
+        ):
             remote_pkg = new_pkg.push(pkg_name, registry, force=True)
 
         # Modify one file, and check that only that file gets uploaded.
@@ -497,9 +494,12 @@ class PackageTest(QuiltTestCase):
             'b8cc6e8caa93d1250afe3a4ae1d47bb4f03a900076d9d12bcb6797df57b273d0',
             pointer_name=str(timestamp2),
         )
-        with patch('time.time', return_value=timestamp2), \
-             patch('quilt3.packages.DISABLE_TQDM', True), patch('quilt3.data_transfer.DISABLE_TQDM', True), \
-             patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
+        with (
+            patch('time.time', return_value=timestamp2),
+            patch('quilt3.packages.DISABLE_TQDM', True),
+            patch('quilt3.data_transfer.DISABLE_TQDM', True),
+            patch('quilt3.data_transfer.MAX_CONCURRENCY', 1),
+        ):
             stderr = io.StringIO()
 
             with redirect_stderr(stderr), patch('quilt3.packages.DISABLE_TQDM', True):
@@ -507,7 +507,7 @@ class PackageTest(QuiltTestCase):
             assert not stderr.getvalue()
 
     def test_package_deserialize(self):
-        """ Verify loading data from a local file. """
+        """Verify loading data from a local file."""
         pkg = (
             Package()
             .set('foo', DATA_DIR / 'foo.txt', {'user_meta_foo': 'blah'})
@@ -526,7 +526,7 @@ class PackageTest(QuiltTestCase):
             pkg['bar'].deserialize()
 
     def test_local_set_dir(self):
-        """ Verify building a package from a local directory. """
+        """Verify building a package from a local directory."""
         pkg = Package()
 
         # Create some nested example files that contain their names.
@@ -598,15 +598,18 @@ class PackageTest(QuiltTestCase):
         assert PhysicalKey.from_path('bar') == pkg['bar'].physical_key
 
     def test_s3_set_dir(self):
-        """ Verify building a package from an S3 directory. """
+        """Verify building a package from an S3 directory."""
         with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
             pkg = Package()
 
-            list_object_versions_mock.return_value = ([
-                dict(Key='foo/a.txt', VersionId='xyz', IsLatest=True, Size=10),
-                dict(Key='foo/x/y.txt', VersionId='null', IsLatest=True, Size=10),
-                dict(Key='foo/z.txt', VersionId='123', IsLatest=False, Size=10),
-            ], [])
+            list_object_versions_mock.return_value = (
+                [
+                    dict(Key='foo/a.txt', VersionId='xyz', IsLatest=True, Size=10),
+                    dict(Key='foo/x/y.txt', VersionId='null', IsLatest=True, Size=10),
+                    dict(Key='foo/z.txt', VersionId='123', IsLatest=False, Size=10),
+                ],
+                [],
+            )
 
             pkg.set_dir('', 's3://bucket/foo/', meta='test_meta')
 
@@ -673,10 +676,7 @@ class PackageTest(QuiltTestCase):
 
         list_object_versions_mock.assert_not_called()
         list_objects_mock.assert_called_once_with("bucket", "foo/", recursive=True)
-        assert [
-            (lk, e.get())
-            for lk, e in pkg.walk()
-        ] == [("bar.txt", "s3://bucket/foo/bar.txt")]
+        assert [(lk, e.get()) for lk, e in pkg.walk()] == [("bar.txt", "s3://bucket/foo/bar.txt")]
 
     def test_package_entry_meta(self):
         pkg = (
@@ -729,7 +729,7 @@ class PackageTest(QuiltTestCase):
         assert sorted(quilt3.list_packages()) == sorted(quilt3.list_packages(LOCAL_REGISTRY.as_posix()))
 
     def test_set_package_entry(self):
-        """ Set the physical key for a PackageEntry"""
+        """Set the physical key for a PackageEntry"""
         pkg = (
             Package()
             .set('foo', DATA_DIR / 'foo.txt', {'user_meta': 'blah'})
@@ -759,12 +759,24 @@ class PackageTest(QuiltTestCase):
         df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
 
         # Test with serialization_dir set
-        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'},
-                serialization_location=SERIALIZATION_DIR/"df1.parquet")
-        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'},
-                serialization_location=SERIALIZATION_DIR/"df2.csv")
-        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'},
-                serialization_location=SERIALIZATION_DIR/"df3.tsv")
+        pkg.set(
+            "mydataframe1.parquet",
+            df,
+            meta={'user_meta': 'blah'},
+            serialization_location=SERIALIZATION_DIR / "df1.parquet",
+        )
+        pkg.set(
+            "mydataframe2.csv",
+            df,
+            meta={'user_meta': 'blah2'},
+            serialization_location=SERIALIZATION_DIR / "df2.csv",
+        )
+        pkg.set(
+            "mydataframe3.tsv",
+            df,
+            meta={'user_meta': 'blah3'},
+            serialization_location=SERIALIZATION_DIR / "df3.tsv",
+        )
 
         # Test without serialization_dir set
         pkg.set("mydataframe4.parquet", df, meta={'user_meta': 'blah4'})
@@ -777,12 +789,15 @@ class PackageTest(QuiltTestCase):
 
         pkg._calculate_missing_hashes()
         for lk, entry in pkg.walk():
-            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object " \
-                                                   "that was serialized"
+            assert df.equals(entry.deserialize()), (
+                "The deserialized PackageEntry should be equal to the object that was serialized"
+            )
 
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
-        with patch('quilt3.Package._push_manifest'), \
-             patch('quilt3.packages.copy_file_list', _mock_copy_file_list):
+        with (
+            patch('quilt3.Package._push_manifest'),
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+        ):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
 
         for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
@@ -859,9 +874,11 @@ class PackageTest(QuiltTestCase):
     def test_invalid_set_key(self):
         """Verify an exception when setting a key with a path object."""
         pkg = Package()
-        with pytest.raises(TypeError,
-                           match="Expected a string for entry, but got an instance of "
-                           r"<class 'quilt3\.packages\.Package'>\."):
+        with pytest.raises(
+            TypeError,
+            match="Expected a string for entry, but got an instance of "
+            r"<class 'quilt3\.packages\.Package'>\.",
+        ):
             pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
@@ -879,10 +896,7 @@ class PackageTest(QuiltTestCase):
         assert pkg['asdf']['qwer'] == pkg['asdf/qwer'] == pkg[('asdf', 'qwer')]
         assert pkg[[]] == pkg
 
-        pkg = (
-            Package()
-            .set('foo', DATA_DIR / 'foo.txt', {'foo': 'blah'})
-        )
+        pkg = Package().set('foo', DATA_DIR / 'foo.txt', {'foo': 'blah'})
         pkg['foo'].meta['target'] = 'unicode'
 
         pkg.build("Quilt/Test")
@@ -926,7 +940,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Prefix': pkg_registry.pointers_global_dir.path,
-            }
+            },
         )
 
     def test_list_remote_packages(self):
@@ -1028,8 +1042,10 @@ class PackageTest(QuiltTestCase):
         top_hashes = (top_hash1, top_hash2, top_hash3)
 
         for i, top_hash in enumerate(top_hashes):
-            with patch('quilt3.Package.top_hash', top_hash), \
-                 patch('time.time', return_value=i):
+            with (
+                patch('quilt3.Package.top_hash', top_hash),
+                patch('time.time', return_value=i),
+            ):
                 Path(top_hash).write_text(top_hash)
                 Package().set(top_hash, top_hash).build(pkg_name)
 
@@ -1070,8 +1086,16 @@ class PackageTest(QuiltTestCase):
 
         quilt3.delete_package(pkg_name, registry=registry)
 
-    def _test_remote_revision_delete_setup_stubber(self, pkg_registry, pkg_name, *, top_hashes, latest, remove,
-                                                   new_latest):
+    def _test_remote_revision_delete_setup_stubber(
+        self,
+        pkg_registry,
+        pkg_name,
+        *,
+        top_hashes,
+        latest,
+        remove,
+        new_latest,
+    ):
         pointers = {str(i): top_hash for top_hash, i in top_hashes.items()}
         pointers['latest'] = latest
 
@@ -1090,7 +1114,7 @@ class PackageTest(QuiltTestCase):
                 expected_params={
                     'Bucket': pkg_registry.root.bucket,
                     'Key': pkg_registry.pointer_pk(pkg_name, str(top_hashes[new_latest])).path,
-                }
+                },
             )
             self.s3_stubber.add_response(
                 method='copy_object',
@@ -1107,7 +1131,7 @@ class PackageTest(QuiltTestCase):
                     'Bucket': pkg_registry.root.bucket,
                     'Key': pkg_registry.pointer_latest_pk(pkg_name).path,
                     'ChecksumAlgorithm': 'SHA256',
-                }
+                },
             )
 
     def test_remote_delete_package_revision(self):
@@ -1125,17 +1149,35 @@ class PackageTest(QuiltTestCase):
         }
 
         self._test_remote_revision_delete_setup_stubber(
-            pkg_registry, pkg_name, top_hashes=top_hashes, latest=top_hash3, new_latest=top_hash2, remove=top_hash3)
+            pkg_registry,
+            pkg_name,
+            top_hashes=top_hashes,
+            latest=top_hash3,
+            new_latest=top_hash2,
+            remove=top_hash3,
+        )
         quilt3.delete_package(pkg_name, top_hash=top_hash3, registry=registry)
         top_hashes.pop(top_hash3)
 
         self._test_remote_revision_delete_setup_stubber(
-            pkg_registry, pkg_name, top_hashes=top_hashes, latest=top_hash2, new_latest=None, remove=top_hash1)
+            pkg_registry,
+            pkg_name,
+            top_hashes=top_hashes,
+            latest=top_hash2,
+            new_latest=None,
+            remove=top_hash1,
+        )
         quilt3.delete_package(pkg_name, top_hash=top_hash1, registry=registry)
         top_hashes.pop(top_hash1)
 
         self._test_remote_revision_delete_setup_stubber(
-            pkg_registry, pkg_name, top_hashes=top_hashes, latest=top_hash2, new_latest=None, remove=top_hash2)
+            pkg_registry,
+            pkg_name,
+            top_hashes=top_hashes,
+            latest=top_hash2,
+            new_latest=None,
+            remove=top_hash2,
+        )
         quilt3.delete_package(pkg_name, top_hash=top_hash2, registry=registry)
 
     def test_push_restrictions(self):
@@ -1167,14 +1209,14 @@ class PackageTest(QuiltTestCase):
 
         self.patch_s3_registry('shorten_top_hash', return_value='123456')
 
-        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
-             patch('quilt3.Package._push_manifest'):
+        with (
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            patch('quilt3.Package._push_manifest'),
+        ):
             # Remote package does not yet exist: push succeeds.
 
             for _ in range(2):
-                self.setup_s3_stubber_resolve_pointer_not_found(
-                    pkg_registry, pkg_name, pointer='latest'
-                )
+                self.setup_s3_stubber_resolve_pointer_not_found(pkg_registry, pkg_name, pointer='latest')
 
             pkg2 = pkg.push('Quilt/test', 's3://test-bucket')
 
@@ -1184,17 +1226,13 @@ class PackageTest(QuiltTestCase):
             pkg2.build('Quilt/test')
 
             for _ in range(2):
-                self.setup_s3_stubber_resolve_pointer(
-                    pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash
-                )
+                self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash)
 
             pkg2.push('Quilt/test', 's3://test-bucket')
 
             # Remote package exists and the hash does not match: push fails.
 
-            self.setup_s3_stubber_resolve_pointer(
-                pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash
-            )
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash)
 
             with self.assertRaisesRegex(QuiltConflictException, 'already exists'):
                 pkg2.push('Quilt/test', 's3://test-bucket')
@@ -1209,13 +1247,13 @@ class PackageTest(QuiltTestCase):
 
         self.patch_s3_registry('shorten_top_hash', return_value='123456')
 
-        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
-             patch('quilt3.Package._push_manifest') as push_manifest:
+        with (
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            patch('quilt3.Package._push_manifest') as push_manifest,
+        ):
             # Remote package does not yet exist: normal push.
 
-            self.setup_s3_stubber_resolve_pointer_not_found(
-                pkg_registry, pkg_name, pointer='latest'
-            )
+            self.setup_s3_stubber_resolve_pointer_not_found(pkg_registry, pkg_name, pointer='latest')
 
             pkg2 = pkg.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
             push_manifest.assert_called_once()
@@ -1225,9 +1263,7 @@ class PackageTest(QuiltTestCase):
             pkg2.set('foo', b'123')
             pkg2.build('Quilt/test')
 
-            self.setup_s3_stubber_resolve_pointer(
-                pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash
-            )
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash)
 
             push_manifest.reset_mock()
             pkg2.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
@@ -1235,9 +1271,7 @@ class PackageTest(QuiltTestCase):
 
             # Remote package exists and has the same hash.
 
-            self.setup_s3_stubber_resolve_pointer(
-                pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash
-            )
+            self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash)
 
             push_manifest.reset_mock()
             pkg2.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
@@ -1245,11 +1279,13 @@ class PackageTest(QuiltTestCase):
 
     @patch('quilt3.workflows.validate', return_value=None)
     def test_commit_message_on_push(self, mocked_workflow_validate):
-        """ Verify commit messages populate correctly on push."""
+        """Verify commit messages populate correctly on push."""
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
-             patch('quilt3.Package._push_manifest') as push_manifest_mock, \
-             patch('quilt3.Package._calculate_top_hash', return_value=mock.sentinel.top_hash):
+        with (
+            patch('quilt3.packages.copy_file_list', _mock_copy_file_list),
+            patch('quilt3.Package._push_manifest') as push_manifest_mock,
+            patch('quilt3.Package._calculate_top_hash', return_value=mock.sentinel.top_hash),
+        ):
             with open(REMOTE_MANIFEST, encoding='utf-8') as fd:
                 pkg = Package.load(fd)
 
@@ -1270,8 +1306,10 @@ class PackageTest(QuiltTestCase):
             )
 
     def test_overwrite_dir_fails(self):
-        with pytest.raises(QuiltException,
-                           match="Cannot overwrite directory 'asdf' with PackageEntry"):
+        with pytest.raises(
+            QuiltException,
+            match="Cannot overwrite directory 'asdf' with PackageEntry",
+        ):
             pkg = Package()
             pkg.set('asdf/jkl', LOCAL_MANIFEST)
             pkg.set('asdf', LOCAL_MANIFEST)
@@ -1315,7 +1353,7 @@ class PackageTest(QuiltTestCase):
             TEST_REPR = (
                 "(remote Package)\n"
                 " └─asdf\n"
-            )
+            )  # fmt: skip
             pkg = Package()
             pkg.set('asdf', 's3://my-bucket/asdf')
             assert repr(pkg) == TEST_REPR
@@ -1324,7 +1362,7 @@ class PackageTest(QuiltTestCase):
                 "(remote Package)\n"
                 " └─asdf\n"
                 " └─qwer\n"
-            )
+            )  # fmt: skip
             pkg = Package()
             pkg.set('asdf', 's3://my-bucket/asdf')
             pkg.set('qwer', LOCAL_MANIFEST)
@@ -1361,7 +1399,7 @@ class PackageTest(QuiltTestCase):
             with self.subTest(method=method):
                 pkg = Package()
                 method(pkg, 'foo/bar', registry='s3://test-bucket')
-                data, = pkg.manifest
+                (data,) = pkg.manifest
                 assert 'workflow' in data
                 assert data['workflow'] == "workflow data"
 
@@ -1372,8 +1410,7 @@ class PackageTest(QuiltTestCase):
         assert set(pkg.map(lambda lk, entry: lk)) == {'as/df', 'as/qw'}
 
         pkg['as'].set_meta({'foo': 'bar'})
-        assert set(pkg.map(lambda lk, entry: lk, include_directories=True)) ==\
-            {'as/df', 'as/qw', 'as/'}
+        assert set(pkg.map(lambda lk, entry: lk, include_directories=True)) == {'as/df', 'as/qw', 'as/'}
 
     def test_filter(self):
         pkg = Package()
@@ -1398,18 +1435,22 @@ class PackageTest(QuiltTestCase):
 
     @pytest.mark.usefixtures('clear_data_modules_cache')
     def test_import(self):
-        with patch('quilt3.Package._browse') as browse_mock, \
-             patch.object(self.LocalPackageRegistryDefault, 'list_packages') as list_packages_mock:
+        with (
+            patch('quilt3.Package._browse') as browse_mock,
+            patch.object(self.LocalPackageRegistryDefault, 'list_packages') as list_packages_mock,
+        ):
             browse_mock.return_value = quilt3.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
 
             from quilt3.data.foo import bar
+
             assert isinstance(bar, Package)
             browse_mock.assert_has_calls(
                 [call('foo/baz', registry=ANY), call('foo/bar', registry=ANY)], any_order=True
             )
 
             from quilt3.data import foo
+
             assert hasattr(foo, 'bar') and hasattr(foo, 'baz')
 
     def test_invalid_key(self):
@@ -1455,7 +1496,9 @@ class PackageTest(QuiltTestCase):
         pkg_name = 'Quilt/Foo'
 
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+            pkg_registry,
+            pkg_name,
+            manifest=REMOTE_MANIFEST.read_bytes(),
             entries=(
                 ('s3://my_bucket/my_data_pkg/bar.csv', b'a,b,c'),
                 ('s3://my_bucket/my_data_pkg/baz/bat', b'Hello World!'),
@@ -1493,10 +1536,9 @@ class PackageTest(QuiltTestCase):
 
         # Check that installing the package again reuses the cached manifest and two objects - but not "foo".
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name,
-            entries=(
-                ('s3://my_bucket/my_data_pkg/foo', '💩'.encode()),
-            ),
+            pkg_registry,
+            pkg_name,
+            entries=(('s3://my_bucket/my_data_pkg/foo', '💩'.encode()),),
         )
 
         with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
@@ -1512,22 +1554,23 @@ class PackageTest(QuiltTestCase):
 
         # make sure import works for an installed named package
         pkg_name2 = 'test/foo'
-        same_manifest_path = (
-            pkg_registry.manifest_pk(pkg_name2, self.default_test_top_hash) ==
-            pkg_registry.manifest_pk(pkg_name, self.default_test_top_hash)
-        )
+        same_manifest_path = pkg_registry.manifest_pk(
+            pkg_name2, self.default_test_top_hash
+        ) == pkg_registry.manifest_pk(pkg_name, self.default_test_top_hash)
         self.setup_s3_stubber_pkg_install(
             pkg_registry,
             pkg_name2,
             # Manifest is cached on PackageRegistryV1, since it's on the same path.
             manifest=None if same_manifest_path else REMOTE_MANIFEST.read_bytes(),
         )
-        with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1), \
-             tempfile.TemporaryDirectory() as tmp_dir, \
-             patch(
-                 'quilt3.packages.get_install_location',
-                 return_value=str(PhysicalKey.from_path(tmp_dir))
-             ) as mocked_get_install_location:
+        with (
+            patch('quilt3.data_transfer.MAX_CONCURRENCY', 1),
+            tempfile.TemporaryDirectory() as tmp_dir,
+            patch(
+                'quilt3.packages.get_install_location',
+                return_value=str(PhysicalKey.from_path(tmp_dir)),
+            ) as mocked_get_install_location,
+        ):
             Package.install(pkg_name2, registry=registry)
 
             mocked_get_install_location.assert_called_once_with()
@@ -1539,14 +1582,19 @@ class PackageTest(QuiltTestCase):
                 for filename in filenames:
                     items.append((dirpath / filename).relative_to(tmp_dir))
             items.sort()
-            assert items == list(map(pathlib.Path, (
-                'test',
-                'test/foo',
-                'test/foo/bar.csv',
-                'test/foo/baz',
-                'test/foo/baz/bat',
-                'test/foo/foo',
-            )))
+            assert items == list(
+                map(
+                    pathlib.Path,
+                    (
+                        'test',
+                        'test/foo',
+                        'test/foo/bar.csv',
+                        'test/foo/baz',
+                        'test/foo/baz/bat',
+                        'test/foo/foo',
+                    ),
+                )
+            )
 
     @pytest.mark.usefixtures('isolate_packages_cache')
     @patch('quilt3.util.IS_CACHE_ENABLED', False)
@@ -1559,7 +1607,9 @@ class PackageTest(QuiltTestCase):
         # Install a package twice and make sure cache functions weren't called.
         for x in range(2):
             self.setup_s3_stubber_pkg_install(
-                pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+                pkg_registry,
+                pkg_name,
+                manifest=REMOTE_MANIFEST.read_bytes(),
                 entries=(
                     ('s3://my_bucket/my_data_pkg/bar.csv', b'a,b,c'),
                     ('s3://my_bucket/my_data_pkg/baz/bat', b'Hello World!'),
@@ -1580,7 +1630,9 @@ class PackageTest(QuiltTestCase):
         pkg_name = 'Quilt/Foo'
 
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+            pkg_registry,
+            pkg_name,
+            manifest=REMOTE_MANIFEST.read_bytes(),
         )
         pkg = Package.browse(pkg_name, registry=registry)
         for lk, entry in pkg.walk():
@@ -1597,12 +1649,14 @@ class PackageTest(QuiltTestCase):
         path = 'baz'
         entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
         entry_content = b'42'
-        entries = (
-            (entry_url, entry_content),
-        )
+        entries = ((entry_url, entry_content),)
         dest = 'package'
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+            pkg_registry,
+            pkg_name,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+            entries=entries,
+        )
 
         Package.install(pkg_name, registry=registry, dest=dest, path=path)
 
@@ -1623,12 +1677,14 @@ class PackageTest(QuiltTestCase):
         path = 'baz/bat'
         entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
         entry_content = b'42'
-        entries = (
-            (entry_url, entry_content),
-        )
+        entries = ((entry_url, entry_content),)
         dest = 'package'
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+            pkg_registry,
+            pkg_name,
+            manifest=REMOTE_MANIFEST.read_bytes(),
+            entries=entries,
+        )
 
         Package.install(pkg_name, registry=registry, dest=dest, path=path)
 
@@ -1777,18 +1833,24 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException, match='Found zero matches'):
             Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
 
-        with patch('quilt3.Package.top_hash', top_hash1), \
-             patch('time.time', return_value=1):
+        with (
+            patch('quilt3.Package.top_hash', top_hash1),
+            patch('time.time', return_value=1),
+        ):
             Package().build(pkg_name)
 
-        with patch('quilt3.Package.top_hash', top_hash2), \
-             patch('time.time', return_value=2):
+        with (
+            patch('quilt3.Package.top_hash', top_hash2),
+            patch('time.time', return_value=2),
+        ):
             Package().build(pkg_name)
 
         assert Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix) == top_hash1
 
-        with patch('quilt3.Package.top_hash', top_hash3), \
-             patch('time.time', return_value=3):
+        with (
+            patch('quilt3.Package.top_hash', top_hash3),
+            patch('time.time', return_value=3),
+        ):
             Package().build(pkg_name)
 
         with pytest.raises(QuiltException, match='Found multiple matches'):
@@ -1804,7 +1866,7 @@ class PackageTest(QuiltTestCase):
             with self.subTest(method=method):
                 with patch(
                     'quilt3.workflows.validate',
-                    side_effect=Exception('test exception')
+                    side_effect=Exception('test exception'),
                 ) as workflow_validate_mock:
                     with pytest.raises(Exception) as excinfo:
                         method('test/pkg', registry='s3://test-bucket')
@@ -1872,9 +1934,13 @@ class PackageTest(QuiltTestCase):
         for val in (None, 42):
             with self.subTest(value=val):
                 with pytest.raises(TypeError) as excinfo:
-                    pkg.push('foo/bar', registry='s3://test-bucket',
-                             # pylint: disable=cell-var-from-loop
-                             dest=lambda *args, **kwargs: val, force=True)
+                    pkg.push(
+                        'foo/bar',
+                        registry='s3://test-bucket',
+                        # pylint: disable=cell-var-from-loop
+                        dest=lambda *args, **kwargs: val,
+                        force=True,
+                    )
                 assert 'str is expected' in str(excinfo.value)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
@@ -1883,17 +1949,23 @@ class PackageTest(QuiltTestCase):
         for val in ('http://example.com', 'file:///bffd'):
             with self.subTest(value=val):
                 with pytest.raises(quilt3.util.URLParseError):
-                    pkg.push('foo/bar', registry='s3://test-bucket',
-                             # pylint: disable=cell-var-from-loop
-                             dest=lambda *args, **kwargs: val, force=True)
+                    pkg.push(
+                        'foo/bar',
+                        registry='s3://test-bucket',
+                        # pylint: disable=cell-var-from-loop
+                        dest=lambda *args, **kwargs: val,
+                        force=True,
+                    )
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_push_dest_fn_s3_uri_with_version_id(self):
         pkg = Package().set('foo', DATA_DIR / 'foo.txt')
         with pytest.raises(ValueError) as excinfo:
             pkg.push(
-                'foo/bar', registry='s3://test-bucket',
-                dest=lambda *args, **kwargs: 's3://bucket/ds?versionId=v', force=True
+                'foo/bar',
+                registry='s3://test-bucket',
+                dest=lambda *args, **kwargs: 's3://bucket/ds?versionId=v',
+                force=True,
             )
         assert 'URI must not include versionId' in str(excinfo.value)
 
@@ -1919,7 +1991,7 @@ class PackageTest(QuiltTestCase):
                 'Bucket': dest_bucket,
                 'Key': dest_key,
                 'ChecksumAlgorithm': 'SHA256',
-            }
+            },
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
@@ -1927,9 +1999,9 @@ class PackageTest(QuiltTestCase):
 
         dest_fn.assert_called_once_with(lk, pkg[lk])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
-        assert Package.load(
-            BytesIO(push_manifest_mock.call_args[0][2])
-        )[lk].physical_key == PhysicalKey(dest_bucket, dest_key, version)
+        assert Package.load(BytesIO(push_manifest_mock.call_args[0][2]))[lk].physical_key == PhysicalKey(
+            dest_bucket, dest_key, version
+        )
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
@@ -1953,9 +2025,9 @@ class PackageTest(QuiltTestCase):
         selector_fn.assert_called_once_with(lk, pkg[lk])
         calculate_checksum_mock.assert_called_once_with([PhysicalKey(src_bucket, src_key, src_version)], [0])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
-        assert Package.load(
-            BytesIO(push_manifest_mock.call_args[0][2])
-        )[lk].physical_key == PhysicalKey(src_bucket, src_key, src_version)
+        assert Package.load(BytesIO(push_manifest_mock.call_args[0][2]))[lk].physical_key == PhysicalKey(
+            src_bucket, src_key, src_version
+        )
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
@@ -1990,7 +2062,7 @@ class PackageTest(QuiltTestCase):
                     'VersionId': src_version,
                 },
                 'ChecksumAlgorithm': 'SHA256',
-            }
+            },
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
@@ -2000,9 +2072,9 @@ class PackageTest(QuiltTestCase):
         selector_fn.assert_called_once_with(lk, pkg[lk])
         calculate_checksum_mock.assert_called_once_with([], [])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
-        assert Package.load(
-            BytesIO(push_manifest_mock.call_args[0][2])
-        )[lk].physical_key == PhysicalKey(dst_bucket, dst_key, dst_version)
+        assert Package.load(BytesIO(push_manifest_mock.call_args[0][2]))[lk].physical_key == PhysicalKey(
+            dst_bucket, dst_key, dst_version
+        )
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     @patch('quilt3.Package._push_manifest', mock.MagicMock())
@@ -2046,7 +2118,7 @@ class PackageTest(QuiltTestCase):
         assert copied_sources == {
             local_file_uri,
             's3://dst-bucket/remote_same.txt?versionId=v1',
-            's3://src-bucket/remote_other.txt?versionId=v1'
+            's3://src-bucket/remote_other.txt?versionId=v1',
         }
 
         # Scenario 3: selector_fn_copy_local
@@ -2125,6 +2197,7 @@ class PackageTestV2(PackageTest):
         def wrapper(pkg_registry, pkg_name, top_hash, manifest_data):
             wrapped(pkg_registry, pkg_name, top_hash, manifest_data)
             os.utime(pkg_registry._manifest_parent_pk(pkg_name, top_hash).path, (timestamp, timestamp))
+
         return patch.object(self.LocalPackageRegistryDefault, 'push_manifest', wrapper)
 
     def _test_list_remote_packages_setup_stubber(self, pkg_registry, *, pkg_names):
@@ -2132,15 +2205,14 @@ class PackageTestV2(PackageTest):
             method='list_objects_v2',
             service_response={
                 'CommonPrefixes': [
-                    {'Prefix': pkg_registry.manifests_package_dir(pkg_name).path}
-                    for pkg_name in pkg_names
+                    {'Prefix': pkg_registry.manifests_package_dir(pkg_name).path} for pkg_name in pkg_names
                 ]
             },
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Prefix': pkg_registry.manifests_global_dir.path,
                 'Delimiter': '/',
-            }
+            },
         )
 
     def _test_remote_package_delete_setup_stubber(self, pkg_registry, pkg_name, *, pointers):
@@ -2162,7 +2234,7 @@ class PackageTestV2(PackageTest):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Prefix': pkg_registry.manifests_package_dir(pkg_name).path,
-            }
+            },
         )
         for top_hash in top_hashes:
             self.s3_stubber.add_response(
@@ -2171,19 +2243,27 @@ class PackageTestV2(PackageTest):
                 expected_params={
                     'Bucket': pkg_registry.root.bucket,
                     'Key': pkg_registry.manifest_pk(pkg_name, top_hash).path,
-                }
+                },
             )
         super()._test_remote_package_delete_setup_stubber(pkg_registry, pkg_name, pointers=pointers)
 
-    def _test_remote_revision_delete_setup_stubber(self, pkg_registry, pkg_name, *, top_hashes, latest, remove,
-                                                   new_latest):
+    def _test_remote_revision_delete_setup_stubber(
+        self,
+        pkg_registry,
+        pkg_name,
+        *,
+        top_hashes,
+        latest,
+        remove,
+        new_latest,
+    ):
         self.s3_stubber.add_response(
             method='delete_object',
             service_response={},
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Key': pkg_registry.manifest_pk(pkg_name, remove).path,
-            }
+            },
         )
         self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=latest)
         if latest == remove:
@@ -2197,13 +2277,14 @@ class PackageTestV2(PackageTest):
                             'Size': 64,
                             'LastModified': datetime.fromtimestamp(timestamp),
                         }
-                        for top_hash, timestamp in top_hashes.items() if top_hash != remove
+                        for top_hash, timestamp in top_hashes.items()
+                        if top_hash != remove
                     ]
                 },
                 expected_params={
                     'Bucket': pkg_registry.root.bucket,
                     'Prefix': pkg_registry.manifests_package_dir(pkg_name).path,
-                }
+                },
             )
         if new_latest:
             self.s3_stubber.add_response(
@@ -2213,7 +2294,7 @@ class PackageTestV2(PackageTest):
                     'Body': new_latest.encode(),
                     'Bucket': pkg_registry.root.bucket,
                     'Key': pkg_registry.pointer_latest_pk(pkg_name).path,
-                }
+                },
             )
         self.s3_stubber.add_response(
             method='list_objects_v2',
@@ -2223,7 +2304,7 @@ class PackageTestV2(PackageTest):
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Prefix': pkg_registry.pointers_dir(pkg_name).path,
-            }
+            },
         )
 
 
@@ -2242,7 +2323,7 @@ class PackageTestV2(PackageTest):
         ('new-sub/', 'incoming', b'one', b'two', b'three', {'one.txt', 'sub', 'new-sub'}),
         ('new-sub/', 'existing', b'one', b'two', b'three', {'one.txt', 'sub', 'new-sub'}),
         pytest.param('/', 'bad_policy', b'1', b'2', b'3', set(), marks=pytest.mark.xfail(raises=ValueError)),
-    ]
+    ],
 )
 def test_set_dir_update_policy(
     target_dir: str,
@@ -2250,9 +2331,9 @@ def test_set_dir_update_policy(
     expected_one_byte: bytes,
     expected_two_byte: bytes,
     expected_three_byte: bytes,
-    expected_keys: set
+    expected_keys: set,
 ):
-    """Verify building a package with update policy. """
+    """Verify building a package with update policy."""
     nested_dir = DATA_DIR / 'nested'
     pkg = Package()
     pkg.set_dir("/", nested_dir, meta={'name': 'test_meta'})
@@ -2286,8 +2367,8 @@ def test_set_dir_update_policy(
     [
         ('existing', 's3://bucket/foo/a.txt?versionId=xyz', 's3://bucket/foo/x/y.txt?versionId=null'),
         ('incoming', 's3://bucket/bar/a.txt?versionId=abc', 's3://bucket/bar/x/y.txt?versionId=null'),
-        (None, 's3://bucket/bar/a.txt?versionId=abc', 's3://bucket/bar/x/y.txt?versionId=null')
-    ]
+        (None, 's3://bucket/bar/a.txt?versionId=abc', 's3://bucket/bar/x/y.txt?versionId=null'),
+    ],
 )
 def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url):
     with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
@@ -2298,7 +2379,7 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
                 dict(Key='foo/x/y.txt', VersionId='null', IsLatest=True, Size=10),
                 dict(Key='foo/z.txt', VersionId='123', IsLatest=False, Size=10),
             ],
-            []
+            [],
         )
         pkg = Package()
         pkg.set_dir('', 's3://bucket/foo/', meta={'name': 'test_meta'})
@@ -2315,7 +2396,7 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
                 dict(Key='bar/x/y.txt', VersionId='null', IsLatest=True, Size=10),
                 dict(Key='bar/z.txt', VersionId='123', IsLatest=True, Size=10),
             ],
-            []
+            [],
         )
         if update_policy:
             pkg.set_dir('', 's3://bucket/bar', update_policy=update_policy)
@@ -2380,8 +2461,7 @@ def test_commit_message_type_error():
     pkg = Package()
     with pytest.raises(
         ValueError,
-        match="The package commit message must be a string, "
-        "but the message provided is an instance of <class 'int'>.",
+        match="The package commit message must be a string, but the message provided is an instance of <class 'int'>.",
     ):
         pkg.build("test/pkg", message=123)
 

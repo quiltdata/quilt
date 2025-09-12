@@ -9,16 +9,7 @@ on:
 env:
   UV_LOCKED: 1
 jobs:
-  # Lint the entire Python codebase (except catalog/ and api/python/)
-  lint-root:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
-      - name: Run Ruff linter on entire codebase
-        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
-
-  lint:
+  lint-quilt3:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,17 +20,33 @@ jobs:
       - name: Lint
         run: uv run poe lint
 
-  # Formatting check disabled until codebase is reformatted
-  # format:
+  format-quilt3:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Check formatting (quilt3)
+        run: uv run poe fmt --check
+
+  lint-rest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Run Ruff linter on entire codebase
+        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
+
+  # Enable once the rest of the codebase is formatted
+  # format-rest:
   #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: api/python
   #   steps:
   #     - uses: actions/checkout@v5
   #     - uses: astral-sh/setup-uv@v6
-  #     - name: Check formatting
-  #       run: uv run poe fmt --check
+  #     - name: Check formatting (rest of codebase)
+  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
     runs-on: ubuntu-latest
