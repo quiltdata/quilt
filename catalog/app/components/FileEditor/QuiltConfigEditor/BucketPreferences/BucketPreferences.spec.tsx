@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 import { createMuiTheme } from '@material-ui/core'
 
 import BucketPreferences from './BucketPreferences'
@@ -63,17 +63,15 @@ jest.mock(
 
 describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences', () => {
   it('render form with default values', () => {
-    const tree = renderer
-      .create(
-        <BucketPreferences
-          className="root"
-          error={null}
-          handle={{ bucket: 'test-bucket', key: 'any' }}
-          onChange={noop}
-        />,
-      )
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(
+      <BucketPreferences
+        className="root"
+        error={null}
+        handle={{ bucket: 'test-bucket', key: 'any' }}
+        onChange={noop}
+      />,
+    )
+    expect(container).toMatchSnapshot()
   })
 
   it('render form config where every value is custom', () => {
@@ -122,17 +120,15 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefer
   athena:
     defaultWorkgroup: Foo
 `
-    const tree = renderer
-      .create(
-        <BucketPreferences
-          initialValue={config}
-          className="root"
-          error={null}
-          onChange={noop}
-          handle={{ bucket: 'test-bucket', key: 'any' }}
-        />,
-      )
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(
+      <BucketPreferences
+        initialValue={config}
+        className="root"
+        error={null}
+        onChange={noop}
+        handle={{ bucket: 'test-bucket', key: 'any' }}
+      />,
+    )
+    expect(container).toMatchSnapshot()
   })
 })
