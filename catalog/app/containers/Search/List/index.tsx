@@ -81,36 +81,32 @@ function NextPage({
             )
           case 'error':
             return (
-              <NoResults.Error className={className} onRefine={onRefine}>
+              <NoResults.UnexpectedError className={className} onRefine={onRefine}>
                 {r.error.message}
-              </NoResults.Error>
+              </NoResults.UnexpectedError>
             )
           case 'data':
             switch (r.data.__typename) {
               case 'OperationError':
                 if (r.data.name === 'Timeout') {
                   return (
-                    <NoResults.Error
-                      className={className}
-                      kind="timeout"
-                      onRefine={onRefine}
-                    />
+                    <NoResults.TimeoutError className={className} onRefine={onRefine} />
                   )
                 }
                 return (
-                  <NoResults.Error className={className} onRefine={onRefine}>
+                  <NoResults.UnexpectedError className={className} onRefine={onRefine}>
                     Operation error: {r.data.message}
-                  </NoResults.Error>
+                  </NoResults.UnexpectedError>
                 )
               case 'InvalidInput':
                 // should not happen
                 const [err] = r.data.errors
                 return (
-                  <NoResults.Error className={className} onRefine={onRefine}>
+                  <NoResults.UnexpectedError className={className} onRefine={onRefine}>
                     Invalid input at <code>{err.path}</code>: {err.name}
                     <br />
                     {err.message}
-                  </NoResults.Error>
+                  </NoResults.UnexpectedError>
                 )
               case 'PackagesSearchResultSetPage':
               case 'ObjectsSearchResultSetPage':
@@ -214,10 +210,15 @@ function ResultsPage({
 
 interface ListResultsProps {
   className?: string
+  emptyFallback?: JSX.Element
   onRefine: (action: NoResults.Refine) => void
 }
 
-export default function ListResults({ className, onRefine }: ListResultsProps) {
+export default function ListResults({
+  className,
+  emptyFallback,
+  onRefine,
+}: ListResultsProps) {
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
 
@@ -226,40 +227,40 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
       return <NoResults.Skeleton className={className} state={model.state} />
     case 'error':
       return (
-        <NoResults.Error className={className} onRefine={onRefine}>
+        <NoResults.UnexpectedError className={className} onRefine={onRefine}>
           {r.error.message}
-        </NoResults.Error>
+        </NoResults.UnexpectedError>
       )
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <NoResults.Empty className={className} onRefine={onRefine} />
+          return (
+            emptyFallback || <NoResults.Empty className={className} onRefine={onRefine} />
+          )
         case 'InvalidInput':
           const [err] = r.data.errors
           if (err.name === 'QuerySyntaxError') {
             return (
-              <NoResults.Error className={className} kind="syntax" onRefine={onRefine}>
+              <NoResults.SyntaxError className={className} onRefine={onRefine}>
                 {err.message}
-              </NoResults.Error>
+              </NoResults.SyntaxError>
             )
           }
           return (
-            <NoResults.Error className={className} onRefine={onRefine}>
+            <NoResults.UnexpectedError className={className} onRefine={onRefine}>
               Invalid input at <code>{err.path}</code>: {err.name}
               <br />
               {err.message}
-            </NoResults.Error>
+            </NoResults.UnexpectedError>
           )
         case 'OperationError':
           if (r.data.name === 'Timeout') {
-            return (
-              <NoResults.Error className={className} kind="timeout" onRefine={onRefine} />
-            )
+            return <NoResults.TimeoutError className={className} onRefine={onRefine} />
           }
           return (
-            <NoResults.Error className={className} onRefine={onRefine}>
+            <NoResults.UnexpectedError className={className} onRefine={onRefine}>
               Operation error: {r.data.message}
-            </NoResults.Error>
+            </NoResults.UnexpectedError>
           )
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':

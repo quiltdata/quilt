@@ -7,7 +7,6 @@ import { ES_REF_SYNTAX } from 'components/SearchResults'
 import { docs } from 'constants/urls'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
-import assertNever from 'utils/assertNever'
 
 import * as Hit from './List/Hit'
 import { Table as TableSkeleton } from './Table/Skeleton'
@@ -43,6 +42,31 @@ const LABELS = {
   [SearchUIModel.ResultType.S3Object]: 'objects',
 }
 
+const useEmptyStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  body: {
+    maxWidth: '30rem',
+    marginTop: t.spacing(3),
+  },
+  list: {
+    ...t.typography.body1,
+    paddingLeft: 0,
+  },
+  create: {
+    maxWidth: '30rem',
+    borderBottom: `1px solid ${t.palette.divider}`,
+    marginTop: t.spacing(2),
+    paddingBottom: t.spacing(2),
+  },
+  details: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 export enum Refine {
   Buckets,
   ResultType,
@@ -54,7 +78,7 @@ export enum Refine {
 
 interface EmptyWrapperProps {
   className?: string
-  onRefine: (action: Refine) => void
+  onRefine: (action: Exclude<Refine, Refine.Network>) => void
 }
 
 function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
@@ -133,8 +157,10 @@ function EmptyWrapper({ className, onRefine }: EmptyWrapperProps) {
 
 export { EmptyWrapper as Empty }
 
-interface SecureSearchProps extends EmptyWrapperProps {
+interface SecureSearchProps {
+  className?: string
   onLoadMore: () => void
+  onRefine: (action: Refine.New) => void
 }
 
 export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchProps) {
@@ -161,7 +187,7 @@ export function SecureSearch({ className, onLoadMore, onRefine }: SecureSearchPr
   )
 }
 
-const useErrorStyles = M.makeStyles((t) => ({
+const useErrorDetailsStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
@@ -169,94 +195,97 @@ const useErrorStyles = M.makeStyles((t) => ({
   },
   body: {
     maxWidth: '30rem',
-    marginTop: t.spacing(3),
+    marginTop: t.spacing(4),
   },
 }))
 
-interface ErrorProps {
-  className?: string
-  kind?: 'unexpected' | 'syntax' | 'timeout'
-  children?: React.ReactNode
-  onRefine: (action: Refine) => void
+interface ErrorDetailsProps {
+  className: string
+  children: React.ReactNode
 }
 
-export function Error({
-  className,
-  kind = 'unexpected',
-  children,
-  onRefine,
-}: ErrorProps) {
-  const classes = useErrorStyles()
-  const heading = React.useMemo(() => {
-    switch (kind) {
-      case 'syntax':
-        return 'Query syntax error'
-      case 'timeout':
-        return 'Search timed out'
-      case 'unexpected':
-        return 'Unexpected error'
-      default:
-        assertNever(kind)
-    }
-  }, [kind])
-
-  const body = React.useMemo(() => {
-    switch (kind) {
-      case 'syntax':
-        return (
-          <>
-            Oops, couldn&apos;t parse that search.
-            <br />
-            Try quoting{' '}
-            <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
-            read about{' '}
-            <StyledLink href={ES_REF_SYNTAX} target="_blank">
-              supported query syntax
-            </StyledLink>
-            .
-          </>
-        )
-      case 'timeout':
-        return (
-          <>
-            Oops, the search cluster seems stressed.
-            <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
-            start a{' '}
-            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
-          </>
-        )
-      case 'unexpected':
-        return (
-          <>
-            Oops, something went wrong.
-            <br />
-            <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
-            start a{' '}
-            <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
-          </>
-        )
-      default:
-        assertNever(kind)
-    }
-  }, [kind, onRefine])
-
+function ErrorDetails({ className, children }: ErrorDetailsProps) {
+  const classes = useErrorDetailsStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <M.Typography variant="h4">{heading}</M.Typography>
+      <M.Typography variant="h6">Error details</M.Typography>
+      <M.Typography variant="body2" className={classes.body} component="div">
+        {children}
+      </M.Typography>
+    </div>
+  )
+}
+
+export interface UnexpectedErrorProps {
+  className?: string
+  children: React.ReactNode
+  onRefine: (action: Refine.Network | Refine.New) => void
+}
+
+export function UnexpectedError({ className, children, onRefine }: UnexpectedErrorProps) {
+  const classes = useEmptyStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h4">Unexpected error</M.Typography>
+      <M.Box mt={3} />
       <M.Typography variant="body1" align="center" className={classes.body}>
-        {body}
+        Oops, something went wrong.
+        <br />
+        <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+        start a <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
       </M.Typography>
 
-      {!!children && (
-        <>
-          <M.Box mt={3} />
-          <M.Typography variant="h6">Error details</M.Typography>
-          <M.Typography variant="body2" className={classes.body} component="div">
-            {children}
-          </M.Typography>
-        </>
-      )}
+      <ErrorDetails className={classes.details}>{children}</ErrorDetails>
+    </div>
+  )
+}
+
+export interface SyntaxErrorProps {
+  className?: string
+  children: React.ReactNode
+  onRefine: (action: Refine.Search) => void
+}
+
+export function SyntaxError({ className, children, onRefine }: SyntaxErrorProps) {
+  const classes = useEmptyStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h4">Query syntax error</M.Typography>
+      <M.Box mt={3} />
+      <M.Typography variant="body1" align="center" className={classes.body}>
+        Oops, couldn&apos;t parse that search.
+        <br />
+        Try quoting{' '}
+        <StyledLink onClick={() => onRefine(Refine.Search)}>your query</StyledLink> or
+        read about{' '}
+        <StyledLink href={ES_REF_SYNTAX} target="_blank">
+          supported query syntax
+        </StyledLink>
+        .
+      </M.Typography>
+
+      <ErrorDetails className={classes.details}>{children}</ErrorDetails>
+    </div>
+  )
+}
+
+export interface TimeoutErrorProps {
+  className?: string
+  onRefine: (action: Refine.Network | Refine.New) => void
+}
+
+export function TimeoutError({ className, onRefine }: TimeoutErrorProps) {
+  const classes = useEmptyStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h4">Search timed out</M.Typography>
+      <M.Box mt={3} />
+      <M.Typography variant="body1" align="center" className={classes.body}>
+        Oops, the search cluster seems stressed.
+        <br />
+        <StyledLink onClick={() => onRefine(Refine.Network)}>Try again</StyledLink> or
+        start a <StyledLink onClick={() => onRefine(Refine.New)}>new search</StyledLink>.
+      </M.Typography>
     </div>
   )
 }
