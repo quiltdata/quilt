@@ -1,8 +1,8 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
-import * as Buttons from 'components/Buttons'
 import type { EditorState } from 'components/FileEditor'
 import * as Toolbar from 'containers/Bucket/Toolbar'
 import type { ViewModes } from 'containers/Bucket/viewModes'
@@ -73,14 +73,22 @@ export function FileToolbar({
 }: FileToolbarProps) {
   const classes = useStyles()
 
-  if (!features)
+  if (!features) {
     return (
       <div className={cx(classes.root, className)}>
-        <Buttons.Skeleton size="small" />
-        <Buttons.Skeleton size="small" />
-        <Buttons.Skeleton size="small" />
+        <Lab.Skeleton variant="rect">
+          <M.Button size="small" variant="outlined">
+            Loading...
+          </M.Button>
+        </Lab.Skeleton>
+        <Lab.Skeleton variant="circle">
+          <M.IconButton size="small">
+            <M.Icon />
+          </M.IconButton>
+        </Lab.Skeleton>
       </div>
     )
+  }
 
   return (
     <div className={cx(classes.root, className)}>

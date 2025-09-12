@@ -1,8 +1,8 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
-import * as Buttons from 'components/Buttons'
 import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
@@ -88,15 +88,22 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
   const successors = CreatePackage.useSuccessors(bucket)
 
-  if (!features)
+  if (!features) {
     return (
       <div className={cx(classes.root, className)}>
-        <Buttons.Skeleton size="small" />
-        <Buttons.Skeleton size="small" />
-        <Buttons.Skeleton size="small" />
-        <Buttons.Skeleton size="small" />
+        <Lab.Skeleton variant="rect">
+          <M.Button size="small" variant="outlined">
+            Loading...
+          </M.Button>
+        </Lab.Skeleton>
+        <Lab.Skeleton variant="rect">
+          <M.Button size="small" variant="outlined">
+            Loading...
+          </M.Button>
+        </Lab.Skeleton>
       </div>
     )
+  }
 
   return (
     <div className={cx(classes.root, className)}>
