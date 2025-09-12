@@ -100,7 +100,7 @@ function MetadataIcon({ color }: MetadataIconProps) {
 interface EditMetaProps {
   disabled?: boolean
   name: string
-  onChange?: (value?: Model.EntryMeta) => void
+  onChange: (value?: Model.EntryMeta) => void
   value?: Model.EntryMeta
   state?: string
 }
@@ -121,8 +121,6 @@ export default function EditFileMeta({
     () => (state === 'invalid' || R.isEmpty(value) ? 'inherit' : 'primary'),
     [state, value],
   )
-
-  if (!onChange) return null
 
   if (disabled) {
     return (

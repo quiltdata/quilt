@@ -2,6 +2,7 @@
 // import mediaQuery from 'css-mediaquery'
 import * as React from 'react'
 import { render } from '@testing-library/react'
+import { Add as IconAdd } from '@material-ui/icons'
 
 import * as Buttons from './'
 
@@ -18,6 +19,10 @@ describe('components/Buttons/Iconized', () => {
     const { container } = render(
       <Buttons.Iconized icon="ac_unit" label="A" variant="contained" />,
     )
+    expect(container).toMatchSnapshot()
+  })
+  it('render with SvgIcon component', () => {
+    const { container } = render(<Buttons.Iconized icon={IconAdd} label="Add Item" />)
     expect(container).toMatchSnapshot()
   })
 })
