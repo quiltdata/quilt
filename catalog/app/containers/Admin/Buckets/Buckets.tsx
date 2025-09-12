@@ -273,7 +273,7 @@ interface PFSCheckboxProps extends Form.CheckboxProps, M.CheckboxProps {
 function PFSCheckbox({ input, meta, onToggle, ...props }: PFSCheckboxProps) {
   const classes = usePFSCheckboxStyles()
   const confirm = React.useCallback(
-    async (checked) => {
+    (checked) => {
       input?.onChange(checked)
       if (onToggle) {
         onToggle()
