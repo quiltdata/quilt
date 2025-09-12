@@ -1192,11 +1192,11 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]
             current_file_size = file.tell()
             if current_file_size != size:
                 warnings.warn(
-                    f"Expected the package entry at {src!r} to be {size} B in size, but "
-                    f"found an object which is {current_file_size} B instead. This "
-                    f"indicates that the content of the file changed in between when you "
-                    f"included this  entry in the package (via set or set_dir) and now. "
-                    f"This should be avoided if possible."
+                    f"Expected the package entry at {src!r} to be {size} B in size, "
+                    f"but found an object which is {current_file_size} B instead. "
+                    "This indicates that the content of the file changed in between when you "
+                    "included this  entry in the package (via set or set_dir) and now. "
+                    "This should be avoided if possible."
                 )
 
     def _process_url(src, size):
@@ -1329,7 +1329,10 @@ def select(src, query, meta=None, raw=False, **kwargs):
     }
     # File extension <--> S3-Acceptable compression type
     # For compression type, when not specified in metadata.  Guess by extension.
-    accepted_compression = {'.bz2': 'BZIP2', '.gz': 'GZIP'}
+    accepted_compression = {
+        '.bz2': 'BZIP2',
+        '.gz': 'GZIP',
+    }
     # Extension <--> Internal Format Name
     # For file type, when not specified in metadata. Guess by extension.
     ext_formats = {

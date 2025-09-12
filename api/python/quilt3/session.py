@@ -82,7 +82,11 @@ def _update_auth(refresh_token, timeout=None):
     if error is not None:
         raise QuiltException("Failed to log in: %s" % error)
 
-    return dict(refresh_token=data['refresh_token'], access_token=data['access_token'], expires_at=data['expires_at'])
+    return dict(
+        refresh_token=data['refresh_token'],
+        access_token=data['access_token'],
+        expires_at=data['expires_at'],
+    )
 
 
 def _handle_response(resp, **kwargs):

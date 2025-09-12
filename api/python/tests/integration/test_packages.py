@@ -478,7 +478,10 @@ class PackageTest(QuiltTestCase):
             'b8cc6e8caa93d1250afe3a4ae1d47bb4f03a900076d9d12bcb6797df57b273d0',
             pointer_name=str(timestamp1),
         )
-        with patch('time.time', return_value=timestamp1), patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
+        with (
+            patch('time.time', return_value=timestamp1),
+            patch('quilt3.data_transfer.MAX_CONCURRENCY', 1),
+        ):
             remote_pkg = new_pkg.push(pkg_name, registry, force=True)
 
         # Modify one file, and check that only that file gets uploaded.
