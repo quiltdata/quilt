@@ -18,8 +18,7 @@ where verb is one of
 
 ## Changes
 
-- [Added] File upload functionality to add files directly to buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
-- [Added] File deletion capability to remove files from buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
+- [Added] File upload and deletion functionality to manage files directly in buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Changed] Refactor toolbar layout in Bucket tab for improved consistency and maintainability ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Changed] Always provide source buckets for S3FilePicker and use current bucket as default when no sourceBuckets configured ([#4525](https://github.com/quiltdata/quilt/pull/4525))
 - [Changed] Enable package creation from current bucket without workflows configuration ([#4522](https://github.com/quiltdata/quilt/pull/4522))
