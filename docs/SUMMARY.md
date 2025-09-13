@@ -25,6 +25,7 @@
 
 ## Quilt Platform Administrator
 
+* [Catalog Installation](Catalog/Installation.md)
 * [Admin Settings UI](Catalog/Admin.md)
 * [Catalog Configuration](Catalog/Preferences.md)
 * [Cross-Account Access](CrossAccount.md)
