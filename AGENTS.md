@@ -8,7 +8,7 @@ reproducible, discoverable packages stored in S3. It provides:
 - **Web Catalog**: React frontend for browsing data packages (`./catalog/`)
 - **Backend APIs**: Lambda functions and services (`./lambdas/`, `./api/`)
 - **Data Infrastructure**: S3 proxy, ElasticSearch integration (`./s3-proxy/`)
-- **Python Client**: Local package management (`./quilt3_local/`)
+- **Python Client**: Local package management (`./api/python/quilt3/`)
 - **Documentation**: Architecture and guides (`./docs/`)
 
 ## Repository Structure

@@ -34,9 +34,9 @@
 - `02-analysis.md` - Current code idiom/architecture and challenges
 - `03-specifications.md` - Desired end state and engineering constraints
 - `04-phases.md` - Incremental PRs breakdown for implementation
-- `{x}-phase{N}-design.md` - Phase N specific work design (x = 4+2N)
-- `{x+1}-phase{N}-episodes.md` - Phase N atomic change units
-- `{x+2}-phase{N}-checklist.md` - Phase N validation and tracking
+- `0{N}-phase{N}-design.md` - Phase N specific work design
+- `0{N}-phase{N}-episodes.md` - Phase N atomic change units  
+- `0{N}-phase{N}-checklist.md` - Phase N validation and tracking
 - `{M}-review.md` - Implementation review and lessons learned
 
 ## Initiate I RASP DECO Workflow
@@ -264,7 +264,7 @@ Approve atomic change breakdown and sequencing
 > Create, in order to implement the above design:
 >
 > 1. a new branch `{branch_name}/phase{k}-tagline`
-> 2. a`spec/{branch_name}/{n+2}-phase{k}-checklist.md`  Checklist Document using a project manager agent with the relevant skills, following the Checklist Instructions in Step 5c of @spec/WORKFLOW.md (then commit + push)
+> 2. a `spec/{branch_name}/{n+2}-phase{k}-checklist.md`  Checklist Document using a project manager agent with the relevant skills, following the Checklist Instructions in Step 5c of @spec/WORKFLOW.md (then commit + push)
 > 3. a PR for the new branch against the original branch
 
 ##### 📝 Checklist Instructions (for Agent)
