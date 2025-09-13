@@ -55,20 +55,16 @@ function EditorField() {
   const { queryBody, queryRun } = Model.use()
 
   const editorProps = React.useMemo(
-    () => ({ $blockScrolling: true, readonly: Model.isLoading(queryRun) }),
+    () => ({ $blockScrolling: true, readonly: !Model.isReady(queryRun) }),
     [queryRun],
   )
 
-  if (Model.isNone(queryBody.value)) {
-    return null
+  if (!Model.isReady(queryBody.value)) {
+    return <FormSkeleton />
   }
 
   if (Model.isError(queryBody.value)) {
-    return <Lab.Alert severity="error">{queryBody.value.message}</Lab.Alert>
-  }
-
-  if (!Model.hasValue(queryBody.value)) {
-    return <FormSkeleton />
+    return <Lab.Alert severity="error">{queryBody.value.error.message}</Lab.Alert>
   }
 
   return (
@@ -83,10 +79,10 @@ function EditorField() {
           mode="sql"
           onChange={queryBody.setValue}
           theme="eclipse"
-          value={queryBody.value || ''}
+          value={queryBody.value.data || ''}
           width="100%"
         />
-        {Model.isLoading(queryRun) && <Lock />}
+        {!Model.isReady(queryRun) && <Lock />}
       </M.Paper>
       <HelperText />
     </div>
@@ -211,7 +207,7 @@ export function Form({ className }: FormProps) {
 
       {Model.isError(queryRun) && (
         <Lab.Alert className={classes.error} severity="error">
-          {queryRun.message}
+          {queryRun.error.message}
         </Lab.Alert>
       )}
 

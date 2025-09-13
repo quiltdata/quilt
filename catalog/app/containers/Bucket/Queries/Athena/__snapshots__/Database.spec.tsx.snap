@@ -2,46 +2,37 @@
 
 exports[`containers/Bucket/Queries/Athena/Database should disable selection if no spare values 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-17"
 >
   <div
-    className="MuiFormControl-root makeStyles-root-9 makeStyles-field-2"
+    class="MuiFormControl-root makeStyles-root-20 makeStyles-field-18"
   >
     <label
-      className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-      data-shrink={true}
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
       Data catalog
     </label>
     <div
-      className="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
-      onClick={[Function]}
+      class="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
     >
       <div
         aria-disabled="true"
         aria-haspopup="listbox"
-        className="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
-        onBlur={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onMouseDown={null}
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
         role="button"
-        tabIndex={null}
       >
         Empty list
       </div>
       <input
-        aria-hidden={true}
-        className="MuiSelect-nativeInput"
-        onAnimationStart={[Function]}
-        onChange={[Function]}
-        required={false}
-        tabIndex={-1}
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
         value="__empty__"
       />
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -52,43 +43,34 @@ exports[`containers/Bucket/Queries/Athena/Database should disable selection if n
     </div>
   </div>
   <div
-    className="MuiFormControl-root makeStyles-root-9"
+    class="MuiFormControl-root makeStyles-root-20"
   >
     <label
-      className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-      data-shrink={true}
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
       Database
     </label>
     <div
-      className="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
-      onClick={[Function]}
+      class="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
     >
       <div
         aria-disabled="true"
         aria-haspopup="listbox"
-        className="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
-        onBlur={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onMouseDown={null}
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
         role="button"
-        tabIndex={null}
       >
         Empty list
       </div>
       <input
-        aria-hidden={true}
-        className="MuiSelect-nativeInput"
-        onAnimationStart={[Function]}
-        onChange={[Function]}
-        required={false}
-        tabIndex={-1}
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
         value="__empty__"
       />
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -103,45 +85,37 @@ exports[`containers/Bucket/Queries/Athena/Database should disable selection if n
 
 exports[`containers/Bucket/Queries/Athena/Database should render selected values 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-9"
 >
   <div
-    className="MuiFormControl-root makeStyles-root-9 makeStyles-field-2"
+    class="MuiFormControl-root makeStyles-root-12 makeStyles-field-10"
   >
     <label
-      className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-      data-shrink={true}
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
       Data catalog
     </label>
     <div
-      className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
-      onClick={[Function]}
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
     >
       <div
         aria-haspopup="listbox"
-        className="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-        onBlur={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onMouseDown={[Function]}
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
         role="button"
-        tabIndex={0}
+        tabindex="0"
       >
         foo
       </div>
       <input
-        aria-hidden={true}
-        className="MuiSelect-nativeInput"
-        onAnimationStart={[Function]}
-        onChange={[Function]}
-        required={false}
-        tabIndex={-1}
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
         value="foo"
       />
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSelect-icon"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -152,42 +126,34 @@ exports[`containers/Bucket/Queries/Athena/Database should render selected values
     </div>
   </div>
   <div
-    className="MuiFormControl-root makeStyles-root-9"
+    class="MuiFormControl-root makeStyles-root-12"
   >
     <label
-      className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-      data-shrink={true}
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
       Database
     </label>
     <div
-      className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
-      onClick={[Function]}
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
     >
       <div
         aria-haspopup="listbox"
-        className="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-        onBlur={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onMouseDown={[Function]}
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
         role="button"
-        tabIndex={0}
+        tabindex="0"
       >
         bar
       </div>
       <input
-        aria-hidden={true}
-        className="MuiSelect-nativeInput"
-        onAnimationStart={[Function]}
-        onChange={[Function]}
-        required={false}
-        tabIndex={-1}
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
         value="bar"
       />
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSelect-icon"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -202,31 +168,31 @@ exports[`containers/Bucket/Queries/Athena/Database should render selected values
 
 exports[`containers/Bucket/Queries/Athena/Database should render skeletons 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-1"
 >
   <div
-    className="MuiBox-root MuiBox-root-7 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
+    class="MuiBox-root MuiBox-root-7 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
   />
   <div
-    className="MuiBox-root MuiBox-root-8 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
+    class="MuiBox-root MuiBox-root-8 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
   />
 </div>
 `;
 
 exports[`containers/Bucket/Queries/Athena/Database should show error when data failed 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-26"
 >
   <div
-    className="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-2 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
     role="alert"
   >
     <div
-      className="MuiAlert-icon"
+      class="MuiAlert-icon"
     >
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -236,52 +202,39 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when data f
       </svg>
     </div>
     <div
-      className="MuiAlert-message"
+      class="MuiAlert-message"
     >
       Error
     </div>
     <div
-      className="MuiAlert-action"
+      class="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-        disabled={false}
-        onBlur={[Function]}
-        onClick={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
         type="button"
       >
         <span
-          className="MuiButton-label"
+          class="MuiButton-label"
         >
           Show more
         </span>
         <span
-          className="MuiTouchRipple-root"
+          class="MuiTouchRipple-root"
         />
       </button>
     </div>
   </div>
   <div
-    className="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-2 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
     role="alert"
   >
     <div
-      className="MuiAlert-icon"
+      class="MuiAlert-icon"
     >
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -291,38 +244,25 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when data f
       </svg>
     </div>
     <div
-      className="MuiAlert-message"
+      class="MuiAlert-message"
     >
       Error
     </div>
     <div
-      className="MuiAlert-action"
+      class="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-        disabled={false}
-        onBlur={[Function]}
-        onClick={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
         type="button"
       >
         <span
-          className="MuiButton-label"
+          class="MuiButton-label"
         >
           Show more
         </span>
         <span
-          className="MuiTouchRipple-root"
+          class="MuiTouchRipple-root"
         />
       </button>
     </div>
@@ -332,18 +272,18 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when data f
 
 exports[`containers/Bucket/Queries/Athena/Database should show error when values failed 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-21"
 >
   <div
-    className="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-2 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
     role="alert"
   >
     <div
-      className="MuiAlert-icon"
+      class="MuiAlert-icon"
     >
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -353,49 +293,39 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when values
       </svg>
     </div>
     <div
-      className="MuiAlert-message"
+      class="MuiAlert-message"
     >
       Error
     </div>
     <div
-      className="MuiAlert-action"
+      class="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-        disabled={false}
-        onBlur={[Function]}
-        onClick={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
         type="button"
       >
         <span
-          className="MuiButton-label"
+          class="MuiButton-label"
         >
           Show more
         </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
       </button>
     </div>
   </div>
   <div
-    className="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-2 MuiPaper-elevation0"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
     role="alert"
   >
     <div
-      className="MuiAlert-icon"
+      class="MuiAlert-icon"
     >
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -405,36 +335,26 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when values
       </svg>
     </div>
     <div
-      className="MuiAlert-message"
+      class="MuiAlert-message"
     >
       Error
     </div>
     <div
-      className="MuiAlert-action"
+      class="MuiAlert-action"
     >
       <button
-        className="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-10 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-        disabled={false}
-        onBlur={[Function]}
-        onClick={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
         type="button"
       >
         <span
-          className="MuiButton-label"
+          class="MuiButton-label"
         >
           Show more
         </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
       </button>
     </div>
   </div>
@@ -443,51 +363,39 @@ exports[`containers/Bucket/Queries/Athena/Database should show error when values
 
 exports[`containers/Bucket/Queries/Athena/Database should show no value (zero-width space) if selected no value 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-13"
 >
   <div
-    className="MuiFormControl-root makeStyles-root-9 makeStyles-field-2"
+    class="MuiFormControl-root makeStyles-root-16 makeStyles-field-14"
   >
     <label
-      className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
-      data-shrink={false}
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+      data-shrink="false"
     >
       Data catalog
     </label>
     <div
-      className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
-      onClick={[Function]}
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
     >
       <div
         aria-haspopup="listbox"
-        className="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-        onBlur={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onMouseDown={[Function]}
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
         role="button"
-        tabIndex={0}
+        tabindex="0"
       >
-        <span
-          dangerouslySetInnerHTML={
-            {
-              "__html": "&#8203;",
-            }
-          }
-        />
+        <span>
+          ​
+        </span>
       </div>
       <input
-        aria-hidden={true}
-        className="MuiSelect-nativeInput"
-        onAnimationStart={[Function]}
-        onChange={[Function]}
-        required={false}
-        tabIndex={-1}
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
         value=""
       />
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSelect-icon"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -498,48 +406,36 @@ exports[`containers/Bucket/Queries/Athena/Database should show no value (zero-wi
     </div>
   </div>
   <div
-    className="MuiFormControl-root makeStyles-root-9"
+    class="MuiFormControl-root makeStyles-root-16"
   >
     <label
-      className="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
-      data-shrink={false}
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+      data-shrink="false"
     >
       Database
     </label>
     <div
-      className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
-      onClick={[Function]}
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
     >
       <div
         aria-haspopup="listbox"
-        className="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-        onBlur={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onMouseDown={[Function]}
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
         role="button"
-        tabIndex={0}
+        tabindex="0"
       >
-        <span
-          dangerouslySetInnerHTML={
-            {
-              "__html": "&#8203;",
-            }
-          }
-        />
+        <span>
+          ​
+        </span>
       </div>
       <input
-        aria-hidden={true}
-        className="MuiSelect-nativeInput"
-        onAnimationStart={[Function]}
-        onChange={[Function]}
-        required={false}
-        tabIndex={-1}
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
         value=""
       />
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root MuiSelect-icon"
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
         focusable="false"
         viewBox="0 0 24 24"
       >

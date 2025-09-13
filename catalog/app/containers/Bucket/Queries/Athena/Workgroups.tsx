@@ -5,7 +5,6 @@ import * as Lab from '@material-ui/lab'
 
 import { docs } from 'constants/urls'
 import Skeleton from 'components/Skeleton'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
 import { Alert } from './Components'
@@ -15,28 +14,24 @@ import * as storage from './model/storage'
 const LOAD_MORE = 'load-more'
 
 interface WorkgroupSelectProps {
-  bucket: string
   disabled?: boolean
   onLoadMore: (workgroups: Model.List<Model.Workgroup>) => void
-  value: Model.Workgroup | null
+  value: Model.Workgroup
   workgroups: Model.List<Model.Workgroup>
 }
 
 function WorkgroupSelect({
-  bucket,
   disabled,
   onLoadMore,
   value,
   workgroups,
 }: WorkgroupSelectProps) {
-  const { urls } = NamedRoutes.use()
+  const { toWorkgroup } = Model.use()
   const history = RRDom.useHistory()
 
   const goToWorkgroup = React.useCallback(
-    (workgroup: string) => {
-      history.push(urls.bucketAthenaWorkgroup(bucket, workgroup))
-    },
-    [bucket, history, urls],
+    (workgroup: string) => history.push(toWorkgroup(workgroup)),
+    [toWorkgroup, history],
   )
 
   const handleChange = React.useCallback(
@@ -57,7 +52,7 @@ function WorkgroupSelect({
       <M.Select
         disabled={disabled || !workgroups.list.length}
         onChange={handleChange}
-        value={value || 'none'}
+        value={value}
       >
         {workgroups.list.map((name) => (
           <M.MenuItem key={name} value={name}>
@@ -107,16 +102,13 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
   )
 }
 
-interface AthenaWorkgroupsProps {
-  bucket: string
-}
-
-export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
+export default function AthenaWorkgroups() {
   const { queryRun, workgroup, workgroups } = Model.use()
 
-  if (Model.isError(workgroups.data)) return <WorkgroupsEmpty error={workgroups.data} />
-  if (Model.isError(workgroup.data)) return <WorkgroupsEmpty error={workgroup.data} />
-  if (!Model.hasData(workgroups.data) || !Model.hasData(workgroup.data)) {
+  const selected = workgroup
+  const list = workgroups.data
+
+  if (!Model.isReady(list) || !Model.isReady(selected)) {
     return (
       <>
         <Skeleton height={24} width={128} animate />
@@ -125,15 +117,17 @@ export default function AthenaWorkgroups({ bucket }: AthenaWorkgroupsProps) {
     )
   }
 
-  if (!workgroups.data.list.length) return <WorkgroupsEmpty />
+  if (Model.isError(list)) return <WorkgroupsEmpty error={list.error} />
+  if (Model.isError(selected)) return <WorkgroupsEmpty error={selected.error} />
+
+  if (!list.data.list.length) return <WorkgroupsEmpty />
 
   return (
     <WorkgroupSelect
-      disabled={Model.isLoading(queryRun)}
-      bucket={bucket}
+      disabled={!Model.isReady(queryRun)}
       onLoadMore={workgroups.loadMore}
-      value={workgroup.data}
-      workgroups={workgroups.data}
+      value={selected.data}
+      workgroups={list.data}
     />
   )
 }
