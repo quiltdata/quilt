@@ -13,7 +13,7 @@ reproducible, discoverable packages stored in S3. It provides:
 
 ## Repository Structure
 
-```
+```tree
 catalog/          # React web frontend (main UI)
 lambdas/          # AWS Lambda backend services
 api/              # API definitions and schemas
