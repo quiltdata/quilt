@@ -1,149 +1,151 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/BreadCrumbs Segment should render EMPTY 1`] = `
-<i>
-  &lt;EMPTY&gt;
-</i>
+<div>
+  <i>
+    &lt;EMPTY&gt;
+  </i>
+</div>
 `;
 
-exports[`components/BreadCrumbs Segment should render label 1`] = `"Lorem ipsum"`;
+exports[`components/BreadCrumbs Segment should render label 1`] = `
+<div>
+  Lorem ipsum
+</div>
+`;
 
 exports[`components/BreadCrumbs Segment should render link 1`] = `
-<a
-  className="makeStyles-root-1"
-  href="/a"
-  onClick={[Function]}
->
-  A
-</a>
+<div>
+  <a
+    class="makeStyles-root-1"
+    href="/a"
+  >
+    A
+  </a>
+</div>
 `;
 
 exports[`components/BreadCrumbs render and end with separator 1`] = `
-[
+<div>
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-5"
     href="https://quiltdata.com/"
   >
     ROOT
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-5"
     href="https://quiltdata.com/a/"
   >
     a
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-5"
     href="https://quiltdata.com/a/b"
   >
     b
-  </a>,
-  " / ",
-]
+  </a>
+   / 
+</div>
 `;
 
 exports[`components/BreadCrumbs render and make links for every crumb 1`] = `
-[
+<div>
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-4"
     href="https://quiltdata.com/"
   >
     ROOT
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-4"
     href="https://quiltdata.com/a/"
   >
     a
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-4"
     href="https://quiltdata.com/a/b"
   >
     b
-  </a>,
-]
+  </a>
+</div>
 `;
 
 exports[`components/BreadCrumbs render and transform links 1`] = `
-[
+<div>
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-3"
     href="https://quiltdata.com/"
   >
     ROOT
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-3"
     href="https://quiltdata.com/a/"
   >
     a
-  </a>,
-  " / ",
-  "b",
-]
+  </a>
+   / 
+  b
+</div>
 `;
 
 exports[`components/BreadCrumbs render basic breadcrumbs 1`] = `
-[
+<div>
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-2"
     to=""
   >
     ROOT
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-2"
     href="/aa a/"
-    onClick={[Function]}
   >
     aa a
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-2"
     href="/aa a/bb-b/"
-    onClick={[Function]}
   >
     bb-b
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-2"
     href="/aa a/bb-b/c/"
-    onClick={[Function]}
   >
     c
-  </a>,
-  " / ",
-  "d_d",
-]
+  </a>
+   / 
+  d_d
+</div>
 `;
 
 exports[`components/BreadCrumbs render without root label 1`] = `
-[
+<div>
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-6"
     href="/a/"
-    onClick={[Function]}
   >
     a
-  </a>,
-  " / ",
+  </a>
+   / 
   <a
-    className="makeStyles-root-1"
+    class="makeStyles-root-6"
     href="/a/b/"
-    onClick={[Function]}
   >
     b
-  </a>,
-  " / ",
-  "c",
-]
+  </a>
+   / 
+  c
+</div>
 `;

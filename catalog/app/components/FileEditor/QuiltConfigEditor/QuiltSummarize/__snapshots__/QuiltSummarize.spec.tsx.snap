@@ -1,329 +1,326 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`QuiltSummarize Render columns 1`] = `
-<div
-  className="root root"
->
-  <div>
-    <div
-      className="root row"
-    >
+<div>
+  <div
+    class="root root"
+  >
+    <div>
       <div
-        className="inner"
+        class="root row"
       >
         <div
-          className="root column"
+          class="inner"
         >
           <div
-            className="inner"
+            class="root column"
           >
             <div
-              className="path"
+              class="inner"
             >
+              <div
+                class="path"
+              >
+                <div
+                  id="icon-button"
+                >
+                  <div
+                    id="icon"
+                  >
+                    settings
+                  </div>
+                </div>
+                <div
+                  id="text-field"
+                >
+                  foo.md
+                </div>
+              </div>
               <div
                 id="icon-button"
               >
                 <div
                   id="icon"
                 >
-                  settings
+                  close
                 </div>
               </div>
-              <div
-                id="text-field"
-              >
-                foo.md
-              </div>
             </div>
             <div
-              id="icon-button"
+              class="root vertical divider"
             >
               <div
-                id="icon"
+                class="inner"
               >
-                close
+                <div
+                  id="icon"
+                >
+                  add
+                </div>
               </div>
             </div>
           </div>
           <div
-            className="root vertical divider"
+            class="root column"
           >
             <div
-              className="inner"
-              onClick={[Function]}
+              class="inner"
             >
               <div
-                id="icon"
+                class="path"
               >
-                add
+                <div
+                  id="icon-button"
+                >
+                  <div
+                    id="icon"
+                  >
+                    settings
+                  </div>
+                </div>
+                <div
+                  id="text-field"
+                >
+                  bar.md
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <div
-          className="root column"
-        >
-          <div
-            className="inner"
-          >
-            <div
-              className="path"
-            >
               <div
                 id="icon-button"
               >
                 <div
                   id="icon"
                 >
-                  settings
+                  close
                 </div>
               </div>
-              <div
-                id="text-field"
-              >
-                bar.md
-              </div>
             </div>
             <div
-              id="icon-button"
+              class="root expanded vertical divider"
             >
               <div
-                id="icon"
+                class="inner"
               >
-                close
-              </div>
-            </div>
-          </div>
-          <div
-            className="root expanded vertical divider"
-          >
-            <div
-              className="inner"
-              onClick={[Function]}
-            >
-              <div
-                id="icon"
-              >
-                add
+                <div
+                  id="icon"
+                >
+                  add
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div
-        className="root expanded horizontal divider"
-      >
         <div
-          className="inner"
-          onClick={[Function]}
+          class="root expanded horizontal divider"
         >
           <div
-            id="icon"
+            class="inner"
           >
-            add
+            <div
+              id="icon"
+            >
+              add
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <p
-    className="caption"
-  >
-    Configuration for quilt_summarize.json. See
-     
-    <a
-      className="root"
-      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
-      target="_blank"
+    <p
+      class="caption"
     >
-      the docs
-    </a>
-  </p>
+      Configuration for quilt_summarize.json. See
+       
+      <a
+        class="root"
+        href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+        target="_blank"
+      >
+        the docs
+      </a>
+    </p>
+  </div>
 </div>
 `;
 
 exports[`QuiltSummarize Render empty placeholders 1`] = `
-<div
-  className="root root"
->
-  <div>
-    <div
-      className="root row"
-    >
+<div>
+  <div
+    class="root root"
+  >
+    <div>
       <div
-        className="inner"
+        class="root row"
       >
         <div
-          className="root column"
+          class="inner"
         >
           <div
-            className="inner"
+            class="root column"
           >
             <div
-              className="path"
+              class="inner"
             >
+              <div
+                class="path"
+              >
+                <div
+                  id="icon-button"
+                >
+                  <div
+                    id="icon"
+                  >
+                    settings
+                  </div>
+                </div>
+                <div
+                  id="text-field"
+                />
+              </div>
               <div
                 id="icon-button"
               >
                 <div
                   id="icon"
                 >
-                  settings
+                  close
                 </div>
               </div>
-              <div
-                id="text-field"
-              >
-                
-              </div>
             </div>
             <div
-              id="icon-button"
+              class="root expanded vertical divider"
             >
               <div
-                id="icon"
+                class="inner"
               >
-                close
-              </div>
-            </div>
-          </div>
-          <div
-            className="root expanded vertical divider"
-          >
-            <div
-              className="inner"
-              onClick={[Function]}
-            >
-              <div
-                id="icon"
-              >
-                add
+                <div
+                  id="icon"
+                >
+                  add
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div
-        className="root expanded horizontal divider"
-      >
         <div
-          className="inner"
-          onClick={[Function]}
+          class="root expanded horizontal divider"
         >
           <div
-            id="icon"
+            class="inner"
           >
-            add
+            <div
+              id="icon"
+            >
+              add
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <p
-    className="caption"
-  >
-    Configuration for quilt_summarize.json. See
-     
-    <a
-      className="root"
-      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
-      target="_blank"
+    <p
+      class="caption"
     >
-      the docs
-    </a>
-  </p>
+      Configuration for quilt_summarize.json. See
+       
+      <a
+        class="root"
+        href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+        target="_blank"
+      >
+        the docs
+      </a>
+    </p>
+  </div>
 </div>
 `;
 
 exports[`QuiltSummarize Render row 1`] = `
-<div
-  className="root root"
->
-  <div>
-    <div
-      className="root row"
-    >
+<div>
+  <div
+    class="root root"
+  >
+    <div>
       <div
-        className="inner"
+        class="root row"
       >
         <div
-          className="root column"
+          class="inner"
         >
           <div
-            className="inner"
+            class="root column"
           >
             <div
-              className="path"
+              class="inner"
             >
+              <div
+                class="path"
+              >
+                <div
+                  id="icon-button"
+                >
+                  <div
+                    id="icon"
+                  >
+                    settings
+                  </div>
+                </div>
+                <div
+                  id="text-field"
+                >
+                  foo.md
+                </div>
+              </div>
               <div
                 id="icon-button"
               >
                 <div
                   id="icon"
                 >
-                  settings
+                  close
                 </div>
               </div>
-              <div
-                id="text-field"
-              >
-                foo.md
-              </div>
             </div>
             <div
-              id="icon-button"
+              class="root expanded vertical divider"
             >
               <div
-                id="icon"
+                class="inner"
               >
-                close
-              </div>
-            </div>
-          </div>
-          <div
-            className="root expanded vertical divider"
-          >
-            <div
-              className="inner"
-              onClick={[Function]}
-            >
-              <div
-                id="icon"
-              >
-                add
+                <div
+                  id="icon"
+                >
+                  add
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div
-        className="root expanded horizontal divider"
-      >
         <div
-          className="inner"
-          onClick={[Function]}
+          class="root expanded horizontal divider"
         >
           <div
-            id="icon"
+            class="inner"
           >
-            add
+            <div
+              id="icon"
+            >
+              add
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <p
-    className="caption"
-  >
-    Configuration for quilt_summarize.json. See
-     
-    <a
-      className="root"
-      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
-      target="_blank"
+    <p
+      class="caption"
     >
-      the docs
-    </a>
-  </p>
+      Configuration for quilt_summarize.json. See
+       
+      <a
+        class="root"
+        href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+        target="_blank"
+      >
+        the docs
+      </a>
+    </p>
+  </div>
 </div>
 `;

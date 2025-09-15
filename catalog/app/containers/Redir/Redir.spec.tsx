@@ -43,7 +43,7 @@ jest.mock(
 
 describe('containers/Redir/Redir', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+    jest.spyOn(console, 'error').mockImplementation(jest.fn())
   })
 
   it('must have uri', () => {

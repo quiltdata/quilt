@@ -1,36 +1,42 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/Layout/Container has full width once set 1`] = `
-<div
-  className="MuiContainer-root makeStyles-fullWidth-1"
->
-  long content
+<div>
+  <div
+    class="MuiContainer-root makeStyles-fullWidth-1"
+  >
+    long content
+  </div>
 </div>
 `;
 
 exports[`components/Layout/Container has restricted width by default 1`] = `
-<div
-  className="MuiContainer-root makeStyles-contained-2 MuiContainer-maxWidthLg"
->
-  
+<div>
+  <div
+    class="MuiContainer-root makeStyles-contained-2 MuiContainer-maxWidthLg"
+  />
 </div>
 `;
 
 exports[`components/Layout/Container requires Provider 1`] = `
-<span>
-  Error: 
-  Context must be used within a Provider
-</span>
+<div>
+  <span>
+    Error: 
+    Context must be used within a Provider
+  </span>
+</div>
 `;
 
 exports[`components/Layout/Container still has full width when other remove full width 1`] = `
-<div
-  className="MuiContainer-root makeStyles-fullWidth-1"
->
-  short content
-  long content
-  short content
-  long content
-  short content
+<div>
+  <div
+    class="MuiContainer-root makeStyles-fullWidth-1"
+  >
+    short content
+    long content
+    short content
+    long content
+    short content
+  </div>
 </div>
 `;

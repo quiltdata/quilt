@@ -21,14 +21,14 @@ jest.mock(
   () =>
     ({ rendered }: { rendered: string }) => (
       // eslint-disable-next-line react/no-danger
-      <b dangerouslySetInnerHTML={{ __html: rendered }}>Markdown</b>
+      <section dangerouslySetInnerHTML={{ __html: rendered }} />
     ),
 )
 
 jest.mock(
   '@material-ui/lab',
   jest.fn(() => ({
-    Alert: ({ children }: { children: string }) => <div>Error: {children}</div>,
+    Alert: ({ children }: { children: string }) => <p>Error: {children}</p>,
   })),
 )
 

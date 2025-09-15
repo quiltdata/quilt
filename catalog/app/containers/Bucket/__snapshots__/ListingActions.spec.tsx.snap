@@ -1,204 +1,206 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/ListingActions RowActions should render Bucket directory 1`] = `
-<div
-  className="makeStyles-root-1"
->
+<div>
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-root-16"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-wrapper-19"
     >
-      <button
-        className="makeStyles-root-6 makeStyles-item-3"
-        title="Delete"
+      <div
+        class="makeStyles-container-17"
       >
-        <span>
-          delete
-        </span>
-      </button>
-      <button
-        className="makeStyles-root-6 makeStyles-item-3"
-        title="Bookmark"
-      >
-        <span>
-          turned_in_not
-        </span>
-      </button>
-      <form
-        action="/zip/dir/bucketA/dirB/"
-        className="makeStyles-item-3"
-        method="POST"
-        style={
-          {
-            "flexShrink": 0,
-          }
-        }
-      >
-        <input
-          name="token"
-          type="hidden"
-          value="ABC"
-        />
         <button
-          className="makeStyles-root-6 makeStyles-item-3"
-          title="Download"
-          type="submit"
+          class="makeStyles-root-21 makeStyles-item-18"
+          title="Delete"
         >
           <span>
-            arrow_downward
+            delete
           </span>
         </button>
-      </form>
+        <button
+          class="makeStyles-root-21 makeStyles-item-18"
+          title="Bookmark"
+        >
+          <span>
+            turned_in_not
+          </span>
+        </button>
+        <form
+          action="/zip/dir/bucketA/dirB/"
+          class="makeStyles-item-18"
+          method="POST"
+          style="flex-shrink: 0;"
+        >
+          <input
+            name="token"
+            type="hidden"
+            value="ABC"
+          />
+          <button
+            class="makeStyles-root-21 makeStyles-item-18"
+            title="Download"
+            type="submit"
+          >
+            <span>
+              arrow_downward
+            </span>
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
 `;
 
 exports[`components/ListingActions RowActions should render Bucket file 1`] = `
-<div
-  className="makeStyles-root-1"
->
+<div>
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-root-22"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-wrapper-25"
     >
-      <button
-        className="makeStyles-root-6 makeStyles-item-3"
-        title="Delete"
+      <div
+        class="makeStyles-container-23"
       >
-        <span>
-          delete
-        </span>
-      </button>
-      <button
-        className="makeStyles-root-6 makeStyles-item-3"
-        title="Bookmark"
-      >
-        <span>
-          turned_in_not
-        </span>
-      </button>
-      <a
-        className="makeStyles-root-6 makeStyles-item-3"
-        download={true}
-        href="s3://bucketA/fileB"
-        title="Download"
-      >
-        <span>
-          arrow_downward
-        </span>
-      </a>
+        <button
+          class="makeStyles-root-27 makeStyles-item-24"
+          title="Delete"
+        >
+          <span>
+            delete
+          </span>
+        </button>
+        <button
+          class="makeStyles-root-27 makeStyles-item-24"
+          title="Bookmark"
+        >
+          <span>
+            turned_in_not
+          </span>
+        </button>
+        <a
+          class="makeStyles-root-27 makeStyles-item-24"
+          download=""
+          href="s3://bucketA/fileB"
+          title="Download"
+        >
+          <span>
+            arrow_downward
+          </span>
+        </a>
+      </div>
     </div>
   </div>
 </div>
 `;
 
 exports[`components/ListingActions RowActions should render Bucket file without download button 1`] = `
-<div
-  className="makeStyles-root-1"
->
+<div>
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-root-40"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-wrapper-43"
     >
-      <button
-        className="makeStyles-root-6 makeStyles-item-3"
-        title="Delete"
+      <div
+        class="makeStyles-container-41"
       >
-        <span>
-          delete
-        </span>
-      </button>
-      <button
-        className="makeStyles-root-6 makeStyles-item-3"
-        title="Bookmark"
-      >
-        <span>
-          turned_in_not
-        </span>
-      </button>
+        <button
+          class="makeStyles-root-45 makeStyles-item-42"
+          title="Delete"
+        >
+          <span>
+            delete
+          </span>
+        </button>
+        <button
+          class="makeStyles-root-45 makeStyles-item-42"
+          title="Bookmark"
+        >
+          <span>
+            turned_in_not
+          </span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
 `;
 
 exports[`components/ListingActions RowActions should render Package directory 1`] = `
-<div
-  className="makeStyles-root-1"
->
+<div>
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-root-28"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-wrapper-31"
     >
-      <form
-        action="/zip/package/bucketA/namespaceB/nameC/latest/dirD/"
-        className="makeStyles-item-3"
-        method="POST"
-        style={
-          {
-            "flexShrink": 0,
-          }
-        }
+      <div
+        class="makeStyles-container-29"
       >
-        <input
-          name="token"
-          type="hidden"
-          value="ABC"
-        />
-        <button
-          className="makeStyles-root-6"
+        <form
+          action="/zip/package/bucketA/namespaceB/nameC/latest/dirD/"
+          class="makeStyles-item-30"
+          method="POST"
+          style="flex-shrink: 0;"
+        >
+          <input
+            name="token"
+            type="hidden"
+            value="ABC"
+          />
+          <button
+            class="makeStyles-root-33"
+            title="Download"
+            type="submit"
+          >
+            <span>
+              arrow_downward
+            </span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`components/ListingActions RowActions should render Package directory without download button 1`] = `<div />`;
+
+exports[`components/ListingActions RowActions should render Package file 1`] = `
+<div>
+  <div
+    class="makeStyles-root-34"
+  >
+    <div
+      class="makeStyles-wrapper-37"
+    >
+      <div
+        class="makeStyles-container-35"
+      >
+        <a
+          class="makeStyles-root-39 makeStyles-item-36"
+          download=""
+          href="s3://bucketa/pathB/fileB"
           title="Download"
-          type="submit"
         >
           <span>
             arrow_downward
           </span>
-        </button>
-      </form>
+        </a>
+      </div>
     </div>
   </div>
 </div>
 `;
 
-exports[`components/ListingActions RowActions should render Package directory without download button 1`] = `null`;
+exports[`components/ListingActions RowActions should render Package file without download button 1`] = `<div />`;
 
-exports[`components/ListingActions RowActions should render Package file 1`] = `
-<div
-  className="makeStyles-root-1"
->
-  <div
-    className="makeStyles-wrapper-4"
-  >
-    <div
-      className="makeStyles-container-2"
-    >
-      <a
-        className="makeStyles-root-6 makeStyles-item-3"
-        download={true}
-        href="s3://bucketa/pathB/fileB"
-        title="Download"
-      >
-        <span>
-          arrow_downward
-        </span>
-      </a>
-    </div>
-  </div>
-</div>
-`;
+exports[`components/ListingActions RowActions should render nothing if archived 1`] = `<div />`;
 
-exports[`components/ListingActions RowActions should render Package file without download button 1`] = `null`;
+exports[`components/ListingActions RowActions should render nothing if no route 1`] = `<div />`;
 
-exports[`components/ListingActions RowActions should render nothing if archived 1`] = `null`;
-
-exports[`components/ListingActions RowActions should render nothing if no route 1`] = `null`;
-
-exports[`components/ListingActions RowActions should render nothing if wrong route 1`] = `null`;
+exports[`components/ListingActions RowActions should render nothing if wrong route 1`] = `<div />`;
