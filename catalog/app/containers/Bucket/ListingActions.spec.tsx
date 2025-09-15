@@ -75,7 +75,7 @@ describe('components/ListingActions', () => {
           <RowActions archived to="" prefs={defaultPrefs} onReload={noop} />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render nothing if no route', () => {
@@ -84,7 +84,7 @@ describe('components/ListingActions', () => {
           <RowActions to="" prefs={defaultPrefs} onReload={noop} />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render nothing if wrong route', () => {
@@ -93,7 +93,7 @@ describe('components/ListingActions', () => {
           <RowActions to="/b/bucketA/BRANCH/fileB" prefs={defaultPrefs} onReload={noop} />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Bucket directory', () => {
@@ -103,7 +103,7 @@ describe('components/ListingActions', () => {
           <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} onReload={noop} />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Bucket file', () => {
@@ -112,7 +112,7 @@ describe('components/ListingActions', () => {
           <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} onReload={noop} />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package directory', () => {
@@ -125,7 +125,7 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package file', () => {
@@ -139,7 +139,7 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Bucket file without download button', () => {
@@ -152,7 +152,7 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package directory without download button', () => {
@@ -165,7 +165,7 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render Package file without download button', () => {
@@ -179,7 +179,7 @@ describe('components/ListingActions', () => {
           />
         </TestBucket>,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })

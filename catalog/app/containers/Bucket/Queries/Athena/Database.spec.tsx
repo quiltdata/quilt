@@ -54,7 +54,7 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render selected values', () => {
@@ -71,7 +71,7 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show no value (zero-width space) if selected no value', () => {
@@ -88,7 +88,7 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should disable selection if no spare values', () => {
@@ -105,7 +105,7 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         <Database />
       </Provider>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show error when values failed', () => {
@@ -122,7 +122,7 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should show error when data failed', () => {
@@ -139,6 +139,6 @@ describe('containers/Bucket/Queries/Athena/Database', () => {
         </Provider>
       </WithGlobalDialogs>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

@@ -41,24 +41,24 @@ describe('app/components/Preview/quick/Render.spec.tsx', () => {
   it('it shows the error for Init state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Init())
     const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('it shows the error for Pending state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Pending())
     const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('returns error on Err', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Err(new Error('some error')))
     const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('returns markdown on data', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Ok('<h1>It works</h1>'))
     const { container } = render(<Render {...{ handle, value: 'any' }} />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

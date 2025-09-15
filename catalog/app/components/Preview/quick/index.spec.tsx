@@ -32,14 +32,14 @@ describe('app/components/Preview/quick/index.spec.tsx', () => {
       const { container } = render(
         <QuickPreview {...{ handle, type: { brace: 'markdown' as const }, value: '' }} />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('renders no preview if unsupported file type', () => {
       const { container } = render(
         <QuickPreview {...{ handle, type: { brace: 'json' as const }, value: '' }} />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('renders Markdown', () => {
@@ -48,7 +48,7 @@ describe('app/components/Preview/quick/index.spec.tsx', () => {
           {...{ handle, type: { brace: 'markdown' as const }, value: '=== Title' }}
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })

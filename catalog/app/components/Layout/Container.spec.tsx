@@ -17,9 +17,9 @@ const EmptyContainer = () => (
 
 describe('components/Layout/Container', () => {
   it('requires Provider', () => {
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
+    jest.spyOn(console, 'error').mockImplementation(jest.fn())
     const { container } = render(<EmptyContainer />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('has restricted width by default', () => {
@@ -28,7 +28,7 @@ describe('components/Layout/Container', () => {
         <EmptyContainer />
       </FullWidthProvider>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('has full width once set', () => {
@@ -44,7 +44,7 @@ describe('components/Layout/Container', () => {
       </FullWidthProvider>,
     )
     act(() => {})
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('still has full width when other remove full width', () => {
@@ -76,6 +76,6 @@ describe('components/Layout/Container', () => {
       </FullWidthProvider>,
     )
     act(() => {})
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

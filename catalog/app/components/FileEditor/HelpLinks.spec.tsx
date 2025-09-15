@@ -44,7 +44,7 @@ describe('components/FileEditor/HelpLinks', () => {
   describe('WorkflowsConfigLink', () => {
     it('should render', () => {
       const { container } = render(<WorkflowsConfigLink>Test</WorkflowsConfigLink>)
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should throw outside bucket', () => {

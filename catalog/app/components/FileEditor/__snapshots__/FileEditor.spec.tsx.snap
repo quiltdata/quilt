@@ -1,73 +1,60 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/FileEditor/FileEditor Editor shows Error when loading failed 1`] = `
-<div>
-  <div
-    class="makeStyles-tab-9 makeStyles-active-10"
-  >
-    <div>
-      <div
-        id="error"
-      />
-    </div>
-  </div>
-</div>
-`;
-
-exports[`components/FileEditor/FileEditor Editor shows Skeleton while loading data 1`] = `
-<div>
-  <div
-    class="makeStyles-tab-7 makeStyles-active-8"
-  >
+<div
+  class="makeStyles-tab-9 makeStyles-active-10"
+>
+  <div>
     <div
-      id="Skeleton"
+      id="error"
     />
   </div>
 </div>
 `;
 
-exports[`components/FileEditor/FileEditor Editor shows TextEditor 1`] = `
-<div>
+exports[`components/FileEditor/FileEditor Editor shows Skeleton while loading data 1`] = `
+<div
+  class="makeStyles-tab-7 makeStyles-active-8"
+>
   <div
-    class="makeStyles-tab-3 makeStyles-active-4"
+    id="Skeleton"
+  />
+</div>
+`;
+
+exports[`components/FileEditor/FileEditor Editor shows TextEditor 1`] = `
+<div
+  class="makeStyles-tab-3 makeStyles-active-4"
+>
+  <div
+    id="Text Editor"
   >
-    <div
-      id="Text Editor"
+    <span
+      id="initialValue"
     >
-      <span
-        id="initialValue"
-      >
-        body
-      </span>
-    </div>
+      body
+    </span>
   </div>
 </div>
 `;
 
 exports[`components/FileEditor/FileEditor Editor shows an empty TextEditor 1`] = `
-<div>
+<div
+  class="makeStyles-tab-5 makeStyles-active-6"
+>
   <div
-    class="makeStyles-tab-5 makeStyles-active-6"
+    id="Text Editor"
   >
-    <div
-      id="Text Editor"
-    >
-      <span
-        id="initialValue"
-      />
-    </div>
+    <span
+      id="initialValue"
+    />
   </div>
 </div>
 `;
 
 exports[`components/FileEditor/FileEditor Editor shows skeleton when loadMode is not resolved yet 1`] = `
-<div>
-  <div
-    class="makeStyles-tab-1 makeStyles-active-2"
-    style="display: none;"
-  />
-  <div
-    id="Skeleton"
-  />
-</div>
+<div
+  class="makeStyles-tab-1 makeStyles-active-2"
+  style="display: none;"
+/>
 `;

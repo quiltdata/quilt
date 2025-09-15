@@ -1,97 +1,87 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`containers/Redir/Redir must have uri 1`] = `
-<div>
-  <span>
-    Error: 
-    \`uri\` must be defined
-  </span>
-</div>
+<span>
+  Error: 
+  \`uri\` must be defined
+</span>
 `;
 
-exports[`containers/Redir/Redir redirects to package page 1`] = `
-<div>
-  Redirect to /b/bucket/packages/pkg/name/tree/hash/?resolvedFrom=quilt%2Bs3%3A%2F%2Fbucket%23package%3Dpkg%2Fname%40hash
-</div>
-`;
+exports[`containers/Redir/Redir redirects to package page 1`] = `Redirect to /b/bucket/packages/pkg/name/tree/hash/?resolvedFrom=quilt%2Bs3%3A%2F%2Fbucket%23package%3Dpkg%2Fname%40hash`;
 
 exports[`containers/Redir/Redir shows error 1`] = `
-<div>
+<div
+  role="main"
+>
   <div
-    role="main"
+    class="makeStyles-root-8 makeStyles-root-7"
   >
-    <div
-      class="makeStyles-root-8 makeStyles-root-7"
+    <h4
+      class="MuiTypography-root MuiTypography-h4"
     >
-      <h4
-        class="MuiTypography-root MuiTypography-h4"
-      >
-        Failed to redirect
-      </h4>
+      Failed to redirect
+    </h4>
+    <div
+      class="makeStyles-actions-9"
+    >
       <div
-        class="makeStyles-actions-9"
+        class="makeStyles-primary-10"
       >
-        <div
-          class="makeStyles-primary-10"
+        <a
+          href="quilt+s3://"
         >
-          <a
-            href="quilt+s3://"
-          >
-            Open QuiltSync
-          </a>
-        </div>
-        <p
-          class="MuiTypography-root makeStyles-secondary-11 MuiTypography-body1"
-        >
-          Click the button to open QuiltSync
-        </p>
+          Open QuiltSync
+        </a>
       </div>
-      <div
-        class="makeStyles-main-12"
+      <p
+        class="MuiTypography-root makeStyles-secondary-11 MuiTypography-body1"
       >
-        <p
-          class="MuiTypography-root MuiTypography-body1 MuiTypography-colorError"
-        >
-          Error parsing URI: 
-          unsupported protocol "null". "quilt+s3:" is currently the only supported protocol.
-        </p>
-      </div>
+        Click the button to open QuiltSync
+      </p>
+    </div>
+    <div
+      class="makeStyles-main-12"
+    >
+      <p
+        class="MuiTypography-root MuiTypography-body1 MuiTypography-colorError"
+      >
+        Error parsing URI: 
+        unsupported protocol "null". "quilt+s3:" is currently the only supported protocol.
+      </p>
     </div>
   </div>
 </div>
 `;
 
 exports[`containers/Redir/Redir shows waiting screen 1`] = `
-<div>
+<div
+  role="main"
+>
   <div
-    role="main"
+    class="makeStyles-root-2 makeStyles-root-1"
   >
-    <div
-      class="makeStyles-root-2 makeStyles-root-1"
+    <h4
+      class="MuiTypography-root MuiTypography-h4"
     >
-      <h4
-        class="MuiTypography-root MuiTypography-h4"
-      >
-        Redirecting…
-      </h4>
+      Redirecting…
+    </h4>
+    <div
+      class="makeStyles-actions-3"
+    >
       <div
-        class="makeStyles-actions-3"
+        class="makeStyles-primary-4"
       >
-        <div
-          class="makeStyles-primary-4"
+        <a
+          href="quilt+s3://bucket#package=pkg/name@hash"
         >
-          <a
-            href="quilt+s3://bucket#package=pkg/name@hash"
-          >
-            Open QuiltSync
-          </a>
-        </div>
-        <p
-          class="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
-        >
-          Click the button if you’re not redirected automatically.
-        </p>
+          Open QuiltSync
+        </a>
       </div>
+      <p
+        class="MuiTypography-root makeStyles-secondary-5 MuiTypography-body1"
+      >
+        Click the button if you’re not redirected automatically.
+      </p>
     </div>
   </div>
 </div>

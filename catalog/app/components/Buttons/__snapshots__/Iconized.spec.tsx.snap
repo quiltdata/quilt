@@ -1,121 +1,113 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/Buttons/Iconized render contained 1`] = `
-<div>
-  <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedSizeSmall MuiButton-sizeSmall"
-    tabindex="0"
-    type="button"
+<button
+  class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
+  type="button"
+>
+  <span
+    class="MuiButton-label"
   >
     <span
-      class="MuiButton-label"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
       <span
-        class="MuiButton-startIcon MuiButton-iconSizeSmall"
+        aria-hidden="true"
+        class="material-icons MuiIcon-root makeStyles-root-5"
       >
-        <span
-          aria-hidden="true"
-          class="material-icons MuiIcon-root makeStyles-root-5"
-        >
-          ac_unit
-        </span>
+        ac_unit
       </span>
-      A
     </span>
-    <span
-      class="MuiTouchRipple-root"
-    />
-  </button>
-</div>
+    A
+  </span>
+  <span
+    class="MuiTouchRipple-root"
+  />
+</button>
 `;
 
 exports[`components/Buttons/Iconized render icon and label 1`] = `
-<div>
-  <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
-    tabindex="0"
-    type="button"
+<button
+  class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
+  type="button"
+>
+  <span
+    class="MuiButton-label"
   >
     <span
-      class="MuiButton-label"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
       <span
-        class="MuiButton-startIcon MuiButton-iconSizeSmall"
+        aria-hidden="true"
+        class="material-icons MuiIcon-root makeStyles-root-1"
       >
-        <span
-          aria-hidden="true"
-          class="material-icons MuiIcon-root makeStyles-root-1"
-        >
-          ac_unit
-        </span>
+        ac_unit
       </span>
-      A
     </span>
-    <span
-      class="MuiTouchRipple-root"
-    />
-  </button>
-</div>
+    A
+  </span>
+  <span
+    class="MuiTouchRipple-root"
+  />
+</button>
 `;
 
 exports[`components/Buttons/Iconized render rotated 1`] = `
-<div>
-  <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
-    tabindex="0"
-    type="button"
+<button
+  class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
+  type="button"
+>
+  <span
+    class="MuiButton-label"
   >
     <span
-      class="MuiButton-label"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
       <span
-        class="MuiButton-startIcon MuiButton-iconSizeSmall"
+        aria-hidden="true"
+        class="material-icons MuiIcon-root makeStyles-root-3 makeStyles-rotated-4"
       >
-        <span
-          aria-hidden="true"
-          class="material-icons MuiIcon-root makeStyles-root-3 makeStyles-rotated-4"
-        >
-          ac_unit
-        </span>
+        ac_unit
       </span>
-      A
     </span>
-    <span
-      class="MuiTouchRipple-root"
-    />
-  </button>
-</div>
+    A
+  </span>
+  <span
+    class="MuiTouchRipple-root"
+  />
+</button>
 `;
 
 exports[`components/Buttons/Iconized render with SvgIcon component 1`] = `
-<div>
-  <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
-    tabindex="0"
-    type="button"
+<button
+  class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
+  type="button"
+>
+  <span
+    class="MuiButton-label"
   >
     <span
-      class="MuiButton-label"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
-      <span
-        class="MuiButton-startIcon MuiButton-iconSizeSmall"
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root makeStyles-root-7"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root makeStyles-root-7"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
-          />
-        </svg>
-      </span>
-      Add Item
+        <path
+          d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+        />
+      </svg>
     </span>
-    <span
-      class="MuiTouchRipple-root"
-    />
-  </button>
-</div>
+    Add Item
+  </span>
+  <span
+    class="MuiTouchRipple-root"
+  />
+</button>
 `;

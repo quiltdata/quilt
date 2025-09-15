@@ -84,7 +84,7 @@ describe('containers/Buckets/Summarize', () => {
           path=""
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render readme link', () => {
@@ -96,7 +96,7 @@ describe('containers/Buckets/Summarize', () => {
           path=""
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render quilt_summarize link', () => {
@@ -108,7 +108,7 @@ describe('containers/Buckets/Summarize', () => {
           path=""
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('should render both links', () => {
@@ -120,7 +120,7 @@ describe('containers/Buckets/Summarize', () => {
           path="some/path"
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })

@@ -13,12 +13,12 @@ jest.mock('utils/AWS', () => ({
 describe('components/Logo', () => {
   it('should render squared logo', () => {
     const { container } = render(<Logo height="20px" width="20px" />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render rectangular logo', () => {
     const { container } = render(<Logo height="30px" width="60px" />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('should render custom logo', () => {
@@ -26,6 +26,6 @@ describe('components/Logo', () => {
     const { container } = render(
       <Logo src="https://example.com/example.png" height="10px" width="10px" />,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

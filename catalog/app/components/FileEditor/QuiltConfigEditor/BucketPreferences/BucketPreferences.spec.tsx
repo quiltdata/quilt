@@ -71,7 +71,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefer
         onChange={noop}
       />,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('render form config where every value is custom', () => {
@@ -129,6 +129,6 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefer
         handle={{ bucket: 'test-bucket', key: 'any' }}
       />,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

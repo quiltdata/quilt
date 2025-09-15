@@ -1,460 +1,448 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`containers/Bucket/Queries/Athena/Database should disable selection if no spare values 1`] = `
-<div>
+<div
+  class="makeStyles-root-17"
+>
   <div
-    class="makeStyles-root-17"
+    class="MuiFormControl-root makeStyles-root-20 makeStyles-field-18"
   >
-    <div
-      class="MuiFormControl-root makeStyles-root-20 makeStyles-field-18"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
-      <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-        data-shrink="true"
-      >
-        Data catalog
-      </label>
+      Data catalog
+    </label>
+    <div
+      class="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
+    >
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
+        aria-disabled="true"
+        aria-haspopup="listbox"
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
+        role="button"
       >
-        <div
-          aria-disabled="true"
-          aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
-          role="button"
-        >
-          Empty list
-        </div>
-        <input
-          aria-hidden="true"
-          class="MuiSelect-nativeInput"
-          tabindex="-1"
-          value="__empty__"
-        />
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 10l5 5 5-5z"
-          />
-        </svg>
+        Empty list
       </div>
+      <input
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
+        value="__empty__"
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
     </div>
-    <div
-      class="MuiFormControl-root makeStyles-root-20"
+  </div>
+  <div
+    class="MuiFormControl-root makeStyles-root-20"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
-      <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-        data-shrink="true"
-      >
-        Database
-      </label>
+      Database
+    </label>
+    <div
+      class="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
+    >
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
+        aria-disabled="true"
+        aria-haspopup="listbox"
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
+        role="button"
       >
-        <div
-          aria-disabled="true"
-          aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
-          role="button"
-        >
-          Empty list
-        </div>
-        <input
-          aria-hidden="true"
-          class="MuiSelect-nativeInput"
-          tabindex="-1"
-          value="__empty__"
-        />
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 10l5 5 5-5z"
-          />
-        </svg>
+        Empty list
       </div>
+      <input
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
+        value="__empty__"
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
     </div>
   </div>
 </div>
 `;
 
 exports[`containers/Bucket/Queries/Athena/Database should render selected values 1`] = `
-<div>
+<div
+  class="makeStyles-root-9"
+>
   <div
-    class="makeStyles-root-9"
+    class="MuiFormControl-root makeStyles-root-12 makeStyles-field-10"
   >
-    <div
-      class="MuiFormControl-root makeStyles-root-12 makeStyles-field-10"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
-      <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-        data-shrink="true"
-      >
-        Data catalog
-      </label>
+      Data catalog
+    </label>
+    <div
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+    >
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        aria-haspopup="listbox"
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+        role="button"
+        tabindex="0"
       >
-        <div
-          aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-          role="button"
-          tabindex="0"
-        >
-          foo
-        </div>
-        <input
-          aria-hidden="true"
-          class="MuiSelect-nativeInput"
-          tabindex="-1"
-          value="foo"
-        />
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 10l5 5 5-5z"
-          />
-        </svg>
+        foo
       </div>
+      <input
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
+        value="foo"
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
     </div>
-    <div
-      class="MuiFormControl-root makeStyles-root-12"
+  </div>
+  <div
+    class="MuiFormControl-root makeStyles-root-12"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
+      data-shrink="true"
     >
-      <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiFormLabel-filled"
-        data-shrink="true"
-      >
-        Database
-      </label>
+      Database
+    </label>
+    <div
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+    >
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        aria-haspopup="listbox"
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+        role="button"
+        tabindex="0"
       >
-        <div
-          aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-          role="button"
-          tabindex="0"
-        >
-          bar
-        </div>
-        <input
-          aria-hidden="true"
-          class="MuiSelect-nativeInput"
-          tabindex="-1"
-          value="bar"
-        />
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 10l5 5 5-5z"
-          />
-        </svg>
+        bar
       </div>
+      <input
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
+        value="bar"
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
     </div>
   </div>
 </div>
 `;
 
 exports[`containers/Bucket/Queries/Athena/Database should render skeletons 1`] = `
-<div>
+<div
+  class="makeStyles-root-1"
+>
   <div
-    class="makeStyles-root-1"
-  >
-    <div
-      class="MuiBox-root MuiBox-root-7 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
-    />
-    <div
-      class="MuiBox-root MuiBox-root-8 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
-    />
-  </div>
+    class="MuiBox-root MuiBox-root-7 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
+  />
+  <div
+    class="MuiBox-root MuiBox-root-8 makeStyles-field-2 makeStyles-root-4 makeStyles-animate-6"
+  />
 </div>
 `;
 
 exports[`containers/Bucket/Queries/Athena/Database should show error when data failed 1`] = `
-<div>
+<div
+  class="makeStyles-root-26"
+>
   <div
-    class="makeStyles-root-26"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
+    role="alert"
   >
     <div
-      class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
-      role="alert"
+      class="MuiAlert-icon"
     >
-      <div
-        class="MuiAlert-icon"
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-          />
-        </svg>
-      </div>
-      <div
-        class="MuiAlert-message"
-      >
-        Error
-      </div>
-      <div
-        class="MuiAlert-action"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-          tabindex="0"
-          type="button"
-        >
-          <span
-            class="MuiButton-label"
-          >
-            Show more
-          </span>
-          <span
-            class="MuiTouchRipple-root"
-          />
-        </button>
-      </div>
+        <path
+          d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+        />
+      </svg>
     </div>
     <div
-      class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
-      role="alert"
+      class="MuiAlert-message"
     >
-      <div
-        class="MuiAlert-icon"
+      Error
+    </div>
+    <div
+      class="MuiAlert-action"
+    >
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
+        type="button"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
-          focusable="false"
-          viewBox="0 0 24 24"
+        <span
+          class="MuiButton-label"
         >
-          <path
-            d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-          />
-        </svg>
-      </div>
-      <div
-        class="MuiAlert-message"
+          Show more
+        </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
+      </button>
+    </div>
+  </div>
+  <div
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-27 MuiPaper-elevation0"
+    role="alert"
+  >
+    <div
+      class="MuiAlert-icon"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        Error
-      </div>
-      <div
-        class="MuiAlert-action"
+        <path
+          d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+        />
+      </svg>
+    </div>
+    <div
+      class="MuiAlert-message"
+    >
+      Error
+    </div>
+    <div
+      class="MuiAlert-action"
+    >
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
+        type="button"
       >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-29 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-          tabindex="0"
-          type="button"
+        <span
+          class="MuiButton-label"
         >
-          <span
-            class="MuiButton-label"
-          >
-            Show more
-          </span>
-          <span
-            class="MuiTouchRipple-root"
-          />
-        </button>
-      </div>
+          Show more
+        </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
+      </button>
     </div>
   </div>
 </div>
 `;
 
 exports[`containers/Bucket/Queries/Athena/Database should show error when values failed 1`] = `
-<div>
+<div
+  class="makeStyles-root-21"
+>
   <div
-    class="makeStyles-root-21"
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
+    role="alert"
   >
     <div
-      class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
-      role="alert"
+      class="MuiAlert-icon"
     >
-      <div
-        class="MuiAlert-icon"
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-          />
-        </svg>
-      </div>
-      <div
-        class="MuiAlert-message"
-      >
-        Error
-      </div>
-      <div
-        class="MuiAlert-action"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-          tabindex="0"
-          type="button"
-        >
-          <span
-            class="MuiButton-label"
-          >
-            Show more
-          </span>
-          <span
-            class="MuiTouchRipple-root"
-          />
-        </button>
-      </div>
+        <path
+          d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+        />
+      </svg>
     </div>
     <div
-      class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
-      role="alert"
+      class="MuiAlert-message"
     >
-      <div
-        class="MuiAlert-icon"
+      Error
+    </div>
+    <div
+      class="MuiAlert-action"
+    >
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
+        type="button"
       >
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
-          focusable="false"
-          viewBox="0 0 24 24"
+        <span
+          class="MuiButton-label"
         >
-          <path
-            d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
-          />
-        </svg>
-      </div>
-      <div
-        class="MuiAlert-message"
+          Show more
+        </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
+      </button>
+    </div>
+  </div>
+  <div
+    class="MuiPaper-root MuiAlert-root MuiAlert-standardError makeStyles-field-22 MuiPaper-elevation0"
+    role="alert"
+  >
+    <div
+      class="MuiAlert-icon"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeInherit"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        Error
-      </div>
-      <div
-        class="MuiAlert-action"
+        <path
+          d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"
+        />
+      </svg>
+    </div>
+    <div
+      class="MuiAlert-message"
+    >
+      Error
+    </div>
+    <div
+      class="MuiAlert-action"
+    >
+      <button
+        class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
+        tabindex="0"
+        type="button"
       >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text makeStyles-button-24 MuiButton-colorInherit MuiButton-textSizeSmall MuiButton-sizeSmall"
-          tabindex="0"
-          type="button"
+        <span
+          class="MuiButton-label"
         >
-          <span
-            class="MuiButton-label"
-          >
-            Show more
-          </span>
-          <span
-            class="MuiTouchRipple-root"
-          />
-        </button>
-      </div>
+          Show more
+        </span>
+        <span
+          class="MuiTouchRipple-root"
+        />
+      </button>
     </div>
   </div>
 </div>
 `;
 
 exports[`containers/Bucket/Queries/Athena/Database should show no value (zero-width space) if selected no value 1`] = `
-<div>
+<div
+  class="makeStyles-root-13"
+>
   <div
-    class="makeStyles-root-13"
+    class="MuiFormControl-root makeStyles-root-16 makeStyles-field-14"
   >
-    <div
-      class="MuiFormControl-root makeStyles-root-16 makeStyles-field-14"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+      data-shrink="false"
     >
-      <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
-        data-shrink="false"
-      >
-        Data catalog
-      </label>
+      Data catalog
+    </label>
+    <div
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+    >
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        aria-haspopup="listbox"
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+        role="button"
+        tabindex="0"
       >
-        <div
-          aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-          role="button"
-          tabindex="0"
-        >
-          <span>
-            ​
-          </span>
-        </div>
-        <input
-          aria-hidden="true"
-          class="MuiSelect-nativeInput"
-          tabindex="-1"
-          value=""
-        />
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 10l5 5 5-5z"
-          />
-        </svg>
+        <span>
+          ​
+        </span>
       </div>
+      <input
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
     </div>
-    <div
-      class="MuiFormControl-root makeStyles-root-16"
+  </div>
+  <div
+    class="MuiFormControl-root makeStyles-root-16"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
+      data-shrink="false"
     >
-      <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated"
-        data-shrink="false"
-      >
-        Database
-      </label>
+      Database
+    </label>
+    <div
+      class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+    >
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        aria-haspopup="listbox"
+        class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+        role="button"
+        tabindex="0"
       >
-        <div
-          aria-haspopup="listbox"
-          class="MuiSelect-root MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
-          role="button"
-          tabindex="0"
-        >
-          <span>
-            ​
-          </span>
-        </div>
-        <input
-          aria-hidden="true"
-          class="MuiSelect-nativeInput"
-          tabindex="-1"
-          value=""
-        />
-        <svg
-          aria-hidden="true"
-          class="MuiSvgIcon-root MuiSelect-icon"
-          focusable="false"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="M7 10l5 5 5-5z"
-          />
-        </svg>
+        <span>
+          ​
+        </span>
       </div>
+      <input
+        aria-hidden="true"
+        class="MuiSelect-nativeInput"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSelect-icon"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
     </div>
   </div>
 </div>

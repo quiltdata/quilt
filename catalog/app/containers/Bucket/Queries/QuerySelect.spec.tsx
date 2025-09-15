@@ -8,7 +8,7 @@ describe('containers/Bucket/Queries/QuerySelect', () => {
     const { container } = render(
       <QuerySelect label="Label" queries={[]} onChange={() => {}} value={null} />,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
   it('should render with selected value', () => {
     const queries = [
@@ -23,6 +23,6 @@ describe('containers/Bucket/Queries/QuerySelect', () => {
         value={queries[1]}
       />,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

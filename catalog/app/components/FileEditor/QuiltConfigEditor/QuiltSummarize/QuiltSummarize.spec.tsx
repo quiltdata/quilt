@@ -63,7 +63,7 @@ describe('QuiltSummarize', () => {
     const { container } = render(
       <QuiltSummarize className="root" error={null} onChange={noop} />,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('Render row', async () => {
@@ -83,7 +83,7 @@ describe('QuiltSummarize', () => {
         expect(textField).not.toBeNull()
       })
     })
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('Render columns', async () => {
@@ -103,6 +103,6 @@ describe('QuiltSummarize', () => {
         expect(textFields.length).toBeGreaterThan(1)
       })
     })
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

@@ -52,7 +52,7 @@ describe('containers/Redir/Redir', () => {
         <Redir />
       </ErrorBoundary>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('shows waiting screen', () => {
@@ -64,7 +64,7 @@ describe('containers/Redir/Redir', () => {
         <Redir />
       </NamedRoutes.Provider>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('shows error', () => {
@@ -72,7 +72,7 @@ describe('containers/Redir/Redir', () => {
       uri: 'invalid',
     }))
     const { container } = render(<Redir />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('redirects to package page', async () => {
@@ -87,6 +87,6 @@ describe('containers/Redir/Redir', () => {
       </NamedRoutes.Provider>,
     )
     await act(() => jest.runAllTimersAsync())
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

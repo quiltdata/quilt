@@ -27,6 +27,6 @@ describe('containers/Bucket/CodeSamples/Package', () => {
       catalog: 'catalog',
     }
     const { container } = render(<PackageCodeSamples {...props} />)
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

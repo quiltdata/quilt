@@ -1,38 +1,30 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`app/components/Preview/quick/Render.spec.tsx it shows the error for Init state, because it is intended to run with already resolved value 1`] = `
-<div>
-  <p>
-    Error: 
-    Unexpected state
-  </p>
-</div>
+<p>
+  Error: 
+  Unexpected state
+</p>
 `;
 
 exports[`app/components/Preview/quick/Render.spec.tsx it shows the error for Pending state, because it is intended to run with already resolved value 1`] = `
-<div>
-  <p>
-    Error: 
-    Unexpected state
-  </p>
-</div>
+<p>
+  Error: 
+  Unexpected state
+</p>
 `;
 
 exports[`app/components/Preview/quick/Render.spec.tsx returns error on Err 1`] = `
-<div>
-  <p>
-    Error: 
-    some error
-  </p>
-</div>
+<p>
+  Error: 
+  some error
+</p>
 `;
 
 exports[`app/components/Preview/quick/Render.spec.tsx returns markdown on data 1`] = `
-<div>
-  <section>
-    <h1>
-      It works
-    </h1>
-  </section>
-</div>
+<section>
+  <h1>
+    It works
+  </h1>
+</section>
 `;

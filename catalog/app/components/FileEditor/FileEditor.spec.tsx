@@ -86,7 +86,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows TextEditor', () => {
@@ -98,7 +98,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows an empty TextEditor', () => {
@@ -111,7 +111,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows Skeleton while loading data', () => {
@@ -127,7 +127,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('shows Error when loading failed', () => {
@@ -143,7 +143,7 @@ describe('components/FileEditor/FileEditor', () => {
           handle={handle}
         />,
       )
-      expect(container).toMatchSnapshot()
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })
