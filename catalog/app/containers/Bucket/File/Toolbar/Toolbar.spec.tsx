@@ -104,7 +104,7 @@ describe('useFeatures', () => {
       ),
     }))
 
-    const { result } = renderHook(() => FileToolbar.useFeatures())
+    const { result } = renderHook(() => FileToolbar.useFeatures(false))
 
     expect(result.current).toEqual({
       get: false,
@@ -130,7 +130,7 @@ describe('useFeatures', () => {
       ),
     }))
 
-    const { result } = renderHook(() => FileToolbar.useFeatures())
+    const { result } = renderHook(() => FileToolbar.useFeatures(false))
 
     expect(result.current).toEqual({
       get: { code: true },
@@ -160,7 +160,7 @@ describe('useFeatures', () => {
 
     expect(result.current).toEqual({
       get: false,
-      organize: true,
+      organize: false,
       qurator: true,
     })
   })
