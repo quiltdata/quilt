@@ -1,700 +1,698 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form config where every value is custom 1`] = `
-<div>
-  <div
-    class="root root"
+<div
+  class="root root"
+>
+  <p
+    class="MuiTypography-root helperText MuiTypography-body2"
   >
-    <p
-      class="MuiTypography-root helperText MuiTypography-body2"
+    Per-bucket Catalog UI configuration: show and hide features, set default values.
+     
+    <a
+      class="root"
+      href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
+      target="_blank"
     >
-      Per-bucket Catalog UI configuration: show and hide features, set default values.
-       
-      <a
-        class="root"
-        href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
-        target="_blank"
+      Learn more
+    </a>
+  </p>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Actions
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Learn more
-      </a>
-    </p>
+        Show buttons and menu items
+      </p>
+    </h6>
     <div
-      class="group"
+      class="layout duplex"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Actions
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show buttons and menu items
-        </p>
-      </h6>
       <div
-        class="layout duplex"
+        class="MuiFormControl-root"
       >
-        <div
-          class="MuiFormControl-root"
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "PUSH TO BUCKET" on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "CREATE PACKAGE" on the package list and bucket listing pages
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "DELETE REVISION" menu item on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Download buttons under the "BUCKET" tab
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Download buttons under the "PACKAGES" tab
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "REVISE PACKAGE" on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Buttons to create or edit files
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "Qurator Assistance" icon button on object and package pages
-            </span>
-          </label>
-        </div>
-      </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Sections
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show UI sections
-        </p>
-      </h6>
-      <div
-        class="layout duplex"
-      >
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "ANALYTICS" on the file page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              File listings on bucket and packages pages
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "CODE"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "METADATA"
-            </span>
-          </label>
-        </div>
-      </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Metadata Display
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Display settings for JSON blocks in Metadata section on object and package pages
-        </p>
-      </h6>
-      <div
-        class="layout"
-      >
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Auto-expand "User Metadata" field
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Auto-expand "Workflow" field
-            </span>
-          </label>
-        </div>
-      </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Galleries
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show image galleries
-        </p>
-      </h6>
-      <div
-        class="layout duplex"
-      >
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Images in the directory listing on bucket pages
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Images on the Bucket overview page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Images in the directory listing on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Image galleries alongside those defined in quilt_summarize.json
-            </span>
-          </label>
-        </div>
-      </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Navigation items
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show tabs at the top of the bucket pages
-        </p>
-      </h6>
-      <div
-        class="layout"
-      >
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "BUCKET"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "WORKFLOWS"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "PACKAGES"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
-          >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "QUERIES"
-            </span>
-          </label>
-        </div>
-      </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Source buckets for packages
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"
-        </p>
-      </h6>
-      <div
-        class="layout duplex"
-      >
-        <div
-          id="autocomplete"
-        >
-          s3://a
-          s3://b
-          s3://c
-           from [
-          
-          ]
-        </div>
-        <div
-          class="MuiFormControl-root margin MuiFormControl-fullWidth"
-        >
-          <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
-            data-shrink="false"
-          >
-            Default bucket
-          </label>
           <div
-            id="select"
+            id="checkbox"
           >
-            s3://b
+            false
           </div>
-        </div>
-      </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Package List: common display settings
-        
-      </h6>
-      <div
-        class="layout"
-      >
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Display \`user_meta\` fields on separate lines, when enabled. Visibility of the \`user_meta\` can be configured in the next section.
-            </span>
-          </label>
-        </div>
+            "PUSH TO BUCKET" on the package page
+          </span>
+        </label>
       </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Package List: selective display settings
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Selectively apply display settings to matching packages
-        </p>
-      </h6>
       <div
-        class="layout"
+        class="MuiFormControl-root"
       >
-        <div
-          class="root margin"
+        <label
+          class="MuiFormControlLabel-root"
         >
           <div
-            class="root"
+            id="checkbox"
           >
-            <div
-              id="text-field"
-            >
-              ^prefix/namespace$
-            </div>
-            <div
-              id="autocomplete"
-            >
-              $.Some.Key
-              $.Another.Key
-               from [
-              
-              ]
-            </div>
-            <div
-              class="MuiFormControl-root"
-            >
-              <label
-                class="MuiFormControlLabel-root"
-              >
-                <div
-                  id="checkbox"
-                >
-                  false
-                </div>
-                <span
-                  class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-                >
-                  Display commit message
-                </span>
-              </label>
-            </div>
-            <div
-              id="icon-button"
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "CREATE PACKAGE" on the package list and bucket listing pages
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "DELETE REVISION" menu item on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Download buttons under the "BUCKET" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Download buttons under the "PACKAGES" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "REVISE PACKAGE" on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Buttons to create or edit files
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "Qurator Assistance" icon button on object and package pages
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Sections
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
+      >
+        Show UI sections
+      </p>
+    </h6>
+    <div
+      class="layout duplex"
+    >
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "ANALYTICS" on the file page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            File listings on bucket and packages pages
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "CODE"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "METADATA"
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Metadata Display
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
+      >
+        Display settings for JSON blocks in Metadata section on object and package pages
+      </p>
+    </h6>
+    <div
+      class="layout"
+    >
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Auto-expand "User Metadata" field
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Auto-expand "Workflow" field
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Galleries
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
+      >
+        Show image galleries
+      </p>
+    </h6>
+    <div
+      class="layout duplex"
+    >
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images in the directory listing on bucket pages
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images on the Bucket overview page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images in the directory listing on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Image galleries alongside those defined in quilt_summarize.json
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Navigation items
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
+      >
+        Show tabs at the top of the bucket pages
+      </p>
+    </h6>
+    <div
+      class="layout"
+    >
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "BUCKET"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "WORKFLOWS"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "PACKAGES"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "QUERIES"
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Source buckets for packages
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
+      >
+        Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"
+      </p>
+    </h6>
+    <div
+      class="layout duplex"
+    >
+      <div
+        id="autocomplete"
+      >
+        s3://a
+        s3://b
+        s3://c
+         from [
+        
+        ]
+      </div>
+      <div
+        class="MuiFormControl-root margin MuiFormControl-fullWidth"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
+          data-shrink="false"
+        >
+          Default bucket
+        </label>
+        <div
+          id="select"
+        >
+          s3://b
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Package List: common display settings
+      
+    </h6>
+    <div
+      class="layout"
+    >
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
+        >
+          <div
+            id="checkbox"
+          >
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Display \`user_meta\` fields on separate lines, when enabled. Visibility of the \`user_meta\` can be configured in the next section.
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Package List: selective display settings
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
+      >
+        Selectively apply display settings to matching packages
+      </p>
+    </h6>
+    <div
+      class="layout"
+    >
+      <div
+        class="root margin"
+      >
+        <div
+          class="root"
+        >
+          <div
+            id="text-field"
+          >
+            ^prefix/namespace$
+          </div>
+          <div
+            id="autocomplete"
+          >
+            $.Some.Key
+            $.Another.Key
+             from [
+            
+            ]
+          </div>
+          <div
+            class="MuiFormControl-root"
+          >
+            <label
+              class="MuiFormControlLabel-root"
             >
               <div
-                id="icon"
+                id="checkbox"
               >
-                close
+                false
               </div>
-            </div>
+              <span
+                class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+              >
+                Display commit message
+              </span>
+            </label>
           </div>
           <div
-            class="root"
+            id="icon-button"
           >
             <div
-              id="text-field"
-            />
-            <div
-              id="autocomplete"
+              id="icon"
             >
-               from [
-              
-              ]
+              close
             </div>
-            <div
-              class="MuiFormControl-root"
+          </div>
+        </div>
+        <div
+          class="root"
+        >
+          <div
+            id="text-field"
+          />
+          <div
+            id="autocomplete"
+          >
+             from [
+            
+            ]
+          </div>
+          <div
+            class="MuiFormControl-root"
+          >
+            <label
+              class="MuiFormControlLabel-root Mui-disabled"
             >
-              <label
-                class="MuiFormControlLabel-root Mui-disabled"
+              <div
+                id="checkbox"
               >
-                <div
-                  id="checkbox"
-                >
-                  false
-                </div>
-                <span
-                  class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
-                >
-                  Display commit message
-                </span>
-              </label>
-            </div>
+                false
+              </div>
+              <span
+                class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
+              >
+                Display commit message
+              </span>
+            </label>
           </div>
         </div>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Athena
-        
-      </h6>
+      Athena
+      
+    </h6>
+    <div
+      class="layout"
+    >
       <div
-        class="layout"
+        id="text-field"
       >
-        <div
-          id="text-field"
-        >
-          Foo
-        </div>
+        Foo
       </div>
     </div>
   </div>
@@ -702,695 +700,693 @@ exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefere
 `;
 
 exports[`components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences render form with default values 1`] = `
-<div>
-  <div
-    class="root root"
+<div
+  class="root root"
+>
+  <p
+    class="MuiTypography-root helperText MuiTypography-body2"
   >
-    <p
-      class="MuiTypography-root helperText MuiTypography-body2"
+    Per-bucket Catalog UI configuration: show and hide features, set default values.
+     
+    <a
+      class="root"
+      href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
+      target="_blank"
     >
-      Per-bucket Catalog UI configuration: show and hide features, set default values.
-       
-      <a
-        class="root"
-        href="https://docs.quilt.bio/quilt-platform-administrator/preferences"
-        target="_blank"
+      Learn more
+    </a>
+  </p>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Actions
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Learn more
-      </a>
-    </p>
+        Show buttons and menu items
+      </p>
+    </h6>
     <div
-      class="group"
+      class="layout duplex"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Actions
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show buttons and menu items
-        </p>
-      </h6>
       <div
-        class="layout duplex"
+        class="MuiFormControl-root"
       >
-        <div
-          class="MuiFormControl-root"
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "PUSH TO BUCKET" on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "PUSH TO BUCKET" on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "CREATE PACKAGE" on the package list and bucket listing pages
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "CREATE PACKAGE" on the package list and bucket listing pages
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "DELETE REVISION" menu item on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "DELETE REVISION" menu item on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Download buttons under the "BUCKET" tab
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Download buttons under the "BUCKET" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Download buttons under the "PACKAGES" tab
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Download buttons under the "PACKAGES" tab
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "REVISE PACKAGE" on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "REVISE PACKAGE" on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Buttons to create or edit files
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Buttons to create or edit files
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "Qurator Assistance" icon button on object and package pages
-            </span>
-          </label>
-        </div>
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "Qurator Assistance" icon button on object and package pages
+          </span>
+        </label>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
+      Sections
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Sections
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show UI sections
-        </p>
-      </h6>
+        Show UI sections
+      </p>
+    </h6>
+    <div
+      class="layout duplex"
+    >
       <div
-        class="layout duplex"
+        class="MuiFormControl-root"
       >
-        <div
-          class="MuiFormControl-root"
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "ANALYTICS" on the file page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "ANALYTICS" on the file page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              File listings on bucket and packages pages
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            File listings on bucket and packages pages
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "CODE"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "CODE"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "METADATA"
-            </span>
-          </label>
-        </div>
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "METADATA"
+          </span>
+        </label>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
+      Metadata Display
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Metadata Display
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Display settings for JSON blocks in Metadata section on object and package pages
-        </p>
-      </h6>
+        Display settings for JSON blocks in Metadata section on object and package pages
+      </p>
+    </h6>
+    <div
+      class="layout"
+    >
       <div
-        class="layout"
+        class="MuiFormControl-root"
       >
-        <div
-          class="MuiFormControl-root"
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Auto-expand "User Metadata" field
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Auto-expand "User Metadata" field
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Auto-expand "Workflow" field
-            </span>
-          </label>
-        </div>
+            false
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Auto-expand "Workflow" field
+          </span>
+        </label>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
+      Galleries
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Galleries
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show image galleries
-        </p>
-      </h6>
+        Show image galleries
+      </p>
+    </h6>
+    <div
+      class="layout duplex"
+    >
       <div
-        class="layout duplex"
+        class="MuiFormControl-root"
       >
-        <div
-          class="MuiFormControl-root"
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Images in the directory listing on bucket pages
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images in the directory listing on bucket pages
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Images on the Bucket overview page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images on the Bucket overview page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Images in the directory listing on the package page
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Images in the directory listing on the package page
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Image galleries alongside those defined in quilt_summarize.json
-            </span>
-          </label>
-        </div>
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            Image galleries alongside those defined in quilt_summarize.json
+          </span>
+        </label>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
+      Navigation items
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Navigation items
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Show tabs at the top of the bucket pages
-        </p>
-      </h6>
+        Show tabs at the top of the bucket pages
+      </p>
+    </h6>
+    <div
+      class="layout"
+    >
       <div
-        class="layout"
+        class="MuiFormControl-root"
       >
-        <div
-          class="MuiFormControl-root"
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "BUCKET"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "BUCKET"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "WORKFLOWS"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "WORKFLOWS"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "PACKAGES"
-            </span>
-          </label>
-        </div>
-        <div
-          class="MuiFormControl-root"
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "PACKAGES"
+          </span>
+        </label>
+      </div>
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormControlLabel-root"
+          <div
+            id="checkbox"
           >
-            <div
-              id="checkbox"
-            >
-              true
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              "QUERIES"
-            </span>
-          </label>
-        </div>
+            true
+          </div>
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+          >
+            "QUERIES"
+          </span>
+        </label>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
+      Source buckets for packages
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Source buckets for packages
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"
-        </p>
-      </h6>
+        Buckets available in package creation and revision dialogs under "ADD FILES FROM BUCKET"
+      </p>
+    </h6>
+    <div
+      class="layout duplex"
+    >
       <div
-        class="layout duplex"
+        id="autocomplete"
       >
+        test-bucket
+         from [
+        
+        ]
+      </div>
+      <div
+        class="MuiFormControl-root margin MuiFormControl-fullWidth"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
+          data-shrink="false"
+        >
+          Default bucket
+        </label>
         <div
-          id="autocomplete"
+          id="select"
         >
           test-bucket
-           from [
-          
-          ]
         </div>
-        <div
-          class="MuiFormControl-root margin MuiFormControl-fullWidth"
+      </div>
+    </div>
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
+    >
+      Package List: common display settings
+      
+    </h6>
+    <div
+      class="layout"
+    >
+      <div
+        class="MuiFormControl-root"
+      >
+        <label
+          class="MuiFormControlLabel-root"
         >
-          <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-marginDense"
-            data-shrink="false"
-          >
-            Default bucket
-          </label>
           <div
-            id="select"
+            id="checkbox"
           >
-            test-bucket
+            false
           </div>
-        </div>
-      </div>
-    </div>
-    <div
-      class="group"
-    >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Package List: common display settings
-        
-      </h6>
-      <div
-        class="layout"
-      >
-        <div
-          class="MuiFormControl-root"
-        >
-          <label
-            class="MuiFormControlLabel-root"
+          <span
+            class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
           >
-            <div
-              id="checkbox"
-            >
-              false
-            </div>
-            <span
-              class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-            >
-              Display \`user_meta\` fields on separate lines, when enabled. Visibility of the \`user_meta\` can be configured in the next section.
-            </span>
-          </label>
-        </div>
+            Display \`user_meta\` fields on separate lines, when enabled. Visibility of the \`user_meta\` can be configured in the next section.
+          </span>
+        </label>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
+      Package List: selective display settings
+      <p
+        class="MuiTypography-root description MuiTypography-body2"
       >
-        Package List: selective display settings
-        <p
-          class="MuiTypography-root description MuiTypography-body2"
-        >
-          Selectively apply display settings to matching packages
-        </p>
-      </h6>
+        Selectively apply display settings to matching packages
+      </p>
+    </h6>
+    <div
+      class="layout"
+    >
       <div
-        class="layout"
+        class="root margin"
       >
         <div
-          class="root margin"
+          class="root"
         >
           <div
-            class="root"
+            id="text-field"
           >
-            <div
-              id="text-field"
-            >
-              .*
-            </div>
-            <div
-              id="autocomplete"
-            >
-               from [
-              
-              ]
-            </div>
-            <div
-              class="MuiFormControl-root"
-            >
-              <label
-                class="MuiFormControlLabel-root"
-              >
-                <div
-                  id="checkbox"
-                >
-                  true
-                </div>
-                <span
-                  class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
-                >
-                  Display commit message
-                </span>
-              </label>
-            </div>
-            <div
-              id="icon-button"
+            .*
+          </div>
+          <div
+            id="autocomplete"
+          >
+             from [
+            
+            ]
+          </div>
+          <div
+            class="MuiFormControl-root"
+          >
+            <label
+              class="MuiFormControlLabel-root"
             >
               <div
-                id="icon"
+                id="checkbox"
               >
-                close
+                true
               </div>
-            </div>
+              <span
+                class="MuiTypography-root MuiFormControlLabel-label MuiTypography-body1"
+              >
+                Display commit message
+              </span>
+            </label>
           </div>
           <div
-            class="root"
+            id="icon-button"
           >
             <div
-              id="text-field"
-            />
-            <div
-              id="autocomplete"
+              id="icon"
             >
-               from [
-              
-              ]
+              close
             </div>
-            <div
-              class="MuiFormControl-root"
+          </div>
+        </div>
+        <div
+          class="root"
+        >
+          <div
+            id="text-field"
+          />
+          <div
+            id="autocomplete"
+          >
+             from [
+            
+            ]
+          </div>
+          <div
+            class="MuiFormControl-root"
+          >
+            <label
+              class="MuiFormControlLabel-root Mui-disabled"
             >
-              <label
-                class="MuiFormControlLabel-root Mui-disabled"
+              <div
+                id="checkbox"
               >
-                <div
-                  id="checkbox"
-                >
-                  false
-                </div>
-                <span
-                  class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
-                >
-                  Display commit message
-                </span>
-              </label>
-            </div>
+                false
+              </div>
+              <span
+                class="MuiTypography-root MuiFormControlLabel-label Mui-disabled MuiTypography-body1"
+              >
+                Display commit message
+              </span>
+            </label>
           </div>
         </div>
       </div>
     </div>
-    <div
-      class="group"
+  </div>
+  <div
+    class="group"
+  >
+    <h6
+      class="MuiTypography-root title MuiTypography-h6"
     >
-      <h6
-        class="MuiTypography-root title MuiTypography-h6"
-      >
-        Athena
-        
-      </h6>
+      Athena
+      
+    </h6>
+    <div
+      class="layout"
+    >
       <div
-        class="layout"
-      >
-        <div
-          id="text-field"
-        />
-      </div>
+        id="text-field"
+      />
     </div>
   </div>
 </div>

@@ -1,88 +1,80 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should not render buttons when there are files out there 1`] = `
-<div>
-  <div
-    class="makeStyles-root-1"
-  />
-</div>
+<div
+  class="makeStyles-root-1"
+/>
 `;
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should render both links 1`] = `
-<div>
-  <div
-    class="makeStyles-root-7"
-  >
-    <div>
-      Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
-      <hr />
-      <a
-        href="file: b/n/some/path/quilt_summarize.json {"add":"some/path/quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+<div
+  class="makeStyles-root-7"
+>
+  <div>
+    Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
+    <hr />
+    <a
+      href="file: b/n/some/path/quilt_summarize.json {"add":"some/path/quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
       >
-        <div
-          id="button"
-        >
-          Configure Summary
-        </div>
-      </a>
-    </div>
-    <div>
-      Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
-      <hr />
-      <a
-        href="file: b/n/some/path/README.md {"add":"some/path/README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+        Configure Summary
+      </div>
+    </a>
+  </div>
+  <div>
+    Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
+    <hr />
+    <a
+      href="file: b/n/some/path/README.md {"add":"some/path/README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
       >
-        <div
-          id="button"
-        >
-          Add README
-        </div>
-      </a>
-    </div>
+        Add README
+      </div>
+    </a>
   </div>
 </div>
 `;
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should render quilt_summarize link 1`] = `
-<div>
-  <div
-    class="makeStyles-root-5"
-  >
-    <div>
-      Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
-      <hr />
-      <a
-        href="file: b/n/quilt_summarize.json {"add":"quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+<div
+  class="makeStyles-root-5"
+>
+  <div>
+    Open the editor to author a quilt_summarize.json file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
+    <hr />
+    <a
+      href="file: b/n/quilt_summarize.json {"add":"quilt_summarize.json","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
       >
-        <div
-          id="button"
-        >
-          Configure Summary
-        </div>
-      </a>
-    </div>
+        Configure Summary
+      </div>
+    </a>
   </div>
 </div>
 `;
 
 exports[`containers/Buckets/Summarize ConfigureAppearance should render readme link 1`] = `
-<div>
-  <div
-    class="makeStyles-root-3"
-  >
-    <div>
-      Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
-      <hr />
-      <a
-        href="file: b/n/README.md {"add":"README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+<div
+  class="makeStyles-root-3"
+>
+  <div>
+    Open the editor to author a README file. Upon saving, a package revision dialog will show up, letting you add that file to the package.
+    <hr />
+    <a
+      href="file: b/n/README.md {"add":"README.md","edit":true,"next":"package: b/n {\\"action\\":\\"revisePackage\\"}"}"
+    >
+      <div
+        id="button"
       >
-        <div
-          id="button"
-        >
-          Add README
-        </div>
-      </a>
-    </div>
+        Add README
+      </div>
+    </a>
   </div>
 </div>
 `;

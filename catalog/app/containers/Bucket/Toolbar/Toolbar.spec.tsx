@@ -30,14 +30,14 @@ describe('containers/Bucket/Toolbar', () => {
       const { container } = render(
         <Toolbar.Add className="custom-class">Hello, Popover!</Toolbar.Add>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
 
     it('should render with custom label', () => {
       const { container } = render(
         <Toolbar.Add label="Custom Add Label">Hello, Popover!</Toolbar.Add>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
 
     it('should render children when popover is opened', () => {
@@ -46,7 +46,7 @@ describe('containers/Bucket/Toolbar', () => {
       act(() => {
         fireEvent.click(button)
       })
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
   })
 
@@ -55,14 +55,14 @@ describe('containers/Bucket/Toolbar', () => {
       const { container } = render(
         <Toolbar.Get className="custom-class">Hello, Popover!</Toolbar.Get>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
 
     it('should render with custom label', () => {
       const { container } = render(
         <Toolbar.Get label="Custom Get Label">Hello, Popover!</Toolbar.Get>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
 
     it('should render children when popover is opened', () => {
@@ -71,7 +71,7 @@ describe('containers/Bucket/Toolbar', () => {
       act(() => {
         fireEvent.click(button)
       })
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
   })
 
@@ -90,7 +90,7 @@ describe('containers/Bucket/Toolbar', () => {
           Hello, Popover!
         </Toolbar.CreatePackage>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
 
     it('should render children when popover is opened', () => {
@@ -101,7 +101,7 @@ describe('containers/Bucket/Toolbar', () => {
       act(() => {
         fireEvent.click(button)
       })
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
   })
 
@@ -118,7 +118,7 @@ describe('containers/Bucket/Toolbar', () => {
       const { container } = render(
         <Toolbar.Organize className="custom-class">Hello, Popover!</Toolbar.Organize>,
       )
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
 
     it('should render children when popover is opened', () => {
@@ -129,7 +129,7 @@ describe('containers/Bucket/Toolbar', () => {
       act(() => {
         fireEvent.click(button)
       })
-      expect(container.firstChild).toMatchSnapshot()
+      expect(container).toMatchSnapshot()
     })
   })
 })

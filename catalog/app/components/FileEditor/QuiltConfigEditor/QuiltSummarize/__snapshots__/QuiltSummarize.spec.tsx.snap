@@ -1,326 +1,320 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`QuiltSummarize Render columns 1`] = `
-<div>
-  <div
-    class="root root"
-  >
-    <div>
+<div
+  class="root root"
+>
+  <div>
+    <div
+      class="root row"
+    >
       <div
-        class="root row"
+        class="inner"
       >
         <div
-          class="inner"
-        >
-          <div
-            class="root column"
-          >
-            <div
-              class="inner"
-            >
-              <div
-                class="path"
-              >
-                <div
-                  id="icon-button"
-                >
-                  <div
-                    id="icon"
-                  >
-                    settings
-                  </div>
-                </div>
-                <div
-                  id="text-field"
-                >
-                  foo.md
-                </div>
-              </div>
-              <div
-                id="icon-button"
-              >
-                <div
-                  id="icon"
-                >
-                  close
-                </div>
-              </div>
-            </div>
-            <div
-              class="root vertical divider"
-            >
-              <div
-                class="inner"
-              >
-                <div
-                  id="icon"
-                >
-                  add
-                </div>
-              </div>
-            </div>
-          </div>
-          <div
-            class="root column"
-          >
-            <div
-              class="inner"
-            >
-              <div
-                class="path"
-              >
-                <div
-                  id="icon-button"
-                >
-                  <div
-                    id="icon"
-                  >
-                    settings
-                  </div>
-                </div>
-                <div
-                  id="text-field"
-                >
-                  bar.md
-                </div>
-              </div>
-              <div
-                id="icon-button"
-              >
-                <div
-                  id="icon"
-                >
-                  close
-                </div>
-              </div>
-            </div>
-            <div
-              class="root expanded vertical divider"
-            >
-              <div
-                class="inner"
-              >
-                <div
-                  id="icon"
-                >
-                  add
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div
-          class="root expanded horizontal divider"
+          class="root column"
         >
           <div
             class="inner"
           >
             <div
-              id="icon"
+              class="path"
             >
-              add
+              <div
+                id="icon-button"
+              >
+                <div
+                  id="icon"
+                >
+                  settings
+                </div>
+              </div>
+              <div
+                id="text-field"
+              >
+                foo.md
+              </div>
+            </div>
+            <div
+              id="icon-button"
+            >
+              <div
+                id="icon"
+              >
+                close
+              </div>
+            </div>
+          </div>
+          <div
+            class="root vertical divider"
+          >
+            <div
+              class="inner"
+            >
+              <div
+                id="icon"
+              >
+                add
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="root column"
+        >
+          <div
+            class="inner"
+          >
+            <div
+              class="path"
+            >
+              <div
+                id="icon-button"
+              >
+                <div
+                  id="icon"
+                >
+                  settings
+                </div>
+              </div>
+              <div
+                id="text-field"
+              >
+                bar.md
+              </div>
+            </div>
+            <div
+              id="icon-button"
+            >
+              <div
+                id="icon"
+              >
+                close
+              </div>
+            </div>
+          </div>
+          <div
+            class="root expanded vertical divider"
+          >
+            <div
+              class="inner"
+            >
+              <div
+                id="icon"
+              >
+                add
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <p
-      class="caption"
-    >
-      Configuration for quilt_summarize.json. See
-       
-      <a
-        class="root"
-        href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
-        target="_blank"
+      <div
+        class="root expanded horizontal divider"
       >
-        the docs
-      </a>
-    </p>
+        <div
+          class="inner"
+        >
+          <div
+            id="icon"
+          >
+            add
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+  <p
+    class="caption"
+  >
+    Configuration for quilt_summarize.json. See
+     
+    <a
+      class="root"
+      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+      target="_blank"
+    >
+      the docs
+    </a>
+  </p>
 </div>
 `;
 
 exports[`QuiltSummarize Render empty placeholders 1`] = `
-<div>
-  <div
-    class="root root"
-  >
-    <div>
+<div
+  class="root root"
+>
+  <div>
+    <div
+      class="root row"
+    >
       <div
-        class="root row"
+        class="inner"
       >
         <div
-          class="inner"
+          class="root column"
         >
           <div
-            class="root column"
+            class="inner"
           >
             <div
-              class="inner"
+              class="path"
             >
-              <div
-                class="path"
-              >
-                <div
-                  id="icon-button"
-                >
-                  <div
-                    id="icon"
-                  >
-                    settings
-                  </div>
-                </div>
-                <div
-                  id="text-field"
-                />
-              </div>
               <div
                 id="icon-button"
               >
                 <div
                   id="icon"
                 >
-                  close
+                  settings
                 </div>
               </div>
+              <div
+                id="text-field"
+              />
             </div>
             <div
-              class="root expanded vertical divider"
+              id="icon-button"
             >
               <div
-                class="inner"
+                id="icon"
               >
-                <div
-                  id="icon"
-                >
-                  add
-                </div>
+                close
               </div>
             </div>
           </div>
-        </div>
-        <div
-          class="root expanded horizontal divider"
-        >
           <div
-            class="inner"
+            class="root expanded vertical divider"
           >
             <div
-              id="icon"
+              class="inner"
             >
-              add
+              <div
+                id="icon"
+              >
+                add
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <p
-      class="caption"
-    >
-      Configuration for quilt_summarize.json. See
-       
-      <a
-        class="root"
-        href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
-        target="_blank"
+      <div
+        class="root expanded horizontal divider"
       >
-        the docs
-      </a>
-    </p>
+        <div
+          class="inner"
+        >
+          <div
+            id="icon"
+          >
+            add
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+  <p
+    class="caption"
+  >
+    Configuration for quilt_summarize.json. See
+     
+    <a
+      class="root"
+      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+      target="_blank"
+    >
+      the docs
+    </a>
+  </p>
 </div>
 `;
 
 exports[`QuiltSummarize Render row 1`] = `
-<div>
-  <div
-    class="root root"
-  >
-    <div>
+<div
+  class="root root"
+>
+  <div>
+    <div
+      class="root row"
+    >
       <div
-        class="root row"
+        class="inner"
       >
         <div
-          class="inner"
+          class="root column"
         >
           <div
-            class="root column"
+            class="inner"
           >
             <div
-              class="inner"
+              class="path"
             >
-              <div
-                class="path"
-              >
-                <div
-                  id="icon-button"
-                >
-                  <div
-                    id="icon"
-                  >
-                    settings
-                  </div>
-                </div>
-                <div
-                  id="text-field"
-                >
-                  foo.md
-                </div>
-              </div>
               <div
                 id="icon-button"
               >
                 <div
                   id="icon"
                 >
-                  close
+                  settings
                 </div>
+              </div>
+              <div
+                id="text-field"
+              >
+                foo.md
               </div>
             </div>
             <div
-              class="root expanded vertical divider"
+              id="icon-button"
             >
               <div
-                class="inner"
+                id="icon"
               >
-                <div
-                  id="icon"
-                >
-                  add
-                </div>
+                close
               </div>
             </div>
           </div>
-        </div>
-        <div
-          class="root expanded horizontal divider"
-        >
           <div
-            class="inner"
+            class="root expanded vertical divider"
           >
             <div
-              id="icon"
+              class="inner"
             >
-              add
+              <div
+                id="icon"
+              >
+                add
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <p
-      class="caption"
-    >
-      Configuration for quilt_summarize.json. See
-       
-      <a
-        class="root"
-        href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
-        target="_blank"
+      <div
+        class="root expanded horizontal divider"
       >
-        the docs
-      </a>
-    </p>
+        <div
+          class="inner"
+        >
+          <div
+            id="icon"
+          >
+            add
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+  <p
+    class="caption"
+  >
+    Configuration for quilt_summarize.json. See
+     
+    <a
+      class="root"
+      href="https://docs.quilt.bio/quilt-platform-catalog-user/visualizationdashboards#quilt_summarize.json"
+      target="_blank"
+    >
+      the docs
+    </a>
+  </p>
 </div>
 `;
