@@ -37,9 +37,7 @@ class UsersResetPasswordAdminUserMutateResetPasswordInvalidInput(InvalidInputSel
     typename__: Literal["InvalidInput"] = Field(alias="__typename")
 
 
-class UsersResetPasswordAdminUserMutateResetPasswordOperationError(
-    OperationErrorSelection
-):
+class UsersResetPasswordAdminUserMutateResetPasswordOperationError(OperationErrorSelection):
     typename__: Literal["OperationError"] = Field(alias="__typename")
 
 
