@@ -330,12 +330,13 @@ function File() {
     }),
   })
 
-  const existing = versionExistsData.case({
-    _: () => null,
+  const { notAvailable, fileVersionId } = versionExistsData.case({
+    _: () => ({}),
+    Err: () => ({ notAvailable: true }),
     Ok: requests.ObjectExistence.case({
-      _: () => null,
+      _: () => ({ notAvailable: true }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        deleted: deleted || archived,
+        notAvailable: deleted || archived,
         fileVersionId: versionId,
       }),
     }),
@@ -344,10 +345,10 @@ function File() {
   const viewModes = useViewModes(mode)
 
   const handle = React.useMemo(
-    () => FileToolbar.CreateHandle(bucket, path, existing?.fileVersionId),
-    [bucket, path, existing?.fileVersionId],
+    () => FileToolbar.CreateHandle(bucket, path, fileVersionId),
+    [bucket, path, fileVersionId],
   )
-  const toolbarFeatures = FileToolbar.useFeatures(existing?.deleted)
+  const toolbarFeatures = FileToolbar.useFeatures(notAvailable)
 
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave
@@ -439,7 +440,7 @@ function File() {
           throw e
         },
         Ok: requests.ObjectExistence.case({
-          Exists: () => (
+          Exists: ({ deleted }) => (
             <>
               {BucketPreferences.Result.match(
                 {
@@ -448,7 +449,7 @@ function File() {
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
-                      {blocks.meta && (
+                      {!deleted && blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />
                           <FileView.ObjectTags handle={handle} />
@@ -469,6 +470,7 @@ function File() {
                     {...editorState}
                     className={classes.editor}
                     handle={handle}
+                    empty={deleted}
                   />
                 </FileEditorSection>
               ) : (
