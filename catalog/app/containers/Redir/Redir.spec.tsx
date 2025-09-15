@@ -88,5 +88,6 @@ describe('containers/Redir/Redir', () => {
     )
     await act(() => jest.runAllTimersAsync())
     expect(container.firstChild).toMatchSnapshot()
+    jest.useRealTimers()
   })
 })
