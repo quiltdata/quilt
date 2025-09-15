@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, act } from '@testing-library/react'
+import { render } from '@testing-library/react'
 
 import NumbersRange from './NumbersRange'
 
@@ -16,14 +16,24 @@ jest.mock(
     ...jest.requireActual('@material-ui/core'),
     TextField: jest.fn(
       ({
-        value,
-        inputProps: { min, max } = {},
         helperText,
+        inputProps: { min, max } = {},
+        onChange,
+        value,
       }: {
-        value: string
-        inputProps?: { min?: string; max?: string }
         helperText?: string
-      }) => <input value={value} min={min} max={max} data-error={helperText} />,
+        inputProps?: { min?: string; max?: string }
+        onChange: () => void
+        value: string
+      }) => (
+        <input
+          data-error={helperText}
+          max={max}
+          min={min}
+          onChange={onChange}
+          value={value}
+        />
+      ),
     ),
   })),
 )
@@ -47,7 +57,7 @@ describe('components/Filters/NumbersRange', () => {
     )
     const input = findGteInput(container)
     expect(input.value).toBe('42')
-    expect(input.getAttribute('data-error')).toBeFalsy()
+    expect(input.getAttribute('data-error')).toBe('false')
   })
 
   it('updates value when value changes', () => {
@@ -56,11 +66,9 @@ describe('components/Filters/NumbersRange', () => {
     )
     expect(findGteInput(container).value).toBe('13')
 
-    act(() => {
-      rerender(
-        <NumbersRange value={{ gte: 15, lte: null }} extents={{}} onChange={onChange} />,
-      )
-    })
+    rerender(
+      <NumbersRange value={{ gte: 15, lte: null }} extents={{}} onChange={onChange} />,
+    )
     expect(findGteInput(container).value).toBe('15')
   })
 
@@ -101,7 +109,7 @@ describe('components/Filters/NumbersRange', () => {
     )
     const input = findGteInput(container)
     expect(input.value).toBe('0')
-    expect(input.getAttribute('data-error')).toBeFalsy()
+    expect(input.getAttribute('data-error')).toBe('false')
   })
 
   it('treats NaN as invalid', () => {

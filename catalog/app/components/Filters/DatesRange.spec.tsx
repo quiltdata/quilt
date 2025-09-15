@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, act } from '@testing-library/react'
+import { render } from '@testing-library/react'
 
 import DatesRange from './DatesRange'
 
@@ -16,14 +16,24 @@ jest.mock(
     ...jest.requireActual('@material-ui/core'),
     TextField: jest.fn(
       ({
-        value,
-        inputProps: { min, max } = {},
         helperText,
+        inputProps: { min, max } = {},
+        onChange,
+        value,
       }: {
-        value: string
-        inputProps?: { min?: string; max?: string }
         helperText?: string
-      }) => <input value={value} min={min} max={max} data-error={helperText} />,
+        inputProps?: { min?: string; max?: string }
+        onChange: () => void
+        value: string
+      }) => (
+        <input
+          data-error={helperText}
+          max={max}
+          min={min}
+          onChange={onChange}
+          value={value}
+        />
+      ),
     ),
   })),
 )
@@ -33,7 +43,7 @@ jest.mock('utils/Logging', () => ({
   default: { error: jest.fn() },
 }))
 
-const onChange = jest.fn()
+const onChange = () => {}
 
 const findGteInput = (container: HTMLElement) => container.querySelector('input')!
 
@@ -66,15 +76,13 @@ describe('components/Filters/DatesRange', () => {
     const inputInitial = findGteInput(container)
     expect(inputInitial.value).toBe('2025-01-13')
 
-    act(() => {
-      rerender(
-        <DatesRange
-          value={{ gte: new Date(2025, 6, 15), lte: null }}
-          extents={{}}
-          onChange={onChange}
-        />,
-      )
-    })
+    rerender(
+      <DatesRange
+        value={{ gte: new Date(2025, 6, 15), lte: null }}
+        extents={{}}
+        onChange={onChange}
+      />,
+    )
 
     const inputChanged = findGteInput(container)
     expect(inputChanged.value).toBe('2025-07-15')
@@ -144,11 +152,9 @@ describe('components/Filters/DatesRange', () => {
     const inputInitial = findGteInput(container)
     expect(inputInitial.value).toBe('2025-01-13')
 
-    act(() => {
-      rerender(
-        <DatesRange value={{ gte: null, lte: null }} extents={{}} onChange={onChange} />,
-      )
-    })
+    rerender(
+      <DatesRange value={{ gte: null, lte: null }} extents={{}} onChange={onChange} />,
+    )
 
     const inputChanged = findGteInput(container)
     expect(inputChanged.value).toBe('')
@@ -167,19 +173,17 @@ describe('components/Filters/DatesRange', () => {
     expect(inputInitial.value).toBe('')
     expect(inputInitial.getAttribute('data-error')).toBe('Invalid time value')
 
-    act(() => {
-      rerender(
-        <DatesRange
-          value={{ gte: new Date(2025, 0, 13), lte: null }}
-          extents={{}}
-          onChange={onChange}
-        />,
-      )
-    })
+    rerender(
+      <DatesRange
+        value={{ gte: new Date(2025, 0, 13), lte: null }}
+        extents={{}}
+        onChange={onChange}
+      />,
+    )
 
     const inputChanged = findGteInput(container)
     expect(inputChanged.value).toBe('2025-01-13')
-    expect(inputChanged.getAttribute('data-error')).toBeFalsy()
+    expect(inputChanged.getAttribute('data-error')).toBe('false')
   })
 
   it('does not trigger an extra render when updating with the same Date instance', () => {
@@ -196,29 +200,25 @@ describe('components/Filters/DatesRange', () => {
 
     // Only the parent update render should occur (no extra render from state change)
     TextField.mockClear()
-    act(() => {
-      rerender(
-        <DatesRange value={{ gte: date, lte: null }} extents={{}} onChange={onChange} />,
-      )
-    })
+    rerender(
+      <DatesRange value={{ gte: date, lte: null }} extents={{}} onChange={onChange} />,
+    )
     expect(TextField).toHaveBeenCalledTimes(2)
 
     // And the value stays the same, no error text
     const input = findGteInput(container)
     expect(input.value).toBe('2025-01-13')
-    expect(input.getAttribute('data-error')).toBeFalsy()
+    expect(input.getAttribute('data-error')).toBe('false')
 
     // One render for the prop change (2 TextFields) + one more due to state update from effect
     TextField.mockClear()
-    act(() => {
-      rerender(
-        <DatesRange
-          value={{ gte: new Date(2025, 0, 13), lte: null }}
-          extents={{}}
-          onChange={onChange}
-        />,
-      )
-    })
+    rerender(
+      <DatesRange
+        value={{ gte: new Date(2025, 0, 13), lte: null }}
+        extents={{}}
+        onChange={onChange}
+      />,
+    )
     expect(TextField).toHaveBeenCalledTimes(3)
   })
 })
