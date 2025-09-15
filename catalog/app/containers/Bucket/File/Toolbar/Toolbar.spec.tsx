@@ -21,7 +21,7 @@ jest.mock('./Organize', () => ({
 }))
 
 jest.mock('@material-ui/lab', () => ({
-  ...jest.requireActual('components/Buttons'),
+  ...jest.requireActual('@material-ui/lab'),
   Skeleton: () => <i>⌛</i>,
 }))
 
