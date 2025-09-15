@@ -330,12 +330,13 @@ function File() {
     }),
   })
 
-  const existing = versionExistsData.case({
-    _: () => null,
+  const { notAvailable, fileVersionId } = versionExistsData.case({
+    _: () => ({}),
+    Err: () => ({ notAvailable: true }),
     Ok: requests.ObjectExistence.case({
-      _: () => null,
+      _: () => ({ notAvailable: true }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        deleted: deleted || archived,
+        notAvailable: deleted || archived,
         fileVersionId: versionId,
       }),
     }),
@@ -344,10 +345,10 @@ function File() {
   const viewModes = useViewModes(mode)
 
   const handle = React.useMemo(
-    () => FileToolbar.CreateHandle(bucket, path, existing?.fileVersionId),
-    [bucket, path, existing?.fileVersionId],
+    () => FileToolbar.CreateHandle(bucket, path, fileVersionId),
+    [bucket, path, fileVersionId],
   )
-  const toolbarFeatures = FileToolbar.useFeatures(existing?.deleted)
+  const toolbarFeatures = FileToolbar.useFeatures(notAvailable)
 
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave

@@ -22,17 +22,17 @@ interface Features {
   qurator: boolean | null
 }
 
-export function useFeatures(deleted?: boolean): Features | null {
+export function useFeatures(notAvailable?: boolean): Features | null {
   const { prefs } = BucketPreferences.use()
-  if (typeof deleted === 'undefined') return null
+  if (typeof notAvailable === 'undefined') return null
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { actions, blocks } }) => ({
         get:
-          !deleted && !cfg.noDownload && actions.downloadObject
+          !notAvailable && !cfg.noDownload && actions.downloadObject
             ? { code: blocks.code }
             : false,
-        organize: !deleted,
+        organize: !notAvailable,
         qurator: blocks.qurator,
       }),
       _: () => null,
