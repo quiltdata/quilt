@@ -88,10 +88,6 @@ conflicts = [
 [tool.ruff]
 # Extends from root configuration
 extend = "../../ruff.toml"
-# Exclude auto-generated files specific to quilt3
-extend-exclude = [
-    "quilt3/admin/_graphql_client",
-]
 
 [tool.poe.tasks]
 _ensure-clean.cmd = "git diff --exit-code"
@@ -116,10 +112,17 @@ clean.shell = "rm -rf build dist *.egg-info .pytest_cache .coverage* coverage.* 
 
 _gql-clean.shell = "rm -rf quilt3/admin/_graphql_client"
 
+_gql-gen.cmd = "uv run ariadne-codegen client"
+_gql-gen.cwd = "quilt3-admin"
+
+_gql-fmt.cmd = "ruff format quilt3/admin/_graphql_client"
+
 gql-gen.help = "Generate GraphQL client code for quilt3.admin"
-gql-gen.deps = ["_gql-clean"]
-gql-gen.cmd = "uv run ariadne-codegen client"
-gql-gen.cwd = "quilt3-admin"
+gql-gen.sequence = [
+    "_gql-clean",
+    "_gql-gen",
+    "_gql-fmt",
+]
 
 gql-check.help = "Check if GraphQL client code is up-to-date"
 gql-check.sequence = [
