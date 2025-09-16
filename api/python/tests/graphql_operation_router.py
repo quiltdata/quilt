@@ -47,11 +47,7 @@ class GraphQLOperationRouter:
             operation_name = self._extract_operation_name(query)
 
         # Record the call for history tracking
-        self.call_history.append({
-            "query": query,
-            "operation_name": operation_name,
-            "variables": variables
-        })
+        self.call_history.append({"query": query, "operation_name": operation_name, "variables": variables})
 
         if operation_name not in self.responses:
             raise KeyError(f"No mock response configured for operation: {operation_name}")

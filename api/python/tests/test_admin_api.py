@@ -468,6 +468,7 @@ def test_tabulator_set_open_query():
 # NEW COMPREHENSIVE TESTS USING GRAPHQL MOCK INFRASTRUCTURE
 # =============================================================================
 
+
 class TestUserOperationsWithMockServer:
     """Comprehensive test coverage for user operations using GraphQL mock server."""
 
@@ -700,8 +701,7 @@ class TestMockServerInfrastructure:
         """Test that operations are routed correctly."""
         # Test manual operation routing
         result = graphql_router.route_operation(
-            query="query usersList { admin { user { list } } }",
-            operation_name="usersList"
+            query="query usersList { admin { user { list } } }", operation_name="usersList"
         )
 
         assert result == USERS_LIST_RESPONSE

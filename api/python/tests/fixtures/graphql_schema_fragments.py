@@ -25,7 +25,7 @@ def validate_user_response(response_data: Dict[str, Any]) -> bool:
         'name': str,
         'email': str,
         'dateJoined': object,  # datetime object
-        'lastLogin': object,   # datetime object
+        'lastLogin': object,  # datetime object
         'isActive': bool,
         'isAdmin': bool,
         'isSsoOnly': bool,
@@ -38,7 +38,7 @@ def validate_user_response(response_data: Dict[str, Any]) -> bool:
         'name': str,
         'email': str,
         'date_joined': object,  # datetime object
-        'last_login': object,   # datetime object
+        'last_login': object,  # datetime object
         'is_active': bool,
         'is_admin': bool,
         'is_sso_only': bool,
