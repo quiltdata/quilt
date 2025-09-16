@@ -5,10 +5,6 @@ import type { SearchHitObject, SearchHitPackage } from '../model'
 
 import ListView from './index'
 
-jest.mock('@material-ui/core', () => ({
-  makeStyles: () => () => ({}),
-}))
-
 let firstPageQuery: any = { _tag: 'fetching' }
 
 jest.mock('../model', () => ({
