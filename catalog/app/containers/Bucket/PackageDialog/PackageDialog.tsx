@@ -16,6 +16,7 @@ import * as AWS from 'utils/AWS'
 import * as JSONPointer from 'utils/JSONPointer'
 import log from 'utils/Logging'
 import * as Sentry from 'utils/Sentry'
+import StyledLink from 'utils/StyledLink'
 import { mkFormError } from 'utils/formTools'
 import {
   JsonSchema,
@@ -508,16 +509,24 @@ const usePackageNameWarningStyles = M.makeStyles({
 
 interface PackageNameWarningProps {
   exists?: boolean
+  onRevise: () => void
 }
 
-export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
+export const PackageNameWarning = ({ exists, onRevise }: PackageNameWarningProps) => {
   const classes = usePackageNameWarningStyles()
   return (
     <>
       <M.Icon className={classes.root} fontSize="small">
         info_outlined
       </M.Icon>
-      {exists ? 'Existing package' : 'New package'}
+      {exists ? (
+        <>
+          Existing package. Want to{' '}
+          <StyledLink onClick={onRevise}>load and revise it</StyledLink>?
+        </>
+      ) : (
+        'New package'
+      )}
     </>
   )
 }

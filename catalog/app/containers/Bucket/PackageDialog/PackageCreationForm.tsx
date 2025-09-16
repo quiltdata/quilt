@@ -184,6 +184,7 @@ interface PackageCreationFormProps {
   currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
+  onSrc: (src: { name: string; hash?: string }) => void
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
@@ -210,6 +211,7 @@ function PackageCreationForm({
   currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
+  onSrc,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
@@ -406,13 +408,15 @@ function PackageCreationForm({
   const handleNameChange = React.useCallback(
     async (name) => {
       const nameExists = await nameExistence.validate(name)
-      const warning = <PD.PackageNameWarning exists={!!nameExists} />
+      const warning = (
+        <PD.PackageNameWarning exists={!!nameExists} onRevise={() => onSrc({ name })} />
+      )
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence],
+    [nameWarning, nameExistence, onSrc],
   )
 
   const onFormChange = React.useCallback(
@@ -682,7 +686,7 @@ interface UsePackageCreationDialogProps {
 //         * successor
 export function usePackageCreationDialog({
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
-  src,
+  src: initialSrc,
   initialOpen,
   s3Path,
   delayHashing = false,
@@ -695,6 +699,7 @@ export function usePackageCreationDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
+  const [src, setSrc] = React.useState(initialSrc)
   const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
@@ -864,6 +869,7 @@ export function usePackageCreationDialog({
                       name: src?.name,
                       ...manifest,
                     },
+                    onSrc: setSrc,
                     currentBucketCanBeSuccessor,
                     delayHashing,
                     disableStateDisplay,
