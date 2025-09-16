@@ -118,7 +118,7 @@ class ApiTelemetry:
             'python_implementation': platform.python_implementation(),
             'python_version_major': platform.python_version_tuple()[0],
             'python_version_minor': platform.python_version_tuple()[1],
-            'python_version_patch': platform.python_version_tuple()[2]
+            'python_version_patch': platform.python_version_tuple()[2],
         }
         # print(f"Sending data: {data}")
         with ApiTelemetry.pending_reqs_lock:
@@ -128,7 +128,6 @@ class ApiTelemetry:
     def __call__(self, func):
         @functools.wraps(func)
         def decorated(*args, **kwargs):
-
             ApiTelemetry.cleanup_completed_requests()
             ApiTelemetry.report_api_use(self.api_name, get_session_id())
 

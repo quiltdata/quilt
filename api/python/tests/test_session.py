@@ -16,7 +16,7 @@ from .utils import QuiltTestCase
 
 
 def format_date(date):
-    return date.replace(tzinfo=datetime.timezone.utc, microsecond=0).isoformat()
+    return date.astimezone(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
 
 class TestSession(QuiltTestCase):
@@ -39,14 +39,14 @@ class TestSession(QuiltTestCase):
         mock_auth = dict(
             refresh_token='refresh-token',
             access_token='access-token',
-            expires_at=123456789
+            expires_at=123456789,
         )
 
         self.requests_mock.add(
             responses.POST,
             f'{url}/api/token',
             json=mock_auth,
-            status=200
+            status=200,
         )
 
         self.requests_mock.add(
@@ -56,32 +56,34 @@ class TestSession(QuiltTestCase):
                 AccessKeyId='access-key',
                 SecretAccessKey='secret-key',
                 SessionToken='session-token',
-                Expiration="2019-05-28T23:58:07+00:00"
+                Expiration="2019-05-28T23:58:07+00:00",
             ),
-            status=200
+            status=200,
         )
 
         quilt3.session.login_with_token('123456')
 
         mock_save_auth.assert_called_with({url: mock_auth})
-        mock_save_credentials.assert_called_with(dict(
-            access_key='access-key',
-            secret_key='secret-key',
-            token='session-token',
-            expiry_time="2019-05-28T23:58:07+00:00"
-        ))
+        mock_save_credentials.assert_called_with(
+            dict(
+                access_key='access-key',
+                secret_key='secret-key',
+                token='session-token',
+                expiry_time="2019-05-28T23:58:07+00:00",
+            )
+        )
 
     @patch('quilt3.session._save_credentials')
     @patch('quilt3.session._load_credentials')
     def test_create_botocore_session(self, mock_load_credentials, mock_save_credentials):
         # Test good credentials.
-        future_date = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        future_date = datetime.datetime.now() + datetime.timedelta(hours=1)
 
         mock_load_credentials.return_value = dict(
             access_key='access-key',
             secret_key='secret-key',
             token='session-token',
-            expiry_time=format_date(future_date)
+            expiry_time=format_date(future_date),
         )
 
         session = quilt3.session.create_botocore_session()
@@ -94,13 +96,13 @@ class TestSession(QuiltTestCase):
         mock_save_credentials.assert_not_called()
 
         # Test expired credentials.
-        past_date = datetime.datetime.utcnow() - datetime.timedelta(minutes=5)
+        past_date = datetime.datetime.now() - datetime.timedelta(minutes=5)
 
         mock_load_credentials.return_value = dict(
             access_key='access-key',
             secret_key='secret-key',
             token='session-token',
-            expiry_time=format_date(past_date)
+            expiry_time=format_date(past_date),
         )
 
         url = quilt3.session.get_registry_url()
@@ -111,9 +113,9 @@ class TestSession(QuiltTestCase):
                 AccessKeyId='access-key2',
                 SecretAccessKey='secret-key2',
                 SessionToken='session-token2',
-                Expiration=format_date(future_date)
+                Expiration=format_date(future_date),
             ),
-            status=200
+            status=200,
         )
 
         session = quilt3.session.create_botocore_session()
@@ -151,7 +153,7 @@ class TestSession(QuiltTestCase):
                     expiry_time=format_date(future_date),
                 )
 
-                session = quilt3.get_boto3_session()
+                session = quilt3.get_boto3_session(**kw)
                 mock_load_credentials.assert_called_once_with()
                 mock_load_config.assert_called_with()
 

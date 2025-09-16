@@ -1,4 +1,4 @@
-""" formats.py
+"""formats.py
 
 This module handles binary formats, and conversion to/from objects.
 
@@ -65,7 +65,6 @@ Format metadata has the following form:
 
 """
 
-
 import copy
 import csv
 import gzip
@@ -83,9 +82,13 @@ from pathlib import Path
 from .util import QuiltException
 
 # Constants
-NOT_SET = type('NOT_SET', (object,), {
-    '__doc__': "A unique indicator of disuse when `None` is a valid value",
-})()
+NOT_SET = type(
+    'NOT_SET',
+    (object,),
+    {
+        '__doc__': "A unique indicator of disuse when `None` is a valid value",
+    },
+)()
 
 
 # Code
@@ -97,12 +100,12 @@ class FormatRegistry:
     extensions, or handled object types.  This list may expand in the future,
     so see the actual class methods.
     """
+
     registered_handlers = []
 
     # latest adds are last, and come first in lookups by type via `for_obj`.
     def __init__(self):
-        raise TypeError("The {!r} class is organizational, and cannot be instantiated."
-                        .format(type(self).__name__))
+        raise TypeError("The {!r} class is organizational, and cannot be instantiated.".format(type(self).__name__))
 
     @classmethod
     def register(cls, handler):
@@ -154,8 +157,8 @@ class FormatRegistry:
         # * we want to retain order, so recently added formats take precedence
         # * at this scale, lists are faster than sets
         typ_fmts = cls.for_type(obj_type)  # required if present
-        meta_fmts = cls.for_meta(meta)     # required if present
-        ext_fmts = cls.for_ext(ext)        # preferred if present, but not required
+        meta_fmts = cls.for_meta(meta)  # required if present
+        ext_fmts = cls.for_ext(ext)  # preferred if present, but not required
 
         fmt_name = cls._get_name_from_meta(meta)
 
@@ -179,9 +182,7 @@ class FormatRegistry:
         # lookup by metadata - required to match, if present
         if fmt_name:
             if not meta_fmts:
-                raise QuiltException(
-                    f"Metadata requires the {fmt_name} format, but no handler is registered for it"
-                )
+                raise QuiltException(f"Metadata requires the {fmt_name} format, but no handler is registered for it")
             # stable sort -- if any formats match on extension, sort to front
             return sorted(meta_fmts, key=lambda fmt: fmt not in ext_fmts)
 
@@ -249,9 +250,7 @@ class FormatRegistry:
             handlers = cls.search(meta=meta, ext=ext)  # raises if no matches occur.
             handlers = [h for h in handlers if h.handles_type(as_type)]
             if not handlers:
-                raise QuiltException(
-                    "No matching handlers when limited to type {!r}".format(as_type)
-                )
+                raise QuiltException("No matching handlers when limited to type {!r}".format(as_type))
             handler = handlers[0]
         else:
             handler = cls.search(meta=meta, ext=ext)[0]
@@ -354,8 +353,8 @@ class FormatRegistry:
 
 
 class BaseFormatHandler(ABC):
-    """Base class for binary format handlers
-    """
+    """Base class for binary format handlers"""
+
     opts = ()
     name = None
     handled_extensions = ()
@@ -444,7 +443,7 @@ class BaseFormatHandler(ABC):
         meta = copy.deepcopy(meta) if meta is not None else {}
 
         format_meta = meta.get('format', {})
-        meta['format'] = format_meta   # in case default was used
+        meta['format'] = format_meta  # in case default was used
 
         if additions:
             format_meta.update(additions)
@@ -533,7 +532,7 @@ class BaseFormatHandler(ABC):
                 # R-specific option that gets stored.
                 warnings.warn('Invalid option name {!r} (ignored)'.format(name))
 
-        return copy.deepcopy(result)   # in case any values are mutable
+        return copy.deepcopy(result)  # in case any values are mutable
 
 
 class GenericFormatHandler(BaseFormatHandler):
@@ -542,6 +541,7 @@ class GenericFormatHandler(BaseFormatHandler):
     This is a generic type that can be instantiated directly, passing in
     a 'serializer' and 'deserializer'.  See 'name' for the format name.
     """
+
     def __init__(self, name, handled_extensions, handled_types, serializer, deserializer):
         super().__init__(name, handled_extensions, handled_types)
 
@@ -592,7 +592,7 @@ GenericFormatHandler(
     serializer=lambda obj, **kwargs: json.dumps(obj, **kwargs).encode('utf-8'),
     deserializer=lambda bytes_obj, **kwargs: json.loads(bytes_obj.decode('utf-8'), **kwargs),
     handled_extensions=['json'],
-    handled_types=[dict, list, int, float, str, tuple, type(None)]
+    handled_types=[dict, list, int, float, str, tuple, type(None)],
 ).register()
 
 
@@ -696,19 +696,48 @@ class CSVPandasFormatHandler(BaseFormatHandler):
                 Exclude indexes when serializing, and don't expect them when
                 deserializing.
     """
+
     name = 'csv'
     handled_extensions = ['csv', 'tsv', 'ssv']
-    opts = ('doublequote', 'encoding', 'escapechar', 'fieldsep', 'header_names', 'index_names',
-            'index_names_are_keys', 'linesep', 'na_values', 'quotechar', 'quoting', 'skip_spaces', 'use_header',
-            'use_index')
+    opts = (
+        'doublequote',
+        'encoding',
+        'escapechar',
+        'fieldsep',
+        'header_names',
+        'index_names',
+        'index_names_are_keys',
+        'linesep',
+        'na_values',
+        'quotechar',
+        'quoting',
+        'skip_spaces',
+        'use_header',
+        'use_index',
+    )
     # defaults shouldn't be added to metadata, just used directly.
     defaults = {
         'encoding': 'utf-8',
         'index_names_are_keys': False,
         'na_values': [
-            '', '#N/A', '#N/A N/A', '#NA',
-            '-1.#IND', '-1.#QNAN', '-NaN', '-nan', '1.#IND', '1.#QNAN',
-            'N/A', 'NA', 'NULL', 'NaN', 'n/a', 'nan', 'null'],
+            '',
+            '#N/A',
+            '#N/A N/A',
+            '#NA',
+            '-1.#IND',
+            '-1.#QNAN',
+            '-NaN',
+            '-nan',
+            '1.#IND',
+            '1.#QNAN',
+            'N/A',
+            'NA',
+            'NULL',
+            'NaN',
+            'n/a',
+            'nan',
+            'null',
+        ],
         'use_header': True,
         'use_index': False,
     }
@@ -732,7 +761,7 @@ class CSVPandasFormatHandler(BaseFormatHandler):
                 'all': csv.QUOTE_ALL,
                 'minimal': csv.QUOTE_MINIMAL,
                 'none': csv.QUOTE_NONE,
-                'nonnumeric': csv.QUOTE_NONNUMERIC
+                'nonnumeric': csv.QUOTE_NONNUMERIC,
             }
             return map.get(value, NOT_SET)
         warnings.warn("Unrecognized value for 'quoting' option: {!r} (ignored)".format(value))
@@ -743,7 +772,7 @@ class CSVPandasFormatHandler(BaseFormatHandler):
         result_kwargs = {}
 
         # interdependent opts, can't be processed individually.
-        use_header = opts.pop('use_header')    # must exist, at least as a default
+        use_header = opts.pop('use_header')  # must exist, at least as a default
         header_names = opts.pop('header_names', None)
         if use_header:
             result_kwargs['header'] = header_names if header_names else True
@@ -756,9 +785,7 @@ class CSVPandasFormatHandler(BaseFormatHandler):
         name_map = {
             'fieldsep': 'sep',
             'linesep': (
-                'lineterminator'
-                if int(importlib_metadata.version('pandas').split('.')[0]) >= 2 else
-                'line_terminator'
+                'lineterminator' if int(importlib_metadata.version('pandas').split('.')[0]) >= 2 else 'line_terminator'
             ),
             'use_index': 'index',
             'index_names': 'index_label',
@@ -803,13 +830,13 @@ class CSVPandasFormatHandler(BaseFormatHandler):
         index_names_are_keys = opts_with_defaults.get('index_names_are_keys')
         if index_names_are_keys:
             if 'index_names' not in opts:
-                raise QuiltException(
-                    "Format option 'index_names_are_keys' is set, but 'index_names' not given."
-                )
+                raise QuiltException("Format option 'index_names_are_keys' is set, but 'index_names' not given.")
             elif not len(opts['index_names']) == len(obj.index.names):
                 raise ValueError(
-                    "{} entries in `index_names`, but the DataFrame to be serialized has {} indexes"
-                    .format(len(opts['index_names']), len(obj.index.names))
+                    "{} entries in `index_names`, but the DataFrame to be serialized has {} indexes".format(
+                        len(opts['index_names']),
+                        len(obj.index.names),
+                    )
                 )
 
         kwargs = self.get_ser_kwargs(opts_with_defaults)
@@ -838,7 +865,7 @@ class CSVPandasFormatHandler(BaseFormatHandler):
 
         # Interdependent opts.
         index_names = opts.pop('index_names', None)
-        use_index = opts.pop('use_index')   # opt should be present from defaults.
+        use_index = opts.pop('use_index')  # opt should be present from defaults.
         index_names_are_keys = opts.pop('index_names_are_keys', False)
         if use_index:
             if index_names:
@@ -913,6 +940,7 @@ class CSVPandasFormatHandler(BaseFormatHandler):
         def writelines(self, lines):
             # function scope import, but this is a bug workaround for pandas.
             from codecs import iterencode
+
             encoded_lines = iterencode(lines, self.encoding)
             self.bytes_filelike.writelines(encoded_lines)
 
@@ -929,11 +957,13 @@ class NumpyFormatHandler(BaseFormatHandler):
         if 'numpy' not in sys.modules:
             return False
         import numpy as np
+
         self.handled_types.add(np.ndarray)
         return super().handles_type(typ)
 
     def serialize(self, obj, meta=None, ext=None, **format_opts):
         import numpy as np
+
         buf = io.BytesIO()
 
         # security
@@ -973,6 +1003,7 @@ class ParquetFormatHandler(BaseFormatHandler):
             Otherwise:
                 pass-through to the `pyarrow.parquet.write_table()`
     """
+
     name = 'parquet'
     handled_extensions = ['parquet']
     opts = ('compression',)
@@ -985,6 +1016,7 @@ class ParquetFormatHandler(BaseFormatHandler):
         if 'pandas' not in sys.modules:
             return False
         import pandas as pd
+
         try:
             # intentional unused import -- verify we have pyarrow installed
             import pyarrow as pa  # pylint: disable=unused-import
@@ -1041,6 +1073,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
 
         compression('gzip', 'lzf', None):  applies during serialization only.
     """
+
     name = 'h5ad'
     handled_extensions = ['h5ad']
     opts = ('compression',)
@@ -1053,6 +1086,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
         if 'anndata' not in sys.modules:
             return False
         import anndata as ad
+
         self.handled_types.add(ad.AnnData)
         return super().handles_type(typ)
 
@@ -1083,11 +1117,11 @@ AnnDataFormatHandler().register()
 
 class CompressionRegistry:
     """A collection for organizing `CompressionHandler` objects."""
+
     registered_handlers = []
 
     def __init__(self):
-        raise TypeError("The {!r} class is organizational, and cannot be instantiated."
-                        .format(type(self).__name__))
+        raise TypeError("The {!r} class is organizational, and cannot be instantiated.".format(type(self).__name__))
 
     @classmethod
     def register(cls, handler):
@@ -1114,6 +1148,7 @@ class CompressionRegistry:
 
 class BaseCompressionHandler(ABC):
     """Base class for compression handlers"""
+
     name = None
     handled_extensions = ()
 
@@ -1133,6 +1168,7 @@ class BaseCompressionHandler(ABC):
 
 class GzipCompressionHandler(BaseCompressionHandler):
     """Compression handler for gzip"""
+
     handled_extensions = ['gz', 'gzip']
 
     def decompress(self, data):

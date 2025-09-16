@@ -6,61 +6,60 @@ on:
       - "*"
   pull_request:
   merge_group:
+env:
+  UV_LOCKED: 1
 jobs:
-  linter:
+  lint-quilt3:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install 'pylint==3.2.7' 'pycodestyle>=2.6.1'
-      - name: Run pylint
-        run: |
-          pylint .
-      - name: Run pycodestyle
-        run: |
-          pycodestyle $(find -name '*.py' -not -path './venv/*')
+      - uses: astral-sh/setup-uv@v6
+      - name: Lint
+        run: uv run poe lint
 
-  isort:
+  format-quilt3:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Check formatting (quilt3)
+        run: uv run poe fmt --check
+
+  lint-rest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install isort
-      - name: Run isort
-        run: |
-          isort --check --diff .
+      - uses: astral-sh/setup-uv@v6
+      - name: Run Ruff linter on entire codebase
+        run: uvx ruff@0.12.11 check . --exclude catalog/ --exclude api/python/
+
+  # Enable once the rest of the codebase is formatted
+  # format-rest:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: astral-sh/setup-uv@v6
+  #     - name: Check formatting (rest of codebase)
+  #       run: uvx ruff@0.12.11 format --check --exclude catalog/ --exclude api/python/
 
   test-gendocs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
     env:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          # on newer versions it crashes with
-          # TypeError: <classmethod(<function Package.install at 0x105219f30>)> is not a callable object
-          python-version: '3.9'
-      - name: install deps
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@v2.0.5+quilt3.2
-      - name: generate docs
-        run: cd gendocs && python build.py
-      - name: show invisible changes via cat
-        run: git diff | cat -A
-      - name: check there are no changes
-        run: git diff --exit-code
+      - uses: astral-sh/setup-uv@v6
+      - name: Check generated docs are up-to-date
+        run: uv run poe gendocs-check
 
   test-testdocs:
     runs-on: ubuntu-latest
@@ -68,20 +67,12 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     defaults:
       run:
-        working-directory: testdocs
+        working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: install poetry
-        run: python -m pip install poetry
-      - name: install deps
-        run: poetry install
-      - name: install current version of quilt
-        run: poetry run pip install ../api/python
-      - name: test codeblocks
-        run: poetry run pytest --codeblocks ../docs
+      - uses: astral-sh/setup-uv@v6
+      - name: Test codeblocks
+        run: uv run poe testdocs
 
   test-client:
     strategy:
@@ -91,18 +82,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true
+    defaults:
+      run:
+        working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install -e api/python[tests]
+      - uses: astral-sh/setup-uv@v6
       - name: Run Pytest
-        run: |
-          pytest --cov=api/python api/python
+        run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -136,24 +123,16 @@ jobs:
         working-directory: api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install build==1.2.2.post1 twine==5.1.1
+      - uses: astral-sh/setup-uv@v6
       - name: verify git tag vs. version
-        env:
-          CIRCLE_TAG: ${{ github.ref_name }}
-        run: python setup.py verify
+        run: uv run poe verify-release-tag "${{ github.ref_name }}"
       - name: build
-        run: python -m build
+        run: uv build
       - name: upload to PyPI
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: twine upload dist/*
+          UV_PUBLISH_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          UV_PUBLISH_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: uv publish
 
   test-lambda:
     strategy:
@@ -180,7 +159,7 @@ jobs:
       JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version-file: lambdas/${{ matrix.path }}/.python-version
       - uses: astral-sh/setup-uv@v6

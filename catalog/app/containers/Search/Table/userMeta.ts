@@ -42,6 +42,8 @@ function useAvailableUserMetaFacets(): Request.Result<AvailableUserMetaFacets> {
               return { facets: [], truncated: false }
             case 'InvalidInput':
               return new Error(r.errors[0].message)
+            case 'OperationError':
+              return new Error(r.name)
             case 'PackagesSearchResultSet':
               return {
                 facets: r.stats.userMeta.filter(

@@ -5,9 +5,9 @@ import warnings
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")  # noqa: E402
 
-from pathlib import Path
+import importlib.metadata
 
-__version__ = Path(Path(__file__).parent, "VERSION").read_text().strip()
+__version__ = importlib.metadata.version(__name__)
 
 from . import admin, hooks
 from .api import (

@@ -79,8 +79,8 @@ is present
 * `ui.sourceBuckets` - a dictionary of S3 bucket names
 that map to an empty object reserved for future enhancements;
 buckets in this dictionary are the ones offered when the user clicks
-Revise Package > Add files from Bucket; if the dictionary is not set
-or is empty the feature "Add files from Bucket" is disabled
+Revise Package > Add files from Bucket; by default, the current bucket
+is always available; set to an empty dictionary `{}` to disable this feature
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets`
 that is selected by default; if it doesn't match any bucket then it's ignored
 * `ui.package_description` - a dictionary
@@ -103,15 +103,12 @@ ui:
   defaultSourceBucket: s3://bucket-b
 ```
 
-Note that the `ui.sourceBuckets` is empty by default.
-As a result, when users create or revise a package in a new bucket
-they can't add files from any bucket, including that one.
-Instead, you need to manually add a configuration file,
-or click "auto-add current bucket"
-(which will create or edit the configuration file to add
-the current bucket to the list of `ui.sourceBuckets`)
-
-![Users can auto-add the current bucket to ui.sourceBuckets](../imgs/auto-add-source-bucket.png)
+By default, users can add files from the current bucket when creating
+or revising packages. The current bucket is automatically available
+in the file picker without requiring configuration.
+To restrict this functionality and disable adding files from any bucket
+(including the current one), set `ui.sourceBuckets` to an empty dictionary `{}`
+in your configuration file.
 
 #### `ui.package_description` example
 

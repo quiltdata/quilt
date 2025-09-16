@@ -7,6 +7,8 @@ including success cases, validation errors, and other error scenarios.
 
 import datetime
 
+from quilt3 import admin
+
 # Base fixture data
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
@@ -348,4 +350,10 @@ ALL_TABULATOR_OPERATIONS = [
 ALL_ADMIN_OPERATIONS = (
     ALL_USER_OPERATIONS + ALL_ROLE_OPERATIONS +
     ALL_SSO_OPERATIONS + ALL_TABULATOR_OPERATIONS
+)
+
+# Error tuples for parametrized tests
+MUTATION_ERRORS = (
+    (INVALID_INPUT_ERROR, admin.Quilt3AdminError),
+    (OPERATION_ERROR, admin.Quilt3AdminError),
 )

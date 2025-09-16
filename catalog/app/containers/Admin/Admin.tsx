@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
-import cfg from 'constants/config'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -14,7 +13,6 @@ const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
 const UsersAndRoles = RT.mkLazy(() => import('./UsersAndRoles'), SuspensePlaceholder)
 const Buckets = RT.mkLazy(() => import('./Buckets'), SuspensePlaceholder)
-const Sync = RT.mkLazy(() => import('./Sync'), SuspensePlaceholder)
 const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 const Status = RT.mkLazy(() => import('./Status'), SuspensePlaceholder)
 
@@ -64,7 +62,6 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
             <M.Tabs value={section} centered>
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
-              {cfg.desktop && <NavTab label="Sync" value="sync" to={urls.adminSync()} />}
               <NavTab label="Status" value="status" to={urls.adminStatus()} />
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
@@ -83,7 +80,6 @@ export default function Admin() {
   const sections = {
     users: { path: paths.adminUsers, exact: true },
     buckets: { path: paths.adminBuckets },
-    sync: { path: paths.adminSync, exact: true },
     settings: { path: paths.adminSettings, exact: true },
     status: { path: paths.adminStatus, exact: true },
   }
@@ -105,11 +101,6 @@ export default function Admin() {
           <RR.Route path={paths.adminUsers} exact strict>
             <UsersAndRoles />
           </RR.Route>
-          {cfg.desktop && (
-            <RR.Route path={paths.adminSync} exact>
-              <Sync />
-            </RR.Route>
-          )}
           <RR.Route path={paths.adminSettings} exact>
             <Settings />
           </RR.Route>

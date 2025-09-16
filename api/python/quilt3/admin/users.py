@@ -1,7 +1,7 @@
-
 from typing import List, Optional
 
-from . import _graphql_client, exceptions, types, util
+from .. import _graphql_client
+from . import exceptions, types, util
 
 
 def get(name: str) -> Optional[types.User]:
@@ -17,7 +17,7 @@ def get(name: str) -> Optional[types.User]:
     return types.User(**result.model_dump())
 
 
-def list() -> List[types.User]:
+def list() -> List[types.User]:  # pylint: disable=redefined-builtin
     """
     Get a list of all users in the registry.
     """
@@ -37,7 +37,9 @@ def create(name: str, email: str, role: str, extra_roles: Optional[List[str]] = 
 
     return util.handle_user_mutation(
         util.get_client().users_create(
-            input=_graphql_client.UserInput(name=name, email=email, role=role, extraRoles=extra_roles)
+            input=_graphql_client.UserInput(
+                name=name, email=email, role=role, extraRoles=extra_roles
+            )
         )
     )
 
@@ -124,9 +126,12 @@ def set_role(
         name: Username of user to update.
         role: Role to be set as the active role.
         extra_roles: Additional roles to assign to the user.
-        append: If True, append the extra roles to the existing roles. If False, replace the existing roles.
+        append: If True, append the extra roles to the existing roles.
+            If False, replace the existing roles.
     """
-    result = util.get_client().users_set_role(name=name, role=role, extra_roles=extra_roles, append=append)
+    result = util.get_client().users_set_role(
+        name=name, role=role, extra_roles=extra_roles, append=append
+    )
     if result is None:
         raise exceptions.UserNotFoundError
     return util.handle_user_mutation(result.set_role)
@@ -159,7 +164,9 @@ def remove_roles(
         roles: Roles to remove from the user.
         fallback: If set, the role to assign to the user if the active role is removed.
     """
-    result = util.get_client().users_remove_roles(name=name, roles=roles, fallback=fallback)
+    result = util.get_client().users_remove_roles(
+        name=name, roles=roles, fallback=fallback
+    )
     if result is None:
         raise exceptions.UserNotFoundError
     return util.handle_user_mutation(result.remove_roles)

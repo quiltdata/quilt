@@ -1,0 +1,29 @@
+name: Test quilt3.admin code generation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/test-quilt3-admin-codegen.yaml'
+      - 'shared/graphql/schema.graphql'
+      - 'api/python/quilt3-admin/**'
+      - 'api/python/quilt3/admin/_graphql_client/**'
+  pull_request:
+    paths:
+      - '.github/workflows/test-quilt3-admin-codegen.yaml'
+      - 'shared/graphql/schema.graphql'
+      - 'api/python/quilt3-admin/**'
+      - 'api/python/quilt3/admin/_graphql_client/**'
+  merge_group:
+
+jobs:
+  test-quilt3-admin-codegen:
+    name: test quilt3.admin generated code is up-to-date
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api/python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Check GraphQL client is up-to-date
+        run: uv run poe gql-check
