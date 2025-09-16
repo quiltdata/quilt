@@ -147,7 +147,7 @@ class WorkflowConfig:
         return schema_pk
 
     def load_schema(self, schema_pk: util.PhysicalKey) -> tuple[bytes, util.PhysicalKey]:
-        handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
+        handled_exception = OSError if schema_pk.is_local() else botocore.exceptions.ClientError
         try:
             return get_bytes_and_effective_pk(schema_pk)
         except handled_exception as e:
@@ -216,10 +216,7 @@ class WorkflowConfig:
             'config': str(self.physical_key),
         }
         if self.loaded_schemas:
-            data_to_store['schemas'] = {
-                schema_id: str(x[1])
-                for schema_id, x in self.loaded_schemas_by_id.items()
-            }
+            data_to_store['schemas'] = {schema_id: str(x[1]) for schema_id, x in self.loaded_schemas_by_id.items()}
 
         return WorkflowValidator(
             data_to_store=data_to_store,

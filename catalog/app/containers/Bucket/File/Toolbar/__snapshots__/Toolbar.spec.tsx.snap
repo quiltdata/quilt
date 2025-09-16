@@ -70,8 +70,5 @@ exports[`Toolbar should render skeleton buttons when features is null 1`] = `
   <i>
     ⌛
   </i>
-  <i>
-    ⌛
-  </i>
 </div>
 `;

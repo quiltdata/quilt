@@ -20,9 +20,13 @@ jest.mock('./Organize', () => ({
   Options: () => <>"Organize" popover</>,
 }))
 
+jest.mock('@material-ui/lab', () => ({
+  ...jest.requireActual('@material-ui/lab'),
+  Skeleton: () => <i>⌛</i>,
+}))
+
 jest.mock('components/Buttons', () => ({
   ...jest.requireActual('components/Buttons'),
-  Skeleton: () => <i>⌛</i>,
   WithPopover: ({
     label,
     children,
@@ -100,7 +104,7 @@ describe('useFeatures', () => {
       ),
     }))
 
-    const { result } = renderHook(() => FileToolbar.useFeatures())
+    const { result } = renderHook(() => FileToolbar.useFeatures(false))
 
     expect(result.current).toEqual({
       get: false,
@@ -126,7 +130,7 @@ describe('useFeatures', () => {
       ),
     }))
 
-    const { result } = renderHook(() => FileToolbar.useFeatures())
+    const { result } = renderHook(() => FileToolbar.useFeatures(false))
 
     expect(result.current).toEqual({
       get: { code: true },
@@ -156,7 +160,7 @@ describe('useFeatures', () => {
 
     expect(result.current).toEqual({
       get: false,
-      organize: true,
+      organize: false,
       qurator: true,
     })
   })

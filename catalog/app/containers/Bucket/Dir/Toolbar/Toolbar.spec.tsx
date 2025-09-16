@@ -37,9 +37,13 @@ jest.mock('containers/Bucket/PackageDialog', () => ({
   }),
 }))
 
+jest.mock('@material-ui/lab', () => ({
+  ...jest.requireActual('@material-ui/lab'),
+  Skeleton: () => <i>⌛</i>,
+}))
+
 jest.mock('components/Buttons', () => ({
   ...jest.requireActual('components/Buttons'),
-  Skeleton: () => <i>⌛</i>,
   WithPopover: ({
     label,
     children,

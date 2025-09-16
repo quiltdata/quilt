@@ -11,9 +11,7 @@ class TabulatorSetOpenQuery(BaseModel):
 
 
 class TabulatorSetOpenQueryAdmin(BaseModel):
-    set_tabulator_open_query: "TabulatorSetOpenQueryAdminSetTabulatorOpenQuery" = Field(
-        alias="setTabulatorOpenQuery"
-    )
+    set_tabulator_open_query: "TabulatorSetOpenQueryAdminSetTabulatorOpenQuery" = Field(alias="setTabulatorOpenQuery")
 
 
 class TabulatorSetOpenQueryAdminSetTabulatorOpenQuery(BaseModel):
