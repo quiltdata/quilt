@@ -18,6 +18,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Improve handling of no results on packages tab ([#4539](https://github.com/quiltdata/quilt/pull/4539))
 - [Changed] Removed unnecessary blocks and buttons from deleted file page ([#4544](https://github.com/quiltdata/quilt/pull/4544))
 - [Added] File upload and deletion functionality to manage files directly in buckets ([#4455](https://github.com/quiltdata/quilt/pull/4455))
 - [Changed] Refactor toolbar layout in Bucket tab for improved consistency and maintainability ([#4455](https://github.com/quiltdata/quilt/pull/4455))
