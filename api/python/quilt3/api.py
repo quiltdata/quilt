@@ -119,7 +119,7 @@ def config(*catalog_url, **config_values):
 
 
 def _config(*catalog_url, **config_values):
-    """   telemetry-free version of config()   """
+    """telemetry-free version of config()"""
     if catalog_url and config_values:
         raise QuiltException("Expected either an auto-config URL or key=value pairs, but got both.")
     # Total distinction of args and kwargs -- config(catalog_url='http://foo.com')
@@ -157,7 +157,7 @@ def _config(*catalog_url, **config_values):
 
 @ApiTelemetry("api.disable_telemetry")
 def disable_telemetry():
-    """ Permanently disable sending of anonymous usage metrics """
+    """Permanently disable sending of anonymous usage metrics"""
     _disable_telemetry()
 
 

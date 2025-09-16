@@ -3,11 +3,16 @@ import invariant from 'invariant'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import Lock from 'components/Lock'
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as FileEditorRoutes from 'components/FileEditor/routes'
+import * as quiltConfigs from 'constants/quiltConfigs'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import type * as Model from 'model'
@@ -81,11 +86,22 @@ function ExpandMore({ className }: { className?: string }) {
   return <M.Icon className={className}>expand_more</M.Icon>
 }
 
-const useBucketSelectStyles = M.makeStyles({
+const useBucketSelectStyles = M.makeStyles((t) => ({
   root: {
     ...linkStyle,
     font: 'inherit',
   },
+  add: {
+    color: t.palette.text.secondary,
+    fontSize: t.typography.body2.fontSize,
+    minWidth: t.spacing(30),
+  },
+  divider: {
+    marginBottom: t.spacing(1),
+  },
+}))
+
+const useSelectStyles = M.makeStyles({
   select: {
     paddingBottom: 0,
     paddingTop: 0,
@@ -94,6 +110,12 @@ const useBucketSelectStyles = M.makeStyles({
     color: 'inherit',
   },
 })
+
+const useTooltipStyles = M.makeStyles((t) => ({
+  tooltip: {
+    maxWidth: t.spacing(32),
+  },
+}))
 
 interface BucketSelectProps {
   bucket: string
@@ -104,6 +126,14 @@ interface BucketSelectProps {
 function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
   const classes = useBucketSelectStyles()
 
+  const { handle } = BucketPreferences.use()
+  const { bucket: currentBucket } = RRDom.useParams<{ bucket: string }>()
+  invariant(currentBucket, '`currentBucket` must be defined')
+
+  const toConfig = FileEditorRoutes.useEditBucketFile(
+    handle || { bucket: currentBucket, key: quiltConfigs.bucketPreferences[0] },
+  )
+
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<{ value: unknown }>) => {
       selectBucket(e.target.value as string)
@@ -111,13 +141,16 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
     [selectBucket],
   )
 
+  const selectClasses = useSelectStyles()
+  const tooltipClasses = useTooltipStyles()
+
   return (
     <M.Select
       value={bucket}
       onChange={handleChange}
       input={<M.InputBase />}
       className={classes.root}
-      classes={{ select: classes.select, icon: classes.icon }}
+      classes={selectClasses}
       IconComponent={ExpandMore}
     >
       {buckets.map((b) => (
@@ -125,6 +158,20 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
           {b}
         </M.MenuItem>
       ))}
+      <M.Divider className={classes.divider} />
+      <M.Tooltip
+        placement="bottom"
+        classes={tooltipClasses}
+        title={
+          <>
+            Open config editor and change <Code>ui.sourceBuckets</Code>
+          </>
+        }
+      >
+        <M.MenuItem component={RRDom.Link} to={toConfig} className={classes.add}>
+          Add bucket
+        </M.MenuItem>
+      </M.Tooltip>
     </M.Select>
   )
 }
@@ -161,7 +208,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DialogProps {
   bucket: string
-  buckets?: string[]
+  buckets: string[]
   selectBucket?: (bucket: string) => void
   open: boolean
   onClose: (reason: CloseReason) => void
@@ -211,6 +258,8 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     [selectBucket],
   )
 
+  const [key, setKey] = React.useState(0)
+  const handleReload = React.useCallback(() => setKey((c) => c + 1), [])
   const data = useData(
     bucketListing,
     {
@@ -219,6 +268,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       prefix,
       prev,
       drain: true,
+      key,
     },
     {
       noAutoFetch: !open,
@@ -269,15 +319,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       <M.DialogTitle disableTypography>
         <M.Typography component="h2" variant="h6">
           Add files from s3://
-          {!!buckets && buckets.length > 1 && !!selectBucket ? (
-            <BucketSelect
-              bucket={bucket}
-              buckets={buckets}
-              selectBucket={handleBucketChange}
-            />
-          ) : (
-            bucket
-          )}
+          <BucketSelect
+            bucket={bucket}
+            buckets={buckets}
+            selectBucket={handleBucketChange}
+          />
           {/* TODO: Add link to the documentation: how to add buckets to `ui.sourceBuckets` */}
         </M.Typography>
       </M.DialogTitle>
@@ -315,6 +361,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
                 res.path,
               )}
               onSelectionChange={(ids) => slt.merge(ids, bucket, path, prefix)}
+              onReload={handleReload}
             />
           ) : (
             // TODO: skeleton
@@ -371,6 +418,7 @@ interface DirContentsProps {
   loadMore: () => void
   selection: Selection.SelectionItem[]
   onSelectionChange: (ids: Selection.SelectionItem[]) => void
+  onReload: () => void
 }
 
 function DirContents({
@@ -381,6 +429,7 @@ function DirContents({
   loadMore,
   selection,
   onSelectionChange,
+  onReload,
 }: DirContentsProps) {
   const classes = useDirContentsStyles()
   const items = useFormattedListing(response)
@@ -417,6 +466,7 @@ function DirContents({
       prefixFilter={prefix}
       selection={selection}
       onSelectionChange={onSelectionChange}
+      onReload={onReload}
       CellComponent={CellComponent}
       RootComponent="div"
       className={classes.root}

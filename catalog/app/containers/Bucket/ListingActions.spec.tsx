@@ -1,10 +1,12 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Bookmarks from 'containers/Bookmarks/Provider'
-import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
 
-import { RowActions } from './ListingActions'
+import type * as Model from 'model'
+import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
+import * as Bookmarks from 'containers/Bookmarks/Provider'
+import * as NamedRoutes from 'utils/NamedRoutes'
+
+import RowActions from './ListingActions'
 
 jest.mock(
   'constants/config',
@@ -25,6 +27,36 @@ const defaultPrefs = {
   writeFile: true,
 }
 
+jest.mock('@material-ui/core', () => ({
+  ...jest.requireActual('@material-ui/core'),
+  IconButton: ({ onClick, ...props }: any) =>
+    props.href ? <a {...props} /> : <button {...props} />,
+}))
+
+jest.mock('@material-ui/icons', () => ({
+  ArrowDownwardOutlined: () => <span>arrow_downward</span>,
+  DeleteOutlined: () => <span>delete</span>,
+  TurnedInOutlined: () => <span>turned_in</span>,
+  TurnedInNotOutlined: () => <span>turned_in_not</span>,
+}))
+
+jest.mock('containers/Notifications', () => ({
+  use: () => ({
+    push: jest.fn(() => {}),
+  }),
+}))
+
+jest.mock('utils/AWS', () => ({
+  S3: {
+    use: () => null,
+  },
+  Signer: {
+    useDownloadUrl: (h: Model.S3.S3ObjectLocation) => `s3://${h.bucket}/${h.key}`,
+  },
+}))
+
+const noop = () => {}
+
 function TestBucket({ children }: React.PropsWithChildren<{}>) {
   return (
     <Bookmarks.Provider>
@@ -41,7 +73,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions archived to="" prefs={defaultPrefs} />
+            <RowActions archived to="" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -52,7 +84,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="" prefs={defaultPrefs} />
+            <RowActions to="" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -63,7 +95,11 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/BRANCH/fileB" prefs={defaultPrefs} />
+            <RowActions
+              to="/b/bucketA/BRANCH/fileB"
+              prefs={defaultPrefs}
+              onReload={noop}
+            />
           </TestBucket>,
         )
         .toJSON()
@@ -75,7 +111,7 @@ describe('components/ListingActions', () => {
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} />
+            <RowActions to="/b/bucketA/tree/dirB/" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -83,11 +119,10 @@ describe('components/ListingActions', () => {
     })
 
     it('should render Bucket file', () => {
-      jest.mock('utils/AWS')
       const tree = renderer
         .create(
           <TestBucket>
-            <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} />
+            <RowActions to="/b/bucketA/tree/fileB" prefs={defaultPrefs} onReload={noop} />
           </TestBucket>,
         )
         .toJSON()
@@ -101,6 +136,7 @@ describe('components/ListingActions', () => {
             <RowActions
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
               prefs={defaultPrefs}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -116,6 +152,7 @@ describe('components/ListingActions', () => {
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
               physicalKey="s3://bucketA/pathB/fileB"
               prefs={defaultPrefs}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -124,13 +161,13 @@ describe('components/ListingActions', () => {
     })
 
     it('should render Bucket file without download button', () => {
-      jest.mock('utils/AWS')
       const tree = renderer
         .create(
           <TestBucket>
             <RowActions
               to="/b/bucketA/tree/fileB"
               prefs={{ ...defaultPrefs, downloadObject: false }}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -145,6 +182,7 @@ describe('components/ListingActions', () => {
             <RowActions
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/dirD/"
               prefs={{ ...defaultPrefs, downloadPackage: false }}
+              onReload={noop}
             />
           </TestBucket>,
         )
@@ -160,6 +198,7 @@ describe('components/ListingActions', () => {
               to="/b/bucketA/packages/namespaceB/nameC/tree/latest/fileD"
               physicalKey="s3://bucketA/pathB/fileB"
               prefs={{ ...defaultPrefs, downloadPackage: false }}
+              onReload={noop}
             />
           </TestBucket>,
         )
