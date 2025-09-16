@@ -7,7 +7,9 @@ export type website_pages_Landing_gql_IsAdminQueryVariables = Types.Exact<{
 }>
 
 export type website_pages_Landing_gql_IsAdminQuery = { readonly __typename: 'Query' } & {
-  readonly me: Types.Maybe<{ readonly __typename: 'Me' } & Pick<Types.Me, 'isAdmin'>>
+  readonly me: Types.Maybe<
+    { readonly __typename: 'Me' } & Pick<Types.Me, 'isAdmin' | 'name'>
+  >
 }
 
 export const website_pages_Landing_gql_IsAdminDocument = {
@@ -25,7 +27,10 @@ export const website_pages_Landing_gql_IsAdminDocument = {
             name: { kind: 'Name', value: 'me' },
             selectionSet: {
               kind: 'SelectionSet',
-              selections: [{ kind: 'Field', name: { kind: 'Name', value: 'isAdmin' } }],
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'isAdmin' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+              ],
             },
           },
         ],

@@ -1,0 +1,137 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Search/List/index when has results renders ObjectsSearchResultSet with object hits 1`] = `
+<div>
+  <div>
+    <div>
+      Object: 
+      data/file1.csv
+    </div>
+    <div>
+      Object: 
+      data/file2.json
+    </div>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/List/index when has results renders PackagesSearchResultSet with empty hits and secure search 1`] = `
+<div>
+  <div>
+    <section>
+      <h1>
+        This is secure search.
+      </h1>
+      <p>
+        We don't know in advance if users have access to each individual result
+      </p>
+    </section>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/List/index when has results renders PackagesSearchResultSet with package hits 1`] = `
+<div>
+  <div>
+    <div>
+      Package: 
+      package-1
+      #
+      abc123
+    </div>
+    <div>
+      Package: 
+      package-2
+      #
+      def456
+    </div>
+  </div>
+</div>
+`;
+
+exports[`containers/Search/List/index when no results renders empty slot for EmptySearchResultSet 1`] = `
+<div>
+  <div>
+    No results
+  </div>
+</div>
+`;
+
+exports[`containers/Search/List/index when no results renders error for InputError 1`] = `
+<div>
+  <section>
+    <h1>
+      Unexpected error
+    </h1>
+    <details>
+      Invalid input at 
+      <code>
+        search.query
+      </code>
+      : 
+      ValidationError
+      <br />
+      Invalid search syntax
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index when no results renders error for error state 1`] = `
+<div>
+  <section>
+    <h1>
+      Unexpected error
+    </h1>
+    <details>
+      Network error
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index when no results renders operation error for other OperationError 1`] = `
+<div>
+  <section>
+    <h1>
+      Unexpected error
+    </h1>
+    <details>
+      Operation error: 
+      Internal server error
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index when no results renders skeleton for fetching state 1`] = `
+<div>
+  <div>
+    Loading…
+  </div>
+</div>
+`;
+
+exports[`containers/Search/List/index when no results renders syntax error for QuerySyntaxError 1`] = `
+<div>
+  <section>
+    <h1>
+      Syntax error
+    </h1>
+    <details>
+      Syntax error in query
+    </details>
+  </section>
+</div>
+`;
+
+exports[`containers/Search/List/index when no results renders timeout error for OperationError with Timeout 1`] = `
+<div>
+  <section>
+    <h1>
+      Timeout error
+    </h1>
+    <details />
+  </section>
+</div>
+`;

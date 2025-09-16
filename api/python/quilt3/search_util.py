@@ -3,6 +3,7 @@ search_util.py
 
 Contains search-related glue code
 """
+
 import json
 import typing as T
 

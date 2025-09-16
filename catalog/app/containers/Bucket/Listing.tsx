@@ -18,7 +18,7 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
-import { RowActions } from './ListingActions'
+import RowActions from './ListingActions'
 import * as Selection from './Selection'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
@@ -1045,6 +1045,7 @@ interface ListingProps {
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
   dataGridProps?: Partial<DG.DataGridProps>
+  onReload: () => void
 }
 
 export function Listing({
@@ -1060,6 +1061,7 @@ export function Listing({
   RootComponent = M.Paper,
   className,
   dataGridProps,
+  onReload,
 }: ListingProps) {
   const classes = useStyles()
   const t = M.useTheme()
@@ -1207,6 +1209,7 @@ export function Listing({
                   physicalKey={params.row.physicalKey}
                   prefs={actions}
                   to={params.row.to}
+                  onReload={onReload}
                 />
               ),
               _: () => <></>,
@@ -1216,7 +1219,7 @@ export function Listing({
         ),
     })
     return columnsWithValues
-  }, [classes, CellComponent, items, sm, prefs])
+  }, [classes, CellComponent, items, sm, prefs, onReload])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''

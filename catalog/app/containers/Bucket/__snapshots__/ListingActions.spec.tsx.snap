@@ -5,44 +5,30 @@ exports[`components/ListingActions RowActions should render Bucket directory 1`]
   className="makeStyles-root-1"
 >
   <div
-    className="makeStyles-wrapper-5"
+    className="makeStyles-wrapper-4"
   >
     <div
-      className="makeStyles-container-3"
+      className="makeStyles-container-2"
     >
       <button
-        className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7 makeStyles-item-4"
-        disabled={false}
-        onBlur={[Function]}
-        onClick={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
-        title="Bookmark"
-        type="button"
+        className="makeStyles-root-6 makeStyles-item-3"
+        title="Delete"
       >
-        <span
-          className="MuiIconButton-label"
-        >
-          <span
-            aria-hidden={true}
-            className="material-icons MuiIcon-root"
-          >
-            turned_in_not
-          </span>
+        <span>
+          delete
+        </span>
+      </button>
+      <button
+        className="makeStyles-root-6 makeStyles-item-3"
+        title="Bookmark"
+      >
+        <span>
+          turned_in_not
         </span>
       </button>
       <form
         action="/zip/dir/bucketA/dirB/"
-        className="makeStyles-item-4"
+        className="makeStyles-item-3"
         method="POST"
         style={
           {
@@ -56,32 +42,12 @@ exports[`components/ListingActions RowActions should render Bucket directory 1`]
           value="ABC"
         />
         <button
-          className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7"
-          disabled={false}
-          onBlur={[Function]}
-          onDragLeave={[Function]}
-          onFocus={[Function]}
-          onKeyDown={[Function]}
-          onKeyUp={[Function]}
-          onMouseDown={[Function]}
-          onMouseLeave={[Function]}
-          onMouseUp={[Function]}
-          onTouchEnd={[Function]}
-          onTouchMove={[Function]}
-          onTouchStart={[Function]}
-          tabIndex={0}
+          className="makeStyles-root-6 makeStyles-item-3"
           title="Download"
           type="submit"
         >
-          <span
-            className="MuiIconButton-label"
-          >
-            <span
-              aria-hidden={true}
-              className="material-icons MuiIcon-root"
-            >
-              arrow_downward
-            </span>
+          <span>
+            arrow_downward
           </span>
         </button>
       </form>
@@ -95,76 +61,36 @@ exports[`components/ListingActions RowActions should render Bucket file 1`] = `
   className="makeStyles-root-1"
 >
   <div
-    className="makeStyles-wrapper-5"
+    className="makeStyles-wrapper-4"
   >
     <div
-      className="makeStyles-container-3"
+      className="makeStyles-container-2"
     >
       <button
-        className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7 makeStyles-item-4"
-        disabled={false}
-        onBlur={[Function]}
-        onClick={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
-        title="Bookmark"
-        type="button"
+        className="makeStyles-root-6 makeStyles-item-3"
+        title="Delete"
       >
-        <span
-          className="MuiIconButton-label"
-        >
-          <span
-            aria-hidden={true}
-            className="material-icons MuiIcon-root"
-          >
-            turned_in_not
-          </span>
+        <span>
+          delete
         </span>
-        <span
-          className="MuiTouchRipple-root"
-        />
+      </button>
+      <button
+        className="makeStyles-root-6 makeStyles-item-3"
+        title="Bookmark"
+      >
+        <span>
+          turned_in_not
+        </span>
       </button>
       <a
-        aria-disabled={false}
-        className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7 makeStyles-item-4"
+        className="makeStyles-root-6 makeStyles-item-3"
         download={true}
         href="s3://bucketA/fileB"
-        onBlur={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
         title="Download"
       >
-        <span
-          className="MuiIconButton-label"
-        >
-          <span
-            aria-hidden={true}
-            className="material-icons MuiIcon-root"
-          >
-            arrow_downward
-          </span>
+        <span>
+          arrow_downward
         </span>
-        <span
-          className="MuiTouchRipple-root"
-        />
       </a>
     </div>
   </div>
@@ -176,39 +102,25 @@ exports[`components/ListingActions RowActions should render Bucket file without 
   className="makeStyles-root-1"
 >
   <div
-    className="makeStyles-wrapper-5"
+    className="makeStyles-wrapper-4"
   >
     <div
-      className="makeStyles-container-3"
+      className="makeStyles-container-2"
     >
       <button
-        className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7 makeStyles-item-4"
-        disabled={false}
-        onBlur={[Function]}
-        onClick={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
-        title="Bookmark"
-        type="button"
+        className="makeStyles-root-6 makeStyles-item-3"
+        title="Delete"
       >
-        <span
-          className="MuiIconButton-label"
-        >
-          <span
-            aria-hidden={true}
-            className="material-icons MuiIcon-root"
-          >
-            turned_in_not
-          </span>
+        <span>
+          delete
+        </span>
+      </button>
+      <button
+        className="makeStyles-root-6 makeStyles-item-3"
+        title="Bookmark"
+      >
+        <span>
+          turned_in_not
         </span>
       </button>
     </div>
@@ -221,14 +133,14 @@ exports[`components/ListingActions RowActions should render Package directory 1`
   className="makeStyles-root-1"
 >
   <div
-    className="makeStyles-wrapper-5"
+    className="makeStyles-wrapper-4"
   >
     <div
-      className="makeStyles-container-3"
+      className="makeStyles-container-2"
     >
       <form
         action="/zip/package/bucketA/namespaceB/nameC/latest/dirD/"
-        className="makeStyles-item-4"
+        className="makeStyles-item-3"
         method="POST"
         style={
           {
@@ -242,32 +154,12 @@ exports[`components/ListingActions RowActions should render Package directory 1`
           value="ABC"
         />
         <button
-          className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7"
-          disabled={false}
-          onBlur={[Function]}
-          onDragLeave={[Function]}
-          onFocus={[Function]}
-          onKeyDown={[Function]}
-          onKeyUp={[Function]}
-          onMouseDown={[Function]}
-          onMouseLeave={[Function]}
-          onMouseUp={[Function]}
-          onTouchEnd={[Function]}
-          onTouchMove={[Function]}
-          onTouchStart={[Function]}
-          tabIndex={0}
+          className="makeStyles-root-6"
           title="Download"
           type="submit"
         >
-          <span
-            className="MuiIconButton-label"
-          >
-            <span
-              aria-hidden={true}
-              className="material-icons MuiIcon-root"
-            >
-              arrow_downward
-            </span>
+          <span>
+            arrow_downward
           </span>
         </button>
       </form>
@@ -283,43 +175,20 @@ exports[`components/ListingActions RowActions should render Package file 1`] = `
   className="makeStyles-root-1"
 >
   <div
-    className="makeStyles-wrapper-5"
+    className="makeStyles-wrapper-4"
   >
     <div
-      className="makeStyles-container-3"
+      className="makeStyles-container-2"
     >
       <a
-        aria-disabled={false}
-        className="MuiButtonBase-root MuiIconButton-root makeStyles-root-7 makeStyles-item-4"
+        className="makeStyles-root-6 makeStyles-item-3"
         download={true}
         href="s3://bucketa/pathB/fileB"
-        onBlur={[Function]}
-        onDragLeave={[Function]}
-        onFocus={[Function]}
-        onKeyDown={[Function]}
-        onKeyUp={[Function]}
-        onMouseDown={[Function]}
-        onMouseLeave={[Function]}
-        onMouseUp={[Function]}
-        onTouchEnd={[Function]}
-        onTouchMove={[Function]}
-        onTouchStart={[Function]}
-        tabIndex={0}
         title="Download"
       >
-        <span
-          className="MuiIconButton-label"
-        >
-          <span
-            aria-hidden={true}
-            className="material-icons MuiIcon-root"
-          >
-            arrow_downward
-          </span>
+        <span>
+          arrow_downward
         </span>
-        <span
-          className="MuiTouchRipple-root"
-        />
       </a>
     </div>
   </div>

@@ -95,6 +95,24 @@ const getObject = ({ s3, handle }: GetObjectArgs) =>
       body: Body,
     }))
 
+interface DeleteObjectArgs {
+  s3: S3
+  handle: Model.S3.S3ObjectLocation
+}
+
+export const deleteObject = async ({
+  s3,
+  handle: { bucket, key, version },
+}: DeleteObjectArgs): Promise<void> => {
+  await s3
+    .deleteObject({
+      Bucket: bucket,
+      Key: key,
+      VersionId: version,
+    })
+    .promise()
+}
+
 interface ObjectVersionsArgs {
   s3: S3
   bucket: string

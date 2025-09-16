@@ -22,18 +22,11 @@ from .bucket_tabulator_tables_list import (
     BucketTabulatorTablesListBucketConfigTabulatorTables,
 )
 from .client import Client
-from .enums import SearchResultOrder
 from .fragments import (
     InvalidInputSelection,
     InvalidInputSelectionErrors,
     ManagedRoleSelection,
     OperationErrorSelection,
-    PackagesSearchResultSetPageSelection,
-    PackagesSearchResultSetPageSelectionHits,
-    PackagesSearchResultSetSelection,
-    PackagesSearchResultSetSelectionFirstPage,
-    PackagesSearchResultSetSelectionFirstPageHits,
-    SearchHitPackageSelection,
     SsoConfigSelection,
     SsoConfigSelectionUploader,
     UnmanagedRoleSelection,
@@ -43,31 +36,11 @@ from .fragments import (
     UserSelectionRoleManagedRole,
     UserSelectionRoleUnmanagedRole,
 )
-from .input_types import (
-    BooleanSearchPredicate,
-    DatetimeSearchPredicate,
-    KeywordSearchPredicate,
-    NumberSearchPredicate,
-    PackagesSearchFilter,
-    PackageUserMetaPredicate,
-    TextSearchPredicate,
-    UserInput,
-)
+from .input_types import UserInput
 from .roles_list import (
     RolesList,
     RolesListRolesManagedRole,
     RolesListRolesUnmanagedRole,
-)
-from .search_more_packages import (
-    SearchMorePackages,
-    SearchMorePackagesSearchMorePackagesInvalidInput,
-    SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage,
-)
-from .search_packages import (
-    SearchPackages,
-    SearchPackagesSearchPackagesEmptySearchResultSet,
-    SearchPackagesSearchPackagesInvalidInput,
-    SearchPackagesSearchPackagesPackagesSearchResultSet,
 )
 from .sso_config_get import (
     SsoConfigGet,
@@ -186,7 +159,6 @@ from .users_set_role import (
 __all__ = [
     "BaseClient",
     "BaseModel",
-    "BooleanSearchPredicate",
     "BucketTabulatorTableRename",
     "BucketTabulatorTableRenameAdmin",
     "BucketTabulatorTableRenameAdminBucketRenameTabulatorTableBucketConfig",
@@ -201,32 +173,13 @@ __all__ = [
     "BucketTabulatorTablesListBucketConfig",
     "BucketTabulatorTablesListBucketConfigTabulatorTables",
     "Client",
-    "DatetimeSearchPredicate",
     "InvalidInputSelection",
     "InvalidInputSelectionErrors",
-    "KeywordSearchPredicate",
     "ManagedRoleSelection",
-    "NumberSearchPredicate",
     "OperationErrorSelection",
-    "PackageUserMetaPredicate",
-    "PackagesSearchFilter",
-    "PackagesSearchResultSetPageSelection",
-    "PackagesSearchResultSetPageSelectionHits",
-    "PackagesSearchResultSetSelection",
-    "PackagesSearchResultSetSelectionFirstPage",
-    "PackagesSearchResultSetSelectionFirstPageHits",
     "RolesList",
     "RolesListRolesManagedRole",
     "RolesListRolesUnmanagedRole",
-    "SearchHitPackageSelection",
-    "SearchMorePackages",
-    "SearchMorePackagesSearchMorePackagesInvalidInput",
-    "SearchMorePackagesSearchMorePackagesPackagesSearchResultSetPage",
-    "SearchPackages",
-    "SearchPackagesSearchPackagesEmptySearchResultSet",
-    "SearchPackagesSearchPackagesInvalidInput",
-    "SearchPackagesSearchPackagesPackagesSearchResultSet",
-    "SearchResultOrder",
     "SsoConfigGet",
     "SsoConfigGetAdmin",
     "SsoConfigGetAdminSsoConfig",
@@ -242,7 +195,6 @@ __all__ = [
     "TabulatorSetOpenQuery",
     "TabulatorSetOpenQueryAdmin",
     "TabulatorSetOpenQueryAdminSetTabulatorOpenQuery",
-    "TextSearchPredicate",
     "UnmanagedRoleSelection",
     "Upload",
     "UserInput",

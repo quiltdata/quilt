@@ -1,8 +1,0 @@
-[MASTER]
-ignore-paths=quilt3/_graphql_client
-
-[TYPECHECK]
-generated-members=requests.codes.*,responses.*
-
-[pre-commit-hook]
-limit=8

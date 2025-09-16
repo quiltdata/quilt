@@ -1,72 +1,28 @@
 import invariant from 'invariant'
-import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
-import * as FileEditor from 'components/FileEditor'
-import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
+import * as Dialogs from 'utils/Dialogs'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import type * as workflows from 'utils/workflows'
 
-import * as Download from './Download'
 import * as AssistantContext from './DirAssistantContext'
+import DndWrapper from './DndWrapper'
 import * as Listing from './Listing'
-import Menu from './Menu'
-import * as PD from './PackageDialog'
+import * as FI from './PackageDialog/FilesInput'
 import * as Selection from './Selection'
-import * as Successors from './Successors'
 import Summary from './Summary'
+import * as DirToolbar from './Dir/Toolbar'
 import { displayError } from './errors'
 import * as requests from './requests'
-
-interface DirectoryMenuProps {
-  bucket: string
-  className?: string
-  path: string
-}
-
-function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const { prefs } = BucketPreferences.use()
-  const prompt = FileEditor.useCreateFileInBucket(bucket, path)
-  const menuItems = React.useMemo(
-    () =>
-      BucketPreferences.Result.match(
-        {
-          Ok: ({ ui: { actions } }) => {
-            const menu = []
-            if (actions.writeFile) {
-              menu.push({
-                onClick: prompt.open,
-                title: 'Create file',
-              })
-            }
-            return menu
-          },
-          _: () => [],
-        },
-        prefs,
-      ),
-    [prefs, prompt.open],
-  )
-  if (!menuItems.length) return null
-  return (
-    <>
-      {prompt.render()}
-      <Menu className={className} items={menuItems} />
-    </>
-  )
-}
 
 interface RouteMap {
   bucketDir: Routes.BucketDirArgs
@@ -90,6 +46,7 @@ interface DirContentsProps {
   loadMore?: () => void
   selection: Selection.SelectionItem[]
   onSelection: (ids: Selection.SelectionItem[]) => void
+  onReload: () => void
 }
 
 function DirContents({
@@ -100,6 +57,7 @@ function DirContents({
   loadMore,
   selection,
   onSelection,
+  onReload,
 }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -113,28 +71,61 @@ function DirContents({
 
   const items = useFormattedListing(response)
 
+  const dialogs = Dialogs.use()
+  const dirHandle = React.useMemo(
+    () => DirToolbar.CreateHandle(bucket, path),
+    [bucket, path],
+  )
+
+  const handleDrop = React.useCallback(
+    (files: FI.LocalFile[]) => {
+      const added = files.reduce(
+        (memo, file) => ({
+          ...memo,
+          [s3paths.withoutPrefix('/', file.path || file.name)]: file,
+        }),
+        {},
+      )
+      dialogs.open(({ close }) => (
+        <DirToolbar.Add.UploadDialog
+          handle={dirHandle}
+          initial={added}
+          onClose={(reason) => {
+            close()
+            if (reason === 'upload-success') {
+              onReload()
+            }
+          }}
+        />
+      ))
+    },
+    [dialogs, dirHandle, onReload],
+  )
+
   // TODO: should prefix filtering affect summary?
   return (
     <>
-      <Listing.Listing
-        items={items}
-        locked={locked}
-        loadMore={loadMore}
-        truncated={response.truncated}
-        prefixFilter={response.prefix}
-        onSelectionChange={onSelection}
-        selection={selection}
-        toolbarContents={
-          <>
+      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
+
+      <DndWrapper handle={dirHandle} disabled={locked} onDrop={handleDrop}>
+        <Listing.Listing
+          items={items}
+          locked={locked}
+          loadMore={loadMore}
+          truncated={response.truncated}
+          prefixFilter={response.prefix}
+          onSelectionChange={onSelection}
+          selection={selection}
+          onReload={onReload}
+          toolbarContents={
             <Listing.PrefixFilter
               key={`${response.bucket}/${response.path}`}
               prefix={response.prefix}
               setPrefix={setPrefix}
             />
-          </>
-        }
-      />
-      {/* Remove TS workaround when Summary will be converted to .tsx */}
+          }
+        />
+      </DndWrapper>
       {/* @ts-expect-error */}
       <Summary files={response.files} mkUrl={null} path={path} />
     </>
@@ -147,16 +138,11 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: '100%',
     overflowWrap: 'break-word',
   },
-  button: {
-    marginLeft: t.spacing(1),
-  },
   topbar: {
     display: 'flex',
     alignItems: 'flex-start',
     marginBottom: t.spacing(2),
-    [t.breakpoints.down('sm')]: {
-      flexDirection: 'column',
-    },
+    flexWrap: 'wrap',
   },
   actions: {
     display: 'flex',
@@ -183,7 +169,6 @@ export default function Dir() {
 
   const classes = useStyles()
   const s3 = AWS.S3.use()
-  const { prefs } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search, true)
   const path = s3paths.decode(encodedPath)
 
@@ -194,12 +179,15 @@ export default function Dir() {
     setPrev(null)
   }, [path, prefix])
 
+  const [key, setKey] = React.useState(0)
+  const handleReload = React.useCallback(() => setKey((c) => c + 1), [])
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
     path,
     prefix,
     prev,
+    key,
   })
 
   const loadMore = React.useCallback(() => {
@@ -220,24 +208,6 @@ export default function Dir() {
   const handleSelection = React.useCallback(
     (ids) => slt.merge(ids, bucket, path, prefix),
     [bucket, path, prefix, slt],
-  )
-
-  const packageDirectoryDialog = PD.usePackageCreationDialog({
-    s3Path: path,
-    bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
-
-  const openPackageCreationDialog = React.useCallback(
-    (successor: workflows.Successor) => {
-      packageDirectoryDialog.open({
-        path,
-        successor,
-        selection: slt.selection,
-      })
-    },
-    [packageDirectoryDialog, path, slt.selection],
   )
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
@@ -262,7 +232,11 @@ export default function Dir() {
     [paths],
   )
 
-  const dirHandle = React.useMemo(() => ({ bucket, path }), [bucket, path])
+  const dirHandle = React.useMemo(
+    () => DirToolbar.CreateHandle(bucket, path),
+    [bucket, path],
+  )
+  const toolbarFeatures = DirToolbar.useFeatures()
 
   return (
     <M.Box pt={2} pb={4}>
@@ -272,57 +246,16 @@ export default function Dir() {
 
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
 
-      {packageDirectoryDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
-
       <div className={classes.topbar}>
         <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
           {BreadCrumbs.render(crumbs)}
         </div>
-        <div className={classes.actions}>
-          <Selection.Control className={cx(classes.button)} />
-          {BucketPreferences.Result.match(
-            {
-              Ok: ({ ui: { actions, blocks } }) => (
-                <>
-                  {actions.createPackage && (
-                    <Successors.Button
-                      bucket={bucket}
-                      className={classes.button}
-                      onChange={openPackageCreationDialog}
-                      variant={slt.isEmpty ? 'outlined' : 'contained'}
-                      color={slt.isEmpty ? 'default' : 'primary'}
-                    >
-                      Create package
-                    </Successors.Button>
-                  )}
-                  {!cfg.noDownload && actions.downloadObject && (
-                    <Download.Button className={classes.button}>
-                      <Download.BucketOptions
-                        handle={dirHandle}
-                        hideCode={!blocks.code}
-                      />
-                    </Download.Button>
-                  )}
-                </>
-              ),
-              Pending: () => (
-                <>
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                  <Buttons.Skeleton className={classes.button} size="small" />
-                </>
-              ),
-              Init: () => null,
-            },
-            prefs,
-          )}
-          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
-        </div>
+        <DirToolbar.Toolbar
+          className={classes.actions}
+          features={toolbarFeatures}
+          handle={dirHandle}
+          onReload={handleReload}
+        />
       </div>
 
       {data.case({
@@ -343,6 +276,7 @@ export default function Dir() {
                 res.path,
               )}
               onSelection={handleSelection}
+              onReload={handleReload}
             />
           ) : (
             <M.CircularProgress />

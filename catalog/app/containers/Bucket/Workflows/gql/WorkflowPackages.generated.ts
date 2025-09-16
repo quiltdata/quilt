@@ -41,6 +41,10 @@ export type containers_Bucket_Workflows_gql_WorkflowPackagesQuery = {
           >
         >
       })
+    | ({ readonly __typename: 'OperationError' } & Pick<
+        Types.OperationError,
+        'name' | 'message' | 'context'
+      >)
 }
 
 export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {
@@ -206,6 +210,21 @@ export const containers_Bucket_Workflows_gql_WorkflowPackagesDocument = {
                           ],
                         },
                       },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'OperationError' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'context' } },
                     ],
                   },
                 },

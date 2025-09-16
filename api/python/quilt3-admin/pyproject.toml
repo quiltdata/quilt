@@ -1,0 +1,33 @@
+[project]
+name = "quilt3-admin-codegen"
+version = "0.1.0"
+description = "GraphQL client code generator for quilt3.admin"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[dependency-groups]
+dev = [
+    "ariadne-codegen ~= 0.13.0",
+]
+
+[tool.ariadne-codegen]
+schema_path = "../../../shared/graphql/schema.graphql"
+queries_path = "queries.graphql"
+target_package_path = "../quilt3/admin/"
+target_package_name = "_graphql_client"
+files_to_include = [
+    "exceptions.py",
+]
+async_client = false
+base_client_file_path = "base_client.py"
+base_client_name = "BaseClient"
+include_all_inputs = false
+include_all_enums = false
+plugins = [
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
+    "ariadne_codegen.contrib.shorter_results.ShorterResultsPlugin",
+]
+
+[tool.ariadne-codegen.scalars.Datetime]
+type = "datetime.datetime"
