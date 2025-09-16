@@ -79,11 +79,6 @@ const ListPage = () => <ListView emptySlot={<div>No results</div>} onRefine={jes
 
 describe('containers/Search/List/index', () => {
   describe('when no results', () => {
-    beforeEach(() => {
-      jest.clearAllMocks()
-      firstPageQuery = { _tag: 'fetching' }
-    })
-
     it('renders skeleton for fetching state', () => {
       firstPageQuery = { _tag: 'fetching' }
 
