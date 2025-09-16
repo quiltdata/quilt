@@ -31,7 +31,6 @@ import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
-import AssistButton from '../AssistButton'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
@@ -42,6 +41,7 @@ import Section from '../Section'
 import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
+import AssistButton from '../Toolbar/Assist'
 import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
@@ -470,6 +470,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             )}
                             items={items}
                             key={hash}
+                            onReload={dirQuery.run}
                           />
                         )}
                         <Summary
@@ -806,9 +807,7 @@ function FileDisplay({
                               />
                             </Download.Button>
                           )}
-                        {blocks.qurator && !deleted && !archived && (
-                          <AssistButton edge="end" />
-                        )}
+                        {blocks.qurator && !deleted && !archived && <AssistButton />}
                       </>
                     ),
                     Pending: () => (

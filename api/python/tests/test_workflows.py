@@ -121,11 +121,14 @@ class WorkflowValidatorTest(unittest.TestCase, WorkflowValidatorTestMixin):
             'validate_entries',
         )
         with mock.patch.multiple(workflows.WorkflowValidator, **dict.fromkeys(methods_to_mock, mock.DEFAULT)) as mocks:
-            assert workflow_validator.validate(
-                name=pkg_name,
-                pkg=pkg,
-                message=msg,
-            ) is mock.sentinel.data_to_store
+            assert (
+                workflow_validator.validate(
+                    name=pkg_name,
+                    pkg=pkg,
+                    message=msg,
+                )
+                is mock.sentinel.data_to_store
+            )
 
             mocks['validate_name'].assert_called_once_with(pkg_name)
             mocks['validate_message'].assert_called_once_with(msg)

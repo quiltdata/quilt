@@ -1,6 +1,7 @@
 """
 Unittest setup
 """
+
 import contextlib
 import io
 import pathlib
@@ -25,6 +26,7 @@ class QuiltTestCase(TestCase):
     - Creates a test client
     - Mocks requests
     """
+
     def setUp(self):
         # Verify that CONFIG_PATH is in the test dir (patched by conftest.py).
         assert 'pytest' in str(CONFIG_PATH)
@@ -38,7 +40,7 @@ class QuiltTestCase(TestCase):
             default_install_location=None,
             defaultBucket='test-bucket',
             registryUrl='https://registry.example.com',
-            s3Proxy='open-s3-proxy.quiltdata.com'
+            s3Proxy='open-s3-proxy.quiltdata.com',
         )
 
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
@@ -97,16 +99,18 @@ class QuiltTestCase(TestCase):
                 'Body': body,
             }
 
-        with mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
-             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize), \
-             mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock:
+        with (
+            mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold),
+            mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize),
+            mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock,
+        ):
             yield
 
             if is_single_request:
                 get_object_mock.assert_called_once_with(**expected_params)
             else:
                 assert get_object_mock.call_count == num_parts
-                get_object_mock.assert_has_calls([
-                    mock.call(**expected_params, Range=r)
-                    for r in data
-                ], any_order=True)
+                get_object_mock.assert_has_calls(
+                    [mock.call(**expected_params, Range=r) for r in data],
+                    any_order=True,
+                )

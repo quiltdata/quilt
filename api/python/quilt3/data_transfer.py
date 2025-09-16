@@ -105,8 +105,10 @@ class S3ClientProvider:
 
     def get_correct_client(self, action: S3Api, bucket: str):
         if not self.client_type_known(action, bucket):
-            raise RuntimeError("get_correct_client was called, but the correct client type is not known. Only call "
-                               "get_correct_client() after checking if client_type_known()")
+            raise RuntimeError(
+                "get_correct_client was called, but the correct client type is not known. "
+                "Only call get_correct_client() after checking if client_type_known()"
+            )
 
         if self.should_use_unsigned_client(action, bucket):
             return self.unsigned_client
@@ -134,11 +136,13 @@ class S3ClientProvider:
                 S3Api.GET_OBJECT: check_get_object_works_for_client,
                 S3Api.HEAD_OBJECT: check_head_object_works_for_client,
                 S3Api.LIST_OBJECTS_V2: check_list_objects_v2_works_for_client,
-                S3Api.LIST_OBJECT_VERSIONS: check_list_object_versions_works_for_client
+                S3Api.LIST_OBJECT_VERSIONS: check_list_object_versions_works_for_client,
             }
-            assert api_type in check_fn_mapper, f"Only certain APIs are supported with unsigned_client. The " \
-                f"API '{api_type}' is not current supported. You may want to use S3ClientProvider.standard_client " \
-                f"instead "
+            assert api_type in check_fn_mapper, (
+                "Only certain APIs are supported with unsigned_client. "
+                f"The API '{api_type}' is not current supported. "
+                "You may want to use S3ClientProvider.standard_client instead."
+            )
             check_fn = check_fn_mapper[api_type]
             if check_fn(self.standard_client, param_dict):
                 self.set_cache(api_type, bucket, use_unsigned=False)
@@ -170,8 +174,8 @@ class S3ClientProvider:
         hook = hooks.get_build_s3_client_hook()
         return (
             self._build_client_base(session, client_kwargs)
-            if hook is None else
-            hook(self._build_client_base, session, client_kwargs)
+            if hook is None
+            else hook(self._build_client_base, session, client_kwargs)
         )
 
     def _build_standard_client(self):
@@ -202,10 +206,7 @@ def check_list_objects_v2_works_for_client(s3_client, params):
 
 def check_get_object_works_for_client(s3_client, params):
     try:
-        head_args = dict(
-                Bucket=params["Bucket"],
-                Key=params["Key"]
-        )
+        head_args = dict(Bucket=params["Bucket"], Key=params["Key"])
         if "VersionId" in params:
             head_args["VersionId"] = params["VersionId"]
 
@@ -346,7 +347,7 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
         def upload_part(i, start, end):
             nonlocal remaining
             part_id = i + 1
-            with ReadFileChunk.from_filename(src_path, start, end-start, [ctx.progress]) as fd:
+            with ReadFileChunk.from_filename(src_path, start, end - start, [ctx.progress]) as fd:
                 part = s3_client.upload_part(
                     Body=fd,
                     Bucket=dest_bucket,
@@ -386,7 +387,7 @@ def _download_file(
     src_bucket: str,
     src_key: str,
     src_version: Optional[str],
-    dest_path: str
+    dest_path: str,
 ):
     dest_file = pathlib.Path(dest_path)
     if dest_file.is_reserved():
@@ -416,16 +417,8 @@ def _download_file(
     # Note: we are not calculating checksums when downloading,
     # so we're free to use S3 defaults (or anything else) here.
     part_size = s3_transfer_config.multipart_chunksize
-    is_multi_part = (
-        is_regular_file
-        and size >= s3_transfer_config.multipart_threshold
-        and size > part_size
-    )
-    part_numbers = (
-        range(math.ceil(size / part_size))
-        if is_multi_part else
-        (None,)
-    )
+    is_multi_part = is_regular_file and size >= s3_transfer_config.multipart_threshold and size > part_size
+    part_numbers = range(math.ceil(size / part_size)) if is_multi_part else (None,)
     remaining_counter = len(part_numbers)
     remaining_counter_lock = Lock()
 
@@ -459,16 +452,19 @@ def _download_file(
         ctx.run(download_part, part_number)
 
 
-def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: str, src_version: Optional[str],
-                      dest_bucket: str, dest_key: str, extra_args: Optional[Iterable[Tuple[str, Any]]] = None):
-    src_params = dict(
-        Bucket=src_bucket,
-        Key=src_key
-    )
+def _copy_remote_file(
+    ctx: WorkerContext,
+    size: int,
+    src_bucket: str,
+    src_key: str,
+    src_version: Optional[str],
+    dest_bucket: str,
+    dest_key: str,
+    extra_args: Optional[Iterable[Tuple[str, Any]]] = None,
+):
+    src_params = dict(Bucket=src_bucket, Key=src_key)
     if src_version is not None:
-        src_params.update(
-            VersionId=src_version
-        )
+        src_params.update(VersionId=src_version)
 
     s3_client = ctx.s3_client_provider.standard_client
 
@@ -509,7 +505,7 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             part_id = i + 1
             part = s3_client.upload_part_copy(
                 CopySource=src_params,
-                CopySourceRange=f'bytes={start}-{end-1}',
+                CopySourceRange=f'bytes={start}-{end - 1}',
                 Bucket=dest_bucket,
                 Key=dest_key,
                 UploadId=upload_id,
@@ -609,10 +605,12 @@ def _copy_file_list_last_retry(retry_state):
     )
 
 
-@retry(stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES - 1),
-       wait=wait_exponential(multiplier=1, min=1, max=10),
-       retry=retry_if_not_result(all),
-       retry_error_callback=_copy_file_list_last_retry)
+@retry(
+    stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES - 1),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_not_result(all),
+    retry_error_callback=_copy_file_list_last_retry,
+)
 def _copy_file_list_internal(file_list, results, message, callback, exceptions_to_ignore=(ClientError,)):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
@@ -637,8 +635,10 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
 
     s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
-    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
-         ThreadPoolExecutor(MAX_CONCURRENCY) as executor:
+    with (
+        tqdm(desc=message, total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress,
+        ThreadPoolExecutor(MAX_CONCURRENCY) as executor,
+    ):
 
         def progress_callback(bytes_transferred):
             if stopped:
@@ -665,10 +665,12 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                 if callback is not None:
                     callback(src, dest, size)
 
-            ctx = WorkerContext(s3_client_provider=s3_client_provider,
-                                progress=progress_callback,
-                                done=done_callback,
-                                run=functools.partial(run_task, idx))
+            ctx = WorkerContext(
+                s3_client_provider=s3_client_provider,
+                progress=progress_callback,
+                done=done_callback,
+                run=functools.partial(run_task, idx),
+            )
 
             if dest.version_id:
                 raise ValueError("Cannot set VersionId on destination")
@@ -684,8 +686,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                 if dest.is_local():
                     _download_file(ctx, size, src.bucket, src.path, src.version_id, dest.path)
                 else:
-                    _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id,
-                                      dest.bucket, dest.path)
+                    _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id, dest.bucket, dest.path)
 
         try:
             for idx, (args, result) in enumerate(zip(file_list, results)):
@@ -756,10 +757,7 @@ def list_object_versions(bucket, prefix, recursive=True):
     if prefix and not prefix.endswith('/'):
         raise ValueError("Prefix must end with /")
 
-    list_obj_params = dict(
-        Bucket=bucket,
-        Prefix=prefix
-    )
+    list_obj_params = dict(Bucket=bucket, Prefix=prefix)
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(Delimiter='/')
@@ -789,8 +787,7 @@ def list_objects(bucket, prefix, recursive=True):
 
     objects = []
     prefixes = []
-    list_obj_params = dict(Bucket=bucket,
-                           Prefix=prefix)
+    list_obj_params = dict(Bucket=bucket, Prefix=prefix)
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(Delimiter='/')
@@ -838,7 +835,7 @@ def list_url(src: PhysicalKey):
                 key = obj['Key']
                 if not key.startswith(src_path):
                     raise ValueError("Unexpected key: %r" % key)
-                yield key[len(src_path):], obj['Size']
+                yield key[len(src_path) :], obj['Size']
 
 
 def delete_url(src: PhysicalKey):
@@ -885,6 +882,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
     If src is a file, dest can be a file or a directory.
     If src is a directory, dest must be a directory.
     """
+
     def sanity_check(rel_path):
         for part in rel_path.split('/'):
             if part in ('', '.', '..'):
@@ -942,7 +940,8 @@ def _s3_query_object(pk: PhysicalKey, *, head=False):
     if pk.version_id is not None:
         params.update(VersionId=pk.version_id)
     s3_client = S3ClientProvider().find_correct_client(
-        S3Api.HEAD_OBJECT if head else S3Api.GET_OBJECT, pk.bucket, params)
+        S3Api.HEAD_OBJECT if head else S3Api.GET_OBJECT, pk.bucket, params
+    )
     return (s3_client.head_object if head else s3_client.get_object)(**params)
 
 
@@ -998,6 +997,7 @@ def with_lock(f):
     def wrapper(*args, **kwargs):
         with lock:
             return f(*args, **kwargs)
+
     return wrapper
 
 
@@ -1023,22 +1023,20 @@ def _make_checksum_from_parts(parts: List[bytes]) -> str:
     return binascii.b2a_base64(hashlib.sha256(b"".join(parts)).digest(), newline=False).decode()
 
 
-@retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
-       wait=wait_exponential(multiplier=1, min=1, max=10),
-       retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
-       retry_error_callback=lambda retry_state: retry_state.outcome.result(),
-       )
+@retry(
+    stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
+    retry_error_callback=lambda retry_state: retry_state.outcome.result(),
+)
 def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
-    total_size = sum(
-        size
-        for size, result in zip(sizes, results)
-        if result is None or isinstance(result, Exception)
-    )
+    total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
     stopped = False
 
-    with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
-         ThreadPoolExecutor(MAX_CONCURRENCY) as executor:
-
+    with (
+        tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress,
+        ThreadPoolExecutor(MAX_CONCURRENCY) as executor,
+    ):
         find_correct_client = with_lock(S3ClientProvider().find_correct_client)
         progress_update = with_lock(progress.update)
 
@@ -1079,7 +1077,7 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                 src_future_list = []
                 for start in range(0, size, chunksize):
                     end = min(start + chunksize, size)
-                    future = executor.submit(_process_url_part, src, start, end-start)
+                    future = executor.submit(_process_url_part, src, start, end - start)
                     src_future_list.append(future)
 
                 futures.append((idx, src_future_list))
@@ -1111,15 +1109,8 @@ def _legacy_calculate_hash_get_s3_chunks(ctx, src, size):
     if src.version_id is not None:
         params.update(VersionId=src.version_id)
     part_size = s3_transfer_config.multipart_chunksize
-    is_multi_part = (
-        size >= s3_transfer_config.multipart_threshold
-        and size > part_size
-    )
-    part_numbers = (
-        range(math.ceil(size / part_size))
-        if is_multi_part else
-        (None,)
-    )
+    is_multi_part = size >= s3_transfer_config.multipart_threshold and size > part_size
+    part_numbers = range(math.ceil(size / part_size)) if is_multi_part else (None,)
     s3_client = ctx.find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
 
     def read_to_queue(part_number, put_to_queue, stopped_event):
@@ -1176,20 +1167,18 @@ def _legacy_calculate_hash_get_s3_chunks(ctx, src, size):
         generators.append(gen)
 
     return itertools.chain.from_iterable(
-        itertools.starmap(generators.popleft, itertools.repeat((), len(part_numbers))))
-
-
-@retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
-       wait=wait_exponential(multiplier=1, min=1, max=10),
-       retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
-       retry_error_callback=lambda retry_state: retry_state.outcome.result(),
-       )
-def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
-    total_size = sum(
-        size
-        for size, result in zip(sizes, results)
-        if result is None or isinstance(result, Exception)
+        itertools.starmap(generators.popleft, itertools.repeat((), len(part_numbers)))
     )
+
+
+@retry(
+    stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
+    retry_error_callback=lambda retry_state: retry_state.outcome.result(),
+)
+def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
+    total_size = sum(size for size, result in zip(sizes, results) if result is None or isinstance(result, Exception))
     # This controls how many parts can be stored in the memory.
     # This includes the ones that are being downloaded or hashed.
     # The number was chosen empirically.
@@ -1203,11 +1192,11 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]
             current_file_size = file.tell()
             if current_file_size != size:
                 warnings.warn(
-                    f"Expected the package entry at {src!r} to be {size} B in size, but "
-                    f"found an object which is {current_file_size} B instead. This "
-                    f"indicates that the content of the file changed in between when you "
-                    f"included this  entry in the package (via set or set_dir) and now. "
-                    f"This should be avoided if possible."
+                    f"Expected the package entry at {src!r} to be {size} B in size, "
+                    f"but found an object which is {current_file_size} B instead. "
+                    "This indicates that the content of the file changed in between when you "
+                    "included this  entry in the package (via set or set_dir) and now. "
+                    "This should be avoided if possible."
                 )
 
     def _process_url(src, size):
@@ -1215,10 +1204,10 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]
 
         generator, exceptions_to_retry = (
             (get_file_chunks(src, size), ())
-            if src.is_local() else
-            (
+            if src.is_local()
+            else (
                 _legacy_calculate_hash_get_s3_chunks(s3_context, src, size),
-                (ConnectionError, HTTPClientError, ReadTimeoutError)
+                (ConnectionError, HTTPClientError, ReadTimeoutError),
             )
         )
         try:
@@ -1236,12 +1225,14 @@ def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]
             # so it finishes its own tasks.
             del generator
 
-    with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
-         ThreadPoolExecutor() as executor, \
-         ThreadPoolExecutor(
-             MAX_CONCURRENCY,
-             thread_name_prefix='s3-executor',
-         ) as s3_executor:
+    with (
+        tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress,
+        ThreadPoolExecutor() as executor,
+        ThreadPoolExecutor(
+            MAX_CONCURRENCY,
+            thread_name_prefix='s3-executor',
+        ) as s3_executor,
+    ):
         s3_context = types.SimpleNamespace(
             find_correct_client=with_lock(S3ClientProvider().find_correct_client),
             pending_parts_semaphore=threading.BoundedSemaphore(s3_max_pending_parts),
@@ -1329,19 +1320,19 @@ def select(src, query, meta=None, raw=False, **kwargs):
         'json': 'JSON',
         'jsonl': 'JSON',
         'csv': 'CSV',
-        }
+    }
     # S3 Format Name <--> S3-Acceptable compression types
     format_compression = {
         'Parquet': ['NONE'],  # even if column-level compression has been used.
         'JSON': ['NONE', 'BZIP2', 'GZIP'],
         'CSV': ['NONE', 'BZIP2', 'GZIP'],
-        }
+    }
     # File extension <--> S3-Acceptable compression type
     # For compression type, when not specified in metadata.  Guess by extension.
     accepted_compression = {
         '.bz2': 'BZIP2',
-        '.gz': 'GZIP'
-        }
+        '.gz': 'GZIP',
+    }
     # Extension <--> Internal Format Name
     # For file type, when not specified in metadata. Guess by extension.
     ext_formats = {
@@ -1351,7 +1342,7 @@ def select(src, query, meta=None, raw=False, **kwargs):
         '.csv': 'csv',
         '.tsv': 'csv',
         '.ssv': 'csv',
-        }
+    }
     delims = {'.tsv': '\t', '.ssv': ';'}
 
     assert not src.is_local(), "src must be an S3 URL"
@@ -1372,21 +1363,26 @@ def select(src, query, meta=None, raw=False, **kwargs):
     exts = pathlib.Path(src.path).suffixes  # last of e.g. ['.periods', '.in', '.name', '.json', '.gz']
     if exts and not compression:
         if exts[-1].lower() in accepted_compression:
-            compression = accepted_compression[exts.pop(-1)]   # remove e.g. '.gz'
+            compression = accepted_compression[exts.pop(-1)]  # remove e.g. '.gz'
     compression = compression if compression else 'NONE'
 
     # use remaining file extensions to get format info, if none is present
     csv_delim = None
     if exts and not format:
-        ext = exts[-1].lower()    # last of e.g. ['.periods', '.in', '.name', '.json']
+        ext = exts[-1].lower()  # last of e.g. ['.periods', '.in', '.name', '.json']
         if ext in ext_formats:
             format = ext_formats[ext]
             csv_delim = delims.get(ext)
             s3_format = valid_s3_select_formats[format]
             ok_compression = format_compression[s3_format]
             if compression not in ok_compression:
-                raise QuiltException("Compression {!r} not valid for select on format {!r}: "
-                                     "Expected {!r}".format(compression, s3_format, ok_compression))
+                raise QuiltException(
+                    "Compression {!r} not valid for select on format {!r}: Expected {!r}".format(
+                        compression,
+                        s3_format,
+                        ok_compression,
+                    )
+                )
     if not format:
         raise QuiltException("Unable to discover format for select on {}".format(src))
 
@@ -1449,8 +1445,7 @@ def select(src, query, meta=None, raw=False, **kwargs):
         # JSON used for processed content as it doesn't have the ambiguity of CSV.
         if 'JSON' in select_kwargs["OutputSerialization"]:
             delimiter = select_kwargs['OutputSerialization']['JSON'].get('RecordDelimiter', '\n')
-            reader = jsonlines.Reader(line.strip() for line in iter_lines(response, delimiter)
-                                      if line.strip())
+            reader = jsonlines.Reader(line.strip() for line in iter_lines(response, delimiter) if line.strip())
             # noinspection PyPackageRequirements
             from pandas import DataFrame  # Lazy import for slow module
 
