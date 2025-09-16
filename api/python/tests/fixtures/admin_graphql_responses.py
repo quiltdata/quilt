@@ -7,8 +7,6 @@ including success cases, validation errors, and other error scenarios.
 
 import datetime
 
-from quilt3 import admin
-
 # Base fixture data
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
@@ -51,42 +49,16 @@ TABULATOR_TABLE = {
 }
 
 # Role operation responses
-ROLES_LIST_RESPONSE = {
-    "roles": [UNMANAGED_ROLE, MANAGED_ROLE]
-}
+ROLES_LIST_RESPONSE = {"roles": [UNMANAGED_ROLE, MANAGED_ROLE]}
 
 # User operation responses
-USERS_LIST_RESPONSE = {
-    "admin": {
-        "user": {
-            "list": [USER]
-        }
-    }
-}
+USERS_LIST_RESPONSE = {"admin": {"user": {"list": [USER]}}}
 
-USERS_GET_RESPONSE = {
-    "admin": {
-        "user": {
-            "get": USER
-        }
-    }
-}
+USERS_GET_RESPONSE = {"admin": {"user": {"get": USER}}}
 
-USERS_GET_NOT_FOUND_RESPONSE = {
-    "admin": {
-        "user": {
-            "get": None
-        }
-    }
-}
+USERS_GET_NOT_FOUND_RESPONSE = {"admin": {"user": {"get": None}}}
 
-USERS_CREATE_SUCCESS_RESPONSE = {
-    "admin": {
-        "user": {
-            "create": USER
-        }
-    }
-}
+USERS_CREATE_SUCCESS_RESPONSE = {"admin": {"user": {"create": USER}}}
 
 
 def user_mutation_success_response(mutation_name: str) -> dict:
@@ -98,15 +70,7 @@ def user_mutation_success_response(mutation_name: str) -> dict:
     Returns:
         Success response dict
     """
-    return {
-        "admin": {
-            "user": {
-                "mutate": {
-                    mutation_name: USER
-                }
-            }
-        }
-    }
+    return {"admin": {"user": {"mutate": {mutation_name: USER}}}}
 
 
 # Individual mutation responses
@@ -117,79 +81,29 @@ USERS_SET_ROLE_SUCCESS_RESPONSE = user_mutation_success_response("setRole")
 USERS_ADD_ROLES_SUCCESS_RESPONSE = user_mutation_success_response("addRoles")
 USERS_REMOVE_ROLES_SUCCESS_RESPONSE = user_mutation_success_response("removeRoles")
 
-USER_MUTATION_NOT_FOUND_RESPONSE = {
-    "admin": {
-        "user": {
-            "mutate": None
-        }
-    }
-}
+USER_MUTATION_NOT_FOUND_RESPONSE = {"admin": {"user": {"mutate": None}}}
 
 # SSO configuration responses
-SSO_CONFIG_GET_RESPONSE = {
-    "admin": {
-        "ssoConfig": SSO_CONFIG
-    }
-}
+SSO_CONFIG_GET_RESPONSE = {"admin": {"ssoConfig": SSO_CONFIG}}
 
-SSO_CONFIG_GET_NOT_FOUND_RESPONSE = {
-    "admin": {
-        "ssoConfig": None
-    }
-}
+SSO_CONFIG_GET_NOT_FOUND_RESPONSE = {"admin": {"ssoConfig": None}}
 
-SSO_CONFIG_SET_SUCCESS_RESPONSE = {
-    "admin": {
-        "setSsoConfig": SSO_CONFIG
-    }
-}
+SSO_CONFIG_SET_SUCCESS_RESPONSE = {"admin": {"setSsoConfig": SSO_CONFIG}}
 
-SSO_CONFIG_SET_NULL_RESPONSE = {
-    "admin": {
-        "setSsoConfig": None
-    }
-}
+SSO_CONFIG_SET_NULL_RESPONSE = {"admin": {"setSsoConfig": None}}
 
 # Tabulator operation responses
-TABULATOR_TABLES_LIST_RESPONSE = {
-    "bucketConfig": {
-        "tabulatorTables": [TABULATOR_TABLE]
-    }
-}
+TABULATOR_TABLES_LIST_RESPONSE = {"bucketConfig": {"tabulatorTables": [TABULATOR_TABLE]}}
 
-TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE = {
-    "bucketConfig": None
-}
+TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE = {"bucketConfig": None}
 
-TABULATOR_TABLE_SET_SUCCESS_RESPONSE = {
-    "admin": {
-        "bucketSetTabulatorTable": {
-            "__typename": "BucketConfig"
-        }
-    }
-}
+TABULATOR_TABLE_SET_SUCCESS_RESPONSE = {"admin": {"bucketSetTabulatorTable": {"__typename": "BucketConfig"}}}
 
-TABULATOR_TABLE_RENAME_SUCCESS_RESPONSE = {
-    "admin": {
-        "bucketRenameTabulatorTable": {
-            "__typename": "BucketConfig"
-        }
-    }
-}
+TABULATOR_TABLE_RENAME_SUCCESS_RESPONSE = {"admin": {"bucketRenameTabulatorTable": {"__typename": "BucketConfig"}}}
 
-TABULATOR_GET_OPEN_QUERY_RESPONSE = {
-    "admin": {
-        "tabulatorOpenQuery": True
-    }
-}
+TABULATOR_GET_OPEN_QUERY_RESPONSE = {"admin": {"tabulatorOpenQuery": True}}
 
-TABULATOR_SET_OPEN_QUERY_RESPONSE = {
-    "admin": {
-        "setTabulatorOpenQuery": {
-            "tabulatorOpenQuery": True
-        }
-    }
-}
+TABULATOR_SET_OPEN_QUERY_RESPONSE = {"admin": {"setTabulatorOpenQuery": {"tabulatorOpenQuery": True}}}
 
 # Error responses
 INVALID_INPUT_ERROR = {
@@ -212,77 +126,25 @@ OPERATION_ERROR = {
 }
 
 # Error response templates
-USERS_CREATE_VALIDATION_ERROR_RESPONSE = {
-    "admin": {
-        "user": {
-            "create": INVALID_INPUT_ERROR
-        }
-    }
-}
+USERS_CREATE_VALIDATION_ERROR_RESPONSE = {"admin": {"user": {"create": INVALID_INPUT_ERROR}}}
 
-USERS_CREATE_OPERATION_ERROR_RESPONSE = {
-    "admin": {
-        "user": {
-            "create": OPERATION_ERROR
-        }
-    }
-}
+USERS_CREATE_OPERATION_ERROR_RESPONSE = {"admin": {"user": {"create": OPERATION_ERROR}}}
 
-USER_DELETE_VALIDATION_ERROR_RESPONSE = {
-    "admin": {
-        "user": {
-            "mutate": {
-                "delete": INVALID_INPUT_ERROR
-            }
-        }
-    }
-}
+USER_DELETE_VALIDATION_ERROR_RESPONSE = {"admin": {"user": {"mutate": {"delete": INVALID_INPUT_ERROR}}}}
 
-USER_DELETE_OPERATION_ERROR_RESPONSE = {
-    "admin": {
-        "user": {
-            "mutate": {
-                "delete": OPERATION_ERROR
-            }
-        }
-    }
-}
+USER_DELETE_OPERATION_ERROR_RESPONSE = {"admin": {"user": {"mutate": {"delete": OPERATION_ERROR}}}}
 
-SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE = {
-    "admin": {
-        "setSsoConfig": INVALID_INPUT_ERROR
-    }
-}
+SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE = {"admin": {"setSsoConfig": INVALID_INPUT_ERROR}}
 
-SSO_CONFIG_SET_OPERATION_ERROR_RESPONSE = {
-    "admin": {
-        "setSsoConfig": OPERATION_ERROR
-    }
-}
+SSO_CONFIG_SET_OPERATION_ERROR_RESPONSE = {"admin": {"setSsoConfig": OPERATION_ERROR}}
 
-TABULATOR_SET_VALIDATION_ERROR_RESPONSE = {
-    "admin": {
-        "bucketSetTabulatorTable": INVALID_INPUT_ERROR
-    }
-}
+TABULATOR_SET_VALIDATION_ERROR_RESPONSE = {"admin": {"bucketSetTabulatorTable": INVALID_INPUT_ERROR}}
 
-TABULATOR_SET_OPERATION_ERROR_RESPONSE = {
-    "admin": {
-        "bucketSetTabulatorTable": OPERATION_ERROR
-    }
-}
+TABULATOR_SET_OPERATION_ERROR_RESPONSE = {"admin": {"bucketSetTabulatorTable": OPERATION_ERROR}}
 
-TABULATOR_RENAME_VALIDATION_ERROR_RESPONSE = {
-    "admin": {
-        "bucketRenameTabulatorTable": INVALID_INPUT_ERROR
-    }
-}
+TABULATOR_RENAME_VALIDATION_ERROR_RESPONSE = {"admin": {"bucketRenameTabulatorTable": INVALID_INPUT_ERROR}}
 
-TABULATOR_RENAME_OPERATION_ERROR_RESPONSE = {
-    "admin": {
-        "bucketRenameTabulatorTable": OPERATION_ERROR
-    }
-}
+TABULATOR_RENAME_OPERATION_ERROR_RESPONSE = {"admin": {"bucketRenameTabulatorTable": OPERATION_ERROR}}
 
 # Helper functions for generating user mutation error responses
 
@@ -296,15 +158,7 @@ def user_mutation_validation_error_response(mutation_name: str) -> dict:
     Returns:
         Error response dict
     """
-    return {
-        "admin": {
-            "user": {
-                "mutate": {
-                    mutation_name: INVALID_INPUT_ERROR
-                }
-            }
-        }
-    }
+    return {"admin": {"user": {"mutate": {mutation_name: INVALID_INPUT_ERROR}}}}
 
 
 def user_mutation_operation_error_response(mutation_name: str) -> dict:
@@ -316,44 +170,34 @@ def user_mutation_operation_error_response(mutation_name: str) -> dict:
     Returns:
         Error response dict
     """
-    return {
-        "admin": {
-            "user": {
-                "mutate": {
-                    mutation_name: OPERATION_ERROR
-                }
-            }
-        }
-    }
+    return {"admin": {"user": {"mutate": {mutation_name: OPERATION_ERROR}}}}
 
 
 # Comprehensive response collections for easy access
 ALL_USER_OPERATIONS = [
-    "usersList", "usersGet", "usersCreate", "usersDelete",
-    "usersSetEmail", "usersSetAdmin", "usersSetActive", "usersResetPassword",
-    "usersSetRole", "usersAddRoles", "usersRemoveRoles"
+    "usersList",
+    "usersGet",
+    "usersCreate",
+    "usersDelete",
+    "usersSetEmail",
+    "usersSetAdmin",
+    "usersSetActive",
+    "usersResetPassword",
+    "usersSetRole",
+    "usersAddRoles",
+    "usersRemoveRoles",
 ]
 
-ALL_ROLE_OPERATIONS = [
-    "rolesList"
-]
+ALL_ROLE_OPERATIONS = ["rolesList"]
 
-ALL_SSO_OPERATIONS = [
-    "ssoConfigGet", "ssoConfigSet"
-]
+ALL_SSO_OPERATIONS = ["ssoConfigGet", "ssoConfigSet"]
 
 ALL_TABULATOR_OPERATIONS = [
-    "bucketTabulatorTablesList", "bucketTabulatorTableSet",
-    "bucketTabulatorTableRename", "tabulatorGetOpenQuery", "tabulatorSetOpenQuery"
+    "bucketTabulatorTablesList",
+    "bucketTabulatorTableSet",
+    "bucketTabulatorTableRename",
+    "tabulatorGetOpenQuery",
+    "tabulatorSetOpenQuery",
 ]
 
-ALL_ADMIN_OPERATIONS = (
-    ALL_USER_OPERATIONS + ALL_ROLE_OPERATIONS +
-    ALL_SSO_OPERATIONS + ALL_TABULATOR_OPERATIONS
-)
-
-# Error tuples for parametrized tests
-MUTATION_ERRORS = (
-    (INVALID_INPUT_ERROR, admin.Quilt3AdminError),
-    (OPERATION_ERROR, admin.Quilt3AdminError),
-)
+ALL_ADMIN_OPERATIONS = ALL_USER_OPERATIONS + ALL_ROLE_OPERATIONS + ALL_SSO_OPERATIONS + ALL_TABULATOR_OPERATIONS
