@@ -88,40 +88,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
-      - name: Run Pytest (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          # Use a different virtual environment path on Windows to avoid cleanup issues
-          $env:UV_PROJECT_ENVIRONMENT = '.venv-win'
-          uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
-        shell: powershell
-      - name: Run Pytest (Linux)
-        if: runner.os == 'Linux'
+      - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
       - name: Clean up virtual environment (Windows)
-        if: runner.os == 'Windows' && always()
+        if: runner.os == 'Windows'
         run: |
           # Force remove the virtual environment on Windows to avoid permission issues
-          @('\.venv', '\.venv-win') | ForEach-Object {
-            if (Test-Path $_) {
-              Write-Host "Cleaning up virtual environment: $_"
-              try {
-                Remove-Item -Path $_ -Recurse -Force -ErrorAction Stop
-                Write-Host "Successfully cleaned up $_"
-              }
-              catch {
-                Write-Host "Warning: Failed to clean up $_`: $($_.Exception.Message)"
-                # Try alternative cleanup method
-                try {
-                  Get-ChildItem $_ -Recurse -Force | Remove-Item -Force -Recurse -ErrorAction Ignore
-                  Remove-Item -Path $_ -Force -ErrorAction Ignore
-                  Write-Host "Alternative cleanup method succeeded for $_"
-                }
-                catch {
-                  Write-Host "Alternative cleanup also failed for $_, but this is non-critical"
-                }
-              }
-            }
+          if (Test-Path .venv) {
+            Remove-Item -Path .venv -Recurse -Force -ErrorAction SilentlyContinue
           }
         shell: powershell
       - uses: codecov/codecov-action@v5
