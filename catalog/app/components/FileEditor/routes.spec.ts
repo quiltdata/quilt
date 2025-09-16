@@ -4,6 +4,7 @@ import {
   useAddFileInPackage,
   useAddFileInBucket,
   useEditFileInPackage,
+  useEditBucketFile,
   useParams,
 } from './routes'
 
@@ -22,9 +23,15 @@ const useParamsInternal = jest.fn(
     }) as Record<string, string>,
 )
 
+const useLocationInternal = jest.fn(() => ({
+  pathname: '/bucket/b/tree',
+  search: '?prefix=foo/',
+}))
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: jest.fn(() => useParamsInternal()),
+  useLocation: jest.fn(() => useLocationInternal()),
   Redirect: jest.fn(() => null),
 }))
 
@@ -70,6 +77,17 @@ describe('components/FileEditor/routes', () => {
     it('should create url for the new file in a bucket', () => {
       const { result } = renderHook(() => useAddFileInBucket('b'))
       expect(result.current('lk')).toBe(`bucketFile(b, lk, {"edit":true})`)
+    })
+  })
+
+  describe('useEditBucketFile', () => {
+    it('should create url with edit flag and next redirect', () => {
+      const { result } = renderHook(() =>
+        useEditBucketFile({ bucket: 'test-bucket', key: 'config/file.yml' }),
+      )
+      expect(result.current).toBe(
+        'bucketFile(test-bucket, config/file.yml, {"edit":true,"next":"/bucket/b/tree?prefix=foo/"})',
+      )
     })
   })
 

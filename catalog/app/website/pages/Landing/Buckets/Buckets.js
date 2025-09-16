@@ -197,7 +197,7 @@ export default function Buckets() {
                   variant="contained"
                   color="primary"
                   component={Link}
-                  to={urls.adminBuckets()}
+                  to={urls.adminBuckets({ add: true })}
                 >
                   Add Bucket
                 </M.Button>

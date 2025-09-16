@@ -64,7 +64,14 @@ jest.mock(
 describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPreferences', () => {
   it('render form with default values', () => {
     const tree = renderer
-      .create(<BucketPreferences className="root" error={null} onChange={noop} />)
+      .create(
+        <BucketPreferences
+          className="root"
+          error={null}
+          handle={{ bucket: 'test-bucket', key: 'any' }}
+          onChange={noop}
+        />,
+      )
       .toJSON()
     expect(tree).toMatchSnapshot()
   })
@@ -122,6 +129,7 @@ describe('components/FileEditor/QuiltConfigEditor/BucketPreferences/BucketPrefer
           className="root"
           error={null}
           onChange={noop}
+          handle={{ bucket: 'test-bucket', key: 'any' }}
         />,
       )
       .toJSON()

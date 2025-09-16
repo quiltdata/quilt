@@ -214,10 +214,15 @@ function ResultsPage({
 
 interface ListResultsProps {
   className?: string
+  emptySlot: JSX.Element
   onRefine: (action: NoResults.Refine) => void
 }
 
-export default function ListResults({ className, onRefine }: ListResultsProps) {
+export default function ListResults({
+  className,
+  emptySlot,
+  onRefine,
+}: ListResultsProps) {
   const model = SearchUIModel.use()
   const r = model.firstPageQuery
 
@@ -233,7 +238,7 @@ export default function ListResults({ className, onRefine }: ListResultsProps) {
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <NoResults.Empty className={className} onRefine={onRefine} />
+          return emptySlot
         case 'InvalidInput':
           const [err] = r.data.errors
           if (err.name === 'QuerySyntaxError') {

@@ -1,40 +1,29 @@
-name: Test GraphQL code generation
+name: Test quilt3.admin code generation
 
 on:
   push:
     paths:
-      - '.github/workflows/test-graphql-codegen.yaml'
+      - '.github/workflows/test-quilt3-admin-codegen.yaml'
       - 'shared/graphql/schema.graphql'
       - 'api/python/quilt3-admin/**'
       - 'api/python/quilt3/admin/_graphql_client/**'
-      - 'api/python/quilt3-graphql/**'
-      - 'api/python/quilt3/_graphql_client/**'
   pull_request:
     paths:
-      - '.github/workflows/test-graphql-codegen.yaml'
+      - '.github/workflows/test-quilt3-admin-codegen.yaml'
       - 'shared/graphql/schema.graphql'
       - 'api/python/quilt3-admin/**'
       - 'api/python/quilt3/admin/_graphql_client/**'
-      - 'api/python/quilt3-graphql/**'
-      - 'api/python/quilt3/_graphql_client/**'
   merge_group:
 
 jobs:
-  test-graphql-codegen:
-    name: test GraphQL generated code is up-to-date
+  test-quilt3-admin-codegen:
+    name: test quilt3.admin generated code is up-to-date
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./api/python/quilt3-graphql
+        working-directory: ./api/python
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: 'api/python/quilt3-graphql/requirements.txt'
-      - run: pip install -r requirements.txt
-      - run: rm -r ../quilt3/_graphql_client
-      - run: ariadne-codegen
-      - name: Check for changes
-        run: git diff --exit-code
+      - uses: astral-sh/setup-uv@v6
+      - name: Check GraphQL client is up-to-date
+        run: uv run poe gql-check

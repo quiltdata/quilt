@@ -45,14 +45,14 @@ function ResultsInner({ className, results, loadMore, bucket }: ResultsInnerProp
 interface TablePageProps {
   className?: string
   bucket?: string
-  emptyFallback?: JSX.Element
+  emptySlot: JSX.Element
   onRefine: (action: NoResults.Refine) => void
 }
 
 export default function TablePage({
   className,
   bucket,
-  emptyFallback,
+  emptySlot,
   onRefine,
 }: TablePageProps) {
   Layout.useSetFullWidth()
@@ -106,9 +106,7 @@ export default function TablePage({
           assertNever(error)
       }
     case 'empty':
-      return (
-        emptyFallback || <NoResults.Empty className={className} onRefine={onRefine} />
-      )
+      return emptySlot
     case 'ok':
       return (
         <ResultsInner

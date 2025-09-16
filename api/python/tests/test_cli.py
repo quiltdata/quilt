@@ -17,6 +17,7 @@ class CommandLineTestCase(QuiltTestCase):
     """
     Base TestCase class, sets up a CLI parser
     """
+
     @classmethod
     def setUpClass(cls):
         parser = create_parser()
@@ -100,7 +101,7 @@ class QuiltCLITestCase(CommandLineTestCase):
     [
         (None, None),
         ('{"test": "meta"}', {"test": "meta"}),
-    ]
+    ],
 )
 def test_push_with_meta_data(
     meta_data,
@@ -109,8 +110,10 @@ def test_push_with_meta_data(
     name = 'test/name'
     dir_path = 'test/dir/path'
 
-    with patch_package_class as mocked_package_class, \
-            mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
+    with (
+        patch_package_class as mocked_package_class,
+        mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg,
+    ):
         mocked_package_class.browse.side_effect = FileNotFoundError()
 
         # '--registry' defaults to configured remote registry hence optional.
@@ -135,17 +138,15 @@ def test_push_with_meta_data(
         '{invalid: meta}',
         "{'single': 'quotation'}",
         '{"test": "meta", }',
-    ]
+    ],
 )
-def test_push_with_meta_data_error(
-    meta_data,
-    capsys
-):
+def test_push_with_meta_data_error(meta_data, capsys):
     name = 'test/name'
 
-    with patch_package_class as mocked_package_class, \
-            mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
-
+    with (
+        patch_package_class as mocked_package_class,
+        mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg,
+    ):
         mocked_package_class.browse.side_effect = FileNotFoundError()
 
         with pytest.raises(SystemExit):
@@ -164,7 +165,7 @@ def test_push_with_meta_data_error(
         (None, ...),
         ('', None),
         ('test-workflow', 'test-workflow'),
-    ]
+    ],
 )
 def test_push_workflow(workflow_input, expected_workflow):
     name = 'test/name'
@@ -208,7 +209,13 @@ def test_push_no_copy():
         mocked_package = mocked_package_class.browse.return_value
         mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
         mocked_package.push.assert_called_once_with(
-            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False,
+            name,
+            registry=None,
+            dest=None,
+            message=None,
+            workflow=...,
+            force=False,
+            dedupe=False,
             selector_fn=main._selector_fn_no_copy,
         )
 

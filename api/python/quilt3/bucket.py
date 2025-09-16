@@ -4,6 +4,7 @@ bucket.py
 Contains the Bucket class, which provides several useful functions
     over an s3 bucket.
 """
+
 import pathlib
 import typing as T
 
@@ -19,8 +20,7 @@ from .util import PhysicalKey, QuiltException, fix_url
 
 
 class Bucket:
-    """Bucket interface for Quilt.
-    """
+    """Bucket interface for Quilt."""
 
     def __init__(self, bucket_uri):
         """
