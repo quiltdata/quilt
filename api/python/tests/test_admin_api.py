@@ -4,6 +4,7 @@ import contextlib
 from unittest import mock
 
 import pytest
+from pydantic import ValidationError
 
 from quilt3 import _graphql_client, admin
 
@@ -432,6 +433,7 @@ def test_tabulator_set_open_query():
 # NEW COMPREHENSIVE TESTS USING GRAPHQL MOCK INFRASTRUCTURE
 # =============================================================================
 
+
 class TestUserOperationsWithMockServer:
     """Comprehensive test coverage for user operations using GraphQL mock server."""
 
@@ -641,7 +643,7 @@ class TestErrorHandlingWithMockServer:
         # Add malformed response
         graphql_router.add_response("usersList", {"invalid": "structure"})
 
-        with pytest.raises(Exception):  # Should fail to parse
+        with pytest.raises(ValidationError):  # Should fail to parse
             admin.users.list()
 
     def test_response_validation(self, graphql_router):
@@ -666,8 +668,7 @@ class TestMockServerInfrastructure:
         """Test that operations are routed correctly."""
         # Test manual operation routing
         result = graphql_router.route_operation(
-            query="query usersList { admin { user { list } } }",
-            operation_name="usersList"
+            query="query usersList { admin { user { list } } }", operation_name="usersList"
         )
 
         assert result == USERS_LIST_RESPONSE
