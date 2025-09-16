@@ -447,7 +447,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     perPage: PER_PAGE,
   })
 
-  const updateDialog = PD.usePackageCreationDialog({ bucket, src: { name } })
+  const updateDialog = PD.usePackageCreationDialog({ bucket })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
@@ -542,12 +542,12 @@ export default function PackageRevisionsWrapper() {
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (
-    <>
+    <PD.Provider initialSrc={{ name }}>
       <MetaTitle>{[name, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <PackageRevisions {...{ bucket, name, page }} />
       </WithPackagesSupport>
-    </>
+    </PD.Provider>
   )
 }
 

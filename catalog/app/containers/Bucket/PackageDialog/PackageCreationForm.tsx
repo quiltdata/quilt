@@ -38,6 +38,7 @@ import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
+import * as State from './state'
 import { isS3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
@@ -184,7 +185,6 @@ interface PackageCreationFormProps {
   currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
-  onSrc: (src: { name: string; hash?: string }) => void
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
@@ -211,13 +211,12 @@ function PackageCreationForm({
   currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
-  onSrc,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
-  const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
+  const packageDialogState = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -409,14 +408,17 @@ function PackageCreationForm({
     async (name) => {
       const nameExists = await nameExistence.validate(name)
       const warning = (
-        <PD.PackageNameWarning exists={!!nameExists} onRevise={() => onSrc({ name })} />
+        <PD.PackageNameWarning
+          exists={!!nameExists}
+          onRevise={() => packageDialogState.setSrc({ name })}
+        />
       )
 
-      if (warning !== nameWarning) {
-        setNameWarning(warning)
+      if (warning !== packageDialogState.nameWarning) {
+        packageDialogState.setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence, onSrc],
+    [packageDialogState, nameExistence],
   )
 
   const onFormChange = React.useCallback(
@@ -527,7 +529,7 @@ function PackageCreationForm({
                       invalid: 'Invalid package name',
                       pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                     }}
-                    helperText={nameWarning}
+                    helperText={packageDialogState.nameWarning}
                     validating={nameValidator.processing}
                   />
 
@@ -669,10 +671,6 @@ interface PackageCreationDialogUIOptions {
 
 interface UsePackageCreationDialogProps {
   bucket: string
-  src?: {
-    name: string
-    hash?: string
-  }
   s3Path?: string
   initialOpen?: boolean
   delayHashing?: boolean
@@ -686,7 +684,6 @@ interface UsePackageCreationDialogProps {
 //         * successor
 export function usePackageCreationDialog({
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
-  src: initialSrc,
   initialOpen,
   s3Path,
   delayHashing = false,
@@ -699,7 +696,7 @@ export function usePackageCreationDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
-  const [src, setSrc] = React.useState(initialSrc)
+  const packageDialogState = State.use()
   const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
@@ -714,12 +711,14 @@ export function usePackageCreationDialog({
   const manifestData = useManifest({
     bucket,
     // this only gets passed when src is defined, so it should be always non-null when the query gets executed
-    name: src?.name!,
-    hashOrTag: src?.hash,
-    pause: !(src && isOpen),
+    name: packageDialogState.src?.name!,
+    hashOrTag: packageDialogState.src?.hash,
+    pause: !(packageDialogState.src && isOpen),
   })
 
-  const manifestResult = src ? manifestData.result : EMPTY_MANIFEST_RESULT
+  const manifestResult = packageDialogState.src
+    ? manifestData.result
+    : EMPTY_MANIFEST_RESULT
 
   // AsyncResult<Model.PackageContentsFlatMap | undefined>
   const data = React.useMemo(
@@ -866,10 +865,9 @@ export function usePackageCreationDialog({
                     workflowsConfig,
                     sourceBuckets,
                     initial: {
-                      name: src?.name,
+                      name: packageDialogState.src?.name,
                       ...manifest,
                     },
-                    onSrc: setSrc,
                     currentBucketCanBeSuccessor,
                     delayHashing,
                     disableStateDisplay,

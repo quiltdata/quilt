@@ -198,7 +198,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
   const updateDialog = PD.usePackageCreationDialog({
     initialOpen,
     bucket,
-    src: { name, hash },
   })
 
   const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
@@ -999,24 +998,26 @@ function PackageTree({
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
       {hash ? (
-        <ResolverProvider {...{ bucket, name, hash }}>
-          {isDir ? (
-            <DirDisplay
-              {...{
-                bucket,
-                name,
-                hash,
-                path,
-                hashOrTag,
-                crumbs,
-              }}
-            />
-          ) : (
-            <FileDisplayQuery
-              {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
-            />
-          )}
-        </ResolverProvider>
+        <PD.Provider initialSrc={{ name, hash }}>
+          <ResolverProvider {...{ bucket, name, hash }}>
+            {isDir ? (
+              <DirDisplay
+                {...{
+                  bucket,
+                  name,
+                  hash,
+                  path,
+                  hashOrTag,
+                  crumbs,
+                }}
+              />
+            ) : (
+              <FileDisplayQuery
+                {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
+              />
+            )}
+          </ResolverProvider>
+        </PD.Provider>
       ) : (
         <>
           <TopBar crumbs={crumbs} />

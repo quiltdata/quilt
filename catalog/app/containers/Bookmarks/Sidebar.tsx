@@ -7,7 +7,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as style from 'constants/style'
 import * as AddToPackage from 'containers/AddToPackage'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import * as PD from 'containers/Bucket/PackageDialog'
 import {
   useBucketListing,
   BucketListingResult,
@@ -254,7 +254,7 @@ export default function Sidebar({ bookmarks, bucket = '' }: SidebarProps) {
   const bucketListing = useBucketListing()
   const headFile = useHeadFile()
   const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
-  const createDialog = usePackageCreationDialog({
+  const createDialog = PD.usePackageCreationDialog({
     bucket,
     delayHashing: true,
     disableStateDisplay: true,
@@ -290,24 +290,26 @@ export default function Sidebar({ bookmarks, bucket = '' }: SidebarProps) {
     }
   }, [addToPackage, bookmarks, createDialog, handlesToS3Files, handles])
   return (
-    <M.MuiThemeProvider theme={style.appTheme}>
-      <Drawer
-        error={error}
-        handles={handles}
-        loading={traversing}
-        onClose={bookmarks.hide}
-        onPackage={bucket ? handleSubmit : undefined}
-        onRemove={handleRemove}
-        onClear={handleClear}
-        open={bookmarks.isOpened}
-      />
-      {createDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
-    </M.MuiThemeProvider>
+    <PD.Provider>
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <Drawer
+          error={error}
+          handles={handles}
+          loading={traversing}
+          onClose={bookmarks.hide}
+          onPackage={bucket ? handleSubmit : undefined}
+          onRemove={handleRemove}
+          onClear={handleClear}
+          open={bookmarks.isOpened}
+        />
+        {createDialog.render({
+          successTitle: 'Package created',
+          successRenderMessage: ({ packageLink }) => (
+            <>Package {packageLink} successfully created</>
+          ),
+          title: 'Create package',
+        })}
+      </M.MuiThemeProvider>
+    </PD.Provider>
   )
 }

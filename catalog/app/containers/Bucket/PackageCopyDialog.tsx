@@ -183,7 +183,7 @@ function DialogForm({
   const handleNameChange = React.useCallback(
     async (name) => {
       const nameExists = await nameExistence.validate(name)
-      const warning = <PD.PackageNameWarning exists={!!nameExists} />
+      const warning = <PD.PackageNameWarning exists={!!nameExists} onRevise={() => {}} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
