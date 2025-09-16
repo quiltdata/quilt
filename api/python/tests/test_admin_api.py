@@ -3,6 +3,7 @@ import datetime
 from unittest import mock
 
 import pytest
+from pydantic import ValidationError
 
 from quilt3 import admin
 from quilt3.admin import _graphql_client
@@ -676,7 +677,7 @@ class TestErrorHandlingWithMockServer:
         # Add malformed response
         graphql_router.add_response("usersList", {"invalid": "structure"})
 
-        with pytest.raises(Exception):  # Should fail to parse
+        with pytest.raises(ValidationError):  # Should fail to parse
             admin.users.list()
 
     def test_response_validation(self, graphql_router):
