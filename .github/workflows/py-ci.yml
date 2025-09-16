@@ -90,6 +90,14 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
+      - name: Clean up virtual environment (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # Force remove the virtual environment on Windows to avoid permission issues
+          if (Test-Path .venv) {
+            Remove-Item -Path .venv -Recurse -Force -ErrorAction SilentlyContinue
+          }
+        shell: powershell
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
