@@ -466,272 +466,229 @@ def test_tabulator_set_open_query():
 
 
 # =============================================================================
-# NEW COMPREHENSIVE TESTS USING GRAPHQL MOCK INFRASTRUCTURE
+# GRAPHQL CLIENT INFRASTRUCTURE TESTS FOR INCREASED COVERAGE
 # =============================================================================
 
 
-class TestUserOperationsWithMockServer:
-    """Comprehensive test coverage for user operations using GraphQL mock server."""
-
-    def test_users_list_with_mock_server(self, mock_admin_client, graphql_router):
-        """Test listing users with the new mock infrastructure."""
-        users = admin.users.list()
-
-        # Verify the call was made
-        assert graphql_router.get_call_count("usersList") == 1
-
-        # Verify response structure
-        assert len(users) == 1
-        assert users[0].name == "test"
-        assert users[0].email == "test@example.com"
-        assert validate_user_response(users[0].__dict__)
-
-    def test_users_get_success(self, mock_admin_client, graphql_router):
-        """Test getting a user that exists."""
-        user = admin.users.get("test")
-
-        assert graphql_router.get_call_count("usersGet") == 1
-        assert user is not None
-        assert user.name == "test"
-        assert validate_user_response(user.__dict__)
-
-    def test_users_get_not_found(self, mock_admin_client, graphql_router):
-        """Test getting a user that doesn't exist."""
-        graphql_router.add_response("usersGet", USERS_GET_NOT_FOUND_RESPONSE)
-
-        user = admin.users.get("nonexistent")
-
-        assert graphql_router.get_call_count("usersGet") == 1
-        assert user is None
-
-    def test_users_create_success(self, mock_admin_client, graphql_router):
-        """Test successful user creation."""
-        user = admin.users.create("newuser", "new@example.com", "UnmanagedRole", [])
-
-        assert graphql_router.get_call_count("usersCreate") == 1
-        assert user.name == "test"  # Using fixture response
-        assert validate_user_response(user.__dict__)
-
-        # Verify call parameters
-        last_call = graphql_router.get_last_call("usersCreate")
-        assert "input" in last_call["variables"]
-
-    def test_users_create_validation_error(self, mock_admin_client, graphql_router):
-        """Test user creation with validation errors."""
-        graphql_router.add_response("usersCreate", USERS_CREATE_VALIDATION_ERROR_RESPONSE)
-
-        with pytest.raises(admin.Quilt3AdminError):
-            admin.users.create("newuser", "invalid-email", "UnmanagedRole", [])
-
-    def test_users_create_operation_error(self, mock_admin_client, graphql_router):
-        """Test user creation with operation errors."""
-        graphql_router.add_response("usersCreate", USERS_CREATE_OPERATION_ERROR_RESPONSE)
-
-        with pytest.raises(admin.Quilt3AdminError):
-            admin.users.create("newuser", "new@example.com", "UnmanagedRole", [])
-
-    def test_user_mutations_success(self, mock_admin_client, graphql_router):
-        """Test successful user mutation operations."""
-        mutations = [
-            ("usersSetEmail", lambda: admin.users.set_email("test", "new@example.com")),
-            ("usersSetAdmin", lambda: admin.users.set_admin("test", True)),
-            ("usersSetActive", lambda: admin.users.set_active("test", False)),
-        ]
-
-        for operation_name, operation in mutations:
-            result = operation()
-            assert graphql_router.get_call_count(operation_name) == 1
-            assert result.name == "test"
-            assert validate_user_response(result.__dict__)
-
-    def test_user_mutations_not_found(self, mock_admin_client, graphql_router):
-        """Test user mutations when user doesn't exist."""
-        operations = [
-            ("usersSetEmail", lambda: admin.users.set_email("nonexistent", "new@example.com")),
-            ("usersSetAdmin", lambda: admin.users.set_admin("nonexistent", True)),
-            ("usersSetActive", lambda: admin.users.set_active("nonexistent", False)),
-        ]
-
-        for operation_name, operation in operations:
-            graphql_router.add_response(operation_name, USER_MUTATION_NOT_FOUND_RESPONSE)
-
-            with pytest.raises(admin.UserNotFoundError):
-                operation()
-
-
-class TestRoleOperationsWithMockServer:
-    """Test role operations using GraphQL mock server."""
-
-    def test_roles_list(self, mock_admin_client, graphql_router):
-        """Test listing roles."""
-        roles = admin.roles.list()
-
-        assert graphql_router.get_call_count("rolesList") == 1
-        assert len(roles) == 2
-
-        # Verify role types and structure
-        unmanaged_role = next(r for r in roles if r.__class__.__name__ == "UnmanagedRole")
-        managed_role = next(r for r in roles if r.__class__.__name__ == "ManagedRole")
-
-        assert unmanaged_role.name == "UnmanagedRole"
-        assert managed_role.name == "ManagedRole"
-
-
-class TestSSOConfigWithMockServer:
-    """Test SSO configuration operations using GraphQL mock server."""
-
-    def test_sso_config_get_success(self, mock_admin_client, graphql_router):
-        """Test getting SSO configuration when it exists."""
-        config = admin.sso_config.get()
-
-        assert graphql_router.get_call_count("ssoConfigGet") == 1
-        assert config is not None
-        assert config.text == ""
-        assert validate_sso_config_response(config.__dict__)
-
-    def test_sso_config_get_not_found(self, mock_admin_client, graphql_router):
-        """Test getting SSO configuration when it doesn't exist."""
-        graphql_router.add_response("ssoConfigGet", SSO_CONFIG_GET_NOT_FOUND_RESPONSE)
-
-        config = admin.sso_config.get()
-
-        assert graphql_router.get_call_count("ssoConfigGet") == 1
-        assert config is None
-
-    def test_sso_config_set_success(self, mock_admin_client, graphql_router):
-        """Test setting SSO configuration successfully."""
-        graphql_router.add_response("ssoConfigSet", SSO_CONFIG_SET_SUCCESS_RESPONSE)
-
-        config = admin.sso_config.set("new config")
-
-        assert graphql_router.get_call_count("ssoConfigSet") == 1
-        assert config is not None
-        assert validate_sso_config_response(config.__dict__)
-
-    def test_sso_config_set_validation_error(self, mock_admin_client, graphql_router):
-        """Test SSO configuration validation errors."""
-        graphql_router.add_response("ssoConfigSet", SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE)
-
-        with pytest.raises(admin.Quilt3AdminError):
-            admin.sso_config.set("invalid config")
-
-
-class TestTabulatorWithMockServer:
-    """Test tabulator operations using GraphQL mock server."""
-
-    def test_tabulator_list_tables_success(self, mock_admin_client, graphql_router):
-        """Test listing tabulator tables successfully."""
-        tables = admin.tabulator.list_tables("test-bucket")
-
-        assert graphql_router.get_call_count("bucketTabulatorTablesList") == 1
-        assert len(tables) == 1
-        assert tables[0].name == "table"
-        assert validate_tabulator_table_response(tables[0].__dict__)
-
-    def test_tabulator_list_tables_bucket_not_found(self, mock_admin_client, graphql_router):
-        """Test listing tables for non-existent bucket."""
-        graphql_router.add_response("bucketTabulatorTablesList", TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE)
-
-        with pytest.raises(admin.BucketNotFoundError):
-            admin.tabulator.list_tables("nonexistent-bucket")
-
-    def test_tabulator_set_table_success(self, mock_admin_client, graphql_router):
-        """Test setting tabulator table configuration."""
-        admin.tabulator.set_table("test-bucket", "test-table", "config")
-
-        assert graphql_router.get_call_count("bucketTabulatorTableSet") == 1
-
-    def test_tabulator_rename_table_success(self, mock_admin_client, graphql_router):
-        """Test renaming tabulator table."""
-        admin.tabulator.rename_table("test-bucket", "old-table", "new-table")
-
-        assert graphql_router.get_call_count("bucketTabulatorTableRename") == 1
-
-    def test_tabulator_get_open_query(self, mock_admin_client, graphql_router):
-        """Test getting tabulator open query setting."""
-        result = admin.tabulator.get_open_query()
-
-        assert graphql_router.get_call_count("tabulatorGetOpenQuery") == 1
-        assert result is True
-
-    def test_tabulator_set_open_query(self, mock_admin_client, graphql_router):
-        """Test setting tabulator open query setting."""
-        admin.tabulator.set_open_query(False)
-
-        assert graphql_router.get_call_count("tabulatorSetOpenQuery") == 1
-
-
-class TestErrorHandlingWithMockServer:
-    """Test comprehensive error handling scenarios."""
-
-    def test_network_simulation(self, mock_admin_client, graphql_router):
-        """Test handling of simulated network errors."""
-        # Remove the response to simulate missing endpoint
-        graphql_router.responses.clear()
-
-        with pytest.raises(KeyError):  # No mock response configured
-            admin.users.list()
-
-    def test_invalid_graphql_response_structure(self, mock_admin_client, graphql_router):
-        """Test handling of malformed GraphQL responses."""
-        # Add malformed response
-        graphql_router.add_response("usersList", {"invalid": "structure"})
-
-        with pytest.raises(ValidationError):  # Should fail to parse
-            admin.users.list()
-
-    def test_response_validation(self, graphql_router):
-        """Test that our mock responses are valid."""
-        # Validate user response structure
-        user_data = USERS_LIST_RESPONSE["admin"]["user"]["list"][0]
-        assert validate_user_response(user_data)
-
-        # Validate role response structure
-        role_data = ROLES_LIST_RESPONSE["roles"][0]
-        assert validate_role_response(role_data)
-
-        # Validate GraphQL response structure
-        assert validate_graphql_response_structure(USERS_LIST_RESPONSE, "admin.user.list")
-        assert validate_graphql_response_structure(ROLES_LIST_RESPONSE, "roles")
-
-
-class TestMockServerInfrastructure:
-    """Test the mock server infrastructure itself."""
-
-    def test_operation_routing(self, graphql_router):
-        """Test that operations are routed correctly."""
-        # Test manual operation routing
-        result = graphql_router.route_operation(
-            query="query usersList { admin { user { list } } }", operation_name="usersList"
+class TestGraphQLClientExceptions:
+    """Test GraphQL client exception handling to increase coverage."""
+
+    def test_graphql_client_http_error(self):
+        """Test GraphQLClientHttpError exception."""
+        from quilt3.admin._graphql_client.exceptions import GraphQLClientHttpError
+        import requests
+
+        # Create a mock response
+        response = mock.Mock(spec=requests.Response)
+        response.status_code = 500
+
+        error = GraphQLClientHttpError(500, response)
+        assert error.status_code == 500
+        assert error.response == response
+        assert str(error) == "HTTP status code: 500"
+
+    def test_graphql_client_invalid_response_error(self):
+        """Test GraphQLClientInvalidResponseError exception."""
+        from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidResponseError
+        import requests
+
+        response = mock.Mock(spec=requests.Response)
+        error = GraphQLClientInvalidResponseError(response)
+        assert error.response == response
+        assert str(error) == "Invalid response format."
+
+    def test_graphql_client_graphql_error(self):
+        """Test GraphQLClientGraphQLError exception."""
+        from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError
+
+        # Test basic construction
+        error = GraphQLClientGraphQLError("Test error")
+        assert error.message == "Test error"
+        assert error.locations is None
+        assert error.path is None
+        assert error.extensions is None
+        assert str(error) == "Test error"
+
+        # Test with all fields
+        error = GraphQLClientGraphQLError(
+            message="Field error",
+            locations=[{"line": 1, "column": 5}],
+            path=["user", "name"],
+            extensions={"code": "VALIDATION_ERROR"},
+            orginal={"message": "Field error"}
+        )
+        assert error.message == "Field error"
+        assert error.locations == [{"line": 1, "column": 5}]
+        assert error.path == ["user", "name"]
+        assert error.extensions == {"code": "VALIDATION_ERROR"}
+
+        # Test from_dict
+        error_dict = {
+            "message": "Field required",
+            "locations": [{"line": 2, "column": 3}],
+            "path": ["input", "email"],
+            "extensions": {"code": "REQUIRED"}
+        }
+        error = GraphQLClientGraphQLError.from_dict(error_dict)
+        assert error.message == "Field required"
+        assert error.locations == [{"line": 2, "column": 3}]
+        assert error.path == ["input", "email"]
+        assert error.extensions == {"code": "REQUIRED"}
+        assert error.orginal == error_dict
+
+    def test_graphql_client_multi_error(self):
+        """Test GraphQLClientGraphQLMultiError exception."""
+        from quilt3.admin._graphql_client.exceptions import (
+            GraphQLClientGraphQLError,
+            GraphQLClientGraphQLMultiError
         )
 
-        assert result == USERS_LIST_RESPONSE
-        assert graphql_router.get_call_count("usersList") == 1
+        # Create individual errors
+        error1 = GraphQLClientGraphQLError("Error 1")
+        error2 = GraphQLClientGraphQLError("Error 2")
 
-    def test_call_history_tracking(self, graphql_router):
-        """Test that call history is tracked properly."""
-        # Make some calls
-        graphql_router.route_operation("query usersList", "usersList")
-        graphql_router.route_operation("query usersGet", "usersGet", {"name": "test"})
+        # Test multi error
+        multi_error = GraphQLClientGraphQLMultiError([error1, error2])
+        assert len(multi_error.errors) == 2
+        assert multi_error.data is None
+        assert str(multi_error) == "Error 1; Error 2"
 
-        # Check history
-        assert len(graphql_router.call_history) == 2
-        assert graphql_router.get_call_count("usersList") == 1
-        assert graphql_router.get_call_count("usersGet") == 1
+        # Test with data
+        multi_error = GraphQLClientGraphQLMultiError([error1], data={"partial": "data"})
+        assert multi_error.data == {"partial": "data"}
 
-        # Check last call details
-        last_call = graphql_router.get_last_call("usersGet")
-        assert last_call["variables"]["name"] == "test"
+        # Test from_errors_dicts
+        error_dicts = [
+            {"message": "First error"},
+            {"message": "Second error"}
+        ]
+        multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(
+            error_dicts, data={"some": "data"}
+        )
+        assert len(multi_error.errors) == 2
+        assert multi_error.errors[0].message == "First error"
+        assert multi_error.errors[1].message == "Second error"
+        assert multi_error.data == {"some": "data"}
 
-    def test_router_reset(self, graphql_router):
-        """Test that router can be reset properly."""
-        # Add some data
-        graphql_router.add_response("test", {"data": "test"})
-        graphql_router.route_operation("query test", "test")
-        assert len(graphql_router.call_history) > 0
-        assert len(graphql_router.responses) > 0
+    def test_graphql_client_invalid_message_format(self):
+        """Test GraphQLClientInvalidMessageFormat exception."""
+        from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidMessageFormat
 
-        # Reset and verify
-        graphql_router.reset()
-        assert len(graphql_router.call_history) == 0
-        assert len(graphql_router.responses) == 0
+        # Test with string message
+        error = GraphQLClientInvalidMessageFormat("Invalid JSON")
+        assert error.message == "Invalid JSON"
+        assert str(error) == "Invalid message format."
+
+        # Test with bytes message
+        error = GraphQLClientInvalidMessageFormat(b"Invalid bytes")
+        assert error.message == b"Invalid bytes"
+        assert str(error) == "Invalid message format."
+
+
+class TestGraphQLClientBaseClient:
+    """Test GraphQL base client functionality to increase coverage."""
+
+    def test_base_client_context_manager(self):
+        """Test BaseClient context manager functionality."""
+        from quilt3.admin._graphql_client.base_client import BaseClient
+
+        with mock.patch("quilt3.session.get_registry_url", return_value="https://test.com"):
+            with mock.patch("quilt3.session.get_session") as mock_session:
+                mock_http_client = mock.Mock()
+                mock_session.return_value = mock_http_client
+
+                # Test context manager
+                with BaseClient() as client:
+                    assert client.url == "https://test.com/graphql"
+                    assert client.http_client == mock_http_client
+
+                # Verify close was called on exit
+                mock_http_client.close.assert_called_once()
+
+    def test_base_client_initialization(self):
+        """Test BaseClient initialization."""
+        from quilt3.admin._graphql_client.base_client import BaseClient
+
+        with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.test"):
+            with mock.patch("quilt3.session.get_session") as mock_session:
+                mock_http_client = mock.Mock()
+                mock_session.return_value = mock_http_client
+
+                client = BaseClient()
+                assert client.url == "https://registry.test/graphql"
+                assert client.http_client == mock_http_client
+
+
+class TestMockInfrastructureUtilities:
+    """Test mock infrastructure utilities for completeness."""
+
+    def test_operation_name_extraction_edge_cases(self, graphql_router):
+        """Test operation name extraction with various query formats."""
+        # Test query with extra whitespace
+        result = graphql_router._extract_operation_name("query    usersList { admin { user } }")
+        assert result == "usersList"
+
+        # Test mutation
+        result = graphql_router._extract_operation_name("mutation usersCreate($input: UserInput!) { }")
+        assert result == "usersCreate"
+
+        # Test invalid query
+        with pytest.raises(ValueError):
+            graphql_router._extract_operation_name("SELECT * FROM users")
+
+    def test_router_edge_cases(self, graphql_router):
+        """Test router with edge cases and error conditions."""
+        # Test with no configured response
+        with pytest.raises(KeyError):
+            graphql_router.route_operation("query unknown", "unknown")
+
+        # Test get_last_call with non-existent operation
+        result = graphql_router.get_last_call("nonexistent")
+        assert result is None
+
+        # Test get_call_count with non-existent operation
+        count = graphql_router.get_call_count("nonexistent")
+        assert count == 0
+
+    def test_validation_utilities_coverage(self):
+        """Test validation utility functions for coverage."""
+        from tests.fixtures.graphql_schema_fragments import (
+            validate_error_response,
+            validate_invalid_input_error,
+            validate_operation_error,
+            extract_response_data
+        )
+
+        # Test invalid input error validation
+        invalid_input = {
+            "__typename": "InvalidInput",
+            "errors": [
+                {
+                    "path": "email",
+                    "message": "Invalid format",
+                    "name": "ValidationError",
+                    "context": {}
+                }
+            ]
+        }
+        assert validate_invalid_input_error(invalid_input)
+        assert validate_error_response(invalid_input)
+
+        # Test operation error validation
+        operation_error = {
+            "__typename": "OperationError",
+            "message": "Operation failed",
+            "name": "OperationError",
+            "context": {}
+        }
+        assert validate_operation_error(operation_error)
+        assert validate_error_response(operation_error)
+
+        # Test extract_response_data
+        response = {"admin": {"user": {"list": ["user1", "user2"]}}}
+        result = extract_response_data(response, "admin.user.list")
+        assert result == ["user1", "user2"]
+
+        # Test with invalid path
+        result = extract_response_data(response, "invalid.path")
+        assert result is None
