@@ -442,3 +442,116 @@ def test_tabulator_set_open_query():
         variables={"enabled": True},
     ):
         assert admin.tabulator.set_open_query(True) is None
+
+
+# =============================================================================
+# FOCUSED COVERAGE IMPROVEMENTS FOR GRAPHQL CLIENT EXCEPTIONS
+# =============================================================================
+
+
+def test_graphql_client_http_error():
+    """Test GraphQLClientHttpError exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientHttpError
+    import requests
+
+    # Create a mock response
+    response = mock.Mock(spec=requests.Response)
+    response.status_code = 500
+
+    error = GraphQLClientHttpError(500, response)
+    assert error.status_code == 500
+    assert error.response == response
+    assert str(error) == "HTTP status code: 500"
+
+
+def test_graphql_client_invalid_response_error():
+    """Test GraphQLClientInvalidResponseError exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidResponseError
+    import requests
+
+    response = mock.Mock(spec=requests.Response)
+    error = GraphQLClientInvalidResponseError(response)
+    assert error.response == response
+    assert str(error) == "Invalid response format."
+
+
+def test_graphql_client_graphql_error():
+    """Test GraphQLClientGraphQLError exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError
+
+    # Test basic construction
+    error = GraphQLClientGraphQLError("Test error")
+    assert error.message == "Test error"
+    assert error.locations is None
+    assert error.path is None
+    assert error.extensions is None
+    assert str(error) == "Test error"
+
+    # Test with all fields
+    error = GraphQLClientGraphQLError(
+        message="Field error",
+        locations=[{"line": 1, "column": 5}],
+        path=["user", "name"],
+        extensions={"code": "VALIDATION_ERROR"},
+        orginal={"message": "Field error"},
+    )
+    assert error.message == "Field error"
+    assert error.locations == [{"line": 1, "column": 5}]
+    assert error.path == ["user", "name"]
+    assert error.extensions == {"code": "VALIDATION_ERROR"}
+
+    # Test from_dict
+    error_dict = {
+        "message": "Field required",
+        "locations": [{"line": 2, "column": 3}],
+        "path": ["input", "email"],
+        "extensions": {"code": "REQUIRED"},
+    }
+    error = GraphQLClientGraphQLError.from_dict(error_dict)
+    assert error.message == "Field required"
+    assert error.locations == [{"line": 2, "column": 3}]
+    assert error.path == ["input", "email"]
+    assert error.extensions == {"code": "REQUIRED"}
+    assert error.orginal == error_dict
+
+
+def test_graphql_client_multi_error():
+    """Test GraphQLClientGraphQLMultiError exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError, GraphQLClientGraphQLMultiError
+
+    # Create individual errors
+    error1 = GraphQLClientGraphQLError("Error 1")
+    error2 = GraphQLClientGraphQLError("Error 2")
+
+    # Test multi error
+    multi_error = GraphQLClientGraphQLMultiError([error1, error2])
+    assert len(multi_error.errors) == 2
+    assert multi_error.data is None
+    assert str(multi_error) == "Error 1; Error 2"
+
+    # Test with data
+    multi_error = GraphQLClientGraphQLMultiError([error1], data={"partial": "data"})
+    assert multi_error.data == {"partial": "data"}
+
+    # Test from_errors_dicts
+    error_dicts = [{"message": "First error"}, {"message": "Second error"}]
+    multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(error_dicts, data={"some": "data"})
+    assert len(multi_error.errors) == 2
+    assert multi_error.errors[0].message == "First error"
+    assert multi_error.errors[1].message == "Second error"
+    assert multi_error.data == {"some": "data"}
+
+
+def test_graphql_client_invalid_message_format():
+    """Test GraphQLClientInvalidMessageFormat exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidMessageFormat
+
+    # Test with string message
+    error = GraphQLClientInvalidMessageFormat("Invalid JSON")
+    assert error.message == "Invalid JSON"
+    assert str(error) == "Invalid message format."
+
+    # Test with bytes message
+    error = GraphQLClientInvalidMessageFormat(b"Invalid bytes")
+    assert error.message == b"Invalid bytes"
+    assert str(error) == "Invalid message format."
