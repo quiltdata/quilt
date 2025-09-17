@@ -72,8 +72,7 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),
     Object.entries,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    R.filter(([path, file]) => file !== FI.EMPTY_DIR_MARKER),
+    R.filter(([, file]) => file !== FI.EMPTY_DIR_MARKER),
     R.map(([path, file]) => ({
       logical_key: path,
       meta: file.meta?.user_meta || {},

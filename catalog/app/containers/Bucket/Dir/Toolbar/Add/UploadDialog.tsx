@@ -77,9 +77,9 @@ export default function UploadDialog({
   const onUpload = React.useCallback(async () => {
     setUploadState({ _tag: 'uploading' })
 
-    const files = Object.entries(value).map(
-      ([path, file]) => ({ path, file }) as LocalEntry,
-    )
+    const files = Object.entries(value)
+      .filter(([, file]) => file !== FI.EMPTY_DIR_MARKER)
+      .map(([path, file]) => ({ path, file }) as LocalEntry)
     try {
       const uploadedEntries = await upload({
         files,
