@@ -515,7 +515,7 @@ class TestGraphQLClientExceptions:
             locations=[{"line": 1, "column": 5}],
             path=["user", "name"],
             extensions={"code": "VALIDATION_ERROR"},
-            orginal={"message": "Field error"}
+            orginal={"message": "Field error"},
         )
         assert error.message == "Field error"
         assert error.locations == [{"line": 1, "column": 5}]
@@ -527,7 +527,7 @@ class TestGraphQLClientExceptions:
             "message": "Field required",
             "locations": [{"line": 2, "column": 3}],
             "path": ["input", "email"],
-            "extensions": {"code": "REQUIRED"}
+            "extensions": {"code": "REQUIRED"},
         }
         error = GraphQLClientGraphQLError.from_dict(error_dict)
         assert error.message == "Field required"
@@ -538,10 +538,7 @@ class TestGraphQLClientExceptions:
 
     def test_graphql_client_multi_error(self):
         """Test GraphQLClientGraphQLMultiError exception."""
-        from quilt3.admin._graphql_client.exceptions import (
-            GraphQLClientGraphQLError,
-            GraphQLClientGraphQLMultiError
-        )
+        from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError, GraphQLClientGraphQLMultiError
 
         # Create individual errors
         error1 = GraphQLClientGraphQLError("Error 1")
@@ -558,13 +555,8 @@ class TestGraphQLClientExceptions:
         assert multi_error.data == {"partial": "data"}
 
         # Test from_errors_dicts
-        error_dicts = [
-            {"message": "First error"},
-            {"message": "Second error"}
-        ]
-        multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(
-            error_dicts, data={"some": "data"}
-        )
+        error_dicts = [{"message": "First error"}, {"message": "Second error"}]
+        multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(error_dicts, data={"some": "data"})
         assert len(multi_error.errors) == 2
         assert multi_error.errors[0].message == "First error"
         assert multi_error.errors[1].message == "Second error"
@@ -656,20 +648,13 @@ class TestMockInfrastructureUtilities:
             validate_error_response,
             validate_invalid_input_error,
             validate_operation_error,
-            extract_response_data
+            extract_response_data,
         )
 
         # Test invalid input error validation
         invalid_input = {
             "__typename": "InvalidInput",
-            "errors": [
-                {
-                    "path": "email",
-                    "message": "Invalid format",
-                    "name": "ValidationError",
-                    "context": {}
-                }
-            ]
+            "errors": [{"path": "email", "message": "Invalid format", "name": "ValidationError", "context": {}}],
         }
         assert validate_invalid_input_error(invalid_input)
         assert validate_error_response(invalid_input)
@@ -679,7 +664,7 @@ class TestMockInfrastructureUtilities:
             "__typename": "OperationError",
             "message": "Operation failed",
             "name": "OperationError",
-            "context": {}
+            "context": {},
         }
         assert validate_operation_error(operation_error)
         assert validate_error_response(operation_error)
