@@ -7,6 +7,11 @@ import type * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
+import {
+  SyncProblemOutlined as IconSyncProblemOutlined,
+  RestoreOutlined as IconRestoreOutlined,
+} from '@material-ui/icons'
+import * as Lab from '@material-ui/lab'
 
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -17,6 +22,7 @@ import * as JSONPointer from 'utils/JSONPointer'
 import log from 'utils/Logging'
 import * as Sentry from 'utils/Sentry'
 import StyledLink from 'utils/StyledLink'
+import assertNever from 'utils/assertNever'
 import { mkFormError } from 'utils/formTools'
 import {
   JsonSchema,
@@ -496,28 +502,37 @@ const getDefaultPackageName = (
   return typeof templateBasedName === 'string' ? templateBasedName : usernamePrefix
 }
 
-const usePackageNameWarningStyles = M.makeStyles({
+const usePackageNameWarningStyles = M.makeStyles((t) => ({
   root: {
     marginRight: '4px',
     verticalAlign: '-5px',
   },
-})
+  success: {
+    color: t.palette.success.main,
+  },
+  error: {
+    color: t.palette.error.main,
+  },
+  existing: {
+    color: t.palette.text.hint,
+  },
+}))
 
 export const PackageNameWarning = () => {
   const { nameStatus, setSrc } = State.use()
   const classes = usePackageNameWarningStyles()
-  return <M.CircularProgress size={16} />
+
   switch (nameStatus._tag) {
     case 'idle':
-      return null
+      return <></>
     case 'loading':
-      return <M.CircularProgress size={24} />
+      return <Lab.Skeleton width={160} />
     case 'exists':
+      return <span className={classes.existing}>Existing package</span>
+    case 'able-to-reuse':
       return (
         <>
-          <M.Icon className={classes.root} fontSize="small">
-            info_outlined
-          </M.Icon>
+          <IconRestoreOutlined className={classes.root} fontSize="small" />
           Existing package. Want to{' '}
           <StyledLink onClick={() => setSrc(nameStatus.dst)}>
             load and revise it
@@ -526,14 +541,16 @@ export const PackageNameWarning = () => {
         </>
       )
     case 'new':
+      return <span className={classes.success}>New package</span>
+    case 'invalid':
       return (
-        <>
-          <M.Icon className={classes.root} fontSize="small">
-            info_outlined
-          </M.Icon>
-          New package
-        </>
+        <span className={classes.error}>
+          <IconSyncProblemOutlined className={classes.root} fontSize="small" />
+          Failed checking if package exists
+        </span>
       )
+    default:
+      assertNever(nameStatus)
   }
 }
 

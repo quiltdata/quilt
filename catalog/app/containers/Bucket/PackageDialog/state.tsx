@@ -8,7 +8,8 @@ import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 type NameStatus =
   | { _tag: 'idle' }
   | { _tag: 'loading' }
-  | { _tag: 'exists'; dst: PackageDst }
+  | { _tag: 'exists' }
+  | { _tag: 'able-to-reuse'; dst: Required<PackageDst> }
   | { _tag: 'invalid' }
   | { _tag: 'new' }
 
@@ -32,7 +33,7 @@ interface PackageDialogState {
 
 const Context = React.createContext<PackageDialogState | null>(null)
 
-function useContext(): PackageDialogState {
+export function useContext(): PackageDialogState {
   const context = React.useContext(Context)
   invariant(context, 'useContext must be used within PackageDialogProvider')
   return context
@@ -61,25 +62,24 @@ export function PackageDialogProvider({
       name: dst.name || '',
     },
     {
-      pause: !dst.bucket || !dst.name,
+      pause:
+        !dst.bucket || !dst.name || (dst.bucket === src?.bucket && dst.name === src.name),
     },
   )
-  const nameStatus: NameStatus = React.useMemo(
-    () =>
-      GQL.fold(packageExistsQuery, {
-        data: ({ package: r }) => {
-          if (!r) return { _tag: 'new' }
-          switch (r.__typename) {
-            default: {
-              return { _tag: 'exists', dst }
-            }
-          }
-        },
-        fetching: () => ({ _tag: 'loading' }),
-        error: () => ({ _tag: 'invalid' }),
-      }),
-    [dst, packageExistsQuery],
-  )
+  const nameStatus: NameStatus = React.useMemo(() => {
+    if (dst.bucket === src?.bucket && dst.name === src.name) return { _tag: 'exists' }
+    return GQL.fold(packageExistsQuery, {
+      data: ({ package: r }) => {
+        if (!r) return { _tag: 'new' }
+        switch (r.__typename) {
+          default:
+            return { _tag: 'able-to-reuse', dst: { bucket: dst.bucket, name: r.name } }
+        }
+      },
+      fetching: () => ({ _tag: 'loading' }),
+      error: () => ({ _tag: 'invalid' }),
+    })
+  }, [dst, packageExistsQuery, src])
 
   // Sync with external source updates
   React.useEffect(() => {

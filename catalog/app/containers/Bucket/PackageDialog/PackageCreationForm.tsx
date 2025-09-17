@@ -202,7 +202,7 @@ function PackageCreationForm({
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const packageDialogState = State.use()
+  const { onName } = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -383,18 +383,11 @@ function PackageCreationForm({
     }
   }
 
-  const handleNameChange = React.useCallback(
-    async (name) => {
-      await packageDialogState.onName(name)
-    },
-    [packageDialogState],
-  )
-
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
-      if (dirtyFields?.name) handleNameChange(values.name)
+      if (dirtyFields?.name) onName(values.name)
     },
-    [handleNameChange],
+    [onName],
   )
 
   const validateFiles = React.useCallback(
@@ -665,7 +658,7 @@ export function usePackageCreationDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
-  const packageDialogState = State.use()
+  const { src } = State.use()
   const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
@@ -680,14 +673,12 @@ export function usePackageCreationDialog({
   const manifestData = useManifest({
     bucket,
     // this only gets passed when src is defined, so it should be always non-null when the query gets executed
-    name: packageDialogState.src?.name!,
-    hashOrTag: packageDialogState.src?.hash,
-    pause: !(packageDialogState.src && isOpen),
+    name: src?.name!,
+    hashOrTag: src?.hash,
+    pause: !(src && isOpen),
   })
 
-  const manifestResult = packageDialogState.src
-    ? manifestData.result
-    : EMPTY_MANIFEST_RESULT
+  const manifestResult = src ? manifestData.result : EMPTY_MANIFEST_RESULT
 
   // AsyncResult<Model.PackageContentsFlatMap | undefined>
   const data = React.useMemo(
@@ -834,7 +825,7 @@ export function usePackageCreationDialog({
                     workflowsConfig,
                     sourceBuckets,
                     initial: {
-                      name: packageDialogState.src?.name,
+                      name: src?.name,
                       ...manifest,
                     },
                     currentBucketCanBeSuccessor,

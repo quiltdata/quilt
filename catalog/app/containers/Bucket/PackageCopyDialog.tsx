@@ -111,8 +111,7 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const validateNameExistence = PD.useNameExistence(successor.slug)
-  const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
+  const { onName } = PD.useContext()
   const classes = useStyles()
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
@@ -180,18 +179,6 @@ function DialogForm({
     }
   }
 
-  const handleNameChange = React.useCallback(
-    async (name) => {
-      const nameExists = await validateNameExistence(name)
-      const warning = <PD.PackageNameWarning exists={!!nameExists} onRevise={() => {}} />
-
-      if (warning !== nameWarning) {
-        setNameWarning(warning)
-      }
-    },
-    [nameWarning, validateNameExistence],
-  )
-
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
 
   // HACK: FIXME: it triggers name validation with correct workflow
@@ -209,9 +196,9 @@ function DialogForm({
         }, 300)
       }
 
-      handleNameChange(values.name)
+      if (modified?.name) onName(values.name)
     },
-    [handleNameChange, selectedWorkflow, setWorkflow],
+    [onName, selectedWorkflow, setWorkflow],
   )
 
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -280,7 +267,7 @@ function DialogForm({
                   invalid: 'Invalid package name',
                   pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                 }}
-                helperText={nameWarning}
+                helperText={<PD.PackageNameWarning />}
                 initialValue={initialName}
               />
 
