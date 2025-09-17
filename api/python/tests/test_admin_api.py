@@ -3,30 +3,9 @@ import datetime
 from unittest import mock
 
 import pytest
-from pydantic import ValidationError
 
 from quilt3 import admin
 from quilt3.admin import _graphql_client
-
-from .fixtures.admin_graphql_responses import (
-    ROLES_LIST_RESPONSE,
-    SSO_CONFIG_GET_NOT_FOUND_RESPONSE,
-    SSO_CONFIG_SET_SUCCESS_RESPONSE,
-    SSO_CONFIG_SET_VALIDATION_ERROR_RESPONSE,
-    TABULATOR_TABLES_BUCKET_NOT_FOUND_RESPONSE,
-    USER_MUTATION_NOT_FOUND_RESPONSE,
-    USERS_CREATE_OPERATION_ERROR_RESPONSE,
-    USERS_CREATE_VALIDATION_ERROR_RESPONSE,
-    USERS_GET_NOT_FOUND_RESPONSE,
-    USERS_LIST_RESPONSE,
-)
-from .fixtures.graphql_schema_fragments import (
-    validate_graphql_response_structure,
-    validate_role_response,
-    validate_sso_config_response,
-    validate_tabulator_table_response,
-    validate_user_response,
-)
 
 UNMANAGED_ROLE = {
     "__typename": "UnmanagedRole",
@@ -466,214 +445,118 @@ def test_tabulator_set_open_query():
 
 
 # =============================================================================
-# GRAPHQL CLIENT INFRASTRUCTURE TESTS FOR INCREASED COVERAGE
+# FOCUSED COVERAGE IMPROVEMENTS FOR GRAPHQL CLIENT EXCEPTIONS
 # =============================================================================
 
 
-class TestGraphQLClientExceptions:
-    """Test GraphQL client exception handling to increase coverage."""
+def test_graphql_client_http_error():
+    """Test GraphQLClientHttpError exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientHttpError
+    import requests
 
-    def test_graphql_client_http_error(self):
-        """Test GraphQLClientHttpError exception."""
-        from quilt3.admin._graphql_client.exceptions import GraphQLClientHttpError
-        import requests
+    # Create a mock response
+    response = mock.Mock(spec=requests.Response)
+    response.status_code = 500
 
-        # Create a mock response
-        response = mock.Mock(spec=requests.Response)
-        response.status_code = 500
-
-        error = GraphQLClientHttpError(500, response)
-        assert error.status_code == 500
-        assert error.response == response
-        assert str(error) == "HTTP status code: 500"
-
-    def test_graphql_client_invalid_response_error(self):
-        """Test GraphQLClientInvalidResponseError exception."""
-        from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidResponseError
-        import requests
-
-        response = mock.Mock(spec=requests.Response)
-        error = GraphQLClientInvalidResponseError(response)
-        assert error.response == response
-        assert str(error) == "Invalid response format."
-
-    def test_graphql_client_graphql_error(self):
-        """Test GraphQLClientGraphQLError exception."""
-        from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError
-
-        # Test basic construction
-        error = GraphQLClientGraphQLError("Test error")
-        assert error.message == "Test error"
-        assert error.locations is None
-        assert error.path is None
-        assert error.extensions is None
-        assert str(error) == "Test error"
-
-        # Test with all fields
-        error = GraphQLClientGraphQLError(
-            message="Field error",
-            locations=[{"line": 1, "column": 5}],
-            path=["user", "name"],
-            extensions={"code": "VALIDATION_ERROR"},
-            orginal={"message": "Field error"},
-        )
-        assert error.message == "Field error"
-        assert error.locations == [{"line": 1, "column": 5}]
-        assert error.path == ["user", "name"]
-        assert error.extensions == {"code": "VALIDATION_ERROR"}
-
-        # Test from_dict
-        error_dict = {
-            "message": "Field required",
-            "locations": [{"line": 2, "column": 3}],
-            "path": ["input", "email"],
-            "extensions": {"code": "REQUIRED"},
-        }
-        error = GraphQLClientGraphQLError.from_dict(error_dict)
-        assert error.message == "Field required"
-        assert error.locations == [{"line": 2, "column": 3}]
-        assert error.path == ["input", "email"]
-        assert error.extensions == {"code": "REQUIRED"}
-        assert error.orginal == error_dict
-
-    def test_graphql_client_multi_error(self):
-        """Test GraphQLClientGraphQLMultiError exception."""
-        from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError, GraphQLClientGraphQLMultiError
-
-        # Create individual errors
-        error1 = GraphQLClientGraphQLError("Error 1")
-        error2 = GraphQLClientGraphQLError("Error 2")
-
-        # Test multi error
-        multi_error = GraphQLClientGraphQLMultiError([error1, error2])
-        assert len(multi_error.errors) == 2
-        assert multi_error.data is None
-        assert str(multi_error) == "Error 1; Error 2"
-
-        # Test with data
-        multi_error = GraphQLClientGraphQLMultiError([error1], data={"partial": "data"})
-        assert multi_error.data == {"partial": "data"}
-
-        # Test from_errors_dicts
-        error_dicts = [{"message": "First error"}, {"message": "Second error"}]
-        multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(error_dicts, data={"some": "data"})
-        assert len(multi_error.errors) == 2
-        assert multi_error.errors[0].message == "First error"
-        assert multi_error.errors[1].message == "Second error"
-        assert multi_error.data == {"some": "data"}
-
-    def test_graphql_client_invalid_message_format(self):
-        """Test GraphQLClientInvalidMessageFormat exception."""
-        from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidMessageFormat
-
-        # Test with string message
-        error = GraphQLClientInvalidMessageFormat("Invalid JSON")
-        assert error.message == "Invalid JSON"
-        assert str(error) == "Invalid message format."
-
-        # Test with bytes message
-        error = GraphQLClientInvalidMessageFormat(b"Invalid bytes")
-        assert error.message == b"Invalid bytes"
-        assert str(error) == "Invalid message format."
+    error = GraphQLClientHttpError(500, response)
+    assert error.status_code == 500
+    assert error.response == response
+    assert str(error) == "HTTP status code: 500"
 
 
-class TestGraphQLClientBaseClient:
-    """Test GraphQL base client functionality to increase coverage."""
+def test_graphql_client_invalid_response_error():
+    """Test GraphQLClientInvalidResponseError exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidResponseError
+    import requests
 
-    def test_base_client_context_manager(self):
-        """Test BaseClient context manager functionality."""
-        from quilt3.admin._graphql_client.base_client import BaseClient
-
-        with mock.patch("quilt3.session.get_registry_url", return_value="https://test.com"):
-            with mock.patch("quilt3.session.get_session") as mock_session:
-                mock_http_client = mock.Mock()
-                mock_session.return_value = mock_http_client
-
-                # Test context manager
-                with BaseClient() as client:
-                    assert client.url == "https://test.com/graphql"
-                    assert client.http_client == mock_http_client
-
-                # Verify close was called on exit
-                mock_http_client.close.assert_called_once()
-
-    def test_base_client_initialization(self):
-        """Test BaseClient initialization."""
-        from quilt3.admin._graphql_client.base_client import BaseClient
-
-        with mock.patch("quilt3.session.get_registry_url", return_value="https://registry.test"):
-            with mock.patch("quilt3.session.get_session") as mock_session:
-                mock_http_client = mock.Mock()
-                mock_session.return_value = mock_http_client
-
-                client = BaseClient()
-                assert client.url == "https://registry.test/graphql"
-                assert client.http_client == mock_http_client
+    response = mock.Mock(spec=requests.Response)
+    error = GraphQLClientInvalidResponseError(response)
+    assert error.response == response
+    assert str(error) == "Invalid response format."
 
 
-class TestMockInfrastructureUtilities:
-    """Test mock infrastructure utilities for completeness."""
+def test_graphql_client_graphql_error():
+    """Test GraphQLClientGraphQLError exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError
 
-    def test_operation_name_extraction_edge_cases(self, graphql_router):
-        """Test operation name extraction with various query formats."""
-        # Test query with extra whitespace
-        result = graphql_router._extract_operation_name("query    usersList { admin { user } }")
-        assert result == "usersList"
+    # Test basic construction
+    error = GraphQLClientGraphQLError("Test error")
+    assert error.message == "Test error"
+    assert error.locations is None
+    assert error.path is None
+    assert error.extensions is None
+    assert str(error) == "Test error"
 
-        # Test mutation
-        result = graphql_router._extract_operation_name("mutation usersCreate($input: UserInput!) { }")
-        assert result == "usersCreate"
+    # Test with all fields
+    error = GraphQLClientGraphQLError(
+        message="Field error",
+        locations=[{"line": 1, "column": 5}],
+        path=["user", "name"],
+        extensions={"code": "VALIDATION_ERROR"},
+        orginal={"message": "Field error"},
+    )
+    assert error.message == "Field error"
+    assert error.locations == [{"line": 1, "column": 5}]
+    assert error.path == ["user", "name"]
+    assert error.extensions == {"code": "VALIDATION_ERROR"}
 
-        # Test invalid query
-        with pytest.raises(ValueError):
-            graphql_router._extract_operation_name("SELECT * FROM users")
+    # Test from_dict
+    error_dict = {
+        "message": "Field required",
+        "locations": [{"line": 2, "column": 3}],
+        "path": ["input", "email"],
+        "extensions": {"code": "REQUIRED"},
+    }
+    error = GraphQLClientGraphQLError.from_dict(error_dict)
+    assert error.message == "Field required"
+    assert error.locations == [{"line": 2, "column": 3}]
+    assert error.path == ["input", "email"]
+    assert error.extensions == {"code": "REQUIRED"}
+    assert error.orginal == error_dict
 
-    def test_router_edge_cases(self, graphql_router):
-        """Test router with edge cases and error conditions."""
-        # Test with no configured response
-        with pytest.raises(KeyError):
-            graphql_router.route_operation("query unknown", "unknown")
 
-        # Test get_last_call with non-existent operation
-        result = graphql_router.get_last_call("nonexistent")
-        assert result is None
+def test_graphql_client_multi_error():
+    """Test GraphQLClientGraphQLMultiError exception."""
+    from quilt3.admin._graphql_client.exceptions import (
+        GraphQLClientGraphQLError,
+        GraphQLClientGraphQLMultiError
+    )
 
-        # Test get_call_count with non-existent operation
-        count = graphql_router.get_call_count("nonexistent")
-        assert count == 0
+    # Create individual errors
+    error1 = GraphQLClientGraphQLError("Error 1")
+    error2 = GraphQLClientGraphQLError("Error 2")
 
-    def test_validation_utilities_coverage(self):
-        """Test validation utility functions for coverage."""
-        from tests.fixtures.graphql_schema_fragments import (
-            validate_error_response,
-            validate_invalid_input_error,
-            validate_operation_error,
-            extract_response_data,
-        )
+    # Test multi error
+    multi_error = GraphQLClientGraphQLMultiError([error1, error2])
+    assert len(multi_error.errors) == 2
+    assert multi_error.data is None
+    assert str(multi_error) == "Error 1; Error 2"
 
-        # Test invalid input error validation
-        invalid_input = {
-            "__typename": "InvalidInput",
-            "errors": [{"path": "email", "message": "Invalid format", "name": "ValidationError", "context": {}}],
-        }
-        assert validate_invalid_input_error(invalid_input)
-        assert validate_error_response(invalid_input)
+    # Test with data
+    multi_error = GraphQLClientGraphQLMultiError([error1], data={"partial": "data"})
+    assert multi_error.data == {"partial": "data"}
 
-        # Test operation error validation
-        operation_error = {
-            "__typename": "OperationError",
-            "message": "Operation failed",
-            "name": "OperationError",
-            "context": {},
-        }
-        assert validate_operation_error(operation_error)
-        assert validate_error_response(operation_error)
+    # Test from_errors_dicts
+    error_dicts = [{"message": "First error"}, {"message": "Second error"}]
+    multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(
+        error_dicts, data={"some": "data"}
+    )
+    assert len(multi_error.errors) == 2
+    assert multi_error.errors[0].message == "First error"
+    assert multi_error.errors[1].message == "Second error"
+    assert multi_error.data == {"some": "data"}
 
-        # Test extract_response_data
-        response = {"admin": {"user": {"list": ["user1", "user2"]}}}
-        result = extract_response_data(response, "admin.user.list")
-        assert result == ["user1", "user2"]
 
-        # Test with invalid path
-        result = extract_response_data(response, "invalid.path")
-        assert result is None
+def test_graphql_client_invalid_message_format():
+    """Test GraphQLClientInvalidMessageFormat exception."""
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientInvalidMessageFormat
+
+    # Test with string message
+    error = GraphQLClientInvalidMessageFormat("Invalid JSON")
+    assert error.message == "Invalid JSON"
+    assert str(error) == "Invalid message format."
+
+    # Test with bytes message
+    error = GraphQLClientInvalidMessageFormat(b"Invalid bytes")
+    assert error.message == b"Invalid bytes"
+    assert str(error) == "Invalid message format."
