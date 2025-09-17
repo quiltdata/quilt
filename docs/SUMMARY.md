@@ -34,7 +34,7 @@
 * **Advanced**
   * [Package Events](advanced-features/package-events.md)
   * [Private Endpoints](advanced-features/private-endpoint-access.md)
-  * [S3 Bucket Prefix Permissions](advanced-features/s3-prefix-permissions.md)
+  * [Restrict Access by Bucket Prefix](advanced-features/s3-prefix-permissions.md)
   * [S3 Events via EventBridge](EventBridge.md)
   * [SSO Permissions Mapping](advanced-features/sso-permissions.md)
   * [Tabulator](advanced-features/tabulator.md)
