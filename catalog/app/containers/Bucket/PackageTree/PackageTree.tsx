@@ -998,7 +998,7 @@ function PackageTree({
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
       {hash ? (
-        <PD.Provider initialSrc={{ name, hash }}>
+        <PD.Provider src={{ bucket, name, hash }} dst={{ bucket }}>
           <ResolverProvider {...{ bucket, name, hash }}>
             {isDir ? (
               <DirDisplay

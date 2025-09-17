@@ -290,7 +290,7 @@ export default function Sidebar({ bookmarks, bucket = '' }: SidebarProps) {
     }
   }, [addToPackage, bookmarks, createDialog, handlesToS3Files, handles])
   return (
-    <PD.Provider>
+    <PD.Provider dst={{ bucket }}>
       <M.MuiThemeProvider theme={style.appTheme}>
         <Drawer
           error={error}

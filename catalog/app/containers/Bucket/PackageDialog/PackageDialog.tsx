@@ -30,6 +30,7 @@ import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 import SelectWorkflow from './SelectWorkflow'
+import * as State from './state'
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
@@ -131,13 +132,9 @@ export function useNameValidator(workflow?: workflows.Workflow) {
 }
 
 export function useNameExistence(bucket: string) {
-  const [counter, setCounter] = React.useState(0)
-  const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
   const client = urql.useClient()
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const validate = React.useCallback(
-    cacheDebounce(async (name: string) => {
+    async (name: string) => {
       if (name) {
         const res = await client
           .query(
@@ -149,11 +146,10 @@ export function useNameExistence(bucket: string) {
         if (res.data?.package) return 'exists'
       }
       return undefined
-    }, 200),
-    [bucket, counter, client],
+    },
+    [bucket, client],
   )
-
-  return React.useMemo(() => ({ validate, inc }), [validate, inc])
+  return cacheDebounce(validate, 200)
 }
 
 export function mkMetaValidator(schema?: JsonSchema) {
@@ -507,28 +503,38 @@ const usePackageNameWarningStyles = M.makeStyles({
   },
 })
 
-interface PackageNameWarningProps {
-  exists?: boolean
-  onRevise: () => void
-}
-
-export const PackageNameWarning = ({ exists, onRevise }: PackageNameWarningProps) => {
+export const PackageNameWarning = () => {
+  const { nameStatus, setSrc } = State.use()
   const classes = usePackageNameWarningStyles()
-  return (
-    <>
-      <M.Icon className={classes.root} fontSize="small">
-        info_outlined
-      </M.Icon>
-      {exists ? (
+  return <M.CircularProgress size={24} />
+  switch (nameStatus._tag) {
+    case 'idle':
+      return null
+    case 'loading':
+      return <M.CircularProgress size={24} />
+    case 'exists':
+      return (
         <>
+          <M.Icon className={classes.root} fontSize="small">
+            info_outlined
+          </M.Icon>
           Existing package. Want to{' '}
-          <StyledLink onClick={onRevise}>load and revise it</StyledLink>?
+          <StyledLink onClick={() => setSrc(nameStatus.dst)}>
+            load and revise it
+          </StyledLink>
+          ?
         </>
-      ) : (
-        'New package'
-      )}
-    </>
-  )
+      )
+    case 'new':
+      return (
+        <>
+          <M.Icon className={classes.root} fontSize="small">
+            info_outlined
+          </M.Icon>
+          New package
+        </>
+      )
+  }
 }
 
 interface DialogWrapperProps {

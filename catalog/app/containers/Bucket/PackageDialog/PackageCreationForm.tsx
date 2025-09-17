@@ -215,7 +215,6 @@ function PackageCreationForm({
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const nameExistence = PD.useNameExistence(successor.slug)
   const packageDialogState = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
@@ -406,19 +405,9 @@ function PackageCreationForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      const nameExists = await nameExistence.validate(name)
-      const warning = (
-        <PD.PackageNameWarning
-          exists={!!nameExists}
-          onRevise={() => packageDialogState.setSrc({ name })}
-        />
-      )
-
-      if (warning !== packageDialogState.nameWarning) {
-        packageDialogState.setNameWarning(warning)
-      }
+      await packageDialogState.onName(name)
     },
-    [packageDialogState, nameExistence],
+    [packageDialogState],
   )
 
   const onFormChange = React.useCallback(
@@ -529,7 +518,7 @@ function PackageCreationForm({
                       invalid: 'Invalid package name',
                       pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                     }}
-                    helperText={packageDialogState.nameWarning}
+                    helperText={<PD.PackageNameWarning />}
                     validating={nameValidator.processing}
                   />
 

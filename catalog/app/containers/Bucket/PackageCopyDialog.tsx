@@ -111,7 +111,7 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const nameExistence = PD.useNameExistence(successor.slug)
+  const validateNameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const classes = useStyles()
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
@@ -182,14 +182,14 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      const nameExists = await nameExistence.validate(name)
+      const nameExists = await validateNameExistence(name)
       const warning = <PD.PackageNameWarning exists={!!nameExists} onRevise={() => {}} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence],
+    [nameWarning, validateNameExistence],
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)

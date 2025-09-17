@@ -542,7 +542,7 @@ export default function PackageRevisionsWrapper() {
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (
-    <PD.Provider initialSrc={{ name }}>
+    <PD.Provider src={{ bucket, name }} dst={{ bucket }}>
       <MetaTitle>{[name, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <PackageRevisions {...{ bucket, name, page }} />
