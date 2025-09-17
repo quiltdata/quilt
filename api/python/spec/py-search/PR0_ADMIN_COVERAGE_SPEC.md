@@ -22,7 +22,8 @@ safety net before any refactoring.
 - `exceptions.py`: 54% coverage (19 missed lines) - GraphQL exception classes
 - Most other files: 90%+ coverage (well tested)
 
-**Root Cause**: Existing tests mock at the admin API level, bypassing GraphQL client internals.
+**Root Cause**: Existing tests mock at the admin API level, bypassing GraphQL
+client internals.
 
 ## Target State
 
