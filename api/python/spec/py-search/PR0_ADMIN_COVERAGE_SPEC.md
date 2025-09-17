@@ -17,6 +17,7 @@ safety net before any refactoring.
 ## Current State Analysis
 
 **Coverage Report (Baseline: 87%)**:
+
 - `base_client.py`: 26% coverage (62 missed lines) - Generated HTTP client code
 - `exceptions.py`: 54% coverage (19 missed lines) - GraphQL exception classes
 - Most other files: 90%+ coverage (well tested)
@@ -28,6 +29,7 @@ safety net before any refactoring.
 **Coverage Goal**: 95%+ with minimal complexity
 
 **Strategy**: Target the specific uncovered lines with surgical precision:
+
 1. **GraphQL Exceptions**: Test exception classes directly (18 lines improvement)
 2. **Edge Cases**: Test error paths in well-covered modules (2-5 lines improvement)
 3. **No Infrastructure**: Use existing test patterns, no new frameworks
@@ -39,6 +41,7 @@ safety net before any refactoring.
 **File**: `tests/test_admin_exceptions.py` (NEW - 50 lines)
 
 Simple tests for GraphQL client exceptions:
+
 ```python
 def test_graphql_client_exceptions():
     # Test GraphQLClientHttpError
@@ -51,6 +54,7 @@ def test_graphql_client_exceptions():
 **File**: `tests/test_admin_api.py` (MODIFY - add 10-20 lines)
 
 Add edge case tests for existing well-covered modules:
+
 - Test error paths in admin utility functions
 - Test exception handling in user operations
 - Test edge cases in existing admin functions
@@ -89,11 +93,13 @@ Add edge case tests for existing well-covered modules:
 ## Reality Check
 
 **Previous Approach Problems:**
+
 - 600+ lines of infrastructure for 20 lines of coverage
 - Complex GraphQL mocking for already-tested functionality
 - Solution complexity >> problem scope
 
 **New Approach Benefits:**
+
 - 50-70 lines of tests for 20+ lines of coverage
 - Direct testing of actual uncovered code
 - Proportional solution to actual problem
