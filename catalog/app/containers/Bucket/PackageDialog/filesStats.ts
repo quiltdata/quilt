@@ -1,8 +1,7 @@
 import * as R from 'ramda'
 
 import * as PD from './PackageDialog'
-import * as S3FilePicker from './S3FilePicker'
-import { FilesState } from './FilesState'
+import { isS3File, FilesState } from './FilesState'
 
 export interface StatsWarning {
   upload: boolean
@@ -20,7 +19,7 @@ export interface Stats {
 export const calcStats = ({ added, existing }: FilesState): Stats => {
   const upload = Object.entries(added).reduce(
     (acc, [path, f]) => {
-      if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
+      if (isS3File(f)) return acc // dont count s3 files
       const e = existing[path]
       if (e && (!f.hash.ready || R.equals(f.hash.value, e.hash))) return acc
       return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
@@ -29,13 +28,11 @@ export const calcStats = ({ added, existing }: FilesState): Stats => {
   )
   const s3 = Object.entries(added).reduce(
     (acc, [, f]) =>
-      S3FilePicker.isS3File(f)
-        ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
-        : acc,
+      isS3File(f) ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc) : acc,
     { count: 0, size: 0 },
   )
   const hashing = Object.values(added).reduce(
-    (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
+    (acc, f) => acc || (!isS3File(f) && !f.hash.ready),
     false,
   )
   const warn = {

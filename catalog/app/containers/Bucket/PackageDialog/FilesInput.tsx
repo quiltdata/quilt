@@ -32,13 +32,14 @@ import {
   FileWithHash,
   FilesState,
   handleFilesAction,
+  isS3File,
   EMPTY_DIR_MARKER,
 } from './FilesState'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 import { calcStats, Stats, StatsWarning } from './filesStats'
 
-export { EMPTY_DIR_MARKER, FilesAction } from './FilesState'
+export { EMPTY_DIR_MARKER, FilesAction, groupAddedFiles } from './FilesState'
 export type { LocalFile, FilesState } from './FilesState'
 
 interface Progress {
@@ -417,7 +418,7 @@ const computeEntries = ({
         const a = added[path]
         let state: FilesEntryState
         let type: FilesEntryType
-        if (S3FilePicker.isS3File(a)) {
+        if (isS3File(a)) {
           type = 's3' as const
           state = 'modified' as const
         } else {
@@ -449,7 +450,7 @@ const computeEntries = ({
       // eslint-disable-next-line no-nested-ternary
       f === EMPTY_DIR_MARKER
         ? ('hidden' as const)
-        : S3FilePicker.isS3File(f)
+        : isS3File(f)
           ? ('s3' as const)
           : ('local' as const)
     return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
@@ -468,9 +469,7 @@ export const HASHING = 'hashing'
 export const HASHING_ERROR = 'hashingError'
 
 export const validateHashingComplete = (state: FilesState) => {
-  const files = Object.values(state.added).filter(
-    (f) => !S3FilePicker.isS3File(f),
-  ) as FileWithHash[]
+  const files = Object.values(state.added).filter((f) => !isS3File(f)) as FileWithHash[]
   if (files.some((f) => f.hash.ready && !f.hash.value)) return HASHING_ERROR
   if (files.some((f) => !f.hash.ready)) return HASHING
   return undefined
@@ -1556,9 +1555,7 @@ function DndProvider({ children }: DndProviderProps) {
 const waitFor = (added: FilesState['added']) =>
   Object.values(added).reduce(
     (acc, f) =>
-      S3FilePicker.isS3File(f) || f.hash.ready
-        ? acc
-        : acc.concat(f.hash.promise.catch(() => {})),
+      isS3File(f) || f.hash.ready ? acc : acc.concat(f.hash.promise.catch(() => {})),
     [] as Promise<any>[],
   )
 
