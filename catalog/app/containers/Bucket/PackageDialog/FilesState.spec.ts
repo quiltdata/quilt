@@ -9,6 +9,8 @@ import {
   renameKey,
   renameKeys,
   FilesEntry,
+  groupAddedFiles,
+  EMPTY_DIR_MARKER,
 } from './FilesState'
 
 describe('utils/object', () => {
@@ -448,6 +450,91 @@ describe('utils/object', () => {
         deleted: {},
       })
       expect(result).toBe(initial.initial)
+    })
+  })
+
+  describe('groupAddedFiles', () => {
+    const fileAA = { name: 'foo.txt' } as FileWithHash
+    const fileAB = { name: 'bar.js' } as FileWithHash
+
+    const fileSA = { bucket: 'b', key: 'a.txt', size: 100 } as Model.S3File
+    const fileSB = { bucket: 'b', key: 'b.jpg', size: 200 } as Model.S3File
+
+    it('should return empty arrays for empty input', () => {
+      const result = groupAddedFiles({})
+      expect(result).toEqual({ local: [], remote: [] })
+    })
+
+    it('should group only local files', () => {
+      const added = {
+        [fileAA.name]: fileAA,
+        [fileAB.name]: fileAB,
+      }
+
+      const result = groupAddedFiles(added)
+
+      expect(result.remote).toHaveLength(0)
+      expect(result.local).toEqual([
+        {
+          path: fileAA.name,
+          file: fileAA,
+        },
+        {
+          path: fileAB.name,
+          file: fileAB,
+        },
+      ])
+    })
+
+    it('should group only remote (S3) files', () => {
+      const added = {
+        [fileSA.key]: fileSA,
+        [fileSB.key]: fileSB,
+      }
+
+      const result = groupAddedFiles(added)
+
+      expect(result.local).toHaveLength(0)
+      expect(result.remote).toEqual([
+        {
+          path: fileSA.key,
+          file: fileSA,
+        },
+        {
+          path: fileSB.key,
+          file: fileSB,
+        },
+      ])
+    })
+
+    it('should group mixed local and remote files', () => {
+      const added = {
+        [fileAA.name]: fileAA,
+        [fileSA.key]: fileSA,
+        [fileAB.name]: fileAB,
+        [fileSB.key]: fileSB,
+      }
+
+      const result = groupAddedFiles(added)
+
+      expect(result.local).toHaveLength(2)
+      expect(result.remote).toHaveLength(2)
+    })
+
+    it('should filter out EMPTY_DIR_MARKER entries', () => {
+      const added = {
+        [fileAA.name]: fileAA,
+        'empty/folder': EMPTY_DIR_MARKER,
+        [fileSA.key]: fileSA,
+        'another-empty': EMPTY_DIR_MARKER,
+      }
+
+      const result = groupAddedFiles(added)
+
+      expect(result).toEqual({
+        local: [{ path: fileAA.name, file: fileAA }],
+        remote: [{ path: fileSA.key, file: fileSA }],
+      })
     })
   })
 })
