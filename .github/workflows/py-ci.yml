@@ -88,33 +88,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
-      - name: Run Pytest
-        run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
-      - name: Clean up virtual environment (Windows)
+      - name: Run Pytest (Windows)
         if: runner.os == 'Windows'
         run: |
-          # Force remove the virtual environment on Windows to avoid permission issues
-          if (Test-Path .venv) {
-            Write-Host "Cleaning up virtual environment..."
-            try {
-              Remove-Item -Path .venv -Recurse -Force -ErrorAction Stop
-              Write-Host "Virtual environment cleaned up successfully"
-            }
-            catch {
-              Write-Host "Warning: Failed to clean up virtual environment: $($_.Exception.Message)"
-              # Try alternative cleanup method
-              try {
-                Get-ChildItem .venv -Recurse | Remove-Item -Force -Recurse -ErrorAction Ignore
-                Write-Host "Alternative cleanup method succeeded"
-              }
-              catch {
-                Write-Host "Alternative cleanup also failed, but this is non-critical"
-              }
-            }
-          } else {
-            Write-Host "No virtual environment found to clean up"
-          }
+          # Use --no-project to avoid uv trying to manage virtual environment
+          # This prevents the "Access is denied" error during uv execution
+          uv run --no-project --python ${{ matrix.python-version }} --with pytest --with pytest-cov --with responses --with ruff --with quilt3[pyarrow,anndata] pytest --cov=. --cov-report=term-missing --cov-report xml
         shell: powershell
+      - name: Run Pytest (Unix)
+        if: runner.os != 'Windows'
+        run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
