@@ -307,3 +307,38 @@ export const handleFilesAction = FilesAction.match<
     () =>
       initial,
 })
+
+interface LocalEntry {
+  path: string
+  file: LocalFile
+}
+
+interface S3Entry {
+  path: string
+  file: Model.S3File
+}
+
+export const isS3File = (f: any): f is Model.S3File =>
+  !!f &&
+  typeof f === 'object' &&
+  typeof f.bucket === 'string' &&
+  typeof f.key === 'string' &&
+  (typeof f.version === 'string' || typeof f.version === 'undefined') &&
+  typeof f.size === 'number'
+
+interface AddedFilesGroups {
+  local: LocalEntry[]
+  remote: S3Entry[]
+}
+
+export function groupAddedFiles(added: FilesState['added']) {
+  return Object.entries(added)
+    .filter(([, file]) => file !== EMPTY_DIR_MARKER)
+    .reduce(
+      ({ local, remote }, [path, file]) =>
+        isS3File(file)
+          ? { local, remote: remote.concat({ path, file }) }
+          : { remote, local: local.concat({ path, file }) },
+      { local: [], remote: [] } as AddedFilesGroups,
+    )
+}

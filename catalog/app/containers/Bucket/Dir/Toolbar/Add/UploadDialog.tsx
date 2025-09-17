@@ -10,11 +10,6 @@ import type * as Toolbar from 'containers/Bucket/Toolbar'
 import Log from 'utils/Logging'
 import * as s3paths from 'utils/s3paths'
 
-interface LocalEntry {
-  file: FI.LocalFile
-  path: string
-}
-
 const useUploadDialogStyles = M.makeStyles((t) => ({
   drop: {
     height: t.spacing(60),
@@ -77,9 +72,7 @@ export default function UploadDialog({
   const onUpload = React.useCallback(async () => {
     setUploadState({ _tag: 'uploading' })
 
-    const files = Object.entries(value).map(
-      ([path, file]) => ({ path, file }) as LocalEntry,
-    )
+    const { local: files } = FI.groupAddedFiles(value)
     try {
       const uploadedEntries = await upload({
         files,
