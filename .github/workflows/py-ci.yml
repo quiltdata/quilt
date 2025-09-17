@@ -88,6 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
+      # trigger a ci run
       - name: Run Pytest
         run: uv run --python ${{ matrix.python-version }} poe test-cov --cov-report xml
       - uses: codecov/codecov-action@v5
