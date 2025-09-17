@@ -506,7 +506,7 @@ const usePackageNameWarningStyles = M.makeStyles({
 export const PackageNameWarning = () => {
   const { nameStatus, setSrc } = State.use()
   const classes = usePackageNameWarningStyles()
-  return <M.CircularProgress size={24} />
+  return <M.CircularProgress size={16} />
   switch (nameStatus._tag) {
     case 'idle':
       return null

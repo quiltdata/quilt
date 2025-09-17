@@ -147,12 +147,9 @@ const useDrawerStyles = M.makeStyles((t) => ({
     padding: t.spacing(4),
   },
   actions: {
+    display: 'flex',
     margin: t.spacing(3, 0, 0),
-  },
-  button: {
-    '& + &': {
-      marginLeft: t.spacing(1),
-    },
+    gap: t.spacing(1),
   },
   error: {
     margin: t.spacing(1, 0, 2),
@@ -165,23 +162,21 @@ const useDrawerStyles = M.makeStyles((t) => ({
 }))
 
 interface DrawerProps {
+  children: React.ReactNode
   error: Error | null
   handles: Model.S3.S3ObjectLocation[]
-  loading: boolean
-  onClose?: () => void
-  onPackage?: () => void
-  open?: boolean
-  onRemove: (handle: Model.S3.S3ObjectLocation) => void
   onClear: () => void
+  onClose?: () => void
+  onRemove: (handle: Model.S3.S3ObjectLocation) => void
+  open?: boolean
 }
 
 function Drawer({
+  children,
   error,
   handles,
-  loading,
   onClear,
   onClose,
-  onPackage,
   onRemove,
   open,
 }: DrawerProps) {
@@ -213,27 +208,69 @@ function Drawer({
         )}
         <div className={classes.actions}>
           <M.Button
-            className={classes.button}
             color="primary"
-            disabled={loading || !handles.length}
+            disabled={!handles.length}
             onClick={onClear}
             variant="outlined"
           >
             Clear bookmarks
           </M.Button>
-          <M.Button
-            className={classes.button}
-            color="primary"
-            disabled={loading || !handles.length || !onPackage}
-            onClick={onPackage}
-            startIcon={loading && <M.CircularProgress size={16} />}
-            variant="contained"
-          >
-            Create package
-          </M.Button>
+          {children}
         </div>
       </div>
     </M.Drawer>
+  )
+}
+
+interface CreatePackageProps {
+  bucket: string
+  handles: Model.S3.S3ObjectLocation[]
+  onPackageDialog: (error?: Error) => void
+}
+
+function CreatePackage({ bucket, handles, onPackageDialog }: CreatePackageProps) {
+  const addToPackage = AddToPackage.use()
+  const createDialog = PD.usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+  const [traversing, setTraversing] = React.useState(false)
+  const headFile = useHeadFile()
+  const bucketListing = useBucketListing()
+  const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
+  const handleSubmit = React.useCallback(async () => {
+    if (!addToPackage) throw new Error('Add to Package is not ready')
+    setTraversing(true)
+    try {
+      const files = await handlesToS3Files(handles)
+      addToPackage?.merge(files)
+      createDialog.open()
+      onPackageDialog()
+    } catch (e) {
+      onPackageDialog(e instanceof Error ? e : new Error(`${e}`))
+    }
+    setTraversing(false)
+  }, [addToPackage, onPackageDialog, createDialog, handlesToS3Files, handles])
+  return (
+    <>
+      <M.Button
+        color="primary"
+        disabled={traversing || !handles.length}
+        onClick={handleSubmit}
+        startIcon={traversing && <M.CircularProgress size={16} />}
+        variant="contained"
+      >
+        Create package
+      </M.Button>
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+    </>
   )
 }
 
@@ -242,23 +279,13 @@ interface SidebarProps {
   bucket?: string
 }
 
-export default function Sidebar({ bookmarks, bucket = '' }: SidebarProps) {
-  const addToPackage = AddToPackage.use()
+export default function Sidebar({ bookmarks, bucket }: SidebarProps) {
   const entries = bookmarks.groups.main.entries
   const handles: Model.S3.S3ObjectLocation[] = React.useMemo(
     () => (entries ? Object.values(entries) : []),
     [entries],
   )
   const [error, setError] = React.useState<Error | null>(null)
-  const [traversing, setTraversing] = React.useState(false)
-  const bucketListing = useBucketListing()
-  const headFile = useHeadFile()
-  const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
-  const createDialog = PD.usePackageCreationDialog({
-    bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
   const handleRemove = React.useCallback(
     (handle: Model.S3.S3ObjectLocation) => {
       const isLastBookmark = handles.length === 1
@@ -271,45 +298,40 @@ export default function Sidebar({ bookmarks, bucket = '' }: SidebarProps) {
     bookmarks.clear('main')
     bookmarks.hide()
   }, [bookmarks])
-  const handleSubmit = React.useCallback(async () => {
-    if (!addToPackage) throw new Error('Add to Package is not ready')
-    setTraversing(true)
-    try {
-      const files = await handlesToS3Files(handles)
-      addToPackage?.merge(files)
-      setTraversing(false)
-      createDialog.open()
-      bookmarks.hide()
-    } catch (e) {
-      if (e instanceof Error) {
-        setTraversing(false)
+  const onPackageDialog = React.useCallback(
+    (e?: Error) => {
+      if (e) {
         setError(e)
       } else {
-        throw e
+        bookmarks.hide()
       }
-    }
-  }, [addToPackage, bookmarks, createDialog, handlesToS3Files, handles])
+    },
+    [bookmarks],
+  )
   return (
-    <PD.Provider dst={{ bucket }}>
-      <M.MuiThemeProvider theme={style.appTheme}>
-        <Drawer
-          error={error}
-          handles={handles}
-          loading={traversing}
-          onClose={bookmarks.hide}
-          onPackage={bucket ? handleSubmit : undefined}
-          onRemove={handleRemove}
-          onClear={handleClear}
-          open={bookmarks.isOpened}
-        />
-        {createDialog.render({
-          successTitle: 'Package created',
-          successRenderMessage: ({ packageLink }) => (
-            <>Package {packageLink} successfully created</>
-          ),
-          title: 'Create package',
-        })}
-      </M.MuiThemeProvider>
-    </PD.Provider>
+    <M.MuiThemeProvider theme={style.appTheme}>
+      <Drawer
+        error={error}
+        handles={handles}
+        onClose={bookmarks.hide}
+        onRemove={handleRemove}
+        onClear={handleClear}
+        open={bookmarks.isOpened}
+      >
+        {bucket ? (
+          <PD.Provider dst={{ bucket }}>
+            <CreatePackage
+              bucket={bucket}
+              handles={handles}
+              onPackageDialog={onPackageDialog}
+            />
+          </PD.Provider>
+        ) : (
+          <M.Button color="primary" disabled variant="contained">
+            Create package
+          </M.Button>
+        )}
+      </Drawer>
+    </M.MuiThemeProvider>
   )
 }

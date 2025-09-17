@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 import { GridOn as IconGridOn, List as IconList } from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import * as PD from 'containers/Bucket/PackageDialog'
 import { useBucketStrict } from 'containers/Bucket/Routes'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
@@ -16,6 +16,23 @@ import * as SearchUIModel from '../model'
 
 import ColumnTitle from './ColumnTitle'
 
+interface CreatePackageWrapperProps {
+  className: string
+}
+
+function CreatePackageWrapper({ className }: CreatePackageWrapperProps) {
+  const bucket = useBucketStrict()
+  const btn = React.useCallback(
+    (onOpen) => <CreatePackageButton className={className} onClick={onOpen} />,
+    [className],
+  )
+  return (
+    <PD.Provider dst={{ bucket }}>
+      <CreatePackage bucket={bucket}>{btn}</CreatePackage>
+    </PD.Provider>
+  )
+}
+
 const useCreatePackageStyles = M.makeStyles({
   label: {
     display: 'block',
@@ -25,47 +42,55 @@ const useCreatePackageStyles = M.makeStyles({
   },
 })
 
-interface CreatePackageProps {
+interface CreatePackageButtonProps {
   className: string
+  onClick: () => void
 }
 
-function CreatePackage({ className }: CreatePackageProps) {
+function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
   const classes = useCreatePackageStyles()
-  const bucket = useBucketStrict()
-  const createDialog = usePackageCreationDialog({
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  return xs ? (
+    <M.Button
+      className={className}
+      color="primary"
+      onClick={onClick}
+      size="medium"
+      variant="contained"
+    >
+      <M.Icon>add</M.Icon>
+    </M.Button>
+  ) : (
+    <M.Button
+      className={className}
+      color="primary"
+      onClick={onClick}
+      size={sm ? 'medium' : 'small'}
+      startIcon={<M.Icon>add</M.Icon>}
+      variant="contained"
+    >
+      <span className={classes.label}>Create new package</span>
+    </M.Button>
+  )
+}
+
+interface CreatePackageProps {
+  bucket: string
+  children: (onOpen: () => void) => React.ReactNode
+}
+
+function CreatePackage({ bucket, children }: CreatePackageProps) {
+  const { open, render } = PD.usePackageCreationDialog({
     bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })
-  const handleClick = React.useCallback(() => createDialog.open(), [createDialog])
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
     <>
-      {xs ? (
-        <M.Button
-          className={className}
-          color="primary"
-          onClick={handleClick}
-          size="medium"
-          variant="contained"
-        >
-          <M.Icon>add</M.Icon>
-        </M.Button>
-      ) : (
-        <M.Button
-          className={className}
-          color="primary"
-          onClick={handleClick}
-          size={sm ? 'medium' : 'small'}
-          startIcon={<M.Icon>add</M.Icon>}
-          variant="contained"
-        >
-          <span className={classes.label}>Create new package</span>
-        </M.Button>
-      )}
-      {createDialog.render({
+      {children(open)}
+      {render({
         successTitle: 'Package created',
         successRenderMessage: ({ packageLink }) => (
           <>Package {packageLink} successfully created</>
@@ -243,7 +268,7 @@ export default function Results({ onFilters }: ResultsProps) {
       <div className={classes.controls}>
         <RRDom.Switch>
           <RRDom.Route path={paths.bucketRoot}>
-            <CreatePackage className={classes.create} />
+            <CreatePackageWrapper className={classes.create} />
           </RRDom.Route>
         </RRDom.Switch>
 
