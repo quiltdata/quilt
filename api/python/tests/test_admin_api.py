@@ -517,10 +517,7 @@ def test_graphql_client_graphql_error():
 
 def test_graphql_client_multi_error():
     """Test GraphQLClientGraphQLMultiError exception."""
-    from quilt3.admin._graphql_client.exceptions import (
-        GraphQLClientGraphQLError,
-        GraphQLClientGraphQLMultiError
-    )
+    from quilt3.admin._graphql_client.exceptions import GraphQLClientGraphQLError, GraphQLClientGraphQLMultiError
 
     # Create individual errors
     error1 = GraphQLClientGraphQLError("Error 1")
@@ -538,9 +535,7 @@ def test_graphql_client_multi_error():
 
     # Test from_errors_dicts
     error_dicts = [{"message": "First error"}, {"message": "Second error"}]
-    multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(
-        error_dicts, data={"some": "data"}
-    )
+    multi_error = GraphQLClientGraphQLMultiError.from_errors_dicts(error_dicts, data={"some": "data"})
     assert len(multi_error.errors) == 2
     assert multi_error.errors[0].message == "First error"
     assert multi_error.errors[1].message == "Second error"
