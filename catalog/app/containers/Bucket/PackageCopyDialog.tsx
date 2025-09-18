@@ -111,7 +111,9 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { name } = PD.useContext()
+  const {
+    values: { name },
+  } = PD.useContext()
   const classes = useStyles()
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
@@ -409,21 +411,19 @@ const DialogState = tagged.create(
 )
 
 interface PackageCopyDialogProps {
-  open: boolean
   bucket: string
   successor: workflows.Successor | null
   name: string
   hash: string
-  onExited: (props: { pushed: PackageCreationSuccess | null }) => void
+  onClose: () => void
 }
 
 export default function PackageCopyDialog({
-  open,
   bucket,
   successor,
   name,
   hash,
-  onExited,
+  onClose,
 }: PackageCopyDialogProps) {
   const s3 = AWS.S3.use()
 
@@ -431,6 +431,8 @@ export default function PackageCopyDialog({
   const [submitting, setSubmitting] = React.useState(false)
 
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+
+  const { open } = PD.useContext()
 
   const manifestData = PD.useManifest({
     bucket,
@@ -460,28 +462,17 @@ export default function PackageCopyDialog({
     })
   }, [success, workflowsData, manifestData])
 
-  const handleExited = React.useCallback(() => {
-    if (submitting) return
-
-    onExited({
-      pushed: success,
-    })
-    setSuccess(null)
-  }, [submitting, success, setSuccess, onExited])
-
   const close = React.useCallback(() => {
     if (submitting) return
 
-    onExited({
-      pushed: success,
-    })
+    onClose()
     setSuccess(null)
-  }, [submitting, success, setSuccess, onExited])
+  }, [submitting, onClose])
 
   Intercom.usePauseVisibilityWhen(open)
 
   return (
-    <M.Dialog fullWidth onClose={close} onExited={handleExited} open={open} scroll="body">
+    <M.Dialog fullWidth onClose={close} open={open} scroll="body">
       {DialogState.match({
         Error: (e) =>
           successor && <DialogError bucket={successor.slug} onCancel={close} error={e} />,

@@ -176,7 +176,6 @@ interface DirDisplayProps {
 }
 
 function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayProps) {
-  const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
@@ -193,18 +192,22 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     [urls, bucket, name, hashOrTag],
   )
 
-  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
-
-  const updateDialog = PD.usePackageCreationDialog({
-    initialOpen,
-    bucket,
-  })
+  const updateDialog = PD.usePackageCreationDialog({ bucket })
 
   const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
+  const { setOpen } = PD.useContext()
   const onPackageCopyDialogExited = React.useCallback(() => {
     setSuccessor(null)
-  }, [setSuccessor])
+    setOpen(false)
+  }, [setOpen])
+  const onSuccessor = React.useCallback(
+    (s: workflows.Successor) => {
+      setSuccessor(s)
+      setOpen(true)
+    },
+    [setOpen],
+  )
 
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
@@ -290,9 +293,8 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
         bucket={bucket}
         hash={hash}
         name={name}
-        open={!!successor}
         successor={successor}
-        onExited={onPackageCopyDialogExited}
+        onClose={onPackageCopyDialogExited}
       />
 
       <RevisionDeleteDialog
@@ -408,7 +410,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                             className={classes.button}
                             bucket={bucket}
                             icon="exit_to_app"
-                            onChange={setSuccessor}
+                            onChange={onSuccessor}
                           >
                             Push to bucket
                           </Successors.Button>
@@ -951,6 +953,8 @@ function PackageTree({
     [urls, bucket, name, hashOrTag, hash],
   )
 
+  const initialActions = PD.useInitialActions()
+
   return (
     <FileView.Root>
       <RRDom.Prompt when={!slt.isEmpty} message={guardNavigation} />
@@ -998,7 +1002,11 @@ function PackageTree({
         <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
       {hash ? (
-        <PD.Provider src={{ bucket, name, hash }} dst={{ bucket }}>
+        <PD.Provider
+          src={{ bucket, name, hash }}
+          dst={{ bucket }}
+          open={initialActions.includes('revisePackage')}
+        >
           <ResolverProvider {...{ bucket, name, hash }}>
             {isDir ? (
               <DirDisplay

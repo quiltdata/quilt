@@ -519,7 +519,9 @@ const usePackageNameWarningStyles = M.makeStyles((t) => ({
 
 export const PackageNameWarning = () => {
   const {
-    name: { status },
+    values: {
+      name: { status },
+    },
     setSrc,
   } = State.use()
   const classes = usePackageNameWarningStyles()

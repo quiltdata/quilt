@@ -17,6 +17,10 @@ const useStyles = M.makeStyles((t) => ({
     flex: 'none',
     marginRight: t.spacing(3),
   },
+  text: {
+    marginTop: 0,
+    marginBottom: 0,
+  },
 }))
 
 interface SelectWorkflowProps {
@@ -24,7 +28,7 @@ interface SelectWorkflowProps {
   error?: React.ReactNode
   items: workflows.Workflow[]
   onChange: (v: workflows.Workflow) => void
-  value: workflows.Workflow
+  value?: workflows.Workflow
 }
 
 export default function SelectWorkflow({
@@ -56,6 +60,7 @@ export default function SelectWorkflow({
             dense
           >
             <M.ListItemText
+              className={classes.text}
               classes={{
                 primary: classes.crop,
                 secondary: classes.crop,

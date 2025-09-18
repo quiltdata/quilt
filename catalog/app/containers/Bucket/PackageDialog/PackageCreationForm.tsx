@@ -5,8 +5,9 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import useResizeObserver from 'use-resize-observer'
+// import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
@@ -24,7 +25,7 @@ import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as Types from 'utils/types'
-import * as validators from 'utils/validators'
+// import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Selection from '../Selection'
@@ -38,12 +39,143 @@ import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
+import SelectWorkflow from './SelectWorkflow'
 import * as State from './state'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
 import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
 import { Manifest, EMPTY_MANIFEST_ENTRIES, useManifest } from './Manifest'
+
+function InputWorkflow() {
+  const {
+    values: {
+      workflow: { value, onChange },
+    },
+    schema,
+    workflowsConfig,
+  } = State.use()
+  if (workflowsConfig._tag === 'idle') return null
+  if (workflowsConfig._tag === 'loading') {
+    return (
+      <M.FormControl fullWidth size="small">
+        <M.InputLabel shrink>
+          <Lab.Skeleton width={120} />
+        </M.InputLabel>
+        <Lab.Skeleton
+          width="100%"
+          variant="rect"
+          style={{ marginTop: '16px', height: '32px' }}
+        />
+        <M.FormHelperText>
+          <Lab.Skeleton width={240} />
+        </M.FormHelperText>
+      </M.FormControl>
+    )
+  }
+  // FIXME: disabled when on submit
+  return (
+    <SelectWorkflow
+      disabled={schema._tag === 'loading'}
+      error={workflowsConfig._tag === 'error' ? workflowsConfig.error : undefined}
+      items={workflowsConfig.config.workflows}
+      onChange={onChange}
+      value={value}
+    />
+  )
+}
+
+function InputName() {
+  const {
+    values: {
+      name: { value, onChange },
+    },
+  } = State.use()
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
+    [onChange],
+  )
+  return (
+    <M.TextField
+      /*style*/
+      InputLabelProps={{ shrink: true }}
+      fullWidth
+      margin="normal"
+      /*constants*/
+      helperText={<PD.PackageNameWarning />}
+      label="Name"
+      placeholder="e.g. user/package"
+      /*data*/
+      onChange={handleChange}
+      value={value || ''}
+    />
+  )
+}
+
+function InputMessage() {
+  const {
+    values: {
+      message: { value, onChange },
+    },
+  } = State.use()
+  const handleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
+    [onChange],
+  )
+  return (
+    <M.TextField
+      /*style*/
+      InputLabelProps={{ shrink: true }}
+      fullWidth
+      margin="normal"
+      /*constants*/
+      label="Message"
+      placeholder="Enter a commit message"
+      /*data*/
+      onChange={handleChange}
+      value={value || ''}
+    />
+  )
+}
+
+const useInputMetaStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    paddingTop: t.spacing(3),
+    overflowY: 'auto',
+  },
+}))
+
+function InputMeta() {
+  const classes = useInputMetaStyles()
+  const {
+    values: {
+      meta: { value, onChange },
+    },
+    schema,
+  } = State.use()
+  const handleChange = React.useCallback(
+    (event: { target: { value: Types.JsonRecord } }) => onChange(event.target.value),
+    [onChange],
+  )
+  const input = React.useMemo(
+    () => ({ value, onChange: handleChange }),
+    [value, handleChange],
+  )
+  if (schema._tag === 'loading') return <MetaInputSkeleton className={classes.root} />
+  return (
+    <MI.MetaInput
+      className={classes.root}
+      schema={schema._tag === 'ready' ? schema.schema : undefined}
+      schemaError={schema._tag === 'error' ? schema.error : undefined}
+      // validate={validateMetaInput}
+      meta={{}}
+      // @ts-expect-error
+      input={input}
+    />
+  )
+}
 
 const CANCEL = 'cancel'
 const README_PATH = 'README.md'
@@ -185,29 +317,30 @@ function PackageCreationForm({
   initial,
   successor,
   onSuccessor,
-  responseError,
+  // responseError,
   schema,
-  schemaLoading,
+  // schemaLoading,
   selectedWorkflow,
   setSubmitting,
   setSuccess,
-  setWorkflow,
+  // setWorkflow,
   sourceBuckets,
-  validate: validateMetaInput,
-  workflowsConfig,
+  // validate: validateMetaInput,
+  // workflowsConfig,
   currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
-  const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { name } = State.use()
+  // const nameValidator = PD.useNameValidator(selectedWorkflow)
+  const { values } = State.use()
   const classes = useStyles()
-  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-  const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
+  // const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
+  // const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
+  const metaHeight = 0
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
-  const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
+  // const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
   const dialogs = Dialogs.use()
 
@@ -256,8 +389,10 @@ function PackageCreationForm({
     localFolder: string
   }
 
-  const onSubmit = async ({ msg, files, meta, workflow }: SubmitWebArgs) => {
-    if (!name.value) return 'name'
+  const onSubmit = async ({ files, meta }: SubmitWebArgs) => {
+    if (!values.name.value) return 'name'
+    if (!values.message.value) return 'message'
+    if (!values.workflow.value) return 'workflow'
 
     const { local: addedLocalEntries, remote: addedS3Entries } = FI.groupAddedFiles(
       files.added,
@@ -276,7 +411,7 @@ function PackageCreationForm({
       ))
       if (reason === 'cancel') return mkFormError(CANCEL)
       if (reason === 'readme') {
-        const file = createReadmeFile(name.value)
+        const file = createReadmeFile(values.name.value)
         entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
         toUpload.push({ path: README_PATH, file })
       }
@@ -296,10 +431,10 @@ function PackageCreationForm({
         files: toUpload,
         bucket: successor.slug,
         getCanonicalKey: (path) => {
-          if (!name.value) {
+          if (!values.name.value) {
             throw new Error('Package name is required')
           }
-          return s3paths.canonicalKey(name.value, path, cfg.packageRoot)
+          return s3paths.canonicalKey(values.name.value, path, cfg.packageRoot)
         },
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
@@ -343,16 +478,16 @@ function PackageCreationForm({
       const { packageConstruct: r } = await constructPackage({
         params: {
           bucket: successor.slug,
-          name: name.value,
-          message: msg,
+          name: values.name.value,
+          message: values.message.value,
           userMeta: requests.getMetaValue(meta, schema) ?? null,
           workflow:
             // eslint-disable-next-line no-nested-ternary
-            workflow.slug === workflows.notAvailable
+            values.workflow.value.slug === workflows.notAvailable
               ? null
-              : workflow.slug === workflows.notSelected
+              : values.workflow.value.slug === workflows.notSelected
                 ? ''
-                : workflow.slug,
+                : values.workflow.value.slug,
         },
         src: {
           entries: allEntries,
@@ -360,7 +495,7 @@ function PackageCreationForm({
       })
       switch (r.__typename) {
         case 'PackagePushSuccess':
-          setSuccess({ name: name.value, hash: r.revision.hash })
+          setSuccess({ name: values.name.value, hash: r.revision.hash })
           return
         case 'OperationError':
           return mkFormError(r.message)
@@ -390,12 +525,13 @@ function PackageCreationForm({
     }
   }
 
-  const onFormChange = React.useCallback(
-    ({ dirtyFields, values }) => {
-      if (dirtyFields?.name) name.onChange(values.name)
-    },
-    [name],
-  )
+  // const onFormChange = React.useCallback(
+  //   ({ dirtyFields, values }) => {
+  //     if (dirtyFields?.name) name.onChange(values.name)
+  //     if (dirtyFields?.workflow) workflow.onChange(values.name)
+  //   },
+  //   [name, workflow],
+  // )
 
   const validateFiles = React.useCallback(
     async (files: FI.FilesState) => {
@@ -413,7 +549,7 @@ function PackageCreationForm({
   )
 
   // HACK: FIXME: it triggers name validation with correct workflow
-  const [hideMeta, setHideMeta] = React.useState(false)
+  // const [hideMeta, setHideMeta] = React.useState(false)
 
   return (
     <RF.Form
@@ -449,6 +585,7 @@ function PackageCreationForm({
           </M.DialogTitle>
           <M.DialogContent classes={dialogContentClasses}>
             <form className={classes.form} onSubmit={handleSubmit}>
+              {/*
               <RF.FormSpy
                 subscription={{ dirtyFields: true, values: true }}
                 onChange={onFormChange}
@@ -468,9 +605,23 @@ function PackageCreationForm({
                   }
                 }}
               />
+              */}
 
               <Layout.Container>
                 <Layout.LeftColumn>
+                  <InputWorkflow />
+                  <InputName />
+                  <InputMessage />
+                  <InputMeta />
+                </Layout.LeftColumn>
+
+                {/*
+                <Layout.LeftColumn>
+                  <InputWorkflow />
+                  <InputName />
+                  <InputMessage />
+                  <InputMeta />
+
                   <RF.Field
                     component={PD.WorkflowInput}
                     name="workflow"
@@ -530,6 +681,7 @@ function PackageCreationForm({
                     />
                   )}
                 </Layout.LeftColumn>
+                  */}
 
                 <Layout.RightColumn>
                   <RF.Field
@@ -641,7 +793,6 @@ interface PackageCreationDialogUIOptions {
 interface UsePackageCreationDialogProps {
   bucket: string
   s3Path?: string
-  initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
 }
@@ -653,19 +804,18 @@ interface UsePackageCreationDialogProps {
 //         * successor
 export function usePackageCreationDialog({
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
-  initialOpen,
   s3Path,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
-  const [isOpen, setOpen] = React.useState(initialOpen || false)
+  const { reset, src, open: isOpen, setOpen } = State.use()
+
   const [exited, setExited] = React.useState(!isOpen)
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
-  // TODO: move to props: { dst: { successor }, onSuccessorChange }
+  // TODO: move to props: {dst: {successor}, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
-  const { reset, src } = State.use()
   const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
@@ -744,7 +894,7 @@ export function usePackageCreationDialog({
       addToPackage?.merge(filesMap)
       setWaitingListing(false)
     },
-    [addToPackage, getFiles],
+    [addToPackage, getFiles, setOpen],
   )
 
   const close = React.useCallback(() => {
