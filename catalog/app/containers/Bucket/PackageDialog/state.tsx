@@ -5,6 +5,10 @@ import * as GQL from 'utils/GraphQL'
 
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
+// FIXME: re-use already added files when reload manifest
+// FIXME: handle both validations on file input
+// FIXME: use workflow' package name template to fill `initialDst`
+
 type NameStatus =
   | { _tag: 'idle' }
   | { _tag: 'loading' }
@@ -25,10 +29,14 @@ interface PackageDst {
 }
 
 interface PackageDialogState {
+  name: {
+    onChange: (name: string) => void
+    status: NameStatus
+    value: string | undefined
+  }
   src?: PackageSrc
   setSrc: (src: PackageSrc) => void
-  nameStatus: NameStatus
-  onName: (name: string) => void
+  reset: () => void
 }
 
 const Context = React.createContext<PackageDialogState | null>(null)
@@ -40,6 +48,46 @@ export function useContext(): PackageDialogState {
 }
 
 export const use = useContext
+
+function useNameValidator(dst: PackageDst, src?: PackageSrc): NameStatus {
+  const packageExistsQuery = GQL.useQuery(
+    PACKAGE_EXISTS_QUERY,
+    {
+      bucket: dst.bucket,
+      name: dst.name || '',
+    },
+    {
+      pause:
+        !dst.bucket || !dst.name || (dst.bucket === src?.bucket && dst.name === src.name),
+    },
+  )
+  return React.useMemo(() => {
+    if (dst.bucket === src?.bucket && dst.name === src.name) return { _tag: 'exists' }
+    return GQL.fold(packageExistsQuery, {
+      data: ({ package: r }) => {
+        if (!r) return { _tag: 'new' }
+        switch (r.__typename) {
+          default:
+            return { _tag: 'able-to-reuse', dst: { bucket: dst.bucket, name: r.name } }
+        }
+      },
+      fetching: () => ({ _tag: 'loading' }),
+      error: () => ({ _tag: 'invalid' }),
+    })
+  }, [dst, packageExistsQuery, src])
+}
+
+function useName(onChange: (n: string) => void, dst: PackageDst, src?: PackageSrc) {
+  const status = useNameValidator(dst, src)
+  return React.useMemo(
+    () => ({
+      onChange,
+      status,
+      value: dst.name,
+    }),
+    [dst.name, status, onChange],
+  )
+}
 
 interface PackageDialogProviderProps {
   children: React.ReactNode
@@ -55,50 +103,20 @@ export function PackageDialogProvider({
   const [src, setSrc] = React.useState(initialSrc)
   const [dst, setDst] = React.useState(initialDst)
 
-  const packageExistsQuery = GQL.useQuery(
-    PACKAGE_EXISTS_QUERY,
-    {
-      bucket: dst.bucket,
-      name: dst.name || '',
-    },
-    {
-      pause:
-        !dst.bucket || !dst.name || (dst.bucket === src?.bucket && dst.name === src.name),
-    },
-  )
-  const nameStatus: NameStatus = React.useMemo(() => {
-    if (dst.bucket === src?.bucket && dst.name === src.name) return { _tag: 'exists' }
-    return GQL.fold(packageExistsQuery, {
-      data: ({ package: r }) => {
-        if (!r) return { _tag: 'new' }
-        switch (r.__typename) {
-          default:
-            return { _tag: 'able-to-reuse', dst: { bucket: dst.bucket, name: r.name } }
-        }
-      },
-      fetching: () => ({ _tag: 'loading' }),
-      error: () => ({ _tag: 'invalid' }),
-    })
-  }, [dst, packageExistsQuery, src])
+  const reset = React.useCallback(() => {
+    setSrc(initialSrc)
+    setDst(initialDst)
+  }, [initialSrc, initialDst])
 
   // Sync with external source updates
-  React.useEffect(() => {
-    setSrc(initialSrc)
-  }, [initialSrc])
+  React.useEffect(() => reset(), [reset])
 
   const onName = React.useCallback((name: string) => setDst((d) => ({ ...d, name })), [])
+  const name = useName(onName, dst, src)
 
-  const state = React.useMemo(
-    (): PackageDialogState => ({
-      src,
-      setSrc,
-      nameStatus,
-      onName,
-    }),
-    [src, nameStatus, onName],
+  return (
+    <Context.Provider value={{ reset, src, setSrc, name }}>{children}</Context.Provider>
   )
-
-  return <Context.Provider value={state}>{children}</Context.Provider>
 }
 
 export { PackageDialogProvider as Provider }

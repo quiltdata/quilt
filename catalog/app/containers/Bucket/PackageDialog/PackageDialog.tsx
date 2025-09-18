@@ -12,6 +12,7 @@ import {
   RestoreOutlined as IconRestoreOutlined,
 } from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
+import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -20,7 +21,6 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as JSONPointer from 'utils/JSONPointer'
 import log from 'utils/Logging'
-import * as Sentry from 'utils/Sentry'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import { mkFormError } from 'utils/formTools'
@@ -396,7 +396,6 @@ export function SchemaFetcher({
   children,
 }: SchemaFetcherProps) {
   const s3 = AWS.S3.use()
-  const sentry = Sentry.use()
 
   const initialWorkflow = React.useMemo(() => {
     // reuse workflow from previous revision if it's still present in the config
@@ -411,7 +410,7 @@ export function SchemaFetcher({
 
   if (!selectedWorkflow) {
     const error = new Error(`"default_workflow" or "workflow.id" doesn't exist`)
-    sentry('captureException', error)
+    Sentry.captureException(error)
     // eslint-disable-next-line no-console
     console.error(error)
   }
@@ -519,10 +518,13 @@ const usePackageNameWarningStyles = M.makeStyles((t) => ({
 }))
 
 export const PackageNameWarning = () => {
-  const { nameStatus, setSrc } = State.use()
+  const {
+    name: { status },
+    setSrc,
+  } = State.use()
   const classes = usePackageNameWarningStyles()
 
-  switch (nameStatus._tag) {
+  switch (status._tag) {
     case 'idle':
       return <></>
     case 'loading':
@@ -534,10 +536,7 @@ export const PackageNameWarning = () => {
         <>
           <IconRestoreOutlined className={classes.root} fontSize="small" />
           Existing package. Want to{' '}
-          <StyledLink onClick={() => setSrc(nameStatus.dst)}>
-            load and revise it
-          </StyledLink>
-          ?
+          <StyledLink onClick={() => setSrc(status.dst)}>load and revise it</StyledLink>?
         </>
       )
     case 'new':
@@ -550,7 +549,7 @@ export const PackageNameWarning = () => {
         </span>
       )
     default:
-      assertNever(nameStatus)
+      assertNever(status)
   }
 }
 

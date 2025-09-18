@@ -111,7 +111,7 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { onName } = PD.useContext()
+  const { name } = PD.useContext()
   const classes = useStyles()
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
@@ -125,12 +125,13 @@ function DialogForm({
   }
 
   // eslint-disable-next-line consistent-return
-  const onSubmit = async ({ commitMessage, name, meta, workflow }: FormData) => {
+  const onSubmit = async ({ commitMessage, meta, workflow }: FormData) => {
+    if (!name.value) return 'name'
     try {
       const { packagePromote: r } = await copyPackage({
         params: {
           bucket: successor.slug,
-          name,
+          name: name.value,
           message: commitMessage,
           userMeta: requests.getMetaValue(meta, schema) ?? null,
           workflow:
@@ -150,7 +151,7 @@ function DialogForm({
       })
       switch (r.__typename) {
         case 'PackagePushSuccess':
-          setSuccess({ name, hash: r.revision.hash, bucket: successor.slug })
+          setSuccess({ name: name.value, hash: r.revision.hash, bucket: successor.slug })
           return
         case 'OperationError':
           return mkFormError(r.message)
@@ -196,9 +197,9 @@ function DialogForm({
         }, 300)
       }
 
-      if (modified?.name) onName(values.name)
+      if (modified?.name) name.onChange(values.name)
     },
-    [onName, selectedWorkflow, setWorkflow],
+    [name, selectedWorkflow, setWorkflow],
   )
 
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -255,13 +256,6 @@ function DialogForm({
 
               <RF.Field
                 component={PD.PackageNameInput}
-                name="name"
-                workflow={selectedWorkflow || workflowsConfig}
-                validate={validators.composeAsync(
-                  validators.required,
-                  nameValidator.validate,
-                )}
-                validateFields={['name']}
                 errors={{
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
@@ -269,6 +263,13 @@ function DialogForm({
                 }}
                 helperText={<PD.PackageNameWarning />}
                 initialValue={initialName}
+                name="name"
+                workflow={selectedWorkflow || workflowsConfig}
+                validate={validators.composeAsync(
+                  validators.required,
+                  nameValidator.validate,
+                )}
+                validateFields={['name']}
               />
 
               <RF.Field

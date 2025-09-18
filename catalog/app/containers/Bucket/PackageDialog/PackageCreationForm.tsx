@@ -202,7 +202,7 @@ function PackageCreationForm({
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { onName } = State.use()
+  const { name } = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -256,7 +256,9 @@ function PackageCreationForm({
     localFolder: string
   }
 
-  const onSubmit = async ({ name, msg, files, meta, workflow }: SubmitWebArgs) => {
+  const onSubmit = async ({ msg, files, meta, workflow }: SubmitWebArgs) => {
+    if (!name.value) return 'name'
+
     const { local: addedLocalEntries, remote: addedS3Entries } = FI.groupAddedFiles(
       files.added,
     )
@@ -274,7 +276,7 @@ function PackageCreationForm({
       ))
       if (reason === 'cancel') return mkFormError(CANCEL)
       if (reason === 'readme') {
-        const file = createReadmeFile(name)
+        const file = createReadmeFile(name.value)
         entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
         toUpload.push({ path: README_PATH, file })
       }
@@ -293,7 +295,12 @@ function PackageCreationForm({
       uploadedEntries = await uploads.upload({
         files: toUpload,
         bucket: successor.slug,
-        getCanonicalKey: (path) => s3paths.canonicalKey(name, path, cfg.packageRoot),
+        getCanonicalKey: (path) => {
+          if (!name.value) {
+            throw new Error('Package name is required')
+          }
+          return s3paths.canonicalKey(name.value, path, cfg.packageRoot)
+        },
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {
@@ -336,7 +343,7 @@ function PackageCreationForm({
       const { packageConstruct: r } = await constructPackage({
         params: {
           bucket: successor.slug,
-          name,
+          name: name.value,
           message: msg,
           userMeta: requests.getMetaValue(meta, schema) ?? null,
           workflow:
@@ -353,7 +360,7 @@ function PackageCreationForm({
       })
       switch (r.__typename) {
         case 'PackagePushSuccess':
-          setSuccess({ name, hash: r.revision.hash })
+          setSuccess({ name: name.value, hash: r.revision.hash })
           return
         case 'OperationError':
           return mkFormError(r.message)
@@ -385,9 +392,9 @@ function PackageCreationForm({
 
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
-      if (dirtyFields?.name) onName(values.name)
+      if (dirtyFields?.name) name.onChange(values.name)
     },
-    [onName],
+    [name],
   )
 
   const validateFiles = React.useCallback(
@@ -478,20 +485,20 @@ function PackageCreationForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    workflow={selectedWorkflow || workflowsConfig}
-                    initialValue={initial?.name}
-                    name="name"
-                    validate={validators.composeAsync(
-                      validators.required,
-                      nameValidator.validate,
-                    )}
-                    validateFields={['name']}
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
                       pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                     }}
                     helperText={<PD.PackageNameWarning />}
+                    initialValue={initial?.name}
+                    name="name"
+                    workflow={selectedWorkflow || workflowsConfig}
+                    validate={validators.composeAsync(
+                      validators.required,
+                      nameValidator.validate,
+                    )}
+                    validateFields={['name']}
                     validating={nameValidator.processing}
                   />
 
@@ -658,7 +665,7 @@ export function usePackageCreationDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
-  const { src } = State.use()
+  const { reset, src } = State.use()
   const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
@@ -745,7 +752,8 @@ export function usePackageCreationDialog({
     setOpen(false)
     setWorkflow(undefined) // TODO: is this necessary?
     addToPackage?.clear()
-  }, [addToPackage, submitting, setOpen])
+    reset()
+  }, [addToPackage, reset, submitting, setOpen])
 
   const handleExited = React.useCallback(() => {
     setExited(true)
