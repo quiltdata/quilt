@@ -45,7 +45,7 @@ import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
 import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
-import { Manifest, /* EMPTY_MANIFEST_ENTRIES,*/ useManifest } from './Manifest'
+import { Manifest, useManifest } from './Manifest'
 
 function InputWorkflow() {
   const {

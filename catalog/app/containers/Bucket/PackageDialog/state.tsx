@@ -43,6 +43,11 @@ type WorkflowsConfigStatus =
     }
   | { _tag: 'ready'; config: workflows.WorkflowsConfig }
 
+type WorkflowStatus =
+  | { _tag: 'loading' }
+  | { _tag: 'error'; error: Error }
+  | { _tag: 'ok' }
+
 type SchemaStatus =
   | { _tag: 'idle' }
   | { _tag: 'loading' }
@@ -81,7 +86,7 @@ interface PackageDialogState {
     }
     workflow: {
       onChange: (w: workflows.Workflow) => void
-      // status: WorkflowStatus
+      status: WorkflowStatus
       value: workflows.Workflow | undefined
     }
   }
@@ -216,7 +221,16 @@ function useWorkflow(manifest: ManifestStatus, config: WorkflowsConfigStatus) {
     () => workflow || getWorkflowFallback(manifest, config),
     [config, manifest, workflow],
   )
-  const status = manifest._tag
+  const status: WorkflowStatus = React.useMemo(() => {
+    if (config._tag !== 'ready') return { _tag: 'loading' }
+    if (
+      config.config.isWorkflowRequired &&
+      (!value || value.slug === workflows.notSelected)
+    ) {
+      return { _tag: 'error', error: new Error('Workflow required') }
+    }
+    return { _tag: 'ok' }
+  }, [config, value])
   return React.useMemo(() => ({ onChange: setWorkflow, status, value }), [status, value])
 }
 
