@@ -11,6 +11,7 @@ import * as workflows from 'utils/workflows'
 import * as requests from '../requests'
 
 import { Manifest, useManifest } from './Manifest'
+import * as FI from './FilesInput'
 
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
@@ -61,6 +62,10 @@ interface PackageDst {
 
 interface PackageDialogState {
   values: {
+    files: {
+      onChange: (f: Partial<FI.FilesState>) => void
+      value: FI.FilesState
+    }
     message: {
       onChange: (m: string) => void
       value: string | undefined
@@ -83,8 +88,8 @@ interface PackageDialogState {
   src?: PackageSrc
   setSrc: (src: PackageSrc) => void
   reset: () => void
-  open: boolean
-  setOpen: (o: boolean) => void
+  open: boolean | FI.FilesState['added']
+  setOpen: (o: boolean | FI.FilesState['added']) => void
 
   manifest: ManifestStatus
   workflowsConfig: WorkflowsConfigStatus
@@ -231,11 +236,31 @@ function useMeta(manifest: ManifestStatus) {
   return React.useMemo(() => ({ value, onChange: setMeta }), [value])
 }
 
+function mergeFiles(manifest: ManifestStatus, files?: Partial<FI.FilesState>) {
+  const existing = manifest._tag === 'ready' ? manifest.manifest?.entries || {} : {}
+  return {
+    existing,
+    added: files?.added || {},
+    deleted: files?.deleted || {},
+  }
+}
+
+function useFiles(manifest: ManifestStatus, open: boolean | FI.FilesState['added']) {
+  const [files, setFiles] = React.useState<Partial<FI.FilesState>>({ added: {} })
+  const value = React.useMemo(() => mergeFiles(manifest, files), [manifest, files])
+  React.useEffect(() => {
+    if (typeof open === 'object') {
+      setFiles({ added: open })
+    }
+  }, [open])
+  return React.useMemo(() => ({ value, onChange: setFiles }), [value])
+}
+
 interface PackageDialogProviderProps {
   children: React.ReactNode
   src?: PackageSrc
   dst: PackageDst
-  open?: boolean
+  open?: boolean | FI.FilesState['added']
 }
 
 export function PackageDialogProvider({
@@ -257,14 +282,15 @@ export function PackageDialogProvider({
   // Sync with external source updates
   React.useEffect(() => reset(), [reset])
 
-  const manifest = useManifestRequest(open, src)
-  const workflowsConfig = useWorkflowsConfig(open, dst)
+  const manifest = useManifestRequest(!!open, src)
+  const workflowsConfig = useWorkflowsConfig(!!open, dst)
 
   const onName = React.useCallback((name: string) => setDst((d) => ({ ...d, name })), [])
   const name = useName(onName, dst, src)
   const workflow = useWorkflow(manifest, workflowsConfig)
   const message = useMessage()
   const meta = useMeta(manifest)
+  const files = useFiles(manifest, open)
 
   const schema = useWorkflowSchema(workflow.value)
 
@@ -272,6 +298,7 @@ export function PackageDialogProvider({
     <Context.Provider
       value={{
         values: {
+          files,
           message,
           meta,
           name,

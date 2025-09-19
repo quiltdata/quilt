@@ -472,7 +472,7 @@ export default function PackageCopyDialog({
   Intercom.usePauseVisibilityWhen(open)
 
   return (
-    <M.Dialog fullWidth onClose={close} open={open} scroll="body">
+    <M.Dialog fullWidth onClose={close} open={!!open} scroll="body">
       {DialogState.match({
         Error: (e) =>
           successor && <DialogError bucket={successor.slug} onCancel={close} error={e} />,

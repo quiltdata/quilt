@@ -1,6 +1,6 @@
-import type { ErrorObject } from 'ajv'
-import cx from 'classnames'
-import * as FF from 'final-form'
+// import type { ErrorObject } from 'ajv'
+// import cx from 'classnames'
+// import * as FF from 'final-form'
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -10,9 +10,9 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Intercom from 'components/Intercom'
-import JsonValidationErrors from 'components/JsonValidationErrors'
+// import JsonValidationErrors from 'components/JsonValidationErrors'
 import cfg from 'constants/config'
-import * as AddToPackage from 'containers/AddToPackage'
+// import * as AddToPackage from 'containers/AddToPackage'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -45,7 +45,7 @@ import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
 import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
-import { Manifest, EMPTY_MANIFEST_ENTRIES, useManifest } from './Manifest'
+import { Manifest, /* EMPTY_MANIFEST_ENTRIES,*/ useManifest } from './Manifest'
 
 function InputWorkflow() {
   const {
@@ -177,6 +177,33 @@ function InputMeta() {
   )
 }
 
+function InputFiles() {
+  const {
+    values: { files },
+  } = State.use()
+  const uploads = useUploads()
+  const onFilesAction = React.useMemo(
+    () =>
+      FI.FilesAction.match({
+        _: () => {},
+        Revert: uploads.remove,
+        RevertDir: uploads.removeByPrefix,
+        Reset: uploads.reset,
+      }),
+    [uploads],
+  )
+  return (
+    <FI.FilesInput
+      input={files}
+      meta={{ initial: files.value }}
+      title="FIles"
+      totalProgress={uploads.progress}
+      validationErrors={null}
+      onFilesAction={onFilesAction}
+    />
+  )
+}
+
 const CANCEL = 'cancel'
 const README_PATH = 'README.md'
 
@@ -288,21 +315,21 @@ const useStyles = M.makeStyles((t) => ({
 interface PackageCreationFormProps {
   bucket: string
   close: () => void
-  initial?: {
-    name?: string
-    meta?: Types.JsonRecord
-    workflowId?: string
-    entries?: Model.PackageContentsFlatMap
-  }
+  // initial?: {
+  //   name?: string
+  //   meta?: Types.JsonRecord
+  //   workflowId?: string
+  //   entries?: Model.PackageContentsFlatMap
+  // }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: PackageCreationSuccess) => void
-  setWorkflow: (workflow: workflows.Workflow) => void
-  sourceBuckets: BucketPreferences.SourceBuckets
-  workflowsConfig: workflows.WorkflowsConfig
+  // setWorkflow: (workflow: workflows.Workflow) => void
+  // sourceBuckets: BucketPreferences.SourceBuckets
+  // workflowsConfig: workflows.WorkflowsConfig
   currentBucketCanBeSuccessor: boolean
-  delayHashing: boolean
+  // delayHashing: boolean
   disableStateDisplay: boolean
   ui?: {
     title?: React.ReactNode
@@ -311,30 +338,32 @@ interface PackageCreationFormProps {
   }
 }
 
-function PackageCreationForm({
-  bucket,
-  close,
-  initial,
-  successor,
-  onSuccessor,
-  // responseError,
-  schema,
-  // schemaLoading,
-  selectedWorkflow,
-  setSubmitting,
-  setSuccess,
-  // setWorkflow,
-  sourceBuckets,
-  // validate: validateMetaInput,
-  // workflowsConfig,
-  currentBucketCanBeSuccessor,
-  delayHashing,
-  disableStateDisplay,
-  ui = {},
-}: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
-  const addToPackage = AddToPackage.use()
+function PackageCreationForm(
+  {
+    bucket,
+    close,
+    // initial,
+    successor,
+    onSuccessor,
+    // responseError,
+    // schema,
+    // schemaLoading,
+    // selectedWorkflow,
+    setSubmitting,
+    setSuccess,
+    // setWorkflow,
+    // sourceBuckets,
+    // validate: validateMetaInput,
+    // workflowsConfig,
+    currentBucketCanBeSuccessor,
+    // delayHashing,
+    // disableStateDisplay,
+    ui = {},
+  }: PackageCreationFormProps /*& PD.SchemaFetcherRenderProps*/,
+) {
+  // const addToPackage = AddToPackage.use()
   // const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { values } = State.use()
+  const { schema, values } = State.use()
   const classes = useStyles()
   // const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   // const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -344,36 +373,36 @@ function PackageCreationForm({
 
   const dialogs = Dialogs.use()
 
-  const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
-    null,
-  )
+  // const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
+  //   null,
+  // )
 
-  const existingEntries = initial?.entries ?? EMPTY_MANIFEST_ENTRIES
+  // const existingEntries = initial?.entries ?? EMPTY_MANIFEST_ENTRIES
 
-  const initialFiles: FI.FilesState = React.useMemo(
-    () => ({
-      existing: existingEntries,
-      added: addToPackage?.entries || {},
-      deleted: {},
-    }),
-    [existingEntries, addToPackage],
-  )
+  // const initialFiles: FI.FilesState = React.useMemo(
+  //   () => ({
+  //     existing: existingEntries,
+  //     added: addToPackage?.entries || {},
+  //     deleted: {},
+  //   }),
+  //   [existingEntries, addToPackage],
+  // )
 
   const uploads = useUploads()
 
-  const onFilesAction = React.useMemo(
-    () =>
-      FI.FilesAction.match({
-        _: () => {},
-        Revert: uploads.remove,
-        RevertDir: uploads.removeByPrefix,
-        Reset: uploads.reset,
-      }),
-    [uploads],
-  )
+  // const onFilesAction = React.useMemo(
+  //   () =>
+  //     FI.FilesAction.match({
+  //       _: () => {},
+  //       Revert: uploads.remove,
+  //       RevertDir: uploads.removeByPrefix,
+  //       Reset: uploads.reset,
+  //     }),
+  //   [uploads],
+  // )
 
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
-  const validateEntries = PD.useEntriesValidator(selectedWorkflow)
+  // const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
   interface SubmitArgs {
     name: string
@@ -393,6 +422,7 @@ function PackageCreationForm({
     if (!values.name.value) return 'name'
     if (!values.message.value) return 'message'
     if (!values.workflow.value) return 'workflow'
+    if (schema._tag !== 'ready') return 'meta'
 
     const { local: addedLocalEntries, remote: addedS3Entries } = FI.groupAddedFiles(
       files.added,
@@ -417,13 +447,13 @@ function PackageCreationForm({
       }
     }
 
-    const error = await validateEntries(entries)
-    if (error?.length) {
-      setEntriesError(error)
-      return {
-        files: 'schema',
-      }
-    }
+    // const error = await validateEntries(entries)
+    // if (error?.length) {
+    //   setEntriesError(error)
+    //   return {
+    //     files: 'schema',
+    //   }
+    // }
 
     let uploadedEntries
     try {
@@ -480,7 +510,7 @@ function PackageCreationForm({
           bucket: successor.slug,
           name: values.name.value,
           message: values.message.value,
-          userMeta: requests.getMetaValue(meta, schema) ?? null,
+          userMeta: requests.getMetaValue(meta, schema.schema) ?? null,
           workflow:
             // eslint-disable-next-line no-nested-ternary
             values.workflow.value.slug === workflows.notAvailable
@@ -520,7 +550,7 @@ function PackageCreationForm({
     try {
       return await onSubmit(args as SubmitWebArgs)
     } finally {
-      addToPackage?.clear()
+      // addToPackage?.clear()
       setSubmitting(false)
     }
   }
@@ -533,20 +563,20 @@ function PackageCreationForm({
   //   [name, workflow],
   // )
 
-  const validateFiles = React.useCallback(
-    async (files: FI.FilesState) => {
-      const hashihgError = delayHashing && FI.validateHashingComplete(files)
-      if (hashihgError) return hashihgError
+  // const validateFiles = React.useCallback(
+  //   async (files: FI.FilesState) => {
+  //     const hashihgError = delayHashing && FI.validateHashingComplete(files)
+  //     if (hashihgError) return hashihgError
 
-      const entries = filesStateToEntries(files)
-      const errors = await validateEntries(entries)
-      setEntriesError(errors || null)
-      if (errors?.length) {
-        return 'schema'
-      }
-    },
-    [delayHashing, validateEntries],
-  )
+  //     const entries = filesStateToEntries(files)
+  //     const errors = await validateEntries(entries)
+  //     // setEntriesError(errors || null)
+  //     if (errors?.length) {
+  //       return 'schema'
+  //     }
+  //   },
+  //   [delayHashing, validateEntries],
+  // )
 
   // HACK: FIXME: it triggers name validation with correct workflow
   // const [hideMeta, setHideMeta] = React.useState(false)
@@ -614,6 +644,9 @@ function PackageCreationForm({
                   <InputMessage />
                   <InputMeta />
                 </Layout.LeftColumn>
+                <Layout.RightColumn>
+                  <InputFiles />
+                </Layout.RightColumn>
 
                 {/*
                 <Layout.LeftColumn>
@@ -681,7 +714,6 @@ function PackageCreationForm({
                     />
                   )}
                 </Layout.LeftColumn>
-                  */}
 
                 <Layout.RightColumn>
                   <RF.Field
@@ -718,6 +750,7 @@ function PackageCreationForm({
                     error={submitFailed ? entriesError : []}
                   />
                 </Layout.RightColumn>
+                  */}
               </Layout.Container>
 
               <input type="submit" style={{ display: 'none' }} />
@@ -805,7 +838,7 @@ interface UsePackageCreationDialogProps {
 export function usePackageCreationDialog({
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
   s3Path,
-  delayHashing = false,
+  // delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
   const { reset, src, open: isOpen, setOpen } = State.use()
@@ -813,11 +846,11 @@ export function usePackageCreationDialog({
   const [exited, setExited] = React.useState(!isOpen)
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
-  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+  // const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: {dst: {successor}, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
   const currentBucketCanBeSuccessor = s3Path !== undefined
-  const addToPackage = AddToPackage.use()
+  // const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()
   const workflowsData = Data.use(
@@ -891,19 +924,22 @@ export function usePackageCreationDialog({
       }
       const handles = Selection.toHandlesList(initial?.selection)
       const filesMap = await getFiles(handles)
-      addToPackage?.merge(filesMap)
+      // addToPackage?.merge(filesMap)
+
+      setOpen(filesMap)
+
       setWaitingListing(false)
     },
-    [addToPackage, getFiles, setOpen],
+    [, /*addToPackage*/ getFiles, setOpen],
   )
 
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
-    setWorkflow(undefined) // TODO: is this necessary?
-    addToPackage?.clear()
+    // setWorkflow(undefined) // TODO: is this necessary?
+    // addToPackage?.clear()
     reset()
-  }, [addToPackage, reset, submitting, setOpen])
+  }, [/*addToPackage, */ reset, submitting, setOpen])
 
   const handleExited = React.useCallback(() => {
     setExited(true)
@@ -937,7 +973,7 @@ export function usePackageCreationDialog({
       maxWidth={success ? 'sm' : 'lg'}
       onClose={close}
       onExited={handleExited}
-      open={isOpen}
+      open={!!isOpen}
       scroll="body"
     >
       {DialogState.match(
@@ -964,41 +1000,45 @@ export function usePackageCreationDialog({
               onCancel={close}
             />
           ),
-          Form: ({ manifest, workflowsConfig, sourceBuckets }) => (
+          Form: (/*{ manifest, workflowsConfig, sourceBuckets }*/) => (
+            /*
             <PD.SchemaFetcher
               initialWorkflowId={manifest?.workflowId}
               workflowsConfig={workflowsConfig}
               workflow={workflow}
             >
               {(schemaProps) => (
-                <PackageCreationForm
-                  {...schemaProps}
-                  {...{
-                    bucket,
-                    successor,
-                    close,
-                    setSubmitting,
-                    setSuccess,
-                    setWorkflow,
-                    workflowsConfig,
-                    sourceBuckets,
-                    initial: {
-                      name: src?.name,
-                      ...manifest,
-                    },
-                    currentBucketCanBeSuccessor,
-                    delayHashing,
-                    disableStateDisplay,
-                    onSuccessor: setSuccessor,
-                    ui: {
-                      title: ui.title,
-                      submit: ui.submit,
-                      resetFiles: ui.resetFiles,
-                    },
-                  }}
-                />
+            */
+            <PackageCreationForm
+              // {...schemaProps}
+              {...{
+                bucket,
+                successor,
+                close,
+                setSubmitting,
+                setSuccess,
+                // setWorkflow,
+                // workflowsConfig,
+                // sourceBuckets,
+                // initial: {
+                //   name: src?.name,
+                //   ...manifest,
+                // },
+                currentBucketCanBeSuccessor,
+                // delayHashing,
+                disableStateDisplay,
+                onSuccessor: setSuccessor,
+                ui: {
+                  title: ui.title,
+                  submit: ui.submit,
+                  resetFiles: ui.resetFiles,
+                },
+              }}
+            />
+            /*
               )}
             </PD.SchemaFetcher>
+            */
           ),
           Success: (props) => (
             <DialogSuccess

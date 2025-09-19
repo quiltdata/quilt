@@ -17,6 +17,7 @@ import * as s3paths from 'utils/s3paths'
 import * as AssistantContext from './DirAssistantContext'
 import DndWrapper from './DndWrapper'
 import * as Listing from './Listing'
+import * as PD from './PackageDialog'
 import * as FI from './PackageDialog/FilesInput'
 import * as Selection from './Selection'
 import Summary from './Summary'
@@ -250,12 +251,14 @@ export default function Dir() {
         <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
           {BreadCrumbs.render(crumbs)}
         </div>
-        <DirToolbar.Toolbar
-          className={classes.actions}
-          features={toolbarFeatures}
-          handle={dirHandle}
-          onReload={handleReload}
-        />
+        <PD.Provider dst={{ bucket }}>
+          <DirToolbar.Toolbar
+            className={classes.actions}
+            features={toolbarFeatures}
+            handle={dirHandle}
+            onReload={handleReload}
+          />
+        </PD.Provider>
       </div>
 
       {data.case({
