@@ -1,28 +1,28 @@
 // import type { ErrorObject } from 'ajv'
-// import cx from 'classnames'
+import cx from 'classnames'
 // import * as FF from 'final-form'
-import * as FP from 'fp-ts'
+// import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-// import useResizeObserver from 'use-resize-observer'
+import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Intercom from 'components/Intercom'
 // import JsonValidationErrors from 'components/JsonValidationErrors'
-import cfg from 'constants/config'
+// import cfg from 'constants/config'
 // import * as AddToPackage from 'containers/AddToPackage'
-import type * as Model from 'model'
+// import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
-import { useMutation } from 'utils/GraphQL'
-import assertNever from 'utils/assertNever'
-import { mkFormError, mapInputErrors } from 'utils/formTools'
-import * as s3paths from 'utils/s3paths'
+// import { useMutation } from 'utils/GraphQL'
+// import assertNever from 'utils/assertNever'
+// import { mkFormError, mapInputErrors } from 'utils/formTools'
+// import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as Types from 'utils/types'
 // import * as validators from 'utils/validators'
@@ -44,17 +44,22 @@ import * as State from './state'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
-import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
+// import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
 import { Manifest, useManifest } from './Manifest'
 
 function InputWorkflow() {
   const {
     values: {
-      workflow: { value, onChange },
+      workflow: { status, value, onChange },
     },
     schema,
     workflowsConfig,
   } = State.use()
+  const error = React.useMemo(() => {
+    if (workflowsConfig._tag === 'error') return workflowsConfig.error.message
+    if (status._tag === 'error') return status.error.message
+    return undefined
+  }, [status, workflowsConfig])
   if (workflowsConfig._tag === 'idle') return null
   if (workflowsConfig._tag === 'loading') {
     return (
@@ -77,7 +82,7 @@ function InputWorkflow() {
   return (
     <SelectWorkflow
       disabled={schema._tag === 'loading'}
-      error={workflowsConfig._tag === 'error' ? workflowsConfig.error : undefined}
+      error={error}
       items={workflowsConfig.config.workflows}
       onChange={onChange}
       value={value}
@@ -88,7 +93,7 @@ function InputWorkflow() {
 function InputName() {
   const {
     values: {
-      name: { value, onChange },
+      name: { value, onChange, status },
     },
   } = State.use()
   const handleChange = React.useCallback(
@@ -103,6 +108,7 @@ function InputName() {
       margin="normal"
       /*constants*/
       helperText={<PD.PackageNameWarning />}
+      error={status._tag === 'error'}
       label="Name"
       placeholder="e.g. user/package"
       /*data*/
@@ -115,7 +121,7 @@ function InputName() {
 function InputMessage() {
   const {
     values: {
-      message: { value, onChange },
+      message: { status, value, onChange },
     },
   } = State.use()
   const handleChange = React.useCallback(
@@ -134,6 +140,8 @@ function InputMessage() {
       /*data*/
       onChange={handleChange}
       value={value || ''}
+      helperText={status._tag === 'error' && status.error.message}
+      error={status._tag === 'error'}
     />
   )
 }
@@ -147,11 +155,11 @@ const useInputMetaStyles = M.makeStyles((t) => ({
   },
 }))
 
-function InputMeta() {
+const InputMeta = React.forwardRef<HTMLDivElement>(function InputMeta(_, ref) {
   const classes = useInputMetaStyles()
   const {
     values: {
-      meta: { value, onChange },
+      meta: { status, value, onChange },
     },
     schema,
   } = State.use()
@@ -163,21 +171,35 @@ function InputMeta() {
     () => ({ value, onChange: handleChange }),
     [value, handleChange],
   )
-  if (schema._tag === 'loading') return <MetaInputSkeleton className={classes.root} />
+  const schemaError = React.useMemo(() => {
+    if (schema._tag === 'error') return schema.error
+    if (status._tag === 'error') return status.errors
+  }, [schema, status])
+  if (schema._tag === 'loading')
+    return <MetaInputSkeleton ref={ref} className={classes.root} />
   return (
     <MI.MetaInput
       className={classes.root}
       schema={schema._tag === 'ready' ? schema.schema : undefined}
-      schemaError={schema._tag === 'error' ? schema.error : undefined}
+      schemaError={schemaError}
       // validate={validateMetaInput}
       meta={{}}
       // @ts-expect-error
       input={input}
+      ref={ref}
     />
   )
-}
+})
+
+const useInputFilesStyles = M.makeStyles({
+  root: {
+    height: '100%',
+    overflowY: 'auto',
+  },
+})
 
 function InputFiles() {
+  const classes = useInputFilesStyles()
   const {
     values: { files },
   } = State.use()
@@ -194,6 +216,9 @@ function InputFiles() {
   )
   return (
     <FI.FilesInput
+      className={cx(classes.root, {
+        // [classes.error]: submitFailed && !!entriesError,
+      })}
       input={files}
       meta={{ initial: files.value }}
       title="FIles"
@@ -205,70 +230,70 @@ function InputFiles() {
 }
 
 const CANCEL = 'cancel'
-const README_PATH = 'README.md'
-
-type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
-
+// const README_PATH = 'README.md'
+//
+// type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
+//
 export interface PackageCreationSuccess {
   name: string
   hash?: string
 }
-
-// Convert FilesState to entries consumed by Schema validation
-function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
-  return FP.function.pipe(
-    R.mergeLeft(files.added, files.existing),
-    R.omit(Object.keys(files.deleted)),
-    Object.entries,
-    R.filter(([, file]) => file !== FI.EMPTY_DIR_MARKER),
-    R.map(([path, file]) => ({
-      logical_key: path,
-      meta: file.meta?.user_meta || {},
-      size: file.size,
-    })),
-  )
-}
-
-function createReadmeFile(name: string) {
-  const contents = [
-    `# ${name}`,
-    '\n\n',
-    `Stub README for the **${name}** package generated by Quilt Catalog`,
-    '\n',
-  ]
-  const f = new File(contents, README_PATH, { type: 'text/markdown' })
-  return FI.computeHash(f) as FI.LocalFile
-}
-
-interface ConfirmReadmeProps {
-  close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
-}
-
-function ConfirmReadme({ close }: ConfirmReadmeProps) {
-  return (
-    <>
-      <M.DialogTitle>Add a README file?</M.DialogTitle>
-      <M.DialogContent>
-        <M.DialogContentText>
-          You are about to push an empty package.
-          <br />
-          Would you like to add a stub <b>README.md</b> file?
-        </M.DialogContentText>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={() => close('cancel')} color="primary">
-          Cancel
-        </M.Button>
-        <M.Button onClick={() => close('empty')} color="primary" variant="outlined">
-          Continue with empty package
-        </M.Button>
-        <M.Button onClick={() => close('readme')} color="primary" variant="contained">
-          Add README.md
-        </M.Button>
-      </M.DialogActions>
-    </>
-  )
-}
+//
+// // Convert FilesState to entries consumed by Schema validation
+// function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
+//   return FP.function.pipe(
+//     R.mergeLeft(files.added, files.existing),
+//     R.omit(Object.keys(files.deleted)),
+//     Object.entries,
+//     R.filter(([, file]) => file !== FI.EMPTY_DIR_MARKER),
+//     R.map(([path, file]) => ({
+//       logical_key: path,
+//       meta: file.meta?.user_meta || {},
+//       size: file.size,
+//     })),
+//   )
+// }
+//
+// function createReadmeFile(name: string) {
+//   const contents = [
+//     `# ${name}`,
+//     '\n\n',
+//     `Stub README for the **${name}** package generated by Quilt Catalog`,
+//     '\n',
+//   ]
+//   const f = new File(contents, README_PATH, { type: 'text/markdown' })
+//   return FI.computeHash(f) as FI.LocalFile
+// }
+//
+// interface ConfirmReadmeProps {
+//   close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
+// }
+//
+// function ConfirmReadme({ close }: ConfirmReadmeProps) {
+//   return (
+//     <>
+//       <M.DialogTitle>Add a README file?</M.DialogTitle>
+//       <M.DialogContent>
+//         <M.DialogContentText>
+//           You are about to push an empty package.
+//           <br />
+//           Would you like to add a stub <b>README.md</b> file?
+//         </M.DialogContentText>
+//       </M.DialogContent>
+//       <M.DialogActions>
+//         <M.Button onClick={() => close('cancel')} color="primary">
+//           Cancel
+//         </M.Button>
+//         <M.Button onClick={() => close('empty')} color="primary" variant="outlined">
+//           Continue with empty package
+//         </M.Button>
+//         <M.Button onClick={() => close('readme')} color="primary" variant="contained">
+//           Add README.md
+//         </M.Button>
+//       </M.DialogActions>
+//     </>
+//   )
+// }
 
 interface FormErrorProps {
   submitting: boolean
@@ -323,7 +348,7 @@ interface PackageCreationFormProps {
   // }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
-  setSubmitting: (submitting: boolean) => void
+  // setSubmitting: (submitting: boolean) => void
   setSuccess: (success: PackageCreationSuccess) => void
   // setWorkflow: (workflow: workflows.Workflow) => void
   // sourceBuckets: BucketPreferences.SourceBuckets
@@ -349,8 +374,8 @@ function PackageCreationForm(
     // schema,
     // schemaLoading,
     // selectedWorkflow,
-    setSubmitting,
-    setSuccess,
+    // setSubmitting,
+    // setSuccess,
     // setWorkflow,
     // sourceBuckets,
     // validate: validateMetaInput,
@@ -363,11 +388,10 @@ function PackageCreationForm(
 ) {
   // const addToPackage = AddToPackage.use()
   // const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { schema, values } = State.use()
+  const { submit /*schema, values*/ } = State.use()
   const classes = useStyles()
-  // const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-  // const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
-  const metaHeight = 0
+  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
+  const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   // const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
@@ -401,159 +425,159 @@ function PackageCreationForm(
   //   [uploads],
   // )
 
-  const constructPackage = useMutation(PACKAGE_CONSTRUCT)
+  // const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   // const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
-  interface SubmitArgs {
-    name: string
-    msg: string
-    meta: {}
-    localFolder?: string
-    workflow: workflows.Workflow
-  }
-  interface SubmitWebArgs extends SubmitArgs {
-    files: FI.FilesState
-  }
-  interface SubmitElectronArgs extends SubmitArgs {
-    localFolder: string
-  }
+  // interface SubmitArgs {
+  //   name: string
+  //   msg: string
+  //   meta: {}
+  //   localFolder?: string
+  //   workflow: workflows.Workflow
+  // }
+  // interface SubmitWebArgs extends SubmitArgs {
+  //   files: FI.FilesState
+  // }
+  // interface SubmitElectronArgs extends SubmitArgs {
+  //   localFolder: string
+  // }
 
-  const onSubmit = async ({ files, meta }: SubmitWebArgs) => {
-    if (!values.name.value) return 'name'
-    if (!values.message.value) return 'message'
-    if (!values.workflow.value) return 'workflow'
-    if (schema._tag !== 'ready') return 'meta'
+  // const onSubmit = async ({ files, meta }: SubmitWebArgs) => {
+  //   if (!values.name.value) return 'name'
+  //   if (!values.message.value) return 'message'
+  //   if (!values.workflow.value) return 'workflow'
+  //   if (schema._tag !== 'ready') return 'meta'
 
-    const { local: addedLocalEntries, remote: addedS3Entries } = FI.groupAddedFiles(
-      files.added,
-    )
+  //   const { local: addedLocalEntries, remote: addedS3Entries } = FI.groupAddedFiles(
+  //     files.added,
+  //   )
 
-    const toUpload = addedLocalEntries.filter(({ path, file }) => {
-      const e = files.existing[path]
-      return !e || !R.equals(e.hash, file.hash.value)
-    })
+  //   const toUpload = addedLocalEntries.filter(({ path, file }) => {
+  //     const e = files.existing[path]
+  //     return !e || !R.equals(e.hash, file.hash.value)
+  //   })
 
-    const entries = filesStateToEntries(files)
+  //   const entries = filesStateToEntries(files)
 
-    if (!entries.length) {
-      const reason = await dialogs.open<'cancel' | 'empty' | 'readme'>((props) => (
-        <ConfirmReadme {...props} />
-      ))
-      if (reason === 'cancel') return mkFormError(CANCEL)
-      if (reason === 'readme') {
-        const file = createReadmeFile(values.name.value)
-        entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
-        toUpload.push({ path: README_PATH, file })
-      }
-    }
+  //   if (!entries.length) {
+  //     const reason = await dialogs.open<'cancel' | 'empty' | 'readme'>((props) => (
+  //       <ConfirmReadme {...props} />
+  //     ))
+  //     if (reason === 'cancel') return mkFormError(CANCEL)
+  //     if (reason === 'readme') {
+  //       const file = createReadmeFile(values.name.value)
+  //       entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
+  //       toUpload.push({ path: README_PATH, file })
+  //     }
+  //   }
 
-    // const error = await validateEntries(entries)
-    // if (error?.length) {
-    //   setEntriesError(error)
-    //   return {
-    //     files: 'schema',
-    //   }
-    // }
+  //   // const error = await validateEntries(entries)
+  //   // if (error?.length) {
+  //   //   setEntriesError(error)
+  //   //   return {
+  //   //     files: 'schema',
+  //   //   }
+  //   // }
 
-    let uploadedEntries
-    try {
-      uploadedEntries = await uploads.upload({
-        files: toUpload,
-        bucket: successor.slug,
-        getCanonicalKey: (path) => {
-          if (!values.name.value) {
-            throw new Error('Package name is required')
-          }
-          return s3paths.canonicalKey(values.name.value, path, cfg.packageRoot)
-        },
-        getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
-      })
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Error uploading files:')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return mkFormError(PD.ERROR_MESSAGES.UPLOAD)
-    }
+  //   let uploadedEntries
+  //   try {
+  //     uploadedEntries = await uploads.upload({
+  //       files: toUpload,
+  //       bucket: successor.slug,
+  //       getCanonicalKey: (path) => {
+  //         if (!values.name.value) {
+  //           throw new Error('Package name is required')
+  //         }
+  //         return s3paths.canonicalKey(values.name.value, path, cfg.packageRoot)
+  //       },
+  //       getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
+  //     })
+  //   } catch (e) {
+  //     // eslint-disable-next-line no-console
+  //     console.error('Error uploading files:')
+  //     // eslint-disable-next-line no-console
+  //     console.error(e)
+  //     return mkFormError(PD.ERROR_MESSAGES.UPLOAD)
+  //   }
 
-    const s3Entries = FP.function.pipe(
-      addedS3Entries,
-      R.map(
-        ({ path, file }) =>
-          [
-            path,
-            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
-          ] as R.KeyValuePair<string, PartialPackageEntry>,
-      ),
-      R.fromPairs,
-    )
+  //   const s3Entries = FP.function.pipe(
+  //     addedS3Entries,
+  //     R.map(
+  //       ({ path, file }) =>
+  //         [
+  //           path,
+  //           { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+  //         ] as R.KeyValuePair<string, PartialPackageEntry>,
+  //     ),
+  //     R.fromPairs,
+  //   )
 
-    const allEntries = FP.function.pipe(
-      files.existing,
-      R.omit(Object.keys(files.deleted)),
-      R.mergeLeft(uploadedEntries),
-      R.mergeLeft(s3Entries),
-      R.toPairs,
-      R.map(([logicalKey, data]: [string, PartialPackageEntry]) => ({
-        logicalKey,
-        physicalKey: data.physicalKey,
-        hash: data.hash ?? null,
-        meta: data.meta ?? null,
-        size: data.size ?? null,
-      })),
-      R.sortBy(R.prop('logicalKey')),
-    )
+  //   const allEntries = FP.function.pipe(
+  //     files.existing,
+  //     R.omit(Object.keys(files.deleted)),
+  //     R.mergeLeft(uploadedEntries),
+  //     R.mergeLeft(s3Entries),
+  //     R.toPairs,
+  //     R.map(([logicalKey, data]: [string, PartialPackageEntry]) => ({
+  //       logicalKey,
+  //       physicalKey: data.physicalKey,
+  //       hash: data.hash ?? null,
+  //       meta: data.meta ?? null,
+  //       size: data.size ?? null,
+  //     })),
+  //     R.sortBy(R.prop('logicalKey')),
+  //   )
 
-    try {
-      const { packageConstruct: r } = await constructPackage({
-        params: {
-          bucket: successor.slug,
-          name: values.name.value,
-          message: values.message.value,
-          userMeta: requests.getMetaValue(meta, schema.schema) ?? null,
-          workflow:
-            // eslint-disable-next-line no-nested-ternary
-            values.workflow.value.slug === workflows.notAvailable
-              ? null
-              : values.workflow.value.slug === workflows.notSelected
-                ? ''
-                : values.workflow.value.slug,
-        },
-        src: {
-          entries: allEntries,
-        },
-      })
-      switch (r.__typename) {
-        case 'PackagePushSuccess':
-          setSuccess({ name: values.name.value, hash: r.revision.hash })
-          return
-        case 'OperationError':
-          return mkFormError(r.message)
-        case 'InvalidInput':
-          return mapInputErrors(r.errors, { 'src.entries': 'files' })
-        default:
-          assertNever(r)
-      }
-    } catch (e: any) {
-      // eslint-disable-next-line no-console
-      console.error('Error creating manifest:')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return mkFormError(
-        e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
-      )
-    }
-  }
+  //   try {
+  //     const { packageConstruct: r } = await constructPackage({
+  //       params: {
+  //         bucket: successor.slug,
+  //         name: values.name.value,
+  //         message: values.message.value,
+  //         userMeta: requests.getMetaValue(meta, schema.schema) ?? null,
+  //         workflow:
+  //           // eslint-disable-next-line no-nested-ternary
+  //           values.workflow.value.slug === workflows.notAvailable
+  //             ? null
+  //             : values.workflow.value.slug === workflows.notSelected
+  //               ? ''
+  //               : values.workflow.value.slug,
+  //       },
+  //       src: {
+  //         entries: allEntries,
+  //       },
+  //     })
+  //     switch (r.__typename) {
+  //       case 'PackagePushSuccess':
+  //         setSuccess({ name: values.name.value, hash: r.revision.hash })
+  //         return
+  //       case 'OperationError':
+  //         return mkFormError(r.message)
+  //       case 'InvalidInput':
+  //         return mapInputErrors(r.errors, { 'src.entries': 'files' })
+  //       default:
+  //         assertNever(r)
+  //     }
+  //   } catch (e: any) {
+  //     // eslint-disable-next-line no-console
+  //     console.error('Error creating manifest:')
+  //     // eslint-disable-next-line no-console
+  //     console.error(e)
+  //     return mkFormError(
+  //       e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
+  //     )
+  //   }
+  // }
 
-  const onSubmitWrapped = async (args: SubmitWebArgs | SubmitElectronArgs) => {
-    setSubmitting(true)
-    try {
-      return await onSubmit(args as SubmitWebArgs)
-    } finally {
-      // addToPackage?.clear()
-      setSubmitting(false)
-    }
-  }
+  // const onSubmitWrapped = async (args: SubmitWebArgs | SubmitElectronArgs) => {
+  //   // setSubmitting(true)
+  //   // try {
+  //   //   return await onSubmit(args as SubmitWebArgs)
+  //   // } finally {
+  //   //   // addToPackage?.clear()
+  //   //   setSubmitting(false)
+  //   // }
+  // }
 
   // const onFormChange = React.useCallback(
   //   ({ dirtyFields, values }) => {
@@ -583,7 +607,7 @@ function PackageCreationForm(
 
   return (
     <RF.Form
-      onSubmit={onSubmitWrapped}
+      onSubmit={submit}
       subscription={{
         error: true,
         hasValidationErrors: true,
@@ -642,7 +666,7 @@ function PackageCreationForm(
                   <InputWorkflow />
                   <InputName />
                   <InputMessage />
-                  <InputMeta />
+                  <InputMeta ref={setEditorElement} />
                 </Layout.LeftColumn>
                 <Layout.RightColumn>
                   <InputFiles />
@@ -845,7 +869,7 @@ export function usePackageCreationDialog({
 
   const [exited, setExited] = React.useState(!isOpen)
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
-  const [submitting, setSubmitting] = React.useState(false)
+  // const [submitting, setSubmitting] = React.useState(false)
   // const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: {dst: {successor}, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
@@ -934,12 +958,12 @@ export function usePackageCreationDialog({
   )
 
   const close = React.useCallback(() => {
-    if (submitting) return
+    // if (submitting) return
     setOpen(false)
     // setWorkflow(undefined) // TODO: is this necessary?
     // addToPackage?.clear()
     reset()
-  }, [/*addToPackage, */ reset, submitting, setOpen])
+  }, [/*addToPackage, */ reset, /*submitting,*/ setOpen])
 
   const handleExited = React.useCallback(() => {
     setExited(true)
@@ -1015,7 +1039,7 @@ export function usePackageCreationDialog({
                 bucket,
                 successor,
                 close,
-                setSubmitting,
+                // setSubmitting,
                 setSuccess,
                 // setWorkflow,
                 // workflowsConfig,

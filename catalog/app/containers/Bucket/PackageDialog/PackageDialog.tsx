@@ -4,18 +4,15 @@ import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
 import type * as RF from 'react-final-form'
-import * as redux from 'react-redux'
+// import * as redux from 'react-redux'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
-import {
-  SyncProblemOutlined as IconSyncProblemOutlined,
-  RestoreOutlined as IconRestoreOutlined,
-} from '@material-ui/icons'
+import { RestoreOutlined as IconRestoreOutlined } from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
-import * as authSelectors from 'containers/Auth/selectors'
+// import * as authSelectors from 'containers/Auth/selectors'
 import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -215,6 +212,7 @@ export function Field({
   return <M.TextField {...props} />
 }
 
+/*
 interface PackageNameInputOwnProps {
   errors: Record<string, React.ReactNode>
   input: RF.FieldInputProps<string>
@@ -278,6 +276,7 @@ export function PackageNameInput({
   }, [directory, workflow, modified, onChange, username])
   return <Field {...props} />
 }
+*/
 
 interface CommitMessageInputOwnProps {
   errors: Record<string, React.ReactNode>
@@ -484,7 +483,7 @@ export function getUsernamePrefix(username?: string | null) {
   return validParts ? `${validParts.join('')}/` : ''
 }
 
-const getDefaultPackageName = (
+export const getDefaultPackageName = (
   workflow: { packageName: packageHandleUtils.NameTemplates },
   { directory, username }: { directory?: string; username: string },
 ) => {
@@ -531,9 +530,9 @@ export const PackageNameWarning = () => {
       return <></>
     case 'loading':
       return <Lab.Skeleton width={160} />
-    case 'exists':
+    case 'new-revision':
       return <span className={classes.existing}>Existing package</span>
-    case 'able-to-reuse':
+    case 'exists':
       return (
         <>
           <IconRestoreOutlined className={classes.root} fontSize="small" />
@@ -543,13 +542,8 @@ export const PackageNameWarning = () => {
       )
     case 'new':
       return <span className={classes.success}>New package</span>
-    case 'invalid':
-      return (
-        <span className={classes.error}>
-          <IconSyncProblemOutlined className={classes.root} fontSize="small" />
-          Failed checking if package exists
-        </span>
-      )
+    case 'error':
+      return <>{status.error.message}</>
     default:
       assertNever(status)
   }
