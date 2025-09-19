@@ -153,14 +153,15 @@ function useManifestRequest(open: boolean, src?: PackageSrc): ManifestStatus {
     pause,
   })
   return React.useMemo(() => {
-    if (pause) return { _tag: 'idle' }
+    if (!open) return { _tag: 'idle' }
+    if (!src) return { _tag: 'ready' }
     return data.case({
       Ok: (manifest: Manifest | undefined) => ({ _tag: 'ready', manifest }),
       Pending: () => ({ _tag: 'loading' }),
       Init: () => ({ _tag: 'idle' }),
       Err: (error: Error) => ({ _tag: 'error', error }),
     })
-  }, [pause, data])
+  }, [src, open, data])
 }
 
 function useWorkflowsConfig(
