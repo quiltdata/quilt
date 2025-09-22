@@ -16,7 +16,7 @@ updates:
       interval: "daily"
     ignore:
       - versions:
-          - ">=3.12.*"
+          - "~> 3.13"
 
   - package-ecosystem: "docker"
     directory: "/lambdas/thumbnail"
