@@ -15,8 +15,8 @@ updates:
     schedule:
       interval: "daily"
     ignore:
-      - update-types:
-          - version-update:semver-minor
+      - versions:
+          - ">=3.12.*"
 
   - package-ecosystem: "docker"
     directory: "/lambdas/thumbnail"
