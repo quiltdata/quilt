@@ -47,6 +47,8 @@ export interface ConfigJson {
 
   qurator?: boolean
 
+  mcpEndpoint?: string
+
   build_version?: string // not sure where this comes from
   stackVersion: string
   packageRoot?: string
