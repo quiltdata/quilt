@@ -104,6 +104,10 @@
     "packageRoot": {
       "type": "string",
       "description": "Prefix where package files will be uploaded"
+    },
+    "mcpEndpoint": {
+      "$ref": "#/definitions/Url",
+      "description": "MCP (Model Context Protocol) server endpoint for AI assistant tools"
     }
   },
   "required": [

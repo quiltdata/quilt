@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  quilt-package-server:
+    build:
+      context: ./servers/package
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - mcp-network
+
+  quilt-visualization-server:
+    build:
+      context: ./servers/visualization
+      dockerfile: Dockerfile
+    ports:
+      - '3002:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
