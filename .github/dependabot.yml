@@ -15,8 +15,10 @@ updates:
     schedule:
       interval: "daily"
     ignore:
-      - versions:
-          - "~> 3.13"
+      - dependency-name: "lambda/python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   - package-ecosystem: "docker"
     directory: "/lambdas/thumbnail"
