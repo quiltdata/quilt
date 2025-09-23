@@ -307,7 +307,7 @@ function PackageCreationForm({
   currentBucketCanBeSuccessor,
   ui = {},
 }: PackageCreationFormProps) {
-  const { formData, formStatus, dst, setDst, submit, progress, onAddReadme } = State.use()
+  const { params, formStatus, dst, setDst, submit, progress, onAddReadme } = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -375,7 +375,7 @@ function PackageCreationForm({
           onClick={handleSubmit}
           variant="contained"
           color="primary"
-          disabled={formData._tag === 'invalid' || formStatus._tag === 'submitting'}
+          disabled={params._tag === 'invalid' || formStatus._tag === 'submitting'}
         >
           {ui.submit || 'Create'}
         </M.Button>

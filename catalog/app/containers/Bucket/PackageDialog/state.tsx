@@ -173,7 +173,7 @@ type FormStatus =
     }
   | { _tag: 'success'; handle: PackageHandle }
 
-type FormData =
+type FormParams =
   | { _tag: 'invalid'; error: Error }
   | {
       _tag: 'ok'
@@ -184,26 +184,27 @@ type FormData =
         userMeta: Types.JsonRecord | null
         workflow: string | null
       }
-      files: {
-        local: {
-          file: FI.LocalFile
-
-          path: string
-          hash?: Model.Checksum | null
-          meta?: Types.JsonRecord | null
-          size: number | null
-        }[]
-        remote: {
-          [path: string]: {
-            physicalKey: string
-
-            hash?: Model.Checksum
-            meta?: Types.JsonRecord | null
-            size?: number
-          }
-        }
-      }
     }
+
+type FormFiles = {
+  local: {
+    file: FI.LocalFile
+
+    path: string
+    hash?: Model.Checksum | null
+    meta?: Types.JsonRecord | null
+    size: number | null
+  }[]
+  remote: {
+    [path: string]: {
+      physicalKey: string
+
+      hash?: Model.Checksum
+      meta?: Types.JsonRecord | null
+      size?: number
+    }
+  }
+}
 
 type AsyncStatus =
   | { _tag: 'idle' }
@@ -260,11 +261,7 @@ type FilesStatus =
   | { _tag: 'error'; error?: Error; errors?: { [logicalKey: string]: ErrorObject } }
   | { _tag: 'ok' }
 
-function groupAddedFiles({
-  added,
-  deleted,
-  existing,
-}: FI.FilesState): Extract<FormData, { _tag: 'ok' }>['files'] {
+function groupAddedFiles({ added, deleted, existing }: FI.FilesState): FormFiles {
   const filesGroups = FI.groupAddedFiles(added)
   const local = filesGroups.local
     .filter(({ path, file }) => {
@@ -307,11 +304,7 @@ function useSubmit() {
   const uploads = Uploads.useUploads()
 
   const upload = React.useCallback(
-    (
-      bucket: string,
-      name: string,
-      files: Extract<FormData, { _tag: 'ok' }>['files']['local'],
-    ) => {
+    (bucket: string, name: string, files: FormFiles['local']) => {
       try {
         return uploads.upload({
           files,
@@ -333,14 +326,15 @@ function useSubmit() {
 
   const submit = React.useCallback(
     async (
-      formData: FormData,
+      formParams: FormParams,
+      files: FormFiles,
       whenNoFiles?: 'allow' | 'add-readme',
     ): Promise<FormStatus> => {
-      if (formData._tag === 'invalid') {
-        throw { _tag: 'submitFailed', error: formData.error }
+      if (formParams._tag === 'invalid') {
+        throw { _tag: 'submitFailed', error: formParams.error }
       }
 
-      const { files, params } = formData
+      const { params } = formParams
       const local = [...files.local]
       if (!files.local.length && !Object.keys(files.remote).length) {
         switch (whenNoFiles) {
@@ -468,7 +462,7 @@ interface PackageDialogState {
   metadataSchema: SchemaStatus
   entriesSchema: SchemaStatus
 
-  formData: FormData
+  params: FormParams
   formStatus: FormStatus
   submit: (whenNoFiles?: 'allow' | 'add-readme') => Promise<void>
   progress: Uploads.UploadTotalProgress
@@ -872,7 +866,7 @@ export function PackageDialogProvider({
 
   const { progress, submit } = useSubmit()
 
-  const formData: FormData = React.useMemo(() => {
+  const params: FormParams = React.useMemo(() => {
     if (!workflow.value || workflow.status._tag === 'error') {
       return { _tag: 'invalid', error: new Error('Valid workflow required') }
     }
@@ -893,15 +887,6 @@ export function PackageDialogProvider({
       return { _tag: 'invalid', error: new Error('Metadata must be valid') }
     }
 
-    if (files.status._tag === 'error') {
-      return {
-        _tag: 'invalid',
-        error: new Error(
-          'Files must be finished hashing and conform entries JSON Schema',
-        ),
-      }
-    }
-
     return {
       _tag: 'ok',
       params: {
@@ -911,15 +896,25 @@ export function PackageDialogProvider({
         userMeta: requests.getMetaValue(meta.value, metadataSchema.schema) ?? null,
         workflow: workflowSelectionToWorkflow(workflow.value),
       },
-      files: groupAddedFiles(files.value),
     }
-  }, [dst, workflow, name, message, metadataSchema, meta, files])
+  }, [dst, workflow, name, message, metadataSchema, meta])
 
   const handleSubmit = React.useCallback(
     async (whenNoFiles?: 'allow' | 'add-readme') => {
       setFormStatus({ _tag: 'submitting' })
       try {
-        const status = await submit(formData, whenNoFiles)
+        // Validate files for creation
+        if (files.status._tag === 'error') {
+          throw {
+            _tag: 'submitFailed',
+            error: new Error(
+              'Files must be finished hashing and conform entries JSON Schema',
+            ),
+          }
+        }
+
+        const formFiles = groupAddedFiles(files.value)
+        const status = await submit(params, formFiles, whenNoFiles)
         setFormStatus(status)
       } catch (error) {
         if (error instanceof Error) {
@@ -929,7 +924,7 @@ export function PackageDialogProvider({
         }
       }
     },
-    [formData, submit],
+    [params, files, submit],
   )
 
   const onAddReadme = React.useCallback(
@@ -982,7 +977,7 @@ export function PackageDialogProvider({
 
         submit: handleSubmit,
         formStatus,
-        formData,
+        params,
         progress,
 
         onAddReadme,
