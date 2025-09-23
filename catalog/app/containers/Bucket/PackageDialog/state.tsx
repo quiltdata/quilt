@@ -936,11 +936,6 @@ export function PackageDialogProvider({
     async (reasonPromise: ReadmeReason | PromiseLike<ReadmeReason>) => {
       const reason = await reasonPromise
 
-      if (formData._tag === 'invalid') {
-        setFormStatus({ _tag: 'submitFailed', error: formData.error })
-        return
-      }
-
       switch (reason) {
         case 'cancel':
           setFormStatus({ _tag: 'ready' })
@@ -955,7 +950,7 @@ export function PackageDialogProvider({
           assertNever(reason)
       }
     },
-    [formData, handleSubmit],
+    [handleSubmit],
   )
 
   return (
