@@ -146,12 +146,13 @@ const getLLMResponse = (
 ): Eff.Effect.Effect<
   { content: Content.ResponseMessageContentBlock[]; toolUses: ToolUse[] },
   LLM.LLMError,
-  LLM.LLM
+  LLM.LLM | ToolService
 > =>
   Eff.Effect.gen(function* () {
     const llm = yield* LLM.LLM
+    const tools = yield* ToolService
     const filteredEvents = events.filter((e) => !e.discarded)
-    const prompt = yield* constructPrompt(filteredEvents)
+    const prompt = yield* constructPrompt(filteredEvents, tools)
 
     const response = yield* llm.converse(prompt)
 
@@ -168,10 +169,15 @@ const getLLMResponse = (
     return { content, toolUses }
   })
 
+export class ToolService extends Eff.Context.Tag('@quilt/Agent/ToolService')<
+  ToolService,
+  Tool.Collection
+>() {}
+
 // XXX: separate "service" from handlers
 export const ConversationActor = Eff.Effect.succeed(
   Log.scopedFn(`${MODULE}.ConversationActor`)(
-    Actor.taggedHandler<State, Action, LLM.LLM>({
+    Actor.taggedHandler<State, Action, LLM.LLM | ToolService>({
       Idle: {
         Ask: (state, action, dispatch) =>
           Eff.Effect.gen(function* () {
@@ -245,24 +251,13 @@ export const ConversationActor = Eff.Effect.succeed(
               return State.Idle({ events, timestamp, error: Eff.Option.none() })
             }
 
-            // For now, we don't have tools in the Agent
-            // MCP tools will be added later
+            // Execute tools using ToolService
+            const tools = yield* ToolService
             const calls: Record<string, ToolCall> = {}
             for (const tu of toolUses) {
-              // Mock tool execution for now
               const fiber = yield* Eff.Effect.fork(
                 Eff.Effect.gen(function* () {
-                  // Simulate tool not found
-                  const result = Eff.Option.some(
-                    Tool.Result({
-                      status: 'error',
-                      content: [
-                        Content.ToolResultContentBlock.Text({
-                          text: `Tool "${tu.name}" not found. MCP integration coming soon!`,
-                        }),
-                      ],
-                    }),
-                  )
+                  const result = yield* Tool.execute(tools, tu.name, tu.input)
                   yield* dispatch(Action.ToolResult({ id: tu.toolUseId, result }))
                 }),
               )
@@ -356,7 +351,10 @@ You help users with data management and analysis tasks.
 Use GitHub Flavored Markdown syntax for formatting when appropriate.
 `
 
-export const constructPrompt = (events: Event[]): Eff.Effect.Effect<LLM.Prompt> =>
+export const constructPrompt = (
+  events: Event[],
+  tools: Tool.Collection,
+): Eff.Effect.Effect<LLM.Prompt> =>
   Eff.Effect.gen(function* () {
     const [msgEvents, toolEvents] = Eff.Array.partitionMap(
       events,
@@ -404,8 +402,12 @@ export const constructPrompt = (events: Event[]): Eff.Effect.Effect<LLM.Prompt> 
         ? [LLM.userMessage(Content.PromptMessageContentBlock.Text({ text: 'Hello' }))]
         : (allMessages as Eff.Array.NonEmptyArray<LLM.PromptMessage>)
 
+    const toolConfig =
+      Object.keys(tools).length > 0 ? { tools, choice: LLM.ToolChoice.Auto() } : undefined
+
     return {
       system: SYSTEM_PROMPT,
       messages,
+      toolConfig,
     }
   })

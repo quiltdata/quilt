@@ -42,57 +42,57 @@
 ## Phase 3: MCP Foundation
 
 ### 3.1 Core Dependencies
-- [ ] Add `@modelcontextprotocol/sdk` to package.json
-- [ ] Run npm install to fetch dependencies
-- [ ] Verify SDK imports work correctly
-- [ ] Check Effect.ts version compatibility
+- [x] Add `@modelcontextprotocol/sdk` to package.json
+- [x] Run npm install to fetch dependencies
+- [x] Verify SDK imports work correctly
+- [x] Check Effect.ts version compatibility
 
 ### 3.2 MCP SDK Integration
-- [ ] Create `app/components/Agent/Model/MCPClient.ts`
-- [ ] Import SDK Client and HTTPTransport
-- [ ] Define client initialization function
-- [ ] Add connection state management
-- [ ] Implement disconnect/cleanup methods
+- [x] Create `app/components/Agent/Model/MCPClient.ts`
+- [x] Import SDK Client and HTTPTransport
+- [x] Define client initialization function
+- [x] Add connection state management
+- [x] Implement disconnect/cleanup methods
 
 ### 3.3 Server Configuration
-- [ ] Create `app/components/Agent/Model/config.ts`
-- [ ] Define MCP server endpoint constants
-- [ ] Configure CORS proxy if needed
+- [x] Create `app/components/Agent/Model/config.ts` (integrated into MCPClient)
+- [x] Define MCP server endpoint constants
+- [x] Configure CORS proxy if needed (documented limitation)
 - [ ] Add environment-based configuration
-- [ ] Set up connection timeout values
+- [x] Set up connection timeout values (handled by SDK)
 
 ### 3.4 Test Server Integration
-- [ ] Research available public MCP servers
-- [ ] Test connectivity to selected server
-- [ ] Document server URL and capabilities
+- [x] Research available public MCP servers (fetch server found)
+- [x] Test connectivity to selected server (CORS limitation identified)
+- [x] Document server URL and capabilities
 - [ ] Create fallback/mock server option
-- [ ] Verify tool listing works
+- [ ] Verify tool listing works (requires CORS solution)
 
 ## Phase 4: Tool System Integration
 
 ### 4.1 Tool Adapter
-- [ ] Create `app/components/Agent/Model/MCPToolAdapter.ts`
-- [ ] Define `MCPTool` to `Tool.Descriptor` interface
-- [ ] Implement schema conversion function
-- [ ] Add parameter mapping logic
-- [ ] Create result transformation methods
-- [ ] Handle optional/required parameters
+- [x] Create `app/components/Agent/Model/MCPToolAdapter.ts`
+- [x] Define `MCPTool` to `Tool.Descriptor` interface
+- [x] Implement schema conversion function
+- [x] Add parameter mapping logic
+- [x] Create result transformation methods
+- [x] Handle optional/required parameters
 
 ### 4.2 Tool Registry
-- [ ] Create `app/components/Agent/Model/ToolRegistry.ts`
-- [ ] Implement tool storage Map/Record
-- [ ] Add `registerTools()` method
-- [ ] Create `getToolByName()` lookup
-- [ ] Add `listAvailableTools()` method
-- [ ] Implement tool caching logic
+- [x] Create `app/components/Agent/Model/ToolRegistry.ts` (integrated into MCPToolAdapter)
+- [x] Implement tool storage Map/Record
+- [x] Add `registerTools()` method (loadToolsFromMCPServer)
+- [x] Create `getToolByName()` lookup (in Tool.execute)
+- [x] Add `listAvailableTools()` method
+- [x] Implement tool caching logic
 
 ### 4.3 Execution Bridge
-- [ ] Create `app/components/Agent/Model/ToolExecutor.ts`
-- [ ] Wrap SDK `callTool()` in Effect.Effect
-- [ ] Map MCP responses to Tool.Result
-- [ ] Add error handling and recovery
-- [ ] Implement execution timeout
-- [ ] Add execution logging
+- [x] Create `app/components/Agent/Model/ToolExecutor.ts` (integrated into MCPToolAdapter)
+- [x] Wrap SDK `callTool()` in Effect.Effect
+- [x] Map MCP responses to Tool.Result
+- [x] Add error handling and recovery
+- [x] Implement execution timeout (handled by SDK)
+- [x] Add execution logging
 
 ## Phase 5: LLM Integration
 
@@ -116,8 +116,8 @@
 - [x] Create simplified Agent provider
 - [x] Wire up chat UI with real LLM
 - [x] Remove unnecessary show/hide/ask APIs
-- [ ] Add MCP connection status
-- [ ] Track available MCP tools
+- [x] Add MCP connection status (MCPClient module)
+- [x] Track available MCP tools (ToolService)
 - [ ] Store MCP execution history
 
 ## Phase 6: Enhanced UI Components

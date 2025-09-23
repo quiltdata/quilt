@@ -11,6 +11,7 @@ import * as Model from '../Model'
 import { useAgentAPI } from '../Model/Agent'
 
 import Input from './Input'
+import ServerStatus from './ServerStatus'
 
 const BG = {
   intense: M.colors.indigo[900],
@@ -307,7 +308,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function AgentChat() {
   const classes = useStyles()
-  const { state, dispatch } = useAgentAPI()
+  const { state, dispatch, mcpClient, mcpTools, mcpError, connectMCP } = useAgentAPI()
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const inputDisabled = state._tag !== 'Idle'
@@ -332,6 +333,14 @@ export default function AgentChat() {
 
   return (
     <div className={classes.chat}>
+      <M.Box p={2} borderBottom="1px solid" borderColor="divider">
+        <ServerStatus
+          mcpClient={mcpClient}
+          toolCount={Object.keys(mcpTools).length}
+          error={mcpError}
+          onReconnect={connectMCP}
+        />
+      </M.Box>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
           <MessageContainer>
