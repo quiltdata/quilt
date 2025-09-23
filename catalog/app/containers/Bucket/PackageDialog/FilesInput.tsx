@@ -15,7 +15,7 @@ import * as Dialog from 'components/Dialog'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import assertNever from 'utils/assertNever'
-import computeFileChecksum from 'utils/checksums'
+// import computeFileChecksum from 'utils/checksums'
 import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
@@ -25,12 +25,13 @@ import * as Selection from '../Selection'
 
 import EditFileMeta from './EditFileMeta'
 import {
+  computeHash,
   FilesEntryState,
   FilesEntry,
   FilesEntryDir,
   FilesEntryType,
   FilesAction,
-  FileWithHash,
+  // FileWithHash,
   FilesState,
   handleFilesAction,
   isS3File,
@@ -41,12 +42,12 @@ import * as S3FilePicker from './S3FilePicker'
 import { calcStats, Stats, StatsWarning } from './filesStats'
 
 export {
-  HASHING,
-  HASHING_ERROR,
-  validateHashingComplete,
-  EMPTY_DIR_MARKER,
+  // HASHING,
+  // HASHING_ERROR,
+  // validateHashingComplete,
+  // EMPTY_DIR_MARKER,
   FilesAction,
-  groupAddedFiles,
+  // groupAddedFiles,
 } from './FilesState'
 export type { LocalFile, FilesState } from './FilesState'
 
@@ -286,8 +287,6 @@ const COLORS = {
   invalid: M.colors.red[400],
 }
 
-const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
-
 const isDragReady = (state: FilesEntryState) => {
   switch (state) {
     case 'added':
@@ -314,29 +313,6 @@ const isFileDropReady = (entry: FilesEntry) =>
     Dir: (d) => isDropReady(d.state),
     File: (f) => isDropReady(f.state),
   })(entry)
-
-export function computeHash(f: File) {
-  if (hasHash(f)) return f
-  const hashP = computeFileChecksum(f)
-  const fh = f as FileWithHash
-  fh.hash = { ready: false } as any
-  fh.hash.promise = hashP
-    .catch((e) => {
-      // eslint-disable-next-line no-console
-      console.log(`Error hashing file "${fh.name}":`)
-      // eslint-disable-next-line no-console
-      console.error(e)
-      fh.hash.error = e
-      fh.hash.ready = true
-      return undefined
-    })
-    .then((checksum) => {
-      fh.hash.value = checksum
-      fh.hash.ready = true
-      return checksum
-    })
-  return fh
-}
 
 interface DispatchFilesAction {
   (action: FilesAction): void

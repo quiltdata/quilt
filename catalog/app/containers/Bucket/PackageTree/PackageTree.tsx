@@ -35,7 +35,7 @@ import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import * as Listing from '../Listing'
-// import PackageCopyDialog from '../PackageCopyDialog'
+import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
 import * as Selection from '../Selection'
@@ -194,13 +194,13 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
 
   const updateDialog = PD.usePackageCreationDialog({ bucket })
 
-  const [, /*successor*/ setSuccessor] = React.useState<workflows.Successor | null>(null)
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
   const { setOpen } = PD.useContext()
-  // const onPackageCopyDialogExited = React.useCallback(() => {
-  //   setSuccessor(null)
-  //   setOpen(false)
-  // }, [setOpen])
+  const onPackageCopyDialogExited = React.useCallback(() => {
+    setSuccessor(null)
+    setOpen(false)
+  }, [setOpen])
   const onSuccessor = React.useCallback(
     (s: workflows.Successor) => {
       setSuccessor(s)
@@ -289,7 +289,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
 
   return (
     <>
-      {/*
       <PackageCopyDialog
         bucket={bucket}
         hash={hash}
@@ -297,7 +296,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
         successor={successor}
         onClose={onPackageCopyDialogExited}
       />
-      */}
 
       <RevisionDeleteDialog
         error={deletionState.error}

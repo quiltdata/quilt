@@ -254,7 +254,7 @@ export interface PackageCreationSuccess {
 //     })),
 //   )
 // }
-//
+
 // function createReadmeFile(name: string) {
 //   const contents = [
 //     `# ${name}`,
@@ -265,36 +265,36 @@ export interface PackageCreationSuccess {
 //   const f = new File(contents, README_PATH, { type: 'text/markdown' })
 //   return FI.computeHash(f) as FI.LocalFile
 // }
-//
-// interface ConfirmReadmeProps {
-//   close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
-// }
-//
-// function ConfirmReadme({ close }: ConfirmReadmeProps) {
-//   return (
-//     <>
-//       <M.DialogTitle>Add a README file?</M.DialogTitle>
-//       <M.DialogContent>
-//         <M.DialogContentText>
-//           You are about to push an empty package.
-//           <br />
-//           Would you like to add a stub <b>README.md</b> file?
-//         </M.DialogContentText>
-//       </M.DialogContent>
-//       <M.DialogActions>
-//         <M.Button onClick={() => close('cancel')} color="primary">
-//           Cancel
-//         </M.Button>
-//         <M.Button onClick={() => close('empty')} color="primary" variant="outlined">
-//           Continue with empty package
-//         </M.Button>
-//         <M.Button onClick={() => close('readme')} color="primary" variant="contained">
-//           Add README.md
-//         </M.Button>
-//       </M.DialogActions>
-//     </>
-//   )
-// }
+
+interface ConfirmReadmeProps {
+  close: Dialogs.Close<'cancel' | 'empty' | 'readme'>
+}
+
+function ConfirmReadme({ close }: ConfirmReadmeProps) {
+  return (
+    <>
+      <M.DialogTitle>Add a README file?</M.DialogTitle>
+      <M.DialogContent>
+        <M.DialogContentText>
+          You are about to push an empty package.
+          <br />
+          Would you like to add a stub <b>README.md</b> file?
+        </M.DialogContentText>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={() => close('cancel')} color="primary">
+          Cancel
+        </M.Button>
+        <M.Button onClick={() => close('empty')} color="primary" variant="outlined">
+          Continue with empty package
+        </M.Button>
+        <M.Button onClick={() => close('readme')} color="primary" variant="contained">
+          Add README.md
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
+}
 
 interface FormErrorProps {
   error: Error
@@ -388,14 +388,14 @@ function PackageCreationForm(
 ) {
   // const addToPackage = AddToPackage.use()
   // const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { formData, formStatus, dst, setDst, submit /*schema, values*/ } = State.use()
+  const { formData, formStatus, dst, setDst, submit, progress, onAddReadme } = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   // const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
-  const dialogs = Dialogs.use()
+  // const dialogs = Dialogs.use()
 
   // const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
   //   null,
@@ -412,7 +412,7 @@ function PackageCreationForm(
   //   [existingEntries, addToPackage],
   // )
 
-  const uploads = useUploads()
+  // const uploads = useUploads()
 
   // const onFilesAction = React.useMemo(
   //   () =>
@@ -635,7 +635,14 @@ function PackageCreationForm(
     //     // handleSubmit,
     //   }) => (
     <>
-      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
+      {formStatus._tag === 'emptyFiles' && (
+        <M.Dialog open fullWidth maxWidth="sm">
+          <ConfirmReadme close={onAddReadme} />
+        </M.Dialog>
+      )}
+
+      {/*dialogs.render({ fullWidth: true, maxWidth: 'sm' })*/}
+
       <M.DialogTitle>
         {ui.title || 'Create package'} in{' '}
         <Successors.Dropdown
@@ -791,8 +798,8 @@ function PackageCreationForm(
       </M.DialogContent>
       <M.DialogActions>
         {formStatus._tag === 'submitting' && (
-          <SubmitSpinner value={uploads.progress.percent}>
-            {uploads.progress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
+          <SubmitSpinner value={progress.percent}>
+            {progress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
           </SubmitSpinner>
         )}
 

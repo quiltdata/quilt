@@ -24,7 +24,7 @@ export interface UploadTotalProgress {
   percent: number
 }
 
-export interface UploadsState {
+interface UploadsState {
   [path: string]: {
     file: File
     promise: Promise<S3.ManagedUpload.SendData>
@@ -32,7 +32,7 @@ export interface UploadsState {
   }
 }
 
-export const computeTotalProgress = (uploads: UploadsState): UploadTotalProgress =>
+const computeTotalProgress = (uploads: UploadsState): UploadTotalProgress =>
   FP.function.pipe(
     uploads,
     R.values,

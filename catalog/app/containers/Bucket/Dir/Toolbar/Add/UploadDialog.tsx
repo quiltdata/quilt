@@ -5,7 +5,8 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { useUploads } from 'containers/Bucket/PackageDialog/Uploads'
-import * as FI from 'containers/Bucket/PackageDialog/FilesInput'
+import * as FI from 'containers/Bucket/PackageDialog/FilesState'
+import { FilesInput } from 'containers/Bucket/PackageDialog/FilesInput'
 import type * as Toolbar from 'containers/Bucket/Toolbar'
 import Log from 'utils/Logging'
 import * as s3paths from 'utils/s3paths'
@@ -123,7 +124,7 @@ export default function UploadDialog({
         )}
 
         {showUploadUI && (
-          <FI.FilesInput
+          <FilesInput
             className={classes.drop}
             disabled={submitting}
             initial={initial}

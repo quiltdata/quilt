@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import { FileWithPath } from 'react-dropzone'
 
 import type * as Model from 'model'
+import computeFileChecksum from 'utils/checksums'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
@@ -107,6 +108,31 @@ export interface FileWithHash extends File {
 }
 
 export type LocalFile = FileWithPath & FileWithHash
+
+const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
+
+export function computeHash(f: File) {
+  if (hasHash(f)) return f
+  const hashP = computeFileChecksum(f)
+  const fh = f as FileWithHash
+  fh.hash = { ready: false } as any
+  fh.hash.promise = hashP
+    .catch((e) => {
+      // eslint-disable-next-line no-console
+      console.log(`Error hashing file "${fh.name}":`)
+      // eslint-disable-next-line no-console
+      console.error(e)
+      fh.hash.error = e
+      fh.hash.ready = true
+      return undefined
+    })
+    .then((checksum) => {
+      fh.hash.value = checksum
+      fh.hash.ready = true
+      return checksum
+    })
+  return fh
+}
 
 export interface FilesState {
   added: Record<string, LocalFile | Model.S3File>
