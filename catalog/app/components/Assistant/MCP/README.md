@@ -25,47 +25,83 @@ The MCP implementation provides:
 
 ## Quick Start
 
-### 1. Start MCP Servers
+### 1. Configure MCP Endpoint
 
-```bash
-cd catalog/app/components/Assistant/MCP
-docker-compose up -d
+The MCP client can connect to different types of endpoints:
+
+- **Streamable HTTP Endpoint** (Recommended): `http://localhost:8000/mcp?transport=streamable-http`
+- **SSE Endpoint**: `http://localhost:8000/sse`
+- **HTTP Endpoint**: `http://localhost:8000/mcp`
+- **Remote Endpoint**: `https://your-mcp-server.com/mcp?transport=streamable-http`
+
+Update your configuration in `static-dev/config.js`:
+
+```javascript
+window.QUILT_CATALOG_CONFIG = {
+  // ... other config
+  mcpEndpoint: 'http://localhost:8000/mcp?transport=streamable-http', // Streamable HTTP endpoint
+}
 ```
 
-This will start:
+### 2. Start MCP Server
 
-- Package MCP Server on port 3001
-- Visualization MCP Server on port 3002
+The MCP client now connects to the `quilt-mcp-server` which supports multiple transport modes:
 
-### 2. Access the Demo
+```bash
+# Start quilt-mcp-server with streamable-http transport (recommended)
+docker run -d \
+  --name quilt-mcp-server \
+  -p 8000:8000 \
+  -e FASTMCP_TRANSPORT=streamable-http \
+  -e FASTMCP_HOST=0.0.0.0 \
+  -e FASTMCP_PORT=8000 \
+  quilt-mcp:latest
+
+# Or with SSE transport
+docker run -d \
+  --name quilt-mcp-server \
+  -p 8000:8000 \
+  -e FASTMCP_TRANSPORT=sse \
+  -e FASTMCP_HOST=0.0.0.0 \
+  -e FASTMCP_PORT=8000 \
+  quilt-mcp:latest
+```
+
+### 3. Access the Demo
 
 Navigate to `http://localhost:3000/mcp-demo` to test the MCP functionality.
 
-### 3. Test MCP Tools
+### 4. Test MCP Tools
 
 The demo page allows you to:
 
-- View available MCP tools
+- View available MCP tools (84+ tools available)
 - Test package search functionality
-- Create new packages
+- Create new packages with metadata templates
 - Update package metadata
-- Generate visualizations
+- Browse S3 buckets and objects
+- Execute SQL queries with Athena
+- Manage workflows and permissions
 
-## MCP Servers
+## MCP Server Architecture
 
-### Package Server (Port 3001)
+The client now connects to the `quilt-mcp-server` which provides:
 
-Provides tools for:
+### Core Tools (84+ available)
 
-- `quilt-package-search`: Search for packages
-- `quilt-package-create`: Create new packages
-- `quilt-metadata-update`: Update package metadata
+- **Authentication**: `auth_status`, `catalog_info`, `filesystem_status`
+- **Package Management**: `create_package_enhanced`, `package_browse`, `packages_search`
+- **S3 Operations**: `bucket_objects_list`, `bucket_object_info`, `unified_search`
+- **Analytics**: `athena_query_execute`, `tabulator_tables_list`
+- **Workflows**: `workflow_create`, `workflow_add_step`, `workflow_get_status`
+- **Metadata**: `get_metadata_template`, `validate_metadata_structure`
+- **Administration**: `admin_users_list`, `admin_user_create`, `admin_roles_list`
 
-### Visualization Server (Port 3002)
+### Transport Modes
 
-Provides tools for:
-
-- `quilt-visualization-create`: Create data visualizations
+- **SSE (Server-Sent Events)**: Recommended for real-time communication
+- **HTTP**: Standard HTTP requests/responses
+- **Streamable HTTP**: For large data transfers
 
 ## Integration with Bedrock
 
@@ -87,37 +123,117 @@ Use the MCP Demo page at `/mcp-demo` to test functionality locally.
 ## Docker Commands
 
 ```bash
-# Start all MCP servers
-docker-compose up -d
+# Start quilt-mcp-server with streamable-http transport (recommended)
+docker run -d \
+  --name quilt-mcp-server \
+  -p 8000:8000 \
+  -e FASTMCP_TRANSPORT=streamable-http \
+  -e FASTMCP_HOST=0.0.0.0 \
+  -e FASTMCP_PORT=8000 \
+  -e QUILT_CATALOG_DOMAIN=your-catalog.quiltdata.com \
+  -e QUILT_DEFAULT_BUCKET=your-bucket \
+  quilt-mcp:latest
 
 # View logs
-docker-compose logs -f
+docker logs -f quilt-mcp-server
 
-# Stop servers
-docker-compose down
+# Stop server
+docker stop quilt-mcp-server
 
-# Rebuild servers
-docker-compose up --build -d
+# Remove container
+docker rm quilt-mcp-server
+
+# For SSE transport
+docker run -d \
+  --name quilt-mcp-server \
+  -p 8000:8000 \
+  -e FASTMCP_TRANSPORT=sse \
+  -e FASTMCP_HOST=0.0.0.0 \
+  -e FASTMCP_PORT=8000 \
+  quilt-mcp:latest
+
+# For standard HTTP transport
+docker run -d \
+  --name quilt-mcp-server \
+  -p 8000:8000 \
+  -e FASTMCP_TRANSPORT=http \
+  -e FASTMCP_HOST=0.0.0.0 \
+  -e FASTMCP_PORT=8000 \
+  quilt-mcp:latest
 ```
 
 ## API Endpoints
 
-### MCP Server Endpoints
+### MCP Protocol Endpoints
 
-- `GET /tools` - List available tools
-- `POST /execute` - Execute a tool
-- `GET /health` - Health check
+The client uses the standard MCP (Model Context Protocol) endpoints:
+
+- `POST /sse` - SSE endpoint for real-time communication
+- `POST /mcp` - HTTP endpoint for standard requests
+- `GET /healthz` - Health check endpoint
 
 ### Example Tool Execution
 
 ```javascript
-// Search for packages
-const response = await fetch('http://localhost:3001/execute', {
+// Initialize MCP session
+const initResponse = await fetch('http://localhost:8000/sse', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    tool_id: 'quilt-package-search',
-    args: { query: 'genomics', max_results: 10 },
+    jsonrpc: '2.0',
+    id: 'init-session',
+    method: 'initialize',
+    params: {
+      protocolVersion: '2024-11-05',
+      capabilities: { tools: {}, prompts: {}, resources: {} },
+      clientInfo: { name: 'quilt-catalog', version: '1.0.0' },
+    },
   }),
 })
+
+// List available tools
+const toolsResponse = await fetch('http://localhost:8000/sse', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'list-tools',
+    method: 'tools/list',
+    params: {},
+  }),
+})
+
+// Execute a tool
+const toolResponse = await fetch('http://localhost:8000/sse', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'call-packages_search',
+    method: 'tools/call',
+    params: {
+      name: 'packages_search',
+      arguments: { query: 'genomics', limit: 10 },
+    },
+  }),
+})
+```
+
+### Configuration Examples
+
+```javascript
+// Streamable HTTP endpoint (recommended)
+"mcpEndpoint": "http://localhost:8000/mcp?transport=streamable-http"
+
+// SSE endpoint
+"mcpEndpoint": "http://localhost:8000/sse"
+
+// Standard HTTP endpoint
+"mcpEndpoint": "http://localhost:8000/mcp"
+
+// Remote streamable HTTP endpoint
+"mcpEndpoint": "https://your-mcp-server.com/mcp?transport=streamable-http"
+
+// Remote SSE endpoint
+"mcpEndpoint": "https://your-mcp-server.com/sse"
 ```

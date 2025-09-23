@@ -26,6 +26,9 @@ export interface MCPTool {
     type: 'object'
     properties: Record<string, any>
     required?: string[]
+    title?: string
+    description?: string
+    $schema?: string
   }
 }
 
@@ -74,11 +77,12 @@ export interface QuiltVisualizationArgs {
 // MCP Client Interface
 export interface MCPClient {
   initialize(): Promise<void>
-  connectToServer(config: MCPServerConfig): Promise<void>
-  disconnectFromServer(serverName: string): Promise<void>
+  connectToServer(config?: MCPServerConfig): Promise<void>
+  disconnectFromServer(serverName?: string): void
   listAvailableTools(): Promise<MCPTool[]>
   callTool(toolCall: MCPToolCall): Promise<MCPToolResult>
-  getServerStatus(serverName: string): MCPServerConnection['status']
+  getServerStatus(): MCPServerConnection['status']
+  hasSession(): boolean
 }
 
 // MCP Tool Hooks Return Types
