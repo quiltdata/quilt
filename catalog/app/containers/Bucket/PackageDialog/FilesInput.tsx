@@ -3,7 +3,6 @@ import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
-// import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import {
   ErrorOutline as IconErrorOutline,
@@ -15,7 +14,6 @@ import * as Dialog from 'components/Dialog'
 import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import assertNever from 'utils/assertNever'
-// import computeFileChecksum from 'utils/checksums'
 import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
@@ -41,14 +39,7 @@ import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 import { calcStats, Stats, StatsWarning } from './filesStats'
 
-export {
-  // HASHING,
-  // HASHING_ERROR,
-  // validateHashingComplete,
-  // EMPTY_DIR_MARKER,
-  FilesAction,
-  // groupAddedFiles,
-} from './FilesState'
+export { FilesAction } from './FilesState'
 export type { LocalFile, FilesState } from './FilesState'
 
 interface Progress {

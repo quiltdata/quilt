@@ -11,13 +11,8 @@ import { usePackageCreationDialog } from './PackageDialog/PackageCreationForm'
 
 const EXAMPLE_PACKAGE_URL = `${docs}/walkthrough/editing-a-package`
 
-interface CreatePackageProps {
-  bucket: string
-}
-
-function CreatePackage({ bucket }: CreatePackageProps) {
+function CreatePackage() {
   const createDialog = usePackageCreationDialog({
-    bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })
@@ -37,12 +32,6 @@ function CreatePackage({ bucket }: CreatePackageProps) {
       })}
     </>
   )
-}
-
-interface EmptyProps {
-  bucket: string
-  className?: string
-  onRefine: (action: NoResults.Refine) => void
 }
 
 function WithFilters({ onRefine }: { onRefine: (action: NoResults.Refine) => void }) {
@@ -87,7 +76,12 @@ function BareFilters({ onRefine }: { onRefine: (action: NoResults.Refine) => voi
   )
 }
 
-export default function NoPackages({ className, bucket, onRefine }: EmptyProps) {
+interface NoPackagesProps {
+  className?: string
+  onRefine: (action: NoResults.Refine) => void
+}
+
+export default function NoPackages({ className, onRefine }: NoPackagesProps) {
   const { state } = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   const numFilters = state.filter.order.length + state.userMetaFilters.filters.size
@@ -96,7 +90,7 @@ export default function NoPackages({ className, bucket, onRefine }: EmptyProps) 
     <Empty
       className={className}
       title="No matching packages"
-      primary={<CreatePackage bucket={bucket} />}
+      primary={<CreatePackage />}
       secondary={
         <>
           or{' '}

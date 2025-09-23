@@ -447,7 +447,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     perPage: PER_PAGE,
   })
 
-  const updateDialog = PD.usePackageCreationDialog({ bucket })
+  const updateDialog = PD.usePackageCreationDialog()
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>

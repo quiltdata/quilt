@@ -223,15 +223,13 @@ function Drawer({
 }
 
 interface CreatePackageProps {
-  bucket: string
   handles: Model.S3.S3ObjectLocation[]
   onPackageDialog: (error?: Error) => void
 }
 
-function CreatePackage({ bucket, handles, onPackageDialog }: CreatePackageProps) {
+function CreatePackage({ handles, onPackageDialog }: CreatePackageProps) {
   const addToPackage = AddToPackage.use()
   const createDialog = PD.usePackageCreationDialog({
-    bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })
@@ -320,11 +318,7 @@ export default function Sidebar({ bookmarks, bucket }: SidebarProps) {
       >
         {bucket ? (
           <PD.Provider dst={{ bucket }}>
-            <CreatePackage
-              bucket={bucket}
-              handles={handles}
-              onPackageDialog={onPackageDialog}
-            />
+            <CreatePackage handles={handles} onPackageDialog={onPackageDialog} />
           </PD.Provider>
         ) : (
           <M.Button color="primary" disabled variant="contained">

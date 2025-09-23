@@ -192,7 +192,7 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     [urls, bucket, name, hashOrTag],
   )
 
-  const updateDialog = PD.usePackageCreationDialog({ bucket })
+  const updateDialog = PD.usePackageCreationDialog()
 
   const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 

@@ -465,7 +465,8 @@ interface PackageDialogState {
 
   manifest: ManifestStatus
   workflowsConfig: WorkflowsConfigStatus
-  schema: SchemaStatus
+  metadataSchema: SchemaStatus
+  entriesSchema: SchemaStatus
 
   formData: FormData
   formStatus: FormStatus
@@ -515,6 +516,7 @@ function useNameExistence(dst: PackageDst, src?: PackageSrc): NameStatus {
 function useNameValidator(dst: PackageDst): NameValidationStatus {
   const apiReq = APIConnector.use()
   const req = React.useCallback(async () => {
+    // FIXME: debounce
     const res = await apiReq({
       endpoint: '/package_name_valid',
       method: 'POST',
@@ -980,7 +982,8 @@ export function PackageDialogProvider({
 
         manifest,
         workflowsConfig,
-        schema: metadataSchema,
+        metadataSchema,
+        entriesSchema,
 
         submit: handleSubmit,
         formStatus,

@@ -24,16 +24,14 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface CreatePackageProps {
-  bucket: string
   queryResults: requests.QueryResults
 }
 
-export default function CreatePackage({ bucket, queryResults }: CreatePackageProps) {
+export default function CreatePackage({ queryResults }: CreatePackageProps) {
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
   const createDialog = usePackageCreationDialog({
-    bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })

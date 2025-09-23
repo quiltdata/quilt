@@ -70,7 +70,6 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
   const packageDirectoryDialog = usePackageCreationDialog({
     s3Path: path,
-    bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })

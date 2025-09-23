@@ -86,7 +86,7 @@ function PackageList({ bucket }: PackageListProps) {
     [inputEl, goToGlobalSearchUrl, resultType, clearFilters, setResultType, reset],
   )
 
-  const emptySlot = <NoPackages bucket={bucket} onRefine={handleRefine} />
+  const emptySlot = <NoPackages onRefine={handleRefine} />
   return (
     <>
       <MetaTitle>{titleSegments}</MetaTitle>

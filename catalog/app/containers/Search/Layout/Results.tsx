@@ -28,7 +28,7 @@ function CreatePackageWrapper({ className }: CreatePackageWrapperProps) {
   )
   return (
     <PD.Provider dst={{ bucket }}>
-      <CreatePackage bucket={bucket}>{btn}</CreatePackage>
+      <CreatePackage>{btn}</CreatePackage>
     </PD.Provider>
   )
 }
@@ -77,13 +77,11 @@ function CreatePackageButton({ className, onClick }: CreatePackageButtonProps) {
 }
 
 interface CreatePackageProps {
-  bucket: string
   children: (onOpen: () => void) => React.ReactNode
 }
 
-function CreatePackage({ bucket, children }: CreatePackageProps) {
+function CreatePackage({ children }: CreatePackageProps) {
   const { open, render } = PD.usePackageCreationDialog({
-    bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })

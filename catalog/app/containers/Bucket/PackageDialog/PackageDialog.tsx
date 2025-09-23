@@ -3,17 +3,12 @@ import { basename } from 'path'
 import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
-import type * as RF from 'react-final-form'
-// import * as redux from 'react-redux'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import { RestoreOutlined as IconRestoreOutlined } from '@material-ui/icons'
 import * as Lab from '@material-ui/lab'
-import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
-// import * as authSelectors from 'containers/Auth/selectors'
-import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as JSONPointer from 'utils/JSONPointer'
@@ -32,7 +27,6 @@ import { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
-import SelectWorkflow from './SelectWorkflow'
 import * as State from './state'
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
@@ -212,130 +206,6 @@ export function Field({
   return <M.TextField {...props} />
 }
 
-/*
-interface PackageNameInputOwnProps {
-  errors: Record<string, React.ReactNode>
-  input: RF.FieldInputProps<string>
-  directory?: string
-  meta: RF.FieldMetaState<string>
-  validating: boolean
-  workflow: { packageName: packageHandleUtils.NameTemplates }
-}
-
-type PackageNameInputProps = PackageNameInputOwnProps &
-  Omit<Parameters<typeof Field>[0], keyof PackageNameInputOwnProps>
-
-export function PackageNameInput({
-  errors,
-  input: { value, onChange },
-  meta,
-  workflow,
-  directory,
-  validating,
-  ...rest
-}: PackageNameInputProps) {
-  const readyForValidation = (value && meta.modified) || meta.submitFailed
-  const errorCode = readyForValidation && meta.error
-  const error = errorCode ? errors[errorCode] || errorCode : ''
-  const [modified, setModified] = React.useState(!!(meta.modified || value))
-  const handleChange = React.useCallback(
-    (event) => {
-      setModified(true)
-      onChange(event)
-    },
-    [onChange, setModified],
-  )
-  const props = {
-    disabled: meta.submitting || meta.submitSucceeded,
-    error,
-    fullWidth: true,
-    label: 'Name',
-    margin: 'normal' as const,
-    onChange: handleChange,
-    placeholder: 'e.g. user/package',
-    // NOTE: react-form doesn't change `FormState.validating` on async validation when field loses focus
-    validating,
-    value,
-    ...rest,
-  }
-  const username = redux.useSelector(authSelectors.username)
-  React.useEffect(() => {
-    if (modified) return
-
-    const packageName = getDefaultPackageName(workflow, {
-      username,
-      directory,
-    })
-    if (!packageName) return
-
-    onChange({
-      target: {
-        value: packageName,
-      },
-    })
-  }, [directory, workflow, modified, onChange, username])
-  return <Field {...props} />
-}
-*/
-
-interface CommitMessageInputOwnProps {
-  errors: Record<string, React.ReactNode>
-  input: RF.FieldInputProps<string>
-  meta: RF.FieldMetaState<string>
-}
-
-type CommitMessageInputProps = CommitMessageInputOwnProps &
-  Omit<Parameters<typeof Field>[0], keyof CommitMessageInputOwnProps>
-
-export function CommitMessageInput({
-  errors,
-  input,
-  meta,
-  ...rest
-}: CommitMessageInputProps) {
-  const errorCode = meta.submitFailed && meta.error
-  const error = errorCode ? errors[errorCode] || errorCode : ''
-  const props = {
-    disabled: meta.submitting || meta.submitSucceeded,
-    error,
-    fullWidth: true,
-    label: 'Message',
-    margin: 'normal' as const,
-    placeholder: 'Enter a commit message',
-    validating: meta.submitFailed && meta.validating,
-    ...input,
-    ...rest,
-  }
-  return <Field {...props} />
-}
-
-interface WorkflowInputProps {
-  input: RF.FieldInputProps<workflows.Workflow>
-  meta: RF.FieldMetaState<workflows.Workflow>
-  workflowsConfig?: workflows.WorkflowsConfig
-  errors?: Record<string, React.ReactNode>
-}
-
-export function WorkflowInput({
-  input,
-  meta,
-  workflowsConfig,
-  errors = {},
-}: WorkflowInputProps) {
-  const disabled = meta.submitting || meta.submitSucceeded
-  const errorKey = meta.submitFailed && meta.error
-
-  return (
-    <SelectWorkflow
-      items={workflowsConfig ? workflowsConfig.workflows : []}
-      onChange={input.onChange}
-      value={input.value}
-      disabled={disabled}
-      error={errorKey ? errors[errorKey] || errorKey : undefined}
-    />
-  )
-}
-
 export const defaultWorkflowFromConfig = (wcfg?: workflows.WorkflowsConfig) =>
   wcfg?.workflows.find((item) => item.isDefault)
 
@@ -348,102 +218,6 @@ export function useWorkflowValidator(workflowsConfig?: workflows.WorkflowsConfig
     },
     [workflowsConfig?.isWorkflowRequired],
   )
-}
-
-export interface SchemaFetcherRenderPropsLoading {
-  responseError: undefined
-  schema: undefined
-  schemaLoading: true
-  selectedWorkflow: workflows.Workflow | undefined
-  validate: MetaValidator
-}
-
-export interface SchemaFetcherRenderPropsSuccess {
-  responseError: undefined
-  schema?: JsonSchema
-  schemaLoading: false
-  selectedWorkflow: workflows.Workflow | undefined
-  validate: MetaValidator
-}
-
-export interface SchemaFetcherRenderPropsError {
-  responseError: Error
-  schema: undefined
-  schemaLoading: false
-  selectedWorkflow: workflows.Workflow | undefined
-  validate: MetaValidator
-}
-
-export type SchemaFetcherRenderProps =
-  | SchemaFetcherRenderPropsLoading
-  | SchemaFetcherRenderPropsSuccess
-  | SchemaFetcherRenderPropsError
-
-const noopValidator: MetaValidator = () => undefined
-
-interface SchemaFetcherProps {
-  initialWorkflowId?: string
-  workflow?: workflows.Workflow
-  workflowsConfig: workflows.WorkflowsConfig
-  children: (props: SchemaFetcherRenderProps) => React.ReactElement
-}
-
-export function SchemaFetcher({
-  initialWorkflowId,
-  workflow,
-  workflowsConfig,
-  children,
-}: SchemaFetcherProps) {
-  const s3 = AWS.S3.use()
-
-  const initialWorkflow = React.useMemo(() => {
-    // reuse workflow from previous revision if it's still present in the config
-    if (initialWorkflowId) {
-      const w = workflowsConfig.workflows.find(R.propEq('slug', initialWorkflowId))
-      if (w) return w
-    }
-    return defaultWorkflowFromConfig(workflowsConfig)
-  }, [initialWorkflowId, workflowsConfig])
-
-  const selectedWorkflow = workflow || initialWorkflow
-
-  if (!selectedWorkflow) {
-    const error = new Error(`"default_workflow" or "workflow.id" doesn't exist`)
-    Sentry.captureException(error)
-    // eslint-disable-next-line no-console
-    console.error(error)
-  }
-
-  const schemaUrl = R.pathOr('', ['schema', 'url'], selectedWorkflow)
-  const data = useData(requests.metadataSchema, { s3, schemaUrl })
-
-  const res: SchemaFetcherRenderProps = React.useMemo(
-    () =>
-      data.case({
-        Ok: (schema?: JsonSchema) =>
-          ({
-            schema,
-            schemaLoading: false,
-            selectedWorkflow,
-            validate: mkMetaValidator(schema),
-          }) as SchemaFetcherRenderPropsSuccess,
-        Err: (responseError: Error) =>
-          ({
-            responseError,
-            schemaLoading: false,
-            selectedWorkflow,
-            validate: mkMetaValidator(),
-          }) as SchemaFetcherRenderPropsError,
-        _: () =>
-          ({
-            schemaLoading: true,
-            selectedWorkflow,
-            validate: noopValidator,
-          }) as SchemaFetcherRenderPropsLoading,
-      }),
-    [data, selectedWorkflow],
-  )
-  return children(res)
 }
 
 export function useCryptoApiValidation() {
