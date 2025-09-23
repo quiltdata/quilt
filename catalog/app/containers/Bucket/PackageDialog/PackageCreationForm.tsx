@@ -2,9 +2,9 @@
 import cx from 'classnames'
 // import * as FF from 'final-form'
 // import * as FP from 'fp-ts'
-import * as R from 'ramda'
+// import * as R from 'ramda'
 import * as React from 'react'
-import * as RF from 'react-final-form'
+// import * as RF from 'react-final-form'
 import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -14,17 +14,17 @@ import * as Intercom from 'components/Intercom'
 // import cfg from 'constants/config'
 // import * as AddToPackage from 'containers/AddToPackage'
 // import type * as Model from 'model'
-import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
-import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Data from 'utils/Data'
+// import * as AWS from 'utils/AWS'
+// import AsyncResult from 'utils/AsyncResult'
+// import * as BucketPreferences from 'utils/BucketPreferences'
+// import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
 // import { useMutation } from 'utils/GraphQL'
 // import assertNever from 'utils/assertNever'
 // import { mkFormError, mapInputErrors } from 'utils/formTools'
 // import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
-import * as Types from 'utils/types'
+// import * as Types from 'utils/types'
 // import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
@@ -45,7 +45,7 @@ import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
 // import PACKAGE_CONSTRUCT from './gql/PackageConstruct.generated'
-import { Manifest, useManifest } from './Manifest'
+// import { Manifest, useManifest } from './Manifest'
 
 function InputWorkflow() {
   const {
@@ -161,47 +161,47 @@ const InputMeta = React.forwardRef<HTMLDivElement>(function InputMeta(_, ref) {
     values: {
       meta: { status, value, onChange },
     },
+    formStatus,
     schema,
   } = State.use()
-  const handleChange = React.useCallback(
-    (event: { target: { value: Types.JsonRecord } }) => onChange(event.target.value),
-    [onChange],
-  )
-  const input = React.useMemo(
-    () => ({ value, onChange: handleChange }),
-    [value, handleChange],
-  )
-  const schemaError = React.useMemo(() => {
-    if (schema._tag === 'error') return schema.error
+  const errors = React.useMemo(() => {
+    if (schema._tag === 'error') return [schema.error]
     if (status._tag === 'error') return status.errors
+    return []
   }, [schema, status])
-  if (schema._tag === 'loading')
+  if (schema._tag === 'loading') {
     return <MetaInputSkeleton ref={ref} className={classes.root} />
+  }
   return (
     <MI.MetaInput
+      disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
       className={classes.root}
-      schema={schema._tag === 'ready' ? schema.schema : undefined}
-      schemaError={schemaError}
-      // validate={validateMetaInput}
-      meta={{}}
-      // @ts-expect-error
-      input={input}
+      errors={errors}
+      onChange={onChange}
       ref={ref}
+      schema={schema._tag === 'ready' ? schema.schema : undefined}
+      value={value}
     />
   )
 })
 
-const useInputFilesStyles = M.makeStyles({
+const useInputFilesStyles = M.makeStyles((t) => ({
   root: {
     height: '100%',
     overflowY: 'auto',
   },
-})
+  error: {
+    height: `calc(90% - ${t.spacing()}px)`,
+  },
+}))
 
 function InputFiles() {
   const classes = useInputFilesStyles()
   const {
-    values: { files },
+    values: {
+      files: { initial, status, value, onChange },
+    },
+    formStatus,
   } = State.use()
   const uploads = useUploads()
   const onFilesAction = React.useMemo(
@@ -216,20 +216,21 @@ function InputFiles() {
   )
   return (
     <FI.FilesInput
-      className={cx(classes.root, {
-        // [classes.error]: submitFailed && !!entriesError,
-      })}
-      input={files}
-      meta={{ initial: files.value }}
-      title="FIles"
+      disabled={formStatus._tag === 'submitting' || formStatus._tag === 'success'}
+      className={cx(classes.root, { [classes.error]: status._tag === 'error' })}
+      value={value}
+      initial={initial}
+      onChange={onChange}
+      error={status._tag === 'error' ? status.error : undefined}
+      errors={status._tag === 'error' ? status.errors : undefined}
+      title="Files"
       totalProgress={uploads.progress}
-      validationErrors={null}
       onFilesAction={onFilesAction}
     />
   )
 }
 
-const CANCEL = 'cancel'
+// const CANCEL = 'cancel'
 // const README_PATH = 'README.md'
 //
 // type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
@@ -296,18 +297,17 @@ export interface PackageCreationSuccess {
 // }
 
 interface FormErrorProps {
-  submitting: boolean
-  error: React.ReactNode
+  error: Error
 }
 
-function FormError({ submitting, error }: FormErrorProps) {
-  if (submitting || !error || error === CANCEL) return null
+function FormError({ error }: FormErrorProps) {
+  // if (!error || error === CANCEL) return null
   return (
     <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
       <M.Icon color="error">error_outline</M.Icon>
       <M.Box pl={1} />
       <M.Typography variant="body2" color="error">
-        {error}
+        {error.message}
       </M.Typography>
     </M.Box>
   )
@@ -346,10 +346,10 @@ interface PackageCreationFormProps {
   //   workflowId?: string
   //   entries?: Model.PackageContentsFlatMap
   // }
-  successor: workflows.Successor
-  onSuccessor: (successor: workflows.Successor) => void
+  // successor: workflows.Successor
+  // onSuccessor: (successor: workflows.Successor) => void
   // setSubmitting: (submitting: boolean) => void
-  setSuccess: (success: PackageCreationSuccess) => void
+  // setSuccess: (success: PackageCreationSuccess) => void
   // setWorkflow: (workflow: workflows.Workflow) => void
   // sourceBuckets: BucketPreferences.SourceBuckets
   // workflowsConfig: workflows.WorkflowsConfig
@@ -368,8 +368,8 @@ function PackageCreationForm(
     bucket,
     close,
     // initial,
-    successor,
-    onSuccessor,
+    // successor,
+    // onSuccessor,
     // responseError,
     // schema,
     // schemaLoading,
@@ -388,7 +388,7 @@ function PackageCreationForm(
 ) {
   // const addToPackage = AddToPackage.use()
   // const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const { submit /*schema, values*/ } = State.use()
+  const { formData, formStatus, dst, setDst, submit /*schema, values*/ } = State.use()
   const classes = useStyles()
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
@@ -605,41 +605,50 @@ function PackageCreationForm(
   // HACK: FIXME: it triggers name validation with correct workflow
   // const [hideMeta, setHideMeta] = React.useState(false)
 
+  const successor = React.useMemo(() => workflows.bucketToSuccessor(dst.bucket), [dst])
+  const handleSubmit = React.useCallback(
+    (event) => {
+      event.preventDefault()
+      submit()
+    },
+    [submit],
+  )
+
   return (
-    <RF.Form
-      onSubmit={submit}
-      subscription={{
-        error: true,
-        hasValidationErrors: true,
-        submitError: true,
-        submitFailed: true,
-        submitting: true,
-      }}
-      validate={PD.useCryptoApiValidation()}
-    >
-      {({
-        error,
-        hasValidationErrors,
-        submitError,
-        submitFailed,
-        submitting,
-        handleSubmit,
-      }) => (
-        <>
-          {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
-          <M.DialogTitle>
-            {ui.title || 'Create package'} in{' '}
-            <Successors.Dropdown
-              bucket={bucket || ''}
-              currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
-              successor={successor}
-              onChange={onSuccessor}
-            />{' '}
-            bucket
-          </M.DialogTitle>
-          <M.DialogContent classes={dialogContentClasses}>
-            <form className={classes.form} onSubmit={handleSubmit}>
-              {/*
+    // <RF.Form
+    //   onSubmit={submit}
+    //   subscription={{
+    //     error: true,
+    //     hasValidationErrors: true,
+    //     submitError: true,
+    //     submitFailed: true,
+    //     submitting: true,
+    //   }}
+    //   validate={PD.useCryptoApiValidation()}
+    // >
+    //   {({
+    //     // error,
+    //     // hasValidationErrors,
+    //     // submitError,
+    //     // submitFailed,
+    //     // submitting,
+    //     // handleSubmit,
+    //   }) => (
+    <>
+      {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
+      <M.DialogTitle>
+        {ui.title || 'Create package'} in{' '}
+        <Successors.Dropdown
+          bucket={bucket || ''}
+          currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
+          successor={successor}
+          onChange={(s) => setDst((d) => ({ ...d, bucket: s.slug }))}
+        />{' '}
+        bucket
+      </M.DialogTitle>
+      <M.DialogContent classes={dialogContentClasses}>
+        <form className={classes.form} onSubmit={handleSubmit}>
+          {/*
               <RF.FormSpy
                 subscription={{ dirtyFields: true, values: true }}
                 onChange={onFormChange}
@@ -661,18 +670,18 @@ function PackageCreationForm(
               />
               */}
 
-              <Layout.Container>
-                <Layout.LeftColumn>
-                  <InputWorkflow />
-                  <InputName />
-                  <InputMessage />
-                  <InputMeta ref={setEditorElement} />
-                </Layout.LeftColumn>
-                <Layout.RightColumn>
-                  <InputFiles />
-                </Layout.RightColumn>
+          <Layout.Container>
+            <Layout.LeftColumn>
+              <InputWorkflow />
+              <InputName />
+              <InputMessage />
+              <InputMeta ref={setEditorElement} />
+            </Layout.LeftColumn>
+            <Layout.RightColumn>
+              <InputFiles />
+            </Layout.RightColumn>
 
-                {/*
+            {/*
                 <Layout.LeftColumn>
                   <InputWorkflow />
                   <InputName />
@@ -775,48 +784,50 @@ function PackageCreationForm(
                   />
                 </Layout.RightColumn>
                   */}
-              </Layout.Container>
+          </Layout.Container>
 
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
-          </M.DialogContent>
-          <M.DialogActions>
-            {submitting && (
-              <SubmitSpinner value={uploads.progress.percent}>
-                {uploads.progress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
-              </SubmitSpinner>
-            )}
+          <input type="submit" style={{ display: 'none' }} />
+        </form>
+      </M.DialogContent>
+      <M.DialogActions>
+        {formStatus._tag === 'submitting' && (
+          <SubmitSpinner value={uploads.progress.percent}>
+            {uploads.progress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
+          </SubmitSpinner>
+        )}
 
-            <FormError submitting={submitting} error={error || submitError} />
+        {formStatus._tag === 'submitFailed' && !!formStatus.error && (
+          <FormError error={formStatus.error} />
+        )}
 
-            <M.Button onClick={close} disabled={submitting}>
-              Cancel
-            </M.Button>
-            <M.Button
-              onClick={handleSubmit}
-              variant="contained"
-              color="primary"
-              disabled={submitting || (submitFailed && hasValidationErrors)}
-            >
-              {ui.submit || 'Create'}
-            </M.Button>
-          </M.DialogActions>
-        </>
-      )}
-    </RF.Form>
+        <M.Button onClick={close} disabled={formStatus._tag === 'submitting'}>
+          Cancel
+        </M.Button>
+        <M.Button
+          onClick={handleSubmit}
+          variant="contained"
+          color="primary"
+          disabled={formData._tag === 'invalid' || formStatus._tag === 'submitting'}
+        >
+          {ui.submit || 'Create'}
+        </M.Button>
+      </M.DialogActions>
+    </>
+    //    )}
+    //  </RF.Form>
   )
 }
 
-const prependSourceBucket = (
-  buckets: BucketPreferences.SourceBuckets,
-  bucket: string,
-): BucketPreferences.SourceBuckets =>
-  buckets.list.find((b) => b === bucket)
-    ? buckets
-    : {
-        getDefault: () => bucket,
-        list: R.prepend(bucket, buckets.list),
-      }
+// const prependSourceBucket = (
+//   buckets: BucketPreferences.SourceBuckets,
+//   bucket: string,
+// ): BucketPreferences.SourceBuckets =>
+//   buckets.list.find((b) => b === bucket)
+//     ? buckets
+//     : {
+//         getDefault: () => bucket,
+//         list: R.prepend(bucket, buckets.list),
+//       }
 
 const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
@@ -824,11 +835,11 @@ const DialogState = tagged.create(
     Closed: () => {},
     Loading: (opts?: { waitListing?: boolean }) => opts,
     Error: (e: Error) => e,
-    Form: (v: {
+    Form: (/*v: {
       manifest?: Manifest
       workflowsConfig: workflows.WorkflowsConfig
       sourceBuckets: BucketPreferences.SourceBuckets
-    }) => v,
+    }*/) => /*v*/ {},
     Success: (v: PackageCreationSuccess) => v,
   },
 )
@@ -836,7 +847,7 @@ const DialogState = tagged.create(
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 type DialogState = tagged.InstanceOf<typeof DialogState>
 
-const EMPTY_MANIFEST_RESULT = AsyncResult.Ok()
+// const EMPTY_MANIFEST_RESULT = AsyncResult.Ok()
 
 interface PackageCreationDialogUIOptions {
   resetFiles?: React.ReactNode
@@ -865,65 +876,73 @@ export function usePackageCreationDialog({
   // delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
-  const { reset, src, open: isOpen, setOpen } = State.use()
+  const {
+    formStatus,
+    dst,
+    setDst,
+    reset,
+    open: isOpen,
+    setOpen,
+    workflowsConfig,
+  } = State.use()
 
   const [exited, setExited] = React.useState(!isOpen)
-  const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
+  // const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   // const [submitting, setSubmitting] = React.useState(false)
   // const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: {dst: {successor}, onSuccessorChange }
-  const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
+  // const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
   const currentBucketCanBeSuccessor = s3Path !== undefined
   // const addToPackage = AddToPackage.use()
 
-  const s3 = AWS.S3.use()
-  const workflowsData = Data.use(
-    requests.workflowsConfig,
-    { s3, bucket: successor.slug },
-    { noAutoFetch: !bucket },
-  )
-  const { prefs } = BucketPreferences.use()
+  // const s3 = AWS.S3.use()
+  // const workflowsData = Data.use(
+  //   requests.workflowsConfig,
+  //   { s3, bucket: dst.bucket },
+  //   { noAutoFetch: !bucket },
+  // )
+  // const { prefs } = BucketPreferences.use()
 
-  const manifestData = useManifest({
-    bucket,
-    // this only gets passed when src is defined, so it should be always non-null when the query gets executed
-    name: src?.name!,
-    hashOrTag: src?.hash,
-    pause: !(src && isOpen),
-  })
+  // const manifestData = useManifest({
+  //   bucket,
+  //   // this only gets passed when src is defined, so it should be always non-null when the query gets executed
+  //   name: src?.name!,
+  //   hashOrTag: src?.hash,
+  //   pause: !(src && isOpen),
+  // })
 
-  const manifestResult = src ? manifestData.result : EMPTY_MANIFEST_RESULT
+  // const manifestResult = src ? manifestData.result : EMPTY_MANIFEST_RESULT
 
   // AsyncResult<Model.PackageContentsFlatMap | undefined>
-  const data = React.useMemo(
-    () =>
-      workflowsData.case({
-        Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
-          AsyncResult.case(
-            {
-              Ok: (manifest: Manifest | undefined) =>
-                BucketPreferences.Result.match(
-                  {
-                    Ok: ({ ui: { sourceBuckets } }) =>
-                      AsyncResult.Ok({
-                        manifest,
-                        workflowsConfig,
-                        sourceBuckets: prependSourceBucket(sourceBuckets, bucket),
-                      }),
-                    Pending: AsyncResult.Pending,
-                    Init: AsyncResult.Init,
-                  },
-                  prefs,
-                ),
+  // const data = React.useMemo(
+  //   () =>
+  //     workflowsData.case({
+  //       Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
+  //         AsyncResult.case(
+  //           {
+  //             Ok: (manifest: Manifest | undefined) =>
+  //               BucketPreferences.Result.match(
+  //                 {
+  //                   Ok: ({ ui: { sourceBuckets } }) =>
+  //                     AsyncResult.Ok({
+  //                       manifest,
+  //                       workflowsConfig,
+  //                       sourceBuckets: prependSourceBucket(sourceBuckets, bucket),
+  //                     }),
+  //                   Pending: AsyncResult.Pending,
+  //                   Init: AsyncResult.Init,
+  //                 },
+  //                 prefs,
+  //               ),
 
-              _: R.identity,
-            },
-            manifestResult,
-          ),
-        _: R.identity,
-      }),
-    [bucket, workflowsData, manifestResult, prefs],
-  )
+  //             _: R.identity,
+  //           },
+  //           manifestResult,
+  //         ),
+  //       _: R.identity,
+  //     }),
+  //   [bucket, workflowsData, manifestResult, prefs],
+  // )
 
   const [waitingListing, setWaitingListing] = React.useState(false)
   const getFiles = requests.useFilesListing()
@@ -935,7 +954,7 @@ export function usePackageCreationDialog({
       selection?: Selection.ListingSelection
     }) => {
       if (initial?.successor) {
-        setSuccessor(initial?.successor)
+        setDst((d) => (initial.successor ? { ...d, bucket: initial.successor.slug } : d))
       }
 
       setWaitingListing(true)
@@ -954,7 +973,7 @@ export function usePackageCreationDialog({
 
       setWaitingListing(false)
     },
-    [, /*addToPackage*/ getFiles, setOpen],
+    [, /*addToPackage*/ getFiles, setOpen, setDst],
   )
 
   const close = React.useCallback(() => {
@@ -967,34 +986,34 @@ export function usePackageCreationDialog({
 
   const handleExited = React.useCallback(() => {
     setExited(true)
-    setSuccess(false)
-  }, [setExited, setSuccess])
+    // setSuccess(false)
+  }, [setExited /*, setSuccess*/])
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
   const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
-    if (success) return DialogState.Success(success)
-    if (waitingListing) {
-      return DialogState.Loading({
-        waitListing: true,
-      })
-    }
-    return AsyncResult.case(
-      {
-        Ok: DialogState.Form,
-        Err: DialogState.Error,
-        _: DialogState.Loading,
-      },
-      data,
-    )
-  }, [waitingListing, exited, success, data])
+
+    if (formStatus._tag === 'success') return DialogState.Success(formStatus.handle)
+    if (waitingListing) return DialogState.Loading({ waitListing: true })
+    if (workflowsConfig._tag === 'loading') return DialogState.Loading()
+    if (workflowsConfig._tag === 'error') return DialogState.Error(workflowsConfig.error)
+    return DialogState.Form()
+    // return AsyncResult.case(
+    //   {
+    //     Ok: DialogState.Form,
+    //     Err: DialogState.Error,
+    //     _: DialogState.Loading,
+    //   },
+    //   data,
+    // )
+  }, [waitingListing, exited, workflowsConfig, formStatus])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <PD.DialogWrapper
       exited={exited}
       fullWidth
-      maxWidth={success ? 'sm' : 'lg'}
+      maxWidth={formStatus._tag === 'success' ? 'sm' : 'lg'}
       onClose={close}
       onExited={handleExited}
       open={!!isOpen}
@@ -1037,10 +1056,10 @@ export function usePackageCreationDialog({
               // {...schemaProps}
               {...{
                 bucket,
-                successor,
+                // successor,
                 close,
                 // setSubmitting,
-                setSuccess,
+                // setSuccess,
                 // setWorkflow,
                 // workflowsConfig,
                 // sourceBuckets,
@@ -1051,7 +1070,7 @@ export function usePackageCreationDialog({
                 currentBucketCanBeSuccessor,
                 // delayHashing,
                 disableStateDisplay,
-                onSuccessor: setSuccessor,
+                // onSuccessor: setSuccessor,
                 ui: {
                   title: ui.title,
                   submit: ui.submit,
@@ -1067,7 +1086,7 @@ export function usePackageCreationDialog({
           Success: (props) => (
             <DialogSuccess
               {...props}
-              bucket={successor.slug}
+              bucket={dst.bucket}
               onClose={close}
               browseText={ui.successBrowse}
               title={ui.successTitle}

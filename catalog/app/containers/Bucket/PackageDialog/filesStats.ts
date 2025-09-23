@@ -16,7 +16,10 @@ export interface Stats {
   warn: StatsWarning | null
 }
 
-export const calcStats = ({ added, existing }: FilesState): Stats => {
+export const calcStats = (
+  { added, existing }: FilesState,
+  delayHashing: boolean = false,
+): Stats => {
   const upload = Object.entries(added).reduce(
     (acc, [path, f]) => {
       if (isS3File(f)) return acc // dont count s3 files
@@ -44,7 +47,7 @@ export const calcStats = ({ added, existing }: FilesState): Stats => {
   return {
     upload,
     s3,
-    hashing,
+    hashing: !delayHashing && hashing,
     warn: hasWarning ? warn : null,
   }
 }

@@ -3,7 +3,7 @@ import mime from 'mime-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
-import type * as RF from 'react-final-form'
+// import type * as RF from 'react-final-form'
 import { fade } from '@material-ui/core/styles'
 import * as M from '@material-ui/core'
 
@@ -104,7 +104,7 @@ const readTextFile = (file: File): Promise<string> =>
     reader.readAsText(file)
   })
 
-const readFile = (file: File, schema?: JsonSchema): Promise<string | {}> => {
+const readFile = (file: File, schema?: JsonSchema): Promise<string | JsonRecord> => {
   const mimeType = mime.extension(file.type)
   if (mimeType && /ods|odt|csv|xlsx|xls/.test(mimeType))
     return spreadsheets.readAgainstSchema(file, schema)
@@ -216,21 +216,16 @@ export const EMPTY_META_VALUE = {}
 
 interface MetaInputProps {
   className?: string
-  schemaError: React.ReactNode
-  input: RF.FieldInputProps<{}>
-  meta: RF.FieldMetaState<{}>
+  errors: ValidationErrors
+  value: JsonRecord | undefined
+  onChange: (value: JsonRecord) => void
   schema?: JsonSchema
+  disabled: boolean
 }
 
 export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
-  function MetaInput(
-    { className, schemaError, input: { value, onChange }, meta, schema },
-    ref,
-  ) {
+  function MetaInput({ className, disabled, errors, value, onChange, schema }, ref) {
     const classes = useMetaInputStyles()
-    const errors: ValidationErrors =
-      schemaError || ((meta.modified || meta.submitFailed) && meta.error)
-    const disabled = meta.submitting || meta.submitSucceeded
 
     const [open, setOpen] = React.useState(false)
     const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
@@ -242,7 +237,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         // NOTE: `json` may have `target` field and make react-final-form think it's an event not value
         //       so, let's create "event" voluntarily
         //       https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange
-        onChange({ target: { value: json } })
+        onChange(json)
       },
       [onChange],
     )
@@ -253,7 +248,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         // NOTE: `json` may have `target` field and make react-final-form think it's an event not value
         //       so, let's create "event" voluntarily
         //       https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange
-        onChange({ target: { value: json } })
+        onChange(json)
       },
       [onChange],
     )
@@ -278,8 +273,8 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         }
         setLocked(true)
         readFile(file, schema)
-          .then((contents: string | {}) => {
-            if (R.is(Object, contents)) {
+          .then((contents) => {
+            if (typeof contents === 'object') {
               onChange(contents)
             } else {
               try {
@@ -326,8 +321,10 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     return (
       <div className={className}>
         <div className={classes.header}>
-          {/* eslint-disable-next-line no-nested-ternary */}
-          <M.Typography color={disabled ? 'textSecondary' : errors ? 'error' : undefined}>
+          <M.Typography
+            // eslint-disable-next-line no-nested-ternary
+            color={disabled ? 'textSecondary' : errors.length ? 'error' : undefined}
+          >
             Metadata
           </M.Typography>
           <M.Button
