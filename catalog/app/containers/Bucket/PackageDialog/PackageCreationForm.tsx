@@ -399,7 +399,7 @@ type DialogState =
   | { _tag: 'loading'; waitListing?: boolean }
   | { _tag: 'error'; error: Error }
   | { _tag: 'ready' }
-  | { _tag: 'success'; name: string; hash: string }
+  | { _tag: 'success'; bucket: string; name: string; hash: string }
 
 interface PackageCreationDialogUIOptions {
   resetFiles?: React.ReactNode
@@ -423,7 +423,6 @@ function RenderDialog({
   state,
   ui,
 }: RenderDialogProps) {
-  const { dst } = State.use()
   switch (state._tag) {
     case 'loading':
       return (
@@ -453,7 +452,7 @@ function RenderDialog({
         <DialogSuccess
           name={state.name}
           hash={state.hash}
-          bucket={dst.bucket}
+          bucket={state.bucket}
           onClose={close}
           browseText={ui.successBrowse}
           title={ui.successTitle}
