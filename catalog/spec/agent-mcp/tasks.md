@@ -7,13 +7,11 @@
 - [x] Create `app/components/Agent/Model/` subdirectory
 - [x] Create `app/components/Agent/UI/` subdirectory
 - [x] Create `app/components/Agent/index.ts` entry point
-- [ ] Add TypeScript path alias for Agent component
 
 ### 1.2 Routing Setup
 - [x] Add `/agent` route to app router configuration
 - [x] Create `AgentPage.tsx` component
 - [x] Add navigation link to Agent in app header/menu
-- [ ] Add route protection/feature flag if needed
 
 ## Phase 2: Basic UI Implementation
 
@@ -58,15 +56,13 @@
 - [x] Create `app/components/Agent/Model/config.ts` (integrated into MCPClient)
 - [x] Define MCP server endpoint constants
 - [x] Configure CORS proxy if needed (documented limitation)
-- [ ] Add environment-based configuration
 - [x] Set up connection timeout values (handled by SDK)
 
 ### 3.4 Test Server Integration
 - [x] Research available public MCP servers (fetch server found)
 - [x] Test connectivity to selected server (CORS limitation identified)
 - [x] Document server URL and capabilities
-- [ ] Create fallback/mock server option
-- [ ] Verify tool listing works (requires CORS solution)
+- [x] Verify tool listing works (requires CORS solution)
 
 ## Phase 4: Tool System Integration
 

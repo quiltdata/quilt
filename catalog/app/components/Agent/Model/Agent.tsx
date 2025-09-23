@@ -77,6 +77,7 @@ function useConstructAgentAPI() {
 
   const passThru = usePassThru({
     bedrock: AWS.Bedrock.useClient(),
+    tools: mcpTools,
   })
 
   // Connect to MCP server
@@ -85,7 +86,7 @@ function useConstructAgentAPI() {
       setMcpError(null)
 
       const mcpService = yield* MCPClient.MCPClientService
-      const client = yield* mcpService.connect(MCPClient.getServerUrl('fetch'))
+      const client = yield* mcpService.connect(MCPClient.getServerUrl('test'))
       setMcpClient(client)
 
       // Load tools from the MCP server
@@ -115,7 +116,7 @@ function useConstructAgentAPI() {
   const layerEff = Eff.Effect.sync(() =>
     Eff.Layer.merge(
       Bedrock.LLMBedrock(passThru.current.bedrock, { modelId, record }),
-      Eff.Layer.succeed(Conversation.ToolService, mcpTools),
+      Eff.Layer.succeed(Conversation.ToolService, passThru.current.tools),
     ),
   )
 

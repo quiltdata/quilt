@@ -88,8 +88,9 @@ export const MCPClientServiceLive = Eff.Layer.succeed(
 
 // Configuration for MCP servers
 export const MCP_SERVERS = {
-  // Remote fetch server for testing
-  fetch: 'https://remote.mcpservers.org/fetch/mcp',
+  // Test MCP server integrated into registry API
+  // test: `${cfg.registryUrl}/mcp/test`,
+  test: 'http://127.0.0.1:8000/mcp',
 } as const
 
 export type MCPServerName = keyof typeof MCP_SERVERS
