@@ -3,6 +3,7 @@ import { Box, Container, Typography } from '@material-ui/core'
 
 import Layout from 'components/Layout'
 
+import { AgentProvider } from './Model/Agent'
 import AgentChat from './UI/AgentChat'
 
 export default function AgentPage() {
@@ -17,7 +18,9 @@ export default function AgentPage() {
             Experimental MCP-powered assistant interface
           </Typography>
         </Box>
-        <AgentChat />
+        <AgentProvider>
+          <AgentChat />
+        </AgentProvider>
       </Container>
     </Layout>
   )

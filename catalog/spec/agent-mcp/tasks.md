@@ -97,44 +97,44 @@
 ## Phase 5: LLM Integration
 
 ### 5.1 Conversation Setup
-- [ ] Create `app/components/Agent/Model/AgentConversation.ts`
-- [ ] Import base Conversation types
+- [x] Copy `Conversation.ts` from Assistant
+- [x] Copy base Content types
+- [x] Copy Tool.ts for tool handling
 - [ ] Extend with MCP-specific messages
-- [ ] Add tool request/response handling
-- [ ] Implement conversation state machine
-- [ ] Add message history management
+- [x] Implement conversation state machine
+- [x] Add message history management
 
 ### 5.2 Bedrock Connection
-- [ ] Create `app/components/Agent/Model/AgentAssistant.tsx`
-- [ ] Set up AWS Bedrock client
-- [ ] Configure model ID (Claude)
-- [ ] Add tool configuration for Bedrock
-- [ ] Implement conversation flow orchestration
-- [ ] Add streaming response handling
+- [x] Create `app/components/Agent/Model/Agent.tsx`
+- [x] Copy and adapt Bedrock.ts
+- [x] Copy LLM.ts interface
+- [x] Configure model ID (Claude)
+- [x] Implement conversation flow orchestration
+- [x] Add streaming response handling
 
 ### 5.3 Context Management
-- [ ] Create `app/components/Agent/Model/AgentContext.ts`
-- [ ] Define context state interface
+- [x] Create simplified Agent provider
+- [x] Wire up chat UI with real LLM
+- [x] Remove unnecessary show/hide/ask APIs
 - [ ] Add MCP connection status
-- [ ] Track available tools list
-- [ ] Store execution history
-- [ ] Implement React context provider
+- [ ] Track available MCP tools
+- [ ] Store MCP execution history
 
 ## Phase 6: Enhanced UI Components
 
 ### 6.1 Tool Visualization
-- [ ] Create `app/components/Agent/UI/ToolExecution.tsx`
-- [ ] Design tool call indicator component
-- [ ] Add parameter display formatting
-- [ ] Create result visualization
-- [ ] Implement loading/pending states
-- [ ] Add error state display
+- [x] Tool execution display in AgentChat
+- [x] Tool call indicator component
+- [x] Parameter display with JsonDisplay
+- [x] Result visualization
+- [x] Loading/pending states
+- [x] Error state display
 
-### 6.2 Server Status
+### 6.2 Server Status (MCP-specific)
 - [ ] Create `app/components/Agent/UI/ServerStatus.tsx`
-- [ ] Add connection status badge
-- [ ] Display server name/URL
-- [ ] Show available tools count
+- [ ] Add MCP connection status badge
+- [ ] Display MCP server name/URL
+- [ ] Show available MCP tools count
 - [ ] Add reconnect button
 - [ ] Implement connection error display
 
