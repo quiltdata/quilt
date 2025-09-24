@@ -231,21 +231,42 @@ function useMCPContextState(): State {
 
   // Set up Redux token getter for automatic token retrieval
   React.useEffect(() => {
+    // Create a simple token getter that accesses Redux state directly
     const getReduxToken = async (): Promise<string | null> => {
       try {
-        console.log('🔍 DynamicAuthManager: Redux token getter called...')
-        return await authManager.getCurrentToken()
+        console.log('🔍 MCP Client: Redux token getter called...')
+        const state = store.getState()
+        
+        // Try to get token from auth state
+        if (state.auth && state.auth.tokens && state.auth.tokens.token) {
+          console.log('✅ MCP Client: Token found in Redux auth state')
+          return state.auth.tokens.token
+        }
+
+        // Fallback: try other possible locations
+        if (state.user && state.user.token) {
+          console.log('✅ MCP Client: Token found in Redux user state')
+          return state.user.token
+        }
+
+        console.warn('⚠️ MCP Client: No token found in Redux state')
+        return null
       } catch (error) {
-        console.error('❌ DynamicAuthManager: Failed to get Redux access token:', error)
+        console.error('❌ MCP Client: Failed to get Redux access token:', error)
         return null
       }
     }
 
     // Set the Redux token getter on the MCP client
-    console.log('🔧 DynamicAuthManager: Setting up Redux token getter for MCP client...')
+    console.log('🔧 MCP Client: Setting up Redux token getter...')
     mcpClient.setReduxTokenGetter(getReduxToken)
-    console.log('✅ DynamicAuthManager: Redux token getter set successfully')
-  }, [authManager])
+    console.log('✅ MCP Client: Redux token getter set successfully')
+
+    // Also set the token getter on the auth manager
+    console.log('🔧 DynamicAuthManager: Setting up token getter...')
+    authManager.tokenGetter = getReduxToken
+    console.log('✅ DynamicAuthManager: Token getter set successfully')
+  }, [authManager, store])
 
   React.useEffect(() => {
     let cancelled = false

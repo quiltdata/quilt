@@ -20,7 +20,10 @@ export interface RefreshResult {
 }
 
 export class DynamicAuthManager {
-  constructor(reduxStore: any)
+  constructor(reduxStore: any, tokenGetter?: (() => Promise<string | null>) | null)
+  
+  reduxStore: any
+  tokenGetter: (() => Promise<string | null>) | null
   
   initialize(): Promise<boolean>
   getCurrentToken(): Promise<string | null>
