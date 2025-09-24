@@ -252,15 +252,32 @@ export class QuiltMCPClient implements MCPClient {
             )
             console.log('🔍 Token Claims:', {
               id: payload.id,
+              sub: payload.sub,
               scope: payload.scope,
               permissions: payload.permissions,
               roles: payload.roles,
               groups: payload.groups,
+              buckets: payload.buckets?.length || 0,
               aud: payload.aud,
               iss: payload.iss,
+              iat: payload.iat
+                ? new Date(payload.iat * 1000).toISOString()
+                : 'No issued at',
               exp: payload.exp
                 ? new Date(payload.exp * 1000).toISOString()
                 : 'No expiration',
+              jti: payload.jti,
+              quilt: payload.quilt,
+              token_type: payload.token_type,
+              version: payload.version,
+            })
+
+            // Show actual JWT token being sent to MCP server
+            console.log('🔍 JWT Token Being Sent to MCP Server:', {
+              'Token Length': accessToken.length,
+              'Token Preview': `${accessToken.substring(0, 50)}...`,
+              'Authorization Header': `Bearer ${accessToken.substring(0, 20)}...`,
+              'Full Headers': headers,
             })
           }
         } catch (error) {
@@ -300,6 +317,8 @@ export class QuiltMCPClient implements MCPClient {
         hasBearerToken: !!accessToken,
         hasRoleInfo: !!this.currentRole,
         authenticationMethod: accessToken ? 'oauth-bearer' : 'iam-role-fallback',
+        currentRole: this.currentRole,
+        availableRoles: this.availableRoles?.length || 0,
         headers: {
           Authorization: headers.Authorization ? 'Bearer ***' : 'None',
           'X-Quilt-User-Role': headers['X-Quilt-User-Role'],
@@ -309,6 +328,19 @@ export class QuiltMCPClient implements MCPClient {
       }
 
       console.log('🔍 MCP Authentication Debug:', authStatus)
+
+      // Role validation debugging
+      if (this.currentRole) {
+        console.log('🎯 Role Selection Validation:', {
+          currentRoleName: this.currentRole.name,
+          currentRoleArn: this.currentRole.arn,
+          isWriteRole:
+            this.currentRole.name?.includes('Write') ||
+            this.currentRole.name?.includes('write'),
+          availableRoles: this.availableRoles?.map((r) => r.name) || [],
+          roleSelectionMethod: 'active-role',
+        })
+      }
 
       // Additional debugging for role assumption (fallback only)
       if (!accessToken && this.currentRole?.arn) {
@@ -614,6 +646,17 @@ export class QuiltMCPClient implements MCPClient {
 
   getServerStatus(): 'connected' | 'disconnected' {
     return this.sessionId ? 'connected' : 'disconnected'
+  }
+
+  // Additional method required by DiagnosticTool.tsx and MCPContextProviderEnhanced.tsx
+  async executeTool(
+    name: string,
+    args: Record<string, any> = {},
+  ): Promise<MCPToolResult> {
+    return this.callTool({
+      name,
+      arguments: args,
+    })
   }
 
   disconnectFromServer(): void {
