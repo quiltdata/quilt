@@ -72,61 +72,6 @@ function mapRoleNameToAWSRole(quiltRoleName: string): string {
   return roleMapping[canonical] || canonical
 }
 
-/**
- * Hook to extract role information from auth state and update MCP client
- */
-function useRoleInfo() {
-  const authState = useAuthState()
-
-  React.useEffect(() => {
-    try {
-      // Extract role information from auth state using pattern matching
-      const roleInfo = AuthState.match(
-        {
-          Ready: ({ user }) => {
-            if (user) {
-              // Map Quilt role name to actual AWS role name
-              const awsRoleName = mapRoleNameToAWSRole(user.role.name)
-              const currentRole = {
-                name: awsRoleName, // Use the mapped AWS role name
-                arn: constructRoleARN(awsRoleName),
-              }
-
-              const availableRoles = user.roles.map((role: { name: string }) => {
-                const mappedAwsRoleName = mapRoleNameToAWSRole(role.name)
-                return {
-                  name: mappedAwsRoleName, // Use the mapped AWS role name
-                  arn: constructRoleARN(mappedAwsRoleName),
-                }
-              })
-
-              return { currentRole, availableRoles }
-            }
-            return { currentRole: null, availableRoles: [] }
-          },
-          Error: () => ({ currentRole: null, availableRoles: [] }),
-          Loading: () => ({ currentRole: null, availableRoles: [] }),
-        },
-        authState,
-      )
-
-      // Update MCP client with role information
-      console.log('🔄 MCPContextProvider: Updating MCP client with role info:', roleInfo)
-      mcpClient.setRoleInfo(roleInfo.currentRole, roleInfo.availableRoles)
-
-      // Also update DynamicAuthManager with role information
-      authManager.setRoleInfo(roleInfo)
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ MCP Role Info Updated:', roleInfo)
-      }
-    } catch (error) {
-      console.error('Failed to update MCP role information:', error)
-      // Clear role information on error to prevent invalid state
-      mcpClient.setRoleInfo(null, [])
-    }
-  }, [authState, authManager])
-}
 
 function mapResultContent(block: MCPToolResult['content'][number]) {
   if (!block) {
@@ -285,6 +230,57 @@ function useMCPContextState(): State {
     console.log('✅ MCP Client: Redux token getter configured')
   }, [authManager, store])
 
+  // Extract role information from auth state and update MCP client
+  const authState = useAuthState()
+  React.useEffect(() => {
+    try {
+      // Extract role information from auth state using pattern matching
+      const roleInfo = AuthState.match(
+        {
+          Ready: ({ user }) => {
+            if (user) {
+              // Map Quilt role name to actual AWS role name
+              const awsRoleName = mapRoleNameToAWSRole(user.role.name)
+              const currentRole = {
+                name: awsRoleName, // Use the mapped AWS role name
+                arn: constructRoleARN(awsRoleName),
+              }
+
+              const availableRoles = user.roles.map((role: { name: string }) => {
+                const mappedAwsRoleName = mapRoleNameToAWSRole(role.name)
+                return {
+                  name: mappedAwsRoleName, // Use the mapped AWS role name
+                  arn: constructRoleARN(mappedAwsRoleName),
+                }
+              })
+
+              return { currentRole, availableRoles }
+            }
+            return { currentRole: null, availableRoles: [] }
+          },
+          Error: () => ({ currentRole: null, availableRoles: [] }),
+          Loading: () => ({ currentRole: null, availableRoles: [] }),
+        },
+        authState,
+      )
+
+      // Update MCP client with role information
+      console.log('🔄 MCPContextProvider: Updating MCP client with role info:', roleInfo)
+      mcpClient.setRoleInfo(roleInfo.currentRole, roleInfo.availableRoles)
+
+      // Also update DynamicAuthManager with role information
+      authManager.setRoleInfo(roleInfo)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ MCP Role Info Updated:', roleInfo)
+      }
+    } catch (error) {
+      console.error('Failed to update MCP role information:', error)
+      // Clear role information on error to prevent invalid state
+      mcpClient.setRoleInfo(null, [])
+    }
+  }, [authState, authManager])
+
   React.useEffect(() => {
     let cancelled = false
 
@@ -359,9 +355,6 @@ export function useMCPContextStateValue() {
 
 export function MCPContextProvider({ children }: React.PropsWithChildren<{}>) {
   const state = useMCPContextState()
-
-  // Update MCP client with role information
-  useRoleInfo()
 
   // Expose authentication status for debugging
   React.useEffect(() => {
