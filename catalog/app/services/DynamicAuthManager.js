@@ -100,11 +100,13 @@ export const findRolesInState = (state) => {
     const domain = authSelectors.domain(state)
     console.log('🔍 findRolesInState: Auth domain:', domain)
     
-    if (domain?.user) {
-      const { user } = domain
-      console.log('🔍 findRolesInState: User object:', user)
-      console.log('🔍 findRolesInState: User roles array:', user.roles)
-      console.log('🔍 findRolesInState: User current role:', user.role)
+      if (domain?.user) {
+        const { user } = domain
+        console.log('🔍 findRolesInState: User object:', user)
+        console.log('🔍 findRolesInState: User object keys:', Object.keys(user))
+        console.log('🔍 findRolesInState: User roles array:', user.roles)
+        console.log('🔍 findRolesInState: User current role:', user.role)
+        console.log('🔍 findRolesInState: User role_id:', user.role_id)
       
       if (Array.isArray(user.roles)) {
         user.roles.forEach((role) => {
@@ -127,10 +129,14 @@ export const findRolesInState = (state) => {
     getFromState(state, ['user', 'roles']),
   ]
 
-  fallbackRoleLists.forEach((list) => {
+  console.log('🔍 findRolesInState: Fallback role lists:', fallbackRoleLists)
+
+  fallbackRoleLists.forEach((list, index) => {
     if (Array.isArray(list)) {
+      console.log(`🔍 findRolesInState: Found role array at index ${index}:`, list)
       list.forEach((role) => {
         const normalized = normalizeRoleValue(role)
+        console.log('🔍 findRolesInState: Normalized fallback role:', normalized)
         if (normalized) roles.add(normalized)
       })
     }
@@ -142,8 +148,11 @@ export const findRolesInState = (state) => {
     getFromState(state, ['user', 'role']),
   ]
 
-  singleRoleCandidates.forEach((candidate) => {
+  console.log('🔍 findRolesInState: Single role candidates:', singleRoleCandidates)
+
+  singleRoleCandidates.forEach((candidate, index) => {
     const normalized = normalizeRoleValue(candidate)
+    console.log(`🔍 findRolesInState: Normalized single role at index ${index}:`, normalized)
     if (normalized) roles.add(normalized)
   })
 
