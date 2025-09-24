@@ -59,7 +59,7 @@ export function DynamicAuthTest() {
             results.tokenClaims = '❌ Invalid token format'
           }
         } catch (error) {
-          results.tokenClaims = `❌ Error decoding token: ${error.message}`
+          results.tokenClaims = `❌ Error decoding token: ${error instanceof Error ? error.message : String(error)}`
         }
       }
 
@@ -75,7 +75,7 @@ export function DynamicAuthTest() {
       console.log('✅ All tests completed:', results)
     } catch (error) {
       console.error('❌ Test failed:', error)
-      results.error = error.message
+      results.error = error instanceof Error ? error.message : String(error)
       setTestResults(results)
     } finally {
       setIsRunning(false)
@@ -86,7 +86,11 @@ export function DynamicAuthTest() {
     <div style={{ padding: '20px', border: '1px solid #ccc', margin: '10px' }}>
       <h3>Dynamic Authentication Test</h3>
       <p>Status: {status}</p>
-      {error && <p style={{ color: 'red' }}>Error: {error.message}</p>}
+      {error && (
+        <p style={{ color: 'red' }}>
+          Error: {typeof error === 'string' ? error : (error as Error).message}
+        </p>
+      )}
 
       <button
         onClick={runTests}
