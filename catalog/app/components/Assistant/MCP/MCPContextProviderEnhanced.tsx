@@ -13,7 +13,10 @@ import defer from 'utils/defer'
 
 import { mcpClient } from './Client'
 import type { MCPTool, MCPToolResult } from './types'
-import { DynamicAuthManager } from '../../../services/DynamicAuthManager'
+import {
+  DynamicAuthManager,
+  findTokenInState,
+} from '../../../services/DynamicAuthManager'
 import { resolveRoleName } from '../../../services/mcpAuthorization'
 
 const JSON_SCHEMA_URL = 'https://json-schema.org/draft/2020-12/schema'
@@ -94,32 +97,56 @@ function useMCPContextState(): State {
     let cancelled = false
     const authManager = new DynamicAuthManager(store)
 
-    const getReduxToken = async (): Promise<string | null> => {
+    const extractTokenFromStore = async (): Promise<string | null> => {
       try {
-        const enhancedToken = await authManager.getCurrentToken()
-        if (enhancedToken) return enhancedToken
+        const reduxState = store.getState() as any
+        const tokensData = (() => {
+          try {
+            return authSelectors.tokens(reduxState)
+          } catch (error) {
+            console.warn('⚠️ MCP Enhanced Provider: authSelectors.tokens failed', error)
+            return null
+          }
+        })()
 
-        const reduxState = store.getState()
-        const tokenData = authSelectors.tokens(reduxState)
-        if (!tokenData?.token) return null
-
-        const now = Math.floor(Date.now() / 1000)
-        if (tokenData.exp && tokenData.exp < now + 60) {
-          const { resolver, promise } = defer()
-          dispatch(authActions.check({ refetch: false }, resolver))
-          await promise
-          const refreshedState = store.getState()
-          return authSelectors.tokens(refreshedState)?.token || null
+        const { token, source } = findTokenInState(reduxState)
+        if (!token) {
+          const stateKeys =
+            typeof reduxState?.keySeq === 'function'
+              ? reduxState.keySeq().toArray()
+              : Object.keys(reduxState || {})
+          console.warn('⚠️ MCP Enhanced Provider: No bearer token found in Redux state', {
+            keys: stateKeys,
+          })
+          return null
         }
 
-        return tokenData.token
+        const exp = tokensData?.exp
+        if (typeof exp === 'number') {
+          const now = Math.floor(Date.now() / 1000)
+          if (exp < now + 60) {
+            const { resolver, promise } = defer()
+            dispatch(authActions.check({ refetch: false }, resolver))
+            await promise
+            const refreshedState = store.getState() as any
+            const refreshedToken = findTokenInState(refreshedState).token
+            if (refreshedToken) {
+              console.log('✅ MCP Enhanced Provider: Token refreshed via auth.check')
+              return refreshedToken
+            }
+          }
+        }
+
+        console.log(`✅ MCP Enhanced Provider: Token found in Redux state (${source})`)
+        return token
       } catch (error) {
-        console.error('❌ Failed to obtain access token:', error)
+        console.error('❌ MCP Enhanced Provider: Failed to obtain access token:', error)
         return null
       }
     }
 
-    mcpClient.setReduxTokenGetter(getReduxToken)
+    mcpClient.setReduxTokenGetter(extractTokenFromStore)
+    authManager.setTokenGetter(extractTokenFromStore)
 
     authManager
       .initialize()
@@ -210,14 +237,19 @@ function useMCPContextState(): State {
         const collection = Object.fromEntries(tools.map(createDescriptor))
         const summary = tools.map(describeTool).join('\n')
 
-        setState({
+        setState((prev) => ({
+          ...prev,
           status: 'ready',
           tools: collection,
           summary,
-        })
+        }))
       } catch (error) {
         if (cancelled) return
-        setState((prev) => ({ ...prev, status: 'error', error: error as Error }))
+        setState((prev) => ({
+          ...prev,
+          status: 'error',
+          error: error as Error,
+        }))
       }
     }
 

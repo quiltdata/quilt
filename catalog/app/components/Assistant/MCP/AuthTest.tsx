@@ -35,7 +35,7 @@ export function AuthTest() {
     const initializeAuthManager = async () => {
       try {
         console.log('🚀 Initializing AuthTest...')
-        const manager = new DynamicAuthManager(null, null, null) // We'll need proper dependencies
+        const manager = new DynamicAuthManager(null) // We'll need proper dependencies
         await manager.initialize()
         setAuthManager(manager)
         console.log('✅ AuthTest initialized')

@@ -55,10 +55,27 @@ class EnhancedTokenGenerator {
   constructor() {
     this.signingSecret = cfg.mcpEnhancedJwtSecret || null
     this.signingKeyId = cfg.mcpEnhancedJwtKid || null
+    
+    // Debug: Log config values
+    console.log('🔍 EnhancedTokenGenerator: Full config object:', cfg)
+    console.log('🔍 EnhancedTokenGenerator: Config values:', {
+      mcpEnhancedJwtSecret: cfg.mcpEnhancedJwtSecret,
+      mcpEnhancedJwtKid: cfg.mcpEnhancedJwtKid,
+      hasSigningSecret: !!this.signingSecret,
+      hasSigningKeyId: !!this.signingKeyId
+    })
   }
 
   async generateEnhancedToken({ originalToken, roles = [], buckets = [] }) {
     if (!originalToken) return null
+
+    console.log('🔍 EnhancedTokenGenerator: generateEnhancedToken called with:', {
+      hasOriginalToken: !!originalToken,
+      rolesCount: roles.length,
+      bucketsCount: buckets.length,
+      signingSecret: this.signingSecret ? 'present' : 'missing',
+      signingKeyId: this.signingKeyId ? 'present' : 'missing'
+    })
 
     if (!this.signingSecret) {
       console.warn(
