@@ -114,6 +114,9 @@ function useRoleInfo() {
       console.log('🔄 MCPContextProvider: Updating MCP client with role info:', roleInfo)
       mcpClient.setRoleInfo(roleInfo.currentRole, roleInfo.availableRoles)
 
+      // Also update DynamicAuthManager with role information
+      authManager.setRoleInfo(roleInfo)
+
       if (process.env.NODE_ENV === 'development') {
         console.log('✅ MCP Role Info Updated:', roleInfo)
       }
@@ -122,7 +125,7 @@ function useRoleInfo() {
       // Clear role information on error to prevent invalid state
       mcpClient.setRoleInfo(null, [])
     }
-  }, [authState])
+  }, [authState, authManager])
 }
 
 function mapResultContent(block: MCPToolResult['content'][number]) {

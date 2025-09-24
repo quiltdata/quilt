@@ -172,6 +172,10 @@ class DynamicAuthManager {
     this.currentBuckets = []
     this.currentToken = null
     this.isInitialized = false
+    
+    // Role information will be set by MCPContextProvider
+    this.currentRole = null
+    this.availableRoles = []
 
     this.config = {
       enableDynamicDiscovery: true,
@@ -278,34 +282,46 @@ class DynamicAuthManager {
     }
   }
 
+  /**
+   * Set role information from MCPContextProvider
+   * @param {Object} roleInfo - Role information from AuthState.match()
+   */
+  setRoleInfo(roleInfo) {
+    this.currentRole = roleInfo.currentRole
+    this.availableRoles = roleInfo.availableRoles || []
+    console.log('🔍 DynamicAuthManager: Role info set:', {
+      currentRole: this.currentRole,
+      availableRoles: this.availableRoles
+    })
+  }
+
+  /**
+   * Get user roles from the set role information
+   * @returns {Array} User roles
+   */
   getUserRolesFromState() {
-    try {
-      const state = this.reduxStore.getState()
-      console.log('🔍 DynamicAuthManager: Redux state for role extraction:', state)
-      
-      const roles = findRolesInState(state)
-      console.log('🔍 DynamicAuthManager: Extracted roles:', roles)
-      
-      if (!roles.length) {
-        console.warn('⚠️ DynamicAuthManager: Could not extract roles from state')
-        // Debug: Check what's in the auth domain
-        try {
-          const domain = authSelectors.domain(state)
-          console.log('🔍 DynamicAuthManager: Auth domain:', domain)
-          if (domain?.user) {
-            console.log('🔍 DynamicAuthManager: User object:', domain.user)
-            console.log('🔍 DynamicAuthManager: User roles:', domain.user.roles)
-            console.log('🔍 DynamicAuthManager: User role:', domain.user.role)
-          }
-        } catch (debugError) {
-          console.log('🔍 DynamicAuthManager: Debug error:', debugError)
-        }
-      }
-      return roles
-    } catch (error) {
-      console.error('❌ Error extracting roles from state:', error)
-      return []
+    // Use the role information set by MCPContextProvider
+    const roles = []
+    
+    if (this.currentRole && this.currentRole.name) {
+      roles.push(this.currentRole.name)
     }
+    
+    if (this.availableRoles && this.availableRoles.length > 0) {
+      this.availableRoles.forEach(role => {
+        if (role.name && !roles.includes(role.name)) {
+          roles.push(role.name)
+        }
+      })
+    }
+    
+    console.log('🔍 DynamicAuthManager: Using role info from MCPContextProvider:', {
+      currentRole: this.currentRole,
+      availableRoles: this.availableRoles,
+      extractedRoles: roles
+    })
+    
+    return roles
   }
 
   async getAuthStatus() {
