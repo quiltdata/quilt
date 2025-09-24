@@ -27,8 +27,11 @@ export class DynamicAuthManager {
 
   reduxStore: any
   tokenGetter: (() => Promise<string | null>) | null
+  currentRole: any
+  availableRoles: any[]
 
   setTokenGetter(getter: (() => Promise<string | null>) | null): void
+  setRoleInfo(roleInfo: any): void
 
   initialize(): Promise<boolean>
   getCurrentToken(): Promise<string | null>
