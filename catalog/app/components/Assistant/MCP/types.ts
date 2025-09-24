@@ -74,6 +74,34 @@ export interface QuiltVisualizationArgs {
   config?: Record<string, any>
 }
 
+// OAuth 2.1 Types
+export interface OAuthDiscovery {
+  authorization_endpoint: string
+  token_endpoint: string
+  revocation_endpoint?: string
+  introspection_endpoint?: string
+  device_authorization_endpoint?: string
+  scopes_supported?: string[]
+  response_types_supported?: string[]
+  grant_types_supported?: string[]
+  code_challenge_methods_supported?: string[]
+}
+
+export interface OAuthToken {
+  access_token: string
+  token_type: 'Bearer'
+  expires_in: number
+  refresh_token?: string
+  scope?: string
+  expires_at?: number // Computed from expires_in
+}
+
+export interface OAuthAuthState {
+  codeVerifier: string
+  state: string
+  redirectUri: string
+}
+
 // MCP Client Interface
 export interface MCPClient {
   initialize(): Promise<void>
@@ -83,6 +111,15 @@ export interface MCPClient {
   callTool(toolCall: MCPToolCall): Promise<MCPToolResult>
   getServerStatus(): MCPServerConnection['status']
   hasSession(): boolean
+
+  // OAuth methods
+  discoverOAuth(): Promise<OAuthDiscovery | null>
+  startOAuthFlow(): Promise<string> // Returns authorization URL
+  handleOAuthCallback(code: string, state: string): Promise<OAuthToken>
+  refreshToken(): Promise<OAuthToken>
+  getAccessToken(): Promise<string | null>
+  isAuthenticated(): boolean
+  logout(): void
 }
 
 // MCP Tool Hooks Return Types

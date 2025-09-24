@@ -8,6 +8,9 @@ import {
 } from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
+import { DynamicBucketDiscoveryTest } from 'components/Assistant/MCP/DynamicBucketDiscoveryTest'
+import { IntegrationTest } from 'components/Assistant/MCP/IntegrationTest'
+import { MCPServerValidation } from 'components/Assistant/MCP/MCPServerValidation'
 
 import * as Model from '../../Model'
 
@@ -196,6 +199,12 @@ export default function DevTools({ state, modelIdOverride, recording }: DevTools
         <JsonDisplay className={classes.json} name="Context" value={context} />
         <JsonDisplay className={classes.json} name="State" value={state} />
         <JsonDisplay className={classes.json} name="Prompt" value={prompt} />
+        <M.Divider />
+        <IntegrationTest />
+        <M.Divider />
+        <MCPServerValidation />
+        <M.Divider />
+        <DynamicBucketDiscoveryTest />
       </div>
     </section>
   )

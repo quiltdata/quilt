@@ -49,6 +49,9 @@ export interface ConfigJson {
 
   mcpEndpoint?: string
 
+  mcpEnhancedJwtSecret?: string
+  mcpEnhancedJwtKid?: string
+
   build_version?: string // not sure where this comes from
   stackVersion: string
   packageRoot?: string

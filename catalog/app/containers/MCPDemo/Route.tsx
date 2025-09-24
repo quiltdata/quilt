@@ -10,7 +10,7 @@ import SearchIcon from '@material-ui/icons/Search'
 import AddIcon from '@material-ui/icons/Add'
 import EditIcon from '@material-ui/icons/Edit'
 import BarChartIcon from '@material-ui/icons/BarChart'
-import { MCPTestComponent } from 'components/Assistant/MCP'
+import { MCPTestComponent, OAuthLoginButton } from 'components/Assistant/MCP'
 
 export const MCPDemoRoute: React.FC = () => (
   <M.Container maxWidth="lg" style={{ paddingTop: 20, paddingBottom: 20 }}>
@@ -51,6 +51,11 @@ export const MCPDemoRoute: React.FC = () => (
     </M.List>
 
     <M.Divider style={{ margin: '20px 0' }} />
+
+    <M.Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <M.Typography variant="h5">Authentication</M.Typography>
+      <OAuthLoginButton />
+    </M.Box>
 
     <MCPTestComponent />
   </M.Container>
