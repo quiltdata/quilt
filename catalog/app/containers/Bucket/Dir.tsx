@@ -90,7 +90,7 @@ function DirContents({
         <DirToolbar.Add.UploadDialog
           handle={dirHandle}
           initial={added}
-          onClose={(reason) => {
+          onClose={(reason?: string) => {
             close()
             if (reason === 'upload-success') {
               onReload()

@@ -6,6 +6,7 @@ import * as Icons from '@material-ui/icons'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Markdown from 'components/Markdown'
+import { useMCPContextStateValue } from 'components/Assistant/MCP/MCPContextProvider'
 import usePrevious from 'utils/usePrevious'
 
 import * as Model from '../../Model'
@@ -450,6 +451,39 @@ interface ChatProps {
 export default function Chat({ state, dispatch, devTools }: ChatProps) {
   const classes = useStyles()
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const mcpState = useMCPContextStateValue()
+
+  const mcpStatusBanner = React.useMemo(() => {
+    switch (mcpState.status) {
+      case 'loading':
+        return {
+          text: 'Connecting to the Model Context Protocol toolchain…',
+          bg: M.colors.blue[50],
+          color: M.colors.blue[900],
+        }
+      case 'ready': {
+        const toolNames = Object.keys(mcpState.tools)
+        const preview = toolNames.slice(0, 4).join(', ')
+        const remainder = toolNames.length > 4 ? `, +${toolNames.length - 4} more` : ''
+        return {
+          text: `MCP toolchain connected — ${toolNames.length} available tool${
+            toolNames.length === 1 ? '' : 's'
+          }.`,
+          detail: toolNames.length ? `${preview}${remainder}` : undefined,
+          bg: M.colors.green[50],
+          color: M.colors.green[900],
+        }
+      }
+      case 'error':
+        return {
+          text: `MCP toolchain unavailable: ${mcpState.error ?? 'unknown error'}`,
+          bg: M.colors.red[50],
+          color: M.colors.red[900],
+        }
+      default:
+        return null
+    }
+  }, [mcpState])
 
   const inputDisabled = state._tag !== 'Idle'
 
@@ -494,6 +528,25 @@ export default function Chat({ state, dispatch, devTools }: ChatProps) {
       </M.Slide>
       <div className={classes.historyContainer}>
         <div className={classes.history}>
+          {mcpStatusBanner && (
+            <M.Box
+              borderRadius={12}
+              padding={2}
+              style={{
+                backgroundColor: mcpStatusBanner.bg,
+                color: mcpStatusBanner.color,
+              }}
+            >
+              <M.Typography variant="body2" style={{ color: mcpStatusBanner.color }}>
+                {mcpStatusBanner.text}
+              </M.Typography>
+              {mcpStatusBanner.detail && (
+                <M.Typography variant="caption" style={{ color: mcpStatusBanner.color }}>
+                  {mcpStatusBanner.detail}
+                </M.Typography>
+              )}
+            </M.Box>
+          )}
           <MessageContainer>
             Hi! I'm Qurator, your AI assistant. How can I help you?
           </MessageContainer>

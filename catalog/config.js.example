@@ -7,5 +7,7 @@ window.QUILT_CATALOG_CONFIG = {
   "passwordAuth": "ENABLED",
   "ssoAuth": "SIGN_IN_ONLY",
   "ssoProviders": "google",
-  "stackVersion": "local-dev"
+  "stackVersion": "local-dev",
+  "mcpEnhancedJwtSecret": "changeme-signing-secret",
+  "mcpEnhancedJwtKid": "frontend-enhanced"
 }

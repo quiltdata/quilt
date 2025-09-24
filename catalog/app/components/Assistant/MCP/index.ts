@@ -14,3 +14,6 @@ export {
   useMCPStatus,
   useMCPContextStateValue,
 } from './MCPContextProvider'
+
+export { OAuthLoginButton } from './OAuthLoginButton'
+export { OAuthCallback } from './OAuthCallback'

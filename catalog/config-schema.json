@@ -108,6 +108,14 @@
     "mcpEndpoint": {
       "$ref": "#/definitions/Url",
       "description": "MCP (Model Context Protocol) server endpoint for AI assistant tools"
+    },
+    "mcpEnhancedJwtSecret": {
+      "type": "string",
+      "description": "Shared secret used to sign enhanced MCP JWT tokens (HS256)."
+    },
+    "mcpEnhancedJwtKid": {
+      "type": "string",
+      "description": "Key identifier attached to enhanced MCP JWT signatures."
     }
   },
   "required": [

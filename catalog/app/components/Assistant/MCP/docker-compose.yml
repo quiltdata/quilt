@@ -28,3 +28,4 @@ services:
 networks:
   mcp-network:
     driver: bridge
+

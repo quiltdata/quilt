@@ -21,13 +21,15 @@ The MCP integration enables seamless communication between the Quilt frontend an
 #### 1. MCPContextProvider (`MCPContextProvider.tsx`)
 
 The main React context provider that:
+
 - Manages MCP client state
 - Integrates with Quilt's authentication system
 - Enhances JWT tokens with authorization claims
 - Provides role information to the MCP client
 
 **Key Functions:**
-- `enhanceTokenWithAuthClaims()`: Enhances JWT tokens with authorization claims
+
+- `EnhancedTokenGenerator.generateEnhancedToken()`: Produces enhanced JWT tokens
 - `getUserRolesFromState()`: Extracts user roles from Redux state
 - `getUserPermissions()`: Maps roles to S3 permissions
 - `getUserScope()`: Generates scope string from roles
@@ -36,35 +38,29 @@ The main React context provider that:
 #### 2. MCP Client (`Client.ts`)
 
 The core MCP client that:
+
 - Handles communication with the MCP server
 - Manages authentication headers
 - Implements token refresh logic
 - Provides fallback authentication methods
 
 **Key Features:**
+
 - **Primary Authentication**: Redux Bearer Token (automatic)
 - **Secondary Authentication**: OAuth Bearer Token (manual)
 - **Fallback Authentication**: IAM Role Headers
 
 #### 3. Role-to-Permission Mapping
 
-A comprehensive mapping system that converts Quilt roles to AWS S3 permissions:
+Role and tool capabilities are defined in `catalog/app/services/mcpAuthorization.js`.
+This shared module mirrors the backend BearerAuthService mappings, providing:
 
-```typescript
-const ROLE_PERMISSIONS = {
-  'ReadWriteQuiltV2-sales-prod': {
-    buckets: ['quilt-sandbox-bucket', 'nf-core-gallery'],
-    permissions: ['s3:GetObject', 's3:PutObject', 's3:ListBucket', 's3:DeleteObject'],
-    scope: 'read write list delete'
-  },
-  'ReadQuiltV2-sales-prod': {
-    buckets: ['quilt-sandbox-bucket', 'nf-core-gallery'],
-    permissions: ['s3:GetObject', 's3:ListBucket'],
-    scope: 'read list'
-  },
-  // ... additional role mappings
-}
-```
+- Canonical Quilt role definitions and aliases
+- Tool → AWS permission requirements for all MCP tools
+- Authorization helpers for merging multiple roles and producing capability tags
+
+The module can be extended to support new roles or tools while keeping the
+frontend and MCP server in sync.
 
 ## JWT Token Enhancement
 
@@ -84,12 +80,7 @@ const ROLE_PERMISSIONS = {
   "id": "8795f0cc-8deb-40dd-9132-13357c983984",
   "exp": 1766336063,
   "scope": "read write list delete",
-  "permissions": [
-    "s3:GetObject",
-    "s3:PutObject",
-    "s3:ListBucket",
-    "s3:DeleteObject"
-  ],
+  "permissions": ["s3:GetObject", "s3:PutObject", "s3:ListBucket", "s3:DeleteObject"],
   "roles": ["ReadWriteQuiltV2-sales-prod", "QuiltContributorRole"],
   "groups": ["quilt-users", "mcp-users"],
   "aud": "quilt-mcp-server",
@@ -102,23 +93,29 @@ const ROLE_PERMISSIONS = {
 
 ### Token Enhancement Process
 
-1. **Decode Original Token**: Parse the JWT payload from the Redux store
-2. **Extract User Roles**: Get user roles from Redux authentication state
-3. **Map Permissions**: Convert roles to S3 permissions using `ROLE_PERMISSIONS`
-4. **Generate Claims**: Create authorization claims (scope, permissions, buckets, etc.)
-5. **Reconstruct JWT**: Build new JWT with enhanced payload
+1. **Decode Original Token**: Parse the JWT payload from the Redux store.
+2. **Discover Buckets**: Query Quilt's GraphQL API for bucket metadata tied to
+   the current user.
+3. **Merge Role Authorizations**: Use `mergeAuthorizationForRoles` from
+   `mcpAuthorization.js` to calculate scopes, permissions, and capabilities.
+4. **Assemble Claims**: Combine original claims with dynamically discovered
+   buckets, permissions, groups, and capability tags.
+5. **Re-sign JWT**: Rebuild the token with an `HS256` signature using the
+   configured front-end signing secret.
 
 ### Error Handling
 
 The implementation includes comprehensive error handling:
+
 - **Token Decoding Errors**: Graceful fallback to original token
-- **Role Extraction Failures**: Default to read-write permissions
+- **Role Extraction Failures**: Log warnings and fall back to the original token
 - **Permission Mapping Errors**: Log errors and continue with available permissions
 - **Network Failures**: Automatic retry with exponential backoff
 
 ### Debugging and Logging
 
 Extensive logging is provided for debugging:
+
 - Token enhancement process
 - Role extraction and mapping
 - Permission generation
@@ -132,26 +129,21 @@ Extensive logging is provided for debugging:
 - `NODE_ENV`: Controls debug logging (development vs production)
 - MCP server URL configuration
 - Token refresh intervals
+- `mcpEnhancedJwtSecret`: Shared HS256 signing secret exposed via catalog config
+- `mcpEnhancedJwtKid`: Optional key identifier included in enhanced JWT headers
 
 ### Role Configuration
 
-Roles can be configured by updating the `ROLE_PERMISSIONS` object in `MCPContextProvider.tsx`:
-
-```typescript
-const ROLE_PERMISSIONS = {
-  'NewRole': {
-    buckets: ['bucket1', 'bucket2'],
-    permissions: ['s3:GetObject', 's3:ListBucket'],
-    scope: 'read list'
-  }
-}
-```
+Role definitions live in `catalog/app/services/mcpAuthorization.js`. Update the
+`ROLE_DEFINITIONS` and `TOOL_PERMISSION_MAP` constants there to introduce new
+roles or extend tool coverage.
 
 ## Testing
 
 ### Unit Tests
 
 The implementation includes comprehensive unit tests for:
+
 - Token enhancement functionality
 - Role-to-permission mapping
 - Error handling scenarios
@@ -185,11 +177,13 @@ The implementation includes comprehensive unit tests for:
 ### Common Issues
 
 1. **Token Enhancement Failures**
+
    - Check Redux state structure
    - Verify role extraction logic
    - Review permission mapping configuration
 
 2. **Authentication Errors**
+
    - Verify MCP server configuration
    - Check token expiration
    - Review network connectivity
@@ -202,6 +196,7 @@ The implementation includes comprehensive unit tests for:
 ### Debug Logging
 
 Enable debug logging by setting `NODE_ENV=development` to see:
+
 - Token enhancement process
 - Role extraction details
 - Permission mapping results
@@ -227,25 +222,30 @@ Enable debug logging by setting `NODE_ENV=development` to see:
 
 ### MCPContextProvider
 
-#### `enhanceTokenWithAuthClaims(originalToken, state)`
+#### `EnhancedTokenGenerator.generateEnhancedToken({ originalToken, roles, buckets })`
 
-Enhances a JWT token with authorization claims.
+Generates an enhanced JWT containing dynamic authorization claims.
 
 **Parameters:**
-- `originalToken` (string): The original JWT token from Redux
-- `state` (object): Redux state containing user information
+
+- `originalToken` (string): The original JWT token from Redux.
+- `roles` (string[]): Roles discovered from the user's auth state.
+- `buckets` (object[]): Bucket metadata discovered via GraphQL.
 
 **Returns:**
-- `Promise<string>`: Enhanced JWT token with authorization claims
+
+- `Promise<string | null>`: Enhanced JWT token (or `null` if generation fails).
 
 #### `getUserRolesFromState(state)`
 
 Extracts user roles from Redux state.
 
 **Parameters:**
+
 - `state` (object): Redux state
 
 **Returns:**
+
 - `string[]`: Array of user role names
 
 #### `getUserPermissions(roles)`
@@ -253,9 +253,11 @@ Extracts user roles from Redux state.
 Maps user roles to S3 permissions.
 
 **Parameters:**
+
 - `roles` (string[]): Array of user role names
 
 **Returns:**
+
 - `string[]`: Array of S3 permissions
 
 ### MCP Client
@@ -265,6 +267,7 @@ Maps user roles to S3 permissions.
 Sets the Redux token getter function.
 
 **Parameters:**
+
 - `getter` (function): Function that returns a Promise<string | null>
 
 #### `getAuthenticationStatus()`
@@ -272,6 +275,7 @@ Sets the Redux token getter function.
 Returns current authentication status.
 
 **Returns:**
+
 - `Promise<object>`: Authentication status object
 
 ## Contributing

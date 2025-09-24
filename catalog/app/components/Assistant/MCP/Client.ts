@@ -219,7 +219,7 @@ export class QuiltMCPClient implements MCPClient {
     }
   }
 
-  private async getHeaders(): Promise<Record<string, string>> {
+  async getHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: this.getAcceptHeader(),
