@@ -7,13 +7,13 @@ import * as Content from 'components/Assistant/Model/Content'
 import * as Context from 'components/Assistant/Model/Context'
 import * as Tool from 'components/Assistant/Model/Tool'
 import { useAuthState, AuthState } from 'containers/NavBar/NavMenu'
-import * as authSelectors from 'containers/Auth/selectors'
-import * as authActions from 'containers/Auth/actions'
-import defer from 'utils/defer'
 
 import { mcpClient } from './Client'
 import type { MCPTool, MCPToolResult } from './types'
-import { DynamicAuthManager } from '../../../services/DynamicAuthManager'
+import {
+  DynamicAuthManager,
+  findTokenInState,
+} from '../../../services/DynamicAuthManager'
 import { resolveRoleName } from '../../../services/mcpAuthorization'
 
 const JSON_SCHEMA_URL = 'https://json-schema.org/draft/2020-12/schema'
@@ -221,7 +221,6 @@ function createDescriptor(tool: MCPTool): [string, Tool.Descriptor<any>] {
 function useMCPContextState(): State {
   const [state, setState] = React.useState<State>(INITIAL_STATE)
   const store = redux.useStore()
-  const dispatch = redux.useDispatch()
 
   // Initialize DynamicAuthManager
   const authManager = React.useMemo(
@@ -231,25 +230,23 @@ function useMCPContextState(): State {
 
   // Set up Redux token getter for automatic token retrieval
   React.useEffect(() => {
-    // Create a simple token getter that accesses Redux state directly
-    const getReduxToken = async (): Promise<string | null> => {
+    const extractTokenFromStore = async (): Promise<string | null> => {
       try {
         console.log('🔍 MCP Client: Redux token getter called...')
-        const state = store.getState()
-        
-        // Try to get token from auth state
-        if (state.auth && state.auth.tokens && state.auth.tokens.token) {
-          console.log('✅ MCP Client: Token found in Redux auth state')
-          return state.auth.tokens.token
+        const reduxState = store.getState() as any
+        const { token, source } = findTokenInState(reduxState)
+        if (token) {
+          console.log(`✅ MCP Client: Token found in Redux state (${source})`)
+          return token
         }
 
-        // Fallback: try other possible locations
-        if (state.user && state.user.token) {
-          console.log('✅ MCP Client: Token found in Redux user state')
-          return state.user.token
-        }
-
-        console.warn('⚠️ MCP Client: No token found in Redux state')
+        const stateKeys =
+          typeof reduxState?.keySeq === 'function'
+            ? reduxState.keySeq().toArray()
+            : Object.keys(reduxState || {})
+        console.warn('⚠️ MCP Client: No bearer token found in Redux state', {
+          keys: stateKeys,
+        })
         return null
       } catch (error) {
         console.error('❌ MCP Client: Failed to get Redux access token:', error)
@@ -257,15 +254,10 @@ function useMCPContextState(): State {
       }
     }
 
-    // Set the Redux token getter on the MCP client
     console.log('🔧 MCP Client: Setting up Redux token getter...')
-    mcpClient.setReduxTokenGetter(getReduxToken)
-    console.log('✅ MCP Client: Redux token getter set successfully')
-
-    // Also set the token getter on the auth manager
-    console.log('🔧 DynamicAuthManager: Setting up token getter...')
-    authManager.tokenGetter = getReduxToken
-    console.log('✅ DynamicAuthManager: Token getter set successfully')
+    mcpClient.setReduxTokenGetter(extractTokenFromStore)
+    authManager.setTokenGetter(extractTokenFromStore)
+    console.log('✅ MCP Client: Redux token getter configured')
   }, [authManager, store])
 
   React.useEffect(() => {
@@ -288,12 +280,12 @@ function useMCPContextState(): State {
         const collection = Object.fromEntries(tools.map(createDescriptor))
         const summary = tools.map(describeTool).join('\n')
 
-        setState({
+        setState((prev) => ({
+          ...prev,
           status: 'ready',
           tools: collection,
           summary,
-          authManager,
-        })
+        }))
       } catch (error) {
         if (cancelled) return
         let message = 'Failed to connect to MCP server'
@@ -312,12 +304,13 @@ function useMCPContextState(): State {
           }
         }
 
-        setState({
+        setState((prev) => ({
+          ...prev,
           status: 'error',
           tools: {},
           summary: '',
           error: message,
-        })
+        }))
       }
     }
 
