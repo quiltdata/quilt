@@ -9,8 +9,9 @@ import { BucketDiscoveryService } from './BucketDiscoveryService'
 import { EnhancedTokenGenerator } from './EnhancedTokenGenerator'
 
 class DynamicAuthManager {
-  constructor(reduxStore) {
+  constructor(reduxStore, tokenGetter = null) {
     this.reduxStore = reduxStore
+    this.tokenGetter = tokenGetter
 
     // Initialize services
     this.bucketDiscovery = new BucketDiscoveryService()
@@ -114,15 +115,29 @@ class DynamicAuthManager {
    */
   async getOriginalToken() {
     try {
+      // First try the token getter if available (preferred method)
+      if (this.tokenGetter) {
+        console.log('🔍 DynamicAuthManager: Using token getter...')
+        const token = await this.tokenGetter()
+        if (token) {
+          console.log('✅ DynamicAuthManager: Token retrieved via getter')
+          return token
+        }
+      }
+
+      // Fallback: try to get token from Redux state directly
+      console.log('🔍 DynamicAuthManager: Falling back to Redux state access...')
       const state = this.reduxStore.getState()
 
       // Try to get token from auth state
       if (state.auth && state.auth.tokens && state.auth.tokens.token) {
+        console.log('✅ DynamicAuthManager: Token found in Redux auth state')
         return state.auth.tokens.token
       }
 
       // Fallback: try other possible locations
       if (state.user && state.user.token) {
+        console.log('✅ DynamicAuthManager: Token found in Redux user state')
         return state.user.token
       }
 
