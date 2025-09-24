@@ -130,8 +130,9 @@ const getSubtleCrypto = () => {
     process.versions?.node
   ) {
     try {
-      // eslint-disable-next-line global-require
-      const { webcrypto } = require('crypto')
+      // Use dynamic import to avoid webpack bundling issues
+      const crypto = eval('require')('crypto')
+      const { webcrypto } = crypto
       if (webcrypto?.subtle) return webcrypto.subtle
     } catch (error) {
       // ignore, we'll try the node fallback later
@@ -158,8 +159,8 @@ const signWithNodeCrypto = (secretBytes, dataBytes) => {
     process.versions?.node
   ) {
     try {
-      // eslint-disable-next-line global-require
-      const nodeCrypto = require('crypto')
+      // Use dynamic import to avoid webpack bundling issues
+      const nodeCrypto = eval('require')('crypto')
       const hmac = nodeCrypto.createHmac('sha256', Buffer.from(secretBytes))
       hmac.update(Buffer.from(dataBytes))
       return new Uint8Array(hmac.digest())

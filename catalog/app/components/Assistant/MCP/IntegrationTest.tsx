@@ -188,11 +188,11 @@ export function IntegrationTest() {
           fn: async () => {
             if (!authManager) throw new Error('AuthManager not available')
             const result = await authManager.refreshAll()
-            if (!result.success) throw new Error('Refresh failed')
+            if (!(result as any).success) throw new Error('Refresh failed')
 
             return {
-              success: result.success,
-              bucketCount: result.bucketCount || 0,
+              success: (result as any).success,
+              bucketCount: (result as any).bucketCount || 0,
               refreshed: true,
             }
           },
