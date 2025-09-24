@@ -14,6 +14,11 @@ updates:
     directory: "/lambdas/indexer"
     schedule:
       interval: "daily"
+    ignore:
+      - dependency-name: "lambda/python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   - package-ecosystem: "docker"
     directory: "/lambdas/thumbnail"
