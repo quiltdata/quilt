@@ -10,6 +10,7 @@ import { useAuthState, AuthState } from 'containers/NavBar/NavMenu'
 
 import { mcpClient } from './Client'
 import type { MCPTool, MCPToolResult } from './types'
+import { MCPServerDebugTest } from './MCPServerDebugTest'
 import {
   DynamicAuthManager,
   findTokenInState,
@@ -397,6 +398,11 @@ export function MCPContextProvider({ children }: React.PropsWithChildren<{}>) {
   )
 
   return (
-    <MCPContextStateCtx.Provider value={state}>{children}</MCPContextStateCtx.Provider>
+    <MCPContextStateCtx.Provider value={state}>
+      {children}
+      {process.env.NODE_ENV === 'development' && (
+        <MCPServerDebugTest />
+      )}
+    </MCPContextStateCtx.Provider>
   )
 }
