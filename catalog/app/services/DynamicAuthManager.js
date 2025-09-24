@@ -94,18 +94,27 @@ const normalizeRoleValue = (value) => {
 
 export const findRolesInState = (state) => {
   const roles = new Set()
+  console.log('🔍 findRolesInState: Starting role extraction from state:', state)
 
   try {
     const domain = authSelectors.domain(state)
+    console.log('🔍 findRolesInState: Auth domain:', domain)
+    
     if (domain?.user) {
       const { user } = domain
+      console.log('🔍 findRolesInState: User object:', user)
+      console.log('🔍 findRolesInState: User roles array:', user.roles)
+      console.log('🔍 findRolesInState: User current role:', user.role)
+      
       if (Array.isArray(user.roles)) {
         user.roles.forEach((role) => {
           const normalized = normalizeRoleValue(role)
+          console.log('🔍 findRolesInState: Normalized role from array:', normalized)
           if (normalized) roles.add(normalized)
         })
       }
       const currentRole = normalizeRoleValue(user.role)
+      console.log('🔍 findRolesInState: Normalized current role:', currentRole)
       if (currentRole) roles.add(currentRole)
     }
   } catch (error) {
@@ -138,7 +147,9 @@ export const findRolesInState = (state) => {
     if (normalized) roles.add(normalized)
   })
 
-  return Array.from(roles)
+  const finalRoles = Array.from(roles)
+  console.log('🔍 findRolesInState: Final extracted roles:', finalRoles)
+  return finalRoles
 }
 
 class DynamicAuthManager {
@@ -260,9 +271,26 @@ class DynamicAuthManager {
 
   getUserRolesFromState() {
     try {
-      const roles = findRolesInState(this.reduxStore.getState())
+      const state = this.reduxStore.getState()
+      console.log('🔍 DynamicAuthManager: Redux state for role extraction:', state)
+      
+      const roles = findRolesInState(state)
+      console.log('🔍 DynamicAuthManager: Extracted roles:', roles)
+      
       if (!roles.length) {
         console.warn('⚠️ DynamicAuthManager: Could not extract roles from state')
+        // Debug: Check what's in the auth domain
+        try {
+          const domain = authSelectors.domain(state)
+          console.log('🔍 DynamicAuthManager: Auth domain:', domain)
+          if (domain?.user) {
+            console.log('🔍 DynamicAuthManager: User object:', domain.user)
+            console.log('🔍 DynamicAuthManager: User roles:', domain.user.roles)
+            console.log('🔍 DynamicAuthManager: User role:', domain.user.role)
+          }
+        } catch (debugError) {
+          console.log('🔍 DynamicAuthManager: Debug error:', debugError)
+        }
       }
       return roles
     } catch (error) {
