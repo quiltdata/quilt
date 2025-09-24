@@ -1,31 +1,25 @@
-import * as Eff from 'effect'
 /* eslint-disable no-console */
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as Content from 'components/Assistant/Model/Content'
-import * as Context from 'components/Assistant/Model/Context'
-import * as Tool from 'components/Assistant/Model/Tool'
 import { useAuthState, AuthState } from 'containers/NavBar/NavMenu'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as authActions from 'containers/Auth/actions'
 import defer from 'utils/defer'
 
-import { mcpClient } from './Client'
-import type { MCPTool, MCPToolResult } from './types'
 import {
   DynamicAuthManager,
   findTokenInState,
 } from '../../../services/DynamicAuthManager'
 import { resolveRoleName } from '../../../services/mcpAuthorization'
-
-const JSON_SCHEMA_URL = 'https://json-schema.org/draft/2020-12/schema'
+import { mcpClient } from './Client'
+import type { MCPTool, MCPToolResult } from './types'
 
 type Status = 'loading' | 'ready' | 'error'
 
 interface State {
   status: Status
-  tools: Tool.Collection
+  tools: { [k: string]: MCPTool }
   summary: string
   error?: string
   authManager?: DynamicAuthManager
@@ -248,7 +242,7 @@ function useMCPContextState(): State {
         setState((prev) => ({
           ...prev,
           status: 'error',
-          error: error as Error,
+          error: error instanceof Error ? error.message : String(error),
         }))
       }
     }
@@ -288,11 +282,7 @@ export async function executeMCPTool(
   name: string,
   args: Record<string, unknown>,
 ): Promise<MCPToolResult> {
-  const tool = useMCPTool(name)
-  if (!tool) {
-    throw new Error(`Tool ${name} not found`)
-  }
-  return await mcpClient.executeTool(name, args)
+  return mcpClient.executeTool(name, args)
 }
 
 export function useMCPAuthManager() {

@@ -109,6 +109,7 @@ export interface MCPClient {
   disconnectFromServer(serverName?: string): void
   listAvailableTools(): Promise<MCPTool[]>
   callTool(toolCall: MCPToolCall): Promise<MCPToolResult>
+  executeTool(name: string, args?: Record<string, any>): Promise<MCPToolResult>
   getServerStatus(): MCPServerConnection['status']
   hasSession(): boolean
 
