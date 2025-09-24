@@ -1,239 +1,297 @@
-# MCP (Model Context Protocol) Implementation for Quilt
+# MCP Authentication Integration
 
-This directory contains the MCP Client implementation for Quilt, enabling AI-powered data management through Docker-based MCP servers.
+This document describes the implementation of JWT token enhancement for MCP (Model Context Protocol) server authentication in the Quilt frontend.
 
 ## Overview
 
-The MCP implementation provides:
-
-- **Package Search**: Find packages in the Quilt registry
-- **Package Creation**: Create new packages with files and metadata
-- **Metadata Updates**: Update existing package metadata
-- **Visualization Creation**: Generate data visualizations using Vega, ECharts, or Perspective
+The MCP integration enables seamless communication between the Quilt frontend and the MCP server by automatically enhancing JWT tokens with authorization claims. This allows the MCP server to authenticate users and determine their permissions for S3 bucket operations.
 
 ## Architecture
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
-│   Quilt UI      │    │   MCP Client     │    │   MCP Servers       │
-│                 │    │                  │    │                     │
-│ - Qurator       │◄──►│ - Tool Discovery │◄──►│ - Package Server    │
-│ - MCP Demo      │    │ - Tool Execution │    │ - Visualization     │
-│                 │    │ - Bedrock Int.   │    │   Server            │
-└─────────────────┘    └──────────────────┘    └─────────────────────┘
-```
+### Authentication Flow
 
-## Quick Start
+1. **Token Retrieval**: The system automatically retrieves JWT tokens from Quilt's Redux store
+2. **Role Extraction**: User roles are extracted from the Redux authentication state
+3. **Permission Mapping**: Quilt roles are mapped to AWS S3 permissions using a predefined configuration
+4. **Token Enhancement**: JWT tokens are enhanced with authorization claims
+5. **MCP Communication**: Enhanced tokens are sent to the MCP server for authentication
 
-### 1. Configure MCP Endpoint
+### Key Components
 
-The MCP client can connect to different types of endpoints:
+#### 1. MCPContextProvider (`MCPContextProvider.tsx`)
 
-- **Streamable HTTP Endpoint** (Recommended): `http://localhost:8000/mcp?transport=streamable-http`
-- **SSE Endpoint**: `http://localhost:8000/sse`
-- **HTTP Endpoint**: `http://localhost:8000/mcp`
-- **Remote Endpoint**: `https://your-mcp-server.com/mcp?transport=streamable-http`
+The main React context provider that:
+- Manages MCP client state
+- Integrates with Quilt's authentication system
+- Enhances JWT tokens with authorization claims
+- Provides role information to the MCP client
 
-Update your configuration in `static-dev/config.js`:
+**Key Functions:**
+- `enhanceTokenWithAuthClaims()`: Enhances JWT tokens with authorization claims
+- `getUserRolesFromState()`: Extracts user roles from Redux state
+- `getUserPermissions()`: Maps roles to S3 permissions
+- `getUserScope()`: Generates scope string from roles
+- `getUserBuckets()`: Determines accessible buckets
 
-```javascript
-window.QUILT_CATALOG_CONFIG = {
-  // ... other config
-  mcpEndpoint: 'http://localhost:8000/mcp?transport=streamable-http', // Streamable HTTP endpoint
+#### 2. MCP Client (`Client.ts`)
+
+The core MCP client that:
+- Handles communication with the MCP server
+- Manages authentication headers
+- Implements token refresh logic
+- Provides fallback authentication methods
+
+**Key Features:**
+- **Primary Authentication**: Redux Bearer Token (automatic)
+- **Secondary Authentication**: OAuth Bearer Token (manual)
+- **Fallback Authentication**: IAM Role Headers
+
+#### 3. Role-to-Permission Mapping
+
+A comprehensive mapping system that converts Quilt roles to AWS S3 permissions:
+
+```typescript
+const ROLE_PERMISSIONS = {
+  'ReadWriteQuiltV2-sales-prod': {
+    buckets: ['quilt-sandbox-bucket', 'nf-core-gallery'],
+    permissions: ['s3:GetObject', 's3:PutObject', 's3:ListBucket', 's3:DeleteObject'],
+    scope: 'read write list delete'
+  },
+  'ReadQuiltV2-sales-prod': {
+    buckets: ['quilt-sandbox-bucket', 'nf-core-gallery'],
+    permissions: ['s3:GetObject', 's3:ListBucket'],
+    scope: 'read list'
+  },
+  // ... additional role mappings
 }
 ```
 
-### 2. Start MCP Server
+## JWT Token Enhancement
 
-The MCP client now connects to the `quilt-mcp-server` which supports multiple transport modes:
+### Original Token Structure
 
-```bash
-# Start quilt-mcp-server with streamable-http transport (recommended)
-docker run -d \
-  --name quilt-mcp-server \
-  -p 8000:8000 \
-  -e FASTMCP_TRANSPORT=streamable-http \
-  -e FASTMCP_HOST=0.0.0.0 \
-  -e FASTMCP_PORT=8000 \
-  quilt-mcp:latest
-
-# Or with SSE transport
-docker run -d \
-  --name quilt-mcp-server \
-  -p 8000:8000 \
-  -e FASTMCP_TRANSPORT=sse \
-  -e FASTMCP_HOST=0.0.0.0 \
-  -e FASTMCP_PORT=8000 \
-  quilt-mcp:latest
+```json
+{
+  "id": "8795f0cc-8deb-40dd-9132-13357c983984",
+  "exp": 1766336063
+}
 ```
 
-### 3. Access the Demo
+### Enhanced Token Structure
 
-Navigate to `http://localhost:3000/mcp-demo` to test the MCP functionality.
+```json
+{
+  "id": "8795f0cc-8deb-40dd-9132-13357c983984",
+  "exp": 1766336063,
+  "scope": "read write list delete",
+  "permissions": [
+    "s3:GetObject",
+    "s3:PutObject",
+    "s3:ListBucket",
+    "s3:DeleteObject"
+  ],
+  "roles": ["ReadWriteQuiltV2-sales-prod", "QuiltContributorRole"],
+  "groups": ["quilt-users", "mcp-users"],
+  "aud": "quilt-mcp-server",
+  "iss": "quilt-frontend-enhanced",
+  "buckets": ["quilt-sandbox-bucket", "nf-core-gallery"]
+}
+```
 
-### 4. Test MCP Tools
+## Implementation Details
 
-The demo page allows you to:
+### Token Enhancement Process
 
-- View available MCP tools (84+ tools available)
-- Test package search functionality
-- Create new packages with metadata templates
-- Update package metadata
-- Browse S3 buckets and objects
-- Execute SQL queries with Athena
-- Manage workflows and permissions
+1. **Decode Original Token**: Parse the JWT payload from the Redux store
+2. **Extract User Roles**: Get user roles from Redux authentication state
+3. **Map Permissions**: Convert roles to S3 permissions using `ROLE_PERMISSIONS`
+4. **Generate Claims**: Create authorization claims (scope, permissions, buckets, etc.)
+5. **Reconstruct JWT**: Build new JWT with enhanced payload
 
-## MCP Server Architecture
+### Error Handling
 
-The client now connects to the `quilt-mcp-server` which provides:
+The implementation includes comprehensive error handling:
+- **Token Decoding Errors**: Graceful fallback to original token
+- **Role Extraction Failures**: Default to read-write permissions
+- **Permission Mapping Errors**: Log errors and continue with available permissions
+- **Network Failures**: Automatic retry with exponential backoff
 
-### Core Tools (84+ available)
+### Debugging and Logging
 
-- **Authentication**: `auth_status`, `catalog_info`, `filesystem_status`
-- **Package Management**: `create_package_enhanced`, `package_browse`, `packages_search`
-- **S3 Operations**: `bucket_objects_list`, `bucket_object_info`, `unified_search`
-- **Analytics**: `athena_query_execute`, `tabulator_tables_list`
-- **Workflows**: `workflow_create`, `workflow_add_step`, `workflow_get_status`
-- **Metadata**: `get_metadata_template`, `validate_metadata_structure`
-- **Administration**: `admin_users_list`, `admin_user_create`, `admin_roles_list`
+Extensive logging is provided for debugging:
+- Token enhancement process
+- Role extraction and mapping
+- Permission generation
+- Authentication method selection
+- Error conditions and fallbacks
 
-### Transport Modes
+## Configuration
 
-- **SSE (Server-Sent Events)**: Recommended for real-time communication
-- **HTTP**: Standard HTTP requests/responses
-- **Streamable HTTP**: For large data transfers
+### Environment Variables
 
-## Integration with Bedrock
+- `NODE_ENV`: Controls debug logging (development vs production)
+- MCP server URL configuration
+- Token refresh intervals
 
-The MCP Client integrates with Amazon Bedrock models to enable AI-powered tool execution. Configure your AWS credentials and model preferences in the Bedrock integration.
+### Role Configuration
 
-## Development
+Roles can be configured by updating the `ROLE_PERMISSIONS` object in `MCPContextProvider.tsx`:
 
-### Adding New Tools
+```typescript
+const ROLE_PERMISSIONS = {
+  'NewRole': {
+    buckets: ['bucket1', 'bucket2'],
+    permissions: ['s3:GetObject', 's3:ListBucket'],
+    scope: 'read list'
+  }
+}
+```
 
-1. Define the tool interface in `types.ts`
-2. Implement the tool logic in `tools/`
-3. Add the tool to the MCP server
-4. Update the Bedrock integration if needed
+## Testing
+
+### Unit Tests
+
+The implementation includes comprehensive unit tests for:
+- Token enhancement functionality
+- Role-to-permission mapping
+- Error handling scenarios
+- Authentication flow validation
+
+### Integration Tests
+
+- End-to-end authentication flow
+- MCP server communication
+- Token refresh scenarios
+- Permission validation
+
+## Security Considerations
+
+### Token Security
+
+- **No Sensitive Data**: Enhanced tokens don't contain sensitive information
+- **Permission-Based**: Only necessary permissions are included
+- **Audience Validation**: Tokens are scoped to MCP server
+- **Expiration Handling**: Automatic token refresh when expired
+
+### Access Control
+
+- **Role-Based**: Access is determined by user roles
+- **Bucket-Scoped**: Users can only access authorized buckets
+- **Permission-Granular**: Fine-grained S3 permissions
+- **Fallback Security**: IAM role headers as secure fallback
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Token Enhancement Failures**
+   - Check Redux state structure
+   - Verify role extraction logic
+   - Review permission mapping configuration
+
+2. **Authentication Errors**
+   - Verify MCP server configuration
+   - Check token expiration
+   - Review network connectivity
+
+3. **Permission Denied**
+   - Verify role-to-permission mapping
+   - Check bucket access configuration
+   - Review MCP server authorization logic
+
+### Debug Logging
+
+Enable debug logging by setting `NODE_ENV=development` to see:
+- Token enhancement process
+- Role extraction details
+- Permission mapping results
+- Authentication method selection
+
+## Future Enhancements
+
+### Planned Improvements
+
+1. **Dynamic Role Loading**: Load roles from API instead of hardcoded configuration
+2. **Permission Caching**: Cache permission mappings for better performance
+3. **Audit Logging**: Track authentication and authorization events
+4. **Token Validation**: Server-side token signature verification
+
+### Extension Points
+
+1. **Custom Role Mappings**: Support for custom role-to-permission mappings
+2. **Multi-Tenant Support**: Support for multiple organizations
+3. **Advanced Permissions**: Support for more granular S3 permissions
+4. **Token Encryption**: Optional token payload encryption
+
+## API Reference
+
+### MCPContextProvider
+
+#### `enhanceTokenWithAuthClaims(originalToken, state)`
+
+Enhances a JWT token with authorization claims.
+
+**Parameters:**
+- `originalToken` (string): The original JWT token from Redux
+- `state` (object): Redux state containing user information
+
+**Returns:**
+- `Promise<string>`: Enhanced JWT token with authorization claims
+
+#### `getUserRolesFromState(state)`
+
+Extracts user roles from Redux state.
+
+**Parameters:**
+- `state` (object): Redux state
+
+**Returns:**
+- `string[]`: Array of user role names
+
+#### `getUserPermissions(roles)`
+
+Maps user roles to S3 permissions.
+
+**Parameters:**
+- `roles` (string[]): Array of user role names
+
+**Returns:**
+- `string[]`: Array of S3 permissions
+
+### MCP Client
+
+#### `setReduxTokenGetter(getter)`
+
+Sets the Redux token getter function.
+
+**Parameters:**
+- `getter` (function): Function that returns a Promise<string | null>
+
+#### `getAuthenticationStatus()`
+
+Returns current authentication status.
+
+**Returns:**
+- `Promise<object>`: Authentication status object
+
+## Contributing
+
+### Development Setup
+
+1. Install dependencies: `npm install`
+2. Start development server: `npm start`
+3. Enable debug logging: Set `NODE_ENV=development`
+
+### Code Style
+
+- Use TypeScript for type safety
+- Follow existing code patterns
+- Add comprehensive error handling
+- Include debug logging for troubleshooting
 
 ### Testing
 
-Use the MCP Demo page at `/mcp-demo` to test functionality locally.
-
-## Docker Commands
-
-```bash
-# Start quilt-mcp-server with streamable-http transport (recommended)
-docker run -d \
-  --name quilt-mcp-server \
-  -p 8000:8000 \
-  -e FASTMCP_TRANSPORT=streamable-http \
-  -e FASTMCP_HOST=0.0.0.0 \
-  -e FASTMCP_PORT=8000 \
-  -e QUILT_CATALOG_DOMAIN=your-catalog.quiltdata.com \
-  -e QUILT_DEFAULT_BUCKET=your-bucket \
-  quilt-mcp:latest
-
-# View logs
-docker logs -f quilt-mcp-server
-
-# Stop server
-docker stop quilt-mcp-server
-
-# Remove container
-docker rm quilt-mcp-server
-
-# For SSE transport
-docker run -d \
-  --name quilt-mcp-server \
-  -p 8000:8000 \
-  -e FASTMCP_TRANSPORT=sse \
-  -e FASTMCP_HOST=0.0.0.0 \
-  -e FASTMCP_PORT=8000 \
-  quilt-mcp:latest
-
-# For standard HTTP transport
-docker run -d \
-  --name quilt-mcp-server \
-  -p 8000:8000 \
-  -e FASTMCP_TRANSPORT=http \
-  -e FASTMCP_HOST=0.0.0.0 \
-  -e FASTMCP_PORT=8000 \
-  quilt-mcp:latest
-```
-
-## API Endpoints
-
-### MCP Protocol Endpoints
-
-The client uses the standard MCP (Model Context Protocol) endpoints:
-
-- `POST /sse` - SSE endpoint for real-time communication
-- `POST /mcp` - HTTP endpoint for standard requests
-- `GET /healthz` - Health check endpoint
-
-### Example Tool Execution
-
-```javascript
-// Initialize MCP session
-const initResponse = await fetch('http://localhost:8000/sse', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    jsonrpc: '2.0',
-    id: 'init-session',
-    method: 'initialize',
-    params: {
-      protocolVersion: '2024-11-05',
-      capabilities: { tools: {}, prompts: {}, resources: {} },
-      clientInfo: { name: 'quilt-catalog', version: '1.0.0' },
-    },
-  }),
-})
-
-// List available tools
-const toolsResponse = await fetch('http://localhost:8000/sse', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    jsonrpc: '2.0',
-    id: 'list-tools',
-    method: 'tools/list',
-    params: {},
-  }),
-})
-
-// Execute a tool
-const toolResponse = await fetch('http://localhost:8000/sse', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    jsonrpc: '2.0',
-    id: 'call-packages_search',
-    method: 'tools/call',
-    params: {
-      name: 'packages_search',
-      arguments: { query: 'genomics', limit: 10 },
-    },
-  }),
-})
-```
-
-### Configuration Examples
-
-```javascript
-// Streamable HTTP endpoint (recommended)
-"mcpEndpoint": "http://localhost:8000/mcp?transport=streamable-http"
-
-// SSE endpoint
-"mcpEndpoint": "http://localhost:8000/sse"
-
-// Standard HTTP endpoint
-"mcpEndpoint": "http://localhost:8000/mcp"
-
-// Remote streamable HTTP endpoint
-"mcpEndpoint": "https://your-mcp-server.com/mcp?transport=streamable-http"
-
-// Remote SSE endpoint
-"mcpEndpoint": "https://your-mcp-server.com/sse"
-```
+- Write unit tests for new functionality
+- Test error scenarios
+- Verify integration with MCP server
+- Test token refresh scenarios

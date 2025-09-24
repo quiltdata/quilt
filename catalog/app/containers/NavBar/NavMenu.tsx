@@ -26,11 +26,14 @@ import ME_QUERY from './gql/Me.generated'
 type MaybeMe = GQL.DataForDoc<typeof ME_QUERY>['me']
 type Me = NonNullable<MaybeMe>
 
-const AuthState = tagged.create('app/containers/NavBar/NavMenu:AuthState' as const, {
-  Loading: () => {},
-  Error: (error: Error) => ({ error }),
-  Ready: (user: MaybeMe) => ({ user }),
-})
+export const AuthState = tagged.create(
+  'app/containers/NavBar/NavMenu:AuthState' as const,
+  {
+    Loading: () => {},
+    Error: (error: Error) => ({ error }),
+    Ready: (user: MaybeMe) => ({ user }),
+  },
+)
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 type AuthState = tagged.InstanceOf<typeof AuthState>
@@ -39,7 +42,7 @@ const authSelector = createStructuredSelector(
   R.pick(['error', 'waiting', 'authenticated'], authSelectors),
 )
 
-function useAuthState(): AuthState {
+export function useAuthState(): AuthState {
   const { error, waiting, authenticated } = redux.useSelector(authSelector)
   const meQuery = GQL.useQuery(ME_QUERY, {}, { pause: waiting || !authenticated })
   if (error) return AuthState.Error(error)

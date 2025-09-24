@@ -11,6 +11,9 @@ import type {
   MCPToolCall,
   MCPToolResult,
   MCPServerConfig,
+  OAuthDiscovery,
+  OAuthToken,
+  OAuthAuthState,
 } from './types'
 
 const MCP_PROTOCOL_VERSION = '2024-11-05'
@@ -21,6 +24,21 @@ export class QuiltMCPClient implements MCPClient {
   private isSSEEndpoint: boolean
 
   private sessionId: string | null = null
+
+  // OAuth properties
+  private oauthDiscovery: OAuthDiscovery | null = null
+
+  private oauthToken: OAuthToken | null = null
+
+  private oauthAuthState: OAuthAuthState | null = null
+
+  // Role properties
+  private currentRole: { name: string; arn?: string } | null = null
+
+  private availableRoles: { name: string; arn?: string }[] = []
+
+  // Redux token getter (set by MCPContextProvider)
+  private reduxTokenGetter: (() => Promise<string | null>) | null = null
 
   constructor() {
     // Use configuration-based URL selection
@@ -45,6 +63,132 @@ export class QuiltMCPClient implements MCPClient {
         acceptHeader: this.getAcceptHeader(),
         originalEndpoint: cfg.mcpEndpoint,
       })
+    }
+  }
+
+  /**
+   * Set the current user's role information for MCP requests
+   */
+  setRoleInfo(
+    currentRole: { name: string; arn?: string } | null,
+    availableRoles: { name: string; arn?: string }[] = [],
+  ) {
+    try {
+      console.log('🔄 Setting MCP Role Info:', { currentRole, availableRoles })
+      this.currentRole = currentRole
+      this.availableRoles = availableRoles
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ MCP Client Role Info Updated:', {
+          currentRole: this.currentRole,
+          availableRoles: this.availableRoles,
+        })
+      }
+    } catch (error) {
+      console.error('❌ Failed to set role information:', error)
+      // Clear role information on error to prevent invalid state
+      this.currentRole = null
+      this.availableRoles = []
+    }
+  }
+
+  /**
+   * Get current role information
+   */
+  getRoleInfo() {
+    return {
+      currentRole: this.currentRole,
+      availableRoles: this.availableRoles,
+    }
+  }
+
+  /**
+   * Get current authentication status
+   */
+  async getAuthenticationStatus() {
+    const accessToken = await this.getAccessToken()
+    const hasReduxToken = await this.hasReduxToken()
+
+    let authenticationMethod = 'iam-role-fallback'
+    if (accessToken) {
+      authenticationMethod = hasReduxToken ? 'redux-bearer' : 'oauth-bearer'
+    }
+
+    return {
+      hasBearerToken: !!accessToken,
+      hasReduxToken,
+      hasRoleInfo: !!this.currentRole,
+      authenticationMethod,
+      currentRole: this.currentRole,
+      availableRoles: this.availableRoles,
+    }
+  }
+
+  private async hasReduxToken(): Promise<boolean> {
+    try {
+      const reduxToken = await this.getReduxAccessToken()
+      return !!reduxToken
+    } catch (error) {
+      return false
+    }
+  }
+
+  /**
+   * Handle role assumption errors from MCP server responses
+   */
+  private handleRoleAssumptionError(error: any): void {
+    if (
+      error?.message?.includes('role assumption') ||
+      error?.message?.includes('assume role')
+    ) {
+      console.error('❌ Role assumption failed:', error.message)
+      console.error('🔍 Role assumption error details:', {
+        error: error,
+        currentRole: this.currentRole,
+        availableRoles: this.availableRoles,
+        errorMessage: error.message,
+        errorStack: error.stack,
+      })
+      // Could emit an event or show a notification to the user
+      // For now, just log the error
+    }
+  }
+
+  /**
+   * Enhanced error handling for MCP responses
+   */
+  private handleMCPResponseError(error: any, context: string): void {
+    console.error(`❌ MCP ${context} error:`, error.message)
+    console.error('🔍 MCP Error details:', {
+      context,
+      error: error,
+      currentRole: this.currentRole,
+      errorMessage: error.message,
+      errorStack: error.stack,
+    })
+
+    // Check for authentication errors
+    if (error?.status === 401 || error?.message?.includes('Unauthorized')) {
+      console.error('🔐 Authentication Error - Possible causes:')
+      console.error('  1. Bearer token expired or invalid')
+      console.error('  2. OAuth token refresh failed')
+      console.error('  3. MCP server authentication configuration issue')
+      console.error('  4. Token scope insufficient for requested operation')
+    }
+
+    // Check for access denied errors
+    if (
+      error?.message?.includes('Access Denied') ||
+      error?.message?.includes('access denied')
+    ) {
+      console.error('🚨 Access Denied Error - Possible causes:')
+      console.error('  1. Bearer token lacks required permissions')
+      console.error('  2. Role trust policy issue - MCP server cannot assume the role')
+      console.error('  3. Role permissions issue - Role lacks required S3 permissions')
+      console.error('  4. Bucket policy issue - Bucket explicitly denies access')
+      console.error(
+        '  5. MCP server configuration issue - Server not properly configured',
+      )
     }
   }
 
@@ -75,6 +219,113 @@ export class QuiltMCPClient implements MCPClient {
     }
   }
 
+  private async getHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: this.getAcceptHeader(),
+      'Cache-Control': 'no-cache',
+      'mcp-protocol-version': MCP_PROTOCOL_VERSION,
+    }
+
+    if (this.sessionId) {
+      headers['mcp-session-id'] = this.sessionId
+    }
+
+    // Primary Authentication: Bearer Token (Redux or OAuth)
+    const accessToken = await this.getAccessToken()
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`
+      const hasReduxToken = await this.hasReduxToken()
+      if (hasReduxToken) {
+        console.log('🔐 Using Redux Bearer Token Authentication (Automatic)')
+      } else {
+        console.log('🔐 Using OAuth Bearer Token Authentication')
+      }
+
+      // Debug: Decode token to check permissions
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const tokenParts = accessToken.split('.')
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(
+              atob(tokenParts[1] + '='.repeat((4 - (tokenParts[1].length % 4)) % 4)),
+            )
+            console.log('🔍 Token Claims:', {
+              id: payload.id,
+              scope: payload.scope,
+              permissions: payload.permissions,
+              roles: payload.roles,
+              groups: payload.groups,
+              aud: payload.aud,
+              iss: payload.iss,
+              exp: payload.exp
+                ? new Date(payload.exp * 1000).toISOString()
+                : 'No expiration',
+            })
+          }
+        } catch (error) {
+          console.log(
+            '⚠️ Could not decode token for debugging:',
+            error instanceof Error ? error.message : String(error),
+          )
+        }
+      }
+    } else {
+      console.log('⚠️ No bearer token available, falling back to IAM role headers')
+    }
+
+    // Fallback Authentication: IAM Role Headers (only if no bearer token)
+    if (!accessToken && this.currentRole) {
+      // Primary header: Send ARN if available, otherwise fall back to role name
+      if (this.currentRole.arn) {
+        headers['X-Quilt-User-Role'] = this.currentRole.arn
+        headers['x-quilt-role-arn'] = this.currentRole.arn
+      } else {
+        headers['X-Quilt-User-Role'] = this.currentRole.name
+      }
+
+      // Additional headers for compatibility
+      headers['x-quilt-current-role'] = this.currentRole.name
+
+      console.log('🔑 Using IAM Role Header Authentication (Fallback)')
+    }
+
+    if (this.availableRoles.length > 0) {
+      headers['x-quilt-available-roles'] = JSON.stringify(this.availableRoles)
+    }
+
+    // Debug logging for authentication
+    if (process.env.NODE_ENV === 'development') {
+      const authStatus = {
+        hasBearerToken: !!accessToken,
+        hasRoleInfo: !!this.currentRole,
+        authenticationMethod: accessToken ? 'oauth-bearer' : 'iam-role-fallback',
+        headers: {
+          Authorization: headers.Authorization ? 'Bearer ***' : 'None',
+          'X-Quilt-User-Role': headers['X-Quilt-User-Role'],
+          'x-quilt-current-role': headers['x-quilt-current-role'],
+          'x-quilt-role-arn': headers['x-quilt-role-arn'],
+        },
+      }
+
+      console.log('🔍 MCP Authentication Debug:', authStatus)
+
+      // Additional debugging for role assumption (fallback only)
+      if (!accessToken && this.currentRole?.arn) {
+        console.log('🎯 IAM Role Fallback Debug:', {
+          roleARN: this.currentRole.arn,
+          roleName: this.currentRole.name,
+          expectedFormat: 'arn:aws:iam::850787717197:role/ReadWriteQuiltV2-sales-prod',
+          isCorrectFormat:
+            this.currentRole.arn ===
+            'arn:aws:iam::850787717197:role/ReadWriteQuiltV2-sales-prod',
+        })
+      }
+    }
+
+    return headers
+  }
+
   async initialize(): Promise<void> {
     if (this.sessionId) return
 
@@ -85,6 +336,8 @@ export class QuiltMCPClient implements MCPClient {
 
     try {
       await this.initializeSession()
+      // Wait a moment to ensure initialization is fully complete
+      await new Promise((resolve) => setTimeout(resolve, 100))
     } catch (error) {
       throw error
     }
@@ -257,16 +510,7 @@ export class QuiltMCPClient implements MCPClient {
       await this.initialize()
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: this.getAcceptHeader(),
-      'Cache-Control': 'no-cache',
-      'mcp-protocol-version': MCP_PROTOCOL_VERSION,
-    }
-
-    if (this.sessionId) {
-      headers['mcp-session-id'] = this.sessionId
-    }
+    const headers = await this.getHeaders()
 
     const url = `${this.baseUrl}?t=${Date.now()}`
     const response = await fetch(url, {
@@ -318,16 +562,7 @@ export class QuiltMCPClient implements MCPClient {
       await this.initialize()
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Accept: this.getAcceptHeader(),
-      'Cache-Control': 'no-cache',
-      'mcp-protocol-version': MCP_PROTOCOL_VERSION,
-    }
-
-    if (this.sessionId) {
-      headers['mcp-session-id'] = this.sessionId
-    }
+    const headers = await this.getHeaders()
 
     const url = `${this.baseUrl}?t=${Date.now()}`
     const response = await fetch(url, {
@@ -630,6 +865,254 @@ export class QuiltMCPClient implements MCPClient {
     } catch (error) {
       return null
     }
+  }
+
+  // OAuth 2.1 Implementation
+  async discoverOAuth(): Promise<OAuthDiscovery | null> {
+    try {
+      const oauthUrl = `${this.baseUrl.replace('/mcp/', '/oauth/')}.well-known/oauth-authorization-server`
+      const response = await fetch(oauthUrl, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      })
+
+      if (response.ok) {
+        const discovery = (await response.json()) as OAuthDiscovery
+        this.oauthDiscovery = discovery
+        console.log('✅ OAuth discovery successful:', discovery)
+        return discovery
+      } else {
+        console.log('⚠️ OAuth discovery failed:', response.status, response.statusText)
+        return null
+      }
+    } catch (error) {
+      console.log('⚠️ OAuth discovery error:', error)
+      return null
+    }
+  }
+
+  async startOAuthFlow(): Promise<string> {
+    if (!this.oauthDiscovery) {
+      const discovery = await this.discoverOAuth()
+      if (!discovery) {
+        throw new Error('OAuth discovery failed - cannot start OAuth flow')
+      }
+    }
+
+    // Generate PKCE parameters
+    const codeVerifier = this.generateCodeVerifier()
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier)
+    const state = this.generateState()
+
+    // Store auth state for callback verification
+    this.oauthAuthState = {
+      codeVerifier,
+      state,
+      redirectUri: `${window.location.origin}/oauth/callback`,
+    }
+
+    // Build authorization URL
+    const authUrl = new URL(this.oauthDiscovery!.authorization_endpoint)
+    authUrl.searchParams.set('response_type', 'code')
+    authUrl.searchParams.set('client_id', 'quilt-catalog') // TODO: Get from config
+    authUrl.searchParams.set('redirect_uri', this.oauthAuthState.redirectUri)
+    authUrl.searchParams.set('scope', 'openid profile email quilt:read quilt:write')
+    authUrl.searchParams.set('state', state)
+    authUrl.searchParams.set('code_challenge', codeChallenge)
+    authUrl.searchParams.set('code_challenge_method', 'S256')
+
+    console.log('🔐 Starting OAuth flow:', authUrl.toString())
+    return authUrl.toString()
+  }
+
+  async handleOAuthCallback(code: string, state: string): Promise<OAuthToken> {
+    if (!this.oauthAuthState) {
+      throw new Error('No OAuth state found - cannot handle callback')
+    }
+
+    if (state !== this.oauthAuthState.state) {
+      throw new Error('Invalid state parameter - possible CSRF attack')
+    }
+
+    if (!this.oauthDiscovery) {
+      throw new Error('OAuth discovery not available')
+    }
+
+    const tokenResponse = await fetch(this.oauthDiscovery.token_endpoint, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: 'quilt-catalog', // TODO: Get from config
+        code,
+        redirect_uri: this.oauthAuthState.redirectUri,
+        code_verifier: this.oauthAuthState.codeVerifier,
+      }),
+    })
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text()
+      throw new Error(`Token exchange failed: ${tokenResponse.status} ${errorText}`)
+    }
+
+    const tokenData = (await tokenResponse.json()) as OAuthToken
+    tokenData.expires_at = Date.now() + tokenData.expires_in * 1000
+    this.oauthToken = tokenData
+
+    // Clear auth state
+    this.oauthAuthState = null
+
+    console.log('✅ OAuth token received:', { expires_at: tokenData.expires_at })
+    return tokenData
+  }
+
+  async refreshToken(): Promise<OAuthToken> {
+    if (!this.oauthToken?.refresh_token || !this.oauthDiscovery) {
+      throw new Error('No refresh token available')
+    }
+
+    const tokenResponse = await fetch(this.oauthDiscovery.token_endpoint, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: 'quilt-catalog', // TODO: Get from config
+        refresh_token: this.oauthToken.refresh_token,
+      }),
+    })
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text()
+      throw new Error(`Token refresh failed: ${tokenResponse.status} ${errorText}`)
+    }
+
+    const tokenData = (await tokenResponse.json()) as OAuthToken
+    tokenData.expires_at = Date.now() + tokenData.expires_in * 1000
+    this.oauthToken = tokenData
+
+    console.log('✅ OAuth token refreshed:', { expires_at: tokenData.expires_at })
+    return tokenData
+  }
+
+  async getAccessToken(): Promise<string | null> {
+    // First try to get token from Redux store (automatic)
+    try {
+      const reduxToken = await this.getReduxAccessToken()
+      if (reduxToken) {
+        return reduxToken
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to get Redux token, falling back to OAuth:', error)
+    }
+
+    // Fallback to OAuth token if Redux token not available
+    if (!this.oauthToken) {
+      return null
+    }
+
+    // Check if OAuth token is expired
+    if (this.oauthToken.expires_at && Date.now() >= this.oauthToken.expires_at) {
+      try {
+        await this.refreshToken()
+      } catch (error) {
+        console.error('❌ Token refresh failed:', error)
+        this.logout()
+        return null
+      }
+    }
+
+    return this.oauthToken.access_token
+  }
+
+  private async getReduxAccessToken(): Promise<string | null> {
+    if (this.reduxTokenGetter) {
+      try {
+        console.log('🔍 Attempting to get Redux token...')
+        const token = await this.reduxTokenGetter()
+        console.log('🔍 Redux token result:', token ? 'Token found' : 'No token')
+        return token
+      } catch (error) {
+        console.error('❌ Redux token getter error:', error)
+        return null
+      }
+    } else {
+      console.log('⚠️ No Redux token getter set')
+      return null
+    }
+  }
+
+  /**
+   * Set the Redux token getter function
+   * This should be called by MCPContextProvider which has access to Redux store
+   */
+  setReduxTokenGetter(getter: () => Promise<string | null>): void {
+    this.reduxTokenGetter = getter
+  }
+
+  isAuthenticated(): boolean {
+    // For synchronous check, only check OAuth token
+    // Redux token check is handled asynchronously in getAccessToken()
+    return this.oauthToken !== null
+  }
+
+  async isAuthenticatedAsync(): Promise<boolean> {
+    // Check if we have a valid Redux token
+    try {
+      const reduxToken = await this.getReduxAccessToken()
+      if (reduxToken) {
+        return true
+      }
+    } catch (error) {
+      // Ignore Redux token errors, check OAuth token
+    }
+
+    // Fallback to OAuth token check
+    return this.oauthToken !== null
+  }
+
+  logout(): void {
+    this.oauthToken = null
+    this.oauthAuthState = null
+    this.oauthDiscovery = null
+    console.log('🔐 OAuth logout completed')
+  }
+
+  // OAuth utility methods
+  private generateCodeVerifier(): string {
+    const array = new Uint8Array(32)
+    crypto.getRandomValues(array)
+    return btoa(String.fromCharCode(...array))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+  }
+
+  private async generateCodeChallenge(verifier: string): Promise<string> {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(verifier)
+    const digest = await crypto.subtle.digest('SHA-256', data)
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+  }
+
+  private generateState(): string {
+    const array = new Uint8Array(16)
+    crypto.getRandomValues(array)
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
   }
 }
 
