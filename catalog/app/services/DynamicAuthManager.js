@@ -212,6 +212,17 @@ class DynamicAuthManager {
       }
 
       const userRoles = this.getUserRolesFromState()
+      
+      // If we have role information, always regenerate the token to ensure it's up to date
+      const shouldRegenerate = this.currentRole || this.availableRoles.length > 0
+      
+      if (this.currentToken && !shouldRegenerate) {
+        console.log('🔍 DynamicAuthManager: Using cached token (no role info)')
+        return this.currentToken
+      }
+
+      console.log('🔄 DynamicAuthManager: Regenerating token with current role info')
+      
       const buckets = await this.bucketDiscovery.getAccessibleBuckets({
         token: originalToken,
         roles: userRoles,
@@ -293,6 +304,10 @@ class DynamicAuthManager {
       currentRole: this.currentRole,
       availableRoles: this.availableRoles
     })
+    
+    // Clear cached token when role info changes to force regeneration
+    this.currentToken = null
+    console.log('🔄 DynamicAuthManager: Cleared cached token due to role info change')
   }
 
   /**
