@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Button, Typography, Box, Paper, Alert } from '@material-ui/core'
+import { Button, Typography, Box, Paper } from '@material-ui/core'
+import { Alert } from '@material-ui/lab'
 import { mcpClient } from './Client'
 
 /**
@@ -33,7 +34,10 @@ export function MCPServerDebugTest() {
       let toolTestResult = null
       try {
         // Try to call a tool that should require S3 permissions
-        const toolCall = await mcpClient.callTool('mcp_quilt-mcp-server_list_available_resources', {})
+        const toolCall = await mcpClient.callTool({
+          name: 'mcp_quilt-mcp-server_list_available_resources',
+          arguments: {}
+        })
         toolTestResult = { success: true, result: toolCall }
         console.log('✅ Tool call successful:', toolCall)
       } catch (error) {
