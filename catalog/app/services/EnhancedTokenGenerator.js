@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-underscore-dangle */
 /**
  * EnhancedTokenGenerator
  *
@@ -6,14 +7,13 @@
 
 import cfg from 'constants/config'
 
+import { decodeJwt, signJwt } from 'components/Assistant/MCP/decode-token'
+
 import {
   AuthorizationLevel,
-  buildCapabilities,
   mergeAuthorizationForRoles,
   resolveRoleName,
 } from './mcpAuthorization'
-
-import { decodeJwt, signJwt } from 'components/Assistant/MCP/decode-token'
 
 const DEFAULT_REGION = 'us-east-1'
 
@@ -39,30 +39,108 @@ const toUniqueArray = (base, additions = []) => {
   return Array.from(set)
 }
 
-const mergeScopes = (existingScope, scopes) => {
-  const set = new Set()
-  if (typeof existingScope === 'string' && existingScope.trim()) {
-    existingScope
-      .split(/\s+/)
-      .filter(Boolean)
-      .forEach((scope) => set.add(scope))
+const normalizeBucketNames = (buckets) => {
+  if (!Array.isArray(buckets)) return []
+  const seen = new Set()
+  const names = []
+  buckets.forEach((bucket) => {
+    let name = null
+    if (typeof bucket === 'string') {
+      name = bucket.trim()
+    } else if (bucket && typeof bucket.name === 'string') {
+      name = bucket.name.trim()
+    }
+    if (name && !seen.has(name)) {
+      seen.add(name)
+      names.push(name)
+    }
+  })
+  return names
+}
+
+const safeBase64Encode = (raw) => {
+  if (typeof btoa === 'function') return btoa(raw)
+  if (typeof Buffer !== 'undefined') return Buffer.from(raw, 'binary').toString('base64')
+  throw new Error('Base64 encoding is not available in this environment')
+}
+
+const buildBucketCompression = (bucketNames) => {
+  if (!Array.isArray(bucketNames) || bucketNames.length === 0) return []
+  if (bucketNames.length <= 15) return bucketNames
+
+  const strategies = []
+
+  const bucketGroups = {}
+  bucketNames.forEach((bucket) => {
+    const prefix = bucket.split('-')[0]
+    if (!bucketGroups[prefix]) bucketGroups[prefix] = []
+    bucketGroups[prefix].push(bucket.replace(`${prefix}-`, ''))
+  })
+  if (Object.keys(bucketGroups).length < bucketNames.length * 0.6) {
+    strategies.push({
+      type: 'groups',
+      data: bucketGroups,
+      size: JSON.stringify(bucketGroups).length,
+    })
   }
-  scopes.forEach((scope) => set.add(scope))
-  return Array.from(set).join(' ')
+
+  try {
+    const compressed = safeBase64Encode(JSON.stringify(bucketNames))
+    strategies.push({ type: 'compressed', data: compressed, size: compressed.length })
+  } catch (error) {
+    console.warn('⚠️ EnhancedTokenGenerator: Bucket compression via base64 failed', error)
+  }
+
+  const patterns = {}
+  bucketNames.forEach((bucket) => {
+    if (bucket.startsWith('quilt-')) {
+      if (!patterns.quilt) patterns.quilt = []
+      patterns.quilt.push(bucket.replace('quilt-', ''))
+    } else if (bucket.startsWith('cell')) {
+      if (!patterns.cell) patterns.cell = []
+      patterns.cell.push(bucket)
+    } else {
+      if (!patterns.other) patterns.other = []
+      patterns.other.push(bucket)
+    }
+  })
+  if (Object.keys(patterns).length < bucketNames.length * 0.7) {
+    strategies.push({
+      type: 'patterns',
+      data: patterns,
+      size: JSON.stringify(patterns).length,
+    })
+  }
+
+  if (strategies.length === 0) return bucketNames
+
+  const originalSize = JSON.stringify(bucketNames).length
+  const bestStrategy = strategies.reduce((best, current) =>
+    current.size < best.size ? current : best,
+  )
+
+  if (bestStrategy.size < originalSize) {
+    return {
+      _type: bestStrategy.type,
+      _data: bestStrategy.data,
+    }
+  }
+
+  return bucketNames
 }
 
 class EnhancedTokenGenerator {
   constructor() {
     this.signingSecret = cfg.mcpEnhancedJwtSecret || null
     this.signingKeyId = cfg.mcpEnhancedJwtKid || null
-    
+
     // Debug: Log config values
     console.log('🔍 EnhancedTokenGenerator: Full config object:', cfg)
     console.log('🔍 EnhancedTokenGenerator: Config values:', {
       mcpEnhancedJwtSecret: cfg.mcpEnhancedJwtSecret,
       mcpEnhancedJwtKid: cfg.mcpEnhancedJwtKid,
       hasSigningSecret: !!this.signingSecret,
-      hasSigningKeyId: !!this.signingKeyId
+      hasSigningKeyId: !!this.signingKeyId,
     })
   }
 
@@ -74,7 +152,7 @@ class EnhancedTokenGenerator {
       rolesCount: roles.length,
       bucketsCount: buckets.length,
       signingSecret: this.signingSecret ? 'present' : 'missing',
-      signingKeyId: this.signingKeyId ? 'present' : 'missing'
+      signingKeyId: this.signingKeyId ? 'present' : 'missing',
     })
 
     if (!this.signingSecret) {
@@ -85,65 +163,124 @@ class EnhancedTokenGenerator {
     }
 
     try {
-      const decoded = decodeJwt(originalToken)
-      const originalHeader = decoded.header || {}
-      const originalPayload = decoded.payload || {}
+      const { payload: originalPayload = {} } = decodeJwt(originalToken)
 
       const canonicalRoles = roles.map(resolveRoleName)
-      const authorization = mergeAuthorizationForRoles(canonicalRoles)
-
-      const normalizedBuckets = this.normalizeBuckets(buckets, authorization)
-      const permissions = toUniqueArray(
-        originalPayload.permissions,
-        authorization.awsPermissions,
-      ).sort()
-      const rolesClaim = toUniqueArray(originalPayload.roles, authorization.roles)
-      const groups = toUniqueArray(originalPayload.groups, authorization.groups)
-      const scope = mergeScopes(originalPayload.scope, authorization.scopes)
-      const bucketNames = normalizedBuckets.map((bucket) => bucket.name)
-      const capabilities = buildCapabilities({
-        level: authorization.level,
-        roles: authorization.roles,
-        buckets: bucketNames,
-        awsPermissions: permissions,
-        tools: authorization.tools,
+      console.log('🔍 EnhancedTokenGenerator: Role processing:', {
+        inputRoles: roles,
+        canonicalRoles: canonicalRoles,
+        roleCount: canonicalRoles.length,
       })
 
-      const nowIso = new Date().toISOString()
+      // Debug role resolution
+      console.log('🔍 Role Resolution Debug:', {
+        'Input Role': roles[0],
+        'Resolved Role': canonicalRoles[0],
+        'Is Same Role': roles[0] === canonicalRoles[0],
+        'Role Resolution Applied': roles[0] !== canonicalRoles[0],
+      })
+
+      const authorization = mergeAuthorizationForRoles(canonicalRoles)
+      console.log('🔍 EnhancedTokenGenerator: Authorization result:', {
+        level: authorization.level,
+        roles: authorization.roles,
+        awsPermissions: authorization.awsPermissions?.length || 0,
+        tools: authorization.tools?.length || 0,
+      })
+
+      // Detailed role debugging
+      console.log('🔍 Role Processing Details:', {
+        'Input Roles': roles,
+        'Canonical Roles': canonicalRoles,
+        'Authorization Level': authorization.level,
+        'Authorization Roles': authorization.roles,
+        'AWS Permissions Count': authorization.awsPermissions?.length || 0,
+        'First 10 AWS Permissions': authorization.awsPermissions?.slice(0, 10) || [],
+        'Tools Count': authorization.tools?.length || 0,
+        'Is Write Level': authorization.level === 'write',
+        'Is Admin Level': authorization.level === 'admin',
+      })
+
+      const bucketNames = normalizeBucketNames(buckets)
+      const bucketValidationIssues = []
+
+      if (bucketNames.length === 0) {
+        bucketValidationIssues.push('No bucket names resolved for JWT payload')
+      }
+
+      const invalidBucketNames = bucketNames.filter(
+        (name) => !name || typeof name !== 'string',
+      )
+      if (invalidBucketNames.length > 0) {
+        bucketValidationIssues.push('Invalid bucket names detected')
+      }
+
+      if (bucketValidationIssues.length > 0) {
+        console.warn('⚠️ EnhancedTokenGenerator: Bucket validation failed', {
+          issues: bucketValidationIssues,
+          rawBuckets: buckets,
+        })
+        return originalToken
+      }
+
+      const compressedBuckets = buildBucketCompression(bucketNames)
+
+      // Use abbreviated permission names to save space
+      const permissionAbbreviations = {
+        's3:GetObject': 'g',
+        's3:PutObject': 'p',
+        's3:DeleteObject': 'd',
+        's3:ListBucket': 'l',
+        's3:ListAllMyBuckets': 'la',
+        's3:GetObjectVersion': 'gv',
+        's3:PutObjectAcl': 'pa',
+        's3:AbortMultipartUpload': 'amu',
+      }
+
+      // Convert permissions to abbreviated form
+      const abbreviatedPermissions = Array.from(authorization.awsPermissions)
+        .map((perm) => permissionAbbreviations[perm] || perm)
+        .filter(Boolean)
+
+      const rolesClaim = toUniqueArray(originalPayload.roles, authorization.roles)
+      const scope = 'w' // Single character scope
+      const fullPermissions = Array.from(authorization.awsPermissions).sort()
 
       const enhancedPayload = {
         ...originalPayload,
-        scope,
-        permissions,
+        // Standard JWT claims
+        iss: originalPayload.iss || 'quilt-frontend',
+        aud: originalPayload.aud || 'quilt-mcp-server',
+        sub: originalPayload.sub || originalPayload.id,
+        iat: Math.floor(Date.now() / 1000),
+        exp: originalPayload.exp || Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
+        jti:
+          originalPayload.jti ||
+          `${Date.now().toString(36)}${Math.random().toString(36).substr(2, 4)}`,
+
+        // Ultra-compact claims for 8KB limit
+        s: scope, // Single char scope
+        p: abbreviatedPermissions, // Abbreviated permissions
+        r: rolesClaim, // Shortened key
+        b: compressedBuckets, // Shortened key, supports compressed claims
+        buckets: bucketNames, // Full bucket list for downstream consumers
+        permissions: fullPermissions,
         roles: rolesClaim,
-        groups,
-        buckets: normalizedBuckets,
-        capabilities,
-        quilt: {
-          enhanced: true,
-          generated_at: nowIso,
-          authorization_level: authorization.level,
-          original_roles: roles,
-          resolved_roles: authorization.roles,
-        },
-        discovery: {
-          buckets_discovered: normalizedBuckets.length,
-          discovery_method: 'dynamic',
-          generated_at: nowIso,
-        },
-        security: {
-          enhanced: true,
-          algorithm: 'HS256',
-          kid: this.signingKeyId || null,
-        },
-        token_type: 'enhanced',
-        version: originalPayload.version || '2.0',
+        scope,
+        level: authorization.level,
+        l: authorization.level, // Shortened key
       }
 
+      // Debug: Show what's actually in the JWT payload
+      console.log('🔍 EnhancedTokenGenerator: JWT payload bucket data:', {
+        'b (compressed)': enhancedPayload.b,
+        'buckets (full)': enhancedPayload.buckets?.slice(0, 5),
+        'buckets count': enhancedPayload.buckets?.length || 0,
+      })
+
       const header = {
-        ...originalHeader,
         alg: 'HS256',
-        typ: originalHeader.typ || 'JWT',
+        typ: 'JWT',
       }
       if (this.signingKeyId) header.kid = this.signingKeyId
 
@@ -152,6 +289,45 @@ class EnhancedTokenGenerator {
         payload: enhancedPayload,
         secret: this.signingSecret,
       })
+
+      console.log('✅ EnhancedTokenGenerator: Token generated successfully')
+
+      // Check token size
+      const tokenSizeKB = Math.round((token.length / 1024) * 100) / 100
+      const isUnder8KB = tokenSizeKB < 8
+
+      console.log('🔍 EnhancedTokenGenerator: Final JWT claims:', {
+        roles: enhancedPayload.r?.length || 0,
+        permissions: enhancedPayload.p,
+        buckets: bucketNames.length,
+        bucketNames: bucketNames.slice(0, 10), // Show first 10 bucket names
+        scope: enhancedPayload.s,
+        authorizationLevel: enhancedPayload.l,
+        tokenSizeKB: `${tokenSizeKB}KB`,
+        under8KB: isUnder8KB ? '✅' : '❌',
+      })
+
+      // Log compression details for debugging
+      if (typeof compressedBuckets === 'object' && compressedBuckets._type) {
+        console.log('📦 Bucket compression applied:', {
+          type: compressedBuckets._type,
+          originalCount: bucketNames.length,
+          compressedSize: JSON.stringify(compressedBuckets).length,
+          compressedData: compressedBuckets._data,
+        })
+      } else {
+        console.log(
+          '📦 Bucket compression: No compression applied, using direct array:',
+          {
+            bucketCount: bucketNames.length,
+            firstFewBuckets: bucketNames.slice(0, 5),
+          },
+        )
+      }
+
+      if (!isUnder8KB) {
+        console.warn(`⚠️ JWT token is ${tokenSizeKB}KB, exceeds 8KB limit!`)
+      }
 
       return token
     } catch (error) {

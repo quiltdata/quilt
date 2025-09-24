@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * DynamicAuthManager
  *
@@ -9,6 +10,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 import { REDUX_KEY as AUTH_REDUX_KEY } from 'containers/Auth/constants'
 
 import { BucketDiscoveryService } from './BucketDiscoveryService'
+import { AWSBucketDiscoveryService } from './AWSBucketDiscoveryService'
 import { EnhancedTokenGenerator } from './EnhancedTokenGenerator'
 
 const unwrapImmutable = (value) =>
@@ -92,6 +94,17 @@ const normalizeRoleValue = (value) => {
   return null
 }
 
+const extractBucketNames = (buckets) => {
+  if (!Array.isArray(buckets)) return []
+  return buckets
+    .map((bucket) => {
+      if (typeof bucket === 'string') return bucket.trim()
+      if (bucket && typeof bucket.name === 'string') return bucket.name.trim()
+      return null
+    })
+    .filter((name) => typeof name === 'string' && name.length > 0)
+}
+
 export const findRolesInState = (state) => {
   const roles = new Set()
   console.log('🔍 findRolesInState: Starting role extraction from state:', state)
@@ -99,15 +112,15 @@ export const findRolesInState = (state) => {
   try {
     const domain = authSelectors.domain(state)
     console.log('🔍 findRolesInState: Auth domain:', domain)
-    
-      if (domain?.user) {
-        const { user } = domain
-        console.log('🔍 findRolesInState: User object:', user)
-        console.log('🔍 findRolesInState: User object keys:', Object.keys(user))
-        console.log('🔍 findRolesInState: User roles array:', user.roles)
-        console.log('🔍 findRolesInState: User current role:', user.role)
-        console.log('🔍 findRolesInState: User role_id:', user.role_id)
-      
+
+    if (domain?.user) {
+      const { user } = domain
+      console.log('🔍 findRolesInState: User object:', user)
+      console.log('🔍 findRolesInState: User object keys:', Object.keys(user))
+      console.log('🔍 findRolesInState: User roles array:', user.roles)
+      console.log('🔍 findRolesInState: User current role:', user.role)
+      console.log('🔍 findRolesInState: User role_id:', user.role_id)
+
       if (Array.isArray(user.roles)) {
         user.roles.forEach((role) => {
           const normalized = normalizeRoleValue(role)
@@ -152,7 +165,10 @@ export const findRolesInState = (state) => {
 
   singleRoleCandidates.forEach((candidate, index) => {
     const normalized = normalizeRoleValue(candidate)
-    console.log(`🔍 findRolesInState: Normalized single role at index ${index}:`, normalized)
+    console.log(
+      `🔍 findRolesInState: Normalized single role at index ${index}:`,
+      normalized,
+    )
     if (normalized) roles.add(normalized)
   })
 
@@ -167,12 +183,13 @@ class DynamicAuthManager {
     this.tokenGetter = tokenGetter
 
     this.bucketDiscovery = new BucketDiscoveryService()
+    this.awsBucketDiscovery = new AWSBucketDiscoveryService()
     this.tokenGenerator = new EnhancedTokenGenerator()
 
     this.currentBuckets = []
     this.currentToken = null
     this.isInitialized = false
-    
+
     // Role information will be set by MCPContextProvider
     this.currentRole = null
     this.availableRoles = []
@@ -212,17 +229,29 @@ class DynamicAuthManager {
       }
 
       const userRoles = this.getUserRolesFromState()
-      
+
+      // CRITICAL: Don't generate token if no roles are available
+      if (userRoles.length === 0) {
+        console.warn(
+          '⚠️ DynamicAuthManager: No roles available, waiting for role information...',
+        )
+        // Return the original token without enhancement if no roles are available
+        return originalToken
+      }
+
       // If we have role information, always regenerate the token to ensure it's up to date
       const shouldRegenerate = this.currentRole || this.availableRoles.length > 0
-      
+
       if (this.currentToken && !shouldRegenerate) {
         console.log('🔍 DynamicAuthManager: Using cached token (no role info)')
         return this.currentToken
       }
 
       console.log('🔄 DynamicAuthManager: Regenerating token with current role info')
-      
+
+      // Validate role selection before proceeding
+      this.validateRoleSelection()
+
       const buckets = await this.bucketDiscovery.getAccessibleBuckets({
         token: originalToken,
         roles: userRoles,
@@ -252,17 +281,46 @@ class DynamicAuthManager {
 
       const userRoles = this.getUserRolesFromState()
 
-      const freshBuckets = await this.bucketDiscovery.getAccessibleBuckets({
+      // Use AWS-based bucket discovery for more accurate bucket mapping
+      const freshBuckets = await this.awsBucketDiscovery.getAccessibleBuckets({
         token: originalToken,
         roles: userRoles,
       })
-      this.currentBuckets = freshBuckets
+      const bucketNames = extractBucketNames(freshBuckets)
+      this.currentBuckets = bucketNames
 
-      console.log('🔍 DynamicAuthManager: Retrieved', freshBuckets.length, 'buckets')
-      return freshBuckets
+      console.log(
+        '🔍 DynamicAuthManager: Retrieved',
+        bucketNames.length,
+        'bucket names via AWS discovery',
+      )
+      return bucketNames
     } catch (error) {
       console.error('❌ Error getting current buckets:', error)
-      return []
+      // Fallback to original bucket discovery
+      try {
+        const originalToken = await this.getOriginalToken()
+        if (!originalToken) return []
+
+        const userRoles = this.getUserRolesFromState()
+
+        const fallbackBuckets = await this.bucketDiscovery.getAccessibleBuckets({
+          token: originalToken,
+          roles: userRoles,
+        })
+        const bucketNames = extractBucketNames(fallbackBuckets)
+        this.currentBuckets = bucketNames
+
+        console.log(
+          '🔄 DynamicAuthManager: Using fallback bucket discovery, found',
+          bucketNames.length,
+          'bucket names',
+        )
+        return bucketNames
+      } catch (fallbackError) {
+        console.error('❌ Fallback bucket discovery also failed:', fallbackError)
+        return []
+      }
     }
   }
 
@@ -302,12 +360,19 @@ class DynamicAuthManager {
     this.availableRoles = roleInfo.availableRoles || []
     console.log('🔍 DynamicAuthManager: Role info set:', {
       currentRole: this.currentRole,
-      availableRoles: this.availableRoles
+      availableRoles: this.availableRoles,
     })
-    
+
     // Clear cached token when role info changes to force regeneration
     this.currentToken = null
     console.log('🔄 DynamicAuthManager: Cleared cached token due to role info change')
+
+    // If we now have roles available, trigger token regeneration
+    if (this.currentRole || this.availableRoles.length > 0) {
+      console.log(
+        '🔄 DynamicAuthManager: Roles now available, token will be regenerated on next request',
+      )
+    }
   }
 
   /**
@@ -317,25 +382,37 @@ class DynamicAuthManager {
   getUserRolesFromState() {
     // Use the role information set by MCPContextProvider
     const roles = []
-    
+
+    // PRIORITY: Use the current/active role if available
     if (this.currentRole && this.currentRole.name) {
       roles.push(this.currentRole.name)
-    }
-    
-    if (this.availableRoles && this.availableRoles.length > 0) {
-      this.availableRoles.forEach(role => {
-        if (role.name && !roles.includes(role.name)) {
-          roles.push(role.name)
-        }
+      console.log('🔍 DynamicAuthManager: Using ACTIVE role:', this.currentRole.name)
+      console.log('🔍 Role Name Debug:', {
+        'Raw Role Name': this.currentRole.name,
+        'Trimmed Role Name': this.currentRole.name?.trim(),
+        'Role Name Length': this.currentRole.name?.length,
+        'Is ReadWrite Role': this.currentRole.name?.includes('Write'),
+        'Exact Match Check': this.currentRole.name === 'ReadWriteQuiltV2-sales-prod',
       })
+    } else if (this.availableRoles && this.availableRoles.length > 0) {
+      // FALLBACK: If no current role, use the first available role (but log a warning)
+      const firstRole = this.availableRoles[0]
+      if (firstRole && firstRole.name) {
+        roles.push(firstRole.name)
+        console.warn(
+          '⚠️ DynamicAuthManager: No active role set, using first available role:',
+          firstRole.name,
+        )
+      }
     }
-    
+
     console.log('🔍 DynamicAuthManager: Using role info from MCPContextProvider:', {
       currentRole: this.currentRole,
       availableRoles: this.availableRoles,
-      extractedRoles: roles
+      extractedRoles: roles,
+      roleSelectionMethod: this.currentRole ? 'active-role' : 'first-available',
     })
-    
+
     return roles
   }
 
@@ -398,6 +475,154 @@ class DynamicAuthManager {
       config: this.config,
       bucketCacheStats: this.bucketDiscovery.getCacheStats(),
     }
+  }
+
+  /**
+   * Validate role selection and provide debugging information
+   * @returns {Object} Role validation results
+   */
+  validateRoleSelection() {
+    const validation = {
+      hasCurrentRole: !!this.currentRole,
+      hasAvailableRoles: this.availableRoles && this.availableRoles.length > 0,
+      currentRoleName: this.currentRole?.name || null,
+      currentRoleArn: this.currentRole?.arn || null,
+      availableRoleNames: this.availableRoles?.map((r) => r.name) || [],
+      selectedRoles: this.getUserRolesFromState(),
+      isWriteRole: false,
+      isReadRole: false,
+      validationPassed: false,
+      issues: [],
+    }
+
+    // Check if current role is a write role
+    if (validation.currentRoleName) {
+      validation.isWriteRole =
+        validation.currentRoleName.includes('Write') ||
+        validation.currentRoleName.includes('write') ||
+        validation.currentRoleName.includes('WRITE')
+      validation.isReadRole =
+        validation.currentRoleName.includes('Read') ||
+        validation.currentRoleName.includes('read') ||
+        validation.currentRoleName.includes('READ')
+    }
+
+    // Validate role selection
+    if (!validation.hasCurrentRole) {
+      validation.issues.push('No current role set - using first available role')
+    } else if (validation.selectedRoles.length === 0) {
+      validation.issues.push('No roles selected for token generation')
+    } else if (validation.selectedRoles.length > 1) {
+      validation.issues.push('Multiple roles selected - should only use active role')
+    } else {
+      validation.validationPassed = true
+    }
+
+    // Log validation results
+    console.log('🔍 Role Selection Validation:', validation)
+
+    // Detailed validation debugging
+    console.log('🔍 Detailed Role Validation:', {
+      'Current Role Name': validation.currentRoleName,
+      'Current Role ARN': validation.currentRoleArn,
+      'Is Write Role': validation.isWriteRole,
+      'Is Read Role': validation.isReadRole,
+      'Selected Roles': validation.selectedRoles,
+      'Available Role Names': validation.availableRoleNames,
+      'Validation Passed': validation.validationPassed,
+      Issues: validation.issues,
+    })
+
+    if (validation.issues.length > 0) {
+      console.warn('⚠️ Role Selection Issues:', validation.issues)
+    } else {
+      console.log('✅ Role Selection Validation Passed')
+    }
+
+    return validation
+  }
+
+  // Additional methods required by AuthTest.tsx
+  async getTokenStats() {
+    try {
+      const token = await this.getCurrentToken()
+      if (!token) {
+        return null
+      }
+      return this.tokenGenerator.getTokenStats(token)
+    } catch (error) {
+      console.error('❌ Error getting token stats:', error)
+      return null
+    }
+  }
+
+  async refreshToken() {
+    try {
+      console.log('🔄 DynamicAuthManager: Refreshing token...')
+      this.currentToken = null // Clear cached token
+      const newToken = await this.getCurrentToken()
+      console.log('✅ DynamicAuthManager: Token refreshed successfully')
+      return newToken
+    } catch (error) {
+      console.error('❌ Error refreshing token:', error)
+      throw error
+    }
+  }
+
+  async handleRoleChange(newRoleName) {
+    try {
+      console.log('🔄 DynamicAuthManager: Handling role change to:', newRoleName)
+
+      // Find the role in available roles
+      const newRole = this.availableRoles.find((role) => role.name === newRoleName)
+      if (!newRole) {
+        throw new Error(`Role ${newRoleName} not found in available roles`)
+      }
+
+      // Update current role
+      this.currentRole = newRole
+
+      // Clear cached token to force regeneration with new role
+      this.currentToken = null
+
+      // Regenerate token with new role
+      const newToken = await this.getCurrentToken()
+
+      console.log('✅ DynamicAuthManager: Role change handled successfully')
+      return {
+        success: true,
+        newRole: this.currentRole,
+        token: newToken,
+      }
+    } catch (error) {
+      console.error('❌ Error handling role change:', error)
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+  }
+
+  getConfig() {
+    return { ...this.config }
+  }
+
+  updateConfig(newConfig) {
+    this.config = { ...this.config, ...newConfig }
+    console.log('🔧 DynamicAuthManager: Config updated:', this.config)
+  }
+
+  clearCache() {
+    console.log('🧹 DynamicAuthManager: Clearing all caches...')
+    this.currentToken = null
+    this.currentBuckets = []
+
+    // Clear bucket discovery cache if it has a clearCache method
+    if (this.bucketDiscovery && typeof this.bucketDiscovery.clearCache === 'function') {
+      this.bucketDiscovery.clearCache()
+    }
+
+    console.log('✅ DynamicAuthManager: All caches cleared')
   }
 }
 
