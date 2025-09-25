@@ -124,33 +124,36 @@ When implementing, follow the existing patterns in the codebase:
 ### 5.1 Create Package AssistantContext
 **File:** `app/containers/Bucket/PackageTree/AssistantContext.tsx`
 
-- [ ] Import required dependencies
-- [ ] Create `PackageMetadataContext`:
+- [x] Import required dependencies
+- [x] Create `PackageMetadataContext`:
   - Accept package name, hash, manifest data
   - Format package info as XML
   - Include: name, hash, created date, message
   - Add marker `packageMetadataReady`
-- [ ] Create `PackageRootContext`:
-  - Load README.md from package root
+- [x] Create `PackageRootContext`:
+  - Load README.md from package root using LogicalKeyResolver
   - Format as XML with full path
   - Add marker `packageContextFilesReady`
-- [ ] Create `PackageDirContext`:
+- [x] Create `PackageDirContext`:
   - Load README hierarchy for package directories
-  - Use `buildPackagePathChain` for proper hierarchy
+  - Excludes root README (handled by PackageRootContext)
+  - Uses LogicalKeyResolver to resolve virtual paths to physical S3 keys
   - Add marker `packageDirContextFilesReady`
-- [ ] Export all context providers
+- [x] Export all context providers
 
 ### 5.2 Integrate into PackageTree
 **File:** `app/containers/Bucket/PackageTree/PackageTree.tsx`
 
-- [ ] Import `AssistantContext` from './AssistantContext'
-- [ ] Determine current view type (root vs subdirectory)
-- [ ] For package root:
-  - Add `PackageMetadataContext` with revision data
-  - Add `PackageRootContext` for root README
-- [ ] For package subdirectories:
-  - Add `PackageDirContext` for README hierarchy
-- [ ] Pass appropriate props to each context
+- [x] Import `AssistantContext` from './AssistantContext'
+- [x] Place contexts appropriately:
+  - `PackageMetadataContext` at PackageTree level (outside ResolverProvider)
+  - `PackageRootContext` inside ResolverProvider (needs resolver)
+  - `PackageDirContext` in DirDisplay and FileDisplay components
+- [x] For DirDisplay:
+  - Add `PackageDirContext` with current path
+- [x] For FileDisplay:
+  - Add `PackageDirContext` with parent directory path
+- [x] Pass appropriate props to each context
 
 ## Task 6: Testing and Validation
 
