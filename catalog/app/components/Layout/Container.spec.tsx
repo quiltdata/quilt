@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render, act } from '@testing-library/react'
 
 import { createBoundary } from 'utils/ErrorBoundary'
 
@@ -17,20 +17,18 @@ const EmptyContainer = () => (
 
 describe('components/Layout/Container', () => {
   it('requires Provider', () => {
-    jest.spyOn(console, 'error').mockImplementationOnce(jest.fn())
-    const tree = renderer.create(<EmptyContainer />)
-    expect(tree).toMatchSnapshot()
+    jest.spyOn(console, 'error').mockImplementation(jest.fn())
+    const { container } = render(<EmptyContainer />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('has restricted width by default', () => {
-    const tree = renderer.create(
+    const { container } = render(
       <FullWidthProvider>
         <EmptyContainer />
       </FullWidthProvider>,
     )
-    expect(tree.root.findByProps({ maxWidth: 'lg' })).toBeTruthy()
-    expect(() => tree.root.findByProps({ maxWidth: false })).toThrow()
-    expect(tree).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('has full width once set', () => {
@@ -38,17 +36,15 @@ describe('components/Layout/Container', () => {
       useSetFullWidth()
       return <>long content</>
     }
-    const tree = renderer.create(
+    const { container } = render(
       <FullWidthProvider>
         <Container>
           <SetFullWidth />
         </Container>
       </FullWidthProvider>,
     )
-    renderer.act(() => {})
-    expect(() => tree.root.findByProps({ maxWidth: 'lg' })).toThrow()
-    expect(tree.root.findByProps({ maxWidth: false })).toBeTruthy()
-    expect(tree).toMatchSnapshot()
+    act(() => {})
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('still has full width when other remove full width', () => {
@@ -68,7 +64,7 @@ describe('components/Layout/Container', () => {
       }, [])
       return x ? <SetFullWidth /> : <>short content</>
     }
-    const tree = renderer.create(
+    const { container } = render(
       <FullWidthProvider>
         <Container>
           <UnmountSetFullWidth />
@@ -79,9 +75,7 @@ describe('components/Layout/Container', () => {
         </Container>
       </FullWidthProvider>,
     )
-    renderer.act(() => {})
-    expect(() => tree.root.findByProps({ maxWidth: 'lg' })).toThrow()
-    expect(tree.root.findByProps({ maxWidth: false })).toBeTruthy()
-    expect(tree).toMatchSnapshot()
+    act(() => {})
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

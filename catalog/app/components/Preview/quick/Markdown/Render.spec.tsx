@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import AsyncResult from 'utils/AsyncResult'
 
@@ -21,14 +21,14 @@ jest.mock(
   () =>
     ({ rendered }: { rendered: string }) => (
       // eslint-disable-next-line react/no-danger
-      <b dangerouslySetInnerHTML={{ __html: rendered }}>Markdown</b>
+      <section dangerouslySetInnerHTML={{ __html: rendered }} />
     ),
 )
 
 jest.mock(
   '@material-ui/lab',
   jest.fn(() => ({
-    Alert: ({ children }: { children: string }) => <div>Error: {children}</div>,
+    Alert: ({ children }: { children: string }) => <p>Error: {children}</p>,
   })),
 )
 
@@ -40,25 +40,25 @@ const handle = {
 describe('app/components/Preview/quick/Render.spec.tsx', () => {
   it('it shows the error for Init state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Init())
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('it shows the error for Pending state, because it is intended to run with already resolved value', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Pending())
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('returns error on Err', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Err(new Error('some error')))
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('returns markdown on data', () => {
     useMarkdownRenderer.mockReturnValue(AsyncResult.Ok('<h1>It works</h1>'))
-    const tree = renderer.create(<Render {...{ handle, value: 'any' }} />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<Render {...{ handle, value: 'any' }} />)
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

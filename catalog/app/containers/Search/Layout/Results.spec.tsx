@@ -111,7 +111,7 @@ describe('containers/Search/Layout/Results', () => {
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('renders with data and shows number of results', () => {
@@ -128,7 +128,7 @@ describe('containers/Search/Layout/Results', () => {
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('renders with FiltersButton when onFilters prop is provided', () => {
@@ -145,7 +145,7 @@ describe('containers/Search/Layout/Results', () => {
         <Results onFilters={jest.fn()} />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('does not show ToggleResultsView for S3Object result type', () => {
@@ -163,7 +163,7 @@ describe('containers/Search/Layout/Results', () => {
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('renders error state', () => {
@@ -177,7 +177,7 @@ describe('containers/Search/Layout/Results', () => {
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 
   it('shows Create Package button in bucket', () => {
@@ -193,6 +193,6 @@ describe('containers/Search/Layout/Results', () => {
         <Results />
       </MemoryRouter>,
     )
-    expect(container).toMatchSnapshot()
+    expect(container.firstChild).toMatchSnapshot()
   })
 })

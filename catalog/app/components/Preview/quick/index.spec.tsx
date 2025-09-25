@@ -1,5 +1,5 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import type * as FileEditor from 'components/FileEditor'
 
@@ -29,34 +29,26 @@ describe('app/components/Preview/quick/index.spec.tsx', () => {
     }
 
     it('renders no value', () => {
-      const tree = renderer
-        .create(
-          <QuickPreview
-            {...{ handle, type: { brace: 'markdown' as const }, value: '' }}
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <QuickPreview {...{ handle, type: { brace: 'markdown' as const }, value: '' }} />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('renders no preview if unsupported file type', () => {
-      const tree = renderer
-        .create(
-          <QuickPreview {...{ handle, type: { brace: 'json' as const }, value: '' }} />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <QuickPreview {...{ handle, type: { brace: 'json' as const }, value: '' }} />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
 
     it('renders Markdown', () => {
-      const tree = renderer
-        .create(
-          <QuickPreview
-            {...{ handle, type: { brace: 'markdown' as const }, value: '=== Title' }}
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <QuickPreview
+          {...{ handle, type: { brace: 'markdown' as const }, value: '=== Title' }}
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })

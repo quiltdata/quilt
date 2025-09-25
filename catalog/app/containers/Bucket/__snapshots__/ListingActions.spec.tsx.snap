@@ -2,16 +2,16 @@
 
 exports[`components/ListingActions RowActions should render Bucket directory 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-16"
 >
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-wrapper-19"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-container-17"
     >
       <button
-        className="makeStyles-root-6 makeStyles-item-3"
+        class="makeStyles-root-21 makeStyles-item-18"
         title="Delete"
       >
         <span>
@@ -19,7 +19,7 @@ exports[`components/ListingActions RowActions should render Bucket directory 1`]
         </span>
       </button>
       <button
-        className="makeStyles-root-6 makeStyles-item-3"
+        class="makeStyles-root-21 makeStyles-item-18"
         title="Bookmark"
       >
         <span>
@@ -28,13 +28,9 @@ exports[`components/ListingActions RowActions should render Bucket directory 1`]
       </button>
       <form
         action="/zip/dir/bucketA/dirB/"
-        className="makeStyles-item-3"
+        class="makeStyles-item-18"
         method="POST"
-        style={
-          {
-            "flexShrink": 0,
-          }
-        }
+        style="flex-shrink: 0;"
       >
         <input
           name="token"
@@ -42,7 +38,7 @@ exports[`components/ListingActions RowActions should render Bucket directory 1`]
           value="ABC"
         />
         <button
-          className="makeStyles-root-6 makeStyles-item-3"
+          class="makeStyles-root-21 makeStyles-item-18"
           title="Download"
           type="submit"
         >
@@ -58,16 +54,16 @@ exports[`components/ListingActions RowActions should render Bucket directory 1`]
 
 exports[`components/ListingActions RowActions should render Bucket file 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-22"
 >
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-wrapper-25"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-container-23"
     >
       <button
-        className="makeStyles-root-6 makeStyles-item-3"
+        class="makeStyles-root-27 makeStyles-item-24"
         title="Delete"
       >
         <span>
@@ -75,7 +71,7 @@ exports[`components/ListingActions RowActions should render Bucket file 1`] = `
         </span>
       </button>
       <button
-        className="makeStyles-root-6 makeStyles-item-3"
+        class="makeStyles-root-27 makeStyles-item-24"
         title="Bookmark"
       >
         <span>
@@ -83,8 +79,8 @@ exports[`components/ListingActions RowActions should render Bucket file 1`] = `
         </span>
       </button>
       <a
-        className="makeStyles-root-6 makeStyles-item-3"
-        download={true}
+        class="makeStyles-root-27 makeStyles-item-24"
+        download=""
         href="s3://bucketA/fileB"
         title="Download"
       >
@@ -99,16 +95,16 @@ exports[`components/ListingActions RowActions should render Bucket file 1`] = `
 
 exports[`components/ListingActions RowActions should render Bucket file without download button 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-40"
 >
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-wrapper-43"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-container-41"
     >
       <button
-        className="makeStyles-root-6 makeStyles-item-3"
+        class="makeStyles-root-45 makeStyles-item-42"
         title="Delete"
       >
         <span>
@@ -116,7 +112,7 @@ exports[`components/ListingActions RowActions should render Bucket file without 
         </span>
       </button>
       <button
-        className="makeStyles-root-6 makeStyles-item-3"
+        class="makeStyles-root-45 makeStyles-item-42"
         title="Bookmark"
       >
         <span>
@@ -130,23 +126,19 @@ exports[`components/ListingActions RowActions should render Bucket file without 
 
 exports[`components/ListingActions RowActions should render Package directory 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-28"
 >
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-wrapper-31"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-container-29"
     >
       <form
         action="/zip/package/bucketA/namespaceB/nameC/latest/dirD/"
-        className="makeStyles-item-3"
+        class="makeStyles-item-30"
         method="POST"
-        style={
-          {
-            "flexShrink": 0,
-          }
-        }
+        style="flex-shrink: 0;"
       >
         <input
           name="token"
@@ -154,7 +146,7 @@ exports[`components/ListingActions RowActions should render Package directory 1`
           value="ABC"
         />
         <button
-          className="makeStyles-root-6"
+          class="makeStyles-root-33"
           title="Download"
           type="submit"
         >
@@ -172,17 +164,17 @@ exports[`components/ListingActions RowActions should render Package directory wi
 
 exports[`components/ListingActions RowActions should render Package file 1`] = `
 <div
-  className="makeStyles-root-1"
+  class="makeStyles-root-34"
 >
   <div
-    className="makeStyles-wrapper-4"
+    class="makeStyles-wrapper-37"
   >
     <div
-      className="makeStyles-container-2"
+      class="makeStyles-container-35"
     >
       <a
-        className="makeStyles-root-6 makeStyles-item-3"
-        download={true}
+        class="makeStyles-root-39 makeStyles-item-36"
+        download=""
         href="s3://bucketa/pathB/fileB"
         title="Download"
       >

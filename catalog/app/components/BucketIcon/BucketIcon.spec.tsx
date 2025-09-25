@@ -1,18 +1,16 @@
 import * as React from 'react'
-import renderer from 'react-test-renderer'
+import { render } from '@testing-library/react'
 
 import BucketIcon from './'
 
 describe('components/BucketIcon', () => {
   it('should render default when no src', () => {
-    const tree = renderer.create(<BucketIcon alt="No src" src="" />).toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<BucketIcon alt="No src" src="" />)
+    expect(container.firstChild).toMatchSnapshot()
   })
   it('should render custom src', () => {
-    const tree = renderer
-      .create(<BucketIcon alt="Custom src" src="https://custom-src" />)
-      .toJSON()
-    expect(tree).toMatchSnapshot()
+    const { container } = render(<BucketIcon alt="Custom src" src="https://custom-src" />)
+    expect(container.firstChild).toMatchSnapshot()
   })
   describe('class names', () => {
     const className = 'A'
@@ -21,42 +19,32 @@ describe('components/BucketIcon', () => {
       stub: 'S',
     }
     it('should apply className', () => {
-      const tree = renderer
-        .create(
-          <BucketIcon
-            alt="Set className"
-            className={className}
-            src="https://custom-src"
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <BucketIcon alt="Set className" className={className} src="https://custom-src" />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
     it('should apply `` className if src is set', () => {
-      const tree = renderer
-        .create(
-          <BucketIcon
-            alt="Custom className"
-            className={className}
-            classes={classes}
-            src="https://custom-src"
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <BucketIcon
+          alt="Custom className"
+          className={className}
+          classes={classes}
+          src="https://custom-src"
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
     it('should apply `stub` className if no src', () => {
-      const tree = renderer
-        .create(
-          <BucketIcon
-            alt="Stub className"
-            className={className}
-            classes={classes}
-            src=""
-          />,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      const { container } = render(
+        <BucketIcon
+          alt="Stub className"
+          className={className}
+          classes={classes}
+          src=""
+        />,
+      )
+      expect(container.firstChild).toMatchSnapshot()
     })
   })
 })

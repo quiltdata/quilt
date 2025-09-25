@@ -2,103 +2,73 @@
 
 exports[`components/Buttons/Iconized render contained 1`] = `
 <button
-  className="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedSizeSmall MuiButton-sizeSmall"
-  disabled={false}
-  onBlur={[Function]}
-  onDragLeave={[Function]}
-  onFocus={[Function]}
-  onKeyDown={[Function]}
-  onKeyUp={[Function]}
-  onMouseDown={[Function]}
-  onMouseLeave={[Function]}
-  onMouseUp={[Function]}
-  onTouchEnd={[Function]}
-  onTouchMove={[Function]}
-  onTouchStart={[Function]}
-  tabIndex={0}
+  class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
   type="button"
 >
   <span
-    className="MuiButton-label"
+    class="MuiButton-label"
   >
     <span
-      className="MuiButton-startIcon MuiButton-iconSizeSmall"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
       <span
-        aria-hidden={true}
-        className="material-icons MuiIcon-root makeStyles-root-1"
+        aria-hidden="true"
+        class="material-icons MuiIcon-root makeStyles-root-5"
       >
         ac_unit
       </span>
     </span>
     A
   </span>
+  <span
+    class="MuiTouchRipple-root"
+  />
 </button>
 `;
 
 exports[`components/Buttons/Iconized render icon and label 1`] = `
 <button
-  className="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
-  disabled={false}
-  onBlur={[Function]}
-  onDragLeave={[Function]}
-  onFocus={[Function]}
-  onKeyDown={[Function]}
-  onKeyUp={[Function]}
-  onMouseDown={[Function]}
-  onMouseLeave={[Function]}
-  onMouseUp={[Function]}
-  onTouchEnd={[Function]}
-  onTouchMove={[Function]}
-  onTouchStart={[Function]}
-  tabIndex={0}
+  class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
   type="button"
 >
   <span
-    className="MuiButton-label"
+    class="MuiButton-label"
   >
     <span
-      className="MuiButton-startIcon MuiButton-iconSizeSmall"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
       <span
-        aria-hidden={true}
-        className="material-icons MuiIcon-root makeStyles-root-1"
+        aria-hidden="true"
+        class="material-icons MuiIcon-root makeStyles-root-1"
       >
         ac_unit
       </span>
     </span>
     A
   </span>
+  <span
+    class="MuiTouchRipple-root"
+  />
 </button>
 `;
 
 exports[`components/Buttons/Iconized render rotated 1`] = `
 <button
-  className="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
-  disabled={false}
-  onBlur={[Function]}
-  onDragLeave={[Function]}
-  onFocus={[Function]}
-  onKeyDown={[Function]}
-  onKeyUp={[Function]}
-  onMouseDown={[Function]}
-  onMouseLeave={[Function]}
-  onMouseUp={[Function]}
-  onTouchEnd={[Function]}
-  onTouchMove={[Function]}
-  onTouchStart={[Function]}
-  tabIndex={0}
+  class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
   type="button"
 >
   <span
-    className="MuiButton-label"
+    class="MuiButton-label"
   >
     <span
-      className="MuiButton-startIcon MuiButton-iconSizeSmall"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
       <span
-        aria-hidden={true}
-        className="material-icons MuiIcon-root makeStyles-root-1 makeStyles-rotated-2"
+        aria-hidden="true"
+        class="material-icons MuiIcon-root makeStyles-root-3 makeStyles-rotated-4"
       >
         ac_unit
       </span>
@@ -106,38 +76,26 @@ exports[`components/Buttons/Iconized render rotated 1`] = `
     A
   </span>
   <span
-    className="MuiTouchRipple-root"
+    class="MuiTouchRipple-root"
   />
 </button>
 `;
 
 exports[`components/Buttons/Iconized render with SvgIcon component 1`] = `
 <button
-  className="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
-  disabled={false}
-  onBlur={[Function]}
-  onDragLeave={[Function]}
-  onFocus={[Function]}
-  onKeyDown={[Function]}
-  onKeyUp={[Function]}
-  onMouseDown={[Function]}
-  onMouseLeave={[Function]}
-  onMouseUp={[Function]}
-  onTouchEnd={[Function]}
-  onTouchMove={[Function]}
-  onTouchStart={[Function]}
-  tabIndex={0}
+  class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  tabindex="0"
   type="button"
 >
   <span
-    className="MuiButton-label"
+    class="MuiButton-label"
   >
     <span
-      className="MuiButton-startIcon MuiButton-iconSizeSmall"
+      class="MuiButton-startIcon MuiButton-iconSizeSmall"
     >
       <svg
-        aria-hidden={true}
-        className="MuiSvgIcon-root makeStyles-root-1"
+        aria-hidden="true"
+        class="MuiSvgIcon-root makeStyles-root-7"
         focusable="false"
         viewBox="0 0 24 24"
       >
@@ -149,7 +107,7 @@ exports[`components/Buttons/Iconized render with SvgIcon component 1`] = `
     Add Item
   </span>
   <span
-    className="MuiTouchRipple-root"
+    class="MuiTouchRipple-root"
   />
 </button>
 `;
