@@ -10,7 +10,15 @@ import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as workflows from 'utils/workflows'
 
-import * as PD from './PackageDialog'
+import PDDialogError from './DialogError'
+import PDDialogLoading from './DialogLoading'
+import PDDialogSuccess from './DialogSuccess'
+import * as Inputs from './Inputs'
+import * as Layout from './Layout'
+import * as Skeleton from './Skeleton'
+import * as State from './State'
+import { isPackageHandle } from './State/manifest'
+import SubmitSpinner from './SubmitSpinner'
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
   meta: {
@@ -27,10 +35,10 @@ function FormSkeleton({ animate }: FormSkeletonProps) {
 
   return (
     <>
-      <PD.WorkflowsInputSkeleton animate={animate} />
-      <PD.TextFieldSkeleton animate={animate} />
-      <PD.TextFieldSkeleton animate={animate} />
-      <PD.MetaInputSkeleton className={classes.meta} animate={animate} />
+      <Skeleton.WorkflowsInputSkeleton animate={animate} />
+      <Skeleton.TextFieldSkeleton animate={animate} />
+      <Skeleton.TextFieldSkeleton animate={animate} />
+      <Skeleton.MetaInputSkeleton className={classes.meta} animate={animate} />
     </>
   )
 }
@@ -103,18 +111,18 @@ function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
     src,
     workflow,
     workflowsConfig,
-  } = PD.useContext()
+  } = State.useContext()
   const classes = useStyles()
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
-  const dialogContentClasses = PD.useContentStyles({ metaHeight })
+  const dialogContentClasses = Layout.useContentStyles({ metaHeight })
 
   const handleCopy = React.useCallback(
     (event: React.FormEvent) => {
       event.preventDefault()
       invariant(src, 'Package handle must be provided')
-      invariant(PD.isPackageHandle(src), 'Full package handle with hash must be provided')
+      invariant(isPackageHandle(src), 'Full package handle with hash must be provided')
       const destPrefix = successor.copyData && cfg.packageRoot ? cfg.packageRoot : null
       copy(src, destPrefix)
     },
@@ -126,15 +134,15 @@ function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
       <DialogTitle bucket={successor.slug} />
       <M.DialogContent classes={dialogContentClasses}>
         <form className={classes.form} onSubmit={handleCopy}>
-          <PD.Inputs.Workflow
+          <Inputs.Workflow
             formStatus={formStatus}
             schema={metadataSchema}
             state={workflow}
             config={workflowsConfig}
           />
-          <PD.Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
-          <PD.Inputs.Message formStatus={formStatus} state={message} />
-          <PD.Inputs.Meta
+          <Inputs.Name formStatus={formStatus} state={name} setSrc={setSrc} />
+          <Inputs.Message formStatus={formStatus} state={message} />
+          <Inputs.Meta
             formStatus={formStatus}
             schema={metadataSchema}
             state={meta}
@@ -145,11 +153,11 @@ function PackageCopyForm({ close, successor }: PackageCopyFormProps) {
       </M.DialogContent>
       <M.DialogActions>
         {formStatus._tag === 'submitting' && (
-          <PD.SubmitSpinner value={progress.percent}>
+          <SubmitSpinner value={progress.percent}>
             {successor.copyData
               ? 'Copying files and writing manifest'
               : 'Writing manifest'}
-          </PD.SubmitSpinner>
+          </SubmitSpinner>
         )}
 
         {formStatus._tag === 'error' && !!formStatus.error && (
@@ -181,7 +189,7 @@ function DialogError({ bucket, error }: DialogErrorProps) {
   const { urls } = NamedRoutes.use()
 
   return (
-    <PD.DialogError
+    <PDDialogError
       error={error}
       skeletonElement={<FormSkeleton animate={false} />}
       title={
@@ -206,7 +214,7 @@ function DialogLoading({ bucket }: DialogLoadingProps) {
   const { urls } = NamedRoutes.use()
 
   return (
-    <PD.DialogLoading
+    <PDDialogLoading
       skeletonElement={<FormSkeleton />}
       title={
         <>
@@ -236,7 +244,7 @@ function RenderDialog({ close, state, successor }: RenderDialogProps) {
       return <DialogError bucket={successor.slug} error={state.error} />
     case 'success':
       return (
-        <PD.DialogSuccess
+        <PDDialogSuccess
           name={state.name}
           hash={state.hash}
           bucket={state.bucket}
@@ -265,7 +273,7 @@ export default function PackageCopyDialog({
   successor,
   onClose,
 }: PackageCopyDialogProps) {
-  const { formStatus, workflowsConfig, manifest, setOpen } = PD.useContext()
+  const { formStatus, workflowsConfig, manifest, setOpen } = State.useContext()
 
   React.useEffect(() => {
     setOpen(!!successor)

@@ -36,7 +36,6 @@ import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import * as Listing from '../Listing'
-import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
 import * as Selection from '../Selection'
@@ -917,7 +916,7 @@ function PackageRevision({
   return (
     <>
       <PD.Provider src={packageHandle} dst={copyDst}>
-        <PackageCopyDialog successor={successor} onClose={closeCopyDialog} />
+        <PD.Copy successor={successor} onClose={closeCopyDialog} />
       </PD.Provider>
       <ResolverProvider packageHandle={packageHandle}>
         {isDir ? (
