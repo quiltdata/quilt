@@ -21,58 +21,58 @@ When implementing, follow the existing patterns in the codebase:
 ### 1.1 Create ContextFiles.ts
 **File:** `app/components/Assistant/Model/ContextFiles.ts`
 
-- [ ] Import required dependencies:
+- [x] Import required dependencies:
   - `Effect` from 'effect'
   - `S3` from AWS SDK
   - `XML` utilities
-- [ ] Define interfaces:
+- [x] Define interfaces:
   - `ContextFileContent` with path, content, truncated fields
   - `ContextFileOptions` with max size, timeout
-- [ ] Implement `loadContextFile(s3, bucket, path)`:
+- [x] Implement `loadContextFile(s3, bucket, path)`:
   - Use `s3.getObject()` to fetch README.md
   - Handle 404 errors gracefully (return null)
   - Truncate content if > MAX_CONTEXT_FILE_SIZE (100KB)
   - Return content with metadata
-- [ ] Implement `buildPathChain(currentPath, stopAt?)`:
+- [x] Implement `buildPathChain(currentPath, stopAt?)`:
   - Split path by '/' separator
   - Build array from current to root
   - Stop at specified path if provided
   - Example: 'a/b/c' → ['a/b/c', 'a/b', 'a']
-- [ ] Implement `loadContextFileHierarchy(s3, bucket, currentPath, stopAt?)`:
+- [x] Implement `loadContextFileHierarchy(s3, bucket, currentPath, stopAt?)`:
   - Build path chain using `buildPathChain`
   - Load README.md from each path in parallel
   - Filter out nulls (missing files)
   - Return array ordered by specificity
-- [ ] Implement `buildPackagePathChain(packagePath, packageRoot)`:
+- [x] Implement `buildPackagePathChain(packagePath, packageRoot)`:
   - Build chain within package first
   - Add package as child of bucket
   - Exclude bucket root (handled separately)
-- [ ] Export all functions and types
+- [x] Export all functions and types
 
 ## Task 2: Create Bucket Root Context Provider
 
 ### 2.1 Create Bucket AssistantContext
 **File:** `app/containers/Bucket/AssistantContext.tsx`
 
-- [ ] Import dependencies:
+- [x] Import dependencies:
   - `Assistant` from 'components/Assistant'
   - `ContextFiles` module
   - `AWS` for S3 access
   - `XML` utilities
-- [ ] Create `BucketContext` using `Assistant.Context.LazyContext`:
-  - Accept props: `{ bucket, s3 }`
+- [x] Create `BucketContext` using `Assistant.Context.LazyContext`:
+  - Accept props: `{ bucket }`
   - Load README.md from bucket root using `loadContextFile`
   - Format as XML with path="/README.md"
   - Return messages array and marker `bucketContextFilesReady`
-- [ ] Export `BucketContext`
+- [x] Export `BucketContext`
 
 ### 2.2 Integrate into Bucket component
 **File:** `app/containers/Bucket/Bucket.tsx`
 
-- [ ] Import `AssistantContext` from './AssistantContext'
-- [ ] Add `<AssistantContext.BucketContext>` component
-- [ ] Pass bucket name and s3 client as props
-- [ ] Place appropriately in component tree
+- [x] Import `AssistantContext` from './AssistantContext'
+- [x] Add `<AssistantContext.BucketContext>` component
+- [x] Pass bucket name as props
+- [x] Place appropriately in component tree
 
 ## Task 3: Enhance Directory Context
 
