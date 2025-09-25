@@ -36,8 +36,12 @@ export const BucketContext = Assistant.Context.LazyContext(
 
     const messages = React.useMemo(() => {
       if (!contextFiles || contextFiles.length === 0) return []
-      return ContextFiles.formatContextFilesAsMessages(contextFiles)
-    }, [contextFiles])
+      const attrs: ContextFiles.ContextFileAttributes = {
+        scope: 'bucket',
+        bucket,
+      }
+      return ContextFiles.formatContextFilesAsMessages(contextFiles, attrs)
+    }, [contextFiles, bucket])
 
     return {
       markers: { bucketContextFilesReady: !loading && contextFiles !== null },

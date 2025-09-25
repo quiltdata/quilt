@@ -107,20 +107,41 @@ export function buildPackagePathChain(
   return paths
 }
 
-export function formatContextFileAsXML(content: ContextFileContent): string {
+export interface ContextFileAttributes {
+  scope: 'bucket' | 'package'
+  bucket: string
+  packageName?: string
+}
+
+export function formatContextFileAsXML(
+  content: ContextFileContent,
+  attrs?: ContextFileAttributes,
+): string {
   const truncatedNote = content.truncated
     ? `\n[Content truncated at ${MAX_CONTEXT_FILE_SIZE}B]`
     : ''
 
-  return XML.tag(
-    'context-file',
-    { path: content.path, truncated: content.truncated.toString() },
-    content.content + truncatedNote,
-  ).toString()
+  const xmlAttrs: Record<string, string> = {
+    path: content.path,
+    truncated: content.truncated.toString(),
+  }
+
+  if (attrs) {
+    xmlAttrs.scope = attrs.scope
+    xmlAttrs.bucket = attrs.bucket
+    if (attrs.packageName) {
+      xmlAttrs['package-name'] = attrs.packageName
+    }
+  }
+
+  return XML.tag('context-file', xmlAttrs, content.content + truncatedNote).toString()
 }
 
-export function formatContextFilesAsMessages(files: ContextFileContent[]): string[] {
+export function formatContextFilesAsMessages(
+  files: ContextFileContent[],
+  attrs?: ContextFileAttributes,
+): string[] {
   if (files.length === 0) return []
 
-  return files.map(formatContextFileAsXML)
+  return files.map((file) => formatContextFileAsXML(file, attrs))
 }

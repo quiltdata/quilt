@@ -54,6 +54,34 @@ When viewing `bucket/packages/my-package@v1.2.3/analysis/`:
 
 README.md files can contain anything.
 
+#### XML Context Representation
+
+Context files are represented in XML with attributes to identify their source:
+
+```xml
+<context-file
+  path="/data/README.md"
+  truncated="false"
+  scope="bucket"
+  bucket="my-bucket">
+  [README content here]
+</context-file>
+
+<context-file
+  path="/analysis/README.md"
+  truncated="false"
+  scope="package"
+  bucket="my-bucket"
+  package-name="my-package">
+  [README content here]
+</context-file>
+```
+
+Attributes:
+- `scope`: Either "bucket" or "package" to indicate the context source
+- `bucket`: The bucket name where the file resides
+- `package-name`: (For package scope only) The package name
+
 ### 2. Enhanced Context Instrumentation
 
 Add context providers for:

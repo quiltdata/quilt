@@ -91,8 +91,13 @@ export const PackageRootContext = Assistant.Context.LazyContext(
 
     const messages = React.useMemo(() => {
       if (!contextFile) return []
-      return [ContextFiles.formatContextFileAsXML(contextFile)]
-    }, [contextFile])
+      const attrs: ContextFiles.ContextFileAttributes = {
+        scope: 'package',
+        bucket,
+        packageName: name,
+      }
+      return [ContextFiles.formatContextFileAsXML(contextFile, attrs)]
+    }, [contextFile, bucket, name])
 
     return {
       markers: { packageContextFilesReady: !loading },
@@ -180,8 +185,13 @@ export const PackageDirContext = Assistant.Context.LazyContext(
 
     const messages = React.useMemo(() => {
       if (!contextFiles || contextFiles.length === 0) return []
-      return ContextFiles.formatContextFilesAsMessages(contextFiles)
-    }, [contextFiles])
+      const attrs: ContextFiles.ContextFileAttributes = {
+        scope: 'package',
+        bucket,
+        packageName: name,
+      }
+      return ContextFiles.formatContextFilesAsMessages(contextFiles, attrs)
+    }, [contextFiles, bucket, name])
 
     return {
       markers: { packageDirContextFilesReady: !loading && contextFiles !== null },

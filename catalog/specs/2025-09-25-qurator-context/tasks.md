@@ -48,6 +48,8 @@ When implementing, follow the existing patterns in the codebase:
   - Add package as child of bucket
   - Exclude bucket root (handled separately)
 - [x] Export all functions and types
+- [x] Add `ContextFileAttributes` interface with scope, bucket, packageName
+- [x] Update `formatContextFileAsXML` to accept optional attributes
 
 ## Task 2: Create Bucket Root Context Provider
 
@@ -154,6 +156,13 @@ When implementing, follow the existing patterns in the codebase:
 - [x] For FileDisplay:
   - Add `PackageDirContext` with parent directory path
 - [x] Pass appropriate props to each context
+
+### 5.3 Add Context Scope Attributes (Additional Enhancement)
+- [x] Update `formatContextFileAsXML` to accept attributes
+- [x] Add scope="bucket" to all bucket context files
+- [x] Add scope="package" to all package context files
+- [x] Include bucket attribute on all context files
+- [x] Include package-name attribute on package context files
 
 ## Task 6: Testing and Validation
 

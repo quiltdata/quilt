@@ -156,18 +156,36 @@ const contextFiles = usePackageContextFileHierarchy(bucket, packageName, package
 ## Context Message Format
 
 ```xml
-<context-file path="/data/experiments/README.md" truncated="false">
+<!-- Bucket context file -->
+<context-file
+  path="/data/experiments/README.md"
+  truncated="false"
+  scope="bucket"
+  bucket="my-bucket">
 # Experiments Data
 
 This directory contains experimental results...
 </context-file>
 
-<context-file path="/data/README.md" truncated="true">
-# Data Directory
+<!-- Package context file -->
+<context-file
+  path="/analysis/README.md"
+  truncated="true"
+  scope="package"
+  bucket="my-bucket"
+  package-name="my-package">
+# Analysis Directory
 
 [Content truncated at 100000B]
 </context-file>
 ```
+
+### Attributes:
+- `path`: File path within its scope
+- `truncated`: Whether content was truncated
+- `scope`: Either "bucket" or "package"
+- `bucket`: The bucket name
+- `package-name`: (Package scope only) The package name
 
 ## Markers Summary
 
