@@ -79,23 +79,23 @@ When implementing, follow the existing patterns in the codebase:
 ### 3.1 Update DirAssistantContext
 **File:** `app/containers/Bucket/DirAssistantContext.ts`
 
-- [ ] Import `ContextFiles` module
-- [ ] Add new context provider `DirContextFiles`:
-  - Accept props: `{ bucket, path, s3 }`
+- [x] Import `ContextFiles` module
+- [x] Add new context provider `DirContextFiles`:
+  - Accept props: `{ bucket, path }`
   - Use `loadContextFileHierarchy` to load README chain
   - Stop at bucket root (don't reload root README)
   - Format each file as XML `<context-file>`
   - Add marker `dirContextFilesReady`
-- [ ] Export both `ListingContext` and `DirContextFiles`
+- [x] Export both `ListingContext` and `DirContextFiles`
 
 ### 3.2 Integrate into Dir component
 **File:** `app/containers/Bucket/Dir.tsx`
 
-- [ ] Import updated `AssistantContext`
-- [ ] Get S3 client using `AWS.S3.use()`
-- [ ] Add `<AssistantContext.DirContextFiles>` component
-- [ ] Pass bucket, path, and s3 as props
-- [ ] Place alongside existing `ListingContext`
+- [x] Import updated `AssistantContext`
+- [x] Get S3 client using `AWS.S3.use()` (in the context itself)
+- [x] Add `<AssistantContext.DirContextFiles>` component
+- [x] Pass bucket, path as props
+- [x] Place alongside existing `ListingContext`
 
 ## Task 4: Enhance File Context
 

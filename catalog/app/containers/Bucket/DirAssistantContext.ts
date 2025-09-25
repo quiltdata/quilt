@@ -2,6 +2,8 @@ import * as Eff from 'effect'
 import * as React from 'react'
 
 import * as Assistant from 'components/Assistant'
+import * as ContextFiles from 'components/Assistant/Model/ContextFiles'
+import * as AWS from 'utils/AWS'
 import * as XML from 'utils/XML'
 
 import type { BucketListingResult } from './requests'
@@ -52,6 +54,55 @@ export const ListingContext = Assistant.Context.LazyContext(
     return {
       markers: { listingReady: Eff.Option.isSome(msg) },
       messages: Eff.Option.toArray(msg),
+    }
+  },
+)
+
+interface DirContextFilesProps {
+  bucket: string
+  path: string
+}
+
+export const DirContextFiles = Assistant.Context.LazyContext(
+  ({ bucket, path }: DirContextFilesProps) => {
+    const s3 = AWS.S3.use()
+    const [contextFiles, setContextFiles] = React.useState<
+      ContextFiles.ContextFileContent[] | null
+    >(null)
+    const [loading, setLoading] = React.useState(true)
+
+    React.useEffect(() => {
+      const loadContextFiles = async () => {
+        setLoading(true)
+        try {
+          // Load hierarchy from current path up to (but excluding) bucket root
+          const files = await ContextFiles.loadContextFileHierarchy(
+            s3,
+            bucket,
+            path,
+            '', // Stop at bucket root (empty string)
+          )
+          setContextFiles(files)
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Error loading directory context files:', error)
+          setContextFiles([])
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      loadContextFiles()
+    }, [bucket, path, s3])
+
+    const messages = React.useMemo(() => {
+      if (!contextFiles || contextFiles.length === 0) return []
+      return ContextFiles.formatContextFilesAsMessages(contextFiles)
+    }, [contextFiles])
+
+    return {
+      markers: { dirContextFilesReady: !loading && contextFiles !== null },
+      messages,
     }
   },
 )

@@ -51,12 +51,14 @@ export function buildPathChain(currentPath: string, stopAt?: string): string[] {
 
   for (let i = segments.length; i > 0; i--) {
     const path = segments.slice(0, i).join('/')
-    if (stopAt && path === stopAt) break
+    if (stopAt !== undefined && path === stopAt) break
     paths.push(path)
   }
 
   // Add root if not stopping at it
-  if (!stopAt || stopAt !== '') {
+  // stopAt === undefined means include root
+  // stopAt === '' means exclude root
+  if (stopAt === undefined) {
     paths.push('')
   }
 
