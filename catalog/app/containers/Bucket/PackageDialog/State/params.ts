@@ -17,6 +17,7 @@ export type FormParams =
       _tag: 'ok'
       params: {
         bucket: string
+
         message: string
         name: string
         userMeta: Types.JsonRecord | null

@@ -13,11 +13,12 @@ export type FormStatus =
       _tag: 'error'
       error: Error
       fields?: {
-        workflow?: Error
-        meta?: Error
         files?: Error
+
         message?: Error
         name?: Error
+        userMeta?: Error
+        workflow?: Error
       }
     }
   | { _tag: 'success'; handle: PackageHandle }
