@@ -7,12 +7,12 @@ import * as SearchUIModel from 'containers/Search/model'
 import * as NoResults from 'containers/Search/NoResults'
 import StyledLink from 'utils/StyledLink'
 
-import { usePackageCreationDialog } from './PackageDialog/PackageCreationForm'
+import useCreateDialog from './PackageDialog/Create'
 
 const EXAMPLE_PACKAGE_URL = `${docs}/walkthrough/editing-a-package`
 
 function CreatePackage() {
-  const createDialog = usePackageCreationDialog({
+  const createDialog = useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
   })

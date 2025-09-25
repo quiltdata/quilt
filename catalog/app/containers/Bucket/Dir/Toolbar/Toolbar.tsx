@@ -7,7 +7,7 @@ import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
 
 import * as Toolbar from 'containers/Bucket/Toolbar'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog'
+import { useCreateDialog } from 'containers/Bucket/PackageDialog'
 import * as Selection from 'containers/Bucket/Selection'
 import ToolbarErrorBoundary from 'containers/Bucket/Toolbar/ErrorBoundary'
 
@@ -68,7 +68,7 @@ function DirToolbar({ className, features, handle, onReload }: DirToolbarProps) 
 
   const { path, bucket } = handle
 
-  const packageDirectoryDialog = usePackageCreationDialog({
+  const packageDirectoryDialog = useCreateDialog({
     s3Path: path,
     delayHashing: true,
     disableStateDisplay: true,

@@ -3,7 +3,7 @@ import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
 import * as AddToPackage from 'containers/AddToPackage'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import useCreateDialog from 'containers/Bucket/PackageDialog/Create'
 
 import type * as requests from './model/requests'
 import {
@@ -31,7 +31,7 @@ export default function CreatePackage({ queryResults }: CreatePackageProps) {
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
-  const createDialog = usePackageCreationDialog({
+  const createDialog = useCreateDialog({
     delayHashing: true,
     disableStateDisplay: true,
   })
